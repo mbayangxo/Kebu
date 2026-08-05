@@ -79,9 +79,18 @@ export function AlkebulanWordmark({ size = 40, className = "" }: MarkProps) {
   );
 }
 
-// ── Legacy aliases — keep old names so other pages don't break ───────────────
+// ── Legacy / brand aliases — keep old + Kebu names so imports don't break ────
 
 export function AlkebulanCrest({ size = 80, className = "" }: MarkProps) {
+  return <AlkebulanLion size={size} className={className} />;
+}
+
+/** Brand rename alias — same mark as AlkebulanCrest / AlkebulanLion */
+export function KebuCrest({ size = 80, className = "" }: MarkProps) {
+  return <AlkebulanLion size={size} className={className} />;
+}
+
+export function KebuLion({ size = 80, className = "" }: MarkProps) {
   return <AlkebulanLion size={size} className={className} />;
 }
 
