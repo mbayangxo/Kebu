@@ -1,0 +1,34 @@
+---
+description: Mandatory inspect → report → implement → verify → adversarial audit workflow
+alwaysApply: true
+---
+
+# Kebu — Task Workflow
+
+For every assigned feature (never invent scope):
+
+## A. Inspect first (no edits)
+
+UI, components, state, APIs, services, DB, migrations, authn/authz, jobs, providers, tests, deploy config.
+
+## B. Report before coding
+
+Exists · missing · broken · disconnected · files to change · DB changes · risks · end-to-end flow · acceptance criteria.
+
+## C. One vertical slice
+
+User action → FE validation → authenticated request → authorization → business logic → DB → response → UI → **refresh verification**.
+
+## D–E. Test and manually verify
+
+Unit + integration + E2E (critical) · typecheck · lint · production build · valid/invalid/logged-out/wrong-user/network/duplicate/refresh/mobile/DB/logs.
+
+## F. Adversarial self-audit
+
+Frontend-only · disconnected API · missing writes · fake success · missing authz · cross-user leaks · races · duplicate requests · broken refresh · weak tests · skipped requirements. Repair before claiming progress.
+
+## G. Completion report
+
+Implemented · files · migrations · data flow · security · tests + commands + results · build · manual · DB · limitations · unfinished requirements.
+
+When asked to audit only: **read-only**; severity-ranked defects; no code changes until assigned repair.

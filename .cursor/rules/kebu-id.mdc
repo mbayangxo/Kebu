@@ -1,0 +1,41 @@
+---
+description: Kebu ID business identity — separate from personal eligibility
+alwaysApply: true
+---
+
+# KEBU ID — BUSINESS IDENTITY SYSTEM
+
+Kebu ID is the permanent digital identity assigned to a business inside Kebu.
+
+Kebu ID is not the user’s personal identity and is not the mechanism used to verify whether a user is eligible to join Kebu.
+
+## Keep these systems separate
+
+1. **Personal Account** — individual user (name, contact, country, languages, skills, profile, roles, eligibility status, security).
+2. **User Eligibility Verification** — whether the individual may access restricted Kebu services. States: unverified | pending | verified | rejected | expired | suspended | manual_review. Never treat a business ID as proof of personal eligibility.
+3. **Kebu ID** — business / org / startup / cooperative / nonprofit / institution / registered commercial activity. One unique public ID per business (e.g. `KEBU-SN-01-A7K92P`). Non-sequential, hard to enumerate. Internal PK = UUID.
+
+## Purpose
+
+Kebu ID connects the business across profile, founders/team, registration, documents, store, payments, K21, analytics, funding, reputation — one trusted identity, not disconnected merchant/store/funding profiles.
+
+## Creation & levels (never display higher than backend confirms)
+
+- Created when user starts informal profile, registers, connects existing company, coop, nonprofit, institution, or via gov integration.
+- Level 1 Draft · Level 2 Kebu-verified · Level 3 Government-registered · Level 4 Enhanced DD
+
+## Ownership
+
+Multi-person roles (founder, cofounder, beneficial_owner, director, administrator, finance_manager, store_manager, developer, designer, employee, accountant, legal_representative, viewer). Server-side RBAC. No self-elevation via browser. Ownership %, invitations, removals, multi-person auth, full audit.
+
+## Country modules
+
+Country-specific legal structures/fields/docs — versioned modules; do not hard-code Senegal into the global core.
+
+## Security
+
+Server ownership checks · RBAC · private docs + signed URLs · audit · fraud flags · duplicate detection · rate limits · secure invites · reauth for sensitive actions · MFA where required · idempotent create. Public Kebu ID must not leak private records.
+
+## Slice discipline
+
+One vertical slice at a time. Slice 1 = draft business create + founder + audit + dashboard load. Do **not** implement government registration, stores, payments, team invites, or verification upgrades in Slice 1.

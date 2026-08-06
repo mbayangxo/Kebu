@@ -80,8 +80,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Protect onboarding + Create Mode UI — requires auth
-  if (!user && (pathname === "/onboarding" || pathname.startsWith("/create"))) {
+  // Protect onboarding + Create Mode + Kebu ID business UI — requires auth
+  if (
+    !user &&
+    (pathname === "/onboarding" ||
+      pathname.startsWith("/create") ||
+      pathname.startsWith("/business"))
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);

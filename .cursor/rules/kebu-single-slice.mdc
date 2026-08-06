@@ -1,0 +1,20 @@
+---
+description: Kebu single-slice execution — one vertical slice only
+alwaysApply: true
+---
+
+# KEBU SINGLE-SLICE EXECUTION RULE
+
+Implement **only** the assigned vertical slice.
+
+- Do not begin later slices.
+- Do not placeholder future slices.
+- Do not modify unrelated systems unless required.
+
+Workflow: inspect → report (exists/missing/files/DB/authz/flow/acceptance/tests/risks) → implement complete path → test → manual verify → adversarial audit → repair → completion report.
+
+Complete path: user action → FE → validation → authenticated request → authz → business logic → DB → response → UI → refresh persistence.
+
+Forbidden: FE-only · unused APIs · fake success · memory-only save · hard-coded prod data · tests that mock away the behavior under test.
+
+Never say complete unless FE + BE + DB are connected and verified.
