@@ -1,0 +1,75 @@
+---
+description: KA Score — business readiness score (not personal, not official credit)
+alwaysApply: true
+---
+
+# KA SCORE — BUSINESS SCORE SYSTEM
+
+**Naming**
+
+- **Kebu ID** = which business this is (permanent digital identity).
+- **KA Score** = how that business is developing and performing.
+
+KA Score is connected to a **Kebu ID**. It evaluates the **business** — not the personal worth, ethnicity, intelligence, or character of founders.
+
+It is **not** a popularity score. It is **not initially** an official/regulated bank credit score. Do not describe it as a regulated credit score unless Kebu has legal authority, financial partnerships, compliance systems, and a validated methodology.
+
+It may later help eligible businesses access incubators, grants, investment, financing, supplier credit, trade, government programs, contracts, marketplace verification, partnerships, export support, and higher platform limits — always subject to separate review.
+
+## Purpose
+
+Answer: real/active? identity verified? consistent operations? reliable for customers? financially organized? fulfills orders? accurate records? compliant where applicable? sustainable growth? ready for funding/trade/contracts?
+
+Help the business **improve**, not merely rank or punish.
+
+Every score must include: current score · category/band · helping factors · hurting factors · missing information · recommended actions · calculated_at · data used · confidence level.
+
+## Bands
+
+Building · Developing · Established · Strong · Opportunity Ready
+
+High score does **not** guarantee funding, approval, or success.
+
+## Components (eventual weighted categories)
+
+1 Business Identity · 2 Activity · 3 Fulfillment/Reliability · 4 Financial Organization (explicit consent) · 5 Customer Strength · 6 Operational Health · 7 Compliance Readiness (do not penalize inapplicable requirements) · 8 Growth/Resilience · 9 Community/Trade Reliability · 10 Learning/Improvement (training alone must not outweigh real performance).
+
+Malicious review spikes must not destroy a score. Growth is not the only definition of health.
+
+## Explainability & confidence
+
+Never show only a bare number. Explain increases and limits in plain language. No material hidden factors without understandable explanation.
+
+Confidence: Low · Moderate · High. New/low-data ≠ automatic bad score — show “not enough verified information yet.” Separate: low score · insufficient data · missing verification · inactive.
+
+## Versions, fairness, funding
+
+Version every calculation; preserve history; never silently rewrite past scores.
+
+Appeals: view explanations · correct data · report errors · appeal · manual review · evidence · status. Forbidden inputs: race, ethnicity, religion, gender, politics, popularity, follower count alone, staff friendships, **purchasing a higher score**. Paid plans may unlock tools, never buy the score.
+
+KA Score may flag readiness for further review; it must **not** auto-approve funding. UI must state it is one input and does not guarantee approval.
+
+## Data model (normalized)
+
+`ka_scores` · `ka_score_versions` · `ka_score_categories` · `ka_score_factors` · `ka_score_events` · `ka_score_recommendations` · `ka_score_explanations` · `ka_score_appeals` · `ka_score_manual_reviews` · `ka_score_data_consents`
+
+Store overall + category scores + inputs/exclusions + confidence + explanations — not only the final number.
+
+## Security
+
+Private by default. Business-level authz · financial-data consent · audit · restricted admin · tamper-resistant events · redaction · rate limits · fraud monitoring. **Users cannot submit a score value from the browser.** Changes only via approved server-side calculation events.
+
+## Initial release (when built)
+
+Transparent **Business Readiness Score** from data already inside Kebu (profile, identity/registration, site/store, products, orders, fulfillment, records, customers, compliance checklist, improvement actions). For new businesses, show progress toward becoming scoreable — not a fake number.
+
+## First KA Score vertical slice (when assigned)
+
+Only: readiness profile for a real Kebu ID · server calc from approved fields · store score + factors + explanations · owner view + missing requirements · eligible field update → recalculation · history preserved · cross-business denied · browser cannot set score.
+
+**Do not** include lending, investment approval, customer reviews, K21 financial history, or government contract eligibility in that first slice.
+
+## Build order (mandatory)
+
+**Finish Kebu ID and real business records, roles, activity, store ops, and analytics before implementing KA Score.** Otherwise it would be a made-up number. Do not start KA Score work until that slice is explicitly assigned.

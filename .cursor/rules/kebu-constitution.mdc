@@ -23,6 +23,12 @@ Missing any applicable item = **incomplete**. Never say “done” for files-onl
 
 Account → profile/country → eligibility when required → website/store → template or AI → structured schema → visual edit → products (store) → preview → publish `*.kebu.africa` → optional custom domain → real visits/orders → merchant ops → optional K21 via payment adapter.
 
+## Business identity vs score
+
+- **Kebu ID** = permanent digital identity of the **business** (not personal eligibility).
+- **KA Score** = business readiness/performance score for that Kebu ID (not popularity; not initially an official credit score). See `kebu-ka-score.mdc`.
+- Build **Kebu ID + real activity/ops/analytics before KA Score**. A hard-coded score card is not KA Score.
+
 ## Architecture laws
 
 - Sites = **structured JSON → approved components → renderer** (AI does not inject arbitrary production code).
@@ -37,7 +43,7 @@ Account → profile/country → eligibility when required → website/store → 
 
 ## Phase order (do not skip)
 
-0 Audit → 1 Foundation → 2 Projects → 3 Builder → 4 AI gen → 5 Publish → 6 Stores → 7 Payments/K21 → 8 Analytics → 9 Domains → 10 Build My Country → 11 Learn → 12 Community → 13 Institutions.
+0 Audit → 1 Foundation (incl. Kebu ID) → 2 Projects → 3 Builder → 4 AI gen → 5 Publish → 6 Stores → 7 Payments/K21 → 8 Analytics → **then KA Score when assigned** → 9 Domains → 10 Build My Country → 11 Learn → 12 Community → 13 Institutions.
 
 ## Prohibited
 

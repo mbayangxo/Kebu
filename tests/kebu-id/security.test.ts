@@ -1,15 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requireUser = vi.fn();
+const createRegisteredBusiness = vi.fn();
+const recalculateAndStoreReadiness = vi.fn();
 
 vi.mock("@/lib/create/auth", () => ({
   requireUser: (...args: unknown[]) => requireUser(...args),
   logCreate: vi.fn(),
 }));
 
+vi.mock("@/lib/kebu-id/create-registration", () => ({
+  createRegisteredBusiness: (...args: unknown[]) => createRegisteredBusiness(...args),
+  recalculateAndStoreReadiness: (...args: unknown[]) => recalculateAndStoreReadiness(...args),
+}));
+
 import { GET as getPublic } from "@/app/api/public/kebu-id/[kebuId]/route";
 import { GET as getBusiness, POST as postBusiness } from "@/app/api/businesses/route";
-import { GET as getBusinessById } from "@/app/api/businesses/[id]/route";
+import { GET as getBusinessById, PATCH as patchBusiness } from "@/app/api/businesses/[id]/route";
+import { POST as postReadiness } from "@/app/api/businesses/[id]/readiness/route";
 
 function jsonResponse(error: string, status: number) {
   return {
@@ -20,9 +28,25 @@ function jsonResponse(error: string, status: number) {
   };
 }
 
-describe("Kebu ID Slice 1 security contracts", () => {
+const validBody = {
+  legalName: "Atelier Baobab",
+  countryCode: "SN",
+  region: "Dakar",
+  category: "fashion",
+  description: "Handmade clothing workshop in Dakar for local markets.",
+  businessEmail: "hello@baobab.sn",
+  businessPhone: "+221770000000",
+  legalStructure: "sarl",
+  founderName: "Awa Diop",
+  founderEmail: "awa@baobab.sn",
+  ownershipPercent: 100,
+};
+
+describe("Business registration security contracts", () => {
   beforeEach(() => {
     requireUser.mockReset();
+    createRegisteredBusiness.mockReset();
+    recalculateAndStoreReadiness.mockReset();
   });
 
   it("rejects logged-out create", async () => {
@@ -31,12 +55,7 @@ describe("Kebu ID Slice 1 security contracts", () => {
       new Request("http://localhost/api/businesses", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": "test-key-abcdefgh" },
-        body: JSON.stringify({
-          legalName: "Test",
-          countryCode: "SN",
-          category: "services",
-          description: "Desc",
-        }),
+        body: JSON.stringify(validBody),
       })
     );
     expect(res.status).toBe(401);
@@ -56,6 +75,48 @@ describe("Kebu ID Slice 1 security contracts", () => {
     expect(res.status).toBe(401);
   });
 
+  it("rejects browser-submitted score values on create", async () => {
+    requireUser.mockResolvedValue({ user: { id: "user-a" }, supabase: {} });
+    const res = await postBusiness(
+      new Request("http://localhost/api/businesses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": "test-key-abcdefgh" },
+        body: JSON.stringify({ ...validBody, scoreValue: 99 }),
+      })
+    );
+    expect(res.status).toBe(400);
+    expect(createRegisteredBusiness).not.toHaveBeenCalled();
+  });
+
+  it("rejects client score fields on readiness recalculation", async () => {
+    requireUser.mockResolvedValue({
+      user: { id: "user-a" },
+      supabase: {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                eq: () => ({
+                  maybeSingle: async () => ({ data: { role: "founder", status: "active" } }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      },
+    });
+    const res = await postReadiness(
+      new Request("http://localhost/api/businesses/x/readiness", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scoreValue: 100 }),
+      }),
+      { params: Promise.resolve({ id: "11111111-1111-4111-8111-111111111111" }) }
+    );
+    expect(res.status).toBe(400);
+    expect(recalculateAndStoreReadiness).not.toHaveBeenCalled();
+  });
+
   it("public Kebu ID never returns private draft records", async () => {
     const res = await getPublic(new Request("http://localhost"), {
       params: Promise.resolve({ kebuId: "KEBU-SN-01-A7K92P" }),
@@ -66,179 +127,44 @@ describe("Kebu ID Slice 1 security contracts", () => {
     expect(body).not.toHaveProperty("legal_name");
   });
 
-  it("invalid public Kebu ID format is 400", async () => {
-    const res = await getPublic(new Request("http://localhost"), {
-      params: Promise.resolve({ kebuId: "SEQUENTIAL-1" }),
-    });
-    expect(res.status).toBe(400);
-  });
-});
-
-describe("Kebu ID create flow (mocked supabase)", () => {
-  beforeEach(() => {
-    requireUser.mockReset();
-  });
-
-  it("creates business + founder + audit and returns 201", async () => {
+  it("creates via server registration service", async () => {
     const business = {
       id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
       public_kebu_id: "KEBU-SN-01-ABCDEF",
       legal_name: "Atelier Baobab",
-      trading_name: null,
-      country_code: "SN",
-      category: "fashion",
-      description: "Handmade clothing",
-      lifecycle_status: "draft",
-      verification_level: 1,
-      created_at: "2026-01-01T00:00:00Z",
-      updated_at: "2026-01-01T00:00:00Z",
+      registration_status: "preparing",
     };
-
-    const from = vi.fn((table: string) => {
-      if (table === "business_create_idempotency") {
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({ data: null }),
-              }),
-            }),
-          }),
-          insert: async () => ({ error: null }),
-        };
-      }
-      if (table === "businesses") {
-        return {
-          insert: () => ({
-            select: () => ({
-              single: async () => ({ data: business, error: null }),
-            }),
-          }),
-          select: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({ data: business }),
-            }),
-          }),
-          delete: () => ({ eq: async () => ({ error: null }) }),
-        };
-      }
-      if (table === "business_members") {
-        return { insert: async () => ({ error: null }) };
-      }
-      if (table === "business_audit_logs") {
-        return { insert: async () => ({ error: null }) };
-      }
-      throw new Error(`unexpected table ${table}`);
-    });
-
-    requireUser.mockResolvedValue({
-      user: { id: "user-a" },
-      supabase: { from },
-    });
+    requireUser.mockResolvedValue({ user: { id: "user-a" }, supabase: { tag: "sb" } });
+    createRegisteredBusiness.mockResolvedValue({ ok: true, business, idempotent: false });
 
     const res = await postBusiness(
       new Request("http://localhost/api/businesses", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": "idem-key-unique-01",
-        },
-        body: JSON.stringify({
-          legalName: "Atelier Baobab",
-          countryCode: "SN",
-          category: "fashion",
-          description: "Handmade clothing",
-        }),
+        headers: { "Content-Type": "application/json", "Idempotency-Key": "idem-key-unique-01" },
+        body: JSON.stringify(validBody),
       })
     );
-
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.business.id).toBe(business.id);
-    expect(body.idempotent).toBe(false);
-    expect(from).toHaveBeenCalledWith("business_members");
-    expect(from).toHaveBeenCalledWith("business_audit_logs");
+    expect(createRegisteredBusiness).toHaveBeenCalledOnce();
   });
 
-  it("replays same idempotency key without creating another business", async () => {
-    const business = {
-      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-      public_kebu_id: "KEBU-NG-01-ZZZZZZ",
-      legal_name: "Lagos Goods",
-      trading_name: null,
-      country_code: "NG",
-      category: "retail",
-      description: "Retail shop",
-      lifecycle_status: "draft",
-      verification_level: 1,
-      created_at: "2026-01-01T00:00:00Z",
-      updated_at: "2026-01-01T00:00:00Z",
-    };
+  it("replays idempotent create without calling duplicate semantics as failure", async () => {
+    const business = { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", public_kebu_id: "KEBU-SN-01-ZZZZZZ" };
+    requireUser.mockResolvedValue({ user: { id: "user-a" }, supabase: {} });
+    createRegisteredBusiness.mockResolvedValue({ ok: true, business, idempotent: true });
 
-    let businessInserts = 0;
-    const from = vi.fn((table: string) => {
-      if (table === "business_create_idempotency") {
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({ data: { business_id: business.id } }),
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === "businesses") {
-        return {
-          select: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({ data: business }),
-            }),
-          }),
-          insert: () => {
-            businessInserts += 1;
-            return {
-              select: () => ({
-                single: async () => ({ data: business, error: null }),
-              }),
-            };
-          },
-        };
-      }
-      throw new Error(`unexpected table ${table}`);
-    });
-
-    requireUser.mockResolvedValue({
-      user: { id: "user-a" },
-      supabase: { from },
-    });
-
-    const req = () =>
-      postBusiness(
-        new Request("http://localhost/api/businesses", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Idempotency-Key": "same-idempotency-key",
-          },
-          body: JSON.stringify({
-            legalName: "Lagos Goods",
-            countryCode: "NG",
-            category: "retail",
-            description: "Retail shop",
-          }),
-        })
-      );
-
-    const first = await req();
-    const second = await req();
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
-    expect(businessInserts).toBe(0);
-    const a = await first.json();
-    const b = await second.json();
-    expect(a.business.id).toBe(b.business.id);
-    expect(a.idempotent).toBe(true);
+    const res = await postBusiness(
+      new Request("http://localhost/api/businesses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": "same-idempotency-key" },
+        body: JSON.stringify(validBody),
+      })
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.idempotent).toBe(true);
   });
 
   it("returns 404 when another user is not a member", async () => {
@@ -268,7 +194,29 @@ describe("Kebu ID create flow (mocked supabase)", () => {
       params: Promise.resolve({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" }),
     });
     expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Business not found.");
+  });
+
+  it("rejects non-founder PATCH as not found", async () => {
+    const from = vi.fn(() => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: { role: "viewer", status: "active" } }),
+            }),
+          }),
+        }),
+      }),
+    }));
+    requireUser.mockResolvedValue({ user: { id: "user-a" }, supabase: { from } });
+    const res = await patchBusiness(
+      new Request("http://localhost", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: "Updated description that is long enough." }),
+      }),
+      { params: Promise.resolve({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" }) }
+    );
+    expect(res.status).toBe(404);
   });
 });

@@ -66,11 +66,11 @@ export default function BusinessListPage() {
             <span className="font-bold tracking-[0.12em]">KEBU ID</span>
           </Link>
           <Link
-            href="/business/new"
+            href="/business/register"
             className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
             style={{ background: "#00C851", color: "#0F0D33" }}
           >
-            New business
+            Register a Business
           </Link>
         </div>
       </header>
@@ -100,10 +100,10 @@ export default function BusinessListPage() {
           <div className="rounded-2xl px-6 py-12 text-center" style={{ border: "1px dashed #DDE0F0", background: "#fff" }}>
             <p className="font-semibold mb-2">No businesses yet</p>
             <p className="text-sm mb-6" style={{ color: "#6B5B45" }}>
-              Create a draft business to receive your first Kebu ID.
+              Register a draft business to receive your first Kebu ID.
             </p>
-            <Link href="/business/new" className="inline-block rounded-full px-6 py-3 text-sm font-bold" style={{ background: "#0F0D33", color: "#fff" }}>
-              Create draft business
+            <Link href="/business/register" className="inline-block rounded-full px-6 py-3 text-sm font-bold" style={{ background: "#0F0D33", color: "#fff" }}>
+              Register a Business
             </Link>
           </div>
         ) : (

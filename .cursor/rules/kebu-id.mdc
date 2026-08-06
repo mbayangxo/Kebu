@@ -19,6 +19,8 @@ Kebu ID is not the user’s personal identity and is not the mechanism used to v
 
 Kebu ID connects the business across profile, founders/team, registration, documents, store, payments, K21, analytics, funding, reputation — one trusted identity, not disconnected merchant/store/funding profiles.
 
+**Kebu ID** identifies the business. **KA Score** (see `kebu-ka-score.mdc`) measures how that business is developing. Do not invent KA Score numbers inside Kebu ID slices.
+
 ## Creation & levels (never display higher than backend confirms)
 
 - Created when user starts informal profile, registers, connects existing company, coop, nonprofit, institution, or via gov integration.
@@ -38,4 +40,6 @@ Server ownership checks · RBAC · private docs + signed URLs · audit · fraud 
 
 ## Slice discipline
 
-One vertical slice at a time. Slice 1 = draft business create + founder + audit + dashboard load. Do **not** implement government registration, stores, payments, team invites, or verification upgrades in Slice 1.
+One vertical slice at a time. Slice 1 = draft business create + founder + audit + dashboard load. Do **not** implement government registration, stores, payments, team invites, verification upgrades, or KA Score in Slice 1.
+
+KA Score comes only after real business records, roles, activity, store ops, and analytics exist — and only when that slice is assigned.
