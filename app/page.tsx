@@ -25,12 +25,12 @@ export default function LandingPage() {
               </span>
             </Link>
             <div className="hidden lg:flex items-center gap-5 text-[11px] font-semibold uppercase tracking-[0.14em]">
-              {[["My Path", "/path"], ["Matches", "/matches"], ["Industry", "/industry"], ["Programs", "/programs"]].map(([l, h]) => (
+              {[["Discover", "/build"], ["Industry", "/industry"], ["Path", "/path"], ["Store", "/store/new"]].map(([l, h]) => (
                 <Link key={h} href={h} className="text-white/60 hover:text-[#00C851] transition-colors">{l}</Link>
               ))}
               <span className="text-white/20">·</span>
-              <Link href="/build-business" className="flex items-center gap-2 bg-[#00C851] hover:bg-[#22D96A] text-[#0F0D33] font-bold px-5 py-2 rounded-full transition-colors">
-                <AlkebulanLion size={14} /> Kebu Builder
+              <Link href="/signup" className="flex items-center gap-2 bg-[#00C851] hover:bg-[#22D96A] text-[#0F0D33] font-bold px-5 py-2 rounded-full transition-colors">
+                <AlkebulanLion size={14} /> Enter the Cloud
               </Link>
             </div>
             <div className="lg:hidden flex items-center gap-3">
@@ -60,89 +60,88 @@ export default function LandingPage() {
               <AlkebulanLion size={28} />
               <span style={{ letterSpacing: "0.22em", color: "rgba(0,200,81,0.7)", fontSize: "10px" }}
                 className="font-semibold uppercase">
-                African Opportunity OS
+                The African Cloud
               </span>
             </div>
 
             {/* Main headline */}
             <h1 style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, letterSpacing: "-0.02em" }}
               className="font-bold text-white mb-8">
-              <span className="block text-[clamp(3rem,9vw,7.5rem)]">Africa is not</span>
-              <span className="block text-[clamp(3rem,9vw,7.5rem)]">behind.</span>
-              <span className="block text-[clamp(3rem,9vw,7.5rem)]" style={{ color: "#00C851" }}>Africa is early.</span>
+              <span className="block text-[clamp(2.75rem,8vw,6.5rem)]">One cloud</span>
+              <span className="block text-[clamp(2.75rem,8vw,6.5rem)]">to discover,</span>
+              <span className="block text-[clamp(2.75rem,8vw,6.5rem)]" style={{ color: "#00C851" }}>create, and sell.</span>
             </h1>
 
             {/* Sub-headline */}
             <p style={{ fontFamily: "var(--font-fraunces)", color: "rgba(255,255,255,0.5)", lineHeight: 1.3 }}
-              className="text-[clamp(1.4rem,3.5vw,2rem)] italic font-light mb-8 max-w-2xl">
-              The infrastructure is being built. The markets are forming.
-              The wealth is being created — right now, all around you.
+              className="text-[clamp(1.25rem,3vw,1.85rem)] italic font-light mb-8 max-w-2xl">
+              Kebu is the African Cloud for students, creators, and founders —
+              find real opportunities, build a business online, and launch a store.
             </p>
 
-            <p className="text-white/45 text-base max-w-xl leading-relaxed mb-3">
-              Most people living in Africa don&apos;t realise what they are sitting next to.
-              The industries around them. The markets being built. The paths that already exist.
-            </p>
             <p className="text-white/45 text-base max-w-xl leading-relaxed mb-12">
-              Kebu opens your eyes. Then shows you exactly how to move.
+              Not another grant list. Not a demo website. A place to see what Africa is sitting on,
+              turn it into a product, and put it online — with tools that actually work.
             </p>
 
-            {/* Primary CTA: Ka Score */}
             <div className="mb-4">
               <p style={{ color: "rgba(0,200,81,0.55)", fontSize: "11px", letterSpacing: "0.18em", fontWeight: 600, textTransform: "uppercase", marginBottom: "12px" }}>
-                Start here — it takes 3 minutes
+                Start with what you already have
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/ka-score"
+                <Link href="/build"
                   className="inline-flex items-center gap-3 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.08em] transition-all"
                   style={{ background: "#00C851", color: "#0F0D33" }}>
-                  Get my Ka Score — free
+                  Discover what I can build
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
                     <path d="M5 12H19M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </Link>
-                <Link href="/build"
+                <Link href="/store/new"
                   className="inline-flex items-center gap-3 font-semibold px-8 py-4 rounded-full text-sm uppercase tracking-[0.08em] transition-all"
                   style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
-                  What can I build? →
+                  Launch a store →
                 </Link>
               </div>
             </div>
 
-            {/* What Ka Score is */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              {["Business Identity", "Revenue Track", "Assets", "Network", "History"].map((cat, i) => (
+              {["Discover", "Create", "Launch", "Sell", "Grow"].map((cat, i) => (
                 <div key={cat} className="flex items-center gap-1.5">
                   {i > 0 && <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>}
                   <span style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px" }}>{cat}</span>
                 </div>
               ))}
-              <span style={{ color: "rgba(0,200,81,0.5)", fontSize: "11px", fontWeight: 600 }}>= Your Ka Score</span>
+              <span style={{ color: "rgba(0,200,81,0.5)", fontSize: "11px", fontWeight: 600 }}>= Kebu Cloud</span>
             </div>
           </div>
 
-          {/* Floating stat — bottom right */}
+          {/* Floating label — bottom right */}
           <div className="absolute bottom-12 right-8 hidden lg:block text-right">
-            <p style={{ fontFamily: "var(--font-fraunces)", color: "#00C851", fontSize: "5rem", lineHeight: 1, fontWeight: 700 }}>
-              54
+            <p style={{ fontFamily: "var(--font-fraunces)", color: "#00C851", fontSize: "2.5rem", lineHeight: 1, fontWeight: 700 }}>
+              African
             </p>
-            <p className="text-white/30 text-xs uppercase tracking-[0.2em]">African countries mapped</p>
+            <p style={{ fontFamily: "var(--font-fraunces)", color: "#FAFAF8", fontSize: "2.5rem", lineHeight: 1, fontWeight: 700 }}>
+              Cloud
+            </p>
+            <p className="text-white/30 text-xs uppercase tracking-[0.2em] mt-2">54 countries · builders first</p>
           </div>
         </div>
       </section>
 
-      {/* ── WHAT ALKEBULAN IS (mission strip) ── */}
+      {/* ── MISSION STRIP ── */}
       <section className="py-10" style={{ background: "#080620", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-12">
             <p style={{ fontFamily: "var(--font-fraunces)", color: "#FAFAF8", fontSize: "clamp(1rem,2.5vw,1.35rem)", lineHeight: 1.4, fontWeight: 500, flexShrink: 0 }}
               className="italic max-w-lg">
-              &ldquo;Built for the young person in Lagos, Nairobi, Accra, Dakar — who is already trying, but hasn&apos;t been shown what&apos;s actually possible.&rdquo;
+              &ldquo;The African Cloud — for the young person in Lagos, Nairobi, Accra, Dakar who is already trying, and needs infrastructure that finally meets them.&rdquo;
             </p>
             <div className="hidden sm:block h-16 w-px" style={{ background: "rgba(255,255,255,0.1)" }} />
             <p style={{ color: "rgba(253,250,244,0.4)", fontSize: "13px", lineHeight: 1.75 }}>
-              Not grants. Not aid. Not charity.<br />
-              Industry intelligence, real business paths, and the tools to build — whether a grant ever comes or not.
+              Discover opportunities.<br />
+              Create a brand, website, or store.<br />
+              Launch, sell, and grow — on one platform.
             </p>
           </div>
         </div>
@@ -206,11 +205,11 @@ export default function LandingPage() {
             </p>
             <h2 style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05, color: "#0F0D33" }}
               className="font-bold text-[clamp(2rem,5vw,3.75rem)] max-w-3xl">
-              Not a grant portal. An operating system for people who want to build.
+              Not a grant portal. The African Cloud for people who want to build.
             </h2>
             <p style={{ color: "#6B5B45", lineHeight: 1.75, maxWidth: "36rem", marginTop: "1.25rem" }} className="text-base">
-              Grants run out. Government programs close. Markets don&apos;t.
-              Kebu is built around the opportunity that exists whether or not a grant exists.
+              Discover what is possible in your country. Create a business online.
+              Launch a store and start selling. One cloud — not three disconnected tools.
             </p>
           </div>
 
@@ -218,28 +217,28 @@ export default function LandingPage() {
             {[
               {
                 num: "01",
-                title: "Industry Intelligence",
-                sub: "Who controls each step of Africa's most valuable industries — and exactly where you can enter.",
-                detail: "Cocoa · Coffee · Cotton · Coltan · Remittance",
-                href: "/industry",
-                cta: "Explore Industries",
+                title: "Discover",
+                sub: "See the resources, industries, and market gaps around you — labeled clearly as facts vs ideas worth researching.",
+                detail: "Industry intel · Opportunity path · Ka Score",
+                href: "/build",
+                cta: "Find my opportunity",
               },
               {
                 num: "02",
-                title: "Opportunity Path",
-                sub: "Tell us your goal, your country, your budget. Get the exact sequence of steps — what to do first, second, third.",
-                detail: "54 countries · Real timelines · Real costs",
-                href: "/path",
-                cta: "Build My Path",
+                title: "Create",
+                sub: "Turn an idea into a business plan, brand direction, and online presence — then edit and publish.",
+                detail: "Business builder · Brand tools · Store launcher",
+                href: "/build-business",
+                cta: "Start creating",
                 highlight: true,
               },
               {
                 num: "03",
-                title: "Kebu Builder",
-                sub: "A structured session that builds your actual business plan — market, first sale, 12-month roadmap. Not a chat box.",
-                detail: "Market analysis · First sale · 12-month roadmap",
-                href: "/build-business",
-                cta: "Start Building",
+                title: "Launch & sell",
+                sub: "Put a store online, take orders, and grow. Payments and full commerce OS expand country by country.",
+                detail: "Store · Orders · WhatsApp / manual payments",
+                href: "/store/new",
+                cta: "Launch a store",
               },
             ].map((p, i) => (
               <div key={p.num} className="relative"
@@ -308,11 +307,13 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
               <p style={{ letterSpacing: "0.2em", color: "#00C851", fontSize: "10px" }} className="font-semibold uppercase mb-5">
-                How it works
+                How the African Cloud works
               </p>
               <h2 style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05, color: "#0F0D33" }}
                 className="font-bold text-[clamp(2rem,4.5vw,3.5rem)] mb-8">
-                First, we show you<br />what is possible.<br /><span style={{ color: "#00C851" }}>Then how to do it.</span>
+                Discover what is possible.<br />
+                Create what is yours.<br />
+                <span style={{ color: "#00C851" }}>Launch and sell.</span>
               </h2>
               <p style={{ color: "#6B5B45", lineHeight: 1.75 }} className="text-base mb-4 max-w-lg">
                 Most people don&apos;t know they can build something. No one taught them.

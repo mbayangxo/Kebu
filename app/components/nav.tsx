@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 import { AlkebulanLion } from "./panther-motif";
 
 const PRIMARY = [
-  { label: "My Path",   href: "/path" },
-  { label: "Matches",   href: "/matches" },
-  { label: "Discover",  href: "/opportunities" },
-  { label: "Market",    href: "/market" },
-  { label: "Blueprint", href: "/blueprint" },
+  { label: "Discover", href: "/build" },
+  { label: "Create",   href: "/build-business" },
+  { label: "Store",    href: "/store/new" },
+  { label: "Industry", href: "/industry" },
+  { label: "Path",     href: "/path" },
 ];
 
 const EXPLORE = [
@@ -151,7 +151,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
               style={{ letterSpacing: "0.18em" }}
               className="text-[9px] font-semibold uppercase text-gold/30 hidden xl:block"
             >
-              Africa · 2026
+              Africa · Cloud
             </span>
 
             <Link
@@ -166,7 +166,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
               className="flex items-center gap-2 bg-gold hover:bg-gold-light text-deep-green text-[11px] font-bold uppercase tracking-[0.1em] px-5 py-2.5 rounded-full transition-colors"
             >
               <AlkebulanLion size={14} />
-              Get started
+              Enter the Cloud
             </Link>
           </div>
 

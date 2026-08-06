@@ -2,13 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Kebu — Africa is the Opportunity",
+    name: "Kebu — The African Cloud",
     short_name: "Kebu",
-    description: "Africa's Opportunity Intelligence Network. Build businesses, find funding, export to the world.",
-    start_url: "/build",
+    description: "Discover opportunities, create a business or store, and operate online — the African Cloud for builders.",
+    start_url: "/",
     display: "standalone",
-    background_color: "#F0EFF8",
-    theme_color: "#0F0D33",
+    background_color: "#0F0D33",
+    theme_color: "#00C851",
     orientation: "portrait-primary",
     categories: ["business", "education", "finance"],
     icons: [
@@ -16,9 +16,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
     ],
     shortcuts: [
-      { name: "What can I build?", url: "/build", description: "Find businesses matched to your budget and country" },
-      { name: "Find funding", url: "/dashboard", description: "Grants, loans, and tenders for Africa" },
-      { name: "Country guide", url: "/map", description: "Business intelligence by country" },
+      { name: "Discover", url: "/build", description: "Find what you can build from resources you have" },
+      { name: "Create", url: "/build-business", description: "Build a business plan with Kebu" },
+      { name: "Launch a store", url: "/store/new", description: "Publish a business site online" },
     ],
   };
 }

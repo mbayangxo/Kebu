@@ -1,13 +1,13 @@
 {
-  "name": "Kebu — Africa is the Opportunity",
+  "name": "Kebu — The African Cloud",
   "short_name": "Kebu",
-  "description": "Find every grant, loan, tender, and program built for African entrepreneurs across 54 countries.",
+  "description": "The African Cloud: discover opportunities, create a business or store, and operate online.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1B3A2B",
-  "theme_color": "#C9A035",
+  "background_color": "#0F0D33",
+  "theme_color": "#00C851",
   "orientation": "portrait-primary",
-  "categories": ["finance", "business", "education"],
+  "categories": ["business", "finance", "education"],
   "lang": "en",
   "icons": [
     {
@@ -26,23 +26,23 @@
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "My Matches",
-      "short_name": "Matches",
-      "description": "See programs you personally qualify for",
-      "url": "/matches",
+      "name": "Discover",
+      "short_name": "Discover",
+      "description": "Find what you can build from resources you already have",
+      "url": "/build",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Programs Database",
-      "short_name": "Programs",
-      "description": "Browse all 54 African countries",
-      "url": "/programs",
+      "name": "Ka Score",
+      "short_name": "Ka Score",
+      "description": "Get your business readiness score",
+      "url": "/ka-score",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Build My Site",
-      "short_name": "My Site",
-      "description": "Launch your business online in 5 minutes",
+      "name": "Launch a store",
+      "short_name": "Store",
+      "description": "Create and publish a business site",
       "url": "/store/new",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
