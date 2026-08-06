@@ -107,16 +107,26 @@ export default function CreateHubPage() {
           Your projects
         </h1>
         <p className="text-sm mb-8 max-w-xl" style={{ color: "#6B5B45", lineHeight: 1.7 }}>
-          Create a blank website, add a hero, and save to your account. Changes persist after refresh.
-          Only you can open your projects.
+          Build from a template, AI, or blank — edit visually, save, preview, and publish to a Kebu site URL.
+          Linked to your Kebu business.
         </p>
+
+        <div className="mb-10">
+          <Link
+            href="/create/new"
+            className="inline-block rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wider"
+            style={{ background: "#00C851", color: "#0F0D33" }}
+          >
+            Build Website
+          </Link>
+        </div>
 
         <section
           className="rounded-2xl p-5 sm:p-6 mb-10"
           style={{ background: "#fff", border: "1px solid #DDE0F0" }}
         >
           <label htmlFor="project-title" className="block text-xs font-semibold uppercase tracking-wider mb-2">
-            New website title
+            Quick blank (legacy)
           </label>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
@@ -133,9 +143,9 @@ export default function CreateHubPage() {
               onClick={() => void createProject()}
               disabled={creating || !title.trim()}
               className="rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wider disabled:opacity-50"
-              style={{ background: "#00C851", color: "#0F0D33" }}
+              style={{ background: "#0F0D33", color: "#fff" }}
             >
-              {creating ? "Creating…" : "Create website"}
+              {creating ? "Creating…" : "Blank project"}
             </button>
           </div>
         </section>

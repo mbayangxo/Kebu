@@ -177,6 +177,13 @@ export default function BusinessDashboardPage() {
                 {business.registration_status.replace(/_/g, " ")}
                 {role ? ` · your role: ${role}` : ""}
               </p>
+              <Link
+                href={`/create/new?businessId=${business.id}`}
+                className="inline-block mt-5 rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
+                style={{ background: "#00C851", color: "#0F0D33" }}
+              >
+                Build Website
+              </Link>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6 mb-6">

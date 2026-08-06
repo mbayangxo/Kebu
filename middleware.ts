@@ -9,12 +9,29 @@ const MAIN_HOSTS = new Set([
   "www.alkebulan.com",
   "alkebulan.co",
   "www.alkebulan.co",
+  "kebu.africa",
+  "www.kebu.africa",
 ]);
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") ?? "";
 
-  // Route business storefronts: slug.alkebulan.com → /store/slug
+  // Published Kebu websites: slug.kebu.africa → /sites/slug
+  const isKebuSubdomain =
+    !MAIN_HOSTS.has(hostname) &&
+    hostname.endsWith(".kebu.africa") &&
+    !hostname.startsWith("localhost");
+
+  if (isKebuSubdomain) {
+    const slug = hostname.split(".")[0];
+    const url = request.nextUrl.clone();
+    if (url.pathname === "/") {
+      url.pathname = `/sites/${slug}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
+  // Legacy storefronts: slug.alkebulan.com → /store/slug
   const isSubdomain =
     !MAIN_HOSTS.has(hostname) &&
     (hostname.endsWith(".alkebulan.com") || hostname.endsWith(".alkebulan.co")) &&
@@ -23,7 +40,6 @@ export async function middleware(request: NextRequest) {
   if (isSubdomain) {
     const slug = hostname.split(".")[0];
     const url = request.nextUrl.clone();
-    // Only rewrite the root — API calls and other paths pass through to the same server
     if (url.pathname === "/") {
       url.pathname = `/store/${slug}`;
       return NextResponse.rewrite(url);
