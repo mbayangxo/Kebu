@@ -3,9 +3,10 @@ import { getListing, createEnquiry, getEnquiriesForListing, updateEnquiry } from
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const listing = await getListing(params.id);
+  const { id } = await params;
+  const listing = await getListing(id);
   if (!listing) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
 
   try {
@@ -16,7 +17,7 @@ export async function POST(
     if (!body.quantity?.trim()) return NextResponse.json({ error: "Quantity required" }, { status: 400 });
 
     const enquiry = await createEnquiry({
-      listingId: params.id,
+      listingId: id,
       buyerName: String(body.buyerName).trim(),
       buyerPhone: String(body.buyerPhone).trim(),
       buyerEmail: body.buyerEmail ? String(body.buyerEmail).trim() : undefined,
@@ -34,12 +35,13 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const listing = await getListing(params.id);
+  const { id } = await params;
+  const listing = await getListing(id);
   if (!listing) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
 
-  const enquiries = await getEnquiriesForListing(params.id);
+  const enquiries = await getEnquiriesForListing(id);
 
   // Only return full contact details to the seller.
   // Sellers identify themselves with the ADMIN_PASSWORD header until a proper
@@ -49,8 +51,8 @@ export async function GET(
 
   const safeEnquiries = isOwner
     ? enquiries
-    : enquiries.map(({ buyerName, quantity, unit, message, status, createdAt, id, listingId }) => ({
-        id, listingId, buyerName, quantity, unit, message, status, createdAt,
+    : enquiries.map(({ buyerName, quantity, unit, message, status, createdAt, id: enquiryId, listingId }) => ({
+        id: enquiryId, listingId, buyerName, quantity, unit, message, status, createdAt,
       }));
 
   return NextResponse.json({ listing, enquiries: safeEnquiries });
@@ -58,13 +60,14 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const body = await req.json();
     if (!body.enquiryId) return NextResponse.json({ error: "enquiryId required" }, { status: 400 });
 
-    const updated = await updateEnquiry(params.id, body.enquiryId, {
+    const updated = await updateEnquiry(id, body.enquiryId, {
       status: body.status,
       sellerReply: body.sellerReply,
       repliedAt: body.sellerReply ? new Date().toISOString() : undefined,

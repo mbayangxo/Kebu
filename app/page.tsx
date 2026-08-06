@@ -89,18 +89,18 @@ export default function LandingPage() {
                 Start with what you already have
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/build"
+                <Link href="/create"
                   className="inline-flex items-center gap-3 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.08em] transition-all"
                   style={{ background: "#00C851", color: "#0F0D33" }}>
-                  Discover what I can build
+                  Create a website
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
                     <path d="M5 12H19M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </Link>
-                <Link href="/store/new"
+                <Link href="/build"
                   className="inline-flex items-center gap-3 font-semibold px-8 py-4 rounded-full text-sm uppercase tracking-[0.08em] transition-all"
                   style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
-                  Launch a store →
+                  Discover opportunities →
                 </Link>
               </div>
             </div>

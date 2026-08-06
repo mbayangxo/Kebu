@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 import { AlkebulanLion } from "./panther-motif";
 
 const PRIMARY = [
+  { label: "Create",   href: "/create" },
   { label: "Discover", href: "/build" },
-  { label: "Create",   href: "/build-business" },
   { label: "Store",    href: "/store/new" },
   { label: "Industry", href: "/industry" },
   { label: "Path",     href: "/path" },

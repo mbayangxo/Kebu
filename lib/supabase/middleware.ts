@@ -80,11 +80,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Protect onboarding — requires auth
-  if (!user && pathname === "/onboarding") {
+  // Protect onboarding + Create Mode UI — requires auth
+  if (!user && (pathname === "/onboarding" || pathname.startsWith("/create"))) {
     const url = request.nextUrl.clone();
-    url.pathname = "/signup";
-    url.searchParams.set("next", "/onboarding");
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
