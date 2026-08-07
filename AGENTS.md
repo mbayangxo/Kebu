@@ -6,9 +6,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Kebu
 
-Production African Cloud platform. Follow `.cursor/rules/` (constitution, vertical-slice workflow, Kebu ID, KA Score, security, commerce/K21).
+Production African Cloud platform. Follow `.cursor/rules/` (constitution, vertical-slice, Kebu ID, KA Score, Opportunity OS).
 
-- **Kebu ID** = business identity · **KA Score** = business score (after real activity exists; never hard-code).
-- Phase order: 0 audit → 1 foundation (Kebu ID) → 2 projects → 3 builder → … → analytics → KA Score when assigned. Do not skip. One vertical slice at a time.
+- **Kebu ID** = business identity · **KA Score** = business score · **Opportunity OS** = what/how to build (Country Explorer first).
+- One vertical slice at a time. Never hard-code production opportunity pages; use DB + trust labels.
 
 Human constitution: `docs/KEBU-CONSTITUTION.md`

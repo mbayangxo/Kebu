@@ -1,0 +1,43 @@
+---
+description: Kebu Opportunity OS — AI opportunity operating system (not a blog)
+alwaysApply: true
+---
+
+# KEBU OPPORTUNITY OS
+
+Opportunity OS is an **AI-powered Opportunity Operating System** — not a blog, not a static article list, not a brochure.
+
+**Mission:** Help African entrepreneurs answer (1) What should I build? (2) How do I build it? Every opportunity should connect toward Kebu’s business builder.
+
+## Navigation pillars (build slice-by-slice)
+
+Countries · Industries · Resources · Imports · Exports · Trade · Manufacturing · Agriculture · Technology · Tourism · Infrastructure · Government Programs · Grants · Startup Ecosystem · Entrepreneur Stories · Company Case Studies · Opportunity Explorer · Opportunity AI · Build This Business
+
+## Trust labels (mandatory)
+
+Always separate:
+
+- **Verified** public information
+- **Estimated**
+- **AI-generated** opportunity analysis
+- **Requires validation**
+
+Never present AI assumptions as verified facts.
+
+## Data & CMS
+
+Normalized entities (countries, industries, resources, commodities, imports/exports, opportunities, case studies, sources, confidence…). Content must be DB/CMS-backed — **not hard-coded production pages**. Admin CMS for publish/version/archive (when that slice is assigned).
+
+## Build integration (later slices)
+
+“Build This Business” creates drafts only (business, brand, website, optional store, roadmap, checklist, Kebu ID draft, readiness) — never auto-publish.
+
+## Security
+
+Opportunity catalog is public unless marked otherwise. Never leak private business data. Admin actions require RBAC.
+
+## Slice order (do not skip)
+
+1 Country Explorer → 2 Industry → 3 Resource → 4 Import → 5 Export → 6 Opportunity Explorer → 7 Entrepreneur Stories → 8 Case Studies → 9 Opportunity AI → 10 Build This Business
+
+A static content-only page is **not** a completed slice. Finish and verify one vertical path before the next.

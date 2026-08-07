@@ -8,17 +8,18 @@ import { AlkebulanLion } from "./panther-motif";
 const PRIMARY = [
   { label: "Business", href: "/business" },
   { label: "Create",   href: "/create" },
+  { label: "Opportunity", href: "/opportunity" },
   { label: "Discover", href: "/build" },
-  { label: "Store",    href: "/store/new" },
   { label: "Industry", href: "/industry" },
 ];
 
 const EXPLORE = [
+  { label: "Country Explorer",      href: "/opportunity/countries" },
   { label: "Industry Intelligence", href: "/industry" },
   { label: "Programs",              href: "/programs" },
   { label: "Procurement",           href: "/procurement" },
   { label: "Feed",                  href: "/feed" },
-  { label: "Countries",             href: "/map" },
+  { label: "Map (legacy)",          href: "/map" },
   { label: "Network",               href: "/network" },
   { label: "Success Stories",       href: "/success" },
 ];

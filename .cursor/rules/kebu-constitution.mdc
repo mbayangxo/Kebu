@@ -41,9 +41,15 @@ Account → profile/country → eligibility when required → website/store → 
 - RBAC + ownership from day one. UI hiding ≠ authorization.
 - Corrective migrations only. No BloomBay leftover SQL mixed into Kebu.
 
+## Opportunity OS
+
+- **Opportunity OS** = AI-powered opportunity operating system (not a blog). See `kebu-opportunity-os.mdc`.
+- Build **one Opportunity slice at a time** (Country → Industry → Resource → … → Build This Business).
+- Always label Verified vs AI-generated. Never mix them as facts.
+
 ## Phase order (do not skip)
 
-0 Audit → 1 Foundation (incl. Kebu ID) → 2 Projects → 3 Builder → 4 AI gen → 5 Publish → 6 Stores → 7 Payments/K21 → 8 Analytics → **then KA Score when assigned** → 9 Domains → 10 Build My Country → 11 Learn → 12 Community → 13 Institutions.
+0 Audit → 1 Foundation (incl. Kebu ID) → 2 Projects → 3 Builder → 4 AI gen → 5 Publish → 6 Stores → 7 Payments/K21 → 8 Analytics → KA Score when assigned → Opportunity OS slices when assigned → 9 Domains → 10 Build My Country → 11 Learn → 12 Community → 13 Institutions.
 
 ## Prohibited
 
