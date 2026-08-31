@@ -26,7 +26,8 @@ const EXPLORE = [
 
 const TOOLS = [
   { label: "Ka Score",             href: "/ka-score" },
-  { label: "Kebu Builder",          href: "/build-business" },
+  { label: "AI Business Builder", href: "/create" },
+  { label: "Business plan chat", href: "/build-business" },
   { label: "Build vs. Leave",      href: "/compare" },
   { label: "Decode a Product",     href: "/scan" },
   { label: "Local Starts Map",     href: "/starts" },

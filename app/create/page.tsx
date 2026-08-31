@@ -111,7 +111,7 @@ export default function CreateHubPage() {
           Linked to your Kebu business.
         </p>
 
-        <div className="mb-10">
+        <div className="mb-10 flex flex-wrap gap-3">
           <Link
             href="/create/new"
             className="inline-block rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wider"
@@ -120,6 +120,23 @@ export default function CreateHubPage() {
             Build Website
           </Link>
         </div>
+
+        <section
+          className="rounded-2xl p-5 sm:p-6 mb-10"
+          style={{ background: "#0F0D33", color: "#FAFAF8" }}
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={{ color: "#00C851" }}>
+            Site #1 on Kebu
+          </p>
+          <h2 className="text-lg font-bold mb-2">K-Direction</h2>
+          <p className="text-sm mb-4 text-white/75 leading-relaxed">
+            The first full brand site built with Kebu — label website, portal CMS, careers, and Joko tickets.
+            Lives in this repo at <code className="text-white/90">kebu-sites/k-direction</code> (separate deploy from this builder).
+          </p>
+          <p className="text-xs text-white/50 mb-3">
+            Local: run <code className="text-white/70">npm run dev</code> in that folder → port 3100
+          </p>
+        </section>
 
         <section
           className="rounded-2xl p-5 sm:p-6 mb-10"

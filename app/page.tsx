@@ -228,7 +228,7 @@ export default function LandingPage() {
                 title: "Create",
                 sub: "Turn an idea into a business plan, brand direction, and online presence — then edit and publish.",
                 detail: "Business builder · Brand tools · Store launcher",
-                href: "/build-business",
+                href: "/create",
                 cta: "Start creating",
                 highlight: true,
               },
@@ -638,10 +638,10 @@ export default function LandingPage() {
               style={{ background: "#00C851", color: "#0F0D33" }}>
               Show me what&apos;s possible →
             </Link>
-            <Link href="/build-business"
+            <Link href="/create"
               className="inline-flex items-center gap-3 font-semibold px-10 py-4 rounded-full text-sm uppercase tracking-[0.08em] transition-all"
               style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
-              Kebu Builder
+              AI Business Builder
             </Link>
           </div>
         </div>
@@ -664,7 +664,7 @@ export default function LandingPage() {
             {[
               {
                 title: "Platform",
-                links: [["Your Path", "/path"], ["Industry Intelligence", "/industry"], ["AI Business Builder", "/build-business"], ["Programs", "/programs"], ["Procurement", "/procurement"]],
+                links: [["Your Path", "/path"], ["Industry Intelligence", "/industry"], ["AI Business Builder", "/create"], ["Programs", "/programs"], ["Procurement", "/procurement"]],
               },
               {
                 title: "Intelligence",

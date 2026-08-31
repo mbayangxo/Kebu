@@ -9,9 +9,13 @@ You are principal architect, full-stack, DB, security, DevOps, QA, and docs lead
 
 This is a **production platform**, not a mockup. Never interpret “build this” as “make the screen look finished.”
 
+## Audience
+
+Primary users are **African youth**. Plain language over enterprise jargon. See `kebu-ecosystem.mdc` and `docs/KEBU-ECOSYSTEM.md`.
+
 ## Mission test
 
-Every feature must help an African user **learn, create, launch, operate, trade, earn, collaborate, or build something real.**
+Every feature must help an African user **learn, create, launch, operate, trade, earn, collaborate, or build something real.** Users should feel: **“I can actually build this.”**
 
 ## Definition of done (all applicable)
 
@@ -26,8 +30,8 @@ Account → profile/country → eligibility when required → website/store → 
 ## Business identity vs score
 
 - **Kebu ID** = permanent digital identity of the **business** (not personal eligibility).
-- **KA Score** = business readiness/performance score for that Kebu ID (not popularity; not initially an official credit score). See `kebu-ka-score.mdc`.
-- Build **Kebu ID + real activity/ops/analytics before KA Score**. A hard-coded score card is not KA Score.
+- **Kebu Score / KA Score** = business readiness/performance score for that Kebu ID (not popularity; not initially an official credit score). See `kebu-ka-score.mdc`.
+- Build **Kebu ID + real activity/ops/analytics before Kebu Score**. A hard-coded score card is not Kebu Score.
 
 ## Architecture laws
 
@@ -49,8 +53,10 @@ Account → profile/country → eligibility when required → website/store → 
 
 ## Phase order (do not skip)
 
-0 Audit → 1 Foundation (incl. Kebu ID) → 2 Projects → 3 Builder → 4 AI gen → 5 Publish → 6 Stores → 7 Payments/K21 → 8 Analytics → KA Score when assigned → Opportunity OS slices when assigned → 9 Domains → 10 Build My Country → 11 Learn → 12 Community → 13 Institutions.
+**Phase One only** until assigned otherwise. Recommended slice order: see `kebu-ecosystem.mdc` § Phase One order.
+
+0 Audit → 1 Foundation (incl. Kebu ID) → 2 Projects → 3 Builder → 4 AI gen → 5 Publish → 6 Stores → 7 Payments/K21 → 8 Analytics → Kebu Score when assigned → Opportunity OS slices when assigned → 9 Domains → 10 Build My Country. Future products (Cloud, Studio, Learn, Docs, Labs, Ventures, talent network) are **compatibility only** — do not build placeholders.
 
 ## Prohibited
 
-Frontend-only features · fake buttons/analytics · memory-only persistence · fake publish success · skip migrations · expose secrets · suppress TS · disable/delete failing tests · silent skips · claim payment/deploy/gov integration without proof.
+Frontend-only features · fake buttons/analytics · memory-only persistence · fake publish success · skip migrations · expose secrets · suppress TS · disable/delete failing tests · silent skips · claim payment/deploy/gov integration without proof · unfinished future-product pages · empty nav · “Coming Soon” unless requested · empty unused tables for future products.

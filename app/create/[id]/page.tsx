@@ -38,6 +38,10 @@ export default function ProjectEditorPage() {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [publishing, setPublishing] = useState(false);
   const [publishUrl, setPublishUrl] = useState<string | null>(null);
+  const [improving, setImproving] = useState(false);
+  const [improveOpen, setImproveOpen] = useState(false);
+  const [improveInstruction, setImproveInstruction] = useState("");
+  const [improveNote, setImproveNote] = useState<string | null>(null);
   const [history, setHistory] = useState<Section[][]>([]);
   const [future, setFuture] = useState<Section[][]>([]);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -238,6 +242,46 @@ export default function ProjectEditorPage() {
     }
   }
 
+  async function improveWithAi() {
+    if (improving) return;
+    setImproving(true);
+    setError(null);
+    setImproveNote(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/ai-improve`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instruction: improveInstruction.trim() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        router.replace(`/login?next=/create/${projectId}`);
+        return;
+      }
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not improve with AI.");
+        return;
+      }
+      setImproveNote(
+        typeof data.message === "string"
+          ? data.message
+          : "Draft updated. Publish again to update your live site."
+      );
+      setImproveOpen(false);
+      setHistory([]);
+      setFuture([]);
+      await load();
+      setSaveState("saved");
+    } catch {
+      setError("Network error while improving. Retry.");
+    } finally {
+      setImproving(false);
+    }
+  }
+
   const previewDefinition: WebsiteDefinition | null = project
     ? {
         schemaVersion: "website-v1",
@@ -303,8 +347,17 @@ export default function ProjectEditorPage() {
             </Link>
             <button
               type="button"
+              onClick={() => setImproveOpen((v) => !v)}
+              disabled={improving || !project}
+              className="rounded-full px-3 py-1 font-semibold text-white disabled:opacity-50"
+              style={{ background: "#1C1A45", border: "1px solid #00C851" }}
+            >
+              {improving ? "Improving…" : "Improve with AI"}
+            </button>
+            <button
+              type="button"
               onClick={() => void publish()}
-              disabled={publishing}
+              disabled={publishing || improving}
               className="rounded-full px-3 py-1 font-bold disabled:opacity-50"
               style={{ background: "#00C851", color: "#0F0D33" }}
             >
@@ -335,10 +388,18 @@ export default function ProjectEditorPage() {
                   {project?.status}
                   {project?.subdomain ? ` · ${project.subdomain}` : ""}
                 </p>
+                <p className="text-xs mt-2" style={{ color: "#6B5B45" }}>
+                  Next: edit your pages, improve with AI if you want, then publish when ready.
+                </p>
                 {publishUrl && (
                   <a href={publishUrl} target="_blank" rel="noreferrer" className="block text-xs mt-2 font-semibold underline" style={{ color: "#009E40" }}>
                     Live: {publishUrl}
                   </a>
+                )}
+                {improveNote && (
+                  <p className="text-xs mt-2 font-medium" style={{ color: "#009E40" }} role="status">
+                    {improveNote}
+                  </p>
                 )}
                 {error && (
                   <p role="alert" className="text-xs mt-2" style={{ color: "#8B1E1E" }}>
@@ -346,6 +407,44 @@ export default function ProjectEditorPage() {
                   </p>
                 )}
               </div>
+
+              {improveOpen && (
+                <div className="rounded-2xl p-4 space-y-3" style={{ background: "#0F0D33", color: "#FAFAF8" }}>
+                  <p className="text-sm font-bold">Improve with AI</p>
+                  <p className="text-xs text-white/70">
+                    Tell Kebu what to change in plain words. Your draft updates on the server — your live site stays the same until you publish again.
+                  </p>
+                  <textarea
+                    className="w-full text-sm rounded-lg px-3 py-2 min-h-[88px] text-[#0F0D33]"
+                    placeholder="Example: Make the hero clearer for university students in Dakar. Add a WhatsApp call to action."
+                    value={improveInstruction}
+                    onChange={(e) => setImproveInstruction(e.target.value)}
+                    maxLength={800}
+                    disabled={improving}
+                    aria-label="What should AI improve"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void improveWithAi()}
+                      disabled={improving}
+                      className="rounded-full px-4 py-2 text-sm font-bold disabled:opacity-50"
+                      style={{ background: "#00C851", color: "#0F0D33" }}
+                    >
+                      {improving ? "Working…" : "Apply AI improvements"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImproveOpen(false)}
+                      disabled={improving}
+                      className="rounded-full px-4 py-2 text-sm text-white/80"
+                      style={{ background: "#1C1A45" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-2xl p-4" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-2">Add section</p>
@@ -455,18 +554,220 @@ export default function ProjectEditorPage() {
                             value={String(section.props.phone ?? "")}
                             onChange={(e) => updateProps(section.id, { phone: e.target.value })}
                             aria-label="WhatsApp phone"
+                            placeholder="WhatsApp number with country code"
                           />
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
                             value={String(section.props.label ?? "")}
                             onChange={(e) => updateProps(section.id, { label: e.target.value })}
+                            aria-label="WhatsApp button label"
                           />
                         </div>
                       )}
-                      {!["hero", "text", "navigation", "footer", "whatsapp"].includes(section.section_type) && (
+                      {section.section_type === "contact" && (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            aria-label="Contact heading"
+                            placeholder="Contact"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.email ?? "")}
+                            onChange={(e) => updateProps(section.id, { email: e.target.value })}
+                            aria-label="Email"
+                            placeholder="Email"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.phone ?? "")}
+                            onChange={(e) => updateProps(section.id, { phone: e.target.value })}
+                            aria-label="Phone"
+                            placeholder="Phone"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.address ?? "")}
+                            onChange={(e) => updateProps(section.id, { address: e.target.value })}
+                            aria-label="Address"
+                            placeholder="Address or city"
+                          />
+                        </div>
+                      )}
+                      {section.section_type === "features" && (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            aria-label="Features heading"
+                          />
+                          {(Array.isArray(section.props.items) ? section.props.items : []).map(
+                            (item: { title?: string; body?: string }, idx: number) => (
+                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
+                                <input
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.title ?? "")}
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], title: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                  aria-label={`Feature ${idx + 1} title`}
+                                  placeholder="Title"
+                                />
+                                <textarea
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.body ?? "")}
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], body: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                  aria-label={`Feature ${idx + 1} body`}
+                                  placeholder="Short description"
+                                />
+                              </div>
+                            )
+                          )}
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold underline"
+                            onClick={() => {
+                              const items = [
+                                ...(Array.isArray(section.props.items) ? section.props.items : []),
+                                { title: "New offer", body: "Describe this offer." },
+                              ];
+                              updateProps(section.id, { items });
+                            }}
+                          >
+                            + Add offer
+                          </button>
+                        </div>
+                      )}
+                      {section.section_type === "faq" && (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            aria-label="FAQ heading"
+                          />
+                          {(Array.isArray(section.props.items) ? section.props.items : []).map(
+                            (item: { question?: string; answer?: string }, idx: number) => (
+                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
+                                <input
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.question ?? "")}
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], question: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                  aria-label={`FAQ ${idx + 1} question`}
+                                  placeholder="Question"
+                                />
+                                <textarea
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.answer ?? "")}
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], answer: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                  aria-label={`FAQ ${idx + 1} answer`}
+                                  placeholder="Answer"
+                                />
+                              </div>
+                            )
+                          )}
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold underline"
+                            onClick={() => {
+                              const items = [
+                                ...(Array.isArray(section.props.items) ? section.props.items : []),
+                                { question: "New question?", answer: "Write a clear answer." },
+                              ];
+                              updateProps(section.id, { items });
+                            }}
+                          >
+                            + Add question
+                          </button>
+                        </div>
+                      )}
+                      {section.section_type === "testimonials" && (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            aria-label="Testimonials heading"
+                          />
+                          {(Array.isArray(section.props.items) ? section.props.items : []).map(
+                            (item: { quote?: string; name?: string }, idx: number) => (
+                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
+                                <textarea
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.quote ?? "")}
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], quote: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                  aria-label={`Testimonial ${idx + 1} quote`}
+                                  placeholder="Customer quote"
+                                />
+                                <input
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.name ?? "")}
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], name: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                  aria-label={`Testimonial ${idx + 1} name`}
+                                  placeholder="Name"
+                                />
+                              </div>
+                            )
+                          )}
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold underline"
+                            onClick={() => {
+                              const items = [
+                                ...(Array.isArray(section.props.items) ? section.props.items : []),
+                                { quote: "Great experience.", name: "Customer" },
+                              ];
+                              updateProps(section.id, { items });
+                            }}
+                          >
+                            + Add quote
+                          </button>
+                        </div>
+                      )}
+                      {!["hero", "text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials"].includes(
+                        section.section_type
+                      ) && (
                         <p className="text-[11px]" style={{ color: "#8A8578" }}>
-                          Structured section — edit via props in later polish; reorder/delete supported.
+                          You can reorder or hide this section. Use Improve with AI to rewrite copy.
                         </p>
                       )}
                       <label className="flex items-center gap-2 mt-2 text-[11px]">

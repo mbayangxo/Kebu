@@ -17,7 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Discover", url: "/build", description: "Find what you can build from resources you have" },
-      { name: "Create", url: "/build-business", description: "Build a business plan with Kebu" },
+      { name: "Create", url: "/create", description: "Build and publish your website with Kebu" },
       { name: "Launch a store", url: "/store/new", description: "Publish a business site online" },
     ],
   };

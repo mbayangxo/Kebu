@@ -1,0 +1,16 @@
+{
+  "platform": "Kebu",
+  "builder": "Kebu Site Builder",
+  "sites": [
+    {
+      "id": "k-direction",
+      "name": "K-DIRECTION",
+      "legal": "K-DIRECTION CORP.",
+      "path": "k-direction",
+      "port": 3100,
+      "tickets": "joko",
+      "firstSite": true,
+      "description": "Music label website + staff portal. First site built with Kebu."
+    }
+  ]
+}

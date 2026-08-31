@@ -3,12 +3,12 @@ description: KA Score — business readiness score (not personal, not official c
 alwaysApply: true
 ---
 
-# KA SCORE — BUSINESS SCORE SYSTEM
+# KA SCORE / KEBU SCORE — BUSINESS SCORE SYSTEM
 
 **Naming**
 
 - **Kebu ID** = which business this is (permanent digital identity).
-- **KA Score** = how that business is developing and performing.
+- **Kebu Score** (also **KA Score**) = how that business is developing and performing.
 
 KA Score is connected to a **Kebu ID**. It evaluates the **business** — not the personal worth, ethnicity, intelligence, or character of founders.
 

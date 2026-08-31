@@ -1,0 +1,94 @@
+---
+description: Kebu long-term ecosystem map — Phase One focus; future products are compatibility only
+alwaysApply: true
+---
+
+# Kebu ecosystem (Phase One law)
+
+Full human reference: `docs/KEBU-ECOSYSTEM.md`.
+
+This map keeps engineering compatible with future products. **It is not permission to build them now.**
+
+## Audience & personality
+
+Primary audience: **African youth** (students, first-time founders, freelancers, creators, informal and small-business owners, people with ideas but little money or no coding experience).
+
+Do **not** design like traditional enterprise software. Explain incorporation, hosting, domains, APIs, analytics, cash flow, compliance, trade, etc. in plain language; give advanced users deeper controls.
+
+Feel: ambitious, youthful, intelligent, African, encouraging, energetic, creative, modern, practical, trustworthy, easy to understand, serious enough for real businesses.
+
+Must **not** feel: childish, cold corporate, government portal, accounting software, generic Western SaaS, AI-chatbox pile, textbook, distraction social feed.
+
+Users should feel: **“I can actually build this.”**
+
+## Core product principle
+
+Every major experience answers one or more of: What opportunity exists? What can I build? How? Who can help? How do I launch / register / sell / get paid / understand / grow / trade / learn missing skills?
+
+Every screen must clarify the **next action**. No dashboards that only display data.
+
+## Phase One only (current product)
+
+**Phase One** = Africa’s AI Business Builder and Opportunity Operating System. This is the only ecosystem product under full implementation.
+
+Help users: discover → understand → create business → Kebu ID → register/prepare → website/store → AI generate/improve → publish/host → sell → payments (incl. K21 where available) → analytics → next actions → improve over time.
+
+Phase One systems (build only when assigned as slices): Kebu AI · Opportunity OS · Build My Country · business creation/registration · Kebu ID · Kebu Score (KA Score) · website AI/templates/editor · store/orders/payments · hosting/domains · analytics · AI guidance · business news when assigned.
+
+Do **not** expand Phase One into unrelated productivity or infrastructure systems unless explicitly assigned.
+
+## Kebu AI
+
+Intelligent assistant tied to the user’s businesses, projects, websites, stores, products, orders, analytics, opportunities, goals, research, learning — with **RBAC and business boundaries**. Never a general chatbot only. Never access another user’s private business data.
+
+## Opportunity OS & news
+
+Opportunity OS: discover what to build; trust labels mandatory (Verified / public-source / Estimated / AI-generated / Requires validation). “Build This Opportunity” → connected business journey.
+
+Business news (working names only — do not finalize): Kebu Pulse / Today / Business / Opportunities / Brief. Youth-oriented; every story → implications + opportunity to research/build. No unsupported claims. **Do not build unless assigned.**
+
+## Kebu Score (= KA Score)
+
+Business score on a Kebu ID. Explainable: helping/hurting factors, missing data, actions, confidence, history. Not popularity. Not purchasable. Not initially an official regulated credit score. See `kebu-ka-score.mdc`.
+
+## Future products (compatibility only — do not build)
+
+| Product | Role | Phase One rule |
+|--------|------|----------------|
+| **Kebu Cloud** | Broader app deploy/hosting (not Phase One site hosting) | Do not build |
+| **Kebu Studio** | Design / brand / packaging canvas | Basic branding OK; no Canva-style editor |
+| **Kebu Learn** | Project-based education | Guidance OK; no full LMS |
+| **Kebu Docs** | Docs/sheets/slides suite | Downloadable reports OK; no office suite |
+| **Kebu Labs** | Research arm feeding Opportunity OS | Architecture for sources OK; no institution CMS |
+| **Kebu Ventures** | Incubation / investment (legally separate) | Score may flag readiness; never auto-fund |
+| **Talent / work network** | Cofounders, hire, teams | Optimize for work done; no social feed |
+
+Shared later: account, profile, business memberships, Kebu ID, permissions, billing, notifications, AI infra, design system, audit, security — **separate product domains**, not one giant table/nav.
+
+Possible domains: identity · business · opportunity · websites · commerce · analytics · registration · cloud · design · learning · productivity · research · investment · talent.
+
+## Youth UX / affordability / mobile
+
+Clear language · explain terms · show progress · next step · autosave where appropriate · mobile-first · fewer forms · examples/templates · celebrate real progress without childishness.
+
+Affordability: free/low-cost/student/pay-as-you-go · regional payments · K21 · AI cost controls. Do not assume credit cards, expensive devices, or reliable broadband.
+
+Mobile & connectivity: compressed assets · progressive load · efficient APIs · autosave queues · retry · local drafts only when honest · never fake “saved” for unsynced local-only data.
+
+## Strict future-product rule
+
+When implementing Phase One:
+
+- Do not build Cloud / Studio / Docs / Learn / Ventures / Labs / talent network merely because they appear here.
+- No unfinished pages, placeholder dashboards, empty nav, “Coming Soon”, fake integrations, empty unused tables, or buttons that lead nowhere unless explicitly requested.
+- Do not let future products distract from the **assigned vertical slice**.
+
+## Recommended Phase One order (one slice at a time)
+
+Audit → auth → profile → Kebu ID → roles → business dashboard → registration prep/modules/progress → website templates → create from template → AI generation → visual editor → autosave/versions → publish → subdomains → custom domains → store → products → cart → checkout → orders → K21 → store analytics events → analytics dashboard → AI business intelligence → Kebu Score → Opportunity country → resource/import → Opportunity AI → Build This Opportunity → business news.
+
+Never multiple major slices in parallel. See `kebu-single-slice.mdc` / `kebu-vertical-slice.mdc`.
+
+## Success test
+
+A young African user can say they found an opportunity, understood it, created and registered a business, built and launched a site/store, got a customer, understood analytics, improved, found people to build with, and learned by creating something real.

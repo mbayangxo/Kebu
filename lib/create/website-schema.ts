@@ -212,3 +212,19 @@ export const createWebsiteBriefSchema = z.object({
 });
 
 export type CreateWebsiteBrief = z.infer<typeof createWebsiteBriefSchema>;
+
+/** Optional instruction when improving an existing draft site with AI. */
+export const aiImproveBriefSchema = z.object({
+  instruction: z
+    .string()
+    .trim()
+    .max(800)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : undefined)),
+  focusSectionTypes: z
+    .array(sectionTypeSchema)
+    .max(8)
+    .optional(),
+});
+
+export type AiImproveBrief = z.infer<typeof aiImproveBriefSchema>;

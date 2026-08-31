@@ -6,9 +6,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Kebu
 
-Production African Cloud platform. Follow `.cursor/rules/` (constitution, vertical-slice, Kebu ID, KA Score, Opportunity OS).
+Production African AI Business Builder and Opportunity OS (Phase One). Follow `.cursor/rules/` (constitution, ecosystem, vertical-slice, Kebu ID, Kebu Score, Opportunity OS).
 
-- **Kebu ID** = business identity · **KA Score** = business score · **Opportunity OS** = what/how to build (Country Explorer first).
+- **Audience:** African youth — plain language, next-action UX, mobile/low-bandwidth reality.
+- **Kebu ID** = business identity · **Kebu Score / KA Score** = business score · **Opportunity OS** = what/how to build (Country Explorer first).
 - One vertical slice at a time. Never hard-code production opportunity pages; use DB + trust labels.
+- Future products (Cloud, Studio, Learn, Docs, Labs, Ventures, talent network) are **compatibility only** — do not build placeholders.
 
-Human constitution: `docs/KEBU-CONSTITUTION.md`
+Human constitution: `docs/KEBU-CONSTITUTION.md` · Ecosystem map: `docs/KEBU-ECOSYSTEM.md`
