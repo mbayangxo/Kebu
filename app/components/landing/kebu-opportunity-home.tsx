@@ -3,16 +3,11 @@ import { AlkebulanLion } from "@/app/components/panther-motif";
 import { SAMPLE_OPPORTUNITIES } from "@/lib/data/sample-opportunities";
 import { SUCCESS_STORIES } from "@/lib/data/success-stories";
 import { INDUSTRIES } from "@/lib/data/industry-intelligence";
+import { KEBU } from "@/lib/kebu-brand";
 
-/** Kebu landing — bright orange, black, red. Opportunity OS first. */
+/** Landing uses shared brand + light text on black. */
 const C = {
-  black: "#0A0A0A",
-  blackSoft: "#141414",
-  orange: "#FF5500",
-  orangeLight: "#FF7733",
-  red: "#E10600",
-  redSoft: "#FF2D2D",
-  white: "#FAFAFA",
+  ...KEBU,
   muted: "rgba(250,250,250,0.55)",
   faint: "rgba(250,250,250,0.35)",
 } as const;

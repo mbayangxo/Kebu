@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { AlkebulanLion } from "@/app/components/panther-motif";
+import { KEBU } from "@/lib/kebu-brand";
 
 type LegalStructure = { code: string; label: string; description?: string };
 type CountryModule = {
@@ -195,9 +196,12 @@ export default function RegisterBusinessWizardPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#FAFAF8", color: "#0F0D33" }}>
-      <header className="sticky top-0 z-40" style={{ background: "#0F0D33" }}>
-        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #009E40, #00C851)" }} />
+    <div className="min-h-screen" style={{ background: KEBU.cream, color: KEBU.black }}>
+      <header className="sticky top-0 z-40" style={{ background: KEBU.black }}>
+        <div
+          className="h-[3px] w-full"
+          style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
+        />
         <div className="max-w-xl mx-auto px-5 h-16 flex items-center justify-between">
           <Link href="/business" className="flex items-center gap-2 text-white text-sm">
             <AlkebulanLion size={28} />
@@ -207,13 +211,16 @@ export default function RegisterBusinessWizardPage() {
       </header>
 
       <main className="max-w-xl mx-auto px-5 py-10">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: "#009E40" }}>
+        <p
+          className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3"
+          style={{ color: KEBU.orange }}
+        >
           Business registration · draft Kebu ID
         </p>
         <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
           Register a business
         </h1>
-        <p className="text-sm mb-6" style={{ color: "#6B5B45", lineHeight: 1.7 }}>
+        <p className="text-sm mb-6" style={{ color: KEBU.muted, lineHeight: 1.7 }}>
           Creates a draft business with a permanent Kebu ID. Government filing is not submitted in this slice —
           country modules prepare for future connectors.
         </p>
@@ -224,8 +231,8 @@ export default function RegisterBusinessWizardPage() {
               key={label}
               className="text-[11px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full"
               style={{
-                background: i === step ? "#0F0D33" : "#E8E6DF",
-                color: i === step ? "#fff" : "#6B5B45",
+                background: i === step ? KEBU.black : "#E8E6DF",
+                color: i === step ? KEBU.white : KEBU.muted,
               }}
             >
               {i + 1}. {label}
@@ -376,8 +383,8 @@ export default function RegisterBusinessWizardPage() {
                     key={s.code}
                     className="flex items-start gap-3 rounded-xl px-3 py-3 cursor-pointer"
                     style={{
-                      border: `1px solid ${legalStructure === s.code ? "#00C851" : "#DDE0F0"}`,
-                      background: legalStructure === s.code ? "#F0FFF6" : "#fff",
+                      border: `1px solid ${legalStructure === s.code ? KEBU.orange : KEBU.border}`,
+                      background: legalStructure === s.code ? "rgba(255,85,0,0.08)" : KEBU.card,
                     }}
                   >
                     <input
@@ -455,7 +462,7 @@ export default function RegisterBusinessWizardPage() {
           {step === 3 && (
             <div className="space-y-2 text-sm" style={{ color: "#6B5B45" }}>
               <p>
-                <strong style={{ color: "#0F0D33" }}>{legalName}</strong>
+                <strong style={{ color: KEBU.black }}>{legalName}</strong>
                 {tradingName ? ` (trading as ${tradingName})` : ""}
               </p>
               <p>
@@ -485,7 +492,7 @@ export default function RegisterBusinessWizardPage() {
                 onClick={back}
                 disabled={submitting}
                 className="flex-1 rounded-full py-3 text-sm font-bold uppercase tracking-wider"
-                style={{ background: "#E8E6DF", color: "#0F0D33" }}
+                style={{ background: "#E8E6DF", color: KEBU.black }}
               >
                 Back
               </button>
@@ -496,7 +503,7 @@ export default function RegisterBusinessWizardPage() {
                 onClick={next}
                 disabled={submitting || !!moduleError}
                 className="flex-1 rounded-full py-3 text-sm font-bold uppercase tracking-wider disabled:opacity-50"
-                style={{ background: "#00C851", color: "#0F0D33" }}
+                style={{ background: KEBU.orange, color: KEBU.black }}
               >
                 Continue
               </button>
@@ -505,7 +512,7 @@ export default function RegisterBusinessWizardPage() {
                 type="submit"
                 disabled={submitting || !!moduleError}
                 className="flex-1 rounded-full py-3 text-sm font-bold uppercase tracking-wider disabled:opacity-50"
-                style={{ background: "#00C851", color: "#0F0D33" }}
+                style={{ background: KEBU.orange, color: KEBU.black }}
               >
                 {submitting ? "Creating…" : "Create draft business"}
               </button>

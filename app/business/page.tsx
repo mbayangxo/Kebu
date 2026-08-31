@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AlkebulanLion } from "@/app/components/panther-motif";
+import { KEBU } from "@/lib/kebu-brand";
 
 type Business = {
   id: string;
@@ -57,9 +58,12 @@ export default function BusinessListPage() {
   }, [load]);
 
   return (
-    <div className="min-h-screen" style={{ background: "#FAFAF8", color: "#0F0D33" }}>
-      <header className="sticky top-0 z-40" style={{ background: "#0F0D33" }}>
-        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #009E40, #00C851)" }} />
+    <div className="min-h-screen" style={{ background: KEBU.cream, color: KEBU.black }}>
+      <header className="sticky top-0 z-40" style={{ background: KEBU.black }}>
+        <div
+          className="h-[3px] w-full"
+          style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
+        />
         <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-white text-sm">
             <AlkebulanLion size={28} />
@@ -68,7 +72,7 @@ export default function BusinessListPage() {
           <Link
             href="/business/register"
             className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-            style={{ background: "#00C851", color: "#0F0D33" }}
+            style={{ background: KEBU.orange, color: KEBU.black }}
           >
             Register a Business
           </Link>
@@ -79,12 +83,16 @@ export default function BusinessListPage() {
         <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
           Your businesses
         </h1>
-        <p className="text-sm mb-8" style={{ color: "#6B5B45" }}>
+        <p className="text-sm mb-8" style={{ color: KEBU.muted }}>
           Each business has a permanent Kebu ID — separate from your personal account eligibility.
         </p>
 
         {error && (
-          <div role="alert" className="mb-4 rounded-xl px-4 py-3 text-sm" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
+          <div
+            role="alert"
+            className="mb-4 rounded-xl px-4 py-3 text-sm"
+            style={{ background: KEBU.errorBg, color: KEBU.errorText }}
+          >
             {error}{" "}
             <button type="button" className="underline font-semibold" onClick={() => void load()}>
               Retry
@@ -93,16 +101,23 @@ export default function BusinessListPage() {
         )}
 
         {loading ? (
-          <p className="text-sm" style={{ color: "#6B5B45" }}>
+          <p className="text-sm" style={{ color: KEBU.muted }}>
             Loading…
           </p>
         ) : businesses.length === 0 ? (
-          <div className="rounded-2xl px-6 py-12 text-center" style={{ border: "1px dashed #DDE0F0", background: "#fff" }}>
+          <div
+            className="rounded-2xl px-6 py-12 text-center"
+            style={{ border: `1px dashed ${KEBU.border}`, background: KEBU.card }}
+          >
             <p className="font-semibold mb-2">No businesses yet</p>
-            <p className="text-sm mb-6" style={{ color: "#6B5B45" }}>
+            <p className="text-sm mb-6" style={{ color: KEBU.muted }}>
               Register a draft business to receive your first Kebu ID.
             </p>
-            <Link href="/business/register" className="inline-block rounded-full px-6 py-3 text-sm font-bold" style={{ background: "#0F0D33", color: "#fff" }}>
+            <Link
+              href="/business/register"
+              className="inline-block rounded-full px-6 py-3 text-sm font-bold"
+              style={{ background: KEBU.black, color: KEBU.white }}
+            >
               Register a Business
             </Link>
           </div>
@@ -113,13 +128,13 @@ export default function BusinessListPage() {
                 <Link
                   href={`/business/${b.id}`}
                   className="block rounded-2xl px-5 py-4"
-                  style={{ background: "#fff", border: "1px solid #DDE0F0" }}
+                  style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
                 >
                   <p className="font-semibold">{b.legal_name}</p>
-                  <p className="text-xs mt-1 font-mono" style={{ color: "#009E40" }}>
+                  <p className="text-xs mt-1 font-mono" style={{ color: KEBU.orange }}>
                     {b.public_kebu_id}
                   </p>
-                  <p className="text-xs mt-1 uppercase tracking-wider" style={{ color: "#8A8578" }}>
+                  <p className="text-xs mt-1 uppercase tracking-wider" style={{ color: KEBU.faint }}>
                     {b.country_code} · {b.category} · level {b.verification_level} · {b.lifecycle_status}
                   </p>
                 </Link>
