@@ -68,7 +68,7 @@ export function MobileBottomNav() {
     !pathname.startsWith("/store/new") &&
     !pathname.startsWith("/store/dashboard");
 
-  if (isStoreCustomer) return null;
+  if (isStoreCustomer || pathname === "/") return null;
 
   return (
     <>

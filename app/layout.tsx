@@ -3,10 +3,8 @@ import { Space_Grotesk, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { PWARegister } from "@/app/components/pwa-register";
 import { LocaleProvider } from "@/app/components/locale-context";
-import { LanguageBar } from "@/app/components/language-bar";
-import { ProfileProvider, ProfileSetupModal, ProfileBadge } from "@/app/components/user-profile";
-import { ReportBug } from "@/app/components/report-bug";
-import { MobileBottomNav } from "@/app/components/mobile-nav";
+import { ProfileProvider } from "@/app/components/user-profile";
+import { AppChrome } from "@/app/components/app-chrome";
 import { EducationProvider } from "@/app/components/education-system";
 
 const spaceGrotesk = Space_Grotesk({
@@ -22,34 +20,37 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Kebu — The African Cloud",
+  title: "Kebu — Africa's Opportunity OS",
   description:
-    "Kebu is the African Cloud: discover real opportunities, create a business or store, and operate online — built for African students, creators, and founders.",
+    "Grants, government tenders, and bids — mapped to your country, city, and town. See African resources, entrepreneur paths, and build the site to capture the opportunity.",
   keywords: [
-    "African Cloud",
     "Kebu",
-    "African entrepreneurs",
-    "Africa business",
+    "African opportunity",
+    "grants Africa",
+    "government tenders",
+    "African resources",
+    "entrepreneurs Africa",
     "build in Africa",
-    "African online store",
-    "opportunity discovery",
+    "Opportunity OS",
     "AfCFTA",
   ],
   openGraph: {
-    title: "Kebu — The African Cloud",
-    description: "Discover opportunities. Create your business. Launch and sell — one cloud for African builders.",
+    title: "Kebu — Africa's Opportunity OS",
+    description:
+      "Daily opportunity from public sources. Every resource. Every country, city, and town. Build when you find it.",
     type: "website",
     siteName: "Kebu",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kebu — The African Cloud",
-    description: "Discover opportunities. Create your business. Launch and sell — one cloud for African builders.",
+    title: "Kebu — Africa's Opportunity OS",
+    description:
+      "Daily opportunity from public sources. Every resource. Every country, city, and town. Build when you find it.",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#00C851",
+  themeColor: "#FF5500",
   width: "device-width",
   initialScale: 1,
 };
@@ -69,12 +70,8 @@ export default function RootLayout({
         <ProfileProvider>
           <LocaleProvider>
             <EducationProvider>
-              <LanguageBar />
+              <AppChrome />
               {children}
-              <ProfileSetupModal />
-              <ProfileBadge />
-              <ReportBug />
-              <MobileBottomNav />
             </EducationProvider>
           </LocaleProvider>
         </ProfileProvider>
