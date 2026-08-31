@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { websiteDefinitionSchema } from "@/lib/create/website-schema";
 import { publicSiteRateLimit } from "@/lib/api-guard";
+import { loadPublicDeployment, publicDeploymentLoadError } from "@/lib/create/public-site-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -18,38 +17,27 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid subdomain." }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("deployments")
-    .select("id, subdomain, snapshot, public_path, published_at, status")
-    .eq("subdomain", subdomain)
-    .eq("status", "live")
-    .maybeSingle();
+  const deployment = await loadPublicDeployment(subdomain);
+  if (deployment) {
+    return NextResponse.json({
+      subdomain: deployment.subdomain,
+      publicPath: deployment.publicPath,
+      publishedAt: deployment.publishedAt,
+      definition: deployment.definition,
+    });
+  }
 
-  if (error) {
+  const loadError = await publicDeploymentLoadError(subdomain);
+  if (loadError) {
     return NextResponse.json(
       {
-        error: error.message.includes("does not exist")
-          ? "Deployments missing. Apply migration 008."
-          : "Could not load site.",
+        error: loadError.userMessage,
+        detail: loadError.detail,
+        code: loadError.code,
       },
-      { status: 500 }
+      { status: loadError.status },
     );
   }
 
-  if (!data) {
-    return NextResponse.json({ error: "Site not found." }, { status: 404 });
-  }
-
-  const parsed = websiteDefinitionSchema.safeParse(data.snapshot);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Published snapshot invalid." }, { status: 500 });
-  }
-
-  return NextResponse.json({
-    subdomain: data.subdomain,
-    publicPath: data.public_path,
-    publishedAt: data.published_at,
-    definition: parsed.data,
-  });
+  return NextResponse.json({ error: "Site not found." }, { status: 404 });
 }

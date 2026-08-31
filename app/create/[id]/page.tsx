@@ -115,7 +115,7 @@ export default function ProjectEditorPage() {
       const sub = typeof data.project?.subdomain === "string" ? data.project.subdomain : "";
       setSubdomainInput(sub);
       setPublishUrl(sub ? `/sites/${sub}` : null);
-      setHttpsLiveUrl(sub ? `https://${sub}.kebu.africa` : null);
+      setHttpsLiveUrl(sub ? `/sites/${sub}` : null);
       setSeoSettings(defaultSiteSeo(data.project?.title ?? "My website"));
       if (data.project?.seo && typeof data.project.seo === "object") {
         setSeoSettings((prev) => ({ ...prev, ...(data.project.seo as SiteSeo) }));
@@ -151,7 +151,7 @@ export default function ProjectEditorPage() {
         if (verified?.hostname) {
           setHttpsLiveUrl(`https://www.${verified.hostname}`);
         } else if (sub) {
-          setHttpsLiveUrl(`https://${sub}.kebu.africa`);
+          setHttpsLiveUrl(`/sites/${sub}`);
         }
       } else if (typeof domainsData.error === "string") {
         setDomainNote(domainsData.error);
@@ -529,7 +529,7 @@ export default function ProjectEditorPage() {
       setDomainSteps([]);
       setDomainDnsTarget(null);
       if (subdomainInput.trim()) {
-        setHttpsLiveUrl(`https://${subdomainInput.trim().toLowerCase()}.kebu.africa`);
+        setHttpsLiveUrl(`/sites/${subdomainInput.trim().toLowerCase()}`);
       }
       setDomainNote("Domain removed.");
     } catch {
@@ -568,7 +568,9 @@ export default function ProjectEditorPage() {
         return;
       }
       setPublishUrl(data.deployment?.public_path ?? data.liveUrl);
-      if (typeof data.kebuAfricaUrl === "string") setHttpsLiveUrl(data.kebuAfricaUrl);
+      if (typeof data.liveUrl === "string") setHttpsLiveUrl(data.liveUrl);
+      else if (typeof data.publicPath === "string") setHttpsLiveUrl(data.publicPath);
+      else if (typeof data.kebuAfricaUrl === "string") setHttpsLiveUrl(data.kebuAfricaUrl);
       await load();
     } catch {
       setError("Network error while publishing.");
@@ -726,8 +728,8 @@ export default function ProjectEditorPage() {
                       {billing.periodEnd
                         ? ` until ${new Date(billing.periodEnd).toLocaleDateString()}`
                         : ""}
-                      . Publish writes a live deployment. Branded{" "}
-                      <strong>*.kebu.africa</strong> still needs wildcard DNS/SSL on the host.
+                      . Publish writes a live deployment at <strong>/sites/your-name</strong>.{" "}
+                      <strong>*.kebu.africa</strong> is planned after that domain is owned.
                     </p>
                   ) : (
                     <>
@@ -754,13 +756,18 @@ export default function ProjectEditorPage() {
                 )}
                 {httpsLiveUrl && (
                   <a href={httpsLiveUrl} target="_blank" rel="noreferrer" className="block text-sm mt-2 font-bold underline break-all" style={{ color: "#0A0A0A" }}>
-                    {httpsLiveUrl.includes("kebu.africa") ? "Your Kebu address: " : "Your domain: "}
+                    {httpsLiveUrl.includes("kebu.africa")
+                      ? "Planned (domain not owned): "
+                      : httpsLiveUrl.startsWith("/sites/")
+                        ? "Live path: "
+                        : "Your domain: "}
                     {httpsLiveUrl}
                   </a>
                 )}
-                {httpsLiveUrl?.includes("kebu.africa") && (
+                {httpsLiveUrl?.startsWith("/sites/") && (
                   <p className="text-[11px] mt-1" style={{ color: "#5C5348" }}>
-                    This is your free subdomain until you connect a custom domain in Site settings.
+                    Open this on your real app host (Vercel / alkebulan). maylecor.kebu.africa will not work until
+                    you own kebu.africa.
                   </p>
                 )}
                 {improveNote && (
@@ -789,9 +796,10 @@ export default function ProjectEditorPage() {
               <div className="rounded-2xl p-4 space-y-3" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider">Site address · DNS · SEO</p>
                 <p className="text-xs leading-relaxed" style={{ color: "#6B5B45" }}>
-                  Free address after publish: <strong>your-name.kebu.africa</strong> (when wildcard DNS/SSL is
-                  configured on the host). Path preview always works at <strong>/sites/your-name</strong>.
-                  Connect your own domain when you are ready — DNS verify here ≠ HTTPS done.
+                  Live today: <strong>/sites/your-name</strong> on this app. Slug label{" "}
+                  <strong>your-name.kebu.africa</strong> is reserved for later — Kebu does not own that domain yet.
+                  Path preview always works at <strong>/sites/your-name</strong>. Connect your own domain when
+                  ready — DNS verify here ≠ HTTPS done.
                 </p>
                 <label className="block text-[10px] uppercase tracking-wider">
                   Subdomain (required to publish)
@@ -805,7 +813,7 @@ export default function ProjectEditorPage() {
                       aria-label="Site subdomain"
                     />
                     <span className="whitespace-nowrap text-[10px]" style={{ color: "#8A8578" }}>
-                      .kebu.africa
+                      → /sites/{subdomainInput || "…"}
                     </span>
                   </div>
                 </label>

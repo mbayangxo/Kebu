@@ -341,7 +341,7 @@ export default function BusinessDashboardPage() {
                           </Link>
                           <span className="block text-[11px] mt-0.5">
                             {site.status.replace(/_/g, " ")}
-                            {site.subdomain ? ` · ${site.subdomain}.kebu.africa` : ""}
+                            {site.subdomain ? ` · /sites/${site.subdomain}` : ""}
                           </span>
                           <span className="flex flex-wrap gap-3 mt-1 text-[11px]">
                             {site.previewPath ? (

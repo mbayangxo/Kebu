@@ -192,7 +192,10 @@ function CreateWebsiteWizardInner() {
         </h1>
         <p className="text-sm mb-8 leading-relaxed" style={{ color: "#5C5348" }}>
           Connects to your Kebu business → editor → preview → live at{" "}
-          <strong>https://{subdomain || "your-name"}.kebu.africa</strong>
+          <strong>/sites/{subdomain || "your-name"}</strong> on this app.
+          <span className="block text-xs mt-1" style={{ color: "#8A8074" }}>
+            {subdomain || "your-name"}.kebu.africa comes later (domain not owned yet).
+          </span>
         </p>
 
         {businesses.length === 0 && (
@@ -294,8 +297,11 @@ function CreateWebsiteWizardInner() {
           </label>
 
           <label className="block text-xs font-semibold uppercase tracking-wider">
-            Your live address (subdomain)
+            Your site slug
             <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs whitespace-nowrap" style={{ color: "#8A8578" }}>
+                /sites/
+              </span>
               <input
                 required
                 minLength={3}
@@ -304,14 +310,14 @@ function CreateWebsiteWizardInner() {
                   setSubdomainTouched(true);
                   setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
                 }}
-                placeholder="may-lecor"
+                placeholder="maylecor"
                 className="flex-1 rounded-xl px-3 py-2.5 text-sm"
                 style={{ border: "1px solid rgba(10,10,10,0.1)" }}
               />
-              <span className="text-xs whitespace-nowrap" style={{ color: "#8A8578" }}>
-                .kebu.africa
-              </span>
             </div>
+            <p className="mt-1 text-[11px] font-normal normal-case tracking-normal" style={{ color: "#8A8074" }}>
+              Later: {subdomain || "your-name"}.kebu.africa (after domain is owned)
+            </p>
           </label>
 
           <label className="block text-xs font-semibold uppercase tracking-wider">

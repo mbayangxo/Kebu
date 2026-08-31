@@ -93,8 +93,11 @@ export default function ProjectPreviewPage() {
 
       {subdomain ? (
         <p className="text-center text-[10px] py-2 text-white/50">
-          Live address after publish:{" "}
-          <span className="text-[#00C851]">https://{subdomain}.kebu.africa</span>
+          Live after publish:{" "}
+          <span className="text-[#00C851]">/sites/{subdomain}</span>
+          <span className="block text-xs mt-1 text-[#8A8578]">
+            {subdomain}.kebu.africa is planned after that domain is owned
+          </span>
         </p>
       ) : null}
 

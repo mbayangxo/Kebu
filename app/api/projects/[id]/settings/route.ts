@@ -115,9 +115,14 @@ export async function PATCH(req: Request, { params }: Params) {
 
   logCreate("website.settings_saved", { userId: user.id, projectId: id });
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const publicPath = updated.subdomain ? `/sites/${updated.subdomain}` : null;
+
   return NextResponse.json({
     project: updated,
-    httpsUrl: updated.subdomain ? `https://${updated.subdomain}.kebu.africa` : null,
+    httpsUrl: publicPath ? (appUrl ? `${appUrl}${publicPath}` : publicPath) : null,
+    publicPath,
+    plannedKebuAfrica: updated.subdomain ? `${updated.subdomain}.kebu.africa` : null,
     message: "Settings saved. Publish again to update your live site SEO.",
   });
 }

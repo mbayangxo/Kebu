@@ -7,9 +7,9 @@ import { CreateShell } from "@/app/components/create/create-shell";
 import { FEATURED_TEMPLATES } from "@/lib/create/featured-templates";
 import { publicTemplateSeeds } from "@/lib/create/templates-seed";
 import {
-  formatSiteAddressLabel,
-  kebuAfricaSiteUrl,
   kebuSitePreviewPath,
+  liveSiteUrl,
+  plannedKebuAfricaHost,
 } from "@/lib/create/site-urls";
 
 type ProjectRow = {
@@ -166,8 +166,9 @@ export default function CreateHubPage() {
             Your website. Your photos. Live on Kebu.
           </h1>
           <p className="text-base max-w-xl leading-relaxed mb-6" style={{ color: "#5C5348" }}>
-            Pick a template, swap image URLs in the editor, preview motion and cutouts, then go live at{" "}
-            <strong>https://your-name.kebu.africa</strong> when you are ready.
+            Pick a template, swap image URLs in the editor, preview, then publish. Live sites open at{" "}
+            <strong>/sites/your-name</strong> on this app. Branded <strong>*.kebu.africa</strong> comes after
+            that domain is owned + DNS.
           </p>
 
           <div className="flex flex-wrap gap-3">
@@ -260,7 +261,7 @@ export default function CreateHubPage() {
             { n: "1", t: "Pick template", d: "Artist, agency, salon, store — starters for everyone" },
             { n: "2", t: "Edit photos", d: "Swap any image URL — motion stays" },
             { n: "3", t: "Preview", d: "Desktop + mobile before you publish" },
-            { n: "4", t: "Go live", d: "HTTPS on yourname.kebu.africa" },
+            { n: "4", t: "Go live", d: "Public at /sites/your-name" },
           ].map((step) => (
             <div key={step.n}>
               <span
@@ -343,9 +344,9 @@ export default function CreateHubPage() {
           ) : (
             <ul className="space-y-3">
               {projects.map((p) => {
-                const liveUrl = kebuAfricaSiteUrl(p.subdomain);
-                const previewPath = kebuSitePreviewPath(p.subdomain);
-                const address = formatSiteAddressLabel(p.subdomain);
+                const path = kebuSitePreviewPath(p.subdomain);
+                const live = liveSiteUrl(p.subdomain);
+                const planned = plannedKebuAfricaHost(p.subdomain);
                 const isLive = p.status === "published";
                 return (
                   <li
@@ -359,36 +360,28 @@ export default function CreateHubPage() {
                         <p className="text-xs mt-1 uppercase tracking-wider" style={{ color: "#8A8074" }}>
                           {p.status} · {p.project_type}
                         </p>
-                        {address ? (
+                        {path ? (
                           <div className="mt-3 space-y-1.5">
                             <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#FF5500" }}>
-                              {isLive ? "Live address" : "Your Kebu address (after publish)"}
+                              {isLive ? "Live now" : "Public path (after publish)"}
                             </p>
-                            {liveUrl ? (
-                              <a
-                                href={isLive ? liveUrl : previewPath ?? liveUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block text-sm font-semibold underline break-all"
-                                style={{ color: "#0A0A0A" }}
-                              >
-                                {liveUrl}
-                              </a>
-                            ) : null}
-                            {previewPath ? (
-                              <a
-                                href={previewPath}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block text-xs underline"
-                                style={{ color: "#5C5348" }}
-                              >
-                                Open on Kebu: {previewPath}
-                              </a>
+                            <a
+                              href={path}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block text-sm font-semibold underline break-all"
+                              style={{ color: "#0A0A0A" }}
+                            >
+                              {live ?? path}
+                            </a>
+                            {planned ? (
+                              <p className="text-[11px]" style={{ color: "#8A8074" }}>
+                                Planned later: {planned} (domain not owned yet)
+                              </p>
                             ) : null}
                             {!isLive ? (
                               <p className="text-[11px]" style={{ color: "#8A8074" }}>
-                                Address is reserved. Publish from the editor to make {address} public.
+                                Publish from the editor to make this path public.
                               </p>
                             ) : null}
                           </div>
@@ -430,31 +423,32 @@ export default function CreateHubPage() {
                 {portfolioSites
                   .filter((s) => s.projectId)
                   .map((s) => {
-                    const liveUrl = s.kebuAfricaUrl ?? kebuAfricaSiteUrl(s.subdomain);
-                    const previewPath = s.previewPath ?? kebuSitePreviewPath(s.subdomain);
+                    const path = s.previewPath ?? kebuSitePreviewPath(s.subdomain);
+                    const live = liveSiteUrl(s.subdomain) ?? path;
+                    const planned = plannedKebuAfricaHost(s.subdomain);
                     return (
                       <li key={s.key} className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="font-bold">{s.title}</p>
-                          {liveUrl ? (
+                          {path ? (
                             <a
-                              href={previewPath ?? liveUrl}
+                              href={path}
                               target="_blank"
                               rel="noreferrer"
                               className="text-sm font-semibold underline break-all"
                               style={{ color: "#0A0A0A" }}
                             >
-                              {liveUrl}
+                              {live}
                             </a>
                           ) : (
                             <p className="text-xs" style={{ color: "#5C5348" }}>
                               Subdomain pending — click Add my sites again to go live
                             </p>
                           )}
-                          {previewPath ? (
-                            <a href={previewPath} className="block text-xs mt-1 underline" style={{ color: "#5C5348" }}>
-                              Open now: {previewPath}
-                            </a>
+                          {planned ? (
+                            <p className="text-xs mt-1" style={{ color: "#8A8074" }}>
+                              Planned later: {planned}
+                            </p>
                           ) : null}
                         </div>
                         {s.editorUrl ? (

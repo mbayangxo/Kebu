@@ -80,7 +80,9 @@ export async function goLiveWebsiteProject(opts: {
 
   const kebuAfricaUrl = kebuAfricaSiteUrl(normalized) ?? `https://${normalized}.kebu.africa`;
   if (businessId) {
-    await supabase.from("businesses").update({ website: kebuAfricaUrl }).eq("id", businessId);
+    const appBase = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
+    const website = appBase ? `${appBase}${publicPath}` : publicPath;
+    await supabase.from("businesses").update({ website }).eq("id", businessId);
   }
 
   const { data: lastVer } = await supabase

@@ -91,13 +91,17 @@ export async function GET(_req: Request, { params }: Params) {
   const latestScore = scores?.[0] ?? null;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
 
-  const websites = (websiteProjects ?? []).map((project) => ({
-    ...project,
-    editorUrl: `/create/${project.id}`,
-    previewPath: project.subdomain ? `/sites/${project.subdomain}` : null,
-    liveUrl: project.subdomain ? `https://${project.subdomain}.kebu.africa` : null,
-    appPreviewUrl: project.subdomain && appUrl ? `${appUrl}/sites/${project.subdomain}` : null,
-  }));
+  const websites = (websiteProjects ?? []).map((project) => {
+    const previewPath = project.subdomain ? `/sites/${project.subdomain}` : null;
+    return {
+      ...project,
+      editorUrl: `/create/${project.id}`,
+      previewPath,
+      liveUrl: previewPath ? (appUrl ? `${appUrl}${previewPath}` : previewPath) : null,
+      plannedKebuAfrica: project.subdomain ? `${project.subdomain}.kebu.africa` : null,
+      appPreviewUrl: previewPath && appUrl ? `${appUrl}${previewPath}` : null,
+    };
+  });
 
   return NextResponse.json({
     business,
