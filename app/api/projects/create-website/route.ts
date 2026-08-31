@@ -10,6 +10,9 @@ import {
 } from "@/lib/create/ai-generate";
 import { persistWebsiteDefinition } from "@/lib/create/persist-site";
 import { createWebsiteBriefSchema, validateWebsiteDefinition } from "@/lib/create/website-schema";
+import { templateRequiresPurchase, userOwnsTemplate } from "@/lib/billing/subscriptions";
+import { ensureTemplatesSeeded } from "@/lib/create/ensure-templates";
+import { isPublicTemplateSlug } from "@/lib/create/templates-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +43,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
+  try {
+    await ensureTemplatesSeeded(supabase);
+  } catch {
+    /* code templates still work via TEMPLATE_SEEDS fallback */
+  }
+
   const subdomain = brief.subdomain || suggestSubdomain(brief.businessName);
 
   let definition;
@@ -52,6 +61,28 @@ export async function POST(req: NextRequest) {
   } else if (brief.mode === "template") {
     if (!brief.templateSlug) {
       return NextResponse.json({ error: "templateSlug required for template mode." }, { status: 400 });
+    }
+    if (!isPublicTemplateSlug(brief.templateSlug)) {
+      return NextResponse.json(
+        {
+          error:
+            "That site is not a shared template. Sign in and use Add my sites on /create to put your personal projects on this account.",
+        },
+        { status: 403 },
+      );
+    }
+    const purchaseRule = await templateRequiresPurchase(supabase, brief.templateSlug);
+    if (purchaseRule.required && !(await userOwnsTemplate(supabase, user.id, brief.templateSlug))) {
+      return NextResponse.json(
+        {
+          error: "This template requires a one-time JOKO payment before use.",
+          templatePurchaseRequired: true,
+          templateSlug: brief.templateSlug,
+          priceUsdCents: purchaseRule.priceUsdCents,
+          purchaseUrl: "/api/billing/template-purchase",
+        },
+        { status: 402 },
+      );
     }
     const fromTemplate = definitionFromTemplateSlug(brief.templateSlug, brief);
     if (!fromTemplate) {

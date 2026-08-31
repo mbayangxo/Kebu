@@ -544,20 +544,20 @@ export default function BuildPage() {
               Ready to go deeper?
             </p>
             <p style={{ color: "rgba(253,250,244,0.45)", fontSize: "13px", lineHeight: 1.7, maxWidth: "520px" }}>
-              Your Ka Score shows which funding programs you can actually access for these businesses right now.
-              Create your Alkebulan ID to save this discovery and unlock your matched programs.
+              Next: register a Kebu ID business and check your Business Readiness (Kebu Score preview).
+              Full Kebu Score from store activity comes after you are operating on the platform — it does not unlock funding by itself.
             </p>
 
             <div className="flex flex-wrap gap-3">
-              <Link href="/signup"
+              <Link href="/business/register"
                 className="inline-flex items-center gap-2 font-bold text-sm uppercase tracking-[0.08em] px-8 py-4 rounded-full transition-all"
-                style={{ background: "#00C851", color: "#0F0D33" }}>
-                Create my Alkebulan ID →
+                style={{ background: "#FF5500", color: "#0A0A0A" }}>
+                Register a business →
               </Link>
               <Link href="/ka-score"
                 className="inline-flex items-center gap-2 font-semibold text-sm uppercase tracking-[0.08em] px-8 py-4 rounded-full transition-all"
                 style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(253,250,244,0.7)" }}>
-                Get my Ka Score
+                View Kebu Score
               </Link>
             </div>
 

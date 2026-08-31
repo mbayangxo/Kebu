@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
-import { TEMPLATE_SEEDS } from "@/lib/create/templates-seed";
 import { ensureTemplatesSeeded } from "@/lib/create/ensure-templates";
+import { isPublicTemplateSlug, publicTemplateSeeds } from "@/lib/create/templates-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +25,12 @@ export async function GET() {
     .order("category");
 
   if (!error && templates && templates.length > 0) {
-    return NextResponse.json({ templates, source: "database" });
+    const publicOnly = templates.filter((t) => isPublicTemplateSlug(t.slug));
+    return NextResponse.json({ templates: publicOnly, source: "database" });
   }
 
   return NextResponse.json({
-    templates: TEMPLATE_SEEDS.map((t) => ({
+    templates: publicTemplateSeeds().map((t) => ({
       id: `seed:${t.slug}`,
       slug: t.slug,
       name: t.name,

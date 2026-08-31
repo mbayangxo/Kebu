@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generatePublicKebuId } from "@/lib/kebu-id/public-id";
+import { documentsComplete } from "@/lib/kebu-id/business-documents";
 import {
   calculateBusinessReadiness,
   infoCompleteFromProfile,
@@ -169,7 +170,10 @@ export async function createRegisteredBusiness(opts: {
     return { ok: false, status: 500, error: "Could not seed registration progress.", detail: progressErr.message };
   }
 
-  const readiness = calculateBusinessReadiness(profile);
+  const readiness = calculateBusinessReadiness({
+    ...profile,
+    registrationDocumentsComplete: false,
+  });
   const { error: scoreErr } = await supabase.from("business_readiness_scores").insert({
     business_id: businessId,
     score_value: readiness.scoreValue,
@@ -270,6 +274,14 @@ export async function recalculateAndStoreReadiness(opts: {
     .limit(1);
 
   const founder = owners?.[0];
+
+  const { data: docRows } = await supabase
+    .from("business_documents")
+    .select("document_type")
+    .eq("business_id", businessId);
+  const uploadedDocTypes = [...new Set((docRows ?? []).map((d) => d.document_type))];
+  const registrationDocumentsComplete = documentsComplete(uploadedDocTypes);
+
   const readiness = calculateBusinessReadiness({
     legalName: business.legal_name,
     tradingName: business.trading_name,
@@ -284,6 +296,7 @@ export async function recalculateAndStoreReadiness(opts: {
     founderName: founder?.full_name,
     founderEmail: founder?.email,
     ownershipPercent: founder ? Number(founder.ownership_percent) : null,
+    registrationDocumentsComplete,
   });
 
   const { data: prev } = await supabase
@@ -337,11 +350,24 @@ export async function recalculateAndStoreReadiness(opts: {
     .update({
       is_complete: complete,
       completed_at: complete ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
     })
     .eq("business_id", businessId)
     .eq("step_key", "business_information_complete");
 
   return { ok: true, score };
+}
+
+export async function loadRegistrationDocumentsComplete(
+  supabase: SupabaseClient,
+  businessId: string,
+): Promise<boolean> {
+  const { data: docRows } = await supabase
+    .from("business_documents")
+    .select("document_type")
+    .eq("business_id", businessId);
+  const uploadedDocTypes = [...new Set((docRows ?? []).map((d) => d.document_type))];
+  return documentsComplete(uploadedDocTypes);
 }
 
 function missingTable(message?: string) {

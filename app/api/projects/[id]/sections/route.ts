@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
-import { DEFAULT_HERO_PROPS } from "@/lib/create/schemas";
 import { sectionTypeSchema, sectionPropsSchemas } from "@/lib/create/website-schema";
+import { defaultSectionProps } from "@/lib/create/section-defaults";
+import { builderRateLimit } from "@/lib/api-guard";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -39,36 +40,14 @@ async function assertOwnedProject(
   return project;
 }
 
-function defaultPropsFor(type: z.infer<typeof sectionTypeSchema>) {
-  switch (type) {
-    case "hero":
-      return DEFAULT_HERO_PROPS;
-    case "navigation":
-      return { brand: "My site", links: [{ label: "Home", href: "#" }] };
-    case "text":
-      return { heading: "About", body: "Tell your story." };
-    case "features":
-      return { heading: "Features", items: [{ title: "Feature", body: "Describe it." }] };
-    case "testimonials":
-      return { heading: "Testimonials", items: [{ quote: "Great experience.", name: "Customer" }] };
-    case "faq":
-      return { heading: "FAQ", items: [{ question: "How do I start?", answer: "Contact us." }] };
-    case "contact":
-      return { heading: "Contact", email: "", phone: "", address: "" };
-    case "whatsapp":
-      return { label: "Chat on WhatsApp", phone: "+221770000000", message: "Hello" };
-    case "footer":
-      return { text: "© My site", links: [] };
-    case "image":
-      return { src: "", alt: "" };
-    case "gallery":
-      return { items: [] };
-    default:
-      return {};
-  }
-}
+const addSectionBodySchema = addSectionSchema.extend({
+  pageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(60).optional(),
+});
 
 export async function POST(req: Request, { params }: Params) {
+  const limited = builderRateLimit(req);
+  if (limited) return limited;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -89,27 +68,32 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   // Backward compatible: empty body → hero
-  const parsed = addSectionSchema.safeParse(body && Object.keys(body as object).length ? body : { type: "hero" });
+  const parsed = addSectionBodySchema.safeParse(
+    body && Object.keys(body as object).length ? body : { type: "hero" },
+  );
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
   const type = parsed.data.type;
   const schema = sectionPropsSchemas[type];
-  const merged = { ...defaultPropsFor(type), ...(parsed.data.props ?? {}) };
+  const merged = { ...defaultSectionProps(type), ...(parsed.data.props ?? {}) };
   const propsParsed = schema.safeParse(merged);
   if (!propsParsed.success) {
     return NextResponse.json({ error: "Invalid section props.", issues: propsParsed.error.flatten() }, { status: 400 });
   }
 
+  const pageSlug = parsed.data.pageSlug ?? "home";
   const { data: page } = await supabase
     .from("project_pages")
     .select("id")
     .eq("project_id", projectId)
-    .eq("slug", "home")
+    .eq("slug", pageSlug)
     .maybeSingle();
 
-  if (!page) return NextResponse.json({ error: "Home page missing on project." }, { status: 500 });
+  if (!page) {
+    return NextResponse.json({ error: `Page "${pageSlug}" not found on this project.` }, { status: 404 });
+  }
 
   const { data: existing } = await supabase
     .from("project_sections")
@@ -141,6 +125,9 @@ export async function POST(req: Request, { params }: Params) {
 }
 
 export async function PATCH(req: Request, { params }: Params) {
+  const limited = builderRateLimit(req);
+  if (limited) return limited;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -223,6 +210,9 @@ export async function PATCH(req: Request, { params }: Params) {
 }
 
 export async function DELETE(req: Request, { params }: Params) {
+  const limited = builderRateLimit(req);
+  if (limited) return limited;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

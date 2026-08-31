@@ -77,8 +77,37 @@ describe("templates", () => {
   it("seeds cover required categories", () => {
     const cats = new Set(TEMPLATE_SEEDS.map((t) => t.category));
     expect(cats.has("fashion")).toBe(true);
-    expect(cats.has("online store preview only")).toBe(true);
-    expect(TEMPLATE_SEEDS.length).toBeGreaterThanOrEqual(10);
+    expect(cats.has("music")).toBe(true);
+    expect(cats.has("film")).toBe(true);
+    expect(cats.has("business")).toBe(true);
+    expect(cats.has("store")).toBe(true);
+    expect(cats.has("app")).toBe(true);
+    expect(cats.has("public figure")).toBe(true);
+    expect(cats.has("agency")).toBe(true);
+    expect(cats.has("production")).toBe(true);
+    expect(cats.has("fragrance")).toBe(true);
+    expect(TEMPLATE_SEEDS.length).toBeGreaterThanOrEqual(28);
+  });
+
+  it("keeps May Lecor as owner portfolio seed (not a public demo)", () => {
+    const seed = TEMPLATE_SEEDS.find((t) => t.slug === "musician-kdirection-artist");
+    expect(seed).toBeDefined();
+    expect(seed!.visibility).toBe("owner_portfolio");
+    const result = validateWebsiteDefinition(seed!.definition);
+    expect(result.ok).toBe(true);
+    const home = seed!.definition.pages.find((p) => p.slug === "home");
+    const maylecor = home?.sections.find((s) => s.type === "maylecor-home");
+    expect(maylecor?.props).toMatchObject({ ctaLabel: "LISTEN TO MAY'S NEW SINGLE" });
+    expect(seed!.definition.pages.some((p) => p.slug === "music")).toBe(true);
+  });
+
+  it("includes Legally Blonde animated showcase template", () => {
+    const seed = TEMPLATE_SEEDS.find((t) => t.slug === "showcase-legally-blonde");
+    expect(seed).toBeDefined();
+    const result = validateWebsiteDefinition(seed!.definition);
+    expect(result.ok).toBe(true);
+    const hero = seed!.definition.pages[0]?.sections.find((s) => s.type === "legally-blonde-hero");
+    expect(String(hero?.props && (hero.props as { titleLogo?: string }).titleLogo)).toContain("tildacdn.com");
   });
 
   it("template definitions validate", () => {

@@ -33,7 +33,7 @@ Critical rules:
 - Specific. "Register with NAFDAC and approach Shoprite's buying team in Lagos" beats "find customers."
 - Start capital low. Most users have under $2,000. Meet them where they are.
 - Name real African success stories when they fit — people who did this from similar starting points.
-- After the 3 businesses, add one paragraph: "Your next step: Take your Ka Score on Kebu to see which funding programs you qualify for to fund these businesses."
+- After the 3 businesses, add one paragraph: "Your next step: Register a Kebu ID business and check your Business Readiness (Kebu Score preview). Full Kebu Score grows from real activity on Kebu — it does not unlock funding by itself."
 - No filler. Every sentence earns its place.`;
 
 export async function POST(req: NextRequest) {

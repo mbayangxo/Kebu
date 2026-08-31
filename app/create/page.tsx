@@ -3,24 +3,45 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AlkebulanLion } from "@/app/components/panther-motif";
+import { CreateShell } from "@/app/components/create/create-shell";
+import { FEATURED_TEMPLATES } from "@/lib/create/featured-templates";
+import { publicTemplateSeeds } from "@/lib/create/templates-seed";
+import {
+  formatSiteAddressLabel,
+  kebuAfricaSiteUrl,
+  kebuSitePreviewPath,
+} from "@/lib/create/site-urls";
 
 type ProjectRow = {
   id: string;
   title: string;
   project_type: string;
   status: string;
+  subdomain?: string | null;
   updated_at: string;
+};
+
+type PortfolioSiteRow = {
+  key: string;
+  title: string;
+  projectId: string | null;
+  subdomain: string | null;
+  editorUrl: string | null;
+  previewPath: string | null;
+  kebuAfricaUrl?: string | null;
+  status?: string | null;
 };
 
 export default function CreateHubPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState("My website");
   const [error, setError] = useState<string | null>(null);
-  const [retryToken, setRetryToken] = useState(0);
+  const [dbHealth, setDbHealth] = useState<{ saveReady: boolean; message: string } | null>(null);
+  const [portfolioBusy, setPortfolioBusy] = useState(false);
+  const [portfolioNote, setPortfolioNote] = useState<string | null>(null);
+  const [portfolioAllowed, setPortfolioAllowed] = useState(false);
+  const [portfolioSites, setPortfolioSites] = useState<PortfolioSiteRow[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,183 +67,416 @@ export default function CreateHubPage() {
     }
   }, [router]);
 
-  useEffect(() => {
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) void load();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [load, retryToken]);
+  const loadPortfolio = useCallback(async () => {
+    const res = await fetch("/api/projects/ensure-portfolio", { credentials: "include" });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.allowed === true) {
+      setPortfolioAllowed(true);
+      setPortfolioSites(Array.isArray(data.sites) ? data.sites : []);
+    } else {
+      setPortfolioAllowed(false);
+      setPortfolioSites([]);
+    }
+  }, []);
 
-  async function createProject() {
-    if (creating) return;
-    setCreating(true);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    void loadPortfolio();
+  }, [loadPortfolio]);
+
+  useEffect(() => {
+    async function checkDb() {
+      const res = await fetch("/api/create/health", { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setDbHealth({
+          saveReady: Boolean(data.saveReady),
+          message: typeof data.message === "string" ? data.message : "",
+        });
+      }
+    }
+    void checkDb();
+  }, []);
+
+  async function addPortfolioSites() {
+    if (portfolioBusy) return;
+    setPortfolioBusy(true);
+    setPortfolioNote(null);
     setError(null);
     try {
-      const res = await fetch("/api/projects", {
+      const res = await fetch("/api/projects/ensure-portfolio", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim() || "My website", projectType: "website" }),
+        body: JSON.stringify({}),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
         router.replace("/login?next=/create");
         return;
       }
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not create project.");
+      if (res.status === 403) {
+        setError("These sites are private to the owner account.");
+        setPortfolioAllowed(false);
         return;
       }
-      router.push(`/create/${data.project.id}`);
+      if (res.status === 400 && data.registerUrl) {
+        setError(typeof data.error === "string" ? data.error : "Register a business first.");
+        setPortfolioNote("Open Business → Register, then come back and add your sites.");
+        return;
+      }
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not add portfolio sites.");
+        return;
+      }
+      setPortfolioNote(typeof data.message === "string" ? data.message : "Sites ready.");
+      await Promise.all([load(), loadPortfolio()]);
     } catch {
-      setError("Network error while creating. Retry.");
+      setError("Network error while adding sites.");
     } finally {
-      setCreating(false);
+      setPortfolioBusy(false);
     }
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#FAFAF8", color: "#0F0D33" }}>
-      <header className="sticky top-0 z-40" style={{ background: "#0F0D33" }}>
-        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #009E40, #00C851)" }} />
-        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-white">
-            <AlkebulanLion size={28} />
-            <span className="font-bold tracking-[0.12em] text-sm">KEBU CREATE</span>
-          </Link>
-          <Link href="/ka-score" className="text-white/50 text-xs uppercase tracking-wider hover:text-[#00C851]">
-            Ka Score
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-5 py-10 sm:py-14">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: "#009E40" }}>
-          African Cloud · Create Mode
-        </p>
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>
-          Your projects
-        </h1>
-        <p className="text-sm mb-8 max-w-xl" style={{ color: "#6B5B45", lineHeight: 1.7 }}>
-          Build from a template, AI, or blank — edit visually, save, preview, and publish to a Kebu site URL.
-          Linked to your Kebu business.
-        </p>
-
-        <div className="mb-10 flex flex-wrap gap-3">
+    <div className="min-h-screen" style={{ background: "#FFFBF7", color: "#0A0A0A" }}>
+      <CreateShell
+        step="start"
+        title="Kebu Create"
+        actions={
           <Link
             href="/create/new"
-            className="inline-block rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wider"
-            style={{ background: "#00C851", color: "#0F0D33" }}
+            className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+            style={{ background: "#FF5500", color: "#FFFFFF" }}
           >
-            Build Website
+            + New site
           </Link>
-        </div>
+        }
+      />
 
-        <section
-          className="rounded-2xl p-5 sm:p-6 mb-10"
-          style={{ background: "#0F0D33", color: "#FAFAF8" }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={{ color: "#00C851" }}>
-            Site #1 on Kebu
+      <main className="max-w-5xl mx-auto px-5 py-10 sm:py-14">
+        <section className="mb-12">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.25em] mb-3" style={{ color: "#FF5500" }}>
+            Build something real
           </p>
-          <h2 className="text-lg font-bold mb-2">K-Direction</h2>
-          <p className="text-sm mb-4 text-white/75 leading-relaxed">
-            The first full brand site built with Kebu — label website, portal CMS, careers, and Joko tickets.
-            Lives in this repo at <code className="text-white/90">kebu-sites/k-direction</code> (separate deploy from this builder).
+          <h1 className="text-3xl sm:text-5xl font-bold mb-4 max-w-2xl" style={{ fontFamily: "var(--font-fraunces)" }}>
+            Your website. Your photos. Live on Kebu.
+          </h1>
+          <p className="text-base max-w-xl leading-relaxed mb-6" style={{ color: "#5C5348" }}>
+            Pick a template, swap image URLs in the editor, preview motion and cutouts, then go live at{" "}
+            <strong>https://your-name.kebu.africa</strong> when you are ready.
           </p>
-          <p className="text-xs text-white/50 mb-3">
-            Local: run <code className="text-white/70">npm run dev</code> in that folder → port 3100
-          </p>
-        </section>
 
-        <section
-          className="rounded-2xl p-5 sm:p-6 mb-10"
-          style={{ background: "#fff", border: "1px solid #DDE0F0" }}
-        >
-          <label htmlFor="project-title" className="block text-xs font-semibold uppercase tracking-wider mb-2">
-            Quick blank (legacy)
-          </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              id="project-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={120}
-              className="flex-1 rounded-xl px-4 py-3 text-sm outline-none"
-              style={{ border: "1px solid #DDE0F0", background: "#FAFAF8" }}
-              disabled={creating}
-            />
-            <button
-              type="button"
-              onClick={() => void createProject()}
-              disabled={creating || !title.trim()}
-              className="rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wider disabled:opacity-50"
-              style={{ background: "#0F0D33", color: "#fff" }}
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/create/new"
+              className="inline-flex rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wider"
+              style={{ background: "#FF5500", color: "#FFFFFF" }}
             >
-              {creating ? "Creating…" : "Blank project"}
-            </button>
+              Start building
+            </Link>
+            <Link
+              href="/create/demo/musician-artist"
+              className="inline-flex rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-wider"
+              style={{ border: "2px solid #FF5500", color: "#FF5500" }}
+            >
+              Preview artist template
+            </Link>
           </div>
         </section>
 
-        {error && (
+        {dbHealth && !dbHealth.saveReady ? (
           <div
-            role="alert"
-            className="mb-6 rounded-xl px-4 py-3 text-sm flex flex-col sm:flex-row sm:items-center gap-3"
-            style={{ background: "#FFF1F0", border: "1px solid #F5C2C0", color: "#8B1E1E" }}
+            className="rounded-2xl p-4 mb-10 text-sm leading-relaxed"
+            style={{ background: "#FFF8E8", border: "1px solid #F0E4C8", color: "#6B5B45" }}
           >
-            <span className="flex-1">{error}</span>
-            <button
-              type="button"
-              className="font-semibold underline"
-              onClick={() => setRetryToken((n) => n + 1)}
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {loading ? (
-          <p className="text-sm" style={{ color: "#6B5B45" }} aria-live="polite">
-            Loading your projects…
-          </p>
-        ) : projects.length === 0 && !error ? (
-          <div
-            className="rounded-2xl px-6 py-12 text-center"
-            style={{ border: "1px dashed #DDE0F0", background: "#fff" }}
-          >
-            <p className="font-semibold mb-2">No projects yet</p>
-            <p className="text-sm" style={{ color: "#6B5B45" }}>
-              Create your first blank website above. You&apos;ll add a hero next.
+            <p className="font-semibold mb-1" style={{ color: "#0A0A0A" }}>
+              Demos work now · saving needs Supabase later
+            </p>
+            <p>
+              You can preview templates below without a database. When you apply migrations, edit → save → publish
+              connects end-to-end. {dbHealth.message}
             </p>
           </div>
-        ) : (
-          <ul className="space-y-3" aria-label="Your projects">
-            {projects.map((p) => (
-              <li key={p.id}>
-                <Link
-                  href={`/create/${p.id}`}
-                  className="block rounded-2xl px-5 py-4 transition-colors hover:border-[#00C851]"
-                  style={{ background: "#fff", border: "1px solid #DDE0F0" }}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-semibold">{p.title}</p>
-                      <p className="text-xs mt-1 uppercase tracking-wider" style={{ color: "#8A8578" }}>
-                        {p.project_type} · {p.status}
-                      </p>
-                    </div>
-                    <span className="text-xs font-semibold" style={{ color: "#00C851" }}>
-                      Edit →
-                    </span>
+        ) : null}
+
+        <section className="mb-12">
+          <div className="flex items-end justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-xl font-bold">Featured templates</h2>
+              <p className="text-sm mt-1" style={{ color: "#6B5B45" }}>
+                Preview instantly · customize photos in the editor
+              </p>
+            </div>
+            <Link href="/create/new" className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+              Browse all {publicTemplateSeeds().length} templates →
+            </Link>
+          </div>
+
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {FEATURED_TEMPLATES.map((t) => (
+              <li
+                key={t.slug}
+                className="rounded-2xl overflow-hidden flex flex-col bg-white"
+                style={{ border: "1px solid rgba(10,10,10,0.1)", color: "#0A0A0A", boxShadow: "0 8px 24px rgba(255,85,0,0.06)" }}
+              >
+                <div className="h-2 w-full" style={{ background: t.accent }} />
+                <div className="p-5 flex flex-col flex-1">
+                  <p className="text-[10px] uppercase tracking-[0.2em] mb-2" style={{ color: t.accent }}>
+                    {t.category}
+                  </p>
+                  <h3 className="text-lg font-bold mb-2">{t.name}</h3>
+                  <p className="text-sm leading-relaxed flex-1" style={{ color: "#5C5348" }}>{t.tagline}</p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Link
+                      href={`/create/demo/${t.slug}`}
+                      className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
+                      style={{ background: "#FFF8F2", color: "#0A0A0A", border: "1px solid rgba(10,10,10,0.1)" }}
+                    >
+                      Preview demo
+                    </Link>
+                    <Link
+                      href={`/create/new?template=${t.slug}`}
+                      className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
+                      style={{ background: "#FF5500", color: "#FFFFFF" }}
+                    >
+                      Use template
+                    </Link>
                   </div>
-                </Link>
+                </div>
               </li>
             ))}
           </ul>
-        )}
+        </section>
+
+        <section
+          className="rounded-2xl p-6 mb-10 grid sm:grid-cols-4 gap-4"
+          style={{ background: "#fff", border: "1px solid rgba(10,10,10,0.1)" }}
+        >
+          {[
+            { n: "1", t: "Pick template", d: "Artist, agency, salon, store — starters for everyone" },
+            { n: "2", t: "Edit photos", d: "Swap any image URL — motion stays" },
+            { n: "3", t: "Preview", d: "Desktop + mobile before you publish" },
+            { n: "4", t: "Go live", d: "HTTPS on yourname.kebu.africa" },
+          ].map((step) => (
+            <div key={step.n}>
+              <span
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold mb-2"
+                style={{ background: "#FF5500", color: "#FFFFFF" }}
+              >
+                {step.n}
+              </span>
+              <p className="font-semibold text-sm">{step.t}</p>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: "#6B5B45" }}>
+                {step.d}
+              </p>
+            </div>
+          ))}
+        </section>
+
+        <section className="mb-8">
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+            <h2 className="text-lg font-bold">Your sites</h2>
+            {portfolioAllowed ? (
+              <button
+                type="button"
+                onClick={() => void addPortfolioSites()}
+                disabled={portfolioBusy}
+                className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                style={{ background: "#FF5500", color: "#FFFFFF" }}
+              >
+                {portfolioBusy ? "Adding…" : "Add my sites (May Lecor + K-Direction)"}
+              </button>
+            ) : null}
+          </div>
+          {portfolioAllowed ? (
+            portfolioNote ? (
+              <p className="text-xs mb-3" style={{ color: "#FF5500" }} role="status">
+                {portfolioNote}
+              </p>
+            ) : (
+              <p className="text-xs mb-3" style={{ color: "#5C5348" }}>
+                Private to your owner login only. Other people use shared templates — not May Lecor or K-Direction.
+              </p>
+            )
+          ) : (
+            <p className="text-xs mb-3" style={{ color: "#5C5348" }}>
+              Start from a shared template below. Your sites stay on this login — others cannot see them.
+            </p>
+          )}
+          {error ? (
+            <div role="alert" className="rounded-xl p-4 text-sm mb-3" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
+              {error}
+              {error.includes("Register") ? (
+                <Link href="/business/register" className="underline ml-2 font-semibold">
+                  Register business
+                </Link>
+              ) : (
+                <button type="button" className="underline ml-2" onClick={() => void load()}>
+                  Retry
+                </button>
+              )}
+            </div>
+          ) : null}
+          {loading ? (
+            <p className="text-sm" style={{ color: "#5C5348" }}>
+              Loading…
+            </p>
+          ) : projects.length === 0 ? (
+            <div
+              className="rounded-2xl px-6 py-10 text-center"
+              style={{ border: "1px dashed rgba(10,10,10,0.15)", background: "#fff" }}
+            >
+              <p className="font-semibold mb-2">No sites on this account yet</p>
+              <p className="text-sm mb-4" style={{ color: "#5C5348" }}>
+                {portfolioAllowed
+                  ? "Add your personal May Lecor + K-Direction sites above, or start from a shared template."
+                  : "Pick a shared template to create your first site."}
+              </p>
+              <Link href="/create/new" className="text-sm font-semibold underline" style={{ color: "#FF5500" }}>
+                Create your first site
+              </Link>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {projects.map((p) => {
+                const liveUrl = kebuAfricaSiteUrl(p.subdomain);
+                const previewPath = kebuSitePreviewPath(p.subdomain);
+                const address = formatSiteAddressLabel(p.subdomain);
+                const isLive = p.status === "published";
+                return (
+                  <li
+                    key={p.id}
+                    className="rounded-2xl px-5 py-4"
+                    style={{ background: "#fff", border: "1px solid rgba(10,10,10,0.1)" }}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold">{p.title}</p>
+                        <p className="text-xs mt-1 uppercase tracking-wider" style={{ color: "#8A8074" }}>
+                          {p.status} · {p.project_type}
+                        </p>
+                        {address ? (
+                          <div className="mt-3 space-y-1.5">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#FF5500" }}>
+                              {isLive ? "Live address" : "Your Kebu address (after publish)"}
+                            </p>
+                            {liveUrl ? (
+                              <a
+                                href={isLive ? liveUrl : previewPath ?? liveUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block text-sm font-semibold underline break-all"
+                                style={{ color: "#0A0A0A" }}
+                              >
+                                {liveUrl}
+                              </a>
+                            ) : null}
+                            {previewPath ? (
+                              <a
+                                href={previewPath}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block text-xs underline"
+                                style={{ color: "#5C5348" }}
+                              >
+                                Open on Kebu: {previewPath}
+                              </a>
+                            ) : null}
+                            {!isLive ? (
+                              <p className="text-[11px]" style={{ color: "#8A8074" }}>
+                                Address is reserved. Publish from the editor to make {address} public.
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <p className="text-xs mt-2" style={{ color: "#8A8074" }}>
+                            No subdomain yet — open the editor and set your site address.
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <Link
+                          href={`/create/${p.id}`}
+                          className="text-xs font-bold text-center rounded-full px-4 py-2"
+                          style={{ background: "#FF5500", color: "#fff" }}
+                        >
+                          Open editor →
+                        </Link>
+                        <Link
+                          href={`/create/${p.id}/preview`}
+                          className="text-xs font-semibold text-center underline"
+                          style={{ color: "#5C5348" }}
+                        >
+                          Preview draft
+                        </Link>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {portfolioAllowed && portfolioSites.some((s) => s.projectId) ? (
+            <div className="mt-8 rounded-2xl p-5" style={{ background: "#FFF8F2", border: "1px solid rgba(255,85,0,0.25)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] mb-3" style={{ color: "#FF5500" }}>
+                Your private sites · May Lecor & K-Direction
+              </p>
+              <ul className="space-y-3">
+                {portfolioSites
+                  .filter((s) => s.projectId)
+                  .map((s) => {
+                    const liveUrl = s.kebuAfricaUrl ?? kebuAfricaSiteUrl(s.subdomain);
+                    const previewPath = s.previewPath ?? kebuSitePreviewPath(s.subdomain);
+                    return (
+                      <li key={s.key} className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-bold">{s.title}</p>
+                          {liveUrl ? (
+                            <a
+                              href={previewPath ?? liveUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-semibold underline break-all"
+                              style={{ color: "#0A0A0A" }}
+                            >
+                              {liveUrl}
+                            </a>
+                          ) : (
+                            <p className="text-xs" style={{ color: "#5C5348" }}>
+                              Subdomain pending — click Add my sites again to go live
+                            </p>
+                          )}
+                          {previewPath ? (
+                            <a href={previewPath} className="block text-xs mt-1 underline" style={{ color: "#5C5348" }}>
+                              Open now: {previewPath}
+                            </a>
+                          ) : null}
+                        </div>
+                        {s.editorUrl ? (
+                          <Link href={s.editorUrl} className="text-xs font-bold" style={{ color: "#FF5500" }}>
+                            Edit →
+                          </Link>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+
+        <p className="text-center text-xs" style={{ color: "#8A8578" }}>
+          <Link href="/business" className="underline">
+            My businesses
+          </Link>
+          {" · "}
+          Live hosting $4/month via JOKO when you publish
+        </p>
       </main>
     </div>
   );

@@ -49,7 +49,10 @@ describe("registerBusinessSchema", () => {
 
 describe("Business Readiness score", () => {
   it("scores a complete profile as high readiness", () => {
-    const result = calculateBusinessReadiness(completeProfile);
+    const result = calculateBusinessReadiness({
+      ...completeProfile,
+      registrationDocumentsComplete: true,
+    });
     expect(result.scoreValue).toBeGreaterThanOrEqual(85);
     expect(result.modelVersion).toBe("business-readiness-v1");
     expect(result.explanation.note).toMatch(/not financing/i);
@@ -66,6 +69,16 @@ describe("Business Readiness score", () => {
     expect(result.confidenceLevel).toBe("low");
     expect(result.missingItems.length).toBeGreaterThan(0);
     expect(result.explanation.summary).toMatch(/not enough verified information/i);
+    expect(result.missingItems.some((m) => /registration documents/i.test(m))).toBe(true);
+  });
+
+  it("tracks registration document completion in missing items", () => {
+    const withoutDocs = calculateBusinessReadiness({ ...completeProfile, registrationDocumentsComplete: false });
+    expect(withoutDocs.missingItems.some((m) => /registration documents/i.test(m))).toBe(true);
+
+    const withDocs = calculateBusinessReadiness({ ...completeProfile, registrationDocumentsComplete: true });
+    expect(withDocs.helpingFactors.some((f) => /registration documents/i.test(f))).toBe(true);
+    expect(withDocs.missingItems.some((m) => /registration documents/i.test(m))).toBe(false);
   });
 });
 

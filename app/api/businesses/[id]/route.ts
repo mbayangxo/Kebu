@@ -50,7 +50,7 @@ export async function GET(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Business not found." }, { status: 404 });
   }
 
-  const [{ data: members }, { data: owners }, { data: progress }, { data: statusHistory }, { data: scores }] =
+  const [{ data: members }, { data: owners }, { data: progress }, { data: statusHistory }, { data: scores }, { data: websiteProjects }] =
     await Promise.all([
       supabase
         .from("business_members")
@@ -80,9 +80,24 @@ export async function GET(_req: Request, { params }: Params) {
         .eq("business_id", id)
         .order("calculated_at", { ascending: false })
         .limit(10),
+      supabase
+        .from("projects")
+        .select("id, title, status, subdomain, published_at, updated_at")
+        .eq("business_id", id)
+        .eq("project_type", "website")
+        .order("updated_at", { ascending: false }),
     ]);
 
   const latestScore = scores?.[0] ?? null;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+
+  const websites = (websiteProjects ?? []).map((project) => ({
+    ...project,
+    editorUrl: `/create/${project.id}`,
+    previewPath: project.subdomain ? `/sites/${project.subdomain}` : null,
+    liveUrl: project.subdomain ? `https://${project.subdomain}.kebu.africa` : null,
+    appPreviewUrl: project.subdomain && appUrl ? `${appUrl}/sites/${project.subdomain}` : null,
+  }));
 
   return NextResponse.json({
     business,
@@ -93,6 +108,7 @@ export async function GET(_req: Request, { params }: Params) {
     statusHistory: statusHistory ?? [],
     readiness: latestScore,
     readinessHistory: scores ?? [],
+    websiteProjects: websites,
     placeholders: {
       website: business.website,
       store: null,

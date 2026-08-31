@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AlkebulanLion } from "@/app/components/panther-motif";
+import { KebuWordmark } from "@/app/components/kebu-mark";
 import { KEBU } from "@/lib/kebu-brand";
 
 type BusinessRow = {
@@ -87,16 +87,18 @@ export default function KaScorePage() {
   }, [selectedId, loadBusiness]);
 
   return (
-    <div className="min-h-screen" style={{ background: KEBU.black, color: KEBU.white }}>
-      <header className="sticky top-0 z-40" style={{ background: KEBU.black }}>
+    <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
+      <header className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.95)" }}>
         <div
           className="h-[3px] w-full"
           style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
         />
-        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-white text-sm">
-            <AlkebulanLion size={28} />
-            <span className="font-bold tracking-[0.12em]">KEBU</span>
+        <div
+          className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between"
+          style={{ borderBottom: `1px solid ${KEBU.border}` }}
+        >
+          <Link href="/">
+            <KebuWordmark size={28} dark />
           </Link>
           <Link
             href="/business"
@@ -115,31 +117,31 @@ export default function KaScorePage() {
         >
           Kebu Score · Business Readiness
         </p>
-        <h1 className="text-3xl font-bold mb-4" style={{ fontFamily: "var(--font-fraunces)" }}>
+        <h1 className="text-3xl font-bold mb-4" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
           Your business readiness
         </h1>
-        <p className="text-sm leading-relaxed mb-8" style={{ color: "rgba(250,250,250,0.7)" }}>
+        <p className="text-sm leading-relaxed mb-8" style={{ color: KEBU.muted }}>
           This is your real <strong>Business Readiness</strong> score from Supabase — tied to your Kebu ID business.
-          It is calculated on the server from verified profile and registration data. Full KA Score (orders, fulfillment,
+          It is calculated on the server from verified profile and registration data. Full Kebu Score (orders, fulfillment,
           trade) comes after more business activity is connected.
         </p>
 
         {loading ? (
-          <p className="text-sm" style={{ color: "rgba(250,250,250,0.55)" }}>
+          <p className="text-sm" style={{ color: KEBU.faint }}>
             Loading…
           </p>
         ) : businesses.length === 0 ? (
           <div
-            className="rounded-2xl p-6"
-            style={{ background: KEBU.blackSoft, border: `1px solid rgba(255,85,0,0.35)` }}
+            className="rounded-2xl p-6 bg-white"
+            style={{ border: `1px solid ${KEBU.border}` }}
           >
-            <p className="text-sm mb-4" style={{ color: "rgba(250,250,250,0.8)" }}>
+            <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
               No Kebu ID business yet. Create one to get a readiness score.
             </p>
             <Link
               href="/business/register"
               className="inline-flex rounded-full px-6 py-3 text-xs font-bold uppercase tracking-wider"
-              style={{ background: KEBU.orange, color: KEBU.black }}
+              style={{ background: KEBU.orange, color: KEBU.white }}
             >
               Register your business
             </Link>
@@ -147,11 +149,11 @@ export default function KaScorePage() {
         ) : (
           <>
             {businesses.length > 1 ? (
-              <label className="block text-xs uppercase tracking-wider mb-6">
+              <label className="block text-xs uppercase tracking-wider mb-6" style={{ color: KEBU.muted }}>
                 Business
                 <select
-                  className="mt-2 w-full rounded-lg px-3 py-2 text-sm"
-                  style={{ color: KEBU.black }}
+                  className="mt-2 w-full rounded-lg px-3 py-2 text-sm bg-white"
+                  style={{ color: KEBU.black, border: `1px solid ${KEBU.border}` }}
                   value={selectedId ?? ""}
                   onChange={(e) => setSelectedId(e.target.value)}
                 >
@@ -165,37 +167,37 @@ export default function KaScorePage() {
             ) : null}
 
             {error ? (
-              <p role="alert" className="text-sm mb-4" style={{ color: KEBU.redSoft }}>
+              <p role="alert" className="text-sm mb-4" style={{ color: KEBU.red }}>
                 {error}
               </p>
             ) : null}
 
             {readiness ? (
               <div
-                className="rounded-2xl p-8"
+                className="rounded-2xl p-8 bg-white"
                 style={{
-                  background: "rgba(255,85,0,0.08)",
-                  border: `1px solid rgba(255,85,0,0.4)`,
+                  border: `1px solid ${KEBU.border}`,
+                  boxShadow: "0 12px 32px rgba(255,85,0,0.08)",
                 }}
               >
-                <p className="text-6xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
+                <p className="text-6xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.orange }}>
                   {readiness.score_value}
                 </p>
                 <p className="text-xs uppercase tracking-wider mb-4" style={{ color: KEBU.orange }}>
                   {readiness.score_band.replace(/_/g, " ")} · {readiness.confidence_level} confidence
                 </p>
-                <p className="text-sm mb-4" style={{ color: "rgba(250,250,250,0.8)" }}>
+                <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
                   {readiness.explanation?.summary}
                 </p>
                 {readiness.helping_factors?.length > 0 ? (
                   <div className="mb-4">
                     <p
                       className="text-[10px] font-bold uppercase tracking-wider mb-2"
-                      style={{ color: "rgba(250,250,250,0.5)" }}
+                      style={{ color: KEBU.faint }}
                     >
                       Helping
                     </p>
-                    <ul className="text-sm space-y-1" style={{ color: "rgba(250,250,250,0.75)" }}>
+                    <ul className="text-sm space-y-1" style={{ color: KEBU.muted }}>
                       {readiness.helping_factors.map((f) => (
                         <li key={f}>+ {f}</li>
                       ))}
@@ -206,11 +208,11 @@ export default function KaScorePage() {
                   <div className="mb-6">
                     <p
                       className="text-[10px] font-bold uppercase tracking-wider mb-2"
-                      style={{ color: "rgba(250,250,250,0.5)" }}
+                      style={{ color: KEBU.faint }}
                     >
                       Next actions
                     </p>
-                    <ul className="text-sm space-y-1" style={{ color: "rgba(250,250,250,0.75)" }}>
+                    <ul className="text-sm space-y-1" style={{ color: KEBU.muted }}>
                       {readiness.missing_items.map((f) => (
                         <li key={f}>→ {f}</li>
                       ))}
@@ -220,13 +222,13 @@ export default function KaScorePage() {
                 <Link
                   href={`/business/${selectedId}`}
                   className="text-sm font-semibold underline"
-                  style={{ color: KEBU.orangeLight }}
+                  style={{ color: KEBU.orange }}
                 >
                   Open business dashboard →
                 </Link>
               </div>
             ) : (
-              <p className="text-sm" style={{ color: "rgba(250,250,250,0.55)" }}>
+              <p className="text-sm" style={{ color: KEBU.faint }}>
                 No readiness score yet for this business.
               </p>
             )}

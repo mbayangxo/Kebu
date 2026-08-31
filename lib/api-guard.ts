@@ -8,6 +8,8 @@ import { NextRequest } from "next/server";
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
 const AI_LIMIT = 30;        // requests per IP per window
+const BUILDER_LIMIT = 120;  // saves / publish / settings per IP per window
+const PUBLIC_LIMIT = 180;   // public site reads per IP per window
 const WINDOW_MS = 60_000;   // 1 minute
 
 function clientKey(req: NextRequest): string {
@@ -19,8 +21,8 @@ function clientKey(req: NextRequest): string {
 }
 
 // Returns a 429 Response if the IP is over limit, null if allowed.
-export function aiRateLimit(req: NextRequest): Response | null {
-  const key = clientKey(req);
+function rateLimit(req: NextRequest, limit: number, bucketSuffix: string): Response | null {
+  const key = `${clientKey(req)}:${bucketSuffix}`;
   const now = Date.now();
   const bucket = buckets.get(key);
 
@@ -29,7 +31,7 @@ export function aiRateLimit(req: NextRequest): Response | null {
     return null;
   }
 
-  if (bucket.count >= AI_LIMIT) {
+  if (bucket.count >= limit) {
     const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
     return new Response(
       JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
@@ -45,6 +47,18 @@ export function aiRateLimit(req: NextRequest): Response | null {
 
   bucket.count++;
   return null;
+}
+
+export function aiRateLimit(req: NextRequest): Response | null {
+  return rateLimit(req, AI_LIMIT, "ai");
+}
+
+export function builderRateLimit(req: Request | NextRequest): Response | null {
+  return rateLimit(req as NextRequest, BUILDER_LIMIT, "builder");
+}
+
+export function publicSiteRateLimit(req: Request | NextRequest): Response | null {
+  return rateLimit(req as NextRequest, PUBLIC_LIMIT, "public");
 }
 
 // Returns a 401 Response if the Authorization header doesn't match CRON_SECRET.

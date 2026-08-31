@@ -1,11 +1,11 @@
 {
-  "name": "Kebu — The African Cloud",
+  "name": "Kebu — Africa's Opportunity OS",
   "short_name": "Kebu",
-  "description": "The African Cloud: discover opportunities, create a business or store, and operate online.",
+  "description": "Find the opportunity. Build the business. Grants, tenders, African resources, and a real site builder.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0F0D33",
-  "theme_color": "#00C851",
+  "background_color": "#FFFBF7",
+  "theme_color": "#FF5500",
   "orientation": "portrait-primary",
   "categories": ["business", "finance", "education"],
   "lang": "en",
@@ -26,24 +26,24 @@
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "Discover",
-      "short_name": "Discover",
-      "description": "Find what you can build from resources you already have",
-      "url": "/build",
+      "name": "Opportunity",
+      "short_name": "Opportunity",
+      "description": "Explore countries and what you can build",
+      "url": "/opportunity/countries",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Ka Score",
-      "short_name": "Ka Score",
-      "description": "Get your business readiness score",
+      "name": "Kebu Score",
+      "short_name": "Score",
+      "description": "See your business readiness score",
       "url": "/ka-score",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Launch a store",
-      "short_name": "Store",
+      "name": "Build a site",
+      "short_name": "Create",
       "description": "Create and publish a business site",
-      "url": "/store/new",
+      "url": "/create",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]

@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 
-export const dynamic = "force-dynamic";
-
 type Params = { params: Promise<{ id: string }> };
 
 /** Load one owned project with pages and sections. */
@@ -19,7 +17,7 @@ export async function GET(_req: Request, { params }: Params) {
   const { data: project, error } = await supabase
     .from("projects")
     .select(
-      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at"
+      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo"
     )
     .eq("id", id)
     .maybeSingle();

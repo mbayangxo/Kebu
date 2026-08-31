@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AlkebulanLion } from "@/app/components/panther-motif";
+import { KebuMark } from "@/app/components/kebu-mark";
 import { RegistrationProgressTimeline } from "@/app/components/business/registration-progress-timeline";
 import { BusinessDocumentsPanel } from "@/app/components/business/business-documents-panel";
 import { KEBU } from "@/lib/kebu-brand";
@@ -155,7 +155,7 @@ export default function BusinessDashboardPage() {
         />
         <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
           <Link href="/business" className="flex items-center gap-2 text-white text-sm">
-            <AlkebulanLion size={28} />
+            <KebuMark size={28} />
             <span className="font-bold tracking-[0.12em]">← Businesses</span>
           </Link>
         </div>
@@ -221,7 +221,7 @@ export default function BusinessDashboardPage() {
               >
                 <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Business Readiness</h2>
                 <p className="text-[10px] mb-4 leading-relaxed" style={{ color: KEBU.faint }}>
-                  Profile completion score for registration — not the full KA Score (store, orders, and verified activity come later).
+                  Profile completion score for registration — not the full Kebu Score (store, orders, and verified activity come later).
                 </p>
                 {readiness ? (
                   <>

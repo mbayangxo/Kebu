@@ -319,8 +319,9 @@ export function ProfileBadge() {
   if (!profile.setup_complete) {
     return (
       <button
+        type="button"
         onClick={() => setShowSetup(true)}
-        className="fixed bottom-20 right-4 z-40 bg-gold text-deep-green text-xs font-bold px-4 py-2.5 rounded-full shadow-lg hover:bg-gold-light transition-colors flex items-center gap-1.5"
+        className="fixed z-40 bg-gold text-deep-green text-xs font-bold px-4 py-2.5 rounded-full shadow-lg hover:bg-gold-light transition-colors flex items-center gap-1.5 right-4 bottom-[8.25rem] sm:bottom-16"
       >
         <span>✨</span> Personalize for me
       </button>
@@ -329,8 +330,9 @@ export function ProfileBadge() {
 
   return (
     <button
+      type="button"
       onClick={() => setShowSetup(true)}
-      className="fixed bottom-20 right-4 z-40 bg-deep-green text-ivory text-xs font-semibold px-3 py-2 rounded-full shadow-lg hover:bg-mid-green transition-colors flex items-center gap-1.5"
+      className="fixed z-40 bg-deep-green text-ivory text-xs font-semibold px-3 py-2 rounded-full shadow-lg hover:bg-mid-green transition-colors flex items-center gap-1.5 right-4 bottom-[8.25rem] sm:bottom-16"
     >
       {profile.gender === "woman" ? "👩" : "👤"} {profile.country_of_origin || "My profile"}
     </button>

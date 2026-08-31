@@ -98,6 +98,30 @@ export function definitionFromTemplateSlug(slug: string, brief: CreateWebsiteBri
   if (!seed) return null;
   const def = structuredClone(seed.definition) as WebsiteDefinition;
   def.title = brief.businessName;
+
+  const artistUpper = brief.businessName.toUpperCase();
+
+  for (const page of def.pages) {
+    for (const section of page.sections) {
+      if (section.type === "maylecor-home") {
+        section.props = {
+          ...section.props,
+          artistName: artistUpper,
+        };
+      } else if (section.type === "maylecor-music") {
+        section.props = {
+          ...section.props,
+          artistName: artistUpper,
+        };
+      } else if (section.type === "legally-blonde-hero") {
+        section.props = {
+          ...section.props,
+          title: brief.businessName,
+        };
+      }
+    }
+  }
+
   const nav = def.pages[0]?.sections.find((s) => s.type === "navigation");
   if (nav) nav.props = { ...nav.props, brand: brief.businessName };
   const hero = def.pages[0]?.sections.find((s) => s.type === "hero");
@@ -133,7 +157,7 @@ export async function generateWebsiteWithAi(brief: CreateWebsiteBrief): Promise<
   }
 
   const anthropic = new Anthropic({ apiKey });
-  const system = `You generate Kebu website structures. Return ONLY JSON matching schemaVersion "website-v1".
+  const system = `You are Yande, Kebu's AI site builder. Generate Kebu website structures. Return ONLY JSON matching schemaVersion "website-v1".
 Allowed section types: navigation, hero, text, image, gallery, features, testimonials, faq, contact, whatsapp, footer.
 Do not include HTML, scripts, or markdown. Keep text concise. Include a home page with navigation, hero, at least one content section, contact, and footer.`;
 

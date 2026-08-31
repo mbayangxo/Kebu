@@ -12,6 +12,130 @@ Agent-enforced summary: `.cursor/rules/kebu-ecosystem.mdc`.
 
 ---
 
+## African Builder Ecosystem — end-to-end infrastructure
+
+Kebu is one connected **African Builder Ecosystem**. Three product pillars sit on shared core services. Everything flows through the same account, business identity, and permissions — not separate silos.
+
+```
+                           KEBU
+              African Builder Ecosystem
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+   Kebu Builder      Kebu Opportunity     Kebu Cloud
+        │                  OS                 │
+        │                  │                  │
+   Websites             Discover          Deploy apps
+   Stores               Markets           Databases
+   AI websites          Resources         APIs
+   Templates            Trade             Storage
+   Domains              Industries        Compute
+   Analytics            Research          AI
+        │                  │                  │
+        └──────────────────┼──────────────────┘
+                           │
+                    Shared Kebu Core
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+     Kebu ID           Kebu Score          Kebu Mail
+        │                  │                  │
+     Identity          Business           Business
+                       credibility           email
+```
+
+### Product domains (logical separation, shared core)
+
+| Product | Job | Phase One status |
+|--------|-----|------------------|
+| **Kebu Builder** | Turn an idea into website, store, brand, templates, AI edits | **Active** — `/create`, `/sites`, stores |
+| **Kebu Opportunity OS** | Discover what to build — countries, industries, resources, trade, Build This Business | **Active slice-by-slice** — Country Explorer and related routes |
+| **Kebu Domains** | Connect (later: buy) real domains; anchor identity and Mail | **Active slice** — custom domain connect; registrar links until Kebu sells |
+| **Kebu Analytics** | Business and store intelligence, next actions | **Partial** — store/site analytics when assigned; no fake dashboards |
+| **Kebu Cloud** | Run software you built — deploy, DB, APIs, compute (invisible to beginners) | **Future** — compatibility only; do not ship placeholders |
+| **Shared Kebu Core** | Account, auth, RBAC, billing, notifications, AI routing, audit, design system | **Active** |
+| **Kebu ID** | Permanent digital identity of the **business** | **Active** — draft business, roles, country modules |
+| **Kebu Score (KA Score)** | Explainable business readiness tied to a Kebu ID | **After real ops data** — readiness UI exists |
+| **Kebu Mail** | Business email on your domain | **Future** — after verified domains |
+
+### How products connect (end-to-end)
+
+1. **Opportunity OS → Builder** — “Build this opportunity” creates a business draft, Kebu ID path, and website/store project (never auto-publish).
+2. **Builder → Core** — Every site/store project belongs to a user and optionally a Kebu ID; publish, domains, and billing go through server auth + DB.
+3. **Builder → ID** — Registration prep, team roles, and business profile feed the same Kebu ID record.
+4. **Builder + commerce → Score** — Orders, publish state, fulfillment, and records become score inputs (never browser-set numbers).
+5. **Builder domains → Mail (future)** — Verified custom domains (`www.mybrand.com`) are the anchor for business email when Kebu Mail ships.
+6. **Cloud (future)** — Same account and Kebu ID; deploy apps that can link to Builder sites, stores, and Opportunity data via APIs.
+
+**Engineering rule:** Shared core is real infrastructure (auth, ID, billing, RBAC). Product pillars stay separate domains — no single mega-table or fake “coming soon” nav for Cloud or Mail.
+
+### Why products stay separate (do not merge Cloud into Opportunity OS)
+
+They are **fundamentally different jobs**. Connected in the user journey — not in one UI or one backend monolith.
+
+| Product | Core question |
+|--------|----------------|
+| **Kebu Opportunity OS** | What can I build? Where is the opportunity? What resources exist? Who can I work with? How do I start this business? |
+| **Kebu Builder** | How do I turn my idea into a website, store, and brand? |
+| **Kebu Cloud** | How do I run the software I’ve built? (Infrastructure — mostly invisible to beginners.) |
+
+Opportunity OS is intelligence and discovery. Builder is creation and launch. Cloud is runtime infrastructure. **Do not collapse these into one “giant app screen.”**
+
+The user should feel one **coherent ecosystem**, not a Swiss Army knife with seventy buttons.
+
+### Named products (one platform, many products — not many startups)
+
+Think of Kebu as **the platform**, with separate products:
+
+- **Kebu Builder** — websites, stores, templates, AI sites (apps later)
+- **Kebu Opportunity** — African opportunities, resources, markets, trade, business intelligence
+- **Kebu Cloud** — infrastructure for developers and scaling businesses
+- **Kebu Mail** — business communication on your domain
+- **Kebu Domains** — digital identity and domain connection (Phase One: connect domains you own; later: sell domains)
+- **Kebu Analytics** — business and store intelligence
+
+Later (compatibility only until assigned): Kebu Docs, Drive, Studio, Learn, etc.
+
+**Shared across products (Shared Kebu Core):** Kebu ID · billing · Kebu AI · Kebu Score · business profile · payment integrations · security · infrastructure abstractions.
+
+### The magic is the connection (example journey)
+
+A young person in Senegal searches Kebu Opportunity: *“I want to start a food-processing company. What opportunities are there?”*
+
+1. **Discover** — Opportunity OS surfaces verified/ labeled intelligence (e.g. import gaps, resources, trade context).
+2. **Build** — User clicks **Build with Kebu** → draft business + Kebu ID path + Builder project (site, catalog, store, branding — never auto-publish).
+3. **Launch** — Publish site, connect domain, business email (Mail, when assigned); Cloud provides runtime underneath without exposing Kubernetes to a 19-year-old.
+4. **Connect** — Kebu ID ties identity, analytics, payments, score inputs, and team permissions to one business.
+
+That end-to-end path is the ecosystem — not “African Canva” or “African Shopify” alone.
+
+### Kebu Cloud: invisible by default, powerful when needed
+
+Normal users should **not** need to understand Kubernetes, Docker, PostgreSQL, Redis, containers, load balancers, VPCs, or CI/CD.
+
+They say: **“Publish my app.”** Kebu Cloud handles infrastructure underneath.
+
+Developers who want control get an **advanced Cloud dashboard** — same ecosystem, different depth:
+
+| Level | Experience |
+|-------|------------|
+| **Beginner** | Build → Publish |
+| **Creator** | Build → Customize → Publish |
+| **Developer** | Repository → Services → Database → Deployments → Logs |
+| **Professional team** | Organizations → Environments → Infrastructure → Observability → Security |
+
+Phase One **website/store hosting** lives in Builder; full Kebu Cloud is a **future product** with abstractions prepared in core — not merged into Opportunity OS.
+
+### The full journey (north star)
+
+Kebu can eventually cover:
+
+**Discover → Learn → Find opportunity → Build → Register → Get domain → Get email → Launch → Sell → Analyze → Scale → Deploy software → Raise capital**
+
+That is infrastructure that takes an **African idea all the way to an operating business** — one connected ecosystem, separate products, shared core.
+
+---
+
 ## 1. Kebu’s audience
 
 Kebu is designed primarily for African youth.
@@ -162,6 +286,16 @@ Kebu Cloud will eventually support developers building and hosting broader appli
 Do not build Kebu Cloud during Phase One unless an explicitly assigned infrastructure abstraction is required.
 
 Current code should avoid becoming permanently dependent on one cloud provider where a reasonable abstraction is possible.
+
+---
+
+## 9b. Future product: Kebu Mail
+
+Kebu Mail is business email tied to a Kebu ID and verified domain from Kebu Builder (e.g. `hello@mybrand.com`, `orders@mybrand.com`).
+
+It is not personal webmail. It should respect RBAC (who can send as the business), audit, and the same billing/core account as Builder.
+
+Do not build Kebu Mail during Phase One unless explicitly assigned. Custom domain connection in Builder is the prerequisite path.
 
 ---
 

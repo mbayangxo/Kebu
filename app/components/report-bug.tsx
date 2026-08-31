@@ -53,8 +53,9 @@ export function ReportBug() {
     <>
       {/* Floating trigger */}
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 right-4 z-40 bg-white border border-border text-muted text-[10px] font-semibold px-3 py-2 rounded-full shadow-md hover:border-deep-green hover:text-ink transition-colors flex items-center gap-1.5"
+        className="fixed z-40 bg-white border border-border text-muted text-[10px] font-semibold px-3 py-2 rounded-full shadow-md hover:border-orange hover:text-ink transition-colors flex items-center gap-1.5 right-4 bottom-24 sm:bottom-4"
         aria-label="Report a problem"
       >
         🐛 Report issue

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useLocale } from "./locale-context";
 import { LANGUAGES, CURRENCIES, COUNTRY_LOCALE, Language } from "@/lib/locale";
+import { KEBU } from "@/lib/kebu-brand";
 
 const AFRICAN_COUNTRIES = [
   "Nigeria", "Ghana", "Kenya", "Senegal", "South Africa", "Rwanda", "Morocco",
@@ -12,17 +13,17 @@ const AFRICAN_COUNTRIES = [
   "UK diaspora", "France diaspora", "US diaspora", "Canada diaspora",
 ];
 
-// Languages where AI translations are near-native quality
 const HIGH_QUALITY_LANGS = new Set(["en", "fr", "ar", "pt", "sw"]);
 
+/** Country + language + currency — bright, large, easy to tap. */
 export function LanguageBar() {
   const { lang, currency, country, setLang, setCurrency, setCountry, t } = useLocale();
   const [open, setOpen] = useState(false);
   const [showCorrectionTip, setShowCorrectionTip] = useState(false);
 
   const currentLang = LANGUAGES.find((l) => l.code === lang) ?? LANGUAGES[0];
-  const currentCurrency = CURRENCIES[currency] ?? CURRENCIES["USD"];
   const countryInfo = country ? COUNTRY_LOCALE[country] : null;
+  const currencyKeys = Object.keys(CURRENCIES);
 
   function handleLangChange(code: string) {
     setLang(code);
@@ -45,85 +46,116 @@ export function LanguageBar() {
     setOpen(false);
   }
 
-  const currencyKeys = Object.keys(CURRENCIES);
-
   return (
-    <div className="bg-ink text-ivory/80 text-[11px] font-medium relative z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-9 flex items-center justify-between gap-4">
-        {/* Left: tagline */}
-        <span className="text-gold/80 hidden sm:block truncate">{t("tagline")}</span>
+    <div className="relative z-40" style={{ background: KEBU.black, color: KEBU.white }}>
+      <div
+        className="h-[3px] w-full"
+        style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange}, ${KEBU.orangeLight})` }}
+      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <p
+          className="text-xs sm:text-sm font-semibold tracking-wide truncate"
+          style={{ color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-fraunces)" }}
+        >
+          {t("tagline")}
+        </p>
 
-        {/* Right: selectors */}
-        <div className="flex items-center gap-3 ml-auto">
-          {/* Country */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-ivory/40">{t("your_country")}:</span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <label className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial rounded-full px-3.5 py-2.5 sm:py-2"
+            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+          >
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.12em] whitespace-nowrap" style={{ color: KEBU.orange }}>
+              {t("your_country")}
+            </span>
             <select
               value={country}
               onChange={(e) => handleCountryChange(e.target.value)}
-              className="bg-transparent text-ivory border-none outline-none cursor-pointer text-[11px] font-semibold max-w-[120px]"
+              aria-label={t("select_country")}
+              className="bg-transparent border-none outline-none cursor-pointer text-sm sm:text-base font-bold min-w-0 max-w-[55vw] sm:max-w-[180px]"
+              style={{ color: KEBU.white }}
             >
-              <option value="" className="bg-ink text-ivory">{t("select_country")}</option>
+              <option value="" className="bg-black text-white">
+                {t("select_country")}
+              </option>
               {AFRICAN_COUNTRIES.map((c) => (
-                <option key={c} value={c} className="bg-ink text-ivory">
+                <option key={c} value={c} className="bg-black text-white">
                   {countryInfo && country === c ? `${countryInfo.flag} ${c}` : c}
                 </option>
               ))}
             </select>
-          </div>
+          </label>
 
-          <span className="text-ivory/20">|</span>
-
-          {/* Language */}
           <div className="relative">
             <button
-              onClick={() => setOpen(open === false ? true : false)}
-              className="flex items-center gap-1 hover:text-ivory transition-colors"
+              type="button"
+              onClick={() => setOpen(!open)}
+              className="flex items-center gap-2 rounded-full px-3.5 py-2.5 sm:py-2 text-sm sm:text-base font-bold"
+              style={{ background: KEBU.orange, color: KEBU.white }}
+              aria-expanded={open}
+              aria-haspopup="listbox"
             >
-              <span>{currentLang.flag}</span>
-              <span className="font-semibold">{currentLang.native}</span>
-              <span className="text-ivory/30 text-[9px]">▾</span>
+              <span className="text-lg leading-none">{currentLang.flag}</span>
+              <span>{currentLang.native}</span>
+              <span className="text-xs opacity-80">▾</span>
             </button>
 
             {open && (
-              <div className="absolute right-0 top-full mt-1 bg-ink border border-ivory/10 rounded-xl shadow-xl z-50 min-w-[260px] p-2">
-                <div className="mb-2 px-2 pt-1 pb-2 border-b border-ivory/10">
-                  <p className="text-[10px] font-bold text-ivory/40 uppercase tracking-widest">{t("your_language")}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-1 mb-3">
+              <div
+                className="absolute right-0 top-full mt-2 rounded-2xl shadow-2xl z-50 min-w-[280px] sm:min-w-[320px] p-3"
+                style={{ background: KEBU.black, border: `1px solid ${KEBU.border}` }}
+                role="listbox"
+              >
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] px-2 pb-2 mb-2" style={{ color: KEBU.orange, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                  {t("your_language")}
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 mb-3">
                   {LANGUAGES.map((l) => (
                     <button
                       key={l.code}
+                      type="button"
                       onClick={() => handleLangChange(l.code)}
-                      className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-colors text-xs ${
-                        lang === l.code ? "bg-gold/20 text-gold font-bold" : "hover:bg-ivory/5 text-ivory/80"
-                      }`}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm transition-colors"
+                      style={{
+                        background: lang === l.code ? "rgba(255,85,0,0.2)" : "transparent",
+                        color: lang === l.code ? KEBU.orange : "rgba(255,255,255,0.85)",
+                        fontWeight: lang === l.code ? 700 : 500,
+                      }}
                     >
-                      <span>{l.flag}</span>
+                      <span className="text-base">{l.flag}</span>
                       <div>
                         <p className="font-semibold leading-none">{l.native}</p>
-                        {l.native !== l.name && <p className="text-[9px] text-ivory/40 mt-0.5">{l.name}</p>}
+                        {l.native !== l.name && (
+                          <p className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
+                            {l.name}
+                          </p>
+                        )}
                       </div>
                     </button>
                   ))}
                 </div>
 
-                <div className="mb-2 px-2 pt-2 pb-1 border-t border-ivory/10">
-                  <p className="text-[10px] font-bold text-ivory/40 uppercase tracking-widest">{t("your_currency")}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] px-2 pb-2 mb-2 pt-2" style={{ color: KEBU.orange, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                  {t("your_currency")}
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
                   {currencyKeys.map((code) => {
                     const c = CURRENCIES[code];
                     return (
                       <button
                         key={code}
+                        type="button"
                         onClick={() => handleCurrencyChange(code)}
-                        className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-colors text-xs ${
-                          currency === code ? "bg-gold/20 text-gold font-bold" : "hover:bg-ivory/5 text-ivory/80"
-                        }`}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm transition-colors"
+                        style={{
+                          background: currency === code ? "rgba(255,85,0,0.2)" : "transparent",
+                          color: currency === code ? KEBU.orange : "rgba(255,255,255,0.85)",
+                          fontWeight: currency === code ? 700 : 500,
+                        }}
                       >
                         <span className="font-bold w-8 text-right flex-shrink-0">{c.symbol}</span>
-                        <span className="text-[10px] text-ivory/60 truncate">{c.name}</span>
+                        <span className="text-xs truncate" style={{ color: "rgba(255,255,255,0.55)" }}>
+                          {c.name}
+                        </span>
                       </button>
                     );
                   })}
@@ -134,21 +166,21 @@ export function LanguageBar() {
         </div>
       </div>
 
-      {/* Backdrop to close */}
-      {open && (
-        <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-      )}
+      {open && <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden />}
 
-      {/* Translation quality note for African languages */}
       {!HIGH_QUALITY_LANGS.has(lang) && (
-        <div className="bg-gold/10 border-b border-gold/20 py-1.5 px-4 text-[10px] text-gold/90 flex items-center justify-between gap-4 max-w-7xl mx-auto">
+        <div
+          className="py-2.5 px-4 text-xs flex items-center justify-between gap-4 max-w-7xl mx-auto"
+          style={{ background: "rgba(255,85,0,0.12)", color: KEBU.orange, borderTop: "1px solid rgba(255,85,0,0.2)" }}
+        >
           <span>
             AI translations in {LANGUAGES.find((l: Language) => l.code === lang)?.native ?? lang} are approximate — African languages are complex and we&apos;re still learning.
             {lang === "wo" && " Native Wolof speakers: your corrections help Yande improve."}
           </span>
           <button
+            type="button"
             onClick={() => setShowCorrectionTip(!showCorrectionTip)}
-            className="text-gold font-semibold whitespace-nowrap hover:underline flex-shrink-0"
+            className="font-bold whitespace-nowrap hover:underline flex-shrink-0"
           >
             Help improve →
           </button>
@@ -156,10 +188,16 @@ export function LanguageBar() {
       )}
 
       {showCorrectionTip && !HIGH_QUALITY_LANGS.has(lang) && (
-        <div className="bg-ink border-b border-ivory/10 px-4 py-3 text-xs text-ivory/80 max-w-7xl mx-auto">
-          <p className="font-semibold text-gold mb-1">How to help Yande learn {LANGUAGES.find((l: Language) => l.code === lang)?.native}</p>
-          <p>When you see a translation that&apos;s wrong or unnatural, tap the AI response and use the &ldquo;Suggest correction&rdquo; button. Your correction gets saved and Yande uses it in future responses. Community corrections make her smarter for everyone.</p>
-          <button onClick={() => setShowCorrectionTip(false)} className="text-gold/60 hover:text-gold mt-2">Close</button>
+        <div className="px-4 py-4 text-sm max-w-7xl mx-auto" style={{ background: KEBU.black, color: "rgba(255,255,255,0.8)", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <p className="font-semibold mb-1" style={{ color: KEBU.orange }}>
+            How to help Yande learn {LANGUAGES.find((l: Language) => l.code === lang)?.native}
+          </p>
+          <p>
+            When you see a translation that&apos;s wrong or unnatural, tap the AI response and use the &ldquo;Suggest correction&rdquo; button. Your correction gets saved and Yande uses it in future responses.
+          </p>
+          <button type="button" onClick={() => setShowCorrectionTip(false)} className="mt-2 font-semibold" style={{ color: KEBU.orange }}>
+            Close
+          </button>
         </div>
       )}
     </div>

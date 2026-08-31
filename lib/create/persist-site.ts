@@ -245,7 +245,7 @@ export async function buildSnapshotFromDb(
 ): Promise<WebsiteDefinition | null> {
   const { data: project } = await supabase
     .from("projects")
-    .select("id, title, theme")
+    .select("id, title, theme, seo")
     .eq("id", projectId)
     .maybeSingle();
   if (!project) return null;
@@ -281,6 +281,7 @@ export async function buildSnapshotFromDb(
     schemaVersion: "website-v1",
     title: project.title,
     theme: (project.theme ?? {}) as ThemeTokens,
+    seo: (project.seo ?? undefined) as WebsiteDefinition["seo"],
     pages: defPages.length
       ? defPages
       : [{ slug: "home", title: "Home", sections: [{ type: "hero", props: { heading: project.title, subheading: "" } }] }],

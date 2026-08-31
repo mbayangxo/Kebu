@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { websiteDefinitionSchema } from "@/lib/create/website-schema";
+import { publicSiteRateLimit } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ subdomain: string }> };
 
 /** Public published site — live deployment snapshot only (no draft leak). */
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(req: Request, { params }: Params) {
+  const limited = publicSiteRateLimit(req);
+  if (limited) return limited;
+
   const { subdomain: raw } = await params;
   const subdomain = raw.trim().toLowerCase();
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(subdomain)) {

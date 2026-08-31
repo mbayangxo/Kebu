@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { siteSeoSchema, containsUnsafeSiteContent } from "./site-seo";
 
 export const SECTION_TYPES = [
   "navigation",
@@ -6,12 +7,19 @@ export const SECTION_TYPES = [
   "text",
   "image",
   "gallery",
+  "video",
+  "audio",
+  "map",
+  "events",
   "features",
   "testimonials",
   "faq",
   "contact",
   "whatsapp",
   "footer",
+  "maylecor-home",
+  "maylecor-music",
+  "legally-blonde-hero",
 ] as const;
 
 export const sectionTypeSchema = z.enum(SECTION_TYPES);
@@ -42,6 +50,28 @@ const safeHref = z
     { message: "Invalid URL" }
   );
 
+const imageUrl = z.union([
+  z.literal(""),
+  z.string().trim().url().max(500),
+  // Same-origin public assets (e.g. /templates/maylecor/portrait.jpg)
+  z
+    .string()
+    .trim()
+    .max(500)
+    .regex(/^\/[a-zA-Z0-9._\-/]+$/, "Invalid image path"),
+]);
+
+const socialLinksSchema = z
+  .array(
+    z.object({
+      label: z.string().trim().max(40),
+      iconUrl: imageUrl,
+      href: safeHref,
+    }),
+  )
+  .max(8)
+  .default([]);
+
 export const sectionPropsSchemas = {
   navigation: z.object({
     brand: z.string().trim().min(1).max(80),
@@ -66,7 +96,7 @@ export const sectionPropsSchemas = {
     hidden: z.boolean().optional(),
   }),
   image: z.object({
-    src: z.union([z.literal(""), z.string().trim().url().max(500)]),
+    src: imageUrl,
     alt: z.string().trim().max(160).default(""),
     caption: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
@@ -75,6 +105,45 @@ export const sectionPropsSchemas = {
     items: z
       .array(z.object({ src: z.string().trim().max(500), alt: z.string().trim().max(160).default("") }))
       .max(12)
+      .default([]),
+    hidden: z.boolean().optional(),
+  }),
+  video: z.object({
+    heading: z.string().trim().max(160).optional(),
+    src: z.string().trim().min(1).max(500),
+    title: z.string().trim().max(120).optional(),
+    caption: z.string().trim().max(200).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  audio: z.object({
+    heading: z.string().trim().max(160).optional(),
+    /** YouTube, Spotify embed URL, SoundCloud, or direct .mp3 */
+    src: z.string().trim().min(1).max(500),
+    title: z.string().trim().max(120).optional(),
+    artist: z.string().trim().max(80).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  map: z.object({
+    heading: z.string().trim().max(160).default("Find us"),
+    address: z.string().trim().max(240).optional(),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    zoom: z.number().int().min(1).max(18).default(14),
+    hidden: z.boolean().optional(),
+  }),
+  events: z.object({
+    heading: z.string().trim().max(160).default("Events"),
+    items: z
+      .array(
+        z.object({
+          title: z.string().trim().min(1).max(120),
+          date: z.string().trim().max(40),
+          location: z.string().trim().max(120).optional(),
+          description: z.string().trim().max(500).optional(),
+          ticketUrl: safeHref.optional(),
+        }),
+      )
+      .max(24)
       .default([]),
     hidden: z.boolean().optional(),
   }),
@@ -123,6 +192,47 @@ export const sectionPropsSchemas = {
       .default([]),
     hidden: z.boolean().optional(),
   }),
+  "maylecor-home": z.object({
+    artistName: z.string().trim().min(1).max(80),
+    backgroundImage: imageUrl,
+    portraitMain: imageUrl,
+    collageTop: imageUrl,
+    collageMiddle: imageUrl,
+    logoBanner: imageUrl,
+    bottomLeft: imageUrl,
+    bottomRight: imageUrl,
+    logoSmall: imageUrl,
+    ctaLabel: z.string().trim().min(1).max(120),
+    musicPageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(40).default("music"),
+    homeLogoHref: safeHref.default("#top"),
+    socialLinks: socialLinksSchema,
+    motionEnabled: z.boolean().optional().default(true),
+    hidden: z.boolean().optional(),
+  }),
+  "maylecor-music": z.object({
+    artistName: z.string().trim().min(1).max(80),
+    albumArt: imageUrl,
+    homePageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(40).default("home"),
+    socialLinks: socialLinksSchema,
+    motionEnabled: z.boolean().optional().default(true),
+    hidden: z.boolean().optional(),
+  }),
+  "legally-blonde-hero": z.object({
+    title: z.string().trim().min(1).max(120),
+    subtitle: z.string().trim().max(500),
+    backgroundLayer: imageUrl,
+    titleLogo: imageUrl,
+    cutoutLeft: imageUrl,
+    cutoutRight: imageUrl,
+    cutoutAccent: imageUrl,
+    cutoutSparkle: imageUrl.optional().default(""),
+    macbook: imageUrl,
+    sparkleGif: imageUrl,
+    heroPhoto: imageUrl,
+    accentColor: z.string().trim().max(40).default("#e9006b"),
+    motionEnabled: z.boolean().optional().default(true),
+    hidden: z.boolean().optional(),
+  }),
 } as const;
 
 export const websiteSectionSchema = z
@@ -153,6 +263,7 @@ export const websiteDefinitionSchema = z.object({
   schemaVersion: z.literal("website-v1"),
   title: z.string().trim().min(1).max(120),
   theme: themeSchema,
+  seo: siteSeoSchema.optional(),
   pages: z.array(websitePageSchema).min(1).max(12),
 });
 
@@ -181,8 +292,8 @@ export function validateWebsiteDefinition(input: unknown): {
         ids.add(section.id);
       }
       // Sanitize: reject script-like content in text fields
-      const blob = JSON.stringify(section.props).toLowerCase();
-      if (blob.includes("<script") || blob.includes("javascript:")) {
+      const blob = JSON.stringify(section.props);
+      if (containsUnsafeSiteContent(blob)) {
         return { ok: false, error: "Unsafe content detected in section props." };
       }
     }

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { AlkebulanLion } from "@/app/components/panther-motif";
+import { KebuMark } from "@/app/components/kebu-mark";
+import { KEBU } from "@/lib/kebu-brand";
 import type { CountryAiAnalysisRow, CountryProfileRow } from "@/lib/opportunity/country-schema";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -111,12 +112,15 @@ export default function CountryDetailPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#FAFAF8", color: "#0F0D33" }}>
-      <header className="sticky top-0 z-40" style={{ background: "#0F0D33" }}>
-        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #009E40, #00C851)" }} />
-        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/opportunity/countries" className="flex items-center gap-2 text-white text-sm">
-            <AlkebulanLion size={28} />
+    <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
+      <header className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.92)" }}>
+        <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }} />
+        <div
+          className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between"
+          style={{ borderBottom: `1px solid ${KEBU.border}` }}
+        >
+          <Link href="/opportunity/countries" className="flex items-center gap-2 text-sm" style={{ color: KEBU.black }}>
+            <KebuMark size={28} />
             <span className="font-bold tracking-[0.12em]">← Countries</span>
           </Link>
         </div>
@@ -136,7 +140,7 @@ export default function CountryDetailPage() {
           </div>
         ) : (
           <>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: "#009E40" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: KEBU.orange }}>
               {labels.verified ?? "Verified / curated"}
             </p>
             <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
@@ -228,14 +232,17 @@ export default function CountryDetailPage() {
             </Section>
 
             {/* AI — clearly separated */}
-            <div className="rounded-2xl p-5 mt-8" style={{ background: "#0F0D33", color: "#FAFAF8" }}>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-[#00C851] mb-2">
+            <div
+              className="rounded-2xl p-5 mt-8 bg-white"
+              style={{ border: `1px solid ${KEBU.border}`, boxShadow: "0 12px 32px rgba(255,85,0,0.06)" }}
+            >
+              <p className="text-[10px] uppercase tracking-[0.18em] mb-2" style={{ color: KEBU.orange }}>
                 {labels.ai_generated ?? "AI-generated"}
               </p>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
+              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
                 Opportunity AI analysis
               </h2>
-              <p className="text-sm text-white/60 mb-4">
+              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
                 Optional. Not verified public data. Do not treat as official statistics or guaranteed opportunities.
               </p>
               <button
@@ -243,7 +250,7 @@ export default function CountryDetailPage() {
                 onClick={() => void generateAi()}
                 disabled={aiBusy}
                 className="rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
-                style={{ background: "#00C851", color: "#0F0D33" }}
+                style={{ background: KEBU.orange, color: KEBU.white }}
               >
                 {aiBusy ? "Generating…" : analyses.length ? "Generate new analysis" : "Generate AI analysis"}
               </button>

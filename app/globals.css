@@ -1,50 +1,50 @@
 @import "tailwindcss";
 
 :root {
-  /* ── Kebu brand tokens — Indigo · Bright Green · Gold ──────────────────
-   * Dark authority: Deep Indigo
-   * Energy & action: Bright Green
-   * Heritage & brand: Gold
+  /* ── Kebu brand tokens — Cream · Orange · Red ──────────────────────────
+   * Surfaces: bright cream / white (not dark indigo)
+   * Energy: orange #FF5500
+   * Accent: red #E10600
    * ─────────────────────────────────────────────────────────────────────── */
 
-  /* Indigo — depth, authority, night */
-  --deep-green: #0F0D33;
-  --mid-green: #1E1B4B;
-  --light-green: #3730A3;
+  /* Kept as token names for compat — mapped to warm ink / soft cream */
+  --deep-green: #0A0A0A;
+  --mid-green: #1A1A1A;
+  --light-green: #5C5348;
 
-  /* Bright Green — energy, action, Africa's growth (primary CTA color) */
-  --gold: #00C851;
-  --gold-light: #22D96A;
-  --gold-dark: #009E40;
+  /* Primary CTA — orange (token still named gold for class compat) */
+  --gold: #FF5500;
+  --gold-light: #FF7733;
+  --gold-dark: #E10600;
 
-  /* Actual Gold — brand identity, logo, heritage */
-  --brand-gold: #D4A820;
-  --brand-gold-light: #E8C840;
-  --brand-gold-dark: #A88010;
+  /* Brand gold secondary */
+  --brand-gold: #FF5500;
+  --brand-gold-light: #FF7733;
+  --brand-gold-dark: #CC4400;
 
-  /* Light backgrounds — clean, breathable */
-  --ivory: #FAFAF8;
-  --warm-ivory: #F0EFF8;
-  --border: #DDE0F0;
+  /* Light backgrounds — bright, warm */
+  --ivory: #FFFBF7;
+  --warm-ivory: #FFF8F2;
+  --border: rgba(10, 10, 10, 0.1);
 
-  /* Indigo family (already existed) */
-  --indigo: #3730A3;
-  --indigo-light: #6366F1;
-  --indigo-dark: #1E1B4B;
-  --royal-blue: #3730A3;
-  --midnight: #1E1B4B;
+  /* Soft neutrals (compat names) */
+  --indigo: #5C5348;
+  --indigo-light: #8A8074;
+  --indigo-dark: #1A1A1A;
+  --royal-blue: #5C5348;
+  --midnight: #1A1A1A;
 
   /* Neutrals */
-  --ink: #0F0D33;
-  --muted: #6B7280;
+  --ink: #0A0A0A;
+  --muted: #5C5348;
   --white: #FFFFFF;
 
   /* Semantic */
-  --warm-brown: #8B5E3C;
-  --red-earth: #B85C38;
-  --silver: #F2F3F6;
-  --orange: #E05A18;
-  --bright-green: #00C851;
+  --warm-brown: #8A8074;
+  --red-earth: #E10600;
+  --silver: #FFF8F2;
+  --orange: #FF5500;
+  --bright-green: #FF5500;
 
   --background: var(--ivory);
   --foreground: var(--ink);
@@ -122,19 +122,19 @@ body {
 ::-webkit-scrollbar-track { background: var(--ivory); }
 ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
 
-/* Green / brand gradient */
+/* Orange brand gradient */
 .gold-gradient {
-  background: linear-gradient(135deg, #009E40 0%, #00C851 50%, #22D96A 100%);
+  background: linear-gradient(135deg, #E10600 0%, #FF5500 50%, #FF7733 100%);
 }
 
-/* Deep indigo gradient */
+/* Soft cream depth (compat name) */
 .green-gradient {
-  background: linear-gradient(135deg, #0F0D33 0%, #1E1B4B 100%);
+  background: linear-gradient(135deg, #FFF8F2 0%, #FFFBF7 100%);
 }
 
-/* Indigo gradient */
+/* Warm orange wash */
 .indigo-gradient {
-  background: linear-gradient(135deg, #1E1B4B 0%, #3730A3 100%);
+  background: linear-gradient(135deg, #FF7733 0%, #FF5500 100%);
 }
 
 /* Card hover */
@@ -158,8 +158,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ── Brand semantic utility classes ────────────────────────────────────────
- * Use these instead of raw Tailwind amber/emerald/blue/purple colours
- * so every page stays within the green·orange·silver·indigo system.
+ * Prefer KEBU tokens (cream · orange · red). Legacy class names kept for compat.
  * ─────────────────────────────────────────────────────────────────────── */
 
 /* Orange — alerts, warnings, in-progress */
@@ -181,6 +180,51 @@ input:focus, select:focus, textarea:focus {
 .brand-red-bg       { background-color: rgba(184, 92, 56, 0.08); }
 .brand-red-border   { border-color:     rgba(184, 92, 56, 0.25); }
 .brand-red-text     { color: var(--red-earth); }
+
+/* Kebu.com landing — youth energy (not artist templates) */
+@keyframes kebu-landing-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes kebu-landing-orb {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4%, 6%, 0) scale(1.08);
+  }
+}
+
+.kebu-landing-rise {
+  animation: kebu-landing-rise 0.85s ease-out both;
+}
+.kebu-landing-rise-delay {
+  animation-delay: 0.12s;
+}
+.kebu-landing-rise-delay-2 {
+  animation-delay: 0.22s;
+}
+.kebu-landing-rise-delay-3 {
+  animation-delay: 0.32s;
+}
+.kebu-landing-orb {
+  animation: kebu-landing-orb 12s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kebu-landing-rise,
+  .kebu-landing-orb {
+    animation: none !important;
+  }
+}
 
 /* Transitions */
 * {

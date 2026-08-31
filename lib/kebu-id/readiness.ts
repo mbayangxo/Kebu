@@ -8,15 +8,15 @@ export type RegistrationProgressStepDef = {
 
 /** Canonical registration timeline — progress rows are stored per business in DB. */
 export const REGISTRATION_TIMELINE: RegistrationProgressStepDef[] = [
-  { stepKey: "business_created", label: "Business Created", sortOrder: 10 },
-  { stepKey: "business_information_complete", label: "Business Information Complete", sortOrder: 20 },
-  { stepKey: "documents_uploaded", label: "Documents Uploaded", sortOrder: 30 },
-  { stepKey: "ready_to_submit", label: "Ready To Submit", sortOrder: 40 },
-  { stepKey: "submitted", label: "Submitted", sortOrder: 50 },
-  { stepKey: "government_review", label: "Government Review", sortOrder: 60 },
-  { stepKey: "approved", label: "Approved", sortOrder: 70 },
-  { stepKey: "registration_certificate", label: "Registration Certificate", sortOrder: 80 },
-  { stepKey: "active_business", label: "Active Business", sortOrder: 90 },
+  { stepKey: "business_created", label: "Application Started", sortOrder: 10 },
+  { stepKey: "documents_uploaded", label: "Documents Uploaded", sortOrder: 20 },
+  { stepKey: "business_information_complete", label: "Identity Verified", sortOrder: 30 },
+  { stepKey: "government_review", label: "Government Review", sortOrder: 40 },
+  { stepKey: "payment_confirmed", label: "Payment Confirmed", sortOrder: 50 },
+  { stepKey: "approved", label: "Registration Approved", sortOrder: 60 },
+  { stepKey: "registration_certificate", label: "Registration Certificate Ready", sortOrder: 70 },
+  { stepKey: "tax_registration", label: "Tax Registration", sortOrder: 80 },
+  { stepKey: "active_business", label: "Business Active", sortOrder: 90 },
 ];
 
 export type BusinessProfileForReadiness = {
@@ -33,6 +33,8 @@ export type BusinessProfileForReadiness = {
   founderName?: string | null;
   founderEmail?: string | null;
   ownershipPercent?: number | null;
+  /** When false or unset, required registration documents are treated as missing. */
+  registrationDocumentsComplete?: boolean;
 };
 
 export type ReadinessResult = {
@@ -172,6 +174,13 @@ export function calculateBusinessReadiness(profile: BusinessProfileForReadiness)
     helping.push("Trading name is on file.");
   }
 
+  if (profile.registrationDocumentsComplete === true) {
+    helping.push("Required registration documents are uploaded.");
+  } else {
+    missing.push("Upload required registration documents (founder ID and business plan).");
+    limiting.push("Registration documents not yet uploaded.");
+  }
+
   const scoreValue = Math.max(0, Math.min(100, points));
   const scoreBand = bandFor(scoreValue);
   const confidenceLevel = confidenceFor(filled, checks.length);
@@ -189,7 +198,7 @@ export function calculateBusinessReadiness(profile: BusinessProfileForReadiness)
         confidenceLevel === "low"
           ? "Not enough verified information yet for a strong readiness reading."
           : `Business Readiness is ${scoreValue} (${scoreBand.replace("_", " ")}).`,
-      note: "This is a Business Readiness score — not financing, lending, or investment approval. KA Score is one input and does not guarantee funding.",
+      note: "This is a Business Readiness score — not financing, lending, or investment approval. Kebu Score is one input and does not guarantee funding.",
     },
   };
 }

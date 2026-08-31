@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
-import { buildSnapshotFromDb } from "@/lib/create/persist-site";
-import { validateWebsiteDefinition } from "@/lib/create/website-schema";
+import { projectHasLiveHosting } from "@/lib/billing/subscriptions";
+import { SITE_HOSTING_BILLING_LABEL, SITE_HOSTING_DESCRIPTION } from "@/lib/billing/pricing";
+import { goLiveWebsiteProject } from "@/lib/create/go-live";
+import { builderRateLimit } from "@/lib/api-guard";
+import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +24,9 @@ const publishSchema = z.object({
 
 /** Publish project → live deployment snapshot + public /sites/{subdomain}. */
 export async function POST(req: Request, { params }: Params) {
+  const limited = builderRateLimit(req);
+  if (limited) return limited;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -32,7 +38,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, owner_id, title, subdomain, status")
+    .select("id, owner_id, title, subdomain, status, business_id")
     .eq("id", id)
     .eq("owner_id", user.id)
     .maybeSingle();
@@ -59,91 +65,49 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Subdomain required to publish." }, { status: 400 });
   }
 
-  const snapshot = await buildSnapshotFromDb(supabase, id);
-  if (!snapshot) {
-    return NextResponse.json({ error: "Could not build site snapshot." }, { status: 500 });
-  }
-
-  const validated = validateWebsiteDefinition(snapshot);
-  if (!validated.ok) {
-    return NextResponse.json({ error: "Site failed validation before publish.", detail: validated.error }, { status: 400 });
-  }
-
-  // Supersede previous live deployment for this subdomain (owned by others blocked by unique live index)
-  const { data: existingLive } = await supabase
-    .from("deployments")
-    .select("id, project_id")
-    .eq("subdomain", subdomain)
-    .eq("status", "live")
-    .maybeSingle();
-
-  if (existingLive && existingLive.project_id !== id) {
-    return NextResponse.json({ error: "Subdomain is already published by another project." }, { status: 409 });
-  }
-
-  if (existingLive) {
-    await supabase.from("deployments").update({ status: "superseded" }).eq("id", existingLive.id);
-  }
-
-  const publicPath = `/sites/${subdomain}`;
-  const { data: deployment, error: depErr } = await supabase
-    .from("deployments")
-    .insert({
-      project_id: id,
-      subdomain,
-      snapshot: validated.data,
-      status: "live",
-      published_by: user.id,
-      public_path: publicPath,
-    })
-    .select("id, subdomain, public_path, published_at, status")
-    .single();
-
-  if (depErr || !deployment) {
-    logCreate("website.publish_failed", { userId: user.id, projectId: id, message: depErr?.message });
+  const hostingActive = await projectHasLiveHosting(supabase, id, user.id);
+  if (!hostingActive) {
     return NextResponse.json(
       {
-        error: depErr?.message?.includes("does not exist")
-          ? "Deployments table missing. Apply migration 008."
-          : "Could not publish.",
-        detail: depErr?.message,
+        error: "Active site hosting required before publish.",
+        billingRequired: true,
+        provider: "joko",
+        monthlyLabel: SITE_HOSTING_BILLING_LABEL,
+        description: SITE_HOSTING_DESCRIPTION,
+        subscribeUrl: `/api/projects/${id}/billing/subscribe`,
       },
-      { status: 500 }
+      { status: 402 },
     );
   }
 
-  await supabase
-    .from("projects")
-    .update({ status: "published", subdomain, published_at: new Date().toISOString() })
-    .eq("id", id);
-
-  // Version history entry
-  const { data: lastVer } = await supabase
-    .from("website_versions")
-    .select("version_number")
-    .eq("project_id", id)
-    .order("version_number", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  await supabase.from("website_versions").insert({
-    project_id: id,
-    version_number: (lastVer?.version_number ?? 0) + 1,
-    label: "Published",
-    snapshot: validated.data,
-    created_by: user.id,
+  const published = await goLiveWebsiteProject({
+    supabase,
+    userId: user.id,
+    projectId: id,
+    subdomain,
+    businessId: project.business_id,
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
-  const liveUrl = appUrl ? `${appUrl}${publicPath}` : publicPath;
-  const kebuAfricaHint = `https://${subdomain}.kebu.africa`;
+  if (!published.ok) {
+    logCreate("website.publish_failed", { userId: user.id, projectId: id, error: published.error });
+    const status = published.error.includes("already published") ? 409 : 500;
+    return NextResponse.json({ error: published.error, detail: published.detail }, { status });
+  }
+
+  if (project.business_id) {
+    await recalculateAndStoreReadiness({ supabase, businessId: project.business_id });
+  }
 
   logCreate("website.published", { userId: user.id, projectId: id, subdomain });
 
   return NextResponse.json({
-    deployment,
-    liveUrl,
-    kebuAfricaUrl: kebuAfricaHint,
-    note: "Live content is served from /sites/{subdomain}. Point *.kebu.africa DNS to this app to use the branded subdomain.",
+    deployment: {
+      subdomain,
+      public_path: published.publicPath,
+      status: "live",
+    },
+    liveUrl: published.liveUrl,
+    kebuAfricaUrl: published.kebuAfricaUrl,
+    note: "Live at /sites/{subdomain}. Branded https://{sub}.kebu.africa needs DNS pointing at this app.",
   });
 }

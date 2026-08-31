@@ -1,57 +1,45 @@
 import Link from "next/link";
-import { AlkebulanLion } from "@/app/components/panther-motif";
-import { SAMPLE_OPPORTUNITIES } from "@/lib/data/sample-opportunities";
-import { SUCCESS_STORIES } from "@/lib/data/success-stories";
-import { INDUSTRIES } from "@/lib/data/industry-intelligence";
+import { KebuMark, KebuWordmark } from "@/app/components/kebu-mark";
 import { KEBU } from "@/lib/kebu-brand";
 
-/** Landing uses shared brand + light text on black. */
+/** Landing — bright cream / white with orange energy. */
 const C = {
   ...KEBU,
-  muted: "rgba(250,250,250,0.55)",
-  faint: "rgba(250,250,250,0.35)",
+  ink: KEBU.black,
+  paper: KEBU.bright,
+  paperSoft: KEBU.cream,
+  muted: KEBU.muted,
+  faint: KEBU.faint,
 } as const;
 
+/** Live product only — no sample /programs, /map, /path, etc. */
 const NAV = [
   { label: "Opportunity", href: "/opportunity" },
-  { label: "Resources", href: "/industry" },
-  { label: "Entrepreneurs", href: "/success" },
-  { label: "Build a site", href: "/create" },
+  { label: "Countries", href: "/opportunity/countries" },
+  { label: "Business", href: "/business" },
+  { label: "Create", href: "/create" },
 ] as const;
 
-const LOCATION_LAYERS = [
+const LIVE_PATHS = [
   {
-    level: "Country",
-    desc: "National grants, AfCFTA trade rules, sector policies, and macro opportunities.",
+    level: "Find opportunity",
+    desc: "Start with Country Explorer — real country pages with labeled sources, not a brochure dump.",
     href: "/opportunity/countries",
-    stat: "54 countries",
+    stat: "Live now",
   },
   {
-    level: "City",
-    desc: "Metro tenders, incubators, supplier networks, and urban market gaps.",
-    href: "/map",
-    stat: "Capitals + major cities",
+    level: "Create your business",
+    desc: "Draft a Kebu ID, track registration readiness, and keep founders on one identity.",
+    href: "/business",
+    stat: "Live now",
   },
   {
-    level: "Town & local",
-    desc: "Commune-level starts, local procurement, and what your neighbourhood already produces.",
-    href: "/starts",
-    stat: "Local chapters growing",
+    level: "Build & publish a site",
+    desc: "Templates, editor, and publish to a kebu.africa subdomain when hosting is set up.",
+    href: "/create",
+    stat: "Live now",
   },
 ] as const;
-
-const DAILY_FEEDS = [
-  { label: "Grants", href: "/programs", desc: "Foundation & government funding windows" },
-  { label: "Tenders & bids", href: "/procurement", desc: "Public contracts you can compete for" },
-  { label: "Trade & resources", href: "/industry", desc: "What Africa grows, mines, and ships" },
-  { label: "Entrepreneur paths", href: "/path", desc: "Step-by-step plans from real builders" },
-] as const;
-
-const FEATURED_OPPS = SAMPLE_OPPORTUNITIES.filter((o) =>
-  ["Grant", "Procurement", "Government contract", "Accelerator", "Fellowship"].includes(o.type)
-).slice(0, 4);
-
-const FEATURED_STORIES = SUCCESS_STORIES.slice(0, 3);
 
 function StartButton({
   href = "/signup",
@@ -66,7 +54,7 @@ function StartButton({
     <Link
       href={href}
       className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.12em] transition-all hover:brightness-110 ${large ? "px-10 py-4 text-sm rounded-full" : "px-6 py-2.5 text-[11px] rounded-full"} ${className}`}
-      style={{ background: C.orange, color: C.black }}
+      style={{ background: C.orange, color: C.white }}
     >
       Start
       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" aria-hidden>
@@ -78,23 +66,16 @@ function StartButton({
 
 export function KebuOpportunityHome() {
   return (
-    <div className="min-h-screen" style={{ background: C.black, color: C.white }}>
-      {/* ── NAV ── */}
-      <header className="sticky top-0 z-50" style={{ background: C.black }}>
+    <div className="min-h-screen" style={{ background: C.paper, color: C.ink }}>
+      <header className="sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.92)" }}>
         <div
           className="h-[4px] w-full"
-          style={{ background: `linear-gradient(90deg, ${C.red}, ${C.orange}, ${C.red})` }}
+          style={{ background: `linear-gradient(90deg, ${C.red}, ${C.orange}, ${C.orangeLight})` }}
         />
-        <nav style={{ borderBottom: `1px solid rgba(255,85,0,0.15)` }}>
+        <nav style={{ borderBottom: `1px solid ${C.border}` }}>
           <div className="max-w-[1400px] mx-auto px-5 sm:px-8 h-[68px] flex items-center justify-between gap-4">
-            <Link href="/" className="flex items-center gap-3 flex-shrink-0 group">
-              <AlkebulanLion size={36} />
-              <span
-                style={{ letterSpacing: "0.14em", fontFamily: "var(--font-fraunces)", color: C.orange }}
-                className="font-bold text-[17px] leading-none hidden sm:block"
-              >
-                KEBU
-              </span>
+            <Link href="/" className="flex-shrink-0">
+              <KebuWordmark size={36} dark />
             </Link>
 
             <div className="hidden lg:flex items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.14em]">
@@ -115,193 +96,144 @@ export function KebuOpportunityHome() {
         </nav>
       </header>
 
-      {/* ── HERO ── */}
-      <section className="relative overflow-hidden">
+      <section className="relative min-h-[92svh] overflow-hidden flex flex-col justify-center">
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0"
           style={{
-            background: `radial-gradient(ellipse 80% 60% at 70% 20%, ${C.orange} 0%, transparent 55%), radial-gradient(ellipse 50% 40% at 10% 80%, ${C.red} 0%, transparent 50%)`,
+            background: `
+              radial-gradient(ellipse 80% 60% at 90% 10%, rgba(255,85,0,0.22) 0%, transparent 55%),
+              radial-gradient(ellipse 50% 45% at 0% 85%, rgba(225,6,0,0.12) 0%, transparent 50%),
+              ${C.paper}
+            `,
           }}
         />
         <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: `linear-gradient(${C.orange} 1px, transparent 1px), linear-gradient(90deg, ${C.orange} 1px, transparent 1px)`,
-            backgroundSize: "48px 48px",
-          }}
+          className="kebu-landing-orb pointer-events-none absolute -right-16 top-[18%] h-[380px] w-[380px] rounded-full blur-3xl opacity-50 sm:h-[520px] sm:w-[520px]"
+          style={{ background: `radial-gradient(circle, rgba(255,85,0,0.35), transparent 70%)` }}
+          aria-hidden
         />
 
-        <div className="relative max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-16 py-20 lg:py-32">
-          <div className="max-w-4xl">
-            <div
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-8 text-[10px] font-bold uppercase tracking-[0.2em]"
-              style={{ background: `${C.red}22`, color: C.redSoft, border: `1px solid ${C.red}44` }}
+        <div className="relative max-w-[1400px] mx-auto w-full px-5 sm:px-8 lg:px-16 py-20 lg:py-28">
+          <div className="kebu-landing-rise mb-8 inline-flex">
+            <KebuMark size={72} />
+          </div>
+          <p
+            className="kebu-landing-rise mb-4 text-[clamp(3rem,11vw,7.5rem)] font-black uppercase leading-[0.85] tracking-tight"
+            style={{ fontFamily: "var(--font-fraunces)", color: C.orange }}
+          >
+            Kebu
+          </p>
+          <h1
+            className="kebu-landing-rise kebu-landing-rise-delay font-bold mb-6 max-w-3xl"
+            style={{
+              fontFamily: "var(--font-fraunces)",
+              lineHeight: 0.98,
+              letterSpacing: "-0.03em",
+              fontSize: "clamp(1.85rem, 5.2vw, 3.5rem)",
+              color: C.ink,
+            }}
+          >
+            Find the opportunity.
+            <br />
+            <span style={{ color: C.orange }}>Build the business.</span>
+          </h1>
+          <p
+            className="kebu-landing-rise kebu-landing-rise-delay-2 text-[clamp(1rem,2.2vw,1.25rem)] max-w-xl mb-10 leading-relaxed"
+            style={{ color: C.muted }}
+          >
+            Country Explorer, Kebu ID, and a real site builder — the live Phase One path. No fake product menus.
+          </p>
+          <div className="kebu-landing-rise kebu-landing-rise-delay-3 flex flex-wrap items-center gap-4">
+            <StartButton large href="/signup" />
+            <Link
+              href="/opportunity/countries"
+              className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.1em] transition-all hover:bg-black/[0.03]"
+              style={{ border: `2px solid ${C.orange}`, color: C.orange }}
             >
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: C.red }} />
-              Opportunity OS · refreshed from public sources
-            </div>
-
-            <h1
-              style={{ fontFamily: "var(--font-fraunces)", lineHeight: 0.95, letterSpacing: "-0.02em" }}
-              className="font-bold mb-8"
-            >
-              <span className="block text-[clamp(2.5rem,7vw,5.5rem)] text-white">Kebu is for</span>
-              <span className="block text-[clamp(2.5rem,7vw,5.5rem)]" style={{ color: C.orange }}>
-                opportunity.
-              </span>
-            </h1>
-
-            <p
-              style={{ fontFamily: "var(--font-fraunces)", color: C.muted, lineHeight: 1.35 }}
-              className="text-[clamp(1.15rem,2.5vw,1.65rem)] font-light mb-6 max-w-2xl"
-            >
-              Grants, government tenders, and bids — mapped to your country, your city, and your town.
-              See what African resources can become. See what the world already does with them.
-            </p>
-
-            <p className="text-sm max-w-xl leading-relaxed mb-10" style={{ color: C.faint }}>
-              When you find the right opportunity, Kebu helps you build the site, brand, and business
-              to capture it — not a demo, a real path forward.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-4 mb-12">
-              <StartButton large href="/signup" />
-              <Link
-                href="/opportunity/countries"
-                className="inline-flex items-center gap-2 font-semibold px-8 py-4 rounded-full text-sm uppercase tracking-[0.08em] transition-all"
-                style={{ border: `1px solid ${C.orange}66`, color: C.orangeLight }}
-              >
-                Explore my country →
-              </Link>
-            </div>
-
-            <div className="flex flex-wrap gap-3 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: C.faint }}>
-              {["Grants", "Tenders", "Resources", "Entrepreneurs", "Build"].map((tag) => (
-                <span key={tag} className="px-3 py-1 rounded-full" style={{ background: C.blackSoft, border: `1px solid ${C.orange}22` }}>
-                  {tag}
-                </span>
-              ))}
-            </div>
+              Explore my country
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── DAILY OPPORTUNITY STRIP ── */}
-      <section style={{ background: C.blackSoft, borderTop: `1px solid ${C.orange}18`, borderBottom: `1px solid ${C.orange}18` }}>
+      <section style={{ background: C.paperSoft, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-14">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.orange }}>
-                Updated daily
+                Live on Kebu now
               </p>
               <h2
-                style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05 }}
+                style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05, color: C.ink }}
                 className="font-bold text-[clamp(1.75rem,4vw,2.75rem)]"
               >
-                Government portals. Grants. Bidding.
-                <span style={{ color: C.red }}> One place.</span>
+                Country Explorer. Business ID.
+                <span style={{ color: C.red }}> Site builder.</span>
               </h2>
             </div>
             <p className="text-sm max-w-md leading-relaxed" style={{ color: C.muted }}>
-              Kebu pulls from public government and foundation sources so you see what opened today —
-              not a static list from last year. Verified entries are labeled; estimates are labeled too.
+              We only link what ships. Grants, tenders, maps, and feeds will appear here when they are
+              DB-backed — not as sample pages that look finished.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
-            {DAILY_FEEDS.map(({ label, href, desc }) => (
+          <div className="grid sm:grid-cols-3 gap-3">
+            {LIVE_PATHS.map(({ level, href, desc }) => (
               <Link
                 key={href}
                 href={href}
-                className="group p-5 rounded-2xl transition-all"
-                style={{ background: C.black, border: `1px solid ${C.orange}22` }}
+                className="group p-5 rounded-2xl transition-all hover:-translate-y-0.5"
+                style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: "0 8px 24px rgba(255,85,0,0.06)" }}
               >
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2" style={{ color: C.redSoft }}>
-                  {label}
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2" style={{ color: C.red }}>
+                  {level}
                 </p>
-                <p className="text-sm leading-snug mb-3" style={{ color: C.white }}>
+                <p className="text-sm leading-snug mb-3" style={{ color: C.ink }}>
                   {desc}
                 </p>
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] group-hover:underline" style={{ color: C.orange }}>
-                  Open feed →
+                  Open →
                 </p>
               </Link>
             ))}
           </div>
-
-          {FEATURED_OPPS.length > 0 && (
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4" style={{ color: C.faint }}>
-                Live opportunity preview
-              </p>
-              <div className="grid md:grid-cols-2 gap-3">
-                {FEATURED_OPPS.map((opp) => (
-                  <Link
-                    key={opp.id}
-                    href={`/opportunity/${opp.id}`}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl transition-all"
-                    style={{ background: C.black, border: `1px solid ${C.orange}15` }}
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span
-                          className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded"
-                          style={{ background: `${C.orange}22`, color: C.orange }}
-                        >
-                          {opp.type}
-                        </span>
-                        <span className="text-[10px]" style={{ color: C.faint }}>
-                          {opp.country}
-                        </span>
-                      </div>
-                      <p className="font-semibold text-sm truncate">{opp.title}</p>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase shrink-0" style={{ color: C.orangeLight }}>
-                      View →
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
-      {/* ── COUNTRY · CITY · TOWN ── */}
-      <section className="py-20 lg:py-28">
+      <section className="py-20 lg:py-28" style={{ background: C.paper }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="mb-12 max-w-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.redSoft }}>
-              Every layer of Africa
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.red }}>
+              Your next move
             </p>
             <h2
               style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05 }}
               className="font-bold text-[clamp(1.75rem,4vw,3rem)] mb-4"
             >
-              Country. City. Local town.
-              <span style={{ color: C.orange }}> All mapped.</span>
+              Three live paths.
+              <span style={{ color: C.orange }}> No fake menus.</span>
             </h2>
             <p className="text-sm leading-relaxed" style={{ color: C.muted }}>
-              Opportunity is not only in Lagos or Nairobi — it is in your commune, your port, your farm belt.
-              Kebu connects national policy to street-level action.
+              Start where you are: find a country opportunity, create a business identity, or build a site.
             </p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-4">
-            {LOCATION_LAYERS.map(({ level, desc, href, stat }, i) => (
+            {LIVE_PATHS.map(({ level, desc, href, stat }, i) => (
               <Link
-                key={level}
+                key={`${level}-card`}
                 href={href}
                 className="relative p-8 rounded-3xl overflow-hidden transition-transform hover:-translate-y-1"
                 style={{
-                  background: i === 1 ? C.orange : C.blackSoft,
-                  color: i === 1 ? C.black : C.white,
-                  border: i === 1 ? "none" : `1px solid ${C.orange}25`,
+                  background: i === 1 ? C.orange : C.white,
+                  color: i === 1 ? C.white : C.ink,
+                  border: i === 1 ? "none" : `1px solid ${C.border}`,
+                  boxShadow: i === 1 ? "0 16px 40px rgba(255,85,0,0.25)" : "0 8px 24px rgba(10,10,10,0.04)",
                 }}
               >
                 <p
                   className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4"
-                  style={{ color: i === 1 ? C.black : C.redSoft }}
+                  style={{ color: i === 1 ? "rgba(255,255,255,0.85)" : C.red }}
                 >
                   {stat}
                 </p>
@@ -311,76 +243,24 @@ export function KebuOpportunityHome() {
                 >
                   {level}
                 </h3>
-                <p className="text-sm leading-relaxed mb-6" style={{ color: i === 1 ? "rgba(10,10,10,0.75)" : C.muted }}>
+                <p
+                  className="text-sm leading-relaxed mb-6"
+                  style={{ color: i === 1 ? "rgba(255,255,255,0.9)" : C.muted }}
+                >
                   {desc}
                 </p>
-                <span className="text-xs font-bold uppercase tracking-[0.12em]">Explore →</span>
+                <span className="text-xs font-bold uppercase tracking-[0.12em]">Go →</span>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── AFRICAN RESOURCES vs GLOBAL VALUE ── */}
-      <section style={{ background: C.blackSoft }} className="py-20 lg:py-28">
-        <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.orange }}>
-                African resources
-              </p>
-              <h2
-                style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05 }}
-                className="font-bold text-[clamp(1.75rem,4vw,3rem)] max-w-xl"
-              >
-                What we produce.
-                <br />
-                <span style={{ color: C.red }}>What others capture.</span>
-              </h2>
-            </div>
-            <Link href="/industry" className="text-xs font-bold uppercase tracking-[0.12em]" style={{ color: C.orangeLight }}>
-              All industries →
-            </Link>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {INDUSTRIES.slice(0, 6).map((ind) => (
-              <Link
-                key={ind.slug}
-                href={`/industry/${ind.slug}`}
-                className="p-6 rounded-2xl transition-all group"
-                style={{ background: C.black, border: `1px solid ${C.orange}18` }}
-              >
-                <div className="text-2xl mb-3">{ind.icon}</div>
-                <h3 style={{ fontFamily: "var(--font-fraunces)" }} className="font-bold text-lg mb-2">
-                  {ind.name}
-                </h3>
-                <p className="text-xs leading-relaxed mb-4 line-clamp-2" style={{ color: C.muted }}>
-                  {ind.extraction_headline}
-                </p>
-                <div className="flex items-center justify-between gap-2 pt-3" style={{ borderTop: `1px solid ${C.orange}15` }}>
-                  <span className="text-[10px] uppercase tracking-widest" style={{ color: C.faint }}>
-                    Africa keeps
-                  </span>
-                  <span className="text-sm font-bold" style={{ color: C.orange }}>
-                    {ind.value_leakage.africa_earns_pct}
-                  </span>
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] mt-4 group-hover:underline" style={{ color: C.redSoft }}>
-                  See global chain →
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── BUILD WHEN YOU FIND IT ── */}
-      <section className="py-20 lg:py-28">
+      <section className="py-20 lg:py-28" style={{ background: C.paperSoft }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.redSoft }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.red }}>
                 Site building
               </p>
               <h2
@@ -391,55 +271,38 @@ export function KebuOpportunityHome() {
                 <span style={{ color: C.orange }}> Build for it.</span>
               </h2>
               <p className="text-sm leading-relaxed mb-4" style={{ color: C.muted }}>
-                Kebu is not only a feed — it includes a real website builder so you can launch a brand,
-                portfolio, or store tied to the grant, tender, or business you are pursuing.
+                Templates, editor, and publish to a kebu.africa subdomain when hosting is active.
+                Live publish uses JOKO billing in production — editing stays free.
               </p>
               <p className="text-sm leading-relaxed mb-8" style={{ color: C.faint }}>
-                Templates for agencies, salons, production houses, perfume brands, artists, and more.
-                Edit, publish, and grow from one place.
+                Custom domains: DNS verify works; HTTPS attach on the host is still a manual ops step.
               </p>
               <Link
                 href="/create"
                 className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.08em]"
-                style={{ background: C.red, color: C.white }}
+                style={{ background: C.orange, color: C.white }}
               >
                 Open site builder →
               </Link>
-              <div className="mt-6 flex flex-col sm:flex-row flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.1em]">
-                <Link
-                  href="/create/demo/musician-kdirection-artist"
-                  className="underline underline-offset-4"
-                  style={{ color: C.orangeLight }}
-                >
-                  Preview May Lecor artist template →
-                </Link>
-                <Link
-                  href="/create/demo/showcase-legally-blonde"
-                  className="underline underline-offset-4"
-                  style={{ color: C.orangeLight }}
-                >
-                  Preview Legally Blonde template →
-                </Link>
-              </div>
             </div>
 
             <div
-              className="rounded-3xl p-8 lg:p-10"
-              style={{ background: C.blackSoft, border: `1px solid ${C.orange}25` }}
+              className="rounded-3xl p-8 lg:p-10 bg-white"
+              style={{ border: `1px solid ${C.border}`, boxShadow: "0 20px 50px rgba(255,85,0,0.08)" }}
             >
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-6" style={{ color: C.orange }}>
                 How it connects
               </p>
               <ol className="space-y-5">
                 {[
-                  { step: "01", text: "Pick your country, city, or local area on Kebu." },
-                  { step: "02", text: "See grants, tenders, resources, and entrepreneur paths — labeled clearly." },
-                  { step: "03", text: "Build a site or store to apply, bid, or sell — then publish live." },
+                  { step: "01", text: "Explore countries for labeled opportunity data." },
+                  { step: "02", text: "Create a business draft with Kebu ID readiness." },
+                  { step: "03", text: "Build a site, pay hosting if required, then publish." },
                 ].map(({ step, text }) => (
                   <li key={step} className="flex gap-4">
                     <span
                       className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ background: C.orange, color: C.black }}
+                      style={{ background: C.orange, color: C.white }}
                     >
                       {step}
                     </span>
@@ -454,121 +317,73 @@ export function KebuOpportunityHome() {
         </div>
       </section>
 
-      {/* ── ENTREPRENEURS ── */}
-      <section style={{ background: C.blackSoft }} className="py-20 lg:py-28">
-        <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
-          <div className="flex items-end justify-between mb-10 gap-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.orange }}>
-                Entrepreneurs
-              </p>
-              <h2 style={{ fontFamily: "var(--font-fraunces)" }} className="font-bold text-[clamp(1.75rem,4vw,3rem)]">
-                People who moved.
-              </h2>
-            </div>
-            <Link href="/success" className="hidden sm:block text-xs font-bold uppercase tracking-[0.12em]" style={{ color: C.orangeLight }}>
-              All stories →
-            </Link>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            {FEATURED_STORIES.map((story) => {
-              const initials = story.name.split(" ").map((n: string) => n[0]).join("");
-              return (
-                <div
-                  key={story.id}
-                  className="p-6 rounded-2xl"
-                  style={{ background: C.black, border: `1px solid ${C.orange}18` }}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
-                      style={{ background: C.orange, color: C.black }}
-                    >
-                      {initials}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{story.name}</p>
-                      <p className="text-xs" style={{ color: C.faint }}>
-                        {story.location}
-                      </p>
-                    </div>
-                  </div>
-                  <h3 style={{ fontFamily: "var(--font-fraunces)" }} className="font-bold text-base mb-2 leading-snug">
-                    {story.headline}
-                  </h3>
-                  <p className="text-xs leading-relaxed line-clamp-3" style={{ color: C.muted }}>
-                    {story.story}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ── */}
-      <section className="py-24 lg:py-32 relative overflow-hidden">
+      <section className="py-24 lg:py-32 relative overflow-hidden" style={{ background: C.orange }}>
         <div
-          className="absolute inset-0"
-          style={{ background: `linear-gradient(135deg, ${C.red}33 0%, ${C.black} 40%, ${C.orange}22 100%)` }}
+          className="absolute inset-0 opacity-30"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 80% at 20% 50%, rgba(255,255,255,0.35), transparent), radial-gradient(ellipse 50% 60% at 90% 20%, rgba(225,6,0,0.4), transparent)",
+          }}
+          aria-hidden
         />
-        <div className="relative max-w-3xl mx-auto px-5 text-center">
-          <h2
-            style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0 }}
-            className="font-bold text-[clamp(2.5rem,7vw,4.5rem)] mb-6"
-          >
-            Africa is the
-            <span style={{ color: C.orange }}> opportunity.</span>
-          </h2>
-          <p className="text-base mb-10 max-w-lg mx-auto leading-relaxed" style={{ color: C.muted }}>
-            Start with where you are. See what opened today. Build what comes next.
+        <div className="relative max-w-[1400px] mx-auto px-5 sm:px-8 text-center">
+          <p className="text-[10px] font-bold uppercase tracking-[0.28em] mb-4" style={{ color: "rgba(255,255,255,0.85)" }}>
+            Ready when you are
           </p>
-          <StartButton large href="/signup" className="mx-auto" />
+          <h2
+            style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05 }}
+            className="font-bold text-[clamp(2rem,5vw,3.5rem)] mb-4 text-white"
+          >
+            Africa is the opportunity.
+          </h2>
+          <p className="text-base mb-10 max-w-lg mx-auto leading-relaxed" style={{ color: "rgba(255,255,255,0.9)" }}>
+            Start with where you are. See what is live. Build what comes next.
+          </p>
+          <Link
+            href="/signup"
+            className="inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.12em] px-10 py-4 text-sm rounded-full transition-all hover:brightness-105"
+            style={{ background: C.white, color: C.orange }}
+          >
+            Start
+          </Link>
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ background: C.black, borderTop: `1px solid ${C.orange}15` }}>
+      <footer style={{ background: C.white, borderTop: `1px solid ${C.border}` }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-14">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-10">
             <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2 mb-3">
-                <AlkebulanLion size={28} />
-                <span style={{ fontFamily: "var(--font-fraunces)", color: C.orange }} className="font-bold tracking-widest">
-                  KEBU
-                </span>
+              <div className="mb-3">
+                <KebuWordmark size={28} dark />
               </div>
               <p className="text-xs leading-relaxed" style={{ color: C.faint }}>
-                Opportunity first. Resources mapped. Entrepreneurs shown. Sites built to capture it.
+                Live product only in this menu. Sample explorers stay off the nav until they ship.
               </p>
             </div>
             {[
               {
-                title: "Opportunity",
+                title: "Product",
                 links: [
+                  ["Opportunity", "/opportunity"],
                   ["Countries", "/opportunity/countries"],
-                  ["Programs & grants", "/programs"],
-                  ["Tenders & bids", "/procurement"],
-                  ["Your path", "/path"],
-                ],
-              },
-              {
-                title: "Resources",
-                links: [
-                  ["Industries", "/industry"],
-                  ["Local starts", "/starts"],
-                  ["Map", "/map"],
-                  ["AfCFTA", "/afcfta"],
-                ],
-              },
-              {
-                title: "Build",
-                links: [
-                  ["Site builder", "/create"],
-                  ["Store", "/store/new"],
-                  ["Success stories", "/success"],
                   ["Business", "/business"],
+                  ["Create", "/create"],
+                ],
+              },
+              {
+                title: "Account",
+                links: [
+                  ["Sign in", "/login"],
+                  ["Sign up", "/signup"],
+                  ["Kebu Score", "/ka-score"],
+                ],
+              },
+              {
+                title: "Honest status",
+                links: [
+                  ["Country Explorer — live", "/opportunity/countries"],
+                  ["Site builder — live", "/create"],
+                  ["Business ID — live", "/business"],
                 ],
               },
             ].map((col) => (
@@ -578,7 +393,12 @@ export function KebuOpportunityHome() {
                 </p>
                 <div className="space-y-2">
                   {col.links.map(([label, href]) => (
-                    <Link key={href} href={href} className="block text-xs transition-colors hover:text-[#FF5500]" style={{ color: C.muted }}>
+                    <Link
+                      key={`${col.title}-${href}-${label}`}
+                      href={href}
+                      className="block text-xs transition-colors hover:text-[#FF5500]"
+                      style={{ color: C.muted }}
+                    >
                       {label}
                     </Link>
                   ))}
@@ -586,7 +406,7 @@ export function KebuOpportunityHome() {
               </div>
             ))}
           </div>
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderTop: `1px solid ${C.orange}12` }}>
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderTop: `1px solid ${C.border}` }}>
             <p className="text-[11px]" style={{ color: C.faint }}>
               © 2026 Kebu. Public sources labeled · AI analysis labeled separately.
             </p>

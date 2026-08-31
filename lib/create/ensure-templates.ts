@@ -1,9 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TEMPLATE_SEEDS } from "./templates-seed";
+import { validateWebsiteDefinition } from "./website-schema";
 
 /** Ensure structured templates exist in DB (idempotent upsert by slug). */
 export async function ensureTemplatesSeeded(supabase: SupabaseClient): Promise<void> {
   for (const seed of TEMPLATE_SEEDS) {
+    const validated = validateWebsiteDefinition(seed.definition);
+    if (!validated.ok) continue;
+
     const { data: existing } = await supabase
       .from("site_templates")
       .select("id")
@@ -25,6 +29,17 @@ export async function ensureTemplatesSeeded(supabase: SupabaseClient): Promise<v
         .single();
       if (error || !created) continue;
       templateId = created.id;
+    } else {
+      await supabase
+        .from("site_templates")
+        .update({
+          name: seed.name,
+          category: seed.category,
+          description: seed.description,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", templateId);
     }
 
     const { data: ver } = await supabase
@@ -39,8 +54,13 @@ export async function ensureTemplatesSeeded(supabase: SupabaseClient): Promise<v
         template_id: templateId,
         version: 1,
         schema_version: "website-v1",
-        definition: seed.definition,
+        definition: validated.data,
       });
+    } else {
+      await supabase
+        .from("site_template_versions")
+        .update({ definition: validated.data })
+        .eq("id", ver.id);
     }
   }
 }

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { AlkebulanLion } from "@/app/components/panther-motif";
+import { KebuMark } from "@/app/components/kebu-mark";
+import { KEBU } from "@/lib/kebu-brand";
 
 type CountryRow = {
   country: string;
@@ -52,31 +53,34 @@ export default function OpportunityCountriesPage() {
   }, [load]);
 
   return (
-    <div className="min-h-screen" style={{ background: "#FAFAF8", color: "#0F0D33" }}>
-      <header className="sticky top-0 z-40" style={{ background: "#0F0D33" }}>
-        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #009E40, #00C851)" }} />
-        <div className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/opportunity" className="flex items-center gap-2 text-white text-sm">
-            <AlkebulanLion size={28} />
+    <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
+      <header className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.92)" }}>
+        <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }} />
+        <div
+          className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between"
+          style={{ borderBottom: `1px solid ${KEBU.border}` }}
+        >
+          <Link href="/opportunity" className="flex items-center gap-2 text-sm" style={{ color: KEBU.black }}>
+            <KebuMark size={28} />
             <span className="font-bold tracking-[0.12em]">Country Explorer</span>
           </Link>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-5 py-10">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: "#009E40" }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: KEBU.orange }}>
           Opportunity OS · Slice 1
         </p>
         <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
           Countries
         </h1>
-        <p className="text-sm mb-6 max-w-2xl" style={{ color: "#6B5B45", lineHeight: 1.7 }}>
+        <p className="text-sm mb-6 max-w-2xl" style={{ color: KEBU.muted, lineHeight: 1.7 }}>
           Explore curated country profiles for African entrepreneurship. Verified/curated data is separate from
           AI-generated opportunity analysis.
         </p>
 
         {trustNote && (
-          <p className="text-xs mb-6 rounded-xl px-4 py-3" style={{ background: "#F0FFF6", color: "#0F0D33" }}>
+          <p className="text-xs mb-6 rounded-xl px-4 py-3" style={{ background: KEBU.cream, color: KEBU.black, border: `1px solid ${KEBU.border}` }}>
             {trustNote}
           </p>
         )}

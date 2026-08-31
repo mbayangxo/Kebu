@@ -152,15 +152,20 @@ function EducationModal({
 }
 
 // ─── Floating Learn Button ────────────────────────────────────────────────────
+// Stack (bottom-right): Report (lowest) → Profile → Learn (highest).
+// Leave clear space above mobile nav (~5rem) so nothing is covered.
 
 function FloatingLearnButton({ onClick }: { onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label="Learn something about Africa"
-      className="fixed bottom-24 right-4 z-[999] flex items-center gap-1.5 bg-deep-green text-ivory text-xs font-bold px-3 py-2 rounded-full shadow-lg hover:bg-gold hover:text-deep-green transition-all active:scale-95 sm:bottom-6"
+      className="fixed z-[45] flex items-center gap-2 rounded-full bg-orange text-white text-sm font-bold px-5 py-3.5 shadow-lg hover:brightness-110 transition-all active:scale-95 right-4 bottom-[11.5rem] sm:bottom-28 lg:bottom-24"
     >
-      <span>📚</span>
+      <span className="text-base leading-none" aria-hidden>
+        📚
+      </span>
       <span>Learn</span>
     </button>
   );
@@ -212,12 +217,17 @@ export function EducationProvider({ children }: { children: React.ReactNode }) {
 
   // Determine current page slug for the floating button
   const pageSlug = pathname?.split("/")[1] || "home";
+  const hideLearnFab =
+    pathname === "/" ||
+    pathname?.startsWith("/sites/") ||
+    pathname?.startsWith("/login") ||
+    pathname?.startsWith("/signup");
 
   return (
     <EducationContext.Provider value={{ showLesson, showRandom, showRandomForPage, withLesson, withRandomLesson }}>
       {children}
 
-      <FloatingLearnButton onClick={() => showRandomForPage(pageSlug)} />
+      {!hideLearnFab ? <FloatingLearnButton onClick={() => showRandomForPage(pageSlug)} /> : null}
 
       {activeLesson && (
         <EducationModal

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { AlkebulanLion } from "@/app/components/panther-motif";
+import { CreateShell } from "@/app/components/create/create-shell";
+import { TemplateCatalogGrid } from "@/app/components/create/template-catalog-grid";
+import { templateGroupId, type TemplateCategoryGroupId } from "@/lib/create/template-catalog";
 
 type Template = { id: string; slug: string; name: string; category: string; description: string };
 type Business = { id: string; legal_name: string; country_code: string; category: string; description: string };
@@ -13,29 +15,46 @@ const CATEGORIES = [
   "beauty",
   "restaurant",
   "portfolio",
+  "music",
+  "film",
+  "business",
+  "store",
+  "app",
+  "public figure",
   "agriculture",
   "technology",
   "services",
   "other",
 ];
 
+function slugifyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48);
+}
+
 function CreateWebsiteWizardInner() {
   const router = useRouter();
   const search = useSearchParams();
   const businessIdParam = search.get("businessId") ?? "";
+  const templateParam = search.get("template") ?? "";
+  const categoryParam = search.get("category") ?? "";
 
   const [mode, setMode] = useState<"ai" | "template" | "blank">("template");
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [businessId, setBusinessId] = useState(businessIdParam);
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [templateSlug, setTemplateSlug] = useState("");
+  const [templateSlug, setTemplateSlug] = useState(templateParam);
+  const [templateFilter, setTemplateFilter] = useState<TemplateCategoryGroupId | "">("");
   const [businessName, setBusinessName] = useState("");
   const [category, setCategory] = useState("services");
   const [description, setDescription] = useState("");
   const [countryCode, setCountryCode] = useState("SN");
   const [locale, setLocale] = useState("en");
-  const [visualDirection, setVisualDirection] = useState("Clean African modern");
   const [subdomain, setSubdomain] = useState("");
+  const [subdomainTouched, setSubdomainTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
@@ -48,7 +67,10 @@ function CreateWebsiteWizardInner() {
         fetch("/api/templates", { credentials: "include" }),
       ]);
       if (bRes.status === 401 || tRes.status === 401) {
-        router.replace(`/login?next=/create/new${businessIdParam ? `?businessId=${businessIdParam}` : ""}`);
+        const next = templateParam
+          ? `/create/new?template=${encodeURIComponent(templateParam)}`
+          : "/create/new";
+        router.replace(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
       const bData = await bRes.json().catch(() => ({}));
@@ -56,7 +78,8 @@ function CreateWebsiteWizardInner() {
       if (!cancelled) {
         const list = Array.isArray(bData.businesses) ? bData.businesses : [];
         setBusinesses(list);
-        setTemplates(Array.isArray(tData.templates) ? tData.templates : []);
+        const tList = Array.isArray(tData.templates) ? tData.templates : [];
+        setTemplates(tList);
         if (businessIdParam) {
           const match = list.find((b: Business) => b.id === businessIdParam);
           if (match) {
@@ -73,18 +96,47 @@ function CreateWebsiteWizardInner() {
           setCategory(list[0].category || "services");
           setDescription(list[0].description || "");
         }
-        if (tData.templates?.[0]) setTemplateSlug(tData.templates[0].slug);
+        const initialSlug =
+          templateParam && tList.some((t: Template) => t.slug === templateParam)
+            ? templateParam
+            : tList[0]?.slug ?? "";
+        setTemplateSlug(initialSlug);
+        if (templateParam) {
+          setTemplateFilter(templateGroupId(tList.find((t: Template) => t.slug === initialSlug)?.category ?? ""));
+        } else if (categoryParam && /^[a-z]+$/.test(categoryParam)) {
+          setTemplateFilter(categoryParam as TemplateCategoryGroupId);
+        }
       }
     }
     void load();
     return () => {
       cancelled = true;
     };
-  }, [router, businessIdParam]);
+  }, [router, businessIdParam, templateParam, categoryParam]);
+
+  useEffect(() => {
+    if (subdomainTouched || !businessName.trim()) return;
+    setSubdomain(slugifyName(businessName));
+  }, [businessName, subdomainTouched]);
+
+  const filteredTemplates = templateFilter
+    ? templates.filter((t) => templateGroupId(t.category) === templateFilter)
+    : templates;
+
+  useEffect(() => {
+    if (mode !== "template" || filteredTemplates.length === 0) return;
+    if (!filteredTemplates.some((t) => t.slug === templateSlug)) {
+      setTemplateSlug(filteredTemplates[0]!.slug);
+    }
+  }, [mode, templateFilter, filteredTemplates, templateSlug]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submittingRef.current) return;
+    if (!subdomain.trim() || subdomain.trim().length < 3) {
+      setError("Choose a site address (subdomain) — at least 3 characters.");
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     setError(null);
@@ -106,9 +158,8 @@ function CreateWebsiteWizardInner() {
           countryCode,
           locale,
           desiredPages: ["home"],
-          visualDirection,
           templateSlug: mode === "template" ? templateSlug : undefined,
-          subdomain: subdomain.trim() || undefined,
+          subdomain: subdomain.trim().toLowerCase(),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -129,44 +180,46 @@ function CreateWebsiteWizardInner() {
     }
   }
 
-  return (
-    <div className="min-h-screen" style={{ background: "#FAFAF8", color: "#0F0D33" }}>
-      <header className="sticky top-0 z-40" style={{ background: "#0F0D33" }}>
-        <div className="h-[3px] w-full" style={{ background: "linear-gradient(90deg, #009E40, #00C851)" }} />
-        <div className="max-w-xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/create" className="flex items-center gap-2 text-white text-sm">
-            <AlkebulanLion size={28} />
-            <span className="font-bold tracking-[0.12em]">Build Website</span>
-          </Link>
-        </div>
-      </header>
+  const selectedTemplate = templates.find((t) => t.slug === templateSlug);
 
-      <main className="max-w-xl mx-auto px-5 py-10">
+  return (
+    <div className="min-h-screen" style={{ background: "#FFFBF7", color: "#0A0A0A" }}>
+      <CreateShell step="start" title="Pick template" backHref="/create" />
+
+      <main className="max-w-3xl mx-auto px-5 py-10">
         <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-          Build a website
+          Start your site
         </h1>
-        <p className="text-sm mb-8" style={{ color: "#6B5B45" }}>
-          Template, AI, or blank — structured pages saved to your Kebu business. Stores and payments are separate slices.
+        <p className="text-sm mb-8 leading-relaxed" style={{ color: "#5C5348" }}>
+          Connects to your Kebu business → editor → preview → live at{" "}
+          <strong>https://{subdomain || "your-name"}.kebu.africa</strong>
         </p>
 
         {businesses.length === 0 && (
-          <div role="alert" className="mb-6 rounded-xl p-4" style={{ background: "#FFF8E8", color: "#6B5B45" }}>
-            You need a Kebu business first.{" "}
-            <Link href="/business/register" className="font-semibold underline">
-              Register a Business
+          <div role="alert" className="mb-6 rounded-2xl p-5" style={{ background: "#FFF8E8", color: "#5C5348" }}>
+            <p className="font-semibold mb-2" style={{ color: "#0A0A0A" }}>
+              Step 0 — register your business
+            </p>
+            <p className="text-sm mb-3">Every Kebu site links to a real business profile (Kebu ID).</p>
+            <Link
+              href="/business/register"
+              className="inline-block rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider"
+              style={{ background: "#0A0A0A", color: "#fff" }}
+            >
+              Register a business
             </Link>
           </div>
         )}
 
-        <form onSubmit={onSubmit} className="space-y-5 rounded-2xl p-5" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
+        <form onSubmit={onSubmit} className="space-y-5 rounded-2xl p-6" style={{ background: "#fff", border: "1px solid rgba(10,10,10,0.1)" }}>
           <fieldset>
-            <legend className="text-xs font-semibold uppercase tracking-wider mb-3">Start with</legend>
+            <legend className="text-xs font-semibold uppercase tracking-wider mb-3">How to start</legend>
             <div className="grid grid-cols-3 gap-2">
               {(
                 [
-                  ["template", "Choose a template"],
-                  ["ai", "Start with AI"],
-                  ["blank", "Start blank"],
+                  ["template", "Template"],
+                  ["ai", "Yande AI"],
+                  ["blank", "Blank"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -175,8 +228,8 @@ function CreateWebsiteWizardInner() {
                   onClick={() => setMode(value)}
                   className="rounded-xl px-2 py-3 text-xs font-semibold"
                   style={{
-                    background: mode === value ? "#0F0D33" : "#F4F2EC",
-                    color: mode === value ? "#fff" : "#0F0D33",
+                    background: mode === value ? "#FF5500" : "#FFF8F2",
+                    color: mode === value ? "#FFFFFF" : "#0A0A0A",
                   }}
                 >
                   {label}
@@ -202,7 +255,7 @@ function CreateWebsiteWizardInner() {
                 }
               }}
               className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
-              style={{ border: "1px solid #DDE0F0" }}
+              style={{ border: "1px solid rgba(10,10,10,0.1)" }}
             >
               <option value="">Select business</option>
               {businesses.map((b) => (
@@ -213,33 +266,63 @@ function CreateWebsiteWizardInner() {
             </select>
           </label>
 
-          {mode === "template" && (
-            <label className="block text-xs font-semibold uppercase tracking-wider">
-              Template
-              <select
-                required
-                value={templateSlug}
-                onChange={(e) => setTemplateSlug(e.target.value)}
-                className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ border: "1px solid #DDE0F0" }}
-              >
-                {templates.map((t) => (
-                  <option key={t.slug} value={t.slug}>
-                    {t.name} · {t.category}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {mode === "template" && templates.length > 0 && (
+            <TemplateCatalogGrid
+              templates={templates}
+              selectedSlug={templateSlug}
+              onSelect={setTemplateSlug}
+              categoryFilter={templateFilter}
+              onCategoryChange={setTemplateFilter}
+            />
           )}
 
+          {mode === "template" && selectedTemplate?.description ? (
+            <p className="text-xs leading-relaxed rounded-xl p-3" style={{ background: "#FFF8F2", color: "#5C5348" }}>
+              <strong>Selected:</strong> {selectedTemplate.name} — {selectedTemplate.description}
+            </p>
+          ) : null}
+
           <label className="block text-xs font-semibold uppercase tracking-wider">
-            Business name
+            Site name
             <input
               required
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
-              style={{ border: "1px solid #DDE0F0" }}
+              style={{ border: "1px solid rgba(10,10,10,0.1)" }}
+            />
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wider">
+            Your live address (subdomain)
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                required
+                minLength={3}
+                value={subdomain}
+                onChange={(e) => {
+                  setSubdomainTouched(true);
+                  setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+                }}
+                placeholder="may-lecor"
+                className="flex-1 rounded-xl px-3 py-2.5 text-sm"
+                style={{ border: "1px solid rgba(10,10,10,0.1)" }}
+              />
+              <span className="text-xs whitespace-nowrap" style={{ color: "#8A8578" }}>
+                .kebu.africa
+              </span>
+            </div>
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wider">
+            Short description
+            <textarea
+              required
+              minLength={10}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm min-h-[80px]"
+              style={{ border: "1px solid rgba(10,10,10,0.1)" }}
             />
           </label>
 
@@ -250,7 +333,7 @@ function CreateWebsiteWizardInner() {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ border: "1px solid #DDE0F0" }}
+                style={{ border: "1px solid rgba(10,10,10,0.1)" }}
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -260,61 +343,17 @@ function CreateWebsiteWizardInner() {
               </select>
             </label>
             <label className="block text-xs font-semibold uppercase tracking-wider">
-              Country
+              Country code
               <input
                 required
                 maxLength={2}
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
                 className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ border: "1px solid #DDE0F0" }}
+                style={{ border: "1px solid rgba(10,10,10,0.1)" }}
               />
             </label>
           </div>
-
-          <label className="block text-xs font-semibold uppercase tracking-wider">
-            Description
-            <textarea
-              required
-              minLength={10}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm min-h-[90px]"
-              style={{ border: "1px solid #DDE0F0" }}
-            />
-          </label>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <label className="block text-xs font-semibold uppercase tracking-wider">
-              Language
-              <input
-                value={locale}
-                onChange={(e) => setLocale(e.target.value)}
-                className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ border: "1px solid #DDE0F0" }}
-              />
-            </label>
-            <label className="block text-xs font-semibold uppercase tracking-wider">
-              Subdomain (optional)
-              <input
-                placeholder="my-brand"
-                value={subdomain}
-                onChange={(e) => setSubdomain(e.target.value.toLowerCase())}
-                className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ border: "1px solid #DDE0F0" }}
-              />
-            </label>
-          </div>
-
-          <label className="block text-xs font-semibold uppercase tracking-wider">
-            Visual direction
-            <input
-              value={visualDirection}
-              onChange={(e) => setVisualDirection(e.target.value)}
-              className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
-              style={{ border: "1px solid #DDE0F0" }}
-            />
-          </label>
 
           {error && (
             <div role="alert" className="rounded-xl px-3 py-2 text-sm" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
@@ -325,10 +364,10 @@ function CreateWebsiteWizardInner() {
           <button
             type="submit"
             disabled={submitting || !businessId}
-            className="w-full rounded-full py-3 text-sm font-bold uppercase tracking-wider disabled:opacity-50"
-            style={{ background: "#00C851", color: "#0F0D33" }}
+            className="w-full rounded-full py-3.5 text-sm font-bold uppercase tracking-wider disabled:opacity-50"
+            style={{ background: "#FF5500", color: "#FFFFFF" }}
           >
-            {submitting ? "Creating…" : mode === "ai" ? "Generate with AI" : "Create website"}
+            {submitting ? "Creating…" : "Create & open editor →"}
           </button>
         </form>
       </main>
