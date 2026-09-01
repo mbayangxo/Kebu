@@ -1,6 +1,19 @@
 # Apply Kebu migrations in Supabase
 
-Run **one file at a time** in Supabase → **SQL Editor** → New query → paste → **Run**.
+## Easiest: one file (recommended)
+
+Open and paste the **entire** file into Supabase → **SQL Editor** → **Run**:
+
+**[`supabase/migrations/APPLY_ALL_PHASE_ONE.sql`](../supabase/migrations/APPLY_ALL_PHASE_ONE.sql)**
+
+That file runs **001 → 017** in the correct order (~2100 lines).
+
+- **Fresh Supabase project:** run the whole file once.
+- **Already ran 001 + 009:** run only the sections from `004_create_projects.sql` through `017_business_documents.sql` inside that file (or run 004–017 files one at a time).
+
+---
+
+## Or run files one at a time
 
 If a step fails, **stop** and fix before continuing. Do not skip ahead.
 
