@@ -36,7 +36,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Kebu Business Infrastructure — Registration | **IMPLEMENTED** | Tracker + documents; gov steps blocked honestly |
 | Kebu Business Infrastructure — Business Readiness | **IMPLEMENTED** | Server calc; `/business/[id]` + `/ka-score` (labeled Kebu Score) |
 | Kebu Business Infrastructure — Full Kebu Score | **NOT STARTED** | No `ka_scores` migration yet — readiness ≠ full score |
-| Kebu Opportunity OS — Country Explorer | **IMPLEMENTED** | UI→API→Supabase (`009`); live when migration applied |
+| Kebu Opportunity OS — Country Explorer | **TESTED** | UI→API→Supabase (`009`); trust labels + sources on detail; `/map` redirects here; apply migrations in prod |
 | Kebu Opportunity OS — other slices | **NOT STARTED** | Hub no longer shows fake clickable future cards |
 | Sample `/opportunity/[id]` & `/api/opportunities` | **IN PROGRESS** | Still `SAMPLE_OPPORTUNITIES` — not Opportunity OS DB |
 | Kebu Domains (product) | **IN PROGRESS** | Connect domain slice (subset of Builder) |
@@ -106,7 +106,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 
 | Slice | Status |
 |-------|--------|
-| Country Explorer (DB) | **IMPLEMENTED** | `/opportunity/countries`, `/api/opportunity/countries` — migration **009** |
+| Country Explorer (DB) | **TESTED** | `/opportunity/countries`, APIs, trust labels, sources UI, tests — migration **001+009** required in prod |
 | Country detail + AI analysis | **IMPLEMENTED** | AI path needs `ANTHROPIC_API_KEY` (honest 503 without it) |
 | Industry / resource / trade explorers | **NOT STARTED** |
 | Build This Opportunity → Builder | **NOT STARTED** |

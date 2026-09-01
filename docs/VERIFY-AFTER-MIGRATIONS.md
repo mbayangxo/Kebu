@@ -24,10 +24,12 @@ Apply these in Supabase **SQL editor** (or CLI) in order, then run the checks be
 Detail: `/opportunity/countries/[code]` → `GET /api/opportunity/countries/[code]` (+ optional `POST …/ai-analysis`)
 
 ### Manual check
-1. Open `/opportunity/countries` — list loads (Senegal after 009 seed; more via seed API).
-2. Open Senegal detail — verified sections show; trust labels visible.
-3. (Optional) Run AI analysis while logged in — needs Anthropic; otherwise honest error.
-4. Refresh — same data (not memory-only).
+1. Open `/opportunity/countries` — list loads (Senegal after 009 seed; more via admin seed).
+2. Open `/opportunity/countries/sn` — curated sections show; **Sources & freshness** block visible when data present.
+3. Trust: profile labeled **Curated / public overview**; AI block labeled **AI-generated** (separate).
+4. `/map` and `/map/sn` redirect to Country Explorer (no hard-coded legacy explorer).
+5. (Optional) Run AI analysis while logged in — needs `ANTHROPIC_API_KEY`; otherwise honest 503.
+6. Refresh — same data (not memory-only).
 
 ### If it fails
 - Empty list + no error → publish_status / seed missing (run admin seed or re-check 009).

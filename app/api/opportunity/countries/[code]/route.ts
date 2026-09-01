@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { countryCodeParamSchema, SAFE_COUNTRY_FIELDS } from "@/lib/opportunity/country-schema";
+import { OPPORTUNITY_TRUST_LABELS } from "@/lib/opportunity/trust-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -50,10 +51,11 @@ export async function GET(_req: Request, { params }: Params) {
     verified: profile,
     aiAnalyses: analyses ?? [],
     labels: {
-      verified: "Verified / curated public information",
-      ai_generated: "AI-generated opportunity analysis — not verified fact",
-      estimated: "Estimated",
-      requires_validation: "Requires validation",
+      verified: OPPORTUNITY_TRUST_LABELS.curated,
+      verifiedDetail: OPPORTUNITY_TRUST_LABELS.curatedDetail,
+      ai_generated: OPPORTUNITY_TRUST_LABELS.ai_generated,
+      estimated: OPPORTUNITY_TRUST_LABELS.estimated,
+      requires_validation: OPPORTUNITY_TRUST_LABELS.requires_validation,
     },
   });
 }

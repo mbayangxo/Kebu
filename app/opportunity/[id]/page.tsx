@@ -45,6 +45,17 @@ export default async function OpportunityPage({
     <div className="min-h-screen bg-warm-ivory">
       <Nav />
 
+      <div
+        className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm"
+        role="status"
+      >
+        <strong>Sample listing</strong> — not Opportunity OS. Demo data only. Live country profiles:{" "}
+        <Link href="/opportunity/countries" className="font-semibold underline text-deep-green">
+          Country Explorer
+        </Link>
+        .
+      </div>
+
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-muted mb-6">

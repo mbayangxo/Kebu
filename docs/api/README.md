@@ -38,8 +38,10 @@ Phase One APIs live as Next.js route handlers under `app/api/`.
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/api/opportunity/countries` | Public/member | Country list |
-| GET | `/api/opportunity/countries/[code]` | Public/member | Country detail |
+| GET | `/api/opportunity/countries` | Public | Published country list |
+| GET | `/api/opportunity/countries/[code]` | Public | Curated profile + AI analyses (separate) |
+| POST | `/api/opportunity/countries/[code]/ai-analysis` | User | Generate AI analysis (stored separately) |
+| POST | `/api/opportunity/countries/seed` | Admin password | Upsert curated profiles from dataset |
 
 ### Public
 

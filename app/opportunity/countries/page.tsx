@@ -75,8 +75,8 @@ export default function OpportunityCountriesPage() {
           Countries
         </h1>
         <p className="text-sm mb-6 max-w-2xl" style={{ color: KEBU.muted, lineHeight: 1.7 }}>
-          Explore curated country profiles for African entrepreneurship. Verified/curated data is separate from
-          AI-generated opportunity analysis.
+          Explore curated country profiles for African entrepreneurship. Curated public overviews are
+          separate from AI-generated opportunity analysis.
         </p>
 
         {trustNote && (

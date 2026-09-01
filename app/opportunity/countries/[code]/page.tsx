@@ -6,6 +6,11 @@ import { useCallback, useEffect, useState } from "react";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KEBU } from "@/lib/kebu-brand";
 import type { CountryAiAnalysisRow, CountryProfileRow } from "@/lib/opportunity/country-schema";
+import {
+  formatLastVerified,
+  parseCuratedSources,
+  type CuratedSource,
+} from "@/lib/opportunity/trust-labels";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -13,6 +18,50 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="text-sm font-bold uppercase tracking-wider mb-3">{title}</h2>
       {children}
     </section>
+  );
+}
+
+function SourcesBlock({ sources, lastVerified }: { sources: CuratedSource[]; lastVerified: string | null }) {
+  if (sources.length === 0 && !lastVerified) return null;
+  return (
+    <Section title="Sources & freshness">
+      {lastVerified ? (
+        <p className="text-xs mb-3" style={{ color: "#6B5B45" }}>
+          Last curated update: <strong>{lastVerified}</strong>
+        </p>
+      ) : null}
+      {sources.length === 0 ? (
+        <p className="text-sm" style={{ color: "#8A8578" }}>
+          No source list attached yet.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {sources.map((s, i) => (
+            <li key={`${s.title ?? "src"}-${i}`} className="text-sm" style={{ color: "#6B5B45" }}>
+              {s.url ? (
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline"
+                  style={{ color: KEBU.orange }}
+                >
+                  {s.title ?? s.url}
+                </a>
+              ) : (
+                <span className="font-semibold">{s.title}</span>
+              )}
+              {s.type ? (
+                <span className="text-[10px] uppercase tracking-wider ml-2" style={{ color: "#8A8578" }}>
+                  · {s.type.replace(/_/g, " ")}
+                </span>
+              ) : null}
+              {s.note ? <p className="text-xs mt-0.5">{s.note}</p> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 }
 
@@ -45,6 +94,7 @@ export default function CountryDetailPage() {
   const [verified, setVerified] = useState<CountryProfileRow | null>(null);
   const [analyses, setAnalyses] = useState<CountryAiAnalysisRow[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
+  const [labelDetail, setLabelDetail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
@@ -68,6 +118,7 @@ export default function CountryDetailPage() {
       setVerified(data.verified);
       setAnalyses(Array.isArray(data.aiAnalyses) ? data.aiAnalyses : []);
       setLabels(data.labels ?? {});
+      setLabelDetail(typeof data.labels?.verifiedDetail === "string" ? data.labels.verifiedDetail : null);
     } catch {
       setError("Network error. Retry.");
     } finally {
@@ -140,9 +191,14 @@ export default function CountryDetailPage() {
           </div>
         ) : (
           <>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: KEBU.orange }}>
-              {labels.verified ?? "Verified / curated"}
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-1" style={{ color: KEBU.orange }}>
+              {labels.verified ?? "Curated / public overview"}
             </p>
+            {labelDetail ? (
+              <p className="text-xs mb-3 max-w-2xl" style={{ color: KEBU.muted }}>
+                {labelDetail}
+              </p>
+            ) : null}
             <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
               {verified.country}
             </h1>
@@ -231,6 +287,11 @@ export default function CountryDetailPage() {
               </p>
             </Section>
 
+            <SourcesBlock
+              sources={parseCuratedSources(verified.sources)}
+              lastVerified={formatLastVerified(verified.last_verified_at)}
+            />
+
             {/* AI — clearly separated */}
             <div
               className="rounded-2xl p-5 mt-8 bg-white"
@@ -255,7 +316,7 @@ export default function CountryDetailPage() {
                 {aiBusy ? "Generating…" : analyses.length ? "Generate new analysis" : "Generate AI analysis"}
               </button>
               {aiError && (
-                <p role="alert" className="text-sm mt-3 text-red-300">
+                <p role="alert" className="text-sm mt-3" style={{ color: "#8B1E1E" }}>
                   {aiError}
                 </p>
               )}

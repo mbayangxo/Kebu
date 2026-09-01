@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { OPPORTUNITY_TRUST_LABELS } from "@/lib/opportunity/trust-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export async function GET() {
   return NextResponse.json({
     countries: data ?? [],
     trust: {
-      note: "Listed fields are curated/verified-style public profiles — not AI-generated opportunity advice.",
+      note: `${OPPORTUNITY_TRUST_LABELS.curated} — separate from ${OPPORTUNITY_TRUST_LABELS.ai_generated.toLowerCase()}.`,
     },
   });
 }
