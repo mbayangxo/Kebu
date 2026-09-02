@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { KebuMark } from "@/app/components/kebu-mark";
-import { KebuAppSidebar } from "@/app/components/kebu-app-sidebar";
 import { KebuLandingHeroCTA } from "@/app/components/kebu-landing-hero-cta";
 import { KebuMarketingFooter, KebuMarketingHeader } from "@/app/components/landing/kebu-marketing-chrome";
 import { KEBU } from "@/lib/kebu-brand";
@@ -39,10 +38,7 @@ const LIVE_PATHS = [
 
 export function KebuOpportunityHome() {
   return (
-    <div className="min-h-screen flex" style={{ background: C.paper, color: C.ink }}>
-      <KebuAppSidebar />
-
-      <div className="flex-1 min-w-0 flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: C.paper, color: C.ink }}>
       <KebuMarketingHeader />
 
       <section className="relative min-h-[92svh] overflow-hidden flex flex-col justify-center">
@@ -301,7 +297,6 @@ export function KebuOpportunityHome() {
       </section>
 
       <KebuMarketingFooter />
-      </div>
     </div>
   );
 }

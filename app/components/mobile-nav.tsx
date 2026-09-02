@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { KebuMark } from "./kebu-mark";
 import { useKebuWorkspace } from "@/app/hooks/use-kebu-workspace";
 import { workspaceHome } from "@/lib/navigation/kebu-workspace";
+import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 
 function IconHome({ active }: { active: boolean }) {
   return (
@@ -86,7 +87,15 @@ export function MobileBottomNav() {
     !pathname.startsWith("/store/new") &&
     !pathname.startsWith("/store/dashboard");
 
-  if (isStoreCustomer || pathname === "/start") return null;
+  if (
+    isStoreCustomer ||
+    pathname === "/start" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    isMarketingPath(pathname)
+  ) {
+    return null;
+  }
 
   return (
     <>

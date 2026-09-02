@@ -51,13 +51,9 @@ export function AppChrome() {
   const pathname = usePathname();
   const { showRandomForPage } = useEducation();
 
+  // Public marketing / landing: no app sidebar, no logged-in bottom nav.
   if (pathname === "/" || isMarketingPath(pathname)) {
-    return (
-      <>
-        <MobileBottomNav />
-        <YandeGlobalFab />
-      </>
-    );
+    return <YandeGlobalFab />;
   }
   const hideFloatingActions = shouldHideFloatingActions(pathname);
   const pageSlug = pathname.split("/")[1] || "home";
