@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { KebuMark, KebuWordmark } from "./kebu-mark";
 import { KEBU } from "@/lib/kebu-brand";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 /** Only routes that are live vertical slices — no sample/static product marketing. */
 const PRIMARY = [
@@ -21,7 +23,45 @@ function NavDot() {
 
 export function Nav({ transparent = false }: { transparent?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) {
+        setUser(data.user ?? null);
+        setAuthReady(true);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    setMenuOpen(false);
+    await supabase.auth.signOut();
+    setUser(null);
+    setSigningOut(false);
+    router.push("/");
+    router.refresh();
+  }
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -60,22 +100,48 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
           </div>
 
           <div className="hidden lg:flex items-center gap-5">
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center font-bold uppercase tracking-[0.1em] rounded-full transition-all hover:bg-black/[0.04] px-5 py-2.5 text-[11px]"
-              style={{ border: `2px solid ${KEBU.orange}`, color: KEBU.orange, background: KEBU.white }}
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] px-5 py-2.5 rounded-full transition-all hover:brightness-110"
-              style={{ background: KEBU.orange, color: KEBU.white }}
-            >
-              <KebuMark size={16} />
-              Start
-            </Link>
+            {authReady && user ? (
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                className="inline-flex items-center justify-center font-bold uppercase tracking-[0.1em] rounded-full transition-all hover:bg-black/[0.04] px-5 py-2.5 text-[11px] disabled:opacity-60"
+                style={{ border: `2px solid ${KEBU.border}`, color: KEBU.muted, background: KEBU.white }}
+              >
+                {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            ) : authReady ? (
+              <>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center font-bold uppercase tracking-[0.1em] rounded-full transition-all hover:bg-black/[0.04] px-5 py-2.5 text-[11px]"
+                  style={{ border: `2px solid ${KEBU.orange}`, color: KEBU.orange, background: KEBU.white }}
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] px-5 py-2.5 rounded-full transition-all hover:brightness-110"
+                  style={{ background: KEBU.orange, color: KEBU.white }}
+                >
+                  <KebuMark size={16} />
+                  Start
+                </Link>
+              </>
+            ) : null}
           </div>
+
+          {authReady && user ? (
+            <button
+              type="button"
+              onClick={() => void handleSignOut()}
+              disabled={signingOut}
+              className="lg:hidden text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2 rounded-full disabled:opacity-60"
+              style={{ border: `1px solid ${KEBU.border}`, color: KEBU.muted }}
+            >
+              {signingOut ? "…" : "Sign out"}
+            </button>
+          ) : null}
 
           <button
             type="button"
@@ -112,24 +178,38 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
               </Link>
             ))}
           </div>
-          <div className="px-5 py-5 flex items-center gap-3" style={{ borderTop: `1px solid ${KEBU.border}` }}>
-            <Link
-              href="/login"
-              className="flex-1 flex items-center justify-center text-sm font-bold py-3 rounded-full"
-              style={{ border: `2px solid ${KEBU.orange}`, color: KEBU.orange }}
-              onClick={() => setMenuOpen(false)}
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="flex-1 flex items-center justify-center gap-2 text-sm font-bold py-3 rounded-full"
-              style={{ background: KEBU.orange, color: KEBU.white }}
-              onClick={() => setMenuOpen(false)}
-            >
-              <KebuMark size={16} />
-              Start
-            </Link>
+          <div className="px-5 py-5" style={{ borderTop: `1px solid ${KEBU.border}` }}>
+            {user ? (
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                className="w-full flex items-center justify-center text-sm font-bold py-3 rounded-full disabled:opacity-60"
+                style={{ border: `2px solid ${KEBU.border}`, color: KEBU.muted }}
+              >
+                {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/login"
+                  className="flex-1 flex items-center justify-center text-sm font-bold py-3 rounded-full"
+                  style={{ border: `2px solid ${KEBU.orange}`, color: KEBU.orange }}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="flex-1 flex items-center justify-center gap-2 text-sm font-bold py-3 rounded-full"
+                  style={{ background: KEBU.orange, color: KEBU.white }}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <KebuMark size={16} />
+                  Start
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
