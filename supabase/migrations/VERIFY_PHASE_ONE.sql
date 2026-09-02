@@ -114,5 +114,11 @@ select * from (
       select 1 from public.builder_schema_meta
       where key = 'website_builder_version' and value::int >= 31
     ) then '✅ OK' else '❌ MISSING — run 031_kdirection_section_types.sql or FIX_SECTION_TYPES_031.sql' end
+  union all
+  select 'site_analytics_events (032)',
+    case when exists (
+      select 1 from information_schema.tables
+      where table_schema = 'public' and table_name = 'site_analytics_events'
+    ) then '✅ OK' else '❌ MISSING — run 032_site_analytics.sql' end
 ) checks
 order by object;

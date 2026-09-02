@@ -6,8 +6,15 @@ import { registerBusinessSchema, SAFE_REGISTRATION_FIELDS } from "@/lib/kebu-id/
 export const dynamic = "force-dynamic";
 
 function missingTableMessage(message?: string) {
-  if (message?.includes("does not exist") || message?.includes("42P01") || message?.includes("column")) {
-    return "Business registration tables missing. Apply supabase/migrations/005–007 in Supabase.";
+  if (!message) return null;
+  if (message.includes("does not exist") || message.includes("42P01")) {
+    if (message.includes("relation") || message.includes("business_members") || message.includes("businesses")) {
+      return "Business registration tables missing. Apply supabase/migrations/APPLY_MIGRATIONS_005_007.sql in Supabase SQL Editor, then retry.";
+    }
+    if (message.includes("logo_url")) {
+      return "Business profile column missing. Re-run APPLY_MIGRATIONS_005_007.sql (includes logo_url) or apply migration 025.";
+    }
+    return "Database schema out of date. Apply supabase/migrations/APPLY_MIGRATIONS_005_007.sql in Supabase, then retry.";
   }
   return null;
 }

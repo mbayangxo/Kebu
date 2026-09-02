@@ -638,4 +638,31 @@ create policy "Founders update own draft businesses"
   );
 
 -- ========== quick verify ==========
-select tablename from pg_tables where schemaname = 'public' and tablename in ('businesses','business_members','business_registration_progress','business_owners') order by 1;
+select tablename from pg_tables
+where schemaname = 'public'
+  and tablename in (
+    'businesses',
+    'business_members',
+    'kebu_ids',
+    'business_owners',
+    'registration_progress',
+    'business_readiness_scores'
+  )
+order by 1;
+
+-- ========== 018_supabase_api_grants.sql (required for PostgREST / app API) ==========
+grant usage on schema public to anon, authenticated, service_role;
+
+grant select on all tables in schema public to anon;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to authenticated;
+
+alter default privileges in schema public
+  grant select on tables to anon;
+
+-- ========== logo_url used by registration API selects (from 025; safe early add) ==========
+alter table public.businesses
+  add column if not exists logo_url text not null default '' check (char_length(logo_url) <= 500);

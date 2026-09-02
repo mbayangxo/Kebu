@@ -32,6 +32,8 @@ import {
 } from "@/app/components/create/kdirection-layout";
 import { MaylecorMotionChrome } from "@/app/components/create/maylecor-motion-chrome";
 import { MaylecorSiteFooter } from "@/app/components/create/maylecor-site-footer";
+import { KEBU_SITE_ROOT_CLASS } from "@/lib/create/site-responsive";
+import "./kebu-site-responsive.css";
 
 function resolvePage(definition: WebsiteDefinition, pageSlug?: string) {
   if (!definition.pages.length) return null;
@@ -222,8 +224,21 @@ export function SiteRenderer({
           fontFamily: theme.fontBody,
         };
 
+  const rootClass =
+    mode === "preview"
+      ? `${KEBU_SITE_ROOT_CLASS} kebu-site--preview`
+      : KEBU_SITE_ROOT_CLASS;
+
   return (
-    <div style={shellStyle}>
+    <div
+      className={rootClass}
+      style={{
+        ...shellStyle,
+        width: "100%",
+        maxWidth: "100%",
+        overflowX: "clip" as const,
+      }}
+    >
       {motionSite && motionHero && !(editingPreview && legallyBlondeOnly) ? (
         <MaylecorMotionChrome
           siteBase={siteBase}
@@ -309,11 +324,13 @@ export function SiteRenderer({
             return (
               <header
                 key={key}
-                className="px-5 py-4 flex items-center justify-between"
+                className="kebu-site-nav px-4 py-3 sm:px-5 sm:py-4"
                 style={{ background: theme.primary, color: "#fff" }}
               >
-                <span className="font-bold tracking-wide">{p.brand}</span>
-                <nav className="flex gap-4 text-sm">
+                <span className="kebu-site-nav__brand font-bold tracking-wide text-sm sm:text-base">
+                  {p.brand}
+                </span>
+                <nav className="kebu-site-nav__links text-sm">
                   {(p.links ?? []).map((l) => (
                     <a key={l.label} href={l.href} className="opacity-80 hover:opacity-100">
                       {l.label}
@@ -847,9 +864,9 @@ export function SiteRenderer({
           case "footer": {
             const p = section.props as { text?: string; links?: { label: string; href: string }[] };
             return (
-              <footer key={key} className="px-5 py-8 mt-8 text-center text-sm opacity-60" style={{ borderTop: "1px solid #E8E6DF" }}>
+              <footer key={key} className="px-4 sm:px-5 py-8 mt-8 text-center text-sm opacity-60" style={{ borderTop: "1px solid #E8E6DF" }}>
                 <p>{p.text}</p>
-                <div className="flex justify-center gap-4 mt-2">
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
                   {(p.links ?? []).map((l) => (
                     <a key={l.label} href={l.href}>
                       {l.label}

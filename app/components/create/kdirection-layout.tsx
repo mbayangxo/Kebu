@@ -344,7 +344,7 @@ export function KdirectionHomeLayout({
     right: 12,
     top: 72,
     zIndex: 40,
-    width: 260,
+    width: "min(260px, calc(100% - 24px))",
     maxHeight: "70vh",
     overflow: "auto",
     background: "rgba(255,255,255,0.96)",

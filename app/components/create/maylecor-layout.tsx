@@ -90,7 +90,7 @@ export function MaylecorHomeLayout({
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black" />
 
         <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-8 sm:pt-12">
-          <div className="relative mx-auto mb-8 flex min-h-[420px] max-w-4xl flex-col items-center justify-center sm:min-h-[520px]">
+          <div className="relative mx-auto mb-8 flex min-h-[280px] max-w-4xl flex-col items-center justify-center sm:min-h-[420px] md:min-h-[520px]">
             <div
               className="relative w-full max-w-md sm:max-w-lg"
               style={{ animation: motion ? "maylecor-fade-up 1.2s ease-out both" : undefined }}

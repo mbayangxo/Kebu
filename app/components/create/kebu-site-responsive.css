@@ -1,0 +1,107 @@
+/**
+ * Kebu site responsive base — applies to EVERY public/preview site from SiteRenderer.
+ * Future templates inherit this automatically. Prefer % / rem / clamp / flex / grid over fixed px.
+ */
+
+.kebu-site {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
+  position: relative;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.kebu-site *,
+.kebu-site *::before,
+.kebu-site *::after {
+  box-sizing: border-box;
+}
+
+.kebu-site img,
+.kebu-site video,
+.kebu-site canvas,
+.kebu-site svg:not(:root),
+.kebu-site iframe,
+.kebu-site embed,
+.kebu-site object {
+  max-width: 100%;
+  height: auto;
+}
+
+.kebu-site iframe {
+  width: 100%;
+}
+
+.kebu-site table {
+  max-width: 100%;
+  display: block;
+  overflow-x: auto;
+}
+
+.kebu-site h1,
+.kebu-site h2,
+.kebu-site h3,
+.kebu-site p,
+.kebu-site li,
+.kebu-site a,
+.kebu-site span,
+.kebu-site button,
+.kebu-site label {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.kebu-site pre,
+.kebu-site code {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Generic nav: wrap instead of overflowing off-screen on phones */
+.kebu-site .kebu-site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.kebu-site .kebu-site-nav__brand {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kebu-site .kebu-site-nav__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem 0.85rem;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .kebu-site .kebu-site-nav__brand {
+    max-width: 42%;
+    font-size: 0.9rem;
+  }
+
+  .kebu-site .kebu-site-nav__links {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .kebu-site .kebu-site-nav__links a {
+    font-size: 0.75rem;
+  }
+}
+
+/* Builder preview panes: never let artboards force horizontal page scroll */
+.kebu-site.kebu-site--preview {
+  max-width: 100%;
+  overflow-x: clip;
+}

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { fitDesignScale } from "@/lib/create/responsive-scale";
 
-/** Design-width artboard that scales down to fit any container (builder frames, tablet, phone). */
+/** Design-width artboard that scales down to fit any container (builder frames, tablet, phone).
+ * Use for fixed-canvas templates (current and future) so they stay responsive on Kebu. */
 export function ScaledArtboard({
   designWidth = 1200,
   designHeight,

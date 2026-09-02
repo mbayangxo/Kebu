@@ -1,6 +1,6 @@
 # Kebu — Implementation Status
 
-**Last updated:** 2026-08-31  
+**Last updated:** 2026-09-02  
 **Owner:** Engineering (lead agent + human review)
 
 Status labels (strict):
@@ -42,7 +42,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Kebu Opportunity OS — other slices | **NOT STARTED** | Hub no longer shows fake clickable future cards |
 | Sample `/opportunity/[id]` & `/api/opportunities` | **IN PROGRESS** | Still `SAMPLE_OPPORTUNITIES` — not Opportunity OS DB |
 | Kebu Domains (product) | **IN PROGRESS** | Connect domain slice (subset of Builder) |
-| Kebu Analytics | **NOT STARTED** | Store analytics API partial; no business dashboard |
+| Kebu Analytics | **IN PROGRESS** | Per-site detail: Web Analytics, Speed Insights, Observability, Runtime Logs (`032_site_analytics`); beacon on live sites |
 | Kebu AI — improve/generate | **IN PROGRESS** | Server routes; metering incomplete |
 | Kebu Cloud | **NOT STARTED** | Compatibility only |
 | Kebu Mail | **NOT STARTED** | Compatibility only |
@@ -72,7 +72,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Slice | Status |
 |-------|--------|
 | Publish to `*.kebu.africa` | **IN PROGRESS** |
-| Public site renderer | **IN PROGRESS** | `/sites/[subdomain]` |
+| Public site renderer | **IN PROGRESS** | `/sites/[subdomain]`; **all** SiteRenderer sites get `kebu-site` responsive base (`kebu-site-responsive.css`) — not May Lecor only |
 | Middleware subdomain rewrite | **IMPLEMENTED** |
 | Live deployment snapshot | **IN PROGRESS** | `deployments` table |
 | Sync published URL to business profile | **IMPLEMENTED** | On publish when `business_id` set |
@@ -100,8 +100,8 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Slice | Status |
 |-------|--------|
 | Store analytics API | **IN PROGRESS** |
-| Builder site analytics dashboard | **NOT STARTED** |
-| Event pipeline | **NOT STARTED** |
+| Builder site analytics dashboard | **IN PROGRESS** | `/create/sites/[id]` — devices + Web Analytics / Speed / Observability / Runtime Logs |
+| Event pipeline | **IN PROGRESS** | `site_analytics_events` + `/api/sites/analytics` beacon |
 
 ---
 

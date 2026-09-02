@@ -409,7 +409,12 @@ function SiteHealthCard({ project }: { project: MySiteProject }) {
         </div>
       </div>
 
-      {/* Desktop · Tablet · Mobile side by side (Shopify-style) */}
+      {/* Desktop · Tablet · Mobile — tap Open detail for full analytics */}
+      <Link
+        href={`/create/sites/${project.id}`}
+        className="block w-full"
+        aria-label={`Open detail and analytics for ${project.title}`}
+      >
       <div
         className="flex flex-wrap sm:flex-nowrap items-end gap-3 sm:gap-4 p-4 overflow-x-auto"
         style={{ background: "linear-gradient(180deg, #EDE9E3 0%, #D9D3C9 100%)" }}
@@ -426,6 +431,7 @@ function SiteHealthCard({ project }: { project: MySiteProject }) {
           />
         ))}
       </div>
+      </Link>
 
       <div className="px-4 py-3 space-y-3" style={{ borderTop: `1px solid ${KEBU.border}` }}>
         <p
@@ -441,6 +447,13 @@ function SiteHealthCard({ project }: { project: MySiteProject }) {
         </p>
         <div className="flex flex-wrap gap-2">
           <Link
+            href={`/create/sites/${project.id}`}
+            className="rounded-full px-4 py-2 text-xs font-bold text-white"
+            style={{ background: KEBU.orange }}
+          >
+            Open detail · Analytics
+          </Link>
+          <Link
             href={`/create/${project.id}`}
             className="rounded-full px-4 py-2 text-xs font-bold text-white"
             style={{ background: KEBU.black }}
@@ -448,9 +461,9 @@ function SiteHealthCard({ project }: { project: MySiteProject }) {
             {health.status === "fail" || health.status === "slow" ? "Fix in editor" : "Edit site"}
           </Link>
           <Link
-            href={`/create/sites/${project.id}`}
+            href={`/create/sites/${project.id}#domain`}
             className="rounded-full px-4 py-2 text-xs font-bold"
-            style={{ background: KEBU.orange, color: KEBU.white }}
+            style={{ background: KEBU.cream, color: KEBU.black, border: `1px solid ${KEBU.border}` }}
           >
             Domain &amp; SEO
           </Link>

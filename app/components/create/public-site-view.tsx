@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
+import { SiteAnalyticsBeacon } from "@/app/components/create/site-analytics-beacon";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { registerSiteOfflineCache } from "@/lib/create/site-offline";
 
@@ -26,12 +27,15 @@ export function PublicSiteView({
   }, []);
 
   return (
-    <SiteRenderer
-      definition={definition}
-      mode="live"
-      pageSlug={pageSlug}
-      siteBase={siteBase}
-      projectId={projectId}
-    />
+    <>
+      <SiteAnalyticsBeacon subdomain={subdomain} path={pageSlug === "home" ? "/" : `/${pageSlug}`} />
+      <SiteRenderer
+        definition={definition}
+        mode="live"
+        pageSlug={pageSlug}
+        siteBase={siteBase}
+        projectId={projectId}
+      />
+    </>
   );
 }

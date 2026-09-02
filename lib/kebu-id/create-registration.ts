@@ -436,8 +436,12 @@ export async function loadRegistrationDocumentsComplete(
 }
 
 function missingTable(message?: string) {
-  if (message?.includes("does not exist") || message?.includes("42P01") || message?.includes("column")) {
-    return "Business registration tables missing. Apply supabase/migrations/005–007 in Supabase.";
+  if (!message) return null;
+  if (message.includes("does not exist") || message.includes("42P01")) {
+    if (message.includes("logo_url")) {
+      return "Business profile column missing. Re-run APPLY_MIGRATIONS_005_007.sql (includes logo_url) or apply migration 025.";
+    }
+    return "Business registration tables missing. Apply supabase/migrations/APPLY_MIGRATIONS_005_007.sql in Supabase SQL Editor, then retry.";
   }
   return null;
 }

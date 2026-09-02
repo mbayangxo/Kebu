@@ -6,6 +6,12 @@ import { maylecorMotionSitePages } from "./maylecor-site-pages";
 import { kdirectionWixSitePages } from "./kdirection-site-pages";
 import { buildCompleteSite, templateDefaultTheme } from "./template-builders";
 
+/**
+ * Template seeds render through SiteRenderer → `.kebu-site` responsive base.
+ * New templates must work on phone/tablet/desktop (flex/%/clamp or ScaledArtboard).
+ * Do not ship desktop-only fixed widths.
+ */
+
 export type TemplateSeed = {
   slug: string;
   name: string;
