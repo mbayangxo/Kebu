@@ -43,7 +43,7 @@ export async function verifyDomainPointsToKebu(
     }
     return {
       ok: false,
-      detail: `No CNAME found for www.${hostname}. At Namecheap: Host=www, Value=${expected} (or your Vercel *.vercel.app URL). Wait 5–30 min, then verify.`,
+      detail: `No CNAME found for www.${hostname}. At your registrar: Host=www, Value=${expected}. Wait 5–30 min, then verify in Kebu.`,
     };
   }
 }

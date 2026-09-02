@@ -932,7 +932,7 @@ export default function ProjectEditorPage() {
                       {billing.periodEnd
                         ? ` until ${new Date(billing.periodEnd).toLocaleDateString()}`
                         : ""}
-                      . Publish goes live at <strong>/sites/your-name</strong> on this Vercel app — no custom domain needed.
+                      . Publish goes live at <strong>/sites/your-name</strong> on Kebu — no custom domain needed.
                     </p>
                   ) : (
                     <>

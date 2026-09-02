@@ -184,7 +184,7 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
       if (!data.ok && list.length) {
         setDomainNote(
           (data.detail as string) ||
-            `At Namecheap: CNAME host www → value ${canonicalDns}. Vercel app URLs also work. Wait 5–30 min, then Verify again.`,
+            `At your registrar: CNAME host www → value ${canonicalDns}. Wait 5–30 min, then Verify again.`,
         );
       }
     } catch {
@@ -241,8 +241,8 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
           Domain &amp; SEO
         </h2>
         <p className="text-sm" style={{ color: KEBU.muted }}>
-          Connect your own domain (e.g. maylecor.com). Kebu handles SSL — you only paste one CNAME at your
-          your registrar.
+          Connect your own domain (e.g. kdirection.com). You set one CNAME at your registrar — Kebu handles HTTPS.
+          You never open a separate hosting account.
         </p>
         <div className="flex flex-wrap gap-2 mt-4">
           <Link
@@ -286,30 +286,14 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
 
       <section className="rounded-2xl p-5 space-y-4 bg-white border" style={{ borderColor: KEBU.border }}>
         <h3 className="text-sm font-bold uppercase tracking-wider">Your own domain</h3>
-        <div
-          className="rounded-xl p-3 font-mono text-xs space-y-1"
-          style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}
-        >
-          <p>
-            <span style={{ color: KEBU.muted }}>Type:</span> CNAME
-          </p>
-          <p>
-            <span style={{ color: KEBU.muted }}>Host:</span> www
-          </p>
-          <p>
-            <span style={{ color: KEBU.muted }}>Value:</span>{" "}
-            <strong style={{ color: KEBU.orange }}>{canonicalDns}</strong>
-          </p>
-        </div>
         <p className="text-[11px]" style={{ color: KEBU.muted }}>
-          At your registrar (e.g. Namecheap): CNAME <strong>www</strong> → <strong>{canonicalDns}</strong>. A Vercel
-          deployment hostname as the value is OK.
+          Type the domain for <strong>this</strong> site (e.g. <strong>kdirection.com</strong>). You only change DNS at
+          your registrar — Kebu attaches hosting and HTTPS for you (like Shopify). No hosting account needed.
         </p>
         <DomainConnectWizard
           subdomain={subdomain}
           livePath={livePath}
           appOrigin={appOrigin}
-          dnsTarget={canonicalDns}
           customDomainInput={customDomainInput}
           onDomainInputChange={setCustomDomainInput}
           onConnect={() => void addDomain()}
@@ -318,6 +302,7 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
           domains={customDomains.map((d) => ({ ...d, dns_target: canonicalDns }))}
           busy={domainBusy}
           note={domainNote}
+          siteTitle={title}
         />
       </section>
 

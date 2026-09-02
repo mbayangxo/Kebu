@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import { CreateShell } from "@/app/components/create/create-shell";
 import { buildDefinitionFromProjectParts } from "@/lib/create/editor-definition";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 
-export default function ProjectPreviewPage() {
+function ProjectPreviewInner() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const embed = searchParams.get("embed") === "1";
   const [definition, setDefinition] = useState<WebsiteDefinition | null>(null);
   const [pages, setPages] = useState<Array<{ id: string; slug: string; title: string; sort_order: number }>>([]);
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
@@ -45,6 +47,22 @@ export default function ProjectPreviewPage() {
       cancelled = true;
     };
   }, [id, router]);
+
+  if (embed) {
+    return (
+      <div className="min-h-screen bg-white">
+        {error ? <p className="p-6 text-sm text-red-700">{error}</p> : null}
+        {definition ? (
+          <SiteRenderer
+            definition={definition}
+            mode="preview"
+            pageSlug={previewPageSlug}
+            siteBase={subdomain ? `/sites/${subdomain}` : undefined}
+          />
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "#111" }}>
@@ -114,5 +132,13 @@ export default function ProjectPreviewPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProjectPreviewPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <ProjectPreviewInner />
+    </Suspense>
   );
 }

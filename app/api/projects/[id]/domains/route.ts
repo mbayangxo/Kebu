@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { customDomainDnsTarget, buildDnsInstructions, normalizeHostname, validateCustomHostname } from "@/lib/create/dns-target";
+import { provisionCustomDomainOnHosting, hostingDomainAutoProvisionEnabled } from "@/lib/create/vercel-domains";
 
 export const dynamic = "force-dynamic";
 
@@ -175,10 +176,20 @@ export async function POST(req: Request, { params }: Params) {
 
   logCreate("domains.add", { userId: user.id, projectId, hostname });
 
+  // Attach to Kebu hosting immediately (Shopify-style) — user never opens a hosting dashboard.
+  const hosting = await provisionCustomDomainOnHosting(hostname);
+  if (hosting.opsHint) {
+    console.warn("[domains.add] hosting provision", hosting.opsHint);
+  }
+
   return NextResponse.json({
     domain,
     instructions: buildDnsInstructions(project.subdomain, hostname),
-    message: "Domain saved. Add the CNAME at your registrar, then verify.",
+    message: hosting.ok
+      ? "Domain saved on this site. Add the CNAME at your registrar, then Verify — HTTPS is automatic."
+      : hosting.detail,
+    sslNote: hosting.detail,
+    hostingAutoSsl: hostingDomainAutoProvisionEnabled(),
   });
 }
 

@@ -84,7 +84,7 @@ export function buildDnsInstructions(subdomain: string, hostname: string): DnsIn
     `TTL: Automatic or 300 seconds.`,
     `Do not use kebu.africa or any *.kebu.africa address — that branded DNS is not live yet.`,
     `For the bare domain (${hostname}), set a redirect to https://www.${hostname}.`,
-    `Wait 5–30 minutes, then click Verify in Kebu. SSL is automatic — stay inside Kebu.`,
+    `Wait 5–30 minutes, then click Verify in Kebu. HTTPS is automatic — you never open a hosting account.`,
   ];
   return {
     hostname,
@@ -136,7 +136,7 @@ export function formatDnsMismatchDetail(found: string[], expectedTarget: string)
   const vercelDns = found.find((f) => f.toLowerCase().includes("vercel-dns.com"));
 
   if (vercelApp || vercelDns) {
-    return `DNS looks correct (www → ${joined}). Click Verify again — if it still fails, redeploy the latest Kebu app on Vercel.`;
+    return `DNS looks correct (www → ${joined}). Click Verify again — HTTPS is handled by Kebu.`;
   }
 
   if (parking) {
@@ -144,8 +144,8 @@ export function formatDnsMismatchDetail(found: string[], expectedTarget: string)
   }
 
   if (isObsoleteDnsTarget(expectedTarget)) {
-    return `Found www CNAME ${joined}. Set Host=www → Value=${canonical} (or your Vercel *.vercel.app hostname). Do not use kebu.africa — that DNS is not live.`;
+    return `Found www CNAME ${joined}. Set Host=www → Value=${canonical}. Do not use kebu.africa — that DNS is not live.`;
   }
 
-  return `Found www CNAME ${joined}. Set Host=www → Value=${canonical} or your Vercel deployment hostname, wait 5–30 min, then verify again.`;
+  return `Found www CNAME ${joined}. Set Host=www → Value=${canonical}, wait 5–30 min, then verify again in Kebu.`;
 }

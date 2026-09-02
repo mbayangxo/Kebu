@@ -138,19 +138,19 @@ export function KebuAppSidebar({
         </NavSection>
 
         {ws === "kebu" ? (
-          <NavSection title="Kebu">
+          <NavSection title="Explore">
             {renderItems(pathname, PRODUCT_NAV.kebu)}
-            <NavItem href="/" label="Kebu home" active={pathname === "/"} />
+            <NavItem href="/" label="Home" active={pathname === "/"} />
           </NavSection>
         ) : null}
 
         {ws === "business" ? (
           <>
-            <NavSection title="Kebu Business">
+            <NavSection title="Business">
               {renderItems(pathname, PRODUCT_NAV.businessHome)}
             </NavSection>
 
-            <NavSection title="Kebu Builder">
+            <NavSection title="Builder">
               {renderItems(pathname, PRODUCT_NAV.builder)}
               {portfolioSites.length > 0 ? (
                 <div className="mt-2 ml-3 pl-3 space-y-0.5" style={{ borderLeft: `2px solid ${KEBU.red}` }}>
@@ -168,7 +168,7 @@ export function KebuAppSidebar({
               ) : null}
             </NavSection>
 
-            <NavSection title="Kebu Create">
+            <NavSection title="Create">
               {renderItems(pathname, PRODUCT_NAV.create)}
             </NavSection>
 
@@ -179,7 +179,7 @@ export function KebuAppSidebar({
         ) : null}
 
         {ws === "studio" ? (
-          <NavSection title="Kebu Studio">
+          <NavSection title="Studio">
             {renderItems(pathname, PRODUCT_NAV.studio)}
           </NavSection>
         ) : null}

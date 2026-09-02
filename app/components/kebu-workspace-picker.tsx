@@ -51,7 +51,7 @@ export function KebuWorkspacePicker({
               className="mt-6 text-2xl sm:text-3xl font-black"
               style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
             >
-              What are you here to do?
+              What do you want to do today?
             </h1>
             <p className="mt-2 text-sm max-w-md mx-auto" style={{ color: KEBU.muted }}>
               One account — everything connects. Pick a starting point; switch anytime from the sidebar.
@@ -80,7 +80,7 @@ export function KebuWorkspacePicker({
             }}
           >
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: KEBU.orange }}>
-              {opt.id === "business" ? "Build & sell" : opt.id === "studio" ? "Design" : "Explore"}
+              {opt.id === "business" ? "Build & sell" : opt.id === "studio" ? "Design" : "Discover"}
             </p>
             <h2 className="text-lg font-black mb-1" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
               {opt.title}

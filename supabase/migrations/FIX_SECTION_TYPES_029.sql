@@ -145,6 +145,12 @@ alter table public.project_sections
 
 alter table public.project_sections validate constraint project_sections_section_type_check;
 
+create table if not exists public.builder_schema_meta (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+
 insert into public.builder_schema_meta (key, value)
 values ('website_builder_version', '29')
 on conflict (key) do update set value = excluded.value, updated_at = now();

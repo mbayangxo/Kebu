@@ -3,7 +3,7 @@ import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { customDomainDnsTarget, buildDnsInstructions } from "@/lib/create/dns-target";
 import { verifyDomainPointsToKebu } from "@/lib/create/custom-domains";
-import { provisionCustomDomainOnVercel, vercelDomainAutoProvisionEnabled } from "@/lib/create/vercel-domains";
+import { provisionCustomDomainOnHosting, hostingDomainAutoProvisionEnabled } from "@/lib/create/vercel-domains";
 
 export const dynamic = "force-dynamic";
 
@@ -80,9 +80,15 @@ export async function POST(_req: Request, { params }: Params) {
   });
 
   let sslNote: string | null = null;
+  // Always try to attach hosting (even if DNS not ready yet) so SSL can issue as soon as CNAME propagates.
+  const hosting = await provisionCustomDomainOnHosting(domain.hostname);
+  if (hosting.opsHint) {
+    console.warn("[domains.verify] hosting provision", hosting.opsHint);
+  }
   if (check.ok) {
-    const vercel = await provisionCustomDomainOnVercel(domain.hostname);
-    sslNote = vercel.detail;
+    sslNote = hosting.detail;
+  } else if (hosting.ok) {
+    sslNote = "Kebu prepared HTTPS. Finish DNS (CNAME www → cname.vercel-dns.com), then Verify again.";
   }
 
   return NextResponse.json({
@@ -91,7 +97,7 @@ export async function POST(_req: Request, { params }: Params) {
     detail: check.detail,
     liveUrl: check.ok ? `https://www.${domain.hostname}` : null,
     sslNote,
-    vercelAutoSsl: vercelDomainAutoProvisionEnabled(),
+    hostingAutoSsl: hostingDomainAutoProvisionEnabled(),
     instructions: check.ok ? null : buildDnsInstructions(subdomain, domain.hostname),
   });
 }

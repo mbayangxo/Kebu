@@ -1,40 +1,63 @@
 /**
- * Optional: register custom domains on the Vercel project for HTTPS.
- * Requires VERCEL_TOKEN + VERCEL_PROJECT_ID (or VERCEL_PROJECT_NAME + team).
+ * Platform hosting: attach custom domains for HTTPS on behalf of the user.
+ * Users never open a Vercel account — Kebu uses server credentials (like Shopify/Wix).
+ *
+ * Ops: set VERCEL_TOKEN + VERCEL_PROJECT_ID (+ optional VERCEL_TEAM_ID) on the Kebu deploy.
  */
 
 const VERCEL_API = "https://api.vercel.com";
 
-export type VercelDomainResult = {
+export type HostingDomainResult = {
   ok: boolean;
+  /** Safe to show in the product UI — never asks users to open Vercel. */
   detail: string;
   configured?: boolean;
+  /** Ops-only hint when server env is missing */
+  opsHint?: string;
 };
 
-export function vercelDomainAutoProvisionEnabled(): boolean {
+export function hostingDomainAutoProvisionEnabled(): boolean {
   return Boolean(process.env.VERCEL_TOKEN?.trim() && process.env.VERCEL_PROJECT_ID?.trim());
 }
 
-/** Add apex + www to the Vercel project so SSL can issue after DNS is correct. */
-export async function provisionCustomDomainOnVercel(hostname: string): Promise<VercelDomainResult> {
+/** @deprecated Use hostingDomainAutoProvisionEnabled */
+export function vercelDomainAutoProvisionEnabled(): boolean {
+  return hostingDomainAutoProvisionEnabled();
+}
+
+function alreadyAttached(code?: string): boolean {
+  return (
+    code === "domain_already_in_use" ||
+    code === "domain_already_exists" ||
+    code === "domain_conflict" ||
+    code === "conflict"
+  );
+}
+
+/**
+ * Register apex + www on Kebu hosting so SSL can issue after the user sets DNS.
+ * Call on domain save and again on verify.
+ */
+export async function provisionCustomDomainOnHosting(hostname: string): Promise<HostingDomainResult> {
   const token = process.env.VERCEL_TOKEN?.trim();
   const projectId = process.env.VERCEL_PROJECT_ID?.trim();
   if (!token || !projectId) {
     return {
       ok: false,
-      detail: "Auto-SSL: set VERCEL_TOKEN and VERCEL_PROJECT_ID on the server to attach domains automatically.",
+      detail: "Domain saved. Add the CNAME at your registrar, then Verify — Kebu handles HTTPS for you.",
+      opsHint: "Set VERCEL_TOKEN and VERCEL_PROJECT_ID on the Kebu server so domains attach automatically.",
     };
   }
 
   const teamId = process.env.VERCEL_TEAM_ID?.trim();
   const query = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
-  const names = [hostname, `www.${hostname}`];
+  const names = Array.from(new Set([hostname.replace(/^www\./, ""), `www.${hostname.replace(/^www\./, "")}`]));
   const errors: string[] = [];
   let anyOk = false;
 
   for (const name of names) {
     try {
-      const res = await fetch(`${VERCEL_API}/v10/projects/${projectId}/domains${query}`, {
+      const res = await fetch(`${VERCEL_API}/v10/projects/${encodeURIComponent(projectId)}/domains${query}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -42,14 +65,21 @@ export async function provisionCustomDomainOnVercel(hostname: string): Promise<V
         },
         body: JSON.stringify({ name }),
       });
-      const body = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
-      if (res.ok || body.error?.code === "domain_already_in_use" || body.error?.code === "domain_already_exists") {
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: { code?: string; message?: string };
+      };
+      if (res.ok || alreadyAttached(body.error?.code)) {
         anyOk = true;
         continue;
       }
-      errors.push(`${name}: ${body.error?.message ?? res.statusText}`);
+      // 409 often means already on project
+      if (res.status === 409) {
+        anyOk = true;
+        continue;
+      }
+      errors.push(body.error?.message ?? `${name} (${res.status})`);
     } catch (e) {
-      errors.push(`${name}: ${e instanceof Error ? e.message : "request failed"}`);
+      errors.push(e instanceof Error ? e.message : "request failed");
     }
   }
 
@@ -57,9 +87,18 @@ export async function provisionCustomDomainOnVercel(hostname: string): Promise<V
     return {
       ok: true,
       configured: true,
-      detail: "Domain registered on Kebu hosting (Vercel). SSL may take a few minutes after DNS propagates.",
+      detail: "Kebu attached this domain to hosting. After DNS propagates, HTTPS turns on automatically — no extra accounts.",
     };
   }
 
-  return { ok: false, detail: errors.join("; ") || "Could not register domain on Vercel." };
+  return {
+    ok: false,
+    detail: "Domain saved. Keep the CNAME at your registrar and tap Verify again in a few minutes — Kebu retries SSL for you.",
+    opsHint: errors.join("; ") || "Hosting domain API failed",
+  };
+}
+
+/** @deprecated Use provisionCustomDomainOnHosting */
+export async function provisionCustomDomainOnVercel(hostname: string): Promise<HostingDomainResult> {
+  return provisionCustomDomainOnHosting(hostname);
 }

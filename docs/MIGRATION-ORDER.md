@@ -5,11 +5,12 @@
 **Error `policy "Users can read their own profile" already exists`** means you re-ran **`APPLY_ALL_PHASE_ONE.sql` from the top** on a database that already has migration 001. That is expected — **do not run the full file again.**
 
 1. Run **[`VERIFY_PHASE_ONE.sql`](../supabase/migrations/VERIFY_PHASE_ONE.sql)** — see which rows are ❌.
-2. If only **021–027** are missing, run **[`APPLY_MIGRATIONS_021_027.sql`](../supabase/migrations/APPLY_MIGRATIONS_021_027.sql)** (one paste, safe to re-run).
-3. If **028** is missing, run **[`028_builder_section_types_extended.sql`](../supabase/migrations/028_builder_section_types_extended.sql)**.
-4. If **029** fails on `project_sections_section_type_check`, run **[`FIX_SECTION_TYPES_029.sql`](../supabase/migrations/FIX_SECTION_TYPES_029.sql)** then **029** again.
-5. If custom domains show obsolete `*.kebu.africa` DNS targets, run **[`030_repair_site_domain_dns_targets.sql`](../supabase/migrations/030_repair_site_domain_dns_targets.sql)**.
-6. Run **VERIFY** again until all needed rows are ✅.
+2. If **`businesses` / `business_members` are ❌**, run **[`APPLY_MIGRATIONS_005_007.sql`](../supabase/migrations/APPLY_MIGRATIONS_005_007.sql)** (one paste). Then retry business create/register.
+3. If only **021–027** are missing, run **[`APPLY_MIGRATIONS_021_027.sql`](../supabase/migrations/APPLY_MIGRATIONS_021_027.sql)** (one paste, safe to re-run).
+4. If **028** is missing, run **[`028_builder_section_types_extended.sql`](../supabase/migrations/028_builder_section_types_extended.sql)**.
+5. If **029** fails on `project_sections_section_type_check`, run **[`FIX_SECTION_TYPES_029.sql`](../supabase/migrations/FIX_SECTION_TYPES_029.sql)** then **029** again.
+6. If custom domains show obsolete `*.kebu.africa` DNS targets, run **[`030_repair_site_domain_dns_targets.sql`](../supabase/migrations/030_repair_site_domain_dns_targets.sql)**.
+7. Run **VERIFY** again until all needed rows are ✅.
 
 ---
 

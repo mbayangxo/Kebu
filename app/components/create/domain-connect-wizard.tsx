@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
-import { customDomainDnsTarget, isObsoleteDnsTarget } from "@/lib/create/dns-target";
+import { customDomainDnsTarget, isObsoleteDnsTarget, normalizeHostname } from "@/lib/create/dns-target";
 
 type DomainRow = {
   id: string;
@@ -12,11 +12,14 @@ type DomainRow = {
   last_error?: string | null;
 };
 
+/**
+ * Connect a custom domain to THIS site.
+ * Domain input is always first — CNAME instructions follow after you type it.
+ */
 export function DomainConnectWizard({
   subdomain,
   livePath,
   appOrigin,
-  dnsTarget,
   customDomainInput,
   onDomainInputChange,
   onConnect,
@@ -25,11 +28,11 @@ export function DomainConnectWizard({
   domains,
   busy,
   note,
+  siteTitle,
 }: {
   subdomain: string;
   livePath: string | null;
   appOrigin?: string;
-  dnsTarget: string | null;
   customDomainInput: string;
   onDomainInputChange: (v: string) => void;
   onConnect: () => void;
@@ -38,21 +41,25 @@ export function DomainConnectWizard({
   domains: DomainRow[];
   busy: boolean;
   note: string | null;
+  /** Helps users know which project this domain attaches to */
+  siteTitle?: string;
 }) {
-  const [open, setOpen] = useState(domains.length > 0);
-  const [step, setStep] = useState(0);
+  const [open, setOpen] = useState(true);
   const target = customDomainDnsTarget(subdomain || "site");
-  const hostname = customDomainInput.trim() || domains[0]?.hostname || "yourbrand.com";
+  const typed = normalizeHostname(customDomainInput);
+  const exampleHost = typed || domains[0]?.hostname || "kdirection.com";
   const fullLiveUrl =
     livePath && appOrigin ? `${appOrigin.replace(/\/$/, "")}${livePath}` : livePath;
+
+  useEffect(() => {
+    if (domains.length > 0) setOpen(true);
+  }, [domains.length]);
 
   if (!open) {
     return (
       <div className="rounded-xl p-3" style={{ background: "#F8F7F4", border: "1px solid #E8E4DC" }}>
         <p className="text-[11px] leading-relaxed mb-2" style={{ color: "#6B5B45" }}>
-          <strong>You do not need a custom domain.</strong> Publish with a subdomain above — your site works on Kebu
-          hosting{fullLiveUrl ? ` at ${fullLiveUrl}` : ""}. Skip this unless you already bought a domain like{" "}
-          maylecor.com.
+          Your site works on Kebu{fullLiveUrl ? ` at ${fullLiveUrl}` : ""}. Connect a custom domain when you own one.
         </p>
         <button
           type="button"
@@ -60,50 +67,79 @@ export function DomainConnectWizard({
           className="text-[10px] font-bold uppercase tracking-wider underline"
           style={{ color: KEBU.orange }}
         >
-          I own a domain — connect it (optional)
+          Connect my domain
         </button>
       </div>
     );
   }
 
-  const steps = [
-    {
-      title: "Your site already works without this",
-      body: (
-        <>
-          <p className="mb-2">
-            After <strong>Publish</strong>, visitors open{" "}
-            <strong>{fullLiveUrl ?? livePath ?? "/sites/your-name"}</strong> on Kebu. No domain purchase required.
+  return (
+    <div className="rounded-xl p-4 space-y-4" style={{ background: "#F8F7F4", border: "1px solid #E8E4DC" }}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: KEBU.orange }}>
+            Custom domain for this site
           </p>
-          <p className="text-[10px]" style={{ color: "#8A8578" }}>
-            Custom domains (e.g. maylecor.com) connect here. Do <strong>not</strong> point DNS at kebu.africa — that
-            address is not live.
+          <p className="text-sm font-bold mt-0.5" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
+            {siteTitle ? `${siteTitle}` : "Your domain"}
           </p>
-        </>
-      ),
-    },
-    {
-      title: "Buy a domain (only if you don't have one)",
-      body: (
-        <p>
-          Purchase <strong>{hostname}</strong> from any registrar — GoDaddy, Cloudflare, Namecheap, etc. If you have not
-          bought a domain yet, close this section and just use Publish.
+          <p className="text-[11px] mt-1" style={{ color: "#6B5B45" }}>
+            Enter the domain you bought for <strong>this</strong> site (e.g. kdirection.com). Each site gets its own
+            domain. You only edit DNS at your registrar — Kebu turns on HTTPS automatically.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-[10px] font-bold uppercase shrink-0"
+          style={{ color: KEBU.muted }}
+        >
+          Hide
+        </button>
+      </div>
+
+      {!subdomain.trim() ? (
+        <p className="text-[11px] rounded-lg px-3 py-2" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
+          Set a Kebu site address (subdomain) above first — e.g. <strong>kdirection</strong> — then connect the domain.
         </p>
-      ),
-    },
-    {
-      title: "Open DNS at your registrar",
-      body: (
-        <p>
-          Log in where you bought the domain → find <strong>DNS</strong> or <strong>Advanced DNS</strong>. Remove any
-          &quot;parking&quot; or placeholder records for <strong>www</strong> (common on new domains).
+      ) : null}
+
+      <label className="block">
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.black }}>
+          Domain you own (no www)
+        </span>
+        <div className="mt-1.5 flex flex-col sm:flex-row gap-2">
+          <input
+            className="flex-1 rounded-lg px-3 py-2.5 text-sm font-mono"
+            style={{ border: `2px solid ${KEBU.black}`, background: KEBU.white }}
+            value={customDomainInput}
+            onChange={(e) => onDomainInputChange(e.target.value.toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, ""))}
+            placeholder="kdirection.com"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={busy || !subdomain.trim()}
+            aria-label="Custom domain hostname"
+          />
+          <button
+            type="button"
+            onClick={onConnect}
+            disabled={busy || !subdomain.trim() || !typed}
+            className="rounded-full px-5 py-2.5 text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 shrink-0"
+            style={{ background: KEBU.orange, color: "#fff" }}
+          >
+            {busy ? "Saving…" : "Save on this site"}
+          </button>
+        </div>
+        <p className="text-[10px] mt-1.5" style={{ color: KEBU.muted }}>
+          Example: <strong>kdirection.com</strong> or <strong>maylecor.com</strong> — not www, not a path.
         </p>
-      ),
-    },
-    {
-      title: "Add this CNAME record",
-      body: (
-        <div className="rounded-lg p-3 font-mono text-[11px] space-y-1" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
+      </label>
+
+      <div className="rounded-lg p-3 space-y-2" style={{ background: KEBU.white, border: "1px solid #DDE0F0" }}>
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.black }}>
+          Then at your registrar, add this CNAME
+        </p>
+        <div className="font-mono text-[11px] space-y-1">
           <p>
             <span style={{ color: "#8A8578" }}>Type:</span> CNAME
           </p>
@@ -114,67 +150,42 @@ export function DomainConnectWizard({
             <span style={{ color: "#8A8578" }}>Value / Points to:</span>{" "}
             <strong style={{ color: KEBU.orange }}>{target}</strong>
           </p>
-          <p>
-            <span style={{ color: "#8A8578" }}>TTL:</span> Automatic (or 300)
-          </p>
         </div>
-      ),
-    },
-    {
-      title: "Redirect the bare domain",
-      body: (
-        <p>
-          For <strong>{hostname}</strong> (without www), set a <strong>URL redirect</strong> to{" "}
-          <strong>https://www.{hostname}</strong>. Some registrars call this forwarding or ALIAS/ANAME.
+        <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
+          For <strong>{exampleHost}</strong> (no www), redirect to{" "}
+          <strong>https://www.{exampleHost}</strong>. Same CNAME value for every Kebu site — Kebu uses the domain you
+          saved to open the right project and issue HTTPS. You do not need a hosting login.
         </p>
-      ),
-    },
-    {
-      title: "Connect in Kebu & verify",
-      body: (
-        <div className="space-y-3">
-          <label className="block text-[10px] uppercase tracking-wider">
-            Domain you own (no www)
-            <input
-              className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs font-normal normal-case"
-              style={{ border: "1px solid #DDE0F0" }}
-              value={customDomainInput}
-              onChange={(e) => onDomainInputChange(e.target.value.toLowerCase())}
-              placeholder="maylecor.com"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={onConnect}
-            disabled={busy || !subdomain.trim()}
-            className="w-full rounded-full py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-            style={{ background: KEBU.orange, color: "#fff" }}
-          >
-            {busy ? "Saving…" : "Save domain in Kebu"}
-          </button>
+      </div>
+
+      {domains.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider">Saved on this site</p>
           {domains.map((d) => (
-            <div key={d.id} className="rounded-lg p-2 text-[10px]" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
-              <p className="font-semibold">
+            <div key={d.id} className="rounded-lg p-3 text-[11px]" style={{ background: KEBU.white, border: "1px solid #DDE0F0" }}>
+              <p className="font-semibold text-sm" style={{ color: KEBU.black }}>
                 www.{d.hostname}{" "}
-                <span style={{ color: d.status === "verified" ? "#009E40" : d.status === "failed" ? "#8B1E1E" : "#8A8578" }}>
+                <span
+                  style={{
+                    color:
+                      d.status === "verified" ? "#009E40" : d.status === "failed" ? "#8B1E1E" : "#8A8578",
+                  }}
+                >
                   · {d.status}
                 </span>
               </p>
               <p className="mt-1 font-mono text-[10px]" style={{ color: "#5C5348" }}>
                 CNAME www → <strong style={{ color: KEBU.orange }}>{target}</strong>
-                <span className="block font-sans normal-case mt-0.5 opacity-70">
-                  Vercel deployment URLs (*.vercel.app) also work.
-                </span>
               </p>
               {d.dns_target && isObsoleteDnsTarget(d.dns_target) ? (
                 <p className="mt-1" style={{ color: "#8B1E1E" }}>
-                  Old target {d.dns_target} is wrong — use {target} or your Vercel app URL, then Verify.
+                  Old target {d.dns_target} is wrong — use {target}, then Verify.
                 </p>
               ) : null}
               {d.last_error ? (
                 <p className="mt-1" style={{ color: "#8B1E1E" }}>
                   {d.last_error.toLowerCase().includes("kebu.africa")
-                    ? `DNS may already be correct. Use CNAME www → ${target} or your Vercel *.vercel.app hostname, then click Verify again.`
+                    ? `Use CNAME www → ${target}, then Verify again.`
                     : d.last_error}
                 </p>
               ) : null}
@@ -183,7 +194,7 @@ export function DomainConnectWizard({
                   type="button"
                   onClick={() => onVerify(d.id)}
                   disabled={busy}
-                  className="rounded-full px-3 py-1 text-[10px] font-bold uppercase disabled:opacity-50"
+                  className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase disabled:opacity-50"
                   style={{ background: "#00C851", color: "#0F0D33" }}
                 >
                   Verify DNS
@@ -192,7 +203,7 @@ export function DomainConnectWizard({
                   type="button"
                   onClick={() => onRemove(d.id)}
                   disabled={busy}
-                  className="rounded-full px-3 py-1 text-[10px] font-bold uppercase"
+                  className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase"
                   style={{ background: "#F4F2EC", color: "#8B1E1E" }}
                 >
                   Remove
@@ -200,74 +211,21 @@ export function DomainConnectWizard({
               </div>
             </div>
           ))}
-          <p className="text-[10px]" style={{ color: "#6B5B45" }}>
-            Wait 5–30 minutes after changing DNS, then click Verify. When verified, your site opens at{" "}
-            <strong>https://www.{domains[0]?.hostname ?? hostname}</strong>.
-          </p>
         </div>
-      ),
-    },
-  ];
+      ) : null}
 
-  return (
-    <div className="rounded-xl p-3 space-y-3" style={{ background: "#F8F7F4", border: "1px solid #E8E4DC" }}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider">Optional — your own domain</p>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-[10px] font-bold uppercase"
-          style={{ color: KEBU.muted }}
-        >
-          Hide
-        </button>
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-bold" style={{ color: KEBU.orange }}>
-          Step {step + 1} / {steps.length}
-        </span>
-      </div>
-      <div className="flex gap-1">
-        {steps.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => setStep(i)}
-            className="h-1 flex-1 rounded-full transition-all"
-            style={{ background: i <= step ? KEBU.orange : "#E8E4DC" }}
-            aria-label={`Step ${i + 1}`}
-          />
-        ))}
-      </div>
-      <div className="text-[11px] leading-relaxed" style={{ color: "#6B5B45" }}>
-        <p className="font-bold mb-2 text-sm" style={{ color: "#0F0D33", fontFamily: "var(--font-fraunces)" }}>
-          {steps[step]?.title}
-        </p>
-        {steps[step]?.body}
-      </div>
-      <div className="flex justify-between gap-2">
-        <button
-          type="button"
-          disabled={step === 0}
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
-          className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase disabled:opacity-40"
-          style={{ border: "1px solid #DDE0F0" }}
-        >
-          Back
-        </button>
-        <button
-          type="button"
-          disabled={step >= steps.length - 1}
-          onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))}
-          className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase disabled:opacity-40"
-          style={{ background: "#0F0D33", color: "#fff" }}
-        >
-          Next
-        </button>
-      </div>
       {note ? (
-        <p className="text-[10px]" style={{ color: note.includes("verified") || note.includes("Copied") ? "#009E40" : "#6B5B45" }}>
+        <p
+          className="text-[11px]"
+          style={{ color: note.toLowerCase().includes("verified") || note.includes("Copied") ? "#009E40" : "#6B5B45" }}
+        >
           {note}
+        </p>
+      ) : null}
+
+      {fullLiveUrl ? (
+        <p className="text-[10px]" style={{ color: KEBU.muted }}>
+          Without a custom domain, this site stays live at {fullLiveUrl}.
         </p>
       ) : null}
     </div>

@@ -29,7 +29,8 @@ describe("kebu-workspace", () => {
   });
 
   it("labels workspaces for sidebar", () => {
-    expect(workspaceLabel("business")).toBe("Kebu Business");
-    expect(workspaceLabel("studio")).toBe("Kebu Studio");
+    expect(workspaceLabel("kebu")).toBe("Explore");
+    expect(workspaceLabel("business")).toBe("Business");
+    expect(workspaceLabel("studio")).toBe("Studio");
   });
 });

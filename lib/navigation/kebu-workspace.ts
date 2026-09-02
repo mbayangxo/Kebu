@@ -15,23 +15,23 @@ export const WORKSPACE_OPTIONS: {
 }[] = [
   {
     id: "kebu",
-    title: "Kebu",
-    subtitle: "Explore Africa, learn, personalize — no business required.",
+    title: "Explore",
+    subtitle: "Discover Africa, learn, personalize — no business required.",
     bullets: ["Opportunity OS", "Your dashboard", "Personalize & Afrique ID"],
     homeHref: "/dashboard",
   },
   {
     id: "business",
-    title: "Kebu Business",
-    subtitle: "Build, sell, and grow a real business on Kebu.",
-    bullets: ["Kebu Builder — websites & stores", "Kebu Create — apps & graphics", "Kebu ID & Alkebulan B2B"],
+    title: "Business",
+    subtitle: "Build, sell, and grow a real business.",
+    bullets: ["Builder — websites & stores", "Create — apps & graphics", "Kebu ID & Alkebulan B2B"],
     homeHref: "/business",
   },
   {
     id: "studio",
-    title: "Kebu Studio",
+    title: "Studio",
     subtitle: "Design posters, flyers, and social graphics for your brand.",
-    bullets: ["Kebu Create designs", "Linked to your business", "Export for WhatsApp & social"],
+    bullets: ["Create designs", "Linked to your business", "Export for WhatsApp & social"],
     homeHref: "/studio",
   },
 ];
@@ -101,5 +101,5 @@ export function postAuthDestination(rawNext: string | null | undefined): string 
 }
 
 export function workspaceLabel(workspace: KebuWorkspace): string {
-  return WORKSPACE_OPTIONS.find((w) => w.id === workspace)?.title ?? "Kebu";
+  return WORKSPACE_OPTIONS.find((w) => w.id === workspace)?.title ?? "Explore";
 }

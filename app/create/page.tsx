@@ -5,12 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { TemplatePreviewCard } from "@/app/components/create/template-preview-card";
+import { MySitesGrid, type MySiteProject } from "@/app/components/create/my-sites-grid";
 import { getFeaturedGalleryTemplates } from "@/lib/create/template-gallery";
-import {
-  kebuSitePreviewPath,
-  liveSiteUrl,
-  plannedKebuAfricaHost,
-} from "@/lib/create/site-urls";
 
 type ProjectRow = {
   id: string;
@@ -183,10 +179,6 @@ export default function CreateHubPage() {
     void checkDb();
   }, []);
 
-  const portfolioProjectIds = new Set(
-    portfolioSites.map((s) => s.projectId).filter((id): id is string => Boolean(id)),
-  );
-  const otherProjects = projects.filter((p) => !portfolioProjectIds.has(p.id));
   const galleryFeatured = getFeaturedGalleryTemplates().slice(0, 3);
 
   useEffect(() => {
@@ -312,16 +304,6 @@ export default function CreateHubPage() {
         </section>
 
         <section className="mb-8">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-            <h2 className="text-lg font-bold">My sites</h2>
-            <Link
-              href="/create/sites"
-              className="text-sm font-bold underline"
-              style={{ color: "#FF5500" }}
-            >
-              View all sites →
-            </Link>
-          </div>
           {portfolioBusy ? (
             <p className="text-sm mb-3" style={{ color: "#5C5348" }}>
               Loading your sites…
@@ -348,56 +330,9 @@ export default function CreateHubPage() {
             </div>
           ) : null}
 
-          {portfolioAllowed && portfolioSites.length > 0 ? (
-            <ul className="space-y-3 mb-8">
-              {portfolioSites.map((s) => {
-                const path = s.previewPath ?? kebuSitePreviewPath(s.subdomain);
-                const live = liveSiteUrl(s.subdomain) ?? path;
-                return (
-                  <li
-                    key={s.key}
-                    className="rounded-2xl px-5 py-4"
-                    style={{ background: "#FFF8F2", border: "1px solid rgba(255,85,0,0.25)" }}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="font-bold">{s.title}</p>
-                        <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: "#8A8578" }}>
-                          {s.subdomain ? `/${s.subdomain}` : "Not created yet"}
-                        </p>
-                        {path && s.projectId ? (
-                          <a
-                            href={path}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm font-semibold underline break-all"
-                            style={{ color: "#0A0A0A" }}
-                          >
-                            {live}
-                          </a>
-                        ) : (
-                          <p className="text-xs mt-1" style={{ color: "#5C5348" }}>
-                            Site not provisioned yet — tap restore below.
-                          </p>
-                        )}
-                      </div>
-                      {s.editorUrl ? (
-                        <Link
-                          href={s.editorUrl}
-                          className="text-xs font-bold rounded-full px-4 py-2"
-                          style={{ background: "#FF5500", color: "#fff" }}
-                        >
-                          Open editor →
-                        </Link>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : portfolioAllowed ? (
+          {portfolioAllowed && portfolioSites.every((s) => !s.projectId) ? (
             <div
-              className="rounded-2xl px-5 py-4 mb-8"
+              className="rounded-2xl px-5 py-4 mb-6"
               style={{ background: "#FFF8F2", border: "1px solid rgba(255,85,0,0.25)" }}
             >
               <p className="text-sm mb-3" style={{ color: "#5C5348" }}>
@@ -415,82 +350,25 @@ export default function CreateHubPage() {
             </div>
           ) : null}
 
-          <h3 className="text-sm font-bold mb-3" style={{ color: "#5C5348" }}>
-            {portfolioAllowed ? "Other sites on this account" : "Your sites"}
-          </h3>
           {loading ? (
             <p className="text-sm" style={{ color: "#5C5348" }}>
               Loading…
             </p>
-          ) : otherProjects.length === 0 ? (
-            <div
-              className="rounded-2xl px-6 py-8 text-center"
-              style={{ border: "1px dashed rgba(10,10,10,0.15)", background: "#fff" }}
-            >
-              <p className="text-sm" style={{ color: "#5C5348" }}>
-                {portfolioAllowed
-                  ? "No other sites yet — pick a template from the gallery."
-                  : "Pick a template from the gallery to create your first site."}
-              </p>
-              <Link href="/create/templates" className="text-sm font-semibold underline mt-3 inline-block" style={{ color: "#FF5500" }}>
-                Browse templates
-              </Link>
-            </div>
           ) : (
-            <ul className="space-y-3">
-              {otherProjects.map((p) => {
-                const path = kebuSitePreviewPath(p.subdomain);
-                const live = liveSiteUrl(p.subdomain);
-                const planned = plannedKebuAfricaHost(p.subdomain);
-                const isLive = p.status === "published";
-                return (
-                  <li
-                    key={p.id}
-                    className="rounded-2xl px-5 py-4"
-                    style={{ background: "#fff", border: "1px solid rgba(10,10,10,0.1)" }}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold">{p.title}</p>
-                        <p className="text-xs mt-1 uppercase tracking-wider" style={{ color: "#8A8074" }}>
-                          {p.status} · {p.project_type}
-                        </p>
-                        {path ? (
-                          <div className="mt-3 space-y-1.5">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#FF5500" }}>
-                              {isLive ? "Live now" : "Public path (after publish)"}
-                            </p>
-                            <a
-                              href={path}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block text-sm font-semibold underline break-all"
-                              style={{ color: "#0A0A0A" }}
-                            >
-                              {live ?? path}
-                            </a>
-                            {planned ? (
-                              <p className="text-[11px]" style={{ color: "#8A8074" }}>
-                                Branded kebu.africa later — use {live ?? path} today
-                              </p>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-col gap-2 shrink-0">
-                        <Link
-                          href={`/create/${p.id}`}
-                          className="text-xs font-bold text-center rounded-full px-4 py-2"
-                          style={{ background: "#FF5500", color: "#fff" }}
-                        >
-                          Open editor →
-                        </Link>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <MySitesGrid
+              compact
+              projects={projects.map(
+                (p): MySiteProject => ({
+                  id: p.id,
+                  title: p.title,
+                  status: p.status,
+                  subdomain: p.subdomain,
+                  project_type: p.project_type,
+                  updated_at: p.updated_at,
+                  published_at: p.status === "published" ? p.updated_at : null,
+                }),
+              )}
+            />
           )}
         </section>
 
