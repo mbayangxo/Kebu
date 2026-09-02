@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BackLink } from "@/app/components/back-link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuAppSidebar, type PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
+import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
 
 export type { PortfolioNavSite };
@@ -19,6 +21,18 @@ export function AppShell({
   portfolioSites?: PortfolioNavSite[];
   actions?: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const publicSurface =
+    pathname === "/" ||
+    isMarketingPath(pathname) ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup");
+
+  // Marketing / auth pages: content only — never the logged-in left rail.
+  if (publicSurface) {
+    return <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>{children}</div>;
+  }
+
   return (
     <div className="min-h-screen flex" style={{ background: KEBU.bright, color: KEBU.black }}>
       <KebuAppSidebar portfolioSites={portfolioSites} />

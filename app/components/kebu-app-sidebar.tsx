@@ -7,6 +7,7 @@ import { KebuSidebarAuthFooter } from "@/app/components/kebu-sidebar-auth-footer
 import { useKebuWorkspace } from "@/app/hooks/use-kebu-workspace";
 import { KEBU } from "@/lib/kebu-brand";
 import { PRODUCT_NAV } from "@/lib/navigation/product-nav";
+import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { workspaceHome, workspaceLabel } from "@/lib/navigation/kebu-workspace";
 
 export type PortfolioNavSite = {
@@ -82,6 +83,11 @@ export function KebuAppSidebar({
   const { workspace, ready } = useKebuWorkspace();
   const ws = workspace ?? "kebu";
   const homeHref = workspaceHome(ws);
+
+  // Hard guard: never show app rail on public marketing / landing.
+  if (pathname === "/" || isMarketingPath(pathname) || pathname.startsWith("/login") || pathname.startsWith("/signup")) {
+    return null;
+  }
 
   return (
     <aside

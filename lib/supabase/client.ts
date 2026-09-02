@@ -11,6 +11,14 @@ export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co";
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder";
 
-  browserClient = createBrowserClient(url, key);
+  browserClient = createBrowserClient(url, key, {
+    cookieOptions: {
+      path: "/",
+      sameSite: "lax",
+      secure: typeof window !== "undefined" ? window.location.protocol === "https:" : true,
+      maxAge: 60 * 60 * 24 * 365,
+    },
+    isSingleton: true,
+  });
   return browserClient;
 }

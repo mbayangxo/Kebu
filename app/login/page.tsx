@@ -5,7 +5,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
 import { safeAuthNextPath } from "@/lib/auth/safe-next";
 import { postAuthDestination } from "@/lib/navigation/kebu-workspace";
@@ -18,7 +18,6 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [emailConfirmPending, setEmailConfirmPending] = useState(false);
   const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent">("idle");
-  const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
   const nextPath = safeAuthNextPath(searchParams.get("next"));
@@ -31,7 +30,7 @@ function LoginForm() {
     setError("");
     setEmailConfirmPending(false);
     setResendStatus("idle");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       if (isEmailNotConfirmed(error.message)) {
         setEmailConfirmPending(true);
@@ -42,10 +41,23 @@ function LoginForm() {
         setError(error.message);
       }
       setLoading(false);
-    } else {
-      router.push(postAuthDestination(searchParams.get("next")));
-      router.refresh();
+      return;
     }
+
+    // Confirm cookies landed before navigation — soft client routing can race and show guest UI.
+    if (!data.session) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        setError("Signed in, but the browser did not keep the session. Disable blockers and try again.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    const dest = postAuthDestination(searchParams.get("next"));
+    window.location.assign(dest);
   }
 
   async function handleResendConfirmation() {

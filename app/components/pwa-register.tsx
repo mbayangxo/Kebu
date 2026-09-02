@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 
 /**
- * Register the app SW and drop broken legacy workers (alkebulan-v1)
- * that intercepted Supabase auth and returned null responses.
+ * Clear broken legacy PWA workers that intercepted auth and cached the old
+ * landing (with app sidebar). Do not register a root-scope SW for now —
+ * published sites use /sw-site.js under /sites/ only.
  */
 export function PWARegister() {
   useEffect(() => {
@@ -12,33 +13,51 @@ export function PWARegister() {
 
     let cancelled = false;
 
-    async function boot() {
+    async function purgeBrokenWorkers() {
       try {
         const regs = await navigator.serviceWorker.getRegistrations();
+        let removedRootSw = false;
+
         await Promise.all(
           regs.map(async (reg) => {
             const scriptURL =
               reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || "";
-            // Drop any worker that isn't our current /sw.js (or site-scoped /sw-site.js).
+            // Keep site-scoped offline helper only.
             if (scriptURL.includes("/sw-site.js")) return;
-            if (!scriptURL.endsWith("/sw.js") && !scriptURL.includes("/sw.js")) {
-              await reg.unregister();
-              return;
-            }
-            // Force update so clients leave alkebulan-v1 / null-respondWith builds.
-            void reg.update();
+            removedRootSw = true;
+            await reg.unregister();
           }),
         );
 
-        if (cancelled) return;
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(
+            keys
+              .filter(
+                (k) =>
+                  k.startsWith("alkebulan") ||
+                  k.startsWith("kebu-app") ||
+                  k === "alkebulan-v1" ||
+                  k === "kebu-app-v2",
+              )
+              .map((k) => caches.delete(k)),
+          );
+        }
 
-        await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        // One-time hard reload after purge so landing drops cached sidebar HTML.
+        if (!cancelled && removedRootSw && typeof sessionStorage !== "undefined") {
+          const flag = "kebu-purged-sw-v3";
+          if (!sessionStorage.getItem(flag)) {
+            sessionStorage.setItem(flag, "1");
+            window.location.reload();
+          }
+        }
       } catch {
-        // Blocked or unsupported — app works without SW.
+        // App works without SW.
       }
     }
 
-    void boot();
+    if (!cancelled) void purgeBrokenWorkers();
     return () => {
       cancelled = true;
     };
