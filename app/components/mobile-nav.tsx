@@ -51,7 +51,7 @@ function IconOpportunity({ active }: { active: boolean }) {
 const TABS = [
   { href: "/", label: "Home", Icon: IconHome },
   { href: "/opportunity/countries", label: "Countries", Icon: IconOpportunity },
-  { href: "/create", label: "Create", Icon: IconCreate },
+  { href: "/create", label: "Builder", Icon: IconCreate },
   { href: "/business", label: "Business", Icon: IconBusiness },
 ];
 

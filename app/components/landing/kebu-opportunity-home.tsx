@@ -17,7 +17,7 @@ const NAV = [
   { label: "Opportunity", href: "/opportunity" },
   { label: "Countries", href: "/opportunity/countries" },
   { label: "Business", href: "/business" },
-  { label: "Create", href: "/create" },
+  { label: "Kebu Builder", href: "/create" },
 ] as const;
 
 const LIVE_PATHS = [

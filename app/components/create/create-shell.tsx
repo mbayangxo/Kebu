@@ -16,7 +16,7 @@ const STEPS: { id: CreateJourneyStep; label: string }[] = [
 export function CreateShell({
   step,
   projectId,
-  title = "Kebu Create",
+  title = "Kebu Builder",
   backHref = "/create",
   actions,
 }: {

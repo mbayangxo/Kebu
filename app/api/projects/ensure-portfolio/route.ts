@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { assertBusinessEditor } from "@/lib/create/business-access";
+import { ensurePortfolioOwnerBusiness } from "@/lib/create/ensure-portfolio-business";
 import {
   ensurePortfolioSitesForUser,
   findPortfolioProject,
@@ -15,27 +16,37 @@ export const dynamic = "force-dynamic";
 function forbidOthers() {
   return NextResponse.json(
     {
-      error: "These sites are private to the owner account. Use shared templates in Create instead.",
+      error: "These sites are private to the owner account. Use shared templates in Kebu Builder instead.",
       allowed: false,
     },
     { status: 403 },
   );
 }
 
-/** List May Lecor / K-Direction only for the allowlisted owner account. */
-export async function GET() {
-  const auth = await requireUser();
-  if ("error" in auth) return auth.error;
-  const { supabase, user } = auth;
+function mapSites(
+  sites: {
+    key: string;
+    title: string;
+    projectId: string | null;
+    subdomain: string | null;
+    status?: string | null;
+    editorUrl: string | null;
+    previewPath: string | null;
+    kebuAfricaUrl?: string | null;
+  }[],
+) {
+  return sites;
+}
 
-  const allowed = isPortfolioOwnerEmail(user.email);
-  if (!allowed) {
-    return NextResponse.json({ allowed: false, sites: [] });
-  }
-
+async function listPortfolioSites(
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
+  userId: string,
+  autoEnsure: boolean,
+  businessId?: string,
+) {
   const sites = [];
   for (const site of PORTFOLIO_SITES) {
-    const found = await findPortfolioProject(supabase, user.id, site.key);
+    const found = await findPortfolioProject(supabase, userId, site.key);
     const subdomain = typeof found?.subdomain === "string" ? found.subdomain : null;
     sites.push({
       key: site.key,
@@ -49,12 +60,72 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json({ allowed: true, sites });
+  if (!autoEnsure || !businessId) {
+    return { sites, ensured: false as const, errors: [] as { key: string; error: string }[] };
+  }
+
+  const missing = sites.some((s) => !s.projectId);
+  if (!missing) {
+    return { sites, ensured: false as const, errors: [] as { key: string; error: string }[] };
+  }
+
+  const result = await ensurePortfolioSitesForUser({ supabase, user: { id: userId }, businessId });
+  const merged = [];
+  for (const site of PORTFOLIO_SITES) {
+    const row =
+      result.created.find((c) => c.key === site.key) ??
+      result.existing.find((e) => e.key === site.key);
+    merged.push({
+      key: site.key,
+      title: site.title,
+      projectId: row?.projectId ?? null,
+      subdomain: row?.subdomain ?? site.preferredSubdomain,
+      status: "published",
+      editorUrl: row?.projectId ? `/create/${row.projectId}` : null,
+      previewPath: row?.previewPath ?? kebuSitePreviewPath(site.preferredSubdomain),
+      kebuAfricaUrl: row?.kebuAfricaUrl ?? kebuAfricaSiteUrl(site.preferredSubdomain),
+    });
+  }
+
+  return { sites: merged, ensured: true as const, errors: result.errors };
 }
 
-/**
- * Idempotently create May Lecor + K-Direction for the allowlisted owner only.
- */
+/** List May Lecor / K-Direction for owner; auto-provisions when ?ensure=1. */
+export async function GET(req: Request) {
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+  const { supabase, user } = auth;
+
+  const allowed = isPortfolioOwnerEmail(user.email);
+  if (!allowed) {
+    return NextResponse.json({ allowed: false, sites: [] });
+  }
+
+  const autoEnsure = new URL(req.url).searchParams.get("ensure") === "1";
+  let businessId: string | undefined;
+
+  if (autoEnsure) {
+    const biz = await ensurePortfolioOwnerBusiness(supabase, user.id);
+    if ("error" in biz) {
+      return NextResponse.json(
+        { allowed: true, sites: [], error: biz.error, detail: biz.detail },
+        { status: 500 },
+      );
+    }
+    businessId = biz.businessId;
+  }
+
+  const { sites, ensured, errors } = await listPortfolioSites(supabase, user.id, autoEnsure, businessId);
+
+  return NextResponse.json({
+    allowed: true,
+    sites: mapSites(sites),
+    autoEnsured: ensured,
+    errors: errors ?? [],
+  });
+}
+
+/** Idempotently create May Lecor + K-Direction for the allowlisted owner only. */
 export async function POST(req: Request) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
@@ -68,36 +139,12 @@ export async function POST(req: Request) {
     return forbidOthers();
   }
 
-  const { data: memberships, error: memErr } = await supabase
-    .from("business_members")
-    .select("business_id, role, created_at")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: true });
-
-  if (memErr) {
-    return NextResponse.json(
-      {
-        error: memErr.message.includes("does not exist")
-          ? "Business tables missing. Apply migrations 005–007."
-          : "Could not load businesses.",
-        detail: memErr.message,
-      },
-      { status: 500 },
-    );
+  const biz = await ensurePortfolioOwnerBusiness(supabase, user.id);
+  if ("error" in biz) {
+    return NextResponse.json({ error: biz.error, detail: biz.detail }, { status: 500 });
   }
 
-  if (!memberships?.length) {
-    return NextResponse.json(
-      {
-        error: "Register a Kebu ID business first, then add your sites.",
-        registerUrl: "/business/register",
-      },
-      { status: 400 },
-    );
-  }
-
-  let businessId = memberships[0]!.business_id;
+  let businessId = biz.businessId;
   try {
     const body = await req.json().catch(() => ({}));
     if (body && typeof body === "object" && typeof (body as { businessId?: string }).businessId === "string") {
@@ -121,23 +168,29 @@ export async function POST(req: Request) {
     existing: result.existing.map((e) => e.key),
   });
 
+  const sites = PORTFOLIO_SITES.map((site) => {
+    const row =
+      result.created.find((c) => c.key === site.key) ??
+      result.existing.find((e) => e.key === site.key);
+    return {
+      key: site.key,
+      title: site.title,
+      projectId: row?.projectId ?? null,
+      subdomain: row?.subdomain ?? null,
+      editorUrl: row?.projectId ? `/create/${row.projectId}` : null,
+      previewPath: row?.previewPath ?? kebuSitePreviewPath(site.preferredSubdomain),
+      kebuAfricaUrl: row?.kebuAfricaUrl ?? kebuAfricaSiteUrl(site.preferredSubdomain),
+    };
+  });
+
   return NextResponse.json({
     ok: result.errors.length === 0,
     allowed: true,
-    catalog: PORTFOLIO_SITES.map((s) => ({ key: s.key, title: s.title })),
-    created: result.created,
-    existing: result.existing,
+    sites,
     errors: result.errors,
-    sites: [...result.created, ...result.existing].map((s) => ({
-      key: s.key,
-      projectId: s.projectId,
-      subdomain: s.subdomain,
-      kebuAfricaUrl: "kebuAfricaUrl" in s ? s.kebuAfricaUrl : null,
-      previewPath: "previewPath" in s ? s.previewPath : null,
-    })),
     message:
       result.errors.length === 0
-        ? "May Lecor and K-Direction are live. Open /sites/maylecor and /sites/kdirection (or *.kebu.africa when DNS points here)."
+        ? "May Lecor and K-Direction are ready in My sites."
         : "Some sites could not go live — check errors.",
   });
 }

@@ -11,7 +11,7 @@ import type { User } from "@supabase/supabase-js";
 /** Only routes that are live vertical slices — no sample/static product marketing. */
 const PRIMARY = [
   { label: "Business", href: "/business" },
-  { label: "Create", href: "/create" },
+  { label: "Kebu Builder", href: "/create" },
   { label: "Opportunity", href: "/opportunity" },
   { label: "Countries", href: "/opportunity/countries" },
   { label: "Kebu Score", href: "/ka-score" },

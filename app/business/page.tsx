@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AlkebulanLion } from "@/app/components/panther-motif";
+import { BackLink } from "@/app/components/back-link";
 import { KEBU } from "@/lib/kebu-brand";
 
 type Business = {
@@ -64,11 +65,14 @@ export default function BusinessListPage() {
           className="h-[3px] w-full"
           style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
         />
-        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-white text-sm">
-            <AlkebulanLion size={28} />
-            <span className="font-bold tracking-[0.12em]">KEBU ID</span>
-          </Link>
+        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <BackLink fallbackHref="/dashboard" className="!text-white/80 hover:!text-white" />
+            <Link href="/" className="flex items-center gap-2 text-white text-sm shrink-0">
+              <AlkebulanLion size={28} />
+              <span className="font-bold tracking-[0.12em]">KEBU ID</span>
+            </Link>
+          </div>
           <Link
             href="/business/register"
             className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
