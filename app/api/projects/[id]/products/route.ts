@@ -125,6 +125,8 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   await recalculateReadinessForProject(supabase, projectId);
+  const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
+  await syncCatalogToProductsSections(supabase, projectId);
   logCreate("products.added", { userId: user.id, projectId, productId: product.id });
 
   return NextResponse.json({ product });

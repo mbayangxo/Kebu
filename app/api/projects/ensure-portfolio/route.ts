@@ -64,11 +64,7 @@ async function listPortfolioSites(
     return { sites, ensured: false as const, errors: [] as { key: string; error: string }[] };
   }
 
-  const missing = sites.some((s) => !s.projectId);
-  if (!missing) {
-    return { sites, ensured: false as const, errors: [] as { key: string; error: string }[] };
-  }
-
+  // Always create missing sites AND upgrade existing (Wix/ksendr template sync).
   const result = await ensurePortfolioSitesForUser({ supabase, user: { id: userId }, businessId });
   const merged = [];
   for (const site of PORTFOLIO_SITES) {

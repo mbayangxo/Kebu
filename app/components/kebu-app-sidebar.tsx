@@ -168,6 +168,10 @@ export function KebuAppSidebar({
               ) : null}
             </NavSection>
 
+            <NavSection title="Shop">
+              {renderItems(pathname, PRODUCT_NAV.shop)}
+            </NavSection>
+
             <NavSection title="Create">
               {renderItems(pathname, PRODUCT_NAV.create)}
             </NavSection>

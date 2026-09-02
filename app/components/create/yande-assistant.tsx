@@ -1,5 +1,6 @@
 "use client";
 
+import { YandeMark } from "@/app/components/yande-mark";
 import { BUILDER, YANDE_SUGGESTIONS_CREATE, YANDE_SUGGESTIONS_IMPROVE } from "@/lib/create/builder-ui";
 
 type YandeAssistantProps = {
@@ -33,20 +34,14 @@ export function YandeAssistant({
         type="button"
         onClick={onExpand}
         disabled={busy}
-        className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all hover:brightness-105 disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-full pl-1 pr-4 py-1 text-sm font-semibold transition-all hover:brightness-105 disabled:opacity-50"
         style={{
           background: BUILDER.ink,
           color: "#fff",
           boxShadow: BUILDER.shadowSoft,
         }}
       >
-        <span
-          className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
-          style={{ background: BUILDER.gradient }}
-          aria-hidden
-        >
-          ✦
-        </span>
+        <YandeMark size={28} />
         {busy ? "Yande is working…" : "Ask Yande"}
       </button>
     );
@@ -64,13 +59,7 @@ export function YandeAssistant({
       <div className="h-1 w-full" style={{ background: BUILDER.gradient }} />
       <div className="p-5 sm:p-6 space-y-4">
         <div className="flex items-start gap-3">
-          <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg"
-            style={{ background: BUILDER.orangeGlow, border: `1px solid ${BUILDER.border}` }}
-            aria-hidden
-          >
-            ✦
-          </div>
+          <YandeMark size={48} />
           <div>
             <p className="font-display text-lg font-bold leading-tight" style={{ fontFamily: "var(--font-fraunces)" }}>
               Yande

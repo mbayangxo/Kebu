@@ -21,10 +21,29 @@
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
+  background: #fff;
+}
+
+/* Builder + live: never use 100vw scale — that breaks iframe device frames and leaves empty layout space.
+   Scaling is handled by ScaledArtboard (ResizeObserver → fit container width). */
+.lb-page--contained .lb-artboard {
+  max-width: none;
+}
+
+.lb-page--contained.lb-page--viewport {
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
 }
 
 .lb-layer {
   pointer-events: none;
+  user-select: none;
+  background-color: transparent;
+}
+
+.lb-layer.lb-layer--editable {
+  pointer-events: auto;
   user-select: none;
 }
 
@@ -32,9 +51,11 @@
   display: block;
   width: 100%;
   height: auto;
+  background: transparent;
 }
 
 .lb-shape {
+  background-color: transparent;
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -43,12 +64,18 @@
 .lb-splash {
   position: fixed;
   inset: 0;
-  z-index: 100005;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #fff;
   transition: opacity 0.8s ease;
+}
+
+/* Builder preview: keep splash inside the site canvas */
+.lb-splash.lb-splash--contained {
+  position: absolute;
+  z-index: 40;
 }
 
 .lb-splash.lb-splash--hide {
@@ -71,18 +98,15 @@
   top: 0;
   height: 100vh;
   overflow: hidden;
-}
-
-.lb-scroll-pin .lb-artboard {
-  top: 50%;
-  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
 }
 
 .lb-text-steelfish {
-  font-family: "Steelfish", Arial, sans-serif;
+  font-family: var(--lb-display-font, "Steelfish", Arial, sans-serif);
   font-weight: 600;
   line-height: 1.55;
-  color: #e9006b;
+  color: var(--lb-accent, #e9006b);
   white-space: pre-wrap;
 }
 
@@ -91,21 +115,15 @@
   transform-origin: center center;
 }
 
-@media (max-width: 1199px) {
-  .lb-artboard {
-    transform: scale(calc(100vw / 1200));
-    transform-origin: top center;
-  }
+.lb-viewport-hero {
+  min-height: 0;
+  width: 100%;
 }
 
 .lb-page--viewport {
   min-height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-}
-
-.lb-viewport-hero {
-  min-height: min(100vh, 900px);
 }
 
 @media (prefers-reduced-motion: reduce) {

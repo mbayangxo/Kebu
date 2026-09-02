@@ -9,7 +9,7 @@ describe("portfolio sites", () => {
     expect(PORTFOLIO_SITES.map((s) => s.key)).toEqual(["maylecor", "kdirection"]);
   });
 
-  it("marks descriptions as owner portfolio for free hosting", () => {
+  it("marks descriptions as owner portfolio sites", () => {
     for (const site of PORTFOLIO_SITES) {
       expect(isOwnerPortfolioDescription(site.description)).toBe(true);
     }

@@ -28,6 +28,8 @@ export const YANDE_SUGGESTIONS_IMPROVE = [
   "Add a WhatsApp call-to-action on every page",
   "Use warmer, more confident language",
   "Highlight our best products above the fold",
+  "Keep the Wix K-Direction look — only improve the mission and social link labels",
+  "Rewrite Artist / Events / News page copy in plain language",
 ] as const;
 
 /** Curated section types for the editor — not every internal type at once. */

@@ -108,5 +108,11 @@ select * from (
       select 1 from public.builder_schema_meta
       where key = 'website_builder_version' and value::int >= 29
     ) then '✅ OK' else '❌ MISSING — run 029 (see VERIFY_SECTION_TYPES.sql if constraint fails)' end
+  union all
+  select 'kdirection section types (031)',
+    case when exists (
+      select 1 from public.builder_schema_meta
+      where key = 'website_builder_version' and value::int >= 31
+    ) then '✅ OK' else '❌ MISSING — run 031_kdirection_section_types.sql or FIX_SECTION_TYPES_031.sql' end
 ) checks
 order by object;

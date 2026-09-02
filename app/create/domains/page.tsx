@@ -61,8 +61,9 @@ export default function KebuDomainsPage() {
             Your domain, inside Kebu
           </h1>
           <p className="text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-            Search a name, connect one you already bought, or attach it to a site — all without leaving Kebu. No Vercel.
-            No Supabase. SSL included.
+            Search a name, connect one you already own, or attach it to a site. Connecting a domain you own works today
+            (DNS + HTTPS). Buying a new domain inside Kebu checkout is still rolling out — names are often about $5+/year
+            at a registrar.
           </p>
         </div>
 
@@ -95,11 +96,12 @@ export default function KebuDomainsPage() {
               </p>
               {result.available === true ? (
                 <p className="mt-3 text-xs">
-                  Domain purchase checkout in Kebu is rolling out — for now buy at any registrar, then connect in{" "}
+                  Domain purchase checkout in Kebu is not live yet (~$5+/year at most registrars). Buy the name
+                  elsewhere, then connect it in{" "}
                   <Link href="/create/sites" className="font-bold underline" style={{ color: KEBU.orange }}>
                     My sites → Domain &amp; SEO
                   </Link>
-                  .
+                  . Connecting + HTTPS on Kebu is what works end-to-end today.
                 </p>
               ) : null}
             </div>

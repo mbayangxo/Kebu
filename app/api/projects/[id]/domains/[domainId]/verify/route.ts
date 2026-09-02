@@ -86,7 +86,10 @@ export async function POST(_req: Request, { params }: Params) {
     console.warn("[domains.verify] hosting provision", hosting.opsHint);
   }
   if (check.ok) {
-    sslNote = hosting.detail;
+    sslNote = hosting.ok
+      ? hosting.detail
+      : hosting.detail ||
+        "DNS is correct, but hosting is not attached yet — the custom domain may still show an error until this finishes.";
   } else if (hosting.ok) {
     sslNote = "Kebu prepared HTTPS. Finish DNS (CNAME www → cname.vercel-dns.com), then Verify again.";
   }
@@ -95,8 +98,9 @@ export async function POST(_req: Request, { params }: Params) {
     domain: updated,
     ok: check.ok,
     detail: check.detail,
-    liveUrl: check.ok ? `https://www.${domain.hostname}` : null,
+    liveUrl: check.ok && hosting.ok ? `https://www.${domain.hostname}` : check.ok ? null : null,
     sslNote,
+    hostingOk: hosting.ok,
     hostingAutoSsl: hostingDomainAutoProvisionEnabled(),
     instructions: check.ok ? null : buildDnsInstructions(subdomain, domain.hostname),
   });

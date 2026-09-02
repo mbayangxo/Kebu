@@ -47,7 +47,7 @@ export function DomainConnectWizard({
   const [open, setOpen] = useState(true);
   const target = customDomainDnsTarget(subdomain || "site");
   const typed = normalizeHostname(customDomainInput);
-  const exampleHost = typed || domains[0]?.hostname || "kdirection.com";
+  const exampleHost = typed || domains[0]?.hostname || "k-direction.com";
   const fullLiveUrl =
     livePath && appOrigin ? `${appOrigin.replace(/\/$/, "")}${livePath}` : livePath;
 
@@ -84,7 +84,7 @@ export function DomainConnectWizard({
             {siteTitle ? `${siteTitle}` : "Your domain"}
           </p>
           <p className="text-[11px] mt-1" style={{ color: "#6B5B45" }}>
-            Enter the domain you bought for <strong>this</strong> site (e.g. kdirection.com). Each site gets its own
+            Enter the domain you bought for <strong>this</strong> site (e.g. k-direction.com). Each site gets its own
             domain. You only edit DNS at your registrar — Kebu turns on HTTPS automatically.
           </p>
         </div>
@@ -100,7 +100,7 @@ export function DomainConnectWizard({
 
       {!subdomain.trim() ? (
         <p className="text-[11px] rounded-lg px-3 py-2" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
-          Set a Kebu site address (subdomain) above first — e.g. <strong>kdirection</strong> — then connect the domain.
+          Set a Kebu site address (subdomain) above first — e.g. <strong>k-direction</strong> — then connect the domain.
         </p>
       ) : null}
 
@@ -114,7 +114,7 @@ export function DomainConnectWizard({
             style={{ border: `2px solid ${KEBU.black}`, background: KEBU.white }}
             value={customDomainInput}
             onChange={(e) => onDomainInputChange(e.target.value.toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, ""))}
-            placeholder="kdirection.com"
+            placeholder="k-direction.com"
             autoComplete="off"
             spellCheck={false}
             disabled={busy || !subdomain.trim()}
@@ -131,7 +131,7 @@ export function DomainConnectWizard({
           </button>
         </div>
         <p className="text-[10px] mt-1.5" style={{ color: KEBU.muted }}>
-          Example: <strong>kdirection.com</strong> or <strong>maylecor.com</strong> — not www, not a path.
+          Example: <strong>k-direction.com</strong> or <strong>maylecor.com</strong> — not www, not a path.
         </p>
       </label>
 
@@ -171,9 +171,21 @@ export function DomainConnectWizard({
                       d.status === "verified" ? "#009E40" : d.status === "failed" ? "#8B1E1E" : "#8A8578",
                   }}
                 >
-                  · {d.status}
+                  ·{" "}
+                  {d.status === "verified"
+                    ? "DNS OK"
+                    : d.status === "failed"
+                      ? "DNS failed"
+                      : d.status}
                 </span>
               </p>
+              {d.status === "verified" ? (
+                <p className="mt-1 leading-relaxed" style={{ color: "#6B5B45" }}>
+                  DNS points at Kebu. If the website still shows an error (404 / DEPLOYMENT_NOT_FOUND) or an old
+                  site, hosting is not finished — tap <strong>Verify DNS</strong> again, or wait for Kebu to attach
+                  HTTPS. Use <strong>https://www.{d.hostname}</strong> (with www).
+                </p>
+              ) : null}
               <p className="mt-1 font-mono text-[10px]" style={{ color: "#5C5348" }}>
                 CNAME www → <strong style={{ color: KEBU.orange }}>{target}</strong>
               </p>

@@ -1,43 +1,60 @@
 import { z } from "zod";
-import { MAYLECOR_SOCIAL_DEFAULTS, MAYLECOR_WIX } from "./maylecor-defaults";
-import { LEGALLY_BLONDE_ASSETS } from "./legally-blonde-defaults";
+import { MAYLECOR_SOCIAL_DEFAULTS } from "./maylecor-defaults";
+import { LEGALLY_BLONDE_ASSETS, defaultLegallyBlondeHeroProps } from "./legally-blonde-defaults";
 
-/** May Lecor portfolio — ksendr motion layout with May photos (not Russian placeholder art). */
+/**
+ * May Lecor portfolio hero = exact ksendrdesign.ru/legallyblonderu Tilda layout
+ * (background, cutouts, Steelfish, spin logo, scroll parallax). Swap photos in the editor.
+ */
 export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
+  const russian = defaultLegallyBlondeHeroProps();
   return {
+    ...russian,
     title: artistName,
     subtitle:
       "New music, live shows, and visuals — stream on Spotify, Apple Music, and SoundCloud.",
     brandLabel: artistName,
-    backgroundLayer: MAYLECOR_WIX.backgroundBlur,
-    titleLogo: MAYLECOR_WIX.logoSmall,
-    cutoutLeft: MAYLECOR_WIX.bottomLeft,
-    cutoutRight: MAYLECOR_WIX.bottomRight,
-    cutoutAccent: MAYLECOR_WIX.portraitMain,
-    cutoutSparkle: MAYLECOR_WIX.logoBanner,
-    macbook: MAYLECOR_WIX.albumArt,
+    // Exact Russian cutouts / bg / logo / macbook — do not substitute rectangular Wix photos.
+    backgroundLayer: LEGALLY_BLONDE_ASSETS.backgroundLayer,
+    titleLogo: LEGALLY_BLONDE_ASSETS.titleLogo,
+    cutoutLeft: LEGALLY_BLONDE_ASSETS.cutoutLeft,
+    cutoutRight: LEGALLY_BLONDE_ASSETS.cutoutRight,
+    cutoutAccent: LEGALLY_BLONDE_ASSETS.cutoutAccent,
+    cutoutSparkle: LEGALLY_BLONDE_ASSETS.cutoutSparkle,
+    macbook: LEGALLY_BLONDE_ASSETS.macbook,
     sparkleGif: LEGALLY_BLONDE_ASSETS.sparkleGif,
-    heroPhoto: MAYLECOR_WIX.collageTop,
+    heroPhoto: LEGALLY_BLONDE_ASSETS.heroPhoto,
     accentColor: "#E9006B",
+    displayFont: "Steelfish",
     motionEnabled: true,
     showExtras: false,
-    scrollMode: "viewport" as const,
+    appearance: "light" as const,
+    /** Full Russian scroll scene (not one-screen crop). */
+    scrollMode: "parallax" as const,
     socialLinks: MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s })),
+    socialRailVisible: true,
+    socialRailBg: "rgba(0,0,0,0.85)",
+    socialRailLeftPct: 0,
+    socialRailTopPct: 12,
+    socialRailIconSize: 40,
+    layerMoves: {},
+    extraCutouts: [],
   };
 }
 
+/** True when hero still has the old Wix-photo substitution (not custom uploads). */
+export function maylecorHeroNeedsRussianRestore(props: Record<string, unknown>): boolean {
+  const val = (key: string) => String(props[key] ?? "");
+  const cutouts = [val("cutoutLeft"), val("cutoutRight"), val("cutoutAccent"), val("backgroundLayer")];
+  // Previous broken defaults used rectangular Wix photos instead of Tilda cutouts.
+  const looksLikeOldWixSwap = cutouts.some((v) => v.includes("wixstatic.com"));
+  const empty = cutouts.every((v) => !v.trim());
+  return looksLikeOldWixSwap || empty;
+}
+
+/** @deprecated use maylecorHeroNeedsRussianRestore — kept for older tests/call sites */
 export function maylecorHeroUsesPlaceholderAssets(props: Record<string, unknown>): boolean {
-  const check = (key: string) => {
-    const v = String(props[key] ?? "");
-    return v.includes("tildacdn.com") || v.includes("legallyblonde") || v.includes("ksendrdesign");
-  };
-  return (
-    check("backgroundLayer") ||
-    check("cutoutLeft") ||
-    check("cutoutRight") ||
-    check("cutoutAccent") ||
-    check("titleLogo")
-  );
+  return maylecorHeroNeedsRussianRestore(props);
 }
 
 export const maylecorKsendrPropsSchema = z.object({
@@ -54,6 +71,7 @@ export const maylecorKsendrPropsSchema = z.object({
   sparkleGif: z.string().optional(),
   heroPhoto: z.string(),
   accentColor: z.string(),
+  displayFont: z.string().optional().default("Steelfish"),
   motionEnabled: z.boolean(),
   showExtras: z.boolean().optional().default(false),
   navLinks: z
@@ -62,6 +80,30 @@ export const maylecorKsendrPropsSchema = z.object({
     .default([]),
   socialLinks: z
     .array(z.object({ label: z.string(), iconUrl: z.string(), href: z.string() }))
+    .optional()
+    .default([]),
+  socialRailVisible: z.boolean().optional().default(true),
+  socialRailBg: z.string().optional().default("rgba(0,0,0,0.85)"),
+  socialRailLeftPct: z.number().optional().default(0),
+  socialRailTopPct: z.number().optional().default(12),
+  socialRailIconSize: z.number().optional().default(40),
+  layerMoves: z
+    .record(z.string(), z.object({ dx: z.number(), dy: z.number() }))
+    .optional()
+    .default({}),
+  extraCutouts: z
+    .array(
+      z.object({
+        id: z.string(),
+        src: z.string(),
+        alt: z.string().optional(),
+        topPct: z.number(),
+        leftPct: z.number(),
+        widthPct: z.number(),
+        rotate: z.number().optional(),
+        zIndex: z.number().optional(),
+      }),
+    )
     .optional()
     .default([]),
   ctaLabel: z.string().optional(),

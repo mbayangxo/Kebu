@@ -20,7 +20,7 @@ export default async function SiteSettingsPage({ params }: Props) {
     return (
       <AppShell title="Site settings">
         <div className="max-w-lg mx-auto px-6 py-16 text-center">
-          <p className="mb-4">Sign in to manage your site domain and SEO.</p>
+          <p className="mb-4">Sign in to manage domain and SEO for this site.</p>
           <Link href={`/login?next=/create/sites/${id}`} className="font-bold underline" style={{ color: KEBU.orange }}>
             Sign in
           </Link>
@@ -52,9 +52,6 @@ export default async function SiteSettingsPage({ params }: Props) {
   return (
     <AppShell title={project.title ?? "Site settings"}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        <Link href="/create/sites" className="text-xs font-bold uppercase tracking-wider mb-6 inline-block" style={{ color: KEBU.orange }}>
-          ← My sites
-        </Link>
         <SiteDomainSeoPanel projectId={project.id} />
       </div>
     </AppShell>

@@ -29,9 +29,9 @@ export const SITE_ASSET_SPECS = {
   },
   section: {
     label: "Image",
-    hint: "JPG or PNG — keep under 2 MB for fast loading on mobile.",
+    hint: "JPG or transparent PNG cutout — keep under 5 MB for fast loading on mobile.",
     accept: "image/png,image/jpeg,image/webp",
-    maxBytes: 2_000_000,
+    maxBytes: 5_000_000,
     storageKind: "image" as const,
   },
   audio: {

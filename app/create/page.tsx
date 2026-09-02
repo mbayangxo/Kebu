@@ -76,36 +76,36 @@ export default function CreateHubPage() {
       if (res.ok && data.allowed === true) {
         setPortfolioAllowed(true);
         let sites: PortfolioSiteRow[] = Array.isArray(data.sites) ? data.sites : [];
-        const needsCreate = sites.some((s) => !s.projectId);
-        if (needsCreate) {
-          const postRes = await fetch("/api/projects/ensure-portfolio", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: "{}",
-          });
-          const postData = await postRes.json().catch(() => ({}));
-          if (postRes.ok && Array.isArray(postData.sites)) {
-            sites = postData.sites;
-            if (postData.errors?.length) {
-              setPortfolioNote(
-                `Some sites need attention: ${postData.errors.map((e: { key: string; error: string }) => `${e.key}: ${e.error}`).join(" · ")}`,
-              );
-            } else {
-              setPortfolioNote("May Lecor and K-Direction are ready — open the editor to connect your domain.");
-            }
-            await load();
-          } else if (typeof postData.error === "string") {
+        // Always POST so existing May/K-Direction projects get template upgrades (Wix canvas, ksendr).
+        const postRes = await fetch("/api/projects/ensure-portfolio", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        const postData = await postRes.json().catch(() => ({}));
+        if (postRes.ok && Array.isArray(postData.sites)) {
+          sites = postData.sites;
+          if (postData.errors?.length) {
             setPortfolioNote(
-              postData.detail ? `${postData.error} (${postData.detail})` : postData.error,
+              `Some sites need attention: ${postData.errors.map((e: { key: string; error: string }) => `${e.key}: ${e.error}`).join(" · ")}`,
+            );
+          } else {
+            setPortfolioNote(
+              "May Lecor and K-Direction are ready — edit in the builder (drag photos, upload cutouts), then connect domain from My sites.",
             );
           }
+          await load();
+        } else if (typeof postData.error === "string") {
+          setPortfolioNote(
+            postData.detail ? `${postData.error} (${postData.detail})` : postData.error,
+          );
         } else if (data.autoEnsured) {
           setPortfolioNote("May Lecor and K-Direction are in My sites.");
           await load();
         }
         setPortfolioSites(sites);
-        if (typeof data.error === "string" && !needsCreate) {
+        if (typeof data.error === "string") {
           setPortfolioNote(
             data.detail ? `${data.error} (${data.detail})` : data.error,
           );
@@ -303,6 +303,28 @@ export default function CreateHubPage() {
           ))}
         </section>
 
+        <section className="mb-8 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
+              Website builder
+            </h2>
+            <p className="text-xs mt-1" style={{ color: "#6B5B45" }}>
+              Sites and design live here. Selling is separate in{" "}
+              <Link href="/shop" className="font-bold underline" style={{ color: "#FF5500" }}>
+                Kebu Shop
+              </Link>
+              .
+            </p>
+          </div>
+          <Link
+            href="/shop"
+            className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
+            style={{ background: "#FF5500" }}
+          >
+            Open Shop
+          </Link>
+        </section>
+
         <section className="mb-8">
           {portfolioBusy ? (
             <p className="text-sm mb-3" style={{ color: "#5C5348" }}>
@@ -377,7 +399,7 @@ export default function CreateHubPage() {
             My businesses
           </Link>
           {" · "}
-          Live hosting $4/month via JOKO when you publish
+          Live hosting $3/month or $27/year via JOKO when you publish
         </p>
       </main>
     </AppShell>

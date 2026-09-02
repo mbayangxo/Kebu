@@ -1,16 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
 import { useKebuUser } from "@/app/hooks/use-kebu-user";
 import { displayFirstName } from "@/lib/account/user-profile";
+import { createClient } from "@/lib/supabase/client";
 
-/** Sidebar footer — signed-in greeting + auth links when logged out. */
+/** Sidebar footer — signed-in greeting + Sign out (or auth links when logged out). */
 export function KebuSidebarAuthFooter({ variant = "light" }: { variant?: "light" | "dark" }) {
   const { profile, loading } = useKebuUser();
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+  const [signingOut, setSigningOut] = useState(false);
   const dark = variant === "dark";
   const border = dark ? "rgba(255,85,0,0.25)" : KEBU.border;
   const muted = dark ? "rgba(255,255,255,0.55)" : KEBU.muted;
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await supabase.auth.signOut();
+    setSigningOut(false);
+    router.push("/");
+    router.refresh();
+  }
 
   if (loading) {
     return (
@@ -56,6 +70,19 @@ export function KebuSidebarAuthFooter({ variant = "light" }: { variant?: "light"
             ) : null}
           </span>
         </Link>
+        <button
+          type="button"
+          disabled={signingOut}
+          onClick={() => void handleSignOut()}
+          className="w-full rounded-full py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+          style={{
+            border: `1px solid ${dark ? "rgba(255,255,255,0.25)" : KEBU.border}`,
+            color: dark ? KEBU.white : KEBU.black,
+            background: dark ? "rgba(255,255,255,0.06)" : KEBU.white,
+          }}
+        >
+          {signingOut ? "Signing out…" : "Sign out"}
+        </button>
       </div>
     );
   }

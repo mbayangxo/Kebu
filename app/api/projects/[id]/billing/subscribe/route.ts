@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
-/** Start JOKO mobile-money checkout for $4/month site hosting. */
+/** Start JOKO mobile-money checkout for site hosting ($3/month or yearly). */
 export async function POST(_req: Request, { params }: Params) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;

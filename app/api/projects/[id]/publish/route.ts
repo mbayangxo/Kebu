@@ -4,6 +4,7 @@ import { projectHasLiveHosting } from "@/lib/billing/subscriptions";
 import { SITE_HOSTING_BILLING_LABEL, SITE_HOSTING_DESCRIPTION } from "@/lib/billing/pricing";
 import { goLiveWebsiteProject } from "@/lib/create/go-live";
 import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration";
 import { z } from "zod";
 
@@ -26,6 +27,9 @@ const publishSchema = z.object({
 export async function POST(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
+
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
 
   const auth = await requireUser();
   if ("error" in auth) return auth.error;

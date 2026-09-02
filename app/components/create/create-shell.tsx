@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BackLink } from "@/app/components/back-link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KEBU } from "@/lib/kebu-brand";
 
@@ -10,7 +11,7 @@ const STEPS: { id: CreateJourneyStep; label: string }[] = [
   { id: "start", label: "Start" },
   { id: "edit", label: "Edit" },
   { id: "preview", label: "Preview" },
-  { id: "live", label: "Publish" },
+  { id: "live", label: "Live" },
 ];
 
 export function CreateShell({
@@ -23,6 +24,7 @@ export function CreateShell({
   step: CreateJourneyStep;
   projectId?: string;
   title?: string;
+  /** Used when the browser has no history (e.g. opened in a new tab). */
   backHref?: string;
   actions?: React.ReactNode;
 }) {
@@ -35,11 +37,13 @@ export function CreateShell({
         style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange}, ${KEBU.orangeLight})` }}
       />
       <div
-        className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        className="max-w-[1600px] mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         style={{ borderBottom: `1px solid ${KEBU.border}` }}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <Link href={backHref} className="flex items-center gap-2 shrink-0" style={{ color: KEBU.black }}>
+          <BackLink fallbackHref={backHref} label="Back" variant="strong" />
+          <span className="h-4 w-px shrink-0" style={{ background: KEBU.border }} aria-hidden />
+          <Link href="/create" className="flex items-center gap-2 shrink-0 min-w-0" style={{ color: KEBU.black }}>
             <KebuMark size={26} />
             <span className="font-bold tracking-[0.12em] text-xs sm:text-sm truncate">{title}</span>
           </Link>

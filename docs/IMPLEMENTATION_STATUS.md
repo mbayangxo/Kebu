@@ -29,8 +29,10 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Kebu Builder — publish & hosting | **IN PROGRESS** | Subdomain publish; billing/JOKO slice local |
 | Kebu Builder — custom domains | **IN PROGRESS** | API + UI + middleware + tests; migration **015**; DNS target `cname.vercel-dns.com` (accepts `*.vercel.app`); repair **030**; **must deploy latest code** for verify to stop expecting `*.kebu.africa` |
 | Kebu Builder — pages CRUD | **IN PROGRESS** | API exists; full DoD not verified |
-| Kebu Builder — SEO/settings | **IN PROGRESS** | Settings API + editor; migration 013 |
-| Kebu Builder — stores/commerce | **IN PROGRESS** | Store APIs exist; not unified with builder business ID |
+| Kebu Builder — SEO/settings | **IN PROGRESS** | Advanced SEO: JSON-LD, auto description, sitemap.xml/robots.txt routes, Search Console field; Domain & SEO panel outside editor |
+| Support desk (help with user sites) | **IN PROGRESS** | `/support` + `KEBU_SUPPORT_ADMIN_EMAILS`; audited open/edit via service role on project GET/sections/assets |
+| Kebu Builder — stores/commerce | **IN PROGRESS** | Shop UI moved out of builder → `/shop` (Shopify-style). Catalog API = `project_products`. Legacy `/store/*` generate path still exists; checkout E2E not complete |
+| Kebu Shop (merchant admin) | **IN PROGRESS** | `/shop` hub + `/shop/[projectId]` catalog; not inside site editor |
 | Kebu Builder ↔ Kebu ID link | **IMPLEMENTED** | `business_id` on projects; dashboard shows sites; publish syncs website URL |
 | Kebu Business Infrastructure — Kebu ID | **TESTED** | Draft create + dashboard + security tests |
 | Kebu Business Infrastructure — Registration | **IMPLEMENTED** | Tracker + documents; gov steps blocked honestly |
@@ -60,7 +62,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | AI generate | **IN PROGRESS** | `lib/create/ai-generate.ts` |
 | Undo/redo | **IMPLEMENTED** | Client-only history |
 | Multi-page sites | **IN PROGRESS** | `/api/projects/[id]/pages` |
-| Templates (May Lecor, Legally Blonde, catalog) | **IN PROGRESS** | `lib/create/template-*` |
+| Templates (May Lecor ksendr + K-Direction Wix canvas) | **TESTED** | Russian cutouts hosted locally (transparent PNGs on pink bg — no black Tilda CDN boxes); click→upload/swap/drag; Media/nav/social; run `FIX_SECTION_TYPES_031.sql` |
 | Preview | **IN PROGRESS** | `/create/[id]/preview` |
 | Link project to Kebu ID business | **IMPLEMENTED** | `business_id` required on create; `/create/new?businessId=` |
 
@@ -190,7 +192,8 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | System | Status |
 |--------|--------|
 | Authentication (Supabase) | **TESTED** |
-| API rate limiting | **IN PROGRESS** | `lib/api-guard.ts` |
+| API rate limiting | **IN PROGRESS** | `lib/api-guard.ts` — builder/AI/public + **auth** (admin login) |
+| Platform hardening (anti-abuse) | **IN PROGRESS** | Signed admin session cookie; HSTS; `/shop`+`/support` auth gate; same-origin on publish/sections; XSS block on section save |
 | RLS on core tables | **IN PROGRESS** |
 | Audit logs (business) | **IMPLEMENTED** |
 | Billing core | **IN PROGRESS** |

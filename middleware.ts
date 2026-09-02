@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { resolveSubdomainForCustomHost } from "@/lib/create/resolve-custom-domain";
-
-const ADMIN_COOKIE = "alkebulan-admin";
+import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/admin/admin-session";
 
 const MAIN_HOSTS = new Set([
   "alkebulan.com",
@@ -22,8 +21,10 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
     "Content-Security-Policy",
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
   );
-  // HTML / app navigations through middleware — never browser-cache pages.
   response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  }
   return response;
 }
 
@@ -100,9 +101,8 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    const cookie = request.cookies.get(ADMIN_COOKIE);
-    if (!adminPassword || !cookie || cookie.value !== adminPassword) {
+    const cookie = request.cookies.get(ADMIN_SESSION_COOKIE);
+    if (!verifyAdminSessionToken(cookie?.value)) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/login";
       url.searchParams.set("next", pathname);

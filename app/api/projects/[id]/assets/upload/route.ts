@@ -6,6 +6,10 @@ import {
   guessContentType,
   type SiteAssetKind,
 } from "@/lib/create/site-asset-upload";
+import {
+  assertProjectEditorAccess,
+  dbForProjectAccess,
+} from "@/lib/create/project-access";
 
 export const dynamic = "force-dynamic";
 
@@ -34,16 +38,17 @@ export async function POST(req: Request, { params }: Params) {
   const { supabase, user } = auth;
   const { id: projectId } = await params;
 
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (!project) {
+  const access = await assertProjectEditorAccess(supabase, {
+    userId: user.id,
+    email: user.email,
+    projectId,
+    action: "asset.upload",
+  });
+  if (!access) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
+  const db = dbForProjectAccess(supabase, access.via);
+  const ownerId = access.project.owner_id;
 
   let form: FormData;
   try {
@@ -71,11 +76,11 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   const safeExt = safeExtForKind(kind as SiteAssetKind, file.name);
-  const objectPath = `${user.id}/${projectId}/${kind}-${Date.now()}.${safeExt}`;
+  const objectPath = `${ownerId}/${projectId}/${kind}-${Date.now()}.${safeExt}`;
   const contentType = guessContentType(file);
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: uploadErr } = await supabase.storage.from("site-assets").upload(objectPath, buffer, {
+  const { error: uploadErr } = await db.storage.from("site-assets").upload(objectPath, buffer, {
     contentType,
     upsert: false,
   });
@@ -94,16 +99,22 @@ export async function POST(req: Request, { params }: Params) {
     );
   }
 
-  const { data: publicUrl } = supabase.storage.from("site-assets").getPublicUrl(objectPath);
+  const { data: publicUrl } = db.storage.from("site-assets").getPublicUrl(objectPath);
 
-  await supabase.from("website_assets").insert({
+  await db.from("website_assets").insert({
     project_id: projectId,
     kind: spec.storageKind,
     url: publicUrl.publicUrl,
     created_by: user.id,
   });
 
-  logCreate("website.asset_uploaded", { userId: user.id, projectId, kind, storageKind: spec.storageKind });
+  logCreate("website.asset_uploaded", {
+    userId: user.id,
+    projectId,
+    kind,
+    storageKind: spec.storageKind,
+    via: access.via,
+  });
 
   return NextResponse.json({
     url: publicUrl.publicUrl,

@@ -2,8 +2,11 @@ import Link from "next/link";
 import { KebuMarketingPageShell } from "@/app/components/landing/kebu-marketing-chrome";
 import {
   BUSINESS_EMAIL_YEARLY_LABEL,
+  KEBU_DOMAIN_DESCRIPTION,
+  KEBU_DOMAIN_YEARLY_LABEL,
   SITE_HOSTING_BILLING_LABEL,
   SITE_HOSTING_DESCRIPTION,
+  SITE_HOSTING_YEARLY_BILLING_LABEL,
 } from "@/lib/billing/pricing";
 import { KEBU } from "@/lib/kebu-brand";
 
@@ -23,11 +26,11 @@ export default function PricingPage() {
           className="text-4xl lg:text-5xl font-bold mb-4"
           style={{ fontFamily: "var(--font-fraunces)" }}
         >
-          Start free. Pay when you go live.
+          Build free. Pay when your site goes live.
         </h1>
         <p className="text-base leading-relaxed mb-12" style={{ color: KEBU.muted }}>
-          Build your site, edit templates, and explore Opportunity OS at no cost. Hosting is billed only when you publish
-          a live site.
+          Editing and templates are free. Live hosting is {SITE_HOSTING_BILLING_LABEL} or{" "}
+          {SITE_HOSTING_YEARLY_BILLING_LABEL}. Domains are separate — typically {KEBU_DOMAIN_YEARLY_LABEL}.
         </p>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -63,12 +66,13 @@ export default function PricingPage() {
             <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: KEBU.orange }}>
               Live hosting
             </p>
-            <p className="text-3xl font-black mb-2">{SITE_HOSTING_BILLING_LABEL}</p>
+            <p className="text-3xl font-black mb-1">{SITE_HOSTING_BILLING_LABEL}</p>
+            <p className="text-lg font-bold mb-4 opacity-90">or {SITE_HOSTING_YEARLY_BILLING_LABEL}</p>
             <p className="text-sm mb-6 opacity-80">{SITE_HOSTING_DESCRIPTION}</p>
             <ul className="text-sm space-y-2 mb-8 opacity-80">
-              <li>· Published on Kebu (Vercel app host)</li>
-              <li>· Optional custom domain (when connected)</li>
-              <li>· Pay with supported mobile money via JOKO</li>
+              <li>· Published on Kebu</li>
+              <li>· Connect your own domain (HTTPS)</li>
+              <li>· Pay with mobile money via JOKO</li>
             </ul>
             <Link
               href="/create/sites"
@@ -78,6 +82,19 @@ export default function PricingPage() {
               My sites
             </Link>
           </div>
+        </div>
+
+        <div
+          className="mt-6 rounded-2xl p-8"
+          style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+        >
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: KEBU.orange }}>
+            Domains
+          </p>
+          <p className="text-2xl font-black mb-2">{KEBU_DOMAIN_YEARLY_LABEL}</p>
+          <p className="text-sm" style={{ color: KEBU.muted }}>
+            {KEBU_DOMAIN_DESCRIPTION}
+          </p>
         </div>
 
         <p className="text-xs mt-10" style={{ color: KEBU.faint }}>

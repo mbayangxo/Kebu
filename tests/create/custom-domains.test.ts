@@ -58,6 +58,15 @@ describe("custom domains", () => {
     );
   });
 
+  it("explains when www points at apex instead of Kebu", () => {
+    expect(formatDnsMismatchDetail(["kdirection.com."], "cname.vercel-dns.com")).toMatch(
+      /not Kebu/i,
+    );
+    expect(formatDnsMismatchDetail(["kdirection.com."], "cname.vercel-dns.com")).toMatch(
+      /cname\.vercel-dns\.com/i,
+    );
+  });
+
   it("treats Vercel deployment CNAME as valid in mismatch copy", () => {
     expect(
       formatDnsMismatchDetail(

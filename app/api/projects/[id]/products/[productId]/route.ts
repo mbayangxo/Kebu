@@ -70,6 +70,8 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   await recalculateReadinessForProject(supabase, projectId);
+  const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
+  await syncCatalogToProductsSections(supabase, projectId);
   return NextResponse.json({ product });
 }
 
@@ -101,6 +103,8 @@ export async function DELETE(_req: Request, { params }: Params) {
   }
 
   await recalculateReadinessForProject(supabase, projectId);
+  const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
+  await syncCatalogToProductsSections(supabase, projectId);
   logCreate("products.deleted", { userId: user.id, projectId, productId });
   return NextResponse.json({ ok: true });
 }

@@ -25,12 +25,15 @@ export function MaylecorMotionChrome({
   titleLogo,
   currentSlug = "home",
   accentColor = PINK,
+  contained = false,
 }: {
   siteBase: string;
   brandLabel: string;
   titleLogo?: string;
   currentSlug?: string;
   accentColor?: string;
+  /** Builder preview — stay inside the site, do not cover editor chrome */
+  contained?: boolean;
 }) {
   const [locale, setLocale] = useState<MaylecorLocale>("en");
   const [open, setOpen] = useState(false);
@@ -52,7 +55,9 @@ export function MaylecorMotionChrome({
 
   return (
     <header
-      className="sticky top-0 z-[100010] border-b border-black/10 bg-white/92 backdrop-blur-md"
+      className={`sticky top-0 border-b border-black/10 bg-white/92 backdrop-blur-md ${
+        contained ? "relative z-20" : "z-30"
+      }`}
       style={{ color: "#111" }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">

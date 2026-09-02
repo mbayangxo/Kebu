@@ -70,6 +70,7 @@ function ProjectPreviewInner() {
         step="preview"
         projectId={id}
         title="Preview"
+        backHref={`/create/${id}`}
         actions={
           <>
             {pages.length > 1 &&

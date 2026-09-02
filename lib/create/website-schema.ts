@@ -23,6 +23,8 @@ export const SECTION_TYPES = [
   "maylecor-home",
   "maylecor-music",
   "legally-blonde-hero",
+  "kdirection-home",
+  "kdirection-page",
 ] as const;
 
 export const sectionTypeSchema = z.enum(SECTION_TYPES);
@@ -57,12 +59,12 @@ const safeHref = z
 
 const imageUrl = z.union([
   z.literal(""),
-  z.string().trim().url().max(500),
+  z.string().trim().url().max(2000),
   // Same-origin public assets (e.g. /templates/maylecor/portrait.jpg)
   z
     .string()
     .trim()
-    .max(500)
+    .max(2000)
     .regex(/^\/[a-zA-Z0-9._\-/]+$/, "Invalid image path"),
 ]);
 
@@ -74,8 +76,17 @@ const socialLinksSchema = z
       href: safeHref,
     }),
   )
-  .max(8)
+  .max(12)
   .default([]);
+
+/** Side social rail placement — absolute inside the site, never viewport-fixed over the builder. */
+const socialRailFields = {
+  socialRailVisible: z.boolean().optional().default(true),
+  socialRailBg: z.string().trim().max(80).optional().default("rgba(0,0,0,0.85)"),
+  socialRailLeftPct: z.number().min(0).max(95).optional().default(0),
+  socialRailTopPct: z.number().min(0).max(95).optional().default(12),
+  socialRailIconSize: z.number().min(16).max(80).optional().default(40),
+};
 
 export const sectionPropsSchemas = {
   navigation: z.object({
@@ -255,6 +266,7 @@ export const sectionPropsSchemas = {
     musicPageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(40).default("music"),
     homeLogoHref: safeHref.default("#top"),
     socialLinks: socialLinksSchema,
+    ...socialRailFields,
     motionEnabled: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
   }),
@@ -263,6 +275,7 @@ export const sectionPropsSchemas = {
     albumArt: imageUrl,
     homePageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(40).default("home"),
     socialLinks: socialLinksSchema,
+    ...socialRailFields,
     motionEnabled: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
   }),
@@ -280,6 +293,8 @@ export const sectionPropsSchemas = {
     sparkleGif: imageUrl.optional().default(""),
     heroPhoto: imageUrl,
     accentColor: z.string().trim().max(40).default("#e9006b"),
+    /** Steelfish = Russian original; swap to Oswald/Bebas/etc in editor. */
+    displayFont: z.string().trim().max(80).optional().default("Steelfish"),
     motionEnabled: z.boolean().optional().default(true),
     navLinks: z
       .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
@@ -287,12 +302,128 @@ export const sectionPropsSchemas = {
       .optional()
       .default([]),
     socialLinks: socialLinksSchema.optional().default([]),
+    ...socialRailFields,
+    /** Pixel nudges for Tilda layers while editing (keyed by layer id). */
+    layerMoves: z
+      .record(z.string(), z.object({ dx: z.number().min(-800).max(800), dy: z.number().min(-800).max(800) }))
+      .optional()
+      .default({}),
+    /** Extra user cutouts on the hero artboard (drag / upload / delete). */
+    extraCutouts: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(40),
+          src: imageUrl,
+          alt: z.string().trim().max(120).optional().default(""),
+          topPct: z.number().min(-20).max(110).default(30),
+          leftPct: z.number().min(-20).max(110).default(40),
+          widthPct: z.number().min(4).max(60).default(14),
+          rotate: z.number().min(-45).max(45).optional().default(0),
+          zIndex: z.number().int().min(1).max(40).optional().default(12),
+        }),
+      )
+      .max(12)
+      .optional()
+      .default([]),
     ctaLabel: z.string().trim().max(80).optional(),
     ctaHref: safeHref.optional(),
     appearance: z.enum(["light", "dark"]).optional(),
     showExtras: z.boolean().optional().default(false),
     /** viewport = single-screen hero (nav to other pages). parallax = Russian-style scroll scene. */
     scrollMode: z.enum(["viewport", "parallax"]).optional().default("parallax"),
+    hidden: z.boolean().optional(),
+  }),
+  "kdirection-home": z.object({
+    brandLine1: z.string().trim().max(12).default("K"),
+    brandLine2: z.string().trim().max(40).default("DIRECTION"),
+    showMirrorLogo: z.boolean().optional().default(true),
+    mission: z.string().trim().max(400).default(""),
+    backgroundImage: imageUrl.optional().default(""),
+    /** Exact Wix multi-radial CSS gradient (editable). */
+    backgroundCss: z.string().trim().max(4000).optional().default(""),
+    showOverlay: z.boolean().optional().default(false),
+    overlayOpacity: z.number().min(0).max(0.9).optional().default(0),
+    gradientFrom: z.string().trim().max(40).default("#f8bcfa"),
+    gradientVia: z.string().trim().max(40).default("#c9c6ff"),
+    gradientTo: z.string().trim().max(40).default("#93c3ff"),
+    logoColor: z.string().trim().max(40).optional().default("#FFFFFF"),
+    logoMirrorColor: z.string().trim().max(40).optional().default("#F5C4B8"),
+    displayFont: z.string().trim().max(80).optional().default("Oswald"),
+    navButtonBg: z.string().trim().max(40).optional().default("#FFF86B"),
+    logoImage: imageUrl.optional().default(""),
+    showHomeIcon: z.boolean().optional().default(true),
+    showArrows: z.boolean().optional().default(true),
+    featuredArtistName: z.string().trim().max(80).default(""),
+    featuredArtistImage: imageUrl.optional().default(""),
+    featuredArtistHref: safeHref.default("/artists"),
+    newsCardLabel: z.string().trim().max(40).default("News"),
+    newsCardHref: safeHref.default("/news"),
+    brandCardLabel: z.string().trim().max(40).default("K-DIRECTION"),
+    brandCardHref: safeHref.default("/about"),
+    collagePhotos: z
+      .array(
+        z.object({
+          src: imageUrl,
+          alt: z.string().trim().max(80).optional().default(""),
+          rotate: z.number().min(-60).max(60).default(0),
+          topPct: z.number().min(-20).max(120).default(10),
+          leftPct: z.number().min(-20).max(120).default(10),
+          widthPct: z.number().min(6).max(55).default(16),
+          zIndex: z.number().int().min(1).max(50).optional().default(3),
+          /** Per-device layout overrides — edit in tablet/phone preview, publish responsively. */
+          tablet: z
+            .object({
+              rotate: z.number().min(-60).max(60).optional(),
+              topPct: z.number().min(-20).max(120).optional(),
+              leftPct: z.number().min(-20).max(120).optional(),
+              widthPct: z.number().min(6).max(55).optional(),
+              zIndex: z.number().int().min(1).max(50).optional(),
+              hidden: z.boolean().optional(),
+            })
+            .optional(),
+          mobile: z
+            .object({
+              rotate: z.number().min(-60).max(60).optional(),
+              topPct: z.number().min(-20).max(120).optional(),
+              leftPct: z.number().min(-20).max(120).optional(),
+              widthPct: z.number().min(6).max(55).optional(),
+              zIndex: z.number().int().min(1).max(50).optional(),
+              hidden: z.boolean().optional(),
+            })
+            .optional(),
+        }),
+      )
+      .max(12)
+      .optional()
+      .default([]),
+    navLinks: z
+      .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
+      .max(10)
+      .default([]),
+    socialLinks: socialLinksSchema.default([]),
+    footerText: z.string().trim().max(160).default(""),
+    motionEnabled: z.boolean().optional().default(true),
+    hidden: z.boolean().optional(),
+  }),
+  "kdirection-page": z.object({
+    title: z.string().trim().min(1).max(120),
+    subtitle: z.string().trim().max(240).optional().default(""),
+    body: z.string().trim().max(4000).default(""),
+    heroImage: imageUrl.optional().default(""),
+    backgroundImage: imageUrl.optional().default(""),
+    backgroundCss: z.string().trim().max(4000).optional().default(""),
+    showOverlay: z.boolean().optional().default(false),
+    overlayOpacity: z.number().min(0).max(0.9).optional().default(0.35),
+    displayFont: z.string().trim().max(80).optional().default("Oswald"),
+    navButtonBg: z.string().trim().max(40).optional().default("#FFF86B"),
+    ctaLabel: z.string().trim().max(80).optional().default(""),
+    ctaHref: safeHref.optional().default(""),
+    navLinks: z
+      .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
+      .max(10)
+      .default([]),
+    socialLinks: socialLinksSchema.default([]),
+    footerText: z.string().trim().max(160).default(""),
     hidden: z.boolean().optional(),
   }),
 } as const;

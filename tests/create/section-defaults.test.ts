@@ -40,8 +40,8 @@ describe("section defaults", () => {
 
   it("legally-blonde-hero defaults validate", () => {
     const props = defaultSectionProps("legally-blonde-hero");
-    expect(String((props as { titleLogo?: string }).titleLogo)).toContain("Group_557");
-    expect(String((props as { cutoutAccent?: string }).cutoutAccent)).toContain("Group_546");
+    expect(String((props as { titleLogo?: string }).titleLogo)).toContain("/templates/legally-blonde/");
+    expect(String((props as { cutoutAccent?: string }).cutoutAccent)).toContain("cutout-accent");
     const def = {
       schemaVersion: "website-v1" as const,
       title: "Test",

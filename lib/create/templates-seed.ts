@@ -3,6 +3,7 @@ import { defaultMaylecorHomeProps, defaultMaylecorMusicProps } from "./maylecor-
 import { defaultMaylecorKsendrProps } from "./maylecor-ksendr-defaults";
 import { defaultLegallyBlondeHeroProps } from "./legally-blonde-defaults";
 import { maylecorMotionSitePages } from "./maylecor-site-pages";
+import { kdirectionWixSitePages } from "./kdirection-site-pages";
 import { buildCompleteSite, templateDefaultTheme } from "./template-builders";
 
 export type TemplateSeed = {
@@ -490,12 +491,20 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     name: "May Lecor — ksendr motion layout (owner portfolio)",
     category: "music",
     description:
-      "May Lecor artist site — ksendrdesign.ru-style motion hero with May photos. Portfolio seed only.",
+      "Exact copy of ksendrdesign.ru/legallyblonderu (cutouts, Steelfish, background, scroll) — swap May photos in the editor.",
     visibility: "owner_portfolio",
     definition: {
       schemaVersion: "website-v1",
       title: "May Lecor",
-      theme: darkTheme("#E9006B"),
+      theme: {
+        primary: "#E9006B",
+        accent: "#E9006B",
+        background: "#FFFFFF",
+        text: "#111111",
+        fontDisplay: "Steelfish",
+        fontBody: "system-ui",
+        spacing: "comfortable" as const,
+      },
       pages: [
         {
           slug: "home",
@@ -1311,80 +1320,33 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "agency-kdirection",
-    name: "K-Direction (owner portfolio — not a public template)",
+    name: "K-Direction (owner portfolio — Wix layout)",
     category: "agency",
     description:
-      "Personal K-Direction Artistry label site — created only on the owner account via portfolio seed, not offered as a shared demo.",
+      "Exact Wix home from kdirectionartistry.wixsite.com/k-direction — Oswald wordmark, soft gradient, yellow nav, editable collage photos.",
     visibility: "owner_portfolio",
-    definition: buildCompleteSite({
+    definition: {
+      schemaVersion: "website-v1",
       title: "K-Direction",
-      theme: templateDefaultTheme("#0A0A0A", "#FF5500"),
-      navLinks: [
-        { label: "About", href: "#about" },
-        { label: "Artists", href: "#services" },
-        { label: "Work", href: "#gallery" },
-        { label: "Contact", href: "#contact" },
-      ],
-      hero: {
-        heading: "K-Direction Artistry",
-        subheading: "Label, creative direction, and artist development — from Dakar to the world.",
-        buttonLabel: "Work with us",
-        buttonHref: "#contact",
-        background: "#0A0A0A",
+      theme: {
+        primary: "#0A0A0A",
+        accent: "#FFF86B",
+        background: "#e8e0f0",
+        text: "#0A0A0A",
+        fontDisplay: "Oswald",
+        fontBody: "Arial",
+        spacing: "comfortable",
       },
-      about: {
-        heading: "About K-Direction",
-        body: "K-Direction is a creative label and artistry house — artist development, visual direction, and campaigns. This is your live site: edit copy, photos, and links in Kebu Builder.",
-      },
-      features: {
-        heading: "What we do",
-        items: [
-          { title: "Artist development", body: "Careers, releases, and brand identity for musicians." },
-          { title: "Creative direction", body: "Visuals, campaigns, and storytelling that fit the artist." },
-          { title: "Label operations", body: "Coordination across music, media, and partners." },
-        ],
-      },
-      gallery: {
-        items: [
-          {
-            src: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
-            alt: "Live performance",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80",
-            alt: "Studio session",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80",
-            alt: "Music production",
-          },
-        ],
-      },
-      testimonials: {
-        heading: "Artists & partners",
-        items: [
-          { quote: "Clear direction and real support for the release.", name: "Artist on the roster" },
-          { quote: "They understand the African creative scene.", name: "Partner, media" },
-        ],
-      },
-      faq: {
-        heading: "FAQ",
-        items: [
-          { question: "How do artists join?", answer: "Reach out via WhatsApp or email with your work and goals." },
-          { question: "Do you take brand projects?", answer: "Yes — creative and campaign work for aligned brands." },
-        ],
-      },
-      contact: {
-        email: "hello@kdirection.art",
-        phone: "+221770000000",
-        address: "Dakar, Senegal",
-      },
-      whatsapp: {
-        label: "Message K-Direction",
-        phone: "+221770000000",
-        message: "Hi K-Direction, I want to connect.",
-      },
-    }),
+      pages: kdirectionWixSitePages().map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        sections: p.sections.map((s, i) => ({
+          id: `kd-${p.slug}-${i + 1}`,
+          type: s.type as WebsiteDefinition["pages"][0]["sections"][0]["type"],
+          props: s.props,
+        })),
+      })),
+    },
   },
   {
     slug: "production-company",

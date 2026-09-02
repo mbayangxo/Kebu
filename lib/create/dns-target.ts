@@ -147,5 +147,6 @@ export function formatDnsMismatchDetail(found: string[], expectedTarget: string)
     return `Found www CNAME ${joined}. Set Host=www → Value=${canonical}. Do not use kebu.africa — that DNS is not live.`;
   }
 
-  return `Found www CNAME ${joined}. Set Host=www → Value=${canonical}, wait 5–30 min, then verify again in Kebu.`;
+  // Common: www → own apex (kdirection.com) keeps old hosting (A record), not Kebu.
+  return `www currently points to ${joined} — that is not Kebu. Edit DNS: Host=www, Type=CNAME, Value=${canonical} (replace ${joined}). Wait 5–30 min, then Verify.`;
 }

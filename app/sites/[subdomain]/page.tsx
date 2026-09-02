@@ -9,7 +9,15 @@ export default async function PublicSitePage({ params }: Params) {
   const deployment = await loadPublicDeployment(subdomain);
   if (!deployment) notFound();
 
+  const siteBase = deployment.customDomainUrl ? "" : `/sites/${deployment.subdomain}`;
+
   return (
-    <PublicSiteView definition={deployment.definition} subdomain={deployment.subdomain} pageSlug="home" projectId={deployment.projectId} />
+    <PublicSiteView
+      definition={deployment.definition}
+      subdomain={deployment.subdomain}
+      pageSlug="home"
+      projectId={deployment.projectId}
+      siteBase={siteBase}
+    />
   );
 }

@@ -177,11 +177,13 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
         setCustomDomains((prev) => prev.map((d) => (d.id === domainId ? { ...d, ...data.domain } : d)));
       }
       if (data.liveUrl) setHttpsLiveUrl(data.liveUrl);
-      setDomainNote(
-        [data.detail, data.sslNote].filter(Boolean).join(" · ") ||
-          (data.ok ? "Domain verified!" : "DNS not ready yet — use CNAME www → cname.vercel-dns.com"),
-      );
-      if (!data.ok && list.length) {
+      if (data.ok) {
+        setDomainNote(
+          [data.sslNote || data.detail, data.hostingOk === false ? "Custom domain may still error until hosting finishes." : null]
+            .filter(Boolean)
+            .join(" · ") || "DNS OK.",
+        );
+      } else {
         setDomainNote(
           (data.detail as string) ||
             `At your registrar: CNAME host www → value ${canonicalDns}. Wait 5–30 min, then Verify again.`,
@@ -241,8 +243,8 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
           Domain &amp; SEO
         </h2>
         <p className="text-sm" style={{ color: KEBU.muted }}>
-          Connect your own domain (e.g. kdirection.com). You set one CNAME at your registrar — Kebu handles HTTPS.
-          You never open a separate hosting account.
+          Connect your own domain here — outside the visual editor. The editor is for building pages, media, colors, and
+          shop. You set one CNAME at your registrar; Kebu handles HTTPS.
         </p>
         <div className="flex flex-wrap gap-2 mt-4">
           <Link
@@ -287,7 +289,7 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
       <section className="rounded-2xl p-5 space-y-4 bg-white border" style={{ borderColor: KEBU.border }}>
         <h3 className="text-sm font-bold uppercase tracking-wider">Your own domain</h3>
         <p className="text-[11px]" style={{ color: KEBU.muted }}>
-          Type the domain for <strong>this</strong> site (e.g. <strong>kdirection.com</strong>). You only change DNS at
+          Type the domain for <strong>this</strong> site (e.g. <strong>k-direction.com</strong>). You only change DNS at
           your registrar — Kebu attaches hosting and HTTPS for you (like Shopify). No hosting account needed.
         </p>
         <DomainConnectWizard
@@ -308,6 +310,10 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
 
       <section className="rounded-2xl p-5 space-y-4 bg-white border" style={{ borderColor: KEBU.border }}>
         <h3 className="text-sm font-bold uppercase tracking-wider">SEO &amp; sharing</h3>
+        <p className="text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
+          This is how Google and social apps understand your site. Fill these in, publish again, then ask Google to
+          index <strong>https://www.yourdomain.com</strong>.
+        </p>
         <label className="block text-[10px] uppercase tracking-wider">
           SEO title
           <input
@@ -315,6 +321,8 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
             style={{ border: `1px solid ${KEBU.border}` }}
             value={seo.metaTitle}
             onChange={(e) => queueSave({ seo: { metaTitle: e.target.value } })}
+            placeholder="May Lecor — music &amp; artist"
+            maxLength={120}
           />
         </label>
         <label className="block text-[10px] uppercase tracking-wider">
@@ -326,6 +334,34 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
             maxLength={320}
             value={seo.metaDescription}
             onChange={(e) => queueSave({ seo: { metaDescription: e.target.value } })}
+            placeholder="One or two sentences people will see under your link in Google."
+          />
+        </label>
+        <p className="text-[10px]" style={{ color: KEBU.muted }}>
+          {seo.metaDescription.trim()
+            ? `${seo.metaDescription.trim().length}/320 characters`
+            : "If empty, Kebu writes a description from your page content when someone visits."}
+        </p>
+        <label className="block text-[10px] uppercase tracking-wider">
+          Main keyword (what people search)
+          <input
+            className="mt-1 w-full rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            value={seo.focusKeyword}
+            onChange={(e) => queueSave({ seo: { focusKeyword: e.target.value } })}
+            placeholder="afrobeats singer senegal"
+            maxLength={80}
+          />
+        </label>
+        <label className="block text-[10px] uppercase tracking-wider">
+          Extra keywords (optional)
+          <input
+            className="mt-1 w-full rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            value={seo.keywords}
+            onChange={(e) => queueSave({ seo: { keywords: e.target.value } })}
+            placeholder="music, live show, Dakar"
+            maxLength={240}
           />
         </label>
         <SiteImageUpload
@@ -339,7 +375,7 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
           kind="ogImage"
           value={seo.ogImageUrl}
           onChange={(url) => queueSave({ seo: { ogImageUrl: url } })}
-          label="Social share image"
+          label="Social share image (1200×630 best)"
         />
         <label className="flex items-center gap-2 text-xs">
           <input
@@ -349,6 +385,100 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
           />
           Hide from Google (noindex)
         </label>
+      </section>
+
+      <section className="rounded-2xl p-5 space-y-4 bg-white border" style={{ borderColor: KEBU.border }}>
+        <h3 className="text-sm font-bold uppercase tracking-wider">Advanced SEO</h3>
+        <p className="text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
+          Helps Google show rich results (business card, products, breadcrumbs) — stronger than a basic Shopify theme
+          out of the box.
+        </p>
+        <label className="block text-[10px] uppercase tracking-wider">
+          Brand / site name
+          <input
+            className="mt-1 w-full rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            value={seo.siteName}
+            onChange={(e) => queueSave({ seo: { siteName: e.target.value } })}
+            placeholder={title || "Your brand"}
+          />
+        </label>
+        <label className="block text-[10px] uppercase tracking-wider">
+          Business type (for Google)
+          <select
+            className="mt-1 w-full rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            value={seo.businessType}
+            onChange={(e) =>
+              queueSave({ seo: { businessType: e.target.value as typeof seo.businessType } })
+            }
+          >
+            <option value="Organization">Organization / brand</option>
+            <option value="Person">Person / creator</option>
+            <option value="MusicGroup">Music / artist</option>
+            <option value="Store">Store / shop</option>
+            <option value="LocalBusiness">Local business</option>
+            <option value="Restaurant">Restaurant / food</option>
+            <option value="ProfessionalService">Professional service</option>
+          </select>
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-[10px] uppercase tracking-wider">
+            City
+            <input
+              className="mt-1 w-full rounded-lg px-3 py-2 text-sm"
+              style={{ border: `1px solid ${KEBU.border}` }}
+              value={seo.city}
+              onChange={(e) => queueSave({ seo: { city: e.target.value } })}
+              placeholder="Dakar"
+            />
+          </label>
+          <label className="block text-[10px] uppercase tracking-wider">
+            Country
+            <input
+              className="mt-1 w-full rounded-lg px-3 py-2 text-sm"
+              style={{ border: `1px solid ${KEBU.border}` }}
+              value={seo.country}
+              onChange={(e) => queueSave({ seo: { country: e.target.value } })}
+              placeholder="Senegal"
+            />
+          </label>
+        </div>
+        <label className="block text-[10px] uppercase tracking-wider">
+          Social / profile links (one per line)
+          <textarea
+            className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-mono"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            rows={3}
+            value={seo.sameAs}
+            onChange={(e) => queueSave({ seo: { sameAs: e.target.value } })}
+            placeholder={"https://instagram.com/you\nhttps://youtube.com/@you"}
+          />
+        </label>
+        <label className="block text-[10px] uppercase tracking-wider">
+          X / Twitter handle
+          <input
+            className="mt-1 w-full rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            value={seo.twitterHandle}
+            onChange={(e) => queueSave({ seo: { twitterHandle: e.target.value } })}
+            placeholder="@maylecor"
+          />
+        </label>
+        <label className="block text-[10px] uppercase tracking-wider">
+          Google Search Console verification
+          <input
+            className="mt-1 w-full rounded-lg px-3 py-2 text-sm font-mono"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            value={seo.googleSiteVerification}
+            onChange={(e) => queueSave({ seo: { googleSiteVerification: e.target.value } })}
+            placeholder="Paste the content= value from Google"
+          />
+        </label>
+        <p className="text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
+          After publish: open <strong>/sitemap.xml</strong> and <strong>/robots.txt</strong> on your live domain, then
+          submit the sitemap in Google Search Console. Re-publish after SEO edits so the live site updates.
+        </p>
         <p className="text-[10px]" style={{ color: KEBU.muted }}>
           {settingsState === "saving" ? "Saving…" : settingsState === "saved" ? settingsNote : settingsNote ?? "Autosaves"}
         </p>

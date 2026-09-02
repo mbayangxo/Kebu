@@ -1,5 +1,6 @@
 import { defaultMaylecorHomeProps, defaultMaylecorMusicProps } from "./maylecor-defaults";
 import { defaultLegallyBlondeHeroProps } from "./legally-blonde-defaults";
+import { defaultKdirectionHomeProps, defaultKdirectionPageProps } from "./kdirection-defaults";
 import { DEFAULT_HERO_PROPS } from "./schemas";
 import type { z } from "zod";
 import { sectionTypeSchema } from "./website-schema";
@@ -75,6 +76,10 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
       return defaultMaylecorMusicProps();
     case "legally-blonde-hero":
       return defaultLegallyBlondeHeroProps();
+    case "kdirection-home":
+      return defaultKdirectionHomeProps();
+    case "kdirection-page":
+      return defaultKdirectionPageProps();
     default:
       return {};
   }

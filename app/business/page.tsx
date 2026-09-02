@@ -84,7 +84,7 @@ export default function BusinessListPage() {
 
         <div className="grid sm:grid-cols-2 gap-3 mb-8">
           {[
-            { label: "Kebu Builder", href: "/create", body: "Websites, stores, domains" },
+            { label: "Kebu Builder", href: "/create", body: "Websites and stores" },
             { label: "Kebu Create", href: "/studio", body: "Apps, graphics, social assets" },
             { label: "Alkebulan", href: "/b2b", body: "B2B listings & trade partners" },
             { label: "My Account", href: "/account", body: "Everything you are doing on Kebu" },

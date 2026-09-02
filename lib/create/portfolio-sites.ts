@@ -5,6 +5,7 @@ import { goLiveWebsiteProject } from "@/lib/create/go-live";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import type { CreateWebsiteBrief } from "@/lib/create/website-schema";
 import { upgradeMaylecorPortfolioProject } from "@/lib/create/upgrade-portfolio-maylecor";
+import { upgradeKdirectionPortfolioProject } from "@/lib/create/upgrade-portfolio-kdirection";
 import { kebuAfricaSiteUrl, kebuSitePreviewPath } from "@/lib/create/site-urls";
 
 export type PortfolioSiteKey = "maylecor" | "kdirection";
@@ -152,6 +153,9 @@ export async function ensurePortfolioSitesForUser(opts: {
 
       if (site.key === "maylecor") {
         await upgradeMaylecorPortfolioProject(supabase, found.id);
+      }
+      if (site.key === "kdirection") {
+        await upgradeKdirectionPortfolioProject(supabase, found.id);
       }
 
       const live = await ensureLiveDeployment({

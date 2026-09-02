@@ -75,6 +75,11 @@ export function defaultMaylecorHomeProps(artistName = "MAY LECOR") {
     musicPageSlug: "music",
     homeLogoHref: "#top",
     socialLinks: MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s })),
+    socialRailVisible: true,
+    socialRailBg: "rgba(0,0,0,0.85)",
+    socialRailLeftPct: 0,
+    socialRailTopPct: 12,
+    socialRailIconSize: 40,
     motionEnabled: true,
   };
 }
@@ -85,6 +90,11 @@ export function defaultMaylecorMusicProps(artistName = "MAY LECOR") {
     albumArt: MAYLECOR_WIX.albumArt,
     homePageSlug: "home",
     socialLinks: MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s })),
+    socialRailVisible: true,
+    socialRailBg: "rgba(0,0,0,0.85)",
+    socialRailLeftPct: 0,
+    socialRailTopPct: 12,
+    socialRailIconSize: 40,
     motionEnabled: true,
   };
 }

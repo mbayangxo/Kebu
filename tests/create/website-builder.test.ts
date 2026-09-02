@@ -121,7 +121,9 @@ describe("templates", () => {
     const result = validateWebsiteDefinition(seed!.definition);
     expect(result.ok).toBe(true);
     const hero = seed!.definition.pages[0]?.sections.find((s) => s.type === "legally-blonde-hero");
-    expect(String(hero?.props && (hero.props as { titleLogo?: string }).titleLogo)).toContain("tildacdn.com");
+    expect(String(hero?.props && (hero.props as { titleLogo?: string }).titleLogo)).toContain(
+      "/templates/legally-blonde/",
+    );
   });
 
   it("template definitions validate", () => {

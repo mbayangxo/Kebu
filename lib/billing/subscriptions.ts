@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { SITE_HOSTING_MONTHLY_USD_CENTS } from "./pricing";
-import { projectIsOwnerPortfolio } from "@/lib/create/go-live";
+import { SITE_HOSTING_MONTHLY_USD_CENTS, SITE_HOSTING_YEARLY_USD_CENTS } from "./pricing";
 
 export type SiteSubscriptionRow = {
   id: string;
@@ -43,8 +42,6 @@ export async function projectHasLiveHosting(
   ownerId: string,
 ): Promise<boolean> {
   if (billingDevBypassEnabled()) return true;
-  // Owner May Lecor / K-Direction portfolio sites host free (not shared templates).
-  if (await projectIsOwnerPortfolio(supabase, projectId)) return true;
   const active = await getActiveSiteSubscription(supabase, projectId, ownerId);
   return Boolean(active);
 }
@@ -81,12 +78,16 @@ export async function templateRequiresPurchase(
   return { required, priceUsdCents };
 }
 
-export function subscriptionPeriodEnd(from = new Date()): string {
+export function subscriptionPeriodEnd(from = new Date(), plan: "monthly" | "yearly" = "monthly"): string {
   const end = new Date(from);
-  end.setUTCDate(end.getUTCDate() + 30);
+  if (plan === "yearly") {
+    end.setUTCFullYear(end.getUTCFullYear() + 1);
+  } else {
+    end.setUTCDate(end.getUTCDate() + 30);
+  }
   return end.toISOString();
 }
 
-export function defaultHostingAmountCents(): number {
-  return SITE_HOSTING_MONTHLY_USD_CENTS;
+export function defaultHostingAmountCents(plan: "monthly" | "yearly" = "monthly"): number {
+  return plan === "yearly" ? SITE_HOSTING_YEARLY_USD_CENTS : SITE_HOSTING_MONTHLY_USD_CENTS;
 }

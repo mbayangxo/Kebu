@@ -11,19 +11,22 @@ import { BUILDER, BUILDER_QUICK_SECTIONS } from "@/lib/create/builder-ui";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import type { PublishState } from "@/lib/create/publish-state";
-import { customDomainDnsTarget, isObsoleteDnsTarget } from "@/lib/create/dns-target";
-import { SiteProductsPanel } from "@/app/components/create/site-products-panel";
+import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
 import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
-import { productRowToSectionItem, type ProjectProductRow } from "@/lib/create/project-products";
-import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
+import { NavLinksEditor } from "@/app/components/create/nav-links-editor";
+import { SocialLinksEditor } from "@/app/components/create/social-links-editor";
 import { BuilderColorPanel } from "@/app/components/create/builder-color-panel";
-import { SiteDomainSeoPanel } from "@/app/components/create/site-domain-seo-panel";
 import type { ThemeTokens } from "@/lib/create/website-schema";
 import { KEBU } from "@/lib/kebu-brand";
+import {
+  planMediaAssetApply,
+  type KebuDragAsset,
+} from "@/lib/create/builder-media-drop";
+import { BUILDER_DEVICE_FRAME } from "@/lib/create/builder-device";
 
 type Section = {
   id: string;
@@ -52,17 +55,17 @@ export default function ProjectEditorPage() {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [supportAssist, setSupportAssist] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [publishing, setPublishing] = useState(false);
   const [payingHosting, setPayingHosting] = useState(false);
   const [publishUrl, setPublishUrl] = useState<string | null>(null);
-  const [httpsLiveUrl, setHttpsLiveUrl] = useState<string | null>(null);
   const [subdomainInput, setSubdomainInput] = useState("");
   const [seoSettings, setSeoSettings] = useState<SiteSeo>(() => defaultSiteSeo());
   const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<"content" | "media" | "design" | "products" | "site" | "launch">("content");
+  const [sidebarTab, setSidebarTab] = useState<"content" | "media" | "design">("content");
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [billing, setBilling] = useState<{
@@ -82,21 +85,6 @@ export default function ProjectEditorPage() {
   const [newPageSlug, setNewPageSlug] = useState("");
   const [newPageTitle, setNewPageTitle] = useState("");
   const [pageBusy, setPageBusy] = useState(false);
-  const [customDomainInput, setCustomDomainInput] = useState("");
-  const [customDomains, setCustomDomains] = useState<
-    Array<{
-      id: string;
-      hostname: string;
-      status: string;
-      is_primary: boolean;
-      dns_target?: string | null;
-      last_error?: string | null;
-    }>
-  >([]);
-  const [domainBusy, setDomainBusy] = useState(false);
-  const [domainNote, setDomainNote] = useState<string | null>(null);
-  const [domainSteps, setDomainSteps] = useState<string[]>([]);
-  const [domainDnsTarget, setDomainDnsTarget] = useState<string | null>(null);
   const [publishState, setPublishState] = useState<PublishState | null>(null);
   const [appOrigin, setAppOrigin] = useState("");
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -138,6 +126,7 @@ export default function ProjectEditorPage() {
         }
       }
       setProject(projectPayload.project ?? data.project);
+      setSupportAssist(Boolean(projectPayload.supportAssist ?? data.supportAssist));
       setPages(Array.isArray(projectPayload.pages) ? projectPayload.pages : []);
       setSections(Array.isArray(projectPayload.sections) ? projectPayload.sections : []);
       if (projectPayload.publishState && typeof projectPayload.publishState === "object") {
@@ -156,7 +145,6 @@ export default function ProjectEditorPage() {
       const sub = typeof data.project?.subdomain === "string" ? data.project.subdomain : "";
       setSubdomainInput(sub);
       setPublishUrl(sub ? `/sites/${sub}` : null);
-      setHttpsLiveUrl(sub ? `/sites/${sub}` : null);
       setSeoSettings(defaultSiteSeo(data.project?.title ?? "My website"));
       if (data.project?.seo && typeof data.project.seo === "object") {
         setSeoSettings((prev) => ({ ...prev, ...(data.project.seo as SiteSeo) }));
@@ -167,65 +155,9 @@ export default function ProjectEditorPage() {
       if (billingRes.ok) {
         setBilling({
           canPublish: Boolean(billingData.canPublish),
-          label: typeof billingData.label === "string" ? billingData.label : "$4/month",
+          label: typeof billingData.label === "string" ? billingData.label : "$3/month",
           periodEnd: billingData.subscription?.periodEnd ?? null,
         });
-      }
-
-      const domainsRes = await fetch(`/api/projects/${projectId}/domains`, { credentials: "include" });
-      const domainsData = await domainsRes.json().catch(() => ({}));
-      if (domainsRes.ok) {
-        const list = Array.isArray(domainsData.domains) ? domainsData.domains : [];
-        setCustomDomains(list);
-        if (typeof domainsData.dnsTarget === "string") {
-          const canonical = customDomainDnsTarget(sub);
-          setDomainDnsTarget(
-            isObsoleteDnsTarget(domainsData.dnsTarget) ? canonical : domainsData.dnsTarget,
-          );
-        } else if (domainsData.instructions?.dnsTarget) {
-          const raw = domainsData.instructions.dnsTarget as string;
-          setDomainDnsTarget(isObsoleteDnsTarget(raw) ? customDomainDnsTarget(sub) : raw);
-        } else if (sub) {
-          setDomainDnsTarget(customDomainDnsTarget(sub));
-        }
-        if (domainsData.instructions?.steps) {
-          setDomainSteps(domainsData.instructions.steps);
-        } else {
-          setDomainSteps([]);
-        }
-        const verified = list.find(
-          (d: { status?: string; hostname?: string }) => d.status === "verified",
-        );
-        if (verified?.hostname) {
-          setHttpsLiveUrl(`https://www.${verified.hostname}`);
-        } else if (sub) {
-          setHttpsLiveUrl(`/sites/${sub}`);
-        }
-        const pending = list.find(
-          (d: { status?: string; id?: string }) => d.status === "pending" || d.status === "failed",
-        );
-        if (pending?.id) {
-          void fetch(`/api/projects/${projectId}/domains/${pending.id}/verify`, {
-            method: "POST",
-            credentials: "include",
-          })
-            .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
-            .then(({ ok, data }) => {
-              if (!ok || !data.domain) return;
-              setCustomDomains((prev) =>
-                prev.map((d) => (d.id === pending.id ? { ...d, ...data.domain } : d)),
-              );
-              if (data.ok && data.liveUrl) {
-                setHttpsLiveUrl(data.liveUrl);
-                setDomainNote(`Domain verified — live at ${data.liveUrl}`);
-              } else if (data.detail) {
-                setDomainNote(data.detail);
-              }
-            })
-            .catch(() => {});
-        }
-      } else if (typeof domainsData.error === "string") {
-        setDomainNote(domainsData.error);
       }
     } catch {
       setError("Network error. Retry.");
@@ -246,24 +178,6 @@ export default function ProjectEditorPage() {
     };
   }, [load]);
 
-  function syncProductsPreview(rows: ProjectProductRow[]) {
-    const items = rows.filter((r) => r.is_active).map(productRowToSectionItem);
-    setSections((prev) =>
-      prev.map((s) =>
-        s.section_type === "products"
-          ? { ...s, props: { ...(s.props ?? {}), heading: (s.props?.heading as string) || "Shop", items } }
-          : s,
-      ),
-    );
-  }
-
-  async function ensureProductsSection() {
-    const hasProducts = sections.some((s) => s.section_type === "products");
-    if (!hasProducts) {
-      await addSection("products");
-    }
-  }
-
   function pushHistory(prev: Section[]) {
     setHistory((h) => [...h.slice(-19), prev]);
     setFuture([]);
@@ -281,7 +195,18 @@ export default function ProjectEditorPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSaveState("error");
-        setError(typeof data.error === "string" ? data.error : "Save failed.");
+        const issueHint =
+          data?.issues?.fieldErrors && typeof data.issues.fieldErrors === "object"
+            ? Object.entries(data.issues.fieldErrors as Record<string, string[]>)
+                .map(([k, v]) => `${k}: ${(v ?? []).join(", ")}`)
+                .slice(0, 3)
+                .join(" · ")
+            : "";
+        setError(
+          [typeof data.error === "string" ? data.error : "Save failed.", issueHint || data.detail]
+            .filter(Boolean)
+            .join(" — "),
+        );
         return;
       }
       if (data.section) {
@@ -293,8 +218,10 @@ export default function ProjectEditorPage() {
           : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
       );
       setSaveState("saved");
+      setError(null);
     } catch {
       setSaveState("error");
+      setError("Network error while saving.");
     }
   }
 
@@ -313,23 +240,76 @@ export default function ProjectEditorPage() {
     });
   }
 
-  async function addSection(type: string) {
+  async function addSection(type: string, props?: Record<string, unknown>): Promise<Section | null> {
     const page = pages.find((p) => p.id === editPageId) ?? pages[0];
     const res = await fetch(`/api/projects/${projectId}/sections`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, pageSlug: page?.slug ?? "home" }),
+      body: JSON.stringify({
+        type,
+        pageSlug: page?.slug ?? "home",
+        ...(props ? { props } : {}),
+      }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       setError(typeof data.error === "string" ? data.error : "Could not add section.");
-      return;
+      return null;
     }
+    const section = data.section as Section;
     setSections((prev) => {
       pushHistory(prev);
-      return [...prev, data.section];
+      return [...prev, section];
     });
+    return section;
+  }
+
+  /** Media library → canvas / current page (photo collage, video, or audio). */
+  async function applyMediaAsset(
+    asset: KebuDragAsset,
+    drop?: { leftPct: number; topPct: number },
+  ) {
+    const page = pages.find((p) => p.id === editPageId) ?? pages.find((p) => p.slug === previewPageSlug) ?? pages[0];
+    if (!page) {
+      setError("No page to add media to.");
+      return;
+    }
+    const plan = planMediaAssetApply(asset, {
+      pageId: page.id,
+      sections,
+      selectedSectionId,
+      drop,
+    });
+    if (plan.action === "collage") {
+      updateProps(plan.sectionId, { collagePhotos: plan.photos });
+      setSelectedSectionId(plan.sectionId);
+      setSidebarTab("content");
+      return;
+    }
+    if (plan.action === "hero") {
+      updateProps(plan.sectionId, { heroImage: plan.heroImage });
+      setSelectedSectionId(plan.sectionId);
+      setSidebarTab("content");
+      return;
+    }
+    if (plan.action === "gallery") {
+      updateProps(plan.sectionId, { items: plan.items });
+      setSelectedSectionId(plan.sectionId);
+      setSidebarTab("content");
+      return;
+    }
+    if (plan.action === "patch-src") {
+      updateProps(plan.sectionId, { src: plan.src });
+      setSelectedSectionId(plan.sectionId);
+      setSidebarTab("content");
+      return;
+    }
+    const created = await addSection(plan.type, plan.props);
+    if (created) {
+      setSelectedSectionId(created.id);
+      setSidebarTab("content");
+    }
   }
 
   async function deleteSection(sectionId: string) {
@@ -523,9 +503,12 @@ export default function ProjectEditorPage() {
         setError(typeof data.error === "string" ? data.error : "Could not save site settings.");
         return;
       }
-      if (typeof data.httpsUrl === "string") setHttpsLiveUrl(data.httpsUrl);
-      if (data.project?.subdomain) {
+      if (typeof data.httpsUrl === "string" && data.httpsUrl.startsWith("http")) {
+        setPublishUrl(data.httpsUrl);
+      } else if (data.project?.subdomain) {
         setPublishUrl(`/sites/${data.project.subdomain}`);
+      }
+      if (data.project?.subdomain) {
         setSubdomainInput(String(data.project.subdomain));
       }
       setSettingsState("saved");
@@ -565,127 +548,10 @@ export default function ProjectEditorPage() {
     }, 600);
   }
 
-  async function addCustomDomain() {
-    if (domainBusy) return;
-    const hostname = customDomainInput.trim();
-    if (!hostname) {
-      setDomainNote("Enter your domain, e.g. mybrand.com");
-      return;
-    }
-    if (!subdomainInput.trim()) {
-      setDomainNote("Pick a Kebu subdomain first — it connects to your real domain.");
-      return;
-    }
-    setDomainBusy(true);
-    setDomainNote(null);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/domains`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hostname, isPrimary: true, provider: "manual" }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setDomainNote(typeof data.error === "string" ? data.error : "Could not save domain.");
-        return;
-      }
-      setCustomDomains((prev) => {
-        if (!data.domain) return prev;
-        const rest = prev.filter((d) => d.id !== data.domain.id);
-        return [data.domain, ...rest];
-      });
-      if (data.instructions?.steps) {
-        setDomainSteps(data.instructions.steps);
-        setDomainDnsTarget(data.instructions.dnsTarget ?? null);
-      }
-      setDomainNote(data.message ?? "Domain saved. Update DNS at your registrar, then verify.");
-      setCustomDomainInput("");
-    } catch {
-      setDomainNote("Network error. Retry.");
-    } finally {
-      setDomainBusy(false);
-    }
-  }
-
-  async function verifyCustomDomain(domainId: string) {
-    if (domainBusy) return;
-    setDomainBusy(true);
-    setDomainNote(null);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/domains/${domainId}/verify`, {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setDomainNote(typeof data.error === "string" ? data.error : "Verify failed.");
-        return;
-      }
-      if (data.domain) {
-        setCustomDomains((prev) => prev.map((d) => (d.id === domainId ? { ...d, ...data.domain } : d)));
-      }
-      if (data.liveUrl) setHttpsLiveUrl(data.liveUrl);
-      const noteParts = [data.detail];
-      if (typeof data.sslNote === "string") noteParts.push(data.sslNote);
-      setDomainNote(noteParts.filter(Boolean).join(" · ") || (data.ok ? "Domain verified!" : "DNS not ready yet."));
-      if (data.instructions?.steps) {
-        setDomainSteps(data.instructions.steps);
-        setDomainDnsTarget(data.instructions.dnsTarget ?? null);
-      }
-      if (data.ok) await load();
-    } catch {
-      setDomainNote("Network error. Retry.");
-    } finally {
-      setDomainBusy(false);
-    }
-  }
-
-  function copyDnsTarget() {
-    const target = customDomainDnsTarget(subdomainInput || "site");
-    void navigator.clipboard?.writeText(target);
-    setDomainNote(`Copied: ${target}`);
-  }
-
-  const canonicalDnsTarget = customDomainDnsTarget(subdomainInput || "site");
-
-  const livePath = subdomainInput.trim() ? `/sites/${subdomainInput.trim().toLowerCase()}` : null;
-  const fullLiveUrl = livePath && appOrigin ? `${appOrigin}${livePath}` : livePath;
-
-  async function removeCustomDomain(domainId: string) {
-    if (domainBusy) return;
-    setDomainBusy(true);
-    setDomainNote(null);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/domains`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domainId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setDomainNote(typeof data.error === "string" ? data.error : "Could not remove domain.");
-        return;
-      }
-      setCustomDomains((prev) => prev.filter((d) => d.id !== domainId));
-      setDomainSteps([]);
-      setDomainDnsTarget(null);
-      if (subdomainInput.trim()) {
-        setHttpsLiveUrl(`/sites/${subdomainInput.trim().toLowerCase()}`);
-      }
-      setDomainNote("Domain removed.");
-    } catch {
-      setDomainNote("Network error. Retry.");
-    } finally {
-      setDomainBusy(false);
-    }
-  }
-
   async function publish() {
     if (publishing) return;
     if (!subdomainInput.trim()) {
-      setError("Choose a subdomain before publishing (e.g. my-brand).");
+      setError("Set your Kebu site address under Domain & SEO before publishing.");
       return;
     }
     setPublishing(true);
@@ -701,7 +567,7 @@ export default function ProjectEditorPage() {
       const data = await res.json().catch(() => ({}));
       if (res.status === 402 && data.billingRequired) {
         setError(
-          `Live hosting is ${data.monthlyLabel ?? "$4/month"} via JOKO mobile money. Pay below, then publish again.`,
+          `Live hosting is ${data.monthlyLabel ?? "$3/month"} via JOKO mobile money. Pay below, then publish again.`,
         );
         setBilling((b) => (b ? { ...b, canPublish: false } : b));
         return;
@@ -710,9 +576,7 @@ export default function ProjectEditorPage() {
         setError(typeof data.error === "string" ? data.error : "Publish failed.");
         return;
       }
-      setPublishUrl(data.deployment?.public_path ?? data.liveUrl);
-      if (typeof data.liveUrl === "string") setHttpsLiveUrl(data.liveUrl);
-      else if (typeof data.publicPath === "string") setHttpsLiveUrl(data.publicPath);
+      setPublishUrl(data.deployment?.public_path ?? data.liveUrl ?? data.publicPath ?? null);
       await load();
     } catch {
       setError("Network error while publishing.");
@@ -786,6 +650,7 @@ export default function ProjectEditorPage() {
         step="edit"
         projectId={projectId}
         title={project?.title ?? "Editor"}
+        backHref="/create/sites"
         actions={
           <>
             {publishState ? (
@@ -803,7 +668,14 @@ export default function ProjectEditorPage() {
                   : "Live"}
               </span>
             ) : null}
-            <span className="text-white/50 hidden md:inline text-[10px]">{saveStatusLabel}</span>
+            <span className="text-white/50 hidden lg:inline text-[10px]">{saveStatusLabel}</span>
+            <Link
+              href={`/create/sites/${projectId}`}
+              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+              style={{ background: "#ECEAE4", color: "#0F0D33" }}
+            >
+              Domain &amp; SEO
+            </Link>
             <Link
               href={`/create/${projectId}/preview`}
               className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
@@ -811,11 +683,23 @@ export default function ProjectEditorPage() {
             >
               Preview
             </Link>
+            {!billing?.canPublish ? (
+              <button
+                type="button"
+                onClick={() => void payHostingWithJoko()}
+                disabled={payingHosting}
+                className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                style={{ background: "#FFF4EC", color: "#C2410C", border: "1px solid rgba(255,85,0,0.35)" }}
+                title="Hosting required before publish"
+              >
+                {payingHosting ? "…" : "Pay hosting"}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => void publish()}
               disabled={publishing || improving}
-              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+              className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
               style={{ background: "#00C851", color: "#0F0D33" }}
             >
               {publishing ? "…" : publishState?.hasUnpublishedChanges ? "Publish updates" : "Publish"}
@@ -824,6 +708,40 @@ export default function ProjectEditorPage() {
         }
       />
 
+      {supportAssist ? (
+        <div
+          className="border-b px-4 py-2.5 text-center text-xs font-semibold"
+          style={{ background: "#FF5500", color: "#fff" }}
+        >
+          Support assist mode — you are helping edit someone else’s site. Changes are audited.
+        </div>
+      ) : null}
+
+      {error ? (
+        <div
+          className="border-b px-4 py-2.5 text-center text-xs"
+          style={{ background: "#FFF1F0", color: "#8B1E1E" }}
+          role="alert"
+        >
+          {error}{" "}
+          {!subdomainInput.trim() ? (
+            <Link href={`/create/sites/${projectId}`} className="font-bold underline">
+              Open Domain &amp; SEO
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
+      {improveNote ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px] font-medium"
+          style={{ background: "#FFF4EC", color: "#C2410C" }}
+          role="status"
+        >
+          {improveNote}
+        </div>
+      ) : null}
+
       {publishState?.hasUnpublishedChanges ? (
         <div
           className="border-b px-4 py-2.5 text-center text-xs leading-relaxed"
@@ -831,13 +749,22 @@ export default function ProjectEditorPage() {
         >
           <strong style={{ color: "#0F0D33" }}>You are editing a draft.</strong> Changes save automatically but{" "}
           <strong>visitors only see your last published version</strong> until you click{" "}
-          <strong>Publish updates</strong>.
-          {publishState.isLive && publishState.livePublicPath ? (
+          <strong>Publish</strong> (top right).
+          {publishState.isLive && (publishState.livePublicPath || publishUrl) ? (
             <>
               {" "}
               Live site:{" "}
-              <a href={publishState.livePublicPath} target="_blank" rel="noreferrer" className="underline font-semibold">
-                {publishState.livePublicPath}
+              <a
+                href={
+                  publishState.livePublicPath?.startsWith("http")
+                    ? publishState.livePublicPath
+                    : `${appOrigin}${publishState.livePublicPath || publishUrl || ""}`
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-semibold"
+              >
+                {publishState.livePublicPath || publishUrl}
               </a>
             </>
           ) : null}
@@ -847,7 +774,20 @@ export default function ProjectEditorPage() {
           className="border-b px-4 py-2 text-center text-[11px]"
           style={{ background: "#E8F8EE", borderColor: "#C8E8D4", color: "#1B6B3A" }}
         >
-          Live and up to date. Edit anytime — publish again when you want changes to go public.
+          Live and up to date. Edit anytime — publish again from the top right when you want changes public.
+          {publishUrl ? (
+            <>
+              {" "}
+              <a
+                href={publishUrl.startsWith("http") ? publishUrl : `${appOrigin}${publishUrl}`}
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-semibold"
+              >
+                Open live site
+              </a>
+            </>
+          ) : null}
         </div>
       ) : null}
 
@@ -886,9 +826,6 @@ export default function ProjectEditorPage() {
                     ["content", "Pages"],
                     ["media", "Media"],
                     ["design", "Colors"],
-                    ["products", "Shop"],
-                    ["site", "Domain"],
-                    ["launch", "Publish"],
                   ] as const
                 ).map(([id, label]) => (
                   <button
@@ -908,123 +845,12 @@ export default function ProjectEditorPage() {
                 ))}
               </div>
 
-              {sidebarTab === "launch" && (
-              <div className="rounded-2xl p-4" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
-                <h1 className="font-bold text-lg mb-1">{project?.title}</h1>
-                <p className="text-xs uppercase tracking-wider" style={{ color: "#8A8578" }}>
-                  {project?.status}
-                  {project?.subdomain ? ` · ${project.subdomain}` : ""}
-                </p>
-                <p className="text-xs mt-2" style={{ color: "#6B5B45" }}>
-                  Edit freely — everything saves as a draft. Only <strong>Publish</strong> pushes changes to your live
-                  site.
-                </p>
-                <div
-                  className="mt-3 rounded-xl p-3 text-xs leading-relaxed"
-                  style={{ background: "#F4F2EC", color: "#6B5B45" }}
-                >
-                  <p className="font-semibold mb-1" style={{ color: "#0F0D33" }}>
-                    Live hosting · JOKO · {billing?.label ?? "$4/month"}
-                  </p>
-                  {billing?.canPublish ? (
-                    <p>
-                      Hosting active
-                      {billing.periodEnd
-                        ? ` until ${new Date(billing.periodEnd).toLocaleDateString()}`
-                        : ""}
-                      . Publish goes live at <strong>/sites/your-name</strong> on Kebu — no custom domain needed.
-                    </p>
-                  ) : (
-                    <>
-                      <p className="mb-2">
-                        Publish needs active hosting (JOKO mobile money in production). Without it you get
-                        402 — editing stays free.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => void payHostingWithJoko()}
-                        disabled={payingHosting}
-                        className="rounded-full px-3 py-1.5 font-bold uppercase tracking-wider disabled:opacity-50"
-                        style={{ background: "#00C851", color: "#0F0D33" }}
-                      >
-                        {payingHosting ? "Opening JOKO…" : "Pay with JOKO"}
-                      </button>
-                    </>
-                  )}
-                </div>
-                {fullLiveUrl && (
-                  <a href={fullLiveUrl} target="_blank" rel="noreferrer" className="block text-sm mt-2 font-bold underline break-all" style={{ color: "#0A0A0A" }}>
-                    Live URL: {fullLiveUrl}
-                  </a>
-                )}
-                {publishUrl && !fullLiveUrl && (
-                  <a href={publishUrl} target="_blank" rel="noreferrer" className="block text-xs mt-2 font-semibold underline" style={{ color: "#FF5500" }}>
-                    Open on Kebu: {publishUrl}
-                  </a>
-                )}
-                {fullLiveUrl && (
-                  <p className="text-[11px] mt-1" style={{ color: "#5C5348" }}>
-                    Public URL: <strong>{fullLiveUrl}</strong>. Custom domain: open the <strong>Domain</strong> tab —
-                    CNAME <strong>www</strong> → <strong>{canonicalDnsTarget}</strong> at
-                    Namecheap.
-                  </p>
-                )}
-                {improveNote && (
-                  <p className="text-xs mt-2 font-medium" style={{ color: "#FF5500" }} role="status">
-                    {improveNote}
-                  </p>
-                )}
-                {error && (
-                  <p role="alert" className="text-xs mt-2" style={{ color: "#8B1E1E" }}>
-                    {error}
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void publish()}
-                  disabled={publishing || improving}
-                  className="mt-4 w-full rounded-full py-2.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
-                  style={{ background: "#00C851", color: "#0F0D33" }}
-                >
-                  {publishing ? "Publishing…" : "Publish to Kebu"}
-                </button>
-              </div>
-              )}
-
-              {sidebarTab === "products" && (
-              <div className="rounded-2xl p-4 space-y-3" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider">Site catalog</p>
-                <button
-                  type="button"
-                  onClick={() => void ensureProductsSection()}
-                  className="text-[10px] underline"
-                  style={{ color: "#FF5500" }}
-                >
-                  Add products section to page (if missing)
-                </button>
-                <SiteProductsPanel
-                  projectId={projectId}
-                  merchantWhatsApp={seoSettings.commerce?.merchantWhatsApp ?? ""}
-                  onMerchantWhatsAppChange={(merchantWhatsApp) =>
-                    queueSiteSettingsSave({
-                      seo: {
-                        commerce: {
-                          merchantWhatsApp,
-                          preferJokoCheckout: seoSettings.commerce?.preferJokoCheckout ?? false,
-                        },
-                      },
-                    })
-                  }
-                  onSyncedToSite={syncProductsPreview}
-                />
-              </div>
-              )}
-
-              {sidebarTab === "site" && <SiteDomainSeoPanel projectId={projectId} />}
-
               {sidebarTab === "media" && (
                 <div className="rounded-2xl p-4" style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}>
-                  <SiteAssetsPanel projectId={projectId} />
+                  <SiteAssetsPanel
+                    projectId={projectId}
+                    onUseOnSite={(asset) => void applyMediaAsset(asset)}
+                  />
                 </div>
               )}
 
@@ -1090,7 +916,8 @@ export default function ProjectEditorPage() {
                   Edit your site
                 </p>
                 <p className="text-xs mb-3 leading-relaxed" style={{ color: BUILDER.muted }}>
-                  Pick a page, change words and photos — preview updates live. Publish when you are happy.
+                  Pick a page, change words and photos — preview updates live. Use{" "}
+                  <strong>Publish</strong> (top right) when ready. Domain &amp; SEO are outside this editor.
                 </p>
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: BUILDER.faint }}>
                   Add block
@@ -1275,13 +1102,56 @@ export default function ProjectEditorPage() {
                             />
                             Floating motion (cutouts + parallax)
                           </label>
+                          <SocialLinksEditor
+                            projectId={projectId}
+                            links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
+                              (l) => ({
+                                label: String(l.label ?? ""),
+                                href: String(l.href ?? ""),
+                                iconUrl: String(l.iconUrl ?? ""),
+                              }),
+                            )}
+                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                            rail={{
+                              visible: section.props.socialRailVisible !== false,
+                              bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
+                              leftPct: Number(section.props.socialRailLeftPct ?? 0),
+                              topPct: Number(section.props.socialRailTopPct ?? 12),
+                              iconSize: Number(section.props.socialRailIconSize ?? 40),
+                            }}
+                            onRailChange={(patch) => updateProps(section.id, patch)}
+                          />
                         </div>
                       )}
                       {section.section_type === "legally-blonde-hero" && (
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-                            Words
+                            Russian layout — swap photos & font
                           </p>
+                          <button
+                            type="button"
+                            className="w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold"
+                            style={{ border: "1px solid #FF5500", color: "#FF5500" }}
+                            onClick={() =>
+                              updateProps(section.id, {
+                                backgroundLayer: "/templates/legally-blonde/background.png",
+                                titleLogo: "/templates/legally-blonde/title-logo.svg",
+                                cutoutLeft: "/templates/legally-blonde/cutout-left.png",
+                                cutoutRight: "/templates/legally-blonde/cutout-right.png",
+                                cutoutAccent: "/templates/legally-blonde/cutout-accent.png",
+                                cutoutSparkle: "/templates/legally-blonde/cutout-sparkle.png",
+                                macbook: "/templates/legally-blonde/macbook.png",
+                                sparkleGif: "/templates/legally-blonde/cutout-sparkle.png",
+                                heroPhoto: "/templates/legally-blonde/hero-photo.png",
+                                displayFont: "Steelfish",
+                                accentColor: "#E9006B",
+                                scrollMode: "parallax",
+                                appearance: "light",
+                              })
+                            }
+                          >
+                            Reset cutouts / bg / font to Russian original
+                          </button>
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
@@ -1299,25 +1169,31 @@ export default function ProjectEditorPage() {
                             aria-label="Subtitle"
                             placeholder="Short bio or tagline"
                           />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.ctaLabel ?? "")}
-                            onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
-                            placeholder="Button text"
-                          />
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Display font (Steelfish = Russian)
+                            <input
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.displayFont ?? "Steelfish")}
+                              onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
+                              placeholder="Steelfish"
+                            />
+                          </label>
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            Photos — tap upload
+                            Russian cutouts — keep Elle / Legally Blonde, or swap
+                          </p>
+                          <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
+                            Upload a transparent PNG to replace a cutout. On the preview: click a cutout → Upload, then drag it. Use + Add my cutout for extra photos. Remove clears that layer (does not fall back to the old image).
                           </p>
                           {(
                             [
-                              ["titleLogo", "Logo in navigation"],
+                              ["titleLogo", "Spinning logo (SVG/PNG)"],
                               ["backgroundLayer", "Background layer"],
-                              ["cutoutLeft", "Cutout left"],
-                              ["cutoutRight", "Cutout right"],
-                              ["cutoutAccent", "Center portrait"],
-                              ["cutoutSparkle", "Sparkle / small logo"],
-                              ["macbook", "Album / MacBook mockup"],
+                              ["cutoutLeft", "Cutout left (transparent PNG)"],
+                              ["cutoutRight", "Cutout right (transparent PNG)"],
+                              ["cutoutAccent", "Center cutout portrait"],
+                              ["cutoutSparkle", "Sparkle / small accent"],
+                              ["macbook", "Laptop / album mockup"],
                               ["heroPhoto", "Story photo"],
                             ] as const
                           ).map(([key, label]) => (
@@ -1328,6 +1204,57 @@ export default function ProjectEditorPage() {
                               value={String(section.props[key] ?? "")}
                               onChange={(url) => updateProps(section.id, { [key]: url })}
                             />
+                          ))}
+                          <button
+                            type="button"
+                            className="w-full rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white"
+                            style={{ background: "#0F0D33" }}
+                            onClick={() => {
+                              const existing = (section.props.extraCutouts as Record<string, unknown>[]) ?? [];
+                              updateProps(section.id, {
+                                extraCutouts: [
+                                  ...existing,
+                                  {
+                                    id: `cut-${Date.now()}`,
+                                    src: String(section.props.cutoutAccent ?? section.props.cutoutLeft ?? ""),
+                                    alt: "My cutout",
+                                    topPct: 28,
+                                    leftPct: 35,
+                                    widthPct: 14,
+                                    rotate: -6,
+                                    zIndex: 14,
+                                  },
+                                ],
+                              });
+                            }}
+                          >
+                            + Add my cutout (drag on preview)
+                          </button>
+                          {((section.props.extraCutouts as { id?: string; src?: string }[]) ?? []).map((cut, idx) => (
+                            <div key={cut.id ?? idx} className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
+                              <SectionPhotoField
+                                projectId={projectId}
+                                label={`Extra cutout ${idx + 1}`}
+                                value={String(cut.src ?? "")}
+                                onChange={(url) => {
+                                  const next = [...((section.props.extraCutouts as typeof cut[]) ?? [])];
+                                  next[idx] = { ...next[idx]!, src: url };
+                                  updateProps(section.id, { extraCutouts: next });
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="text-[10px] font-bold uppercase text-red-600"
+                                onClick={() => {
+                                  const next = ((section.props.extraCutouts as typeof cut[]) ?? []).filter(
+                                    (_, i) => i !== idx,
+                                  );
+                                  updateProps(section.id, { extraCutouts: next });
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
                           ))}
                           <label className="block text-[10px] uppercase tracking-wider">
                             Accent color
@@ -1354,8 +1281,412 @@ export default function ProjectEditorPage() {
                                 updateProps(section.id, { scrollMode: e.target.checked ? "viewport" : "parallax" })
                               }
                             />
-                            One-screen home (navigate with top menu — no scroll)
+                            One-screen home (off = full Russian scroll)
                           </label>
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
+                            Music / social links
+                          </p>
+                          <SocialLinksEditor
+                            projectId={projectId}
+                            links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
+                              (l) => ({
+                                label: String(l.label ?? ""),
+                                href: String(l.href ?? ""),
+                                iconUrl: String(l.iconUrl ?? ""),
+                              }),
+                            )}
+                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                            rail={{
+                              visible: section.props.socialRailVisible !== false,
+                              bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
+                              leftPct: Number(section.props.socialRailLeftPct ?? 0),
+                              topPct: Number(section.props.socialRailTopPct ?? 12),
+                              iconSize: Number(section.props.socialRailIconSize ?? 40),
+                            }}
+                            onRailChange={(patch) => updateProps(section.id, patch)}
+                          />
+                        </div>
+                      )}
+                      {section.section_type === "kdirection-home" && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+                            Wix K-Direction — drag photos on the canvas
+                          </p>
+                          <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
+                            Upload cutouts (PNG with transparent background works best). On the preview: click a photo → Upload, then drag it where you want. Saves to your project automatically.
+                          </p>
+                          <SectionPhotoField
+                            projectId={projectId}
+                            label="Your logo (optional)"
+                            value={String(section.props.logoImage ?? "")}
+                            onChange={(url) => updateProps(section.id, { logoImage: url })}
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.brandLine1 ?? "K")}
+                            onChange={(e) => updateProps(section.id, { brandLine1: e.target.value })}
+                            placeholder="K"
+                            aria-label="Brand letter"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.brandLine2 ?? "DIRECTION")}
+                            onChange={(e) => updateProps(section.id, { brandLine2: e.target.value })}
+                            placeholder="DIRECTION"
+                            aria-label="Brand word"
+                          />
+                          <textarea
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            rows={2}
+                            value={String(section.props.mission ?? "")}
+                            onChange={(e) => updateProps(section.id, { mission: e.target.value })}
+                            placeholder="Mission / short line under the logo"
+                          />
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Font (Oswald = Wix)
+                            <input
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.displayFont ?? "Oswald")}
+                              onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
+                            />
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Logo color
+                              <input
+                                className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.logoColor ?? "#FFFFFF")}
+                                onChange={(e) => updateProps(section.id, { logoColor: e.target.value })}
+                              />
+                            </label>
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Mirror color
+                              <input
+                                className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.logoMirrorColor ?? "#F5C4B8")}
+                                onChange={(e) => updateProps(section.id, { logoMirrorColor: e.target.value })}
+                              />
+                            </label>
+                          </div>
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Nav button yellow
+                            <input
+                              className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.navButtonBg ?? "#FFF86B")}
+                              onChange={(e) => updateProps(section.id, { navButtonBg: e.target.value })}
+                            />
+                          </label>
+                          <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={section.props.showMirrorLogo !== false}
+                              onChange={(e) => updateProps(section.id, { showMirrorLogo: e.target.checked })}
+                            />
+                            Mirrored wordmark (Wix)
+                          </label>
+                          <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={section.props.showHomeIcon !== false}
+                              onChange={(e) => updateProps(section.id, { showHomeIcon: e.target.checked })}
+                            />
+                            Home icon in nav
+                          </label>
+                          <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={section.props.showOverlay === true}
+                              onChange={(e) => updateProps(section.id, { showOverlay: e.target.checked })}
+                            />
+                            Dark overlay on background photo
+                          </label>
+                          <SectionPhotoField
+                            projectId={projectId}
+                            label="Optional background photo (over gradient)"
+                            value={String(section.props.backgroundImage ?? "")}
+                            onChange={(url) => updateProps(section.id, { backgroundImage: url })}
+                          />
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
+                            Collage photos / cutouts
+                          </p>
+                          <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
+                            Switch Desktop / Tablet / Phone above the preview, then drag photos — each device can look different and all publish together.
+                          </p>
+                          <button
+                            type="button"
+                            className="w-full rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white"
+                            style={{ background: "#0F0D33" }}
+                            onClick={() => {
+                              const existing = (section.props.collagePhotos as Record<string, unknown>[]) ?? [];
+                              const base = {
+                                src: String(
+                                  (section.props.featuredArtistImage as string) ||
+                                    (existing[0] as { src?: string } | undefined)?.src ||
+                                    "",
+                                ),
+                                alt: "New photo",
+                                rotate: -10 + Math.round(Math.random() * 20),
+                                topPct: 20 + Math.round(Math.random() * 40),
+                                leftPct: 20 + Math.round(Math.random() * 40),
+                                widthPct: 16,
+                                zIndex: 5,
+                              };
+                              const next = [
+                                ...existing,
+                                {
+                                  ...base,
+                                  tablet: {
+                                    rotate: base.rotate,
+                                    topPct: base.topPct,
+                                    leftPct: Math.min(70, base.leftPct),
+                                    widthPct: Math.min(28, base.widthPct * 1.2),
+                                    hidden: false,
+                                  },
+                                  mobile: {
+                                    rotate: Math.max(-18, Math.min(18, base.rotate)),
+                                    topPct: 10 + (existing.length % 3) * 28,
+                                    leftPct: existing.length % 2 === 0 ? 8 : 52,
+                                    widthPct: 40,
+                                    hidden: existing.length >= 4,
+                                  },
+                                },
+                              ];
+                              updateProps(section.id, { collagePhotos: next });
+                            }}
+                          >
+                            + Add photo / cutout
+                          </button>
+                          {(
+                            (section.props.collagePhotos as {
+                              src?: string;
+                              rotate?: number;
+                              topPct?: number;
+                              leftPct?: number;
+                              widthPct?: number;
+                            }[]) ?? []
+                          ).map((photo, idx) => (
+                            <div key={idx} className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
+                              <SectionPhotoField
+                                projectId={projectId}
+                                label={`Photo ${idx + 1} — upload then drag on canvas`}
+                                value={String(photo.src ?? "")}
+                                onChange={(url) => {
+                                  const next = [
+                                    ...((section.props.collagePhotos as typeof photo[]) ?? []),
+                                  ];
+                                  next[idx] = { ...next[idx]!, src: url };
+                                  updateProps(section.id, { collagePhotos: next });
+                                }}
+                              />
+                              <div className="grid grid-cols-2 gap-1">
+                                <label className="text-[9px]">
+                                  Rotate
+                                  <input
+                                    type="number"
+                                    className="mt-0.5 w-full text-xs rounded px-1 py-1"
+                                    style={{ border: "1px solid #DDE0F0" }}
+                                    value={Number(photo.rotate ?? 0)}
+                                    onChange={(e) => {
+                                      const next = [
+                                        ...((section.props.collagePhotos as typeof photo[]) ?? []),
+                                      ];
+                                      next[idx] = { ...next[idx]!, rotate: Number(e.target.value) };
+                                      updateProps(section.id, { collagePhotos: next });
+                                    }}
+                                  />
+                                </label>
+                                <label className="text-[9px]">
+                                  Width %
+                                  <input
+                                    type="number"
+                                    className="mt-0.5 w-full text-xs rounded px-1 py-1"
+                                    style={{ border: "1px solid #DDE0F0" }}
+                                    value={Number(photo.widthPct ?? 16)}
+                                    onChange={(e) => {
+                                      const next = [
+                                        ...((section.props.collagePhotos as typeof photo[]) ?? []),
+                                      ];
+                                      next[idx] = { ...next[idx]!, widthPct: Number(e.target.value) };
+                                      updateProps(section.id, { collagePhotos: next });
+                                    }}
+                                  />
+                                </label>
+                                <label className="text-[9px]">
+                                  Top %
+                                  <input
+                                    type="number"
+                                    className="mt-0.5 w-full text-xs rounded px-1 py-1"
+                                    style={{ border: "1px solid #DDE0F0" }}
+                                    value={Number(photo.topPct ?? 10)}
+                                    onChange={(e) => {
+                                      const next = [
+                                        ...((section.props.collagePhotos as typeof photo[]) ?? []),
+                                      ];
+                                      next[idx] = { ...next[idx]!, topPct: Number(e.target.value) };
+                                      updateProps(section.id, { collagePhotos: next });
+                                    }}
+                                  />
+                                </label>
+                                <label className="text-[9px]">
+                                  Left %
+                                  <input
+                                    type="number"
+                                    className="mt-0.5 w-full text-xs rounded px-1 py-1"
+                                    style={{ border: "1px solid #DDE0F0" }}
+                                    value={Number(photo.leftPct ?? 10)}
+                                    onChange={(e) => {
+                                      const next = [
+                                        ...((section.props.collagePhotos as typeof photo[]) ?? []),
+                                      ];
+                                      next[idx] = { ...next[idx]!, leftPct: Number(e.target.value) };
+                                      updateProps(section.id, { collagePhotos: next });
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                              <button
+                                type="button"
+                                className="text-[10px] font-bold uppercase text-red-600"
+                                onClick={() => {
+                                  const next = ((section.props.collagePhotos as typeof photo[]) ?? []).filter(
+                                    (_, i) => i !== idx,
+                                  );
+                                  updateProps(section.id, { collagePhotos: next });
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                          <NavLinksEditor
+                            links={((section.props.navLinks as { label?: string; href?: string }[]) ?? []).map((l) => ({
+                              label: String(l.label ?? ""),
+                              href: String(l.href ?? ""),
+                            }))}
+                            onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                          />
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
+                            Social / music links
+                          </p>
+                          <button
+                            type="button"
+                            className="w-full rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            onClick={() => {
+                              const next = [
+                                ...((section.props.socialLinks as { label: string; href: string; iconUrl: string }[]) ??
+                                  []),
+                                { label: "Instagram", href: "https://instagram.com/", iconUrl: "" },
+                              ];
+                              updateProps(section.id, { socialLinks: next });
+                            }}
+                          >
+                            + Add social / music link
+                          </button>
+                          {((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
+                            (link, idx) => (
+                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
+                                <input
+                                  className="w-full text-xs rounded px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={link.label ?? ""}
+                                  placeholder="Label (Spotify, Instagram…)"
+                                  onChange={(e) => {
+                                    const next = [...((section.props.socialLinks as typeof link[]) ?? [])];
+                                    next[idx] = { ...next[idx]!, label: e.target.value };
+                                    updateProps(section.id, { socialLinks: next });
+                                  }}
+                                />
+                                <input
+                                  className="w-full text-xs rounded px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={link.href ?? ""}
+                                  placeholder="https://..."
+                                  onChange={(e) => {
+                                    const next = [...((section.props.socialLinks as typeof link[]) ?? [])];
+                                    next[idx] = { ...next[idx]!, href: e.target.value };
+                                    updateProps(section.id, { socialLinks: next });
+                                  }}
+                                />
+                                <SectionPhotoField
+                                  projectId={projectId}
+                                  label="Icon"
+                                  value={String(link.iconUrl ?? "")}
+                                  onChange={(url) => {
+                                    const next = [...((section.props.socialLinks as typeof link[]) ?? [])];
+                                    next[idx] = { ...next[idx]!, iconUrl: url };
+                                    updateProps(section.id, { socialLinks: next });
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="text-[10px] font-bold uppercase text-red-600"
+                                  onClick={() => {
+                                    const next = (
+                                      (section.props.socialLinks as typeof link[]) ?? []
+                                    ).filter((_, i) => i !== idx);
+                                    updateProps(section.id, { socialLinks: next });
+                                  }}
+                                >
+                                  Remove link
+                                </button>
+                              </div>
+                            ),
+                          )}
+                          <label className="block text-[10px] uppercase tracking-wider pt-1">
+                            Footer text
+                            <input
+                              className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.footerText ?? "")}
+                              onChange={(e) => updateProps(section.id, { footerText: e.target.value })}
+                            />
+                          </label>
+                        </div>
+                      )}
+                      {section.section_type === "kdirection-page" && (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.title ?? "")}
+                            onChange={(e) => updateProps(section.id, { title: e.target.value })}
+                          />
+                          <textarea
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            rows={4}
+                            value={String(section.props.body ?? "")}
+                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                          />
+                          <SectionPhotoField
+                            projectId={projectId}
+                            label="Hero photo"
+                            value={String(section.props.heroImage ?? "")}
+                            onChange={(url) => updateProps(section.id, { heroImage: url })}
+                          />
+                          <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={section.props.showOverlay === true}
+                              onChange={(e) => updateProps(section.id, { showOverlay: e.target.checked })}
+                            />
+                            Dark overlay
+                          </label>
+                          <NavLinksEditor
+                            links={((section.props.navLinks as { label?: string; href?: string }[]) ?? []).map((l) => ({
+                              label: String(l.label ?? ""),
+                              href: String(l.href ?? ""),
+                            }))}
+                            onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                          />
                         </div>
                       )}
                       {section.section_type === "maylecor-music" && (
@@ -1372,6 +1703,25 @@ export default function ProjectEditorPage() {
                             label="Album art"
                             value={String(section.props.albumArt ?? "")}
                             onChange={(url) => updateProps(section.id, { albumArt: url })}
+                          />
+                          <SocialLinksEditor
+                            projectId={projectId}
+                            links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
+                              (l) => ({
+                                label: String(l.label ?? ""),
+                                href: String(l.href ?? ""),
+                                iconUrl: String(l.iconUrl ?? ""),
+                              }),
+                            )}
+                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                            rail={{
+                              visible: section.props.socialRailVisible !== false,
+                              bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
+                              leftPct: Number(section.props.socialRailLeftPct ?? 0),
+                              topPct: Number(section.props.socialRailTopPct ?? 12),
+                              iconSize: Number(section.props.socialRailIconSize ?? 40),
+                            }}
+                            onRailChange={(patch) => updateProps(section.id, patch)}
                           />
                         </div>
                       )}
@@ -1424,12 +1774,23 @@ export default function ProjectEditorPage() {
                         </div>
                       )}
                       {section.section_type === "navigation" && (
-                        <input
-                          className="w-full text-sm rounded-lg px-2 py-1.5"
-                          style={{ border: "1px solid #DDE0F0" }}
-                          value={String(section.props.brand ?? "")}
-                          onChange={(e) => updateProps(section.id, { brand: e.target.value })}
-                        />
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.brand ?? "")}
+                            onChange={(e) => updateProps(section.id, { brand: e.target.value })}
+                            aria-label="Brand name"
+                            placeholder="Brand name"
+                          />
+                          <NavLinksEditor
+                            links={((section.props.links as { label?: string; href?: string }[]) ?? []).map((l) => ({
+                              label: String(l.label ?? ""),
+                              href: String(l.href ?? ""),
+                            }))}
+                            onChange={(links) => updateProps(section.id, { links })}
+                          />
+                        </div>
                       )}
                       {section.section_type === "footer" && (
                         <input
@@ -1782,81 +2143,19 @@ export default function ProjectEditorPage() {
                             placeholder="Section heading"
                           />
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                            Use the <strong>Products</strong> tab for your full catalog. Edit quick items here — customers
-                            order via WhatsApp; store checkout with JOKO mobile money is coming soon.
+                            Catalog lives in{" "}
+                            <Link href={`/shop/${projectId}`} className="font-bold underline" style={{ color: "#FF5500" }}>
+                              Kebu Shop
+                            </Link>{" "}
+                            (separate from this builder). Add or edit products there, then publish this site.
                           </p>
-                          {(Array.isArray(section.props.items) ? section.props.items : []).map(
-                            (
-                              item: {
-                                name?: string;
-                                description?: string;
-                                priceLabel?: string;
-                                imageUrl?: string;
-                                whatsappMessage?: string;
-                              },
-                              idx: number,
-                            ) => (
-                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: BUILDER.surfaceMuted }}>
-                                <input
-                                  className="w-full text-sm rounded-lg px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
-                                  value={String(item?.name ?? "")}
-                                  placeholder="Product name"
-                                  onChange={(e) => {
-                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                    items[idx] = { ...items[idx], name: e.target.value };
-                                    updateProps(section.id, { items });
-                                  }}
-                                />
-                                <input
-                                  className="w-full text-sm rounded-lg px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
-                                  value={String(item?.priceLabel ?? "")}
-                                  placeholder="Price (e.g. 5 000 XOF)"
-                                  onChange={(e) => {
-                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                    items[idx] = { ...items[idx], priceLabel: e.target.value };
-                                    updateProps(section.id, { items });
-                                  }}
-                                />
-                                <SectionPhotoField
-                                  projectId={projectId}
-                                  label="Product image"
-                                  value={String(item?.imageUrl ?? "")}
-                                  onChange={(url) => {
-                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                    items[idx] = { ...items[idx], imageUrl: url };
-                                    updateProps(section.id, { items });
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="text-[10px] text-red-600"
-                                  onClick={() => {
-                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                    items.splice(idx, 1);
-                                    updateProps(section.id, { items });
-                                  }}
-                                >
-                                  Remove product
-                                </button>
-                              </div>
-                            ),
-                          )}
-                          <button
-                            type="button"
-                            className="text-[11px] font-semibold underline"
-                            style={{ color: BUILDER.orange }}
-                            onClick={() => {
-                              const items = [
-                                ...(Array.isArray(section.props.items) ? section.props.items : []),
-                                { name: "New product", description: "", priceLabel: "", imageUrl: "", whatsappMessage: "" },
-                              ];
-                              updateProps(section.id, { items });
-                            }}
+                          <Link
+                            href={`/shop/${projectId}`}
+                            className="inline-block rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white"
+                            style={{ background: "#FF5500" }}
                           >
-                            + Add product
-                          </button>
+                            Manage products in Shop
+                          </Link>
                         </div>
                       )}
                       {section.section_type === "newsletter" && (
@@ -1961,7 +2260,7 @@ export default function ProjectEditorPage() {
                           </button>
                         </div>
                       )}
-                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "maylecor-home", "maylecor-music", "legally-blonde-hero"].includes(
+                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page"].includes(
                         section.section_type
                       ) && (
                         <p className="text-[11px]" style={{ color: "#8A8578" }}>
@@ -1983,8 +2282,28 @@ export default function ProjectEditorPage() {
               )}
             </aside>
 
-            <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#0a0a0a]">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2">
+            <section
+              className="flex min-w-0 flex-1 flex-col overflow-hidden"
+              style={{
+                background: sections.some((s) => s.section_type === "legally-blonde-hero")
+                  ? "#FFE4F0"
+                  : sections.some(
+                        (s) =>
+                          s.section_type === "kdirection-home" ||
+                          s.section_type === "kdirection-page",
+                      )
+                    ? "#f5f5f5"
+                    : "#0a0a0a",
+              }}
+            >
+              <div
+                className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2"
+                style={{
+                  borderColor: sections.some((s) => s.section_type === "legally-blonde-hero")
+                    ? "rgba(233,0,107,0.25)"
+                    : "rgba(255,255,255,0.1)",
+                }}
+              >
                 {pages.length > 1 ? (
                   <div className="flex flex-wrap gap-2">
                     {pages
@@ -2010,31 +2329,59 @@ export default function ProjectEditorPage() {
                       ))}
                   </div>
                 ) : (
-                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#8A8578" }}>
+                  <span
+                    className="text-xs font-semibold uppercase tracking-wider"
+                    style={{
+                      color: sections.some((s) => s.section_type === "legally-blonde-hero")
+                        ? "#8B1A4A"
+                        : "#8A8578",
+                    }}
+                  >
                     Live preview
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setDevice(device === "desktop" ? "mobile" : "desktop")}
-                  className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-                  style={{ background: "#0F0D33", color: "#fff" }}
-                >
-                  {device} view
-                </button>
+                <div className="flex items-center gap-1 rounded-full p-0.5" style={{ background: "#ECEAE4" }}>
+                  {(
+                    [
+                      ["desktop", "Desktop"],
+                      ["tablet", "Tablet"],
+                      ["mobile", "Phone"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setDevice(id)}
+                      className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        background: device === id ? "#0F0D33" : "transparent",
+                        color: device === id ? "#fff" : "#5C5348",
+                      }}
+                      aria-pressed={device === id}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div
-                className="mx-auto flex-1 w-full overflow-y-auto"
-                style={{
-                  maxWidth: device === "mobile" ? 390 : "100%",
-                }}
-              >
+              <div className="mx-auto flex-1 w-full overflow-y-auto p-3 sm:p-4">
                 <div
-                  className="mx-auto overflow-hidden"
+                  className="mx-auto overflow-hidden bg-white"
                   style={{
-                    minHeight: "100%",
-                    border: device === "mobile" ? "1px solid #333" : undefined,
-                    borderRadius: device === "mobile" ? 16 : 0,
+                    width: "100%",
+                    maxWidth: BUILDER_DEVICE_FRAME[device],
+                    minHeight: device === "mobile" ? 520 : device === "tablet" ? 640 : 560,
+                    border:
+                      device === "mobile"
+                        ? "3px solid #1a1a1a"
+                        : device === "tablet"
+                          ? "2px solid #333"
+                          : "1px solid #c8c4bc",
+                    borderRadius: device === "mobile" ? 28 : device === "tablet" ? 18 : 12,
+                    boxShadow:
+                      device === "desktop"
+                        ? "0 16px 48px rgba(0,0,0,0.22)"
+                        : "0 12px 40px rgba(0,0,0,0.18)",
                   }}
                 >
                 {previewDefinition && (
@@ -2042,6 +2389,9 @@ export default function ProjectEditorPage() {
                     definition={previewDefinition}
                     pageSlug={previewPageSlug}
                     siteBase={previewSiteBase || undefined}
+                    projectId={projectId}
+                    device={device}
+                    onAssetDrop={(asset, drop) => void applyMediaAsset(asset, drop)}
                     editor={{
                       selectedSectionId,
                       onSelectSection: (id) => {

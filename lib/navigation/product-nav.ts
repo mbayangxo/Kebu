@@ -26,6 +26,10 @@ export const PRODUCT_NAV = {
     { label: "Kebu Domains", href: "/create/domains" },
     { label: "New site", href: "/create/new" },
   ] satisfies NavItem[],
+  /** Shop — separate from website builder (Shopify-style) */
+  shop: [
+    { label: "Kebu Shop", href: "/shop", exact: true },
+  ] satisfies NavItem[],
   create: [
     { label: "Kebu Create", href: "/studio", exact: true },
     { label: "New design", href: "/studio/new" },

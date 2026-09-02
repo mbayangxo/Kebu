@@ -10,13 +10,16 @@ export function PublicSiteView({
   subdomain,
   pageSlug = "home",
   projectId,
+  siteBase: siteBaseProp,
 }: {
   definition: WebsiteDefinition;
   subdomain: string;
   pageSlug?: string;
   projectId?: string;
+  /** Empty string on custom domains so links stay on the brand URL. */
+  siteBase?: string;
 }) {
-  const siteBase = `/sites/${subdomain}`;
+  const siteBase = siteBaseProp ?? `/sites/${subdomain}`;
 
   useEffect(() => {
     registerSiteOfflineCache();

@@ -1,37 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  EditableSocialRail,
+  socialRailStyleFromProps,
+  type SocialLinkItem,
+} from "@/app/components/create/editable-social-rail";
 import "./artist-motion.css";
-
-type SocialLink = { label: string; iconUrl: string; href: string };
-
-function SocialRail({ links, siteBase }: { links: SocialLink[]; siteBase?: string }) {
-  return (
-    <aside
-      className="fixed left-0 top-0 z-50 flex h-full w-14 flex-col items-center justify-center gap-3 bg-black/80 py-6 sm:w-16"
-      aria-label="Social links"
-    >
-      {links.map((link) => (
-        <a
-          key={link.label}
-          href={link.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={link.label}
-          className="opacity-90 transition hover:opacity-100"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={link.iconUrl} alt={link.label} className="h-9 w-9 sm:h-11 sm:w-11" />
-        </a>
-      ))}
-      {siteBase ? (
-        <a href={siteBase} className="mt-4 text-[9px] uppercase tracking-widest text-white/50 hover:text-white">
-          Home
-        </a>
-      ) : null}
-    </aside>
-  );
-}
 
 export type MaylecorHomeProps = {
   artistName: string;
@@ -46,21 +21,37 @@ export type MaylecorHomeProps = {
   ctaLabel: string;
   musicPageSlug: string;
   homeLogoHref: string;
-  socialLinks: SocialLink[];
+  socialLinks: SocialLinkItem[];
+  socialRailVisible?: boolean;
+  socialRailBg?: string;
+  socialRailLeftPct?: number;
+  socialRailTopPct?: number;
+  socialRailIconSize?: number;
   motionEnabled?: boolean;
+};
+
+type EditorHooks = {
+  sectionId?: string;
+  onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
+  onSelectSection?: (sectionId: string) => void;
 };
 
 export function MaylecorHomeLayout({
   props,
   siteBase = "",
+  sectionId,
+  editor,
 }: {
   props: MaylecorHomeProps;
   siteBase?: string;
+  sectionId?: string;
+  editor?: EditorHooks;
 }) {
   const musicHref = siteBase ? `${siteBase}/${props.musicPageSlug}` : `/${props.musicPageSlug}`;
   const motion = props.motionEnabled !== false;
   const rootRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
+  const editing = Boolean(editor?.onPatchSection && sectionId);
 
   useEffect(() => {
     if (!motion) return;
@@ -75,9 +66,19 @@ export function MaylecorHomeLayout({
   const bottomShift = motion ? scrollY * 0.08 : 0;
 
   return (
-    <div id="top" ref={rootRef} className={`min-h-screen bg-black text-white ${motionClass}`}>
-      <SocialRail links={props.socialLinks} />
-      <div className="relative min-h-screen pl-14 sm:pl-16">
+    <div id="top" ref={rootRef} className={`relative min-h-screen bg-black text-white ${motionClass}`}>
+      <EditableSocialRail
+        links={props.socialLinks ?? []}
+        style={socialRailStyleFromProps(props as unknown as Record<string, unknown>)}
+        editing={editing}
+        onSelect={sectionId && editor?.onSelectSection ? () => editor.onSelectSection!(sectionId) : undefined}
+        onPatch={
+          sectionId && editor?.onPatchSection
+            ? (patch) => editor.onPatchSection!(sectionId, patch)
+            : undefined
+        }
+      />
+      <div className="relative min-h-screen">
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-40 blur-md"
           style={{
@@ -137,6 +138,7 @@ export function MaylecorHomeLayout({
             <a
               href={musicHref}
               className="inline-block border border-white/30 bg-black/50 px-6 py-4 text-xs font-semibold tracking-[0.35em] text-white transition hover:scale-[1.02] hover:bg-white hover:text-black sm:text-sm"
+              onClick={(e) => editing && e.preventDefault()}
             >
               {props.ctaLabel}
             </a>
@@ -147,6 +149,7 @@ export function MaylecorHomeLayout({
               href={props.homeLogoHref || "#top"}
               className="mx-auto mb-12 block max-w-xl"
               style={{ animation: motion ? "maylecor-fade-up 1.5s ease-out 0.35s both" : undefined }}
+              onClick={(e) => editing && e.preventDefault()}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={props.logoBanner} alt={props.artistName} className="mx-auto w-full max-w-md object-contain" />
@@ -189,25 +192,50 @@ export type MaylecorMusicProps = {
   artistName: string;
   albumArt: string;
   homePageSlug: string;
-  socialLinks: SocialLink[];
+  socialLinks: SocialLinkItem[];
+  socialRailVisible?: boolean;
+  socialRailBg?: string;
+  socialRailLeftPct?: number;
+  socialRailTopPct?: number;
+  socialRailIconSize?: number;
   motionEnabled?: boolean;
 };
 
 export function MaylecorMusicLayout({
   props,
   siteBase = "",
+  sectionId,
+  editor,
 }: {
   props: MaylecorMusicProps;
   siteBase?: string;
+  sectionId?: string;
+  editor?: EditorHooks;
 }) {
   const homeHref = siteBase ? `${siteBase}` : `/${props.homePageSlug}`;
   const motion = props.motionEnabled !== false;
+  const editing = Boolean(editor?.onPatchSection && sectionId);
 
   return (
-    <div className={`min-h-screen bg-black text-white ${motion ? "artist-motion-on" : ""}`}>
-      <SocialRail links={props.socialLinks} siteBase={homeHref} />
-      <div className="flex min-h-screen flex-col items-center justify-center pl-14 sm:pl-16">
-        <a href={homeHref} className="mb-8 text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white">
+    <div className={`relative min-h-screen bg-black text-white ${motion ? "artist-motion-on" : ""}`}>
+      <EditableSocialRail
+        links={props.socialLinks ?? []}
+        style={socialRailStyleFromProps(props as unknown as Record<string, unknown>)}
+        editing={editing}
+        siteBase={editing ? undefined : homeHref}
+        onSelect={sectionId && editor?.onSelectSection ? () => editor.onSelectSection!(sectionId) : undefined}
+        onPatch={
+          sectionId && editor?.onPatchSection
+            ? (patch) => editor.onPatchSection!(sectionId, patch)
+            : undefined
+        }
+      />
+      <div className="relative flex min-h-screen flex-col items-center justify-center">
+        <a
+          href={homeHref}
+          className="mb-8 text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white"
+          onClick={(e) => editing && e.preventDefault()}
+        >
           ← {props.artistName}
         </a>
         {props.albumArt ? (

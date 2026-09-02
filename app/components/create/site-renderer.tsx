@@ -24,6 +24,12 @@ import {
   LegallyBlondeHeroLayout,
   type LegallyBlondeHeroProps,
 } from "@/app/components/create/legally-blonde-layout";
+import {
+  KdirectionHomeLayout,
+  KdirectionPageLayout,
+  type KdirectionHomeProps,
+  type KdirectionPageProps,
+} from "@/app/components/create/kdirection-layout";
 import { MaylecorMotionChrome } from "@/app/components/create/maylecor-motion-chrome";
 import { MaylecorSiteFooter } from "@/app/components/create/maylecor-site-footer";
 
@@ -68,6 +74,8 @@ function sectionAnchor(section: { id?: string; type: string }): string | undefin
 export type SiteRendererEditor = {
   selectedSectionId?: string | null;
   inlineEdit?: boolean;
+  /** Force desktop/tablet/phone layout while editing in the builder. */
+  editDevice?: import("@/lib/create/builder-device").BuilderDevice;
   onSelectSection?: (sectionId: string) => void;
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock?: (sectionId: string, blockId: string, x: number, y: number) => void;
@@ -174,16 +182,30 @@ export function SiteRenderer({
     s.type === "maylecor-home" || s.type === "maylecor-music",
   );
   const legallyBlondeOnly = page.sections.every((s) => s.type === "legally-blonde-hero");
+  const kdirectionOnly = page.sections.every(
+    (s) => s.type === "kdirection-home" || s.type === "kdirection-page",
+  );
   const motionHero = findMotionHeroProps(definition);
   const motionSite = motionHero !== null;
   const activeSlug = pageSlug && pageSlug !== "home" ? pageSlug : "home";
   const viewportHome =
     motionSite && activeSlug === "home" && motionHero?.scrollMode === "viewport";
 
+  const editingPreview = mode === "preview" && Boolean(editor);
   const shellStyle = maylecorOnly
-    ? { background: "#000", color: "#fff", minHeight: mode === "preview" ? "100%" : "100vh" }
+    ? {
+        background: editingPreview ? "#1a1a1a" : "#000",
+        color: "#fff",
+        minHeight: mode === "preview" ? "100%" : "100vh",
+      }
     : legallyBlondeOnly
-      ? { background: "#fff", color: "#111", minHeight: mode === "preview" ? "100%" : "100vh" }
+      ? {
+          background: editingPreview ? "#FFE4F0" : "#fff",
+          color: "#111",
+          minHeight: mode === "preview" ? "100%" : "100vh",
+        }
+      : kdirectionOnly
+        ? { background: "transparent", color: "#111", minHeight: mode === "preview" ? "100%" : "100vh" }
       : motionSite && activeSlug !== "home"
         ? { background: "#0a0a0a", color: "#fff", minHeight: mode === "preview" ? "100%" : "100vh" }
         : viewportHome
@@ -202,17 +224,18 @@ export function SiteRenderer({
 
   return (
     <div style={shellStyle}>
-      {motionSite && motionHero ? (
+      {motionSite && motionHero && !(editingPreview && legallyBlondeOnly) ? (
         <MaylecorMotionChrome
           siteBase={siteBase}
           brandLabel={motionHero.brandLabel ?? motionHero.title}
           titleLogo={motionHero.titleLogo}
           currentSlug={activeSlug}
           accentColor={motionHero.accentColor}
+          contained={mode === "preview"}
         />
       ) : null}
       {motionSite && activeSlug !== "home" ? (
-        <div className="sticky top-[52px] z-[100009] border-b border-white/10 bg-black/90 px-4 py-2 backdrop-blur-md">
+        <div className="sticky top-[52px] z-20 border-b border-white/10 bg-black/90 px-4 py-2 backdrop-blur-md">
           <a
             href={siteBase || "/"}
             className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/80 hover:text-white"
@@ -229,27 +252,57 @@ export function SiteRenderer({
         const wrap = (node: ReactNode) => wrapEditorSection(sectionId, editor, node);
         switch (section.type) {
           case "maylecor-home":
-            return (
+            return wrap(
               <MaylecorHomeLayout
                 key={key}
                 props={section.props as MaylecorHomeProps}
                 siteBase={siteBase}
-              />
+                sectionId={sectionId}
+                editor={editor}
+              />,
             );
           case "maylecor-music":
-            return (
+            return wrap(
               <MaylecorMusicLayout
                 key={key}
                 props={section.props as MaylecorMusicProps}
                 siteBase={siteBase}
-              />
+                sectionId={sectionId}
+                editor={editor}
+              />,
+            );
+          case "kdirection-home":
+            return wrap(
+              <KdirectionHomeLayout
+                key={key}
+                props={section.props as KdirectionHomeProps}
+                siteBase={siteBase}
+                sectionId={sectionId}
+                editor={editor}
+                projectId={projectId}
+              />,
+            );
+          case "kdirection-page":
+            return wrap(
+              <KdirectionPageLayout
+                key={key}
+                props={section.props as KdirectionPageProps}
+                siteBase={siteBase}
+                sectionId={sectionId}
+                editor={editor}
+                projectId={projectId}
+              />,
             );
           case "legally-blonde-hero":
-            return (
+            return wrap(
               <LegallyBlondeHeroLayout
                 key={key}
                 props={section.props as LegallyBlondeHeroProps}
-              />
+                contained={mode === "preview"}
+                sectionId={sectionId}
+                editor={editor}
+                projectId={projectId}
+              />,
             );
           case "navigation": {
             const p = section.props as { brand: string; links?: { label: string; href: string }[] };
@@ -473,7 +526,7 @@ export function SiteRenderer({
                   })}
                 </div>
                 {(p.items ?? []).length === 0 ? (
-                  <p className="text-sm opacity-60">Add products in the Shop tab of your editor.</p>
+                  <p className="text-sm opacity-60">Add products in Kebu Shop (separate from the website builder).</p>
                 ) : null}
               </section>,
             );
@@ -810,7 +863,7 @@ export function SiteRenderer({
             return null;
         }
       })}
-      {motionSite && motionHero ? (
+      {motionSite && motionHero && !(editingPreview && legallyBlondeOnly) ? (
         <MaylecorSiteFooter
           brandLabel={motionHero.brandLabel ?? motionHero.title}
           accentColor={motionHero.accentColor}

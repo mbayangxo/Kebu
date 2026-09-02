@@ -41,7 +41,7 @@ async function loadPrimaryCustomDomainUrl(projectId: string): Promise<string | n
   const admin = serviceClientOrNull();
   if (!admin) return null;
 
-  const { data } = await admin
+  const { data: primary } = await admin
     .from("site_domains")
     .select("hostname")
     .eq("project_id", projectId)
@@ -49,8 +49,19 @@ async function loadPrimaryCustomDomainUrl(projectId: string): Promise<string | n
     .eq("is_primary", true)
     .maybeSingle();
 
-  if (!data?.hostname) return null;
-  return `https://www.${data.hostname}`;
+  if (primary?.hostname) return `https://www.${primary.hostname}`;
+
+  const { data: anyVerified } = await admin
+    .from("site_domains")
+    .select("hostname")
+    .eq("project_id", projectId)
+    .eq("status", "verified")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!anyVerified?.hostname) return null;
+  return `https://www.${anyVerified.hostname}`;
 }
 
 function looksLikeMissingTable(message: string | undefined): boolean {

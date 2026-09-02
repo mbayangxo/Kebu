@@ -28,7 +28,8 @@ export function YandeGlobalFab({
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const inBuilder = pathname.startsWith("/create/") && pathname !== "/create" && !pathname.startsWith("/create/sites");
+  const inBuilder =
+    pathname.startsWith("/create/") && pathname !== "/create" && !pathname.startsWith("/create/sites");
 
   useEffect(() => {
     if (!open) return;
@@ -84,12 +85,12 @@ export function YandeGlobalFab({
     >
       <div className="h-1 w-full" style={{ background: BUILDER.gradient }} />
       <div className="p-4 space-y-3 max-h-[min(70vh,520px)] overflow-y-auto">
-        <div className="flex items-center gap-2">
-          <YandeMark size={32} />
-          <div>
-            <p className="font-display font-bold text-base">Yande</p>
+        <div className="flex items-center gap-3">
+          <YandeMark size={44} />
+          <div className="min-w-0">
+            <p className="font-display font-bold text-base leading-tight">Yande</p>
             <p className="text-[11px]" style={{ color: BUILDER.muted }}>
-              {inBuilder ? "Build your site end to end" : "Sites, domains, business ID"}
+              {inBuilder ? "Here to help you build" : "Your Kebu guide"}
             </p>
           </div>
           <button
@@ -110,7 +111,7 @@ export function YandeGlobalFab({
           </div>
         ) : (
           <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-            Ask about pages, photos, colors, domains, music, shop, or what to do next.
+            Ask about pages, photos, colors, music, shop, or what to do next.
           </p>
         )}
 
@@ -158,17 +159,22 @@ export function YandeGlobalFab({
     </div>
   ) : null;
 
+  /** Person avatar only — bottom-right, like a real assistant. */
   const trigger = (
     <button
       type="button"
       onClick={() => setOpen((o) => !o)}
-      className="flex items-center gap-2 rounded-full pl-1.5 pr-4 py-1.5 font-semibold text-sm text-white shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98]"
-      style={{ background: BUILDER.ink }}
+      className="group relative rounded-full transition-transform hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5500]"
       aria-expanded={open}
-      aria-label={open ? "Close Yande" : "Open Yande AI assistant"}
+      aria-label={open ? "Close Yande" : "Ask Yande"}
     >
-      <YandeMark size={36} />
-      <span className="hidden sm:inline">Yande</span>
+      <YandeMark size={variant === "stacked" ? 56 : 64} />
+      <span
+        className="pointer-events-none absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white"
+        style={{ background: "#00C851" }}
+        aria-hidden
+      />
+      <span className="sr-only">Yande</span>
     </button>
   );
 

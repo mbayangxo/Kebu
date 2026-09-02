@@ -7,10 +7,11 @@ import { NextRequest } from "next/server";
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
-const AI_LIMIT = 30;        // requests per IP per window
-const BUILDER_LIMIT = 120;  // saves / publish / settings per IP per window
-const PUBLIC_LIMIT = 180;   // public site reads per IP per window
-const WINDOW_MS = 60_000;   // 1 minute
+const AI_LIMIT = 30; // requests per IP per window
+const BUILDER_LIMIT = 120; // saves / publish / settings per IP per window
+const PUBLIC_LIMIT = 180; // public site reads per IP per window
+const AUTH_LIMIT = 20; // login / admin login attempts per IP per window
+const WINDOW_MS = 60_000; // 1 minute
 
 function clientKey(req: NextRequest): string {
   return (
@@ -59,6 +60,11 @@ export function builderRateLimit(req: Request | NextRequest): Response | null {
 
 export function publicSiteRateLimit(req: Request | NextRequest): Response | null {
   return rateLimit(req as NextRequest, PUBLIC_LIMIT, "public");
+}
+
+/** Login / admin login — stops password guessing from one IP. */
+export function authRateLimit(req: Request | NextRequest): Response | null {
+  return rateLimit(req as NextRequest, AUTH_LIMIT, "auth");
 }
 
 // Returns a 401 Response if the Authorization header doesn't match CRON_SECRET.

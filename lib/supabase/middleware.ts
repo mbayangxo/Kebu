@@ -82,12 +82,14 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Protect onboarding + Create Mode + Kebu ID business UI — requires auth
+  // Protect onboarding + Create Mode + Shop + Support + Kebu ID business UI — requires auth
   if (
     !user &&
     (pathname === "/onboarding" ||
       pathname === "/welcome" ||
       pathname.startsWith("/create") ||
+      pathname.startsWith("/shop") ||
+      pathname.startsWith("/support") ||
       pathname.startsWith("/business"))
   ) {
     const url = request.nextUrl.clone();
