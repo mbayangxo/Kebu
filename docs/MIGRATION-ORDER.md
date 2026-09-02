@@ -6,7 +6,7 @@ Open and paste the **entire** file into Supabase → **SQL Editor** → **Run**:
 
 **[`supabase/migrations/APPLY_ALL_PHASE_ONE.sql`](../supabase/migrations/APPLY_ALL_PHASE_ONE.sql)**
 
-That file runs **001 → 017** in the correct order (~2100 lines).
+That file runs **001 → 018** in the correct order (~2100 lines).
 
 - **Fresh Supabase project:** run the whole file once.
 - **Already ran 001 + 009:** run only the sections from `004_create_projects.sql` through `017_business_documents.sql` inside that file (or run 004–017 files one at a time).
@@ -44,7 +44,11 @@ Skip `002_network.sql` and `003_tracker_vault.sql` unless you use those legacy f
 **Cause:** Old 005 tried to create RLS on `businesses` before `business_members` existed.  
 **Fix:** Pull latest repo and re-run **005** from the fixed file.
 
-### Country Explorer empty but no error
+### `Database error saving new user` on signup
+
+**Cause:** `auth.users` signup trigger failed to insert into `public.user_profiles`.  
+**Fix:** Run `019_fix_auth_signup_trigger.sql` in the SQL editor (also appended to `APPLY_ALL_PHASE_ONE.sql`).
+
 
 Run **001** then **009**. Check: `select country, publish_status from country_profiles;`
 

@@ -8,29 +8,65 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
 import { safeAuthNextPath } from "@/lib/auth/safe-next";
+import { authCallbackUrl, isEmailNotConfirmed } from "@/lib/auth/email-confirm";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailConfirmPending, setEmailConfirmPending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent">("idle");
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
   const nextPath = safeAuthNextPath(searchParams.get("next"));
+  const confirmed = searchParams.get("confirmed") === "1";
+  const callbackError = searchParams.get("error");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setEmailConfirmPending(false);
+    setResendStatus("idle");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError(error.message);
+      if (isEmailNotConfirmed(error.message)) {
+        setEmailConfirmPending(true);
+        setError(
+          "Confirm your email first. Open the link we sent when you signed up, then sign in here."
+        );
+      } else {
+        setError(error.message);
+      }
       setLoading(false);
     } else {
       router.push(nextPath);
       router.refresh();
     }
+  }
+
+  async function handleResendConfirmation() {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setError("Enter your email above, then tap resend confirmation.");
+      return;
+    }
+    setResendStatus("sending");
+    setError("");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: trimmed,
+      options: { emailRedirectTo: authCallbackUrl(nextPath) },
+    });
+    if (error) {
+      setResendStatus("idle");
+      setError(error.message);
+      return;
+    }
+    setEmailConfirmPending(true);
+    setResendStatus("sent");
   }
 
   return (
@@ -58,9 +94,48 @@ function LoginForm() {
           Sign in to your sites, business, and opportunities
         </p>
 
-        {error && (
+        {confirmed && (
+          <div
+            className="rounded-xl px-4 py-3 text-sm mb-6"
+            style={{ background: "rgba(255,85,0,0.1)", color: KEBU.black }}
+          >
+            Email confirmed. You can sign in now.
+          </div>
+        )}
+
+        {callbackError === "confirm_failed" && (
           <div className="rounded-xl px-4 py-3 text-sm mb-6" style={{ background: KEBU.errorBg, color: KEBU.errorText }}>
+            That confirmation link expired or was already used. Resend a new link below.
+          </div>
+        )}
+
+        {error && (
+          <div
+            className="rounded-xl px-4 py-3 text-sm mb-6"
+            style={{
+              background: emailConfirmPending ? "rgba(255,85,0,0.1)" : KEBU.errorBg,
+              color: emailConfirmPending ? KEBU.black : KEBU.errorText,
+            }}
+          >
             {error}
+          </div>
+        )}
+
+        {emailConfirmPending && (
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => void handleResendConfirmation()}
+              disabled={resendStatus === "sending" || !email.trim()}
+              className="w-full font-semibold py-3 rounded-xl text-sm transition-all hover:brightness-105 disabled:opacity-60"
+              style={{ border: `1px solid ${KEBU.border}`, color: KEBU.black, background: KEBU.bright }}
+            >
+              {resendStatus === "sending"
+                ? "Sending…"
+                : resendStatus === "sent"
+                  ? "Confirmation email sent — check your inbox"
+                  : "Resend confirmation email"}
+            </button>
           </div>
         )}
 

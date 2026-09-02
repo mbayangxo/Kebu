@@ -201,12 +201,16 @@ create trigger country_profiles_updated_at
 -- Creates a user_profiles row on signup
 -- =====================
 create or replace function handle_new_user()
-returns trigger language plpgsql security definer as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into user_profiles (id, name, email)
+  insert into public.user_profiles (id, name, email)
   values (
     new.id,
-    new.raw_user_meta_data->>'full_name',
+    coalesce(
+      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'name'), ''),
+      split_part(coalesce(new.email, ''), '@', 1)
+    ),
     new.email
   )
   on conflict (id) do nothing;

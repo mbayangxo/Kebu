@@ -1,12 +1,13 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
+import { browserSupabaseMisconfigMessage, supabaseKeyRole } from "@/lib/supabase/key-role-browser";
+import { authCallbackUrl } from "@/lib/auth/email-confirm";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -15,8 +16,16 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
+  const [success, setSuccess] = useState(false);
+  const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
   const supabase = createClient();
+
+  useEffect(() => {
+    const msg = browserSupabaseMisconfigMessage(
+      supabaseKeyRole(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    );
+    if (msg) setError(msg);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,17 +41,33 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: authCallbackUrl("/onboarding"),
+      },
     });
     if (error) {
-      setError(error.message);
+      const msg =
+        error.message.includes("secret API key in browser")
+          ? "Browser still has the wrong Supabase key from an old deploy. In Vercel: set NEXT_PUBLIC_SUPABASE_ANON_KEY to the anon public key (not service_role), then Redeploy and check “Clear build cache”."
+          : error.message;
+      setError(msg);
       setLoading(false);
-    } else {
-      router.push("/onboarding");
+      return;
     }
+
+    if (data.user && data.user.identities?.length === 0) {
+      setError("An account with this email already exists. Sign in instead.");
+      setLoading(false);
+      return;
+    }
+
+    setNeedsEmailConfirm(!data.session);
+    setSuccess(true);
+    setLoading(false);
   }
 
   return (
@@ -71,6 +96,33 @@ export default function SignupPage() {
         </div>
 
         <div className="rounded-2xl p-8 bg-white" style={{ border: `1px solid ${KEBU.border}`, boxShadow: "0 16px 40px rgba(255,85,0,0.08)" }}>
+          {success ? (
+            <div className="text-center">
+              <div
+                className="w-14 h-14 rounded-full mx-auto mb-5 flex items-center justify-center text-2xl"
+                style={{ background: "rgba(255,85,0,0.12)", color: KEBU.orange }}
+                aria-hidden
+              >
+                ✓
+              </div>
+              <h1 className="text-2xl font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
+                Thanks for creating your account
+              </h1>
+              <p className="text-sm mb-6 leading-relaxed" style={{ color: KEBU.muted }}>
+                {needsEmailConfirm
+                  ? `We sent a confirmation link to ${email}. After you confirm, you can sign in and finish your profile.`
+                  : "Your account is ready. You can now sign in and start building."}
+              </p>
+              <Link
+                href="/login"
+                className="inline-flex w-full items-center justify-center font-bold py-3.5 rounded-xl transition-all hover:brightness-110"
+                style={{ background: KEBU.orange, color: KEBU.white }}
+              >
+                Sign in
+              </Link>
+            </div>
+          ) : (
+            <>
           <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
             Create your account
           </h1>
@@ -180,6 +232,8 @@ export default function SignupPage() {
               Sign in
             </Link>
           </p>
+            </>
+          )}
         </div>
       </div>
     </div>

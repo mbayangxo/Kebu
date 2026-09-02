@@ -62,8 +62,8 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
           <div className="hidden lg:flex items-center gap-5">
             <Link
               href="/login"
-              className="text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors hover:text-[#FF5500]"
-              style={{ color: KEBU.faint }}
+              className="inline-flex items-center justify-center font-bold uppercase tracking-[0.1em] rounded-full transition-all hover:bg-black/[0.04] px-5 py-2.5 text-[11px]"
+              style={{ border: `2px solid ${KEBU.orange}`, color: KEBU.orange, background: KEBU.white }}
             >
               Sign in
             </Link>
@@ -113,7 +113,12 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
             ))}
           </div>
           <div className="px-5 py-5 flex items-center gap-3" style={{ borderTop: `1px solid ${KEBU.border}` }}>
-            <Link href="/login" className="text-sm font-medium" style={{ color: KEBU.muted }} onClick={() => setMenuOpen(false)}>
+            <Link
+              href="/login"
+              className="flex-1 flex items-center justify-center text-sm font-bold py-3 rounded-full"
+              style={{ border: `2px solid ${KEBU.orange}`, color: KEBU.orange }}
+              onClick={() => setMenuOpen(false)}
+            >
               Sign in
             </Link>
             <Link
@@ -123,7 +128,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
               onClick={() => setMenuOpen(false)}
             >
               <KebuMark size={16} />
-              Get started
+              Start
             </Link>
           </div>
         </div>

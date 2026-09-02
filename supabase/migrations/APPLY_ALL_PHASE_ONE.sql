@@ -2111,3 +2111,62 @@ create policy "Business doc founders delete"
   );
 
 -- ########## END 017_business_documents.sql ##########
+
+-- ########## BEGIN 018_supabase_api_grants.sql ##########
+-- Supabase API roles need schema/table grants; RLS policies alone are not enough.
+-- Without these, anon/authenticated clients get "permission denied for table …".
+
+grant usage on schema public to postgres, anon, authenticated, service_role;
+
+grant all on all tables in schema public to postgres, service_role;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant select on all tables in schema public to anon;
+
+grant usage, select on all sequences in schema public to authenticated, anon;
+
+alter default privileges in schema public
+  grant all on tables to postgres, service_role;
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to authenticated;
+alter default privileges in schema public
+  grant select on tables to anon;
+
+-- ########## END 018_supabase_api_grants.sql ##########
+
+-- ########## BEGIN 019_fix_auth_signup_trigger.sql ##########
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.user_profiles (id, name, email)
+  values (
+    new.id,
+    coalesce(
+      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'name'), ''),
+      split_part(coalesce(new.email, ''), '@', 1)
+    ),
+    new.email
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    name = coalesce(nullif(excluded.name, ''), public.user_profiles.name),
+    updated_at = now();
+  return new;
+end;
+$$;
+
+alter function public.handle_new_user() owner to postgres;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+grant usage on schema public to supabase_auth_admin;
+grant insert, update, select on public.user_profiles to supabase_auth_admin;
+
+-- ########## END 019_fix_auth_signup_trigger.sql ##########

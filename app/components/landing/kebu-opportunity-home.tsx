@@ -41,6 +41,18 @@ const LIVE_PATHS = [
   },
 ] as const;
 
+function SignInButton({ className = "" }: { className?: string }) {
+  return (
+    <Link
+      href="/login"
+      className={`inline-flex items-center justify-center font-bold uppercase tracking-[0.1em] rounded-full transition-all hover:bg-black/[0.04] px-5 py-2.5 text-[11px] ${className}`}
+      style={{ border: `2px solid ${C.orange}`, color: C.orange, background: C.white }}
+    >
+      Sign in
+    </Link>
+  );
+}
+
 function StartButton({
   href = "/signup",
   className = "",
@@ -91,7 +103,10 @@ export function KebuOpportunityHome() {
               ))}
             </div>
 
-            <StartButton />
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <SignInButton />
+              <StartButton />
+            </div>
           </div>
         </nav>
       </header>
@@ -146,6 +161,13 @@ export function KebuOpportunityHome() {
           <div className="kebu-landing-rise kebu-landing-rise-delay-3 flex flex-wrap items-center gap-4">
             <StartButton large href="/signup" />
             <Link
+              href="/login"
+              className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.1em] transition-all hover:bg-black/[0.03]"
+              style={{ border: `2px solid ${C.border}`, color: C.ink }}
+            >
+              Sign in
+            </Link>
+            <Link
               href="/opportunity/countries"
               className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.1em] transition-all hover:bg-black/[0.03]"
               style={{ border: `2px solid ${C.orange}`, color: C.orange }}
@@ -153,6 +175,12 @@ export function KebuOpportunityHome() {
               Explore my country
             </Link>
           </div>
+          <p className="kebu-landing-rise kebu-landing-rise-delay-3 mt-5 text-sm" style={{ color: C.faint }}>
+            Already started?{" "}
+            <Link href="/login" className="font-semibold hover:underline" style={{ color: C.orange }}>
+              Sign in to continue
+            </Link>
+          </p>
         </div>
       </section>
 
@@ -339,13 +367,22 @@ export function KebuOpportunityHome() {
           <p className="text-base mb-10 max-w-lg mx-auto leading-relaxed" style={{ color: "rgba(255,255,255,0.9)" }}>
             Start with where you are. See what is live. Build what comes next.
           </p>
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.12em] px-10 py-4 text-sm rounded-full transition-all hover:brightness-105"
-            style={{ background: C.white, color: C.orange }}
-          >
-            Start
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.12em] px-10 py-4 text-sm rounded-full transition-all hover:brightness-105"
+              style={{ background: C.white, color: C.orange }}
+            >
+              Create account
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.12em] px-10 py-4 text-sm rounded-full transition-all hover:brightness-105"
+              style={{ background: "transparent", color: C.white, border: "2px solid rgba(255,255,255,0.85)" }}
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -410,7 +447,10 @@ export function KebuOpportunityHome() {
             <p className="text-[11px]" style={{ color: C.faint }}>
               © 2026 Kebu. Public sources labeled · AI analysis labeled separately.
             </p>
-            <StartButton href="/signup" />
+            <div className="flex items-center gap-3">
+              <SignInButton />
+              <StartButton href="/signup" />
+            </div>
           </div>
         </div>
       </footer>
