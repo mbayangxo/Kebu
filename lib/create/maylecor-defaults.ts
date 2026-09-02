@@ -2,11 +2,13 @@
 export const MAYLECOR_WIX = {
   backgroundBlur:
     "https://static.wixstatic.com/media/84770f_2ec341c74bcd4afda23cb618a7dbdae3~mv2_d_3840_2160_s_2.png/v1/fill/w_1920,h_1080,al_c,q_85,enc_auto/84770f_2ec341c74bcd4afda23cb618a7dbdae3~mv2_d_3840_2160_s_2.png",
-  /** Primary studio portrait (hot pink backdrop) — served from Kebu public assets. */
-  portraitMain: "/templates/maylecor/portrait.jpg",
+  /** Primary studio portrait (hot pink backdrop). */
+  portraitMain:
+    "https://static.wixstatic.com/media/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg/v1/crop/x_0,y_0,w_462,h_592/fill/w_554,h_496,al_c,lg_1,q_80,enc_auto/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg",
   collageTop:
     "https://static.wixstatic.com/media/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg/v1/crop/x_0,y_0,w_462,h_592/fill/w_554,h_496,al_c,lg_1,q_80,enc_auto/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg",
-  collageMiddle: "/templates/maylecor/portrait.jpg",
+  collageMiddle:
+    "https://static.wixstatic.com/media/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg/v1/crop/x_0,y_0,w_462,h_592/fill/w_554,h_496,al_c,lg_1,q_80,enc_auto/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg",
   logoBanner:
     "https://static.wixstatic.com/media/0380b3_d04a151d63d345cab419f86a82512bc3~mv2.png/v1/crop/x_128,y_633,w_2494,h_1307/fill/w_543,h_285,al_c,q_85,enc_auto/0380b3_d04a151d63d345cab419f86a82512bc3~mv2.png",
   bottomLeft:

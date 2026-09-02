@@ -17,8 +17,9 @@ export const LEGALLY_BLONDE_ASSETS = {
   /** Sparkle / portrait accent above logo. */
   cutoutSparkle:
     "https://static.tildacdn.com/tild6339-6666-4433-b930-346262333339/Group_523_1.png",
+  /** Laptop mockup in scroll scene (Group_569 — not a raw MacBook PNG). */
   macbook:
-    "https://static.tildacdn.com/tild6435-6337-4361-b532-306137316435/MacBook_Pro_16__-_60.png",
+    "https://static.tildacdn.com/tild3538-3362-4431-b431-373663306261/Group_569.png",
   sparkleGif:
     "https://static.tildacdn.com/tild3437-6635-4035-a165-323763313632/4.gif",
   heroPhoto:
@@ -41,5 +42,6 @@ export function defaultLegallyBlondeHeroProps() {
     heroPhoto: LEGALLY_BLONDE_ASSETS.heroPhoto,
     accentColor: "#e9006b",
     motionEnabled: true,
+    showExtras: false,
   };
 }

@@ -4,6 +4,8 @@ import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration"
 import { SAFE_REGISTRATION_FIELDS } from "@/lib/kebu-id/registration-schema";
 import { z } from "zod";
 
+import { isValidLegalStructure } from "@/lib/kebu-id/countries";
+
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
@@ -14,6 +16,7 @@ const founderUpdateSchema = z.object({
   businessEmail: z.string().trim().email().max(254).optional(),
   businessPhone: z.string().trim().min(5).max(40).optional(),
   website: z.string().trim().url().max(300).optional().nullable().or(z.literal("")),
+  legalStructure: z.string().trim().min(1).max(80).optional(),
 });
 
 /** Load business dashboard payload — members only. */
@@ -165,6 +168,29 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
+  const { data: existing } = await supabase
+    .from("businesses")
+    .select("country_code, legal_structure, registration_status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!existing) {
+    return NextResponse.json({ error: "Business not found." }, { status: 404 });
+  }
+
+  if (parsed.data.legalStructure !== undefined) {
+    const lockedStatuses = ["submitted", "under_review", "registered", "rejected"];
+    if (lockedStatuses.includes(existing.registration_status)) {
+      return NextResponse.json(
+        { error: "Legal structure cannot be changed after submission to authorities." },
+        { status: 400 }
+      );
+    }
+    if (!isValidLegalStructure(existing.country_code, parsed.data.legalStructure)) {
+      return NextResponse.json({ error: "Invalid legal structure for this country." }, { status: 400 });
+    }
+  }
+
   const patch: Record<string, unknown> = {};
   if (parsed.data.tradingName !== undefined) patch.trading_name = parsed.data.tradingName || null;
   if (parsed.data.description !== undefined) patch.description = parsed.data.description;
@@ -172,6 +198,9 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.businessPhone !== undefined) patch.business_phone = parsed.data.businessPhone;
   if (parsed.data.website !== undefined) {
     patch.website = parsed.data.website === "" || parsed.data.website === null ? null : parsed.data.website;
+  }
+  if (parsed.data.legalStructure !== undefined) {
+    patch.legal_structure = parsed.data.legalStructure;
   }
 
   if (Object.keys(patch).length === 0) {

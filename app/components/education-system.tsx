@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { EDUCATION_MOMENTS, getRandomLesson, getRandomLessonForPage, type EducationMoment } from "@/lib/data/education-moments";
-import { usePathname } from "next/navigation";
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 
@@ -151,17 +150,15 @@ function EducationModal({
   );
 }
 
-// ─── Floating Learn Button ────────────────────────────────────────────────────
-// Stack (bottom-right): Report (lowest) → Profile → Learn (highest).
-// Leave clear space above mobile nav (~5rem) so nothing is covered.
+// ─── Learn FAB (positioned by FloatingActionStack in AppChrome) ───────────────
 
-function FloatingLearnButton({ onClick }: { onClick: () => void }) {
+export function LearnFab({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label="Learn something about Africa"
-      className="fixed z-[45] flex items-center gap-2 rounded-full bg-orange text-white text-sm font-bold px-5 py-3.5 shadow-lg hover:brightness-110 transition-all active:scale-95 right-4 bottom-[11.5rem] sm:bottom-28 lg:bottom-24"
+      className="flex items-center gap-1.5 rounded-full bg-orange text-white text-xs font-bold px-4 py-2.5 shadow-lg hover:brightness-110 transition-all active:scale-95"
     >
       <span className="text-base leading-none" aria-hidden>
         📚
@@ -176,7 +173,6 @@ function FloatingLearnButton({ onClick }: { onClick: () => void }) {
 export function EducationProvider({ children }: { children: React.ReactNode }) {
   const [activeLesson, setActiveLesson] = useState<EducationMoment | null>(null);
   const [pendingContinue, setPendingContinue] = useState<(() => void) | undefined>(undefined);
-  const pathname = usePathname();
 
   const showLesson = useCallback((id: string, onContinue?: () => void) => {
     const lesson = EDUCATION_MOMENTS.find((m) => m.id === id);
@@ -215,19 +211,9 @@ export function EducationProvider({ children }: { children: React.ReactNode }) {
     setPendingContinue(undefined);
   }
 
-  // Determine current page slug for the floating button
-  const pageSlug = pathname?.split("/")[1] || "home";
-  const hideLearnFab =
-    pathname === "/" ||
-    pathname?.startsWith("/sites/") ||
-    pathname?.startsWith("/login") ||
-    pathname?.startsWith("/signup");
-
   return (
     <EducationContext.Provider value={{ showLesson, showRandom, showRandomForPage, withLesson, withRandomLesson }}>
       {children}
-
-      {!hideLearnFab ? <FloatingLearnButton onClick={() => showRandomForPage(pageSlug)} /> : null}
 
       {activeLesson && (
         <EducationModal

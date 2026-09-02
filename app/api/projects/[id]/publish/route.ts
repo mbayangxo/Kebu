@@ -107,7 +107,7 @@ export async function POST(req: Request, { params }: Params) {
       status: "live",
     },
     liveUrl: published.liveUrl,
-    kebuAfricaUrl: published.kebuAfricaUrl,
-    note: "Live at /sites/{subdomain}. Branded https://{sub}.kebu.africa needs DNS pointing at this app.",
+    plannedKebuAfricaUrl: published.plannedKebuAfricaUrl,
+    note: "Live at /sites/{subdomain} on the Kebu app host. Connect your own domain in Site & SEO for www.yourbrand.com.",
   });
 }

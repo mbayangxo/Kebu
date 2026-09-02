@@ -14,9 +14,9 @@ describe("site-urls", () => {
     expect(liveSiteUrl("maylecor")).toMatch(/\/sites\/maylecor$/);
   });
 
-  it("labels kebu.africa as planned only", () => {
+  it("labels live path for product UI (not kebu.africa)", () => {
     expect(plannedKebuAfricaHost("MayLecor")).toBe("maylecor.kebu.africa");
-    expect(formatSiteAddressLabel("MayLecor")).toBe("maylecor.kebu.africa");
+    expect(formatSiteAddressLabel("MayLecor")).toBe("/sites/maylecor");
     expect(kebuAfricaSiteUrl("maylecor")).toBe("https://maylecor.kebu.africa");
   });
 

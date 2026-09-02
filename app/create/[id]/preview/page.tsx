@@ -91,15 +91,15 @@ export default function ProjectPreviewPage() {
         }
       />
 
-      {subdomain ? (
-        <p className="text-center text-[10px] py-2 text-white/50">
-          Live after publish:{" "}
-          <span className="text-[#00C851]">/sites/{subdomain}</span>
-          <span className="block text-xs mt-1 text-[#8A8578]">
-            {subdomain}.kebu.africa is planned after that domain is owned
-          </span>
-        </p>
-      ) : null}
+      <p className="text-center text-[10px] py-2 px-4 text-white/60">
+        Draft preview — what you are editing now. Visitors only see changes after you publish.
+        {subdomain ? (
+          <>
+            {" "}
+            Live path: <span className="text-[#00C851]">/sites/{subdomain}</span>
+          </>
+        ) : null}
+      </p>
 
       {error && <p className="p-6 text-sm text-white/70">{error}</p>}
 

@@ -30,10 +30,10 @@ describe("section defaults", () => {
     expect(validateWebsiteDefinition(def).ok).toBe(true);
   });
 
-  it("maylecor portrait uses local studio photo", () => {
+  it("maylecor portrait uses hosted studio photo", () => {
     const props = defaultMaylecorHomeProps();
-    expect(String(props.portraitMain)).toBe("/templates/maylecor/portrait.jpg");
-    expect(String(props.collageMiddle)).toBe("/templates/maylecor/portrait.jpg");
+    expect(String(props.portraitMain)).toContain("wixstatic.com");
+    expect(String(props.collageMiddle)).toContain("wixstatic.com");
     expect(props.socialLinks.length).toBeGreaterThanOrEqual(6);
     expect(props.motionEnabled).toBe(true);
   });

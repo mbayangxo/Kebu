@@ -67,4 +67,4 @@ export const registerBusinessSchema = z
 export type RegisterBusinessInput = z.infer<typeof registerBusinessSchema>;
 
 export const SAFE_REGISTRATION_FIELDS =
-  "id, public_kebu_id, legal_name, trading_name, country_code, region, category, description, business_email, business_phone, website, legal_structure, registration_status, lifecycle_status, verification_level, created_at, updated_at" as const;
+  "id, public_kebu_id, legal_name, trading_name, country_code, region, category, description, business_email, business_phone, website, legal_structure, logo_url, registration_status, lifecycle_status, verification_level, created_at, updated_at" as const;

@@ -40,14 +40,17 @@ create table if not exists user_profiles (
 -- Row Level Security for user_profiles
 alter table user_profiles enable row level security;
 
+drop policy if exists "Users can read their own profile" on user_profiles;
 create policy "Users can read their own profile"
   on user_profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "Users can update their own profile" on user_profiles;
 create policy "Users can update their own profile"
   on user_profiles for update
   using (auth.uid() = id);
 
+drop policy if exists "Users can insert their own profile" on user_profiles;
 create policy "Users can insert their own profile"
   on user_profiles for insert
   with check (auth.uid() = id);
@@ -99,14 +102,17 @@ create index if not exists opportunities_deadline_idx on opportunities(deadline)
 -- Row Level Security for opportunities (public read)
 alter table opportunities enable row level security;
 
+drop policy if exists "Anyone can read opportunities" on opportunities;
 create policy "Anyone can read opportunities"
   on opportunities for select
   using (true);
 
+drop policy if exists "Only service role can insert/update opportunities" on opportunities;
 create policy "Only service role can insert/update opportunities"
   on opportunities for insert
   with check (auth.role() = 'service_role');
 
+drop policy if exists "Only service role can update opportunities" on opportunities;
 create policy "Only service role can update opportunities"
   on opportunities for update
   using (auth.role() = 'service_role');
@@ -130,6 +136,7 @@ create table if not exists saved_opportunities (
 -- Row Level Security for saved_opportunities
 alter table saved_opportunities enable row level security;
 
+drop policy if exists "Users can manage their own saved opportunities" on saved_opportunities;
 create policy "Users can manage their own saved opportunities"
   on saved_opportunities for all
   using (auth.uid() = user_id)
@@ -165,6 +172,7 @@ create table if not exists country_profiles (
 -- Public read access for country profiles
 alter table country_profiles enable row level security;
 
+drop policy if exists "Anyone can read country profiles" on country_profiles;
 create policy "Anyone can read country profiles"
   on country_profiles for select
   using (true);
@@ -180,18 +188,22 @@ begin
 end;
 $$;
 
+drop trigger if exists user_profiles_updated_at on user_profiles;
 create trigger user_profiles_updated_at
   before update on user_profiles
   for each row execute function update_updated_at();
 
+drop trigger if exists opportunities_updated_at on opportunities;
 create trigger opportunities_updated_at
   before update on opportunities
   for each row execute function update_updated_at();
 
+drop trigger if exists saved_opportunities_updated_at on saved_opportunities;
 create trigger saved_opportunities_updated_at
   before update on saved_opportunities
   for each row execute function update_updated_at();
 
+drop trigger if exists country_profiles_updated_at on country_profiles;
 create trigger country_profiles_updated_at
   before update on country_profiles
   for each row execute function update_updated_at();

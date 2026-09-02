@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
 import { safeAuthNextPath } from "@/lib/auth/safe-next";
+import { postAuthDestination } from "@/lib/navigation/kebu-workspace";
 import { authCallbackUrl, isEmailNotConfirmed } from "@/lib/auth/email-confirm";
 
 function LoginForm() {
@@ -42,7 +43,7 @@ function LoginForm() {
       }
       setLoading(false);
     } else {
-      router.push(nextPath);
+      router.push(postAuthDestination(searchParams.get("next")));
       router.refresh();
     }
   }

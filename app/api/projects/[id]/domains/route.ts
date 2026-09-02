@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
-import {
-  buildDnsInstructions,
-  normalizeHostname,
-  validateCustomHostname,
-  kebuSubdomainTarget,
-} from "@/lib/create/custom-domains";
+import { customDomainDnsTarget, buildDnsInstructions, normalizeHostname, validateCustomHostname } from "@/lib/create/dns-target";
 
 export const dynamic = "force-dynamic";
 
@@ -67,15 +62,39 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const subdomain = project.subdomain ?? "";
-  const primary = domains?.find((d) => d.is_primary) ?? domains?.[0] ?? null;
+  const domainsWithTarget = await Promise.all(
+    (domains ?? []).map(async (d) => {
+      const resolved = customDomainDnsTarget(subdomain);
+      const patch: Record<string, unknown> = { dns_target: resolved };
+      if (d.last_error && String(d.last_error).toLowerCase().includes("kebu.africa")) {
+        patch.last_error = null;
+        patch.status = d.status === "failed" ? "pending" : d.status;
+      }
+      if (d.dns_target !== resolved || patch.last_error === null) {
+        await supabase.from("site_domains").update(patch).eq("id", d.id);
+      }
+      return { ...d, ...patch, dns_target: resolved };
+    }),
+  );
+
+  const primary = domainsWithTarget.find((d) => d.is_primary) ?? domainsWithTarget[0] ?? null;
+  const dnsTarget = subdomain ? customDomainDnsTarget(subdomain) : null;
   const instructions =
-    subdomain && primary ? buildDnsInstructions(subdomain, primary.hostname) : null;
+    subdomain && primary
+      ? buildDnsInstructions(subdomain, primary.hostname)
+      : subdomain && dnsTarget
+        ? {
+            ...buildDnsInstructions(subdomain, "yourbrand.com"),
+            hostname: "yourbrand.com",
+          }
+        : null;
 
   return NextResponse.json({
-    domains: domains ?? [],
+    domains: domainsWithTarget,
     subdomain,
-    kebuUrl: subdomain ? `https://${kebuSubdomainTarget(subdomain)}` : null,
+    livePath: subdomain ? `/sites/${subdomain}` : null,
     instructions,
+    dnsTarget,
   });
 }
 
@@ -97,7 +116,7 @@ export async function POST(req: Request, { params }: Params) {
 
   if (!project.subdomain?.trim()) {
     return NextResponse.json(
-      { error: "Choose a Kebu subdomain first — it powers your custom domain connection." },
+      { error: "Choose your site address (subdomain slug) first — it links your custom domain to this project." },
       { status: 400 },
     );
   }
@@ -128,7 +147,7 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "This domain is connected to another Kebu site." }, { status: 409 });
   }
 
-  const dnsTarget = kebuSubdomainTarget(project.subdomain);
+  const dnsTarget = customDomainDnsTarget(project.subdomain);
 
   if (parsed.data.isPrimary) {
     await supabase.from("site_domains").update({ is_primary: false }).eq("project_id", projectId);
@@ -159,7 +178,7 @@ export async function POST(req: Request, { params }: Params) {
   return NextResponse.json({
     domain,
     instructions: buildDnsInstructions(project.subdomain, hostname),
-    message: "Domain saved. Update DNS at Namecheap (or your registrar), then verify.",
+    message: "Domain saved. Add the CNAME at your registrar, then verify.",
   });
 }
 

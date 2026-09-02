@@ -1,23 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { KebuMark } from "@/app/components/kebu-mark";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { OpportunityOsShell } from "@/app/components/opportunity/opportunity-os-shell";
+import { CountryExplorerMosaic, type CountryCardData } from "@/app/components/opportunity/country-explorer-card";
 import { KEBU } from "@/lib/kebu-brand";
-
-type CountryRow = {
-  country: string;
-  country_code: string;
-  capital: string | null;
-  population: number | null;
-  gdp: string | null;
-  industries: string[] | null;
-  overview: string | null;
-  data_confidence: string | null;
-};
+import type { OpportunityProfile } from "@/lib/opportunity/intake-schema";
+import { filterCountriesForProfile } from "@/lib/opportunity/personalize";
 
 export default function OpportunityCountriesPage() {
-  const [countries, setCountries] = useState<CountryRow[]>([]);
+  const [countries, setCountries] = useState<CountryCardData[]>([]);
+  const [profile, setProfile] = useState<OpportunityProfile | null>(null);
+  const [personalizedOnly, setPersonalizedOnly] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [trustNote, setTrustNote] = useState<string | null>(null);
@@ -26,15 +20,24 @@ export default function OpportunityCountriesPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/opportunity/countries");
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      const [countriesRes, profileRes] = await Promise.all([
+        fetch("/api/opportunity/countries"),
+        fetch("/api/me/opportunity-profile", { credentials: "include" }),
+      ]);
+      const data = await countriesRes.json().catch(() => ({}));
+      const profileData = await profileRes.json().catch(() => ({}));
+      if (!countriesRes.ok) {
         setError(typeof data.error === "string" ? data.error : "Could not load countries.");
         setCountries([]);
         return;
       }
       setCountries(Array.isArray(data.countries) ? data.countries : []);
       setTrustNote(data.trust?.note ?? null);
+      if (profileRes.ok && profileData.profile && !profileData.needsIntake) {
+        setProfile(profileData.profile as OpportunityProfile);
+      } else {
+        setProfile(null);
+      }
     } catch {
       setError("Network error. Retry.");
     } finally {
@@ -42,95 +45,109 @@ export default function OpportunityCountriesPage() {
     }
   }, []);
 
+  const displayCountries = useMemo(() => {
+    if (!profile || !personalizedOnly) return countries;
+    return filterCountriesForProfile(countries, profile) as CountryCardData[];
+  }, [countries, profile, personalizedOnly]);
+
   useEffect(() => {
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) void load();
-    });
-    return () => {
-      cancelled = true;
-    };
+    void load();
   }, [load]);
 
   return (
-    <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
-      <header className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.92)" }}>
-        <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }} />
+    <OpportunityOsShell
+      title="Countries"
+      eyebrow="Opportunity OS · Country Explorer"
+      headline="Pick a country. Understand the landscape."
+      subhead="Each card opens a full profile — curated public data, labeled confidence, optional AI analysis kept separate from facts."
+      heroVisual={
         <div
-          className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between"
-          style={{ borderBottom: `1px solid ${KEBU.border}` }}
+          className="rounded-3xl h-full min-h-[200px] flex items-center justify-center overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${KEBU.orange}22, ${KEBU.cream})`,
+            border: `1px solid ${KEBU.border}`,
+          }}
         >
-          <Link href="/opportunity" className="flex items-center gap-2 text-sm" style={{ color: KEBU.black }}>
-            <KebuMark size={28} />
-            <span className="font-bold tracking-[0.12em]">Country Explorer</span>
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-5 py-10">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: KEBU.orange }}>
-          Opportunity OS · Slice 1
-        </p>
-        <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-          Countries
-        </h1>
-        <p className="text-sm mb-6 max-w-2xl" style={{ color: KEBU.muted, lineHeight: 1.7 }}>
-          Explore curated country profiles for African entrepreneurship. Curated public overviews are
-          separate from AI-generated opportunity analysis.
-        </p>
-
-        {trustNote && (
-          <p className="text-xs mb-6 rounded-xl px-4 py-3" style={{ background: KEBU.cream, color: KEBU.black, border: `1px solid ${KEBU.border}` }}>
-            {trustNote}
-          </p>
-        )}
-
-        {error && (
-          <div role="alert" className="mb-6 rounded-xl px-4 py-3 text-sm" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
-            {error}{" "}
-            <button type="button" className="underline font-semibold" onClick={() => void load()}>
-              Retry
-            </button>
-          </div>
-        )}
-
-        {loading ? (
-          <p className="text-sm" style={{ color: "#6B5B45" }}>
-            Loading countries…
-          </p>
-        ) : countries.length === 0 && !error ? (
-          <div className="rounded-2xl p-8 text-center" style={{ border: "1px dashed #DDE0F0", background: "#fff" }}>
-            <p className="font-semibold mb-2">No published countries yet</p>
-            <p className="text-sm" style={{ color: "#6B5B45" }}>
-              Apply migration 009 (Senegal seed) or run the admin seed endpoint.
+          <div className="text-center px-6">
+            <p className="text-5xl font-bold" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.orange }}>
+              {loading ? "…" : countries.length}
+            </p>
+            <p className="text-xs font-bold uppercase tracking-wider mt-2" style={{ color: KEBU.muted }}>
+              Live profiles
             </p>
           </div>
-        ) : (
-          <ul className="grid sm:grid-cols-2 gap-3">
-            {countries.map((c) => (
-              <li key={c.country_code}>
-                <Link
-                  href={`/opportunity/countries/${c.country_code.toLowerCase()}`}
-                  className="block rounded-2xl px-5 py-4 h-full"
-                  style={{ background: "#fff", border: "1px solid #DDE0F0" }}
-                >
-                  <p className="font-semibold">{c.country}</p>
-                  <p className="text-xs mt-1 uppercase tracking-wider" style={{ color: "#8A8578" }}>
-                    {c.country_code}
-                    {c.capital ? ` · ${c.capital}` : ""}
-                    {c.data_confidence ? ` · ${c.data_confidence} confidence` : ""}
-                  </p>
-                  {c.industries && c.industries.length > 0 && (
-                    <p className="text-xs mt-2" style={{ color: "#6B5B45" }}>
-                      {(c.industries ?? []).slice(0, 4).join(" · ")}
-                    </p>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </main>
-    </div>
+        </div>
+      }
+    >
+      {profile ? (
+        <div
+          className="mb-8 rounded-2xl px-5 py-4 flex flex-wrap items-center gap-4"
+          style={{ background: "rgba(255,85,0,0.08)", border: `1px solid ${KEBU.border}` }}
+        >
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: KEBU.orange }}>
+              Your filters
+            </p>
+            <p className="text-sm" style={{ color: KEBU.muted }}>
+              {profile.interestPaths.slice(0, 3).map((p) => p.replace(/_/g, " ")).join(" · ")}
+              {profile.preferredCountryCodes.length > 0
+                ? ` · ${profile.preferredCountryCodes.join(", ")}`
+                : ""}
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer">
+            <input
+              type="checkbox"
+              checked={personalizedOnly}
+              onChange={(e) => setPersonalizedOnly(e.target.checked)}
+              className="accent-orange-500"
+            />
+            Match my profile
+          </label>
+          <Link href="/opportunity/intake" className="text-xs font-bold underline" style={{ color: KEBU.orange }}>
+            Edit answers
+          </Link>
+        </div>
+      ) : (
+        <p className="text-sm mb-8 max-w-2xl" style={{ color: KEBU.muted }}>
+          <Link href="/opportunity/intake" className="font-bold underline" style={{ color: KEBU.orange }}>
+            Tell us about you
+          </Link>{" "}
+          first — then countries rank by your goals, budget, and interests (construction, grants, heritage, and more).
+        </p>
+      )}
+
+      {trustNote ? (
+        <p
+          className="text-xs mb-8 rounded-2xl px-5 py-4 max-w-2xl"
+          style={{ background: "rgba(255,255,255,0.6)", color: KEBU.black, border: `1px solid ${KEBU.border}` }}
+        >
+          {trustNote}
+        </p>
+      ) : null}
+
+      {error ? (
+        <div role="alert" className="mb-8 rounded-2xl px-5 py-4 text-sm" style={{ background: KEBU.errorBg, color: KEBU.errorText }}>
+          {error}{" "}
+          <button type="button" className="underline font-semibold" onClick={() => void load()}>
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      {loading ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="rounded-3xl min-h-[220px] animate-pulse"
+              style={{ background: "linear-gradient(90deg, #f0ebe6 25%, #faf6f2 50%, #f0ebe6 75%)", backgroundSize: "200% 100%" }}
+            />
+          ))}
+        </div>
+      ) : (
+        <CountryExplorerMosaic countries={displayCountries} />
+      )}
+    </OpportunityOsShell>
   );
 }

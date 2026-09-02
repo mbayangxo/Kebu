@@ -64,15 +64,19 @@ Detail: `/opportunity/countries/[code]` → `GET /api/opportunity/countries/[cod
 Middleware: verified host → `resolveSubdomainForCustomHost` (service role) → `/sites/{subdomain}`.
 
 ### Manual check
-1. Project has a subdomain set.
-2. Site tab → add `yourdomain.com` → DNS steps (CNAME to `{sub}.kebu.africa`) appear.
-3. After DNS propagates → **Verify** → status `verified`.
-4. With `SUPABASE_SERVICE_ROLE_KEY` on the host → visit custom host → same site as `/sites/{sub}`.
-5. Wrong user’s project → 404.
+1. Project has a subdomain set and is **published** (`/sites/{sub}` works on the app host).
+2. Site tab → add `yourdomain.com` → DNS steps show **CNAME `www` → `cname.vercel-dns.com`** (or your Vercel `*.vercel.app` deployment hostname — both are accepted after the latest deploy).
+3. At your registrar (e.g. Namecheap): Host `www`, Value `cname.vercel-dns.com` **or** your Vercel app URL (e.g. `kebu-….vercel.app`). Do **not** use `{sub}.kebu.africa` — that branded DNS is not live yet.
+4. Redirect bare `yourdomain.com` → `https://www.yourdomain.com`.
+5. After DNS propagates → **Verify** → status `verified`.
+6. With `SUPABASE_SERVICE_ROLE_KEY` on the host → visit custom host → same site as `/sites/{sub}`.
+7. Wrong user’s project → 404.
 
 ### If it fails
 - “Apply migration 015” → run `015_custom_domains.sql`.
-- Verify OK but host does not resolve → missing **service role** on middleware, or DNS not pointed, or SSL not attached on Vercel yet (DNS verify ≠ automated SSL).
+- UI still says “expected `{sub}.kebu.africa`” → **production is on old code**; commit/push the DNS target fix (`lib/create/dns-target.ts`, domain APIs) and redeploy Vercel.
+- Rows stuck with old `dns_target` → run `030_repair_site_domain_dns_targets.sql` in SQL Editor.
+- Verify OK but host does not resolve → missing **service role** on middleware, or DNS not pointed, or add `yourdomain.com` + `www.yourdomain.com` in **Vercel → Domains** for SSL (or set `VERCEL_TOKEN` + `VERCEL_PROJECT_ID` for auto-provision).
 
 ---
 
@@ -90,6 +94,6 @@ npx vitest run tests/opportunity tests/kebu-id/business-documents.test.ts tests/
 |-------|----------------------|-------------------------|----------------------------|
 | Country Explorer | Yes | **009** (+ 001) | Mostly on `main` |
 | Documents | Yes | **017** (+ 016 labels) | Routes/lib/migration still local WIP |
-| Domains | Yes | **015** + service role | Routes/lib/migration still local WIP |
+| Domains | Yes | **015** + service role; **030** if stale `dns_target` | **DNS verify fix not on prod until commit/push + redeploy** |
 
 After you apply migrations, walk the three manual checklists above and report any step that fails — we fix root cause, not UI workarounds.

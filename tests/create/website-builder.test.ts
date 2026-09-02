@@ -60,7 +60,21 @@ describe("website schema", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("requires businessId uuid on create brief", () => {
+  it("allows create brief without businessId", () => {
+    const parsed = createWebsiteBriefSchema.safeParse({
+      mode: "blank",
+      businessName: "My Site",
+      category: "services",
+      description: "Long enough description",
+      countryCode: "SN",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.businessId).toBeUndefined();
+    }
+  });
+
+  it("rejects invalid businessId uuid on create brief", () => {
     const parsed = createWebsiteBriefSchema.safeParse({
       mode: "blank",
       businessId: "not-a-uuid",

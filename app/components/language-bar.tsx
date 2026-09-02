@@ -5,6 +5,9 @@ import { useLocale } from "./locale-context";
 import { LANGUAGES, CURRENCIES, COUNTRY_LOCALE, Language } from "@/lib/locale";
 import { KEBU } from "@/lib/kebu-brand";
 
+/** Opportunity OS = country + language + currency. Builder = language only (Apple-style separation). */
+export type LanguageBarVariant = "opportunity" | "builder";
+
 const AFRICAN_COUNTRIES = [
   "Nigeria", "Ghana", "Kenya", "Senegal", "South Africa", "Rwanda", "Morocco",
   "Côte d'Ivoire", "Ethiopia", "Tanzania", "Uganda", "Cameroon", "Mozambique",
@@ -15,11 +18,13 @@ const AFRICAN_COUNTRIES = [
 
 const HIGH_QUALITY_LANGS = new Set(["en", "fr", "ar", "pt", "sw"]);
 
-/** Country + language + currency — bright, large, easy to tap. */
-export function LanguageBar() {
+/** Country + language + currency on Opportunity OS; language-only on Kebu Builder. */
+export function LanguageBar({ variant = "opportunity" }: { variant?: LanguageBarVariant }) {
   const { lang, currency, country, setLang, setCurrency, setCountry, t } = useLocale();
   const [open, setOpen] = useState(false);
   const [showCorrectionTip, setShowCorrectionTip] = useState(false);
+  const showCountry = variant === "opportunity";
+  const showCurrency = variant === "opportunity";
 
   const currentLang = LANGUAGES.find((l) => l.code === lang) ?? LANGUAGES[0];
   const countryInfo = country ? COUNTRY_LOCALE[country] : null;
@@ -57,10 +62,11 @@ export function LanguageBar() {
           className="text-xs sm:text-sm font-semibold tracking-wide truncate"
           style={{ color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-fraunces)" }}
         >
-          {t("tagline")}
+          {variant === "builder" ? "Kebu Builder · choose your language" : t("tagline")}
         </p>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {showCountry ? (
           <label className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial rounded-full px-3.5 py-2.5 sm:py-2"
             style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
           >
@@ -84,6 +90,7 @@ export function LanguageBar() {
               ))}
             </select>
           </label>
+          ) : null}
 
           <div className="relative">
             <button
@@ -134,6 +141,8 @@ export function LanguageBar() {
                   ))}
                 </div>
 
+                {showCurrency ? (
+                <>
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] px-2 pb-2 mb-2 pt-2" style={{ color: KEBU.orange, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
                   {t("your_currency")}
                 </p>
@@ -160,6 +169,8 @@ export function LanguageBar() {
                     );
                   })}
                 </div>
+                </>
+                ) : null}
               </div>
             )}
           </div>

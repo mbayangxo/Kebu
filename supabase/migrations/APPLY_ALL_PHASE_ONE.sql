@@ -1,10 +1,8 @@
--- =============================================================================
--- KEBU PHASE ONE — apply all migrations (paste entire file into Supabase SQL Editor)
--- Fresh project: run once. If you already ran 001+009, run only 004-017 sections.
--- Generated: 2026-09-01
--- =============================================================================
+-- Kebu Phase One — run entire file in Supabase SQL Editor (idempotent where possible)
+-- Generated from numbered migrations; skip 002_network and 003_tracker_vault (legacy).
 
--- ########## BEGIN 001_alkebulan_schema.sql ##########
+
+-- ========== 001_alkebulan_schema.sql ==========
 -- Alkebulan: African Opportunity Engine
 -- Core database schema
 
@@ -47,14 +45,17 @@ create table if not exists user_profiles (
 -- Row Level Security for user_profiles
 alter table user_profiles enable row level security;
 
+drop policy if exists "Users can read their own profile" on user_profiles;
 create policy "Users can read their own profile"
   on user_profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "Users can update their own profile" on user_profiles;
 create policy "Users can update their own profile"
   on user_profiles for update
   using (auth.uid() = id);
 
+drop policy if exists "Users can insert their own profile" on user_profiles;
 create policy "Users can insert their own profile"
   on user_profiles for insert
   with check (auth.uid() = id);
@@ -106,14 +107,17 @@ create index if not exists opportunities_deadline_idx on opportunities(deadline)
 -- Row Level Security for opportunities (public read)
 alter table opportunities enable row level security;
 
+drop policy if exists "Anyone can read opportunities" on opportunities;
 create policy "Anyone can read opportunities"
   on opportunities for select
   using (true);
 
+drop policy if exists "Only service role can insert/update opportunities" on opportunities;
 create policy "Only service role can insert/update opportunities"
   on opportunities for insert
   with check (auth.role() = 'service_role');
 
+drop policy if exists "Only service role can update opportunities" on opportunities;
 create policy "Only service role can update opportunities"
   on opportunities for update
   using (auth.role() = 'service_role');
@@ -137,6 +141,7 @@ create table if not exists saved_opportunities (
 -- Row Level Security for saved_opportunities
 alter table saved_opportunities enable row level security;
 
+drop policy if exists "Users can manage their own saved opportunities" on saved_opportunities;
 create policy "Users can manage their own saved opportunities"
   on saved_opportunities for all
   using (auth.uid() = user_id)
@@ -172,6 +177,7 @@ create table if not exists country_profiles (
 -- Public read access for country profiles
 alter table country_profiles enable row level security;
 
+drop policy if exists "Anyone can read country profiles" on country_profiles;
 create policy "Anyone can read country profiles"
   on country_profiles for select
   using (true);
@@ -187,18 +193,22 @@ begin
 end;
 $$;
 
+drop trigger if exists user_profiles_updated_at on user_profiles;
 create trigger user_profiles_updated_at
   before update on user_profiles
   for each row execute function update_updated_at();
 
+drop trigger if exists opportunities_updated_at on opportunities;
 create trigger opportunities_updated_at
   before update on opportunities
   for each row execute function update_updated_at();
 
+drop trigger if exists saved_opportunities_updated_at on saved_opportunities;
 create trigger saved_opportunities_updated_at
   before update on saved_opportunities
   for each row execute function update_updated_at();
 
+drop trigger if exists country_profiles_updated_at on country_profiles;
 create trigger country_profiles_updated_at
   before update on country_profiles
   for each row execute function update_updated_at();
@@ -208,12 +218,16 @@ create trigger country_profiles_updated_at
 -- Creates a user_profiles row on signup
 -- =====================
 create or replace function handle_new_user()
-returns trigger language plpgsql security definer as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into user_profiles (id, name, email)
+  insert into public.user_profiles (id, name, email)
   values (
     new.id,
-    new.raw_user_meta_data->>'full_name',
+    coalesce(
+      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'name'), ''),
+      split_part(coalesce(new.email, ''), '@', 1)
+    ),
     new.email
   )
   on conflict (id) do nothing;
@@ -221,141 +235,12 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
--- ########## END 001_alkebulan_schema.sql ##########
-
--- ########## BEGIN 002_network.sql ##########
--- Network profiles for the First-Order Collective
-
-create table if not exists network_profiles (
-  id uuid primary key default uuid_generate_v4(),
-  user_id uuid references user_profiles(id) on delete set null,
-  name text not null,
-  initials text generated always as (
-    upper(left(name, 1)) || upper(left(split_part(name, ' ', 2), 1))
-  ) stored,
-  location text not null,
-  country text not null,
-  sector text not null,
-  headline text not null,
-  building text not null,
-  offering text not null,
-  looking_for text[] default '{}',
-  stage text check (stage in ('Idea', 'Early stage', 'Growing', 'Established')),
-  languages text[] default '{}',
-  is_visible boolean default true,
-  is_verified boolean default false,
-  contact_count integer default 0,
-  joined_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
--- Indexes
-create index if not exists network_profiles_country_idx on network_profiles(country);
-create index if not exists network_profiles_sector_idx on network_profiles(sector);
-create index if not exists network_profiles_looking_for_idx on network_profiles using gin(looking_for);
-create index if not exists network_profiles_visible_idx on network_profiles(is_visible);
-
--- Row Level Security
-alter table network_profiles enable row level security;
-
-create policy "Anyone can read visible network profiles"
-  on network_profiles for select
-  using (is_visible = true);
-
-create policy "Users can insert their own network profile"
-  on network_profiles for insert
-  with check (auth.uid() = user_id or user_id is null);
-
-create policy "Users can update their own network profile"
-  on network_profiles for update
-  using (auth.uid() = user_id);
-
-create trigger network_profiles_updated_at
-  before update on network_profiles
-  for each row execute function update_updated_at();
-
--- ########## END 002_network.sql ##########
-
--- ########## BEGIN 003_tracker_vault.sql ##########
--- Application tracker
-create table if not exists application_tracker (
-  id uuid primary key default uuid_generate_v4(),
-  user_id uuid references user_profiles(id) on delete cascade,
-  opportunity_id text not null,
-  opportunity_title text not null,
-  opportunity_type text not null,
-  opportunity_country text not null,
-  opportunity_amount bigint,
-  opportunity_currency text default 'USD',
-  status text not null default 'saved'
-    check (status in ('saved', 'applying', 'submitted', 'won', 'rejected')),
-  notes text,
-  deadline date,
-  saved_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
-create index if not exists application_tracker_user_idx on application_tracker(user_id);
-create index if not exists application_tracker_status_idx on application_tracker(status);
-
-alter table application_tracker enable row level security;
-
-create policy "Users manage their own tracked applications"
-  on application_tracker for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
-create trigger application_tracker_updated_at
-  before update on application_tracker
-  for each row execute function update_updated_at();
-
--- Watchlist alerts
-create table if not exists watchlist_alerts (
-  id uuid primary key default uuid_generate_v4(),
-  user_id uuid references user_profiles(id) on delete cascade,
-  label text not null,
-  countries text[] default '{}',
-  sectors text[] default '{}',
-  funding_types text[] default '{}',
-  alert_enabled boolean default true,
-  created_at timestamptz default now()
-);
-
-alter table watchlist_alerts enable row level security;
-
-create policy "Users manage their own watchlist"
-  on watchlist_alerts for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
--- Document vault (metadata — files stored in Supabase Storage bucket 'documents')
-create table if not exists document_vault (
-  id uuid primary key default uuid_generate_v4(),
-  user_id uuid references user_profiles(id) on delete cascade,
-  document_type text not null check (document_type in (
-    'ID', 'Passport', 'Business Registration', 'Tax Certificate',
-    'Business Plan', 'Bank Statement', 'Certificate', 'Contract', 'Other'
-  )),
-  filename text not null,
-  storage_path text not null,
-  file_size_kb integer,
-  uploaded_at timestamptz default now()
-);
-
-alter table document_vault enable row level security;
-
-create policy "Users manage their own vault"
-  on document_vault for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
--- ########## END 003_tracker_vault.sql ##########
-
--- ########## BEGIN 004_create_projects.sql ##########
+-- ========== 004_create_projects.sql ==========
 -- Kebu Create Mode foundation: owned website projects with structured sections
 -- Vertical slice: blank website → hero section → Postgres persistence + RLS
 
@@ -570,9 +455,7 @@ create trigger project_sections_set_updated_at
   before update on public.project_sections
   for each row execute function public.set_updated_at();
 
--- ########## END 004_create_projects.sql ##########
-
--- ########## BEGIN 005_kebu_id_draft_business.sql ##########
+-- ========== 005_kebu_id_draft_business.sql ==========
 -- Kebu ID Slice 1: draft business identity (separate from personal eligibility)
 -- Does NOT implement government registration, verification levels beyond draft, stores, or payments.
 --
@@ -786,9 +669,7 @@ create policy "Users manage own idempotency rows"
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
--- ########## END 005_kebu_id_draft_business.sql ##########
-
--- ########## BEGIN 006_kebu_id_lock_draft_status.sql ##########
+-- ========== 006_kebu_id_lock_draft_status.sql ==========
 -- Kebu ID Slice 1 hardening: clients must not raise verification_level or leave draft via RLS.
 -- Also allow creator cleanup of failed draft creates (CASCADE removes members/audit/idempotency).
 
@@ -825,9 +706,7 @@ create policy "Creators delete own draft businesses"
     and verification_level = 1
   );
 
--- ########## END 006_kebu_id_lock_draft_status.sql ##########
-
--- ########## BEGIN 007_business_registration.sql ##########
+-- ========== 007_business_registration.sql ==========
 -- Kebu Business Registration Slice 1
 -- Extends businesses for registration wizard fields, status history, progress timeline,
 -- owners, readiness scores. Government submission is NOT live — connector interface only.
@@ -1210,9 +1089,7 @@ create policy "Founders update own draft businesses"
     )
   );
 
--- ########## END 007_business_registration.sql ##########
-
--- ########## BEGIN 008_website_builder.sql ##########
+-- ========== 008_website_builder.sql ==========
 -- Kebu AI Website Builder vertical slice
 -- Extends projects for business linkage, themes, subdomains; templates; versions; deployments.
 -- Public sites are served from deployments.snapshot only (draft data stays private).
@@ -1460,9 +1337,7 @@ create policy "Owners insert assets"
     )
   );
 
--- ########## END 008_website_builder.sql ##########
-
--- ########## BEGIN 009_opportunity_country_explorer.sql ##########
+-- ========== 009_opportunity_country_explorer.sql ==========
 -- Opportunity OS Slice 1: Country Explorer
 -- Extends existing country_profiles; adds AI analysis table (never mixed into verified fields).
 
@@ -1659,9 +1534,7 @@ on conflict (country_code) do update set
   publish_status = 'published',
   updated_at = now();
 
--- ########## END 009_opportunity_country_explorer.sql ##########
-
--- ########## BEGIN 010_site_billing_joko.sql ##########
+-- ========== 010_site_billing_joko.sql ==========
 -- Kebu site hosting + template purchases via JOKO mobile money
 
 alter table public.site_templates
@@ -1732,9 +1605,7 @@ create policy "Owners insert pending template purchases"
   on public.template_purchases for insert
   with check (owner_id = auth.uid() and status = 'pending');
 
--- ########## END 010_site_billing_joko.sql ##########
-
--- ########## BEGIN 011_maylecor_section_types.sql ##########
+-- ========== 011_maylecor_section_types.sql ==========
 -- May Lecor / K-Direction artist layout section types
 
 alter table public.project_sections drop constraint if exists project_sections_section_type_check;
@@ -1764,9 +1635,7 @@ create policy "Authenticated read builder schema meta"
   on public.builder_schema_meta for select
   using (auth.role() = 'authenticated');
 
--- ########## END 011_maylecor_section_types.sql ##########
-
--- ########## BEGIN 012_legally_blonde_section_type.sql ##########
+-- ========== 012_legally_blonde_section_type.sql ==========
 -- Legally Blonde animated showcase section type
 
 alter table public.project_sections drop constraint if exists project_sections_section_type_check;
@@ -1783,9 +1652,7 @@ insert into public.builder_schema_meta (key, value)
 values ('website_builder_version', '12')
 on conflict (key) do update set value = excluded.value, updated_at = now();
 
--- ########## END 012_legally_blonde_section_type.sql ##########
-
--- ########## BEGIN 013_site_seo_settings.sql ##########
+-- ========== 013_site_seo_settings.sql ==========
 -- Site SEO settings (favicon, meta tags) stored on project + published snapshot
 
 alter table public.projects add column if not exists seo jsonb not null default '{}'::jsonb;
@@ -1794,9 +1661,7 @@ insert into public.builder_schema_meta (key, value)
 values ('website_builder_version', '13')
 on conflict (key) do update set value = excluded.value, updated_at = now();
 
--- ########## END 013_site_seo_settings.sql ##########
-
--- ########## BEGIN 014_builder_extensions.sql ##########
+-- ========== 014_builder_extensions.sql ==========
 -- Builder extensions: site health monitoring, developer template marketplace (foundation)
 
 -- ── Published site health (daily cron) ───────────────────────────────────────
@@ -1891,9 +1756,7 @@ create policy "Approved developers manage own templates"
 create index if not exists idx_marketplace_templates_status on public.marketplace_templates(status);
 create index if not exists idx_developer_profiles_status on public.developer_profiles(status);
 
--- ########## END 014_builder_extensions.sql ##########
-
--- ########## BEGIN 015_custom_domains.sql ##########
+-- ========== 015_custom_domains.sql ==========
 -- Custom domains: connect real domains (Namecheap, etc.) to published Kebu sites
 
 alter table public.site_domains
@@ -1940,9 +1803,7 @@ create policy "Owners delete domains"
 
 -- Service role reads verified hostnames for middleware routing (no anon access)
 
--- ########## END 015_custom_domains.sql ##########
-
--- ########## BEGIN 016_registration_timeline.sql ##########
+-- ========== 016_registration_timeline.sql ==========
 -- Align registration progress timeline with canonical Business Registration tracker
 
 update public.registration_progress set label = 'Application Started', sort_order = 10
@@ -1985,9 +1846,7 @@ where not exists (
   where rp.business_id = b.id and rp.step_key = 'tax_registration'
 );
 
--- ########## END 016_registration_timeline.sql ##########
-
--- ########## BEGIN 017_business_documents.sql ##########
+-- ========== 017_business_documents.sql ==========
 -- Business registration documents — Supabase Storage + metadata (Slice: document upload)
 
 create table if not exists public.business_documents (
@@ -2110,63 +1969,605 @@ create policy "Business doc founders delete"
     )
   );
 
--- ########## END 017_business_documents.sql ##########
+-- ========== 018_supabase_api_grants.sql ==========
+-- PostgREST API grants (fixes "permission denied" on public tables when RLS allows access)
 
--- ########## BEGIN 018_supabase_api_grants.sql ##########
--- Supabase API roles need schema/table grants; RLS policies alone are not enough.
--- Without these, anon/authenticated clients get "permission denied for table …".
+grant usage on schema public to anon, authenticated, service_role;
 
-grant usage on schema public to postgres, anon, authenticated, service_role;
+grant select on public.country_profiles to anon, authenticated;
+grant select on public.site_templates to authenticated;
+grant select on public.site_template_versions to authenticated;
+grant select on public.deployments to anon, authenticated;
 
-grant all on all tables in schema public to postgres, service_role;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant select on all tables in schema public to anon;
 
-grant usage, select on all sequences in schema public to authenticated, anon;
+grant usage, select on all sequences in schema public to authenticated;
 
 alter default privileges in schema public
-  grant all on tables to postgres, service_role;
-alter default privileges in schema public
   grant select, insert, update, delete on tables to authenticated;
+
 alter default privileges in schema public
   grant select on tables to anon;
 
--- ########## END 018_supabase_api_grants.sql ##########
+-- ========== 020_fix_business_members_rls.sql ==========
+-- Fix recursive RLS on business_members that can block membership reads (signup / portfolio / business list).
 
--- ########## BEGIN 019_fix_auth_signup_trigger.sql ##########
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.user_profiles (id, name, email)
-  values (
-    new.id,
-    coalesce(
-      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
-      nullif(trim(new.raw_user_meta_data->>'name'), ''),
-      split_part(coalesce(new.email, ''), '@', 1)
-    ),
-    new.email
+drop policy if exists "Users select own memberships" on public.business_members;
+create policy "Users select own memberships"
+  on public.business_members for select
+  using (user_id = auth.uid());
+
+-- ========== 021_kebu_business_records.sql ==========
+-- Kebu official business records + extended document types (gov + ECOWAS + Kebu record)
+
+alter table public.business_documents drop constraint if exists business_documents_document_type_check;
+
+alter table public.business_documents add constraint business_documents_document_type_check
+  check (document_type in (
+    'founder_id',
+    'business_plan',
+    'address_proof',
+    'registration_form',
+    'gov_rccm',
+    'gov_tax_certificate',
+    'ecowas_trade_packet',
+    'kebu_official_record',
+    'other'
+  ));
+
+create table if not exists public.business_kebu_records (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null unique references public.businesses(id) on delete cascade,
+  record_version text not null,
+  public_kebu_id text not null,
+  snapshot jsonb not null,
+  storage_path text not null,
+  generated_at timestamptz not null default now(),
+  generated_by uuid not null references auth.users(id) on delete restrict
+);
+
+create index if not exists business_kebu_records_public_id_idx on public.business_kebu_records (public_kebu_id);
+
+alter table public.business_kebu_records enable row level security;
+
+drop policy if exists "Members select business_kebu_records" on public.business_kebu_records;
+create policy "Members select business_kebu_records"
+  on public.business_kebu_records for select
+  using (
+    exists (
+      select 1 from public.business_members m
+      where m.business_id = business_kebu_records.business_id
+        and m.user_id = auth.uid()
+        and m.status = 'active'
+    )
+  );
+
+drop policy if exists "Founders upsert business_kebu_records" on public.business_kebu_records;
+create policy "Founders upsert business_kebu_records"
+  on public.business_kebu_records for insert
+  with check (
+    generated_by = auth.uid()
+    and exists (
+      select 1 from public.business_members m
+      where m.business_id = business_kebu_records.business_id
+        and m.user_id = auth.uid()
+        and m.status = 'active'
+        and m.role in ('founder', 'administrator')
+    )
+  );
+
+drop policy if exists "Founders update business_kebu_records" on public.business_kebu_records;
+create policy "Founders update business_kebu_records"
+  on public.business_kebu_records for update
+  using (
+    exists (
+      select 1 from public.business_members m
+      where m.business_id = business_kebu_records.business_id
+        and m.user_id = auth.uid()
+        and m.status = 'active'
+        and m.role in ('founder', 'administrator')
+    )
+  );
+
+update storage.buckets
+set allowed_mime_types = array['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'text/html']
+where id = 'business-documents';
+
+-- ========== 022_site_products_and_create_designs.sql ==========
+-- Per-site products (Builder store catalog) + Kebu Create design assets
+
+create table if not exists public.project_products (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  business_id uuid references public.businesses(id) on delete set null,
+  name text not null check (char_length(trim(name)) between 1 and 120),
+  description text not null default '' check (char_length(description) <= 1000),
+  price_label text not null default '' check (char_length(price_label) <= 60),
+  image_url text not null default '' check (char_length(image_url) <= 500),
+  whatsapp_order_message text not null default '' check (char_length(whatsapp_order_message) <= 300),
+  sort_order integer not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists project_products_project_idx on public.project_products (project_id, sort_order);
+create index if not exists project_products_business_idx on public.project_products (business_id) where business_id is not null;
+
+alter table public.project_products enable row level security;
+
+drop policy if exists "Owners manage project_products" on public.project_products;
+create policy "Owners manage project_products"
+  on public.project_products for all
+  using (
+    exists (
+      select 1 from public.projects p
+      where p.id = project_products.project_id and p.owner_id = auth.uid()
+    )
   )
-  on conflict (id) do update set
-    email = excluded.email,
-    name = coalesce(nullif(excluded.name, ''), public.user_profiles.name),
-    updated_at = now();
-  return new;
-end;
-$$;
+  with check (
+    exists (
+      select 1 from public.projects p
+      where p.id = project_products.project_id and p.owner_id = auth.uid()
+    )
+  );
 
-alter function public.handle_new_user() owner to postgres;
+drop trigger if exists project_products_set_updated_at on public.project_products;
+create trigger project_products_set_updated_at
+  before update on public.project_products
+  for each row execute function public.set_updated_at();
 
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
+-- Kebu Create — posters, social graphics, flyers (separate from Builder websites)
 
-grant usage on schema public to supabase_auth_admin;
-grant insert, update, select on public.user_profiles to supabase_auth_admin;
+create table if not exists public.create_designs (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  business_id uuid references public.businesses(id) on delete set null,
+  design_type text not null default 'poster'
+    check (design_type in ('poster', 'social_square', 'flyer')),
+  title text not null check (char_length(trim(title)) between 1 and 120),
+  canvas jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
--- ########## END 019_fix_auth_signup_trigger.sql ##########
+create index if not exists create_designs_owner_idx on public.create_designs (owner_id, updated_at desc);
+create index if not exists create_designs_business_idx on public.create_designs (business_id) where business_id is not null;
+
+alter table public.create_designs enable row level security;
+
+drop policy if exists "Owners manage create_designs" on public.create_designs;
+create policy "Owners manage create_designs"
+  on public.create_designs for all
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid());
+
+drop trigger if exists create_designs_set_updated_at on public.create_designs;
+create trigger create_designs_set_updated_at
+  before update on public.create_designs
+  for each row execute function public.set_updated_at();
+
+-- ========== 023_site_assets_bucket.sql ==========
+-- Public site assets (logos, favicons, product photos) — uploaded from Kebu Builder
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'site-assets',
+  'site-assets',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Owners upload site assets" on storage.objects;
+create policy "Owners upload site assets"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'site-assets'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Owners update site assets" on storage.objects;
+create policy "Owners update site assets"
+  on storage.objects for update
+  using (
+    bucket_id = 'site-assets'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+drop policy if exists "Public read site assets" on storage.objects;
+create policy "Public read site assets"
+  on storage.objects for select
+  using (bucket_id = 'site-assets');
+
+drop policy if exists "Owners delete site assets" on storage.objects;
+create policy "Owners delete site assets"
+  on storage.objects for delete
+  using (
+    bucket_id = 'site-assets'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ========== 024_b2b_business_profiles.sql ==========
+-- B2B trade profiles (visible only to other Kebu business members) + commerce mode on businesses
+
+alter table public.businesses
+  add column if not exists commerce_mode text not null default 'b2c'
+    check (commerce_mode in ('b2c', 'b2b', 'both'));
+
+create table if not exists public.business_b2b_profiles (
+  business_id uuid primary key references public.businesses(id) on delete cascade,
+  headline text not null default '' check (char_length(headline) <= 160),
+  about text not null default '' check (char_length(about) <= 2000),
+  logo_url text not null default '' check (char_length(logo_url) <= 500),
+  cover_url text not null default '' check (char_length(cover_url) <= 500),
+  gallery_urls text[] not null default '{}',
+  categories text[] not null default '{}',
+  min_order_note text not null default '' check (char_length(min_order_note) <= 200),
+  contact_email text check (contact_email is null or char_length(trim(contact_email)) between 3 and 254),
+  contact_phone text check (contact_phone is null or char_length(trim(contact_phone)) between 5 and 40),
+  is_published boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists business_b2b_profiles_published_idx
+  on public.business_b2b_profiles (is_published, updated_at desc)
+  where is_published = true;
+
+alter table public.business_b2b_profiles enable row level security;
+
+drop policy if exists "Business members browse published b2b profiles" on public.business_b2b_profiles;
+create policy "Business members browse published b2b profiles"
+  on public.business_b2b_profiles for select
+  using (
+    is_published = true
+    and exists (
+      select 1 from public.business_members m
+      where m.user_id = auth.uid() and m.status = 'active'
+    )
+  );
+
+drop policy if exists "Founders manage own b2b profile" on public.business_b2b_profiles;
+create policy "Founders manage own b2b profile"
+  on public.business_b2b_profiles for all
+  using (
+    exists (
+      select 1 from public.business_members m
+      where m.business_id = business_b2b_profiles.business_id
+        and m.user_id = auth.uid()
+        and m.status = 'active'
+        and m.role in ('founder', 'administrator', 'store_manager')
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.business_members m
+      where m.business_id = business_b2b_profiles.business_id
+        and m.user_id = auth.uid()
+        and m.status = 'active'
+        and m.role in ('founder', 'administrator', 'store_manager')
+    )
+  );
+
+drop trigger if exists business_b2b_profiles_set_updated_at on public.business_b2b_profiles;
+create trigger business_b2b_profiles_set_updated_at
+  before update on public.business_b2b_profiles
+  for each row execute function public.set_updated_at();
+-- Personal avatars, business logos, customer email capture, campaigns
+
+alter table public.user_profiles
+  add column if not exists avatar_url text check (avatar_url is null or char_length(avatar_url) <= 500);
+
+alter table public.businesses
+  add column if not exists logo_url text not null default '' check (char_length(logo_url) <= 500);
+
+create table if not exists public.business_email_subscribers (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null references public.businesses(id) on delete cascade,
+  project_id uuid references public.projects(id) on delete set null,
+  email text not null check (char_length(trim(email)) between 3 and 254),
+  name text check (name is null or char_length(trim(name)) between 1 and 120),
+  source text not null default 'site' check (source in ('site', 'manual', 'import')),
+  consented_at timestamptz not null default now(),
+  unsubscribed_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (business_id, email)
+);
+
+create index if not exists business_email_subscribers_business_idx
+  on public.business_email_subscribers (business_id, created_at desc);
+
+create table if not exists public.business_email_campaigns (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null references public.businesses(id) on delete cascade,
+  create_design_id uuid references public.create_designs(id) on delete set null,
+  subject text not null check (char_length(trim(subject)) between 1 and 200),
+  body_html text not null default '' check (char_length(body_html) <= 50000),
+  body_text text not null default '' check (char_length(body_text) <= 20000),
+  from_name text not null default '' check (char_length(from_name) <= 120),
+  status text not null default 'draft' check (status in ('draft', 'sending', 'sent', 'failed')),
+  recipient_count integer not null default 0 check (recipient_count >= 0),
+  sent_at timestamptz,
+  created_by uuid not null references auth.users(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists business_email_campaigns_business_idx
+  on public.business_email_campaigns (business_id, created_at desc);
+
+create table if not exists public.business_email_campaign_recipients (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references public.business_email_campaigns(id) on delete cascade,
+  subscriber_id uuid not null references public.business_email_subscribers(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'sent', 'failed', 'skipped')),
+  error_message text,
+  sent_at timestamptz,
+  unique (campaign_id, subscriber_id)
+);
+
+alter table public.business_email_subscribers enable row level security;
+alter table public.business_email_campaigns enable row level security;
+alter table public.business_email_campaign_recipients enable row level security;
+
+drop policy if exists "Managers manage subscribers" on public.business_email_subscribers;
+create policy "Managers manage subscribers"
+  on public.business_email_subscribers for all
+  using (
+    exists (
+      select 1 from public.business_members m
+      where m.business_id = business_email_subscribers.business_id
+        and m.user_id = auth.uid() and m.status = 'active'
+        and m.role in ('founder', 'administrator', 'store_manager')
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.business_members m
+      where m.business_id = business_email_subscribers.business_id
+        and m.user_id = auth.uid() and m.status = 'active'
+        and m.role in ('founder', 'administrator', 'store_manager')
+    )
+  );
+
+drop policy if exists "Managers manage campaigns" on public.business_email_campaigns;
+create policy "Managers manage campaigns"
+  on public.business_email_campaigns for all
+  using (
+    exists (
+      select 1 from public.business_members m
+      where m.business_id = business_email_campaigns.business_id
+        and m.user_id = auth.uid() and m.status = 'active'
+        and m.role in ('founder', 'administrator', 'store_manager')
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.business_members m
+      where m.business_id = business_email_campaigns.business_id
+        and m.user_id = auth.uid() and m.status = 'active'
+        and m.role in ('founder', 'administrator', 'store_manager')
+    )
+  );
+
+drop policy if exists "Managers read campaign recipients" on public.business_email_campaign_recipients;
+create policy "Managers read campaign recipients"
+  on public.business_email_campaign_recipients for select
+  using (
+    exists (
+      select 1 from public.business_email_campaigns c
+      join public.business_members m on m.business_id = c.business_id
+      where c.id = business_email_campaign_recipients.campaign_id
+        and m.user_id = auth.uid() and m.status = 'active'
+        and m.role in ('founder', 'administrator', 'store_manager')
+    )
+  );
+
+drop trigger if exists business_email_campaigns_set_updated_at on public.business_email_campaigns;
+create trigger business_email_campaigns_set_updated_at
+  before update on public.business_email_campaigns
+  for each row execute function public.set_updated_at();
+
+-- 026_opportunity_profiles_and_stories.sql
+-- Opportunity OS: user intake + hope/stories (personalization before recommendations)
+
+create table if not exists public.opportunity_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  main_goal text check (char_length(main_goal) <= 80),
+  goals text[] not null default '{}',
+  interest_paths text[] not null default '{}',
+  resource_needs text[] not null default '{}',
+  starting_budget_band text check (
+    starting_budget_band is null or starting_budget_band in (
+      'under_50k', '50k_500k', '500k_5m', '5m_plus', 'not_sure'
+    )
+  ),
+  preferred_country_codes text[] not null default '{}',
+  enjoy_doing text not null default '' check (char_length(enjoy_doing) <= 500),
+  intake_complete boolean not null default false,
+  intake_version text not null default 'v1',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.opportunity_profiles enable row level security;
+
+drop policy if exists "Users manage own opportunity profile" on public.opportunity_profiles;
+create policy "Users manage own opportunity profile"
+  on public.opportunity_profiles for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create table if not exists public.opportunity_stories (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique check (char_length(slug) between 2 and 80),
+  title text not null check (char_length(title) between 1 and 200),
+  person_name text not null default '' check (char_length(person_name) <= 120),
+  country_code char(2),
+  era text not null default 'contemporary' check (era in ('historical', 'contemporary', 'ancestral_legacy')),
+  summary text not null check (char_length(summary) between 20 and 2000),
+  lesson text not null default '' check (char_length(lesson) <= 800),
+  themes text[] not null default '{}',
+  resource_tags text[] not null default '{}',
+  trust_label text not null default 'verified_public'
+    check (trust_label in ('verified_public', 'estimated', 'ai_generated', 'requires_validation')),
+  source_url text check (source_url is null or char_length(source_url) <= 500),
+  is_published boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists opportunity_stories_published_idx
+  on public.opportunity_stories (is_published, sort_order);
+
+alter table public.opportunity_stories enable row level security;
+
+drop policy if exists "Public read published stories" on public.opportunity_stories;
+create policy "Public read published stories"
+  on public.opportunity_stories for select
+  using (is_published = true);
+
+drop trigger if exists opportunity_profiles_set_updated_at on public.opportunity_profiles;
+create trigger opportunity_profiles_set_updated_at
+  before update on public.opportunity_profiles
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists opportunity_stories_set_updated_at on public.opportunity_stories;
+create trigger opportunity_stories_set_updated_at
+  before update on public.opportunity_stories
+  for each row execute function public.set_updated_at();
+
+insert into public.opportunity_stories (
+  slug, title, person_name, country_code, era, summary, lesson, themes, resource_tags, trust_label, source_url, sort_order
+) values
+(
+  'wangari-maathai-green-belt',
+  'From one tree to millions — community wealth',
+  'Wangari Maathai',
+  'KE',
+  'contemporary',
+  'Wangari Maathai started the Green Belt Movement in Kenya — paying women to plant trees. It grew into environmental restoration, women''s income, and global recognition. She showed that a small local action with clear resources (land, seedlings, community) can scale.',
+  'You do not need a factory on day one. Start with a resource your community already has — land, craft, data, or trust — and organize people around it.',
+  array['agriculture_resources', 'ancestry_heritage', 'grants_funding'],
+  array['grants', 'ancestral_knowledge', 'country_intel'],
+  'verified_public',
+  'https://www.nobelprize.org/prizes/peace/2004/maathai/biographical/',
+  10
+),
+(
+  'dangote-industrial-path',
+  'Building industry from trading roots',
+  'Aliko Dangote',
+  'NG',
+  'contemporary',
+  'Aliko Dangote began in commodities trading in Nigeria and reinvested profits into cement, sugar, and flour — industries Africa was importing. His path shows how understanding import gaps and local demand can turn into manufacturing at scale.',
+  'Look at what your country imports heavily. Local production of everyday goods is often the first realistic industrial opportunity — if you can finance inventory and distribution.',
+  array['manufacturing', 'trade_import_export', 'grants_funding'],
+  array['loans', 'country_intel', 'startup_programs'],
+  'verified_public',
+  'https://www.dangote.com/',
+  20
+),
+(
+  'mali-gold-trade-legacy',
+  'When Africa moved gold — not just extracted it',
+  'Mansa Musa era · West Africa',
+  'ML',
+  'ancestral_legacy',
+  'Medieval Mali sat on major trade routes. Gold, salt, and knowledge moved across the Sahel — cities like Timbuktu became centers of learning and commerce. Africans were not only resource-rich; they built systems to trade, tax, and educate.',
+  'Heritage is not nostalgia — it is proof that organization, trade routes, and skills existed before colonial borders. Modern opportunity often reconnects those same flows digitally.',
+  array['ancestry_heritage', 'trade_import_export'],
+  array['ancestral_knowledge', 'country_intel'],
+  'verified_public',
+  'https://www.britannica.com/place/Mali-historical-empire-Africa',
+  30
+),
+(
+  'senegal-teranga-entrepreneurship',
+  'Small service businesses that scale with trust',
+  'Senegalese SME pattern',
+  'SN',
+  'contemporary',
+  'In Senegal, many successful businesses start in services — tailoring, food, logistics, phone credit, construction crews — where reputation (teranga) drives repeat customers. Formal registration and Kebu ID come after proof of demand.',
+  'If you are starting with little cash, service + trust + repeat customers often beats a big plan with no customers.',
+  array['construction_bidding', 'retail_store', 'creative_media'],
+  array['grants', 'tenders_contracts', 'startup_programs'],
+  'verified_public',
+  null,
+  40
+)
+on conflict (slug) do nothing;
+
+-- 027_afrique_id.sql
+create table if not exists public.afrique_ids (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  public_afrique_id text not null unique check (char_length(public_afrique_id) between 12 and 24),
+  country_code char(2) not null,
+  eligibility_status text not null default 'unverified' check (
+    eligibility_status in (
+      'unverified', 'pending', 'verified', 'rejected', 'expired', 'suspended', 'manual_review'
+    )
+  ),
+  verified_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists afrique_ids_public_id_idx on public.afrique_ids (public_afrique_id);
+
+alter table public.afrique_ids enable row level security;
+
+drop policy if exists "Users read own Afrique ID" on public.afrique_ids;
+create policy "Users read own Afrique ID"
+  on public.afrique_ids for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users insert own Afrique ID" on public.afrique_ids;
+create policy "Users insert own Afrique ID"
+  on public.afrique_ids for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Public read verified Afrique ID cards" on public.afrique_ids;
+create policy "Public read verified Afrique ID cards"
+  on public.afrique_ids for select
+  using (eligibility_status = 'verified');
+
+drop policy if exists "Users request Afrique ID verification" on public.afrique_ids;
+create policy "Users request Afrique ID verification"
+  on public.afrique_ids for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and eligibility_status = 'pending');
+
+drop trigger if exists afrique_ids_set_updated_at on public.afrique_ids;
+create trigger afrique_ids_set_updated_at
+  before update on public.afrique_ids
+  for each row execute function public.set_updated_at();
+
+grant select, insert, update on public.afrique_ids to authenticated;
+
+-- ========== 028_builder_section_types_extended.sql ==========
+-- Allow all Phase One builder section types (video, audio, products, newsletter, …)
+
+alter table public.project_sections drop constraint if exists project_sections_section_type_check;
+alter table public.project_sections
+  add constraint project_sections_section_type_check
+  check (section_type in (
+    'navigation', 'hero', 'text', 'image', 'gallery', 'video', 'audio', 'map', 'events',
+    'features', 'testimonials', 'faq', 'products', 'contact', 'newsletter', 'whatsapp', 'footer',
+    'heading', 'paragraph', 'button',
+    'maylecor-home', 'maylecor-music', 'legally-blonde-hero'
+  ));
+
+insert into public.builder_schema_meta (key, value)
+values ('website_builder_version', '28')
+on conflict (key) do update set value = excluded.value, updated_at = now();

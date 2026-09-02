@@ -7,7 +7,7 @@ type AuthUser = { id: string };
 export async function persistWebsiteDefinition(opts: {
   supabase: SupabaseClient;
   user: AuthUser;
-  businessId: string;
+  businessId?: string | null;
   definition: WebsiteDefinition;
   meta: {
     source: "blank" | "template" | "ai";
@@ -39,7 +39,7 @@ export async function persistWebsiteDefinition(opts: {
     .from("projects")
     .insert({
       owner_id: user.id,
-      business_id: businessId,
+      business_id: businessId ?? null,
       title: definition.title,
       project_type: "website",
       status: "draft",
@@ -277,7 +277,7 @@ export async function buildSnapshotFromDb(
     });
   }
 
-  return {
+  const base: WebsiteDefinition = {
     schemaVersion: "website-v1",
     title: project.title,
     theme: (project.theme ?? {}) as ThemeTokens,
@@ -286,4 +286,67 @@ export async function buildSnapshotFromDb(
       ? defPages
       : [{ slug: "home", title: "Home", sections: [{ type: "hero", props: { heading: project.title, subheading: "" } }] }],
   };
+
+  return mergeCatalogProductsIntoSnapshot(supabase, projectId, base);
+}
+
+async function mergeCatalogProductsIntoSnapshot(
+  supabase: SupabaseClient,
+  projectId: string,
+  def: WebsiteDefinition,
+): Promise<WebsiteDefinition> {
+  const { data: productRows } = await supabase
+    .from("project_products")
+    .select("name, description, price_label, image_url, whatsapp_order_message")
+    .eq("project_id", projectId)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (!productRows?.length) return def;
+
+  const items = productRows.map((r) => ({
+    name: r.name,
+    description: r.description ?? "",
+    priceLabel: r.price_label ?? "",
+    imageUrl: r.image_url ?? "",
+    whatsappMessage: r.whatsapp_order_message ?? "",
+  }));
+
+  const pages = def.pages.map((page) => {
+    const isShopPage =
+      page.slug === "home" || page.slug === "shop" || page.slug.includes("shop");
+    if (!isShopPage) return page;
+    const productsIdx = page.sections.findIndex((s) => s.type === "products");
+    if (productsIdx >= 0) {
+      const sections = [...page.sections];
+      const existing = sections[productsIdx]!;
+      sections[productsIdx] = {
+        ...existing,
+        props: {
+          ...(existing.props as Record<string, unknown>),
+          heading:
+            (existing.props as { heading?: string }).heading ||
+            (page.slug === "shop" ? "Shop" : "Products"),
+          items,
+        },
+      };
+      return { ...page, sections };
+    }
+    if (page.slug === "home" || page.slug === "shop") {
+      return {
+        ...page,
+        sections: [
+          ...page.sections,
+          {
+            id: `products-catalog-${page.slug}`,
+            type: "products" as const,
+            props: { heading: page.slug === "shop" ? "Shop" : "Products", items },
+          },
+        ],
+      };
+    }
+    return page;
+  });
+
+  return { ...def, pages };
 }

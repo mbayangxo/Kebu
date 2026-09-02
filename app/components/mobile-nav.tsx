@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KebuMark } from "./kebu-mark";
+import { useKebuWorkspace } from "@/app/hooks/use-kebu-workspace";
+import { workspaceHome } from "@/lib/navigation/kebu-workspace";
 
 function IconHome({ active }: { active: boolean }) {
   return (
@@ -28,16 +30,6 @@ function IconBusiness({ active }: { active: boolean }) {
   );
 }
 
-function IconCreate({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth={active ? 2 : 1.5} fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
-      <rect x="14" y="13" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth={active ? 2 : 1.5} fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
-      <rect x="8" y="3" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth={active ? 2 : 1.5} fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
-    </svg>
-  );
-}
-
 function IconOpportunity({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -47,23 +39,54 @@ function IconOpportunity({ active }: { active: boolean }) {
   );
 }
 
-/** Live product tabs only — no sample path/matches/programs. */
+function IconAccount({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth={active ? 2 : 1.5} />
+      <path
+        d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.5}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 const TABS = [
-  { href: "/", label: "Home", Icon: IconHome },
-  { href: "/opportunity/countries", label: "Countries", Icon: IconOpportunity },
-  { href: "/create", label: "Builder", Icon: IconCreate },
-  { href: "/business", label: "Business", Icon: IconBusiness },
-];
+  { href: "/dashboard", label: "Kebu", Icon: IconHome, match: (p: string) => p === "/dashboard" || p === "/welcome" },
+  {
+    href: "/opportunity",
+    label: "Opportunity",
+    Icon: IconOpportunity,
+    match: (p: string) => p.startsWith("/opportunity"),
+  },
+  {
+    href: "/business",
+    label: "Business",
+    Icon: IconBusiness,
+    center: true,
+    match: (p: string) =>
+      p.startsWith("/business") ||
+      p.startsWith("/create") ||
+      p.startsWith("/b2b") ||
+      p.startsWith("/ka-score") ||
+      p.startsWith("/studio"),
+  },
+  { href: "/account", label: "Account", Icon: IconAccount, match: (p: string) => p === "/account" },
+] as const;
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { workspace } = useKebuWorkspace();
+  const centerHref = workspace ? workspaceHome(workspace) : "/business";
 
   const isStoreCustomer =
     pathname.startsWith("/store/") &&
     !pathname.startsWith("/store/new") &&
     !pathname.startsWith("/store/dashboard");
 
-  if (isStoreCustomer || pathname === "/") return null;
+  if (isStoreCustomer || pathname === "/start") return null;
 
   return (
     <>
@@ -71,15 +94,15 @@ export function MobileBottomNav() {
         <div className="bg-[#FFFBF7]/95 backdrop-blur-md border-t border-black/10">
           <div className="h-[2px] w-full bg-gradient-to-r from-gold-dark via-gold to-gold-light" />
           <div className="flex items-stretch">
-            {TABS.map(({ href, label, Icon }, i) => {
-              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            {TABS.map(({ href, label, Icon, match }, i) => {
+              const active = match(pathname);
               const isCenter = i === 2;
 
               if (isCenter) {
                 return (
                   <Link
                     key={href}
-                    href={href}
+                    href={centerHref}
                     className="flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 relative"
                   >
                     <div

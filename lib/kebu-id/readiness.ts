@@ -1,4 +1,4 @@
-export const READINESS_MODEL_VERSION = "business-readiness-v1";
+export const READINESS_MODEL_VERSION = "business-readiness-v3";
 
 export type RegistrationProgressStepDef = {
   stepKey: string;
@@ -33,8 +33,22 @@ export type BusinessProfileForReadiness = {
   founderName?: string | null;
   founderEmail?: string | null;
   ownershipPercent?: number | null;
-  /** When false or unset, required registration documents are treated as missing. */
+  /** Required gov-prep documents (founder ID + business plan) uploaded. */
   registrationDocumentsComplete?: boolean;
+  /** At least one Kebu website project is published for this business. */
+  hasPublishedWebsite?: boolean;
+  /** Server-generated Kebu Business Record on file. */
+  kebuOfficialRecordGenerated?: boolean;
+  /** Optional: RCCM / tax certs uploaded for gov registration track. */
+  hasGovRegistrationCerts?: boolean;
+  /** Optional: ECOWAS / West Africa trade packet uploaded (requires validation). */
+  hasWestAfricaTradeDocs?: boolean;
+  /** Favicon or social image on a linked Kebu site. */
+  hasSiteLogo?: boolean;
+  /** Active catalog products across linked sites. */
+  siteProductCount?: number;
+  /** Saved Kebu Create designs (posters, flyers, social). */
+  createAssetCount?: number;
 };
 
 export type ReadinessResult = {
@@ -59,131 +73,168 @@ function bandFor(score: number): ReadinessResult["scoreBand"] {
   return "opportunity_ready";
 }
 
-function confidenceFor(filledRequired: number, requiredTotal: number): ReadinessResult["confidenceLevel"] {
-  const ratio = filledRequired / requiredTotal;
-  if (ratio < 0.5) return "low";
-  if (ratio < 0.85) return "moderate";
-  return "high";
-}
-
 /**
  * Server-side Business Readiness Score (not financing / lending / investment).
- * Based only on profile completion for this registration slice.
+ * Honest scoring: profile alone cannot reach 100 — documents, digital presence, and Kebu record matter.
  */
 export function calculateBusinessReadiness(profile: BusinessProfileForReadiness): ReadinessResult {
   const helping: string[] = [];
   const limiting: string[] = [];
   const missing: string[] = [];
   let points = 0;
-  const max = 100;
 
-  const checks: { ok: boolean; pts: number; help: string; miss: string }[] = [
-    {
-      ok: Boolean(profile.legalName?.trim()),
-      pts: 12,
-      help: "Legal business name is on file.",
-      miss: "Add a legal business name.",
-    },
-    {
-      ok: Boolean(profile.countryCode?.trim()),
-      pts: 8,
-      help: "Country is set.",
-      miss: "Select a country.",
-    },
-    {
-      ok: Boolean(profile.region?.trim()),
-      pts: 8,
-      help: "Region / state is set.",
-      miss: "Add region / state.",
-    },
-    {
-      ok: Boolean(profile.category?.trim()),
-      pts: 8,
-      help: "Business category is set.",
-      miss: "Choose a business category.",
-    },
+  const profileChecks: { ok: boolean; pts: number; help: string; miss: string }[] = [
+    { ok: Boolean(profile.legalName?.trim()), pts: 6, help: "Legal business name on file.", miss: "Add a legal business name." },
+    { ok: Boolean(profile.countryCode?.trim()), pts: 4, help: "Country set.", miss: "Select a country." },
+    { ok: Boolean(profile.region?.trim()), pts: 4, help: "Region / state set.", miss: "Add region / state." },
+    { ok: Boolean(profile.category?.trim()), pts: 4, help: "Business category set.", miss: "Choose a business category." },
     {
       ok: Boolean(profile.description?.trim()) && profile.description.trim().length >= 20,
-      pts: 10,
-      help: "Short description is complete.",
+      pts: 5,
+      help: "Business description complete.",
       miss: "Add a short description (at least 20 characters).",
     },
-    {
-      ok: Boolean(profile.businessEmail?.trim()),
-      pts: 10,
-      help: "Business email is on file.",
-      miss: "Add a business email.",
-    },
-    {
-      ok: Boolean(profile.businessPhone?.trim()),
-      pts: 8,
-      help: "Business phone is on file.",
-      miss: "Add a business phone.",
-    },
+    { ok: Boolean(profile.businessEmail?.trim()), pts: 5, help: "Business email on file.", miss: "Add a business email." },
+    { ok: Boolean(profile.businessPhone?.trim()), pts: 4, help: "Business phone on file.", miss: "Add a business phone." },
     {
       ok: Boolean(profile.legalStructure?.trim()),
-      pts: 14,
-      help: "Business structure is selected for your country.",
+      pts: 7,
+      help: "Legal structure selected.",
       miss: "Select a legal business structure.",
     },
-    {
-      ok: Boolean(profile.founderName?.trim()),
-      pts: 10,
-      help: "Founder name is recorded.",
-      miss: "Add founder name.",
-    },
-    {
-      ok: Boolean(profile.founderEmail?.trim()),
-      pts: 8,
-      help: "Founder email is recorded.",
-      miss: "Add founder email.",
-    },
+    { ok: Boolean(profile.founderName?.trim()), pts: 5, help: "Founder name recorded.", miss: "Add founder name." },
+    { ok: Boolean(profile.founderEmail?.trim()), pts: 4, help: "Founder email recorded.", miss: "Add founder email." },
     {
       ok:
         typeof profile.ownershipPercent === "number" &&
         profile.ownershipPercent > 0 &&
         profile.ownershipPercent <= 100,
-      pts: 4,
-      help: "Ownership percentage is recorded.",
+      pts: 2,
+      help: "Ownership percentage recorded.",
       miss: "Add founder ownership percentage.",
     },
   ];
 
-  let filled = 0;
-  for (const c of checks) {
+  let profileFilled = 0;
+  for (const c of profileChecks) {
     if (c.ok) {
       points += c.pts;
       helping.push(c.help);
-      filled += 1;
+      profileFilled += 1;
     } else {
       limiting.push(c.miss);
       missing.push(c.miss);
     }
   }
 
-  // Optional website bonus (does not punish absence beyond opportunity note)
-  if (profile.website?.trim()) {
-    points = Math.min(max, points + 5);
-    helping.push("Website URL is on file.");
-  } else {
-    missing.push("Optional: add a website when you have one.");
-  }
-
   if (profile.tradingName?.trim()) {
-    points = Math.min(max, points + 3);
-    helping.push("Trading name is on file.");
+    points += 2;
+    helping.push("Trading name on file.");
   }
 
+  // Gov-prep documents — 25 points (required for serious readiness)
   if (profile.registrationDocumentsComplete === true) {
-    helping.push("Required registration documents are uploaded.");
+    points += 25;
+    helping.push("Required gov-prep documents uploaded (founder ID + business plan).");
   } else {
-    missing.push("Upload required registration documents (founder ID and business plan).");
-    limiting.push("Registration documents not yet uploaded.");
+    missing.push("Upload founder ID and business plan for government registration prep.");
+    limiting.push("Gov-prep documents missing — score capped until uploaded.");
+  }
+
+  if (profile.hasGovRegistrationCerts) {
+    points += 5;
+    helping.push("Government registration certificates on file (RCCM / tax).");
+  } else {
+    missing.push("Optional: upload RCCM or tax certificates after you receive them from authorities.");
+  }
+
+  // Digital presence — published site + branding
+  if (profile.hasPublishedWebsite) {
+    points += 12;
+    helping.push("Website published on Kebu.");
+  } else if (profile.website?.trim()) {
+    points += 4;
+    helping.push("Website URL on file.");
+    missing.push("Publish your website on Kebu — a URL alone is not a live site.");
+    limiting.push("No published Kebu website yet.");
+  } else {
+    missing.push("Build and publish a website on Kebu (or add a website URL).");
+    limiting.push("No digital storefront or site published.");
+  }
+
+  if (profile.hasSiteLogo) {
+    points += 5;
+    helping.push("Site logo or brand image set (favicon / social preview).");
+  } else {
+    missing.push("Add a logo or brand image in Builder → Site & SEO (favicon or social image).");
+  }
+
+  const productCount = Math.max(0, profile.siteProductCount ?? 0);
+  if (productCount >= 5) {
+    points += 10;
+    helping.push(`${productCount} products in your site catalog — strong storefront signal.`);
+  } else if (productCount >= 3) {
+    points += 6;
+    helping.push(`${productCount} products listed — keep adding to grow readiness.`);
+  } else if (productCount >= 1) {
+    points += 3;
+    helping.push("At least one product listed on your site.");
+    missing.push("Add more products in Builder to show a fuller catalog.");
+  } else {
+    missing.push("Add products in Kebu Builder so customers can see what you sell.");
+    limiting.push("No products listed on your site yet.");
+  }
+
+  const createCount = Math.max(0, profile.createAssetCount ?? 0);
+  if (createCount >= 3) {
+    points += 6;
+    helping.push(`${createCount} marketing designs saved in Kebu Create.`);
+  } else if (createCount >= 1) {
+    points += 3;
+    helping.push("Marketing poster or graphic created in Kebu Create.");
+    missing.push("Create more posters or social graphics in Kebu Create.");
+  } else {
+    missing.push("Optional: design a poster or flyer in Kebu Create for your business.");
+  }
+
+  // Kebu official record — 10 points
+  if (profile.kebuOfficialRecordGenerated) {
+    points += 10;
+    helping.push("Official Kebu Business Record generated — your permanent Kebu ID snapshot.");
+  } else {
+    missing.push("Generate your official Kebu Business Record (like an EIN letter, but for Kebu).");
+  }
+
+  if (profile.hasWestAfricaTradeDocs) {
+    points += 3;
+    helping.push("West Africa trade readiness packet uploaded (requires validation).");
+  } else {
+    missing.push(
+      "Optional: upload ECOWAS / West Africa trade documents when preparing to sell across the region.",
+    );
   }
 
   const scoreValue = Math.max(0, Math.min(100, points));
   const scoreBand = bandFor(scoreValue);
-  const confidenceLevel = confidenceFor(filled, checks.length);
+
+  const profileRatio = profileFilled / profileChecks.length;
+  let confidenceLevel: ReadinessResult["confidenceLevel"] = "low";
+  if (
+    profileRatio >= 0.85 &&
+    profile.registrationDocumentsComplete &&
+    (profile.hasPublishedWebsite || profile.website?.trim())
+  ) {
+    confidenceLevel = "high";
+  } else if (profileRatio >= 0.5) {
+    confidenceLevel = "moderate";
+  }
+
+  const summary =
+    scoreValue >= 85 && profile.registrationDocumentsComplete && profile.hasPublishedWebsite
+      ? `Strong registration readiness at ${scoreValue} — profile, documents, site, and operations signals are in place.`
+      : scoreValue < 50
+        ? "Early stage — add your logo, products, documents, and publish your site to raise readiness."
+        : `Readiness is ${scoreValue} (${scoreBand.replace("_", " ")}). Keep improving — logo, products, and a live site all help.`;
 
   return {
     scoreValue,
@@ -194,11 +245,8 @@ export function calculateBusinessReadiness(profile: BusinessProfileForReadiness)
     limitingFactors: limiting,
     missingItems: missing,
     explanation: {
-      summary:
-        confidenceLevel === "low"
-          ? "Not enough verified information yet for a strong readiness reading."
-          : `Business Readiness is ${scoreValue} (${scoreBand.replace("_", " ")}).`,
-      note: "This is a Business Readiness score — not financing, lending, or investment approval. Kebu Score is one input and does not guarantee funding.",
+      summary,
+      note: "Business Readiness helps you prepare for government registration — it is not financing approval. Kebu ID is your permanent business identifier (like an EIN). Kebu Score comes later with real operations data.",
     },
   };
 }
@@ -217,6 +265,6 @@ export function infoCompleteFromProfile(profile: BusinessProfileForReadiness): b
       profile.founderName?.trim() &&
       profile.founderEmail?.trim() &&
       typeof profile.ownershipPercent === "number" &&
-      profile.ownershipPercent > 0
+      profile.ownershipPercent > 0,
   );
 }

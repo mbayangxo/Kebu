@@ -4,6 +4,16 @@ export type LegalStructure = {
   code: string;
   label: string;
   description?: string;
+  /** One sentence in plain language for first-time founders */
+  summary?: string;
+  whoItsFor?: string;
+  pros?: string[];
+  cons?: string[];
+  bestWhen?: string;
+  /** Real examples a young founder would recognize */
+  examples?: string[];
+  /** Plain comparison, e.g. "Like a solo shop with your name on the door" */
+  simpleAnalogy?: string;
 };
 
 export type CountryBusinessModule = {

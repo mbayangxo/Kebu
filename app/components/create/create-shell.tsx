@@ -7,10 +7,10 @@ import { KEBU } from "@/lib/kebu-brand";
 export type CreateJourneyStep = "start" | "edit" | "preview" | "live";
 
 const STEPS: { id: CreateJourneyStep; label: string }[] = [
-  { id: "start", label: "Pick template" },
+  { id: "start", label: "Start" },
   { id: "edit", label: "Edit" },
   { id: "preview", label: "Preview" },
-  { id: "live", label: "Go live" },
+  { id: "live", label: "Publish" },
 ];
 
 export function CreateShell({
@@ -60,7 +60,7 @@ export function CreateShell({
 
             const pill = (
               <span
-                className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap"
                 style={{
                   background: active ? KEBU.orange : done ? KEBU.cream : "transparent",
                   color: active ? KEBU.white : done ? KEBU.orange : KEBU.faint,

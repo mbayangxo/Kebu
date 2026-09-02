@@ -10,6 +10,6 @@ export default async function PublicSitePage({ params }: Params) {
   if (!deployment) notFound();
 
   return (
-    <PublicSiteView definition={deployment.definition} subdomain={deployment.subdomain} pageSlug="home" />
+    <PublicSiteView definition={deployment.definition} subdomain={deployment.subdomain} pageSlug="home" projectId={deployment.projectId} />
   );
 }

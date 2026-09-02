@@ -70,6 +70,7 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Refresh auth cookies on each request so sessions persist until explicit sign out.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -85,6 +86,7 @@ export async function updateSession(request: NextRequest) {
   if (
     !user &&
     (pathname === "/onboarding" ||
+      pathname === "/welcome" ||
       pathname.startsWith("/create") ||
       pathname.startsWith("/business"))
   ) {

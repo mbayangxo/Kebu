@@ -27,7 +27,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Shared auth & session | **TESTED** | Supabase auth, middleware session |
 | Kebu Builder — core editor | **IN PROGRESS** | Sections, autosave, templates; gaps in E2E |
 | Kebu Builder — publish & hosting | **IN PROGRESS** | Subdomain publish; billing/JOKO slice local |
-| Kebu Builder — custom domains | **IN PROGRESS** | API + UI + middleware + tests; apply migration 015 |
+| Kebu Builder — custom domains | **IN PROGRESS** | API + UI + middleware + tests; migration **015**; DNS target `cname.vercel-dns.com` (accepts `*.vercel.app`); repair **030**; **must deploy latest code** for verify to stop expecting `*.kebu.africa` |
 | Kebu Builder — pages CRUD | **IN PROGRESS** | API exists; full DoD not verified |
 | Kebu Builder — SEO/settings | **IN PROGRESS** | Settings API + editor; migration 013 |
 | Kebu Builder — stores/commerce | **IN PROGRESS** | Store APIs exist; not unified with builder business ID |
@@ -79,8 +79,9 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 ### Custom domains & Kebu Domains
 | Slice | Status |
 |-------|--------|
-| Connect owned domain (DNS + verify) | **IN PROGRESS** | Migration **015** required |
+| Connect owned domain (DNS + verify) | **IN PROGRESS** | Migration **015**; repair **030** if old `*.kebu.africa` targets in DB; deploy DNS fix to prod |
 | Middleware custom host routing | **IN PROGRESS** | Needs `SUPABASE_SERVICE_ROLE_KEY` |
+| DNS instructions (CNAME → Vercel) | **IMPLEMENTED** | `cname.vercel-dns.com` or `*.vercel.app`; not `{sub}.kebu.africa` |
 | Namecheap guidance (no fake purchase) | **IMPLEMENTED** |
 | Sell domains / registrar API | **NOT STARTED** |
 | DNS management UI | **NOT STARTED** |
@@ -107,10 +108,11 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Slice | Status |
 |-------|--------|
 | Country Explorer (DB) | **TESTED** | `/opportunity/countries`, APIs, trust labels, sources UI, tests — migration **001+009** required in prod |
+| Opportunity intake + personalization | **IMPLEMENTED** | `/opportunity/intake` → profile in DB → `/opportunity` For you plan, stories, filtered countries — migration **026** |
 | Country detail + AI analysis | **IMPLEMENTED** | AI path needs `ANTHROPIC_API_KEY` (honest 503 without it) |
 | Industry / resource / trade explorers | **NOT STARTED** |
 | Build This Opportunity → Builder | **NOT STARTED** |
-| Hub (`/opportunity`) | **IMPLEMENTED** | Only live Country Explorer CTA — no placeholder product cards |
+| Hub (`/opportunity`) | **IMPLEMENTED** | Gates on intake; personalized feed when profile complete |
 | Legacy sample opportunity pages | **IN PROGRESS** | `/opportunity/[id]`, `/api/opportunities` still use sample data — do not confuse with OS |
 
 ---
@@ -134,6 +136,14 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 ---
 
 ## 6. Kebu Business Infrastructure
+
+### Afrique ID (personal account identity)
+| Slice | Status |
+|-------|--------|
+| Linked to auth user (1:1) | **IMPLEMENTED** | Auto-provision on profile load — migration **027** |
+| Account UI + sidebar | **IMPLEMENTED** | `/account`, dashboard, sidebar show `AFRI-{CC}-01-…` |
+| Verification request (pending only) | **IMPLEMENTED** | Users cannot self-set verified |
+| Public verified card | **IMPLEMENTED** | `/id/{publicId}` when eligibility = verified |
 
 ### Kebu ID
 | Slice | Status |

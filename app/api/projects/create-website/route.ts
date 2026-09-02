@@ -38,7 +38,9 @@ export async function POST(req: NextRequest) {
   }
   const brief = parsed.data;
 
-  const access = await assertBusinessEditor(supabase, brief.businessId, user.id);
+  const access = brief.businessId
+    ? await assertBusinessEditor(supabase, brief.businessId, user.id)
+    : { ok: true as const };
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
@@ -113,7 +115,7 @@ export async function POST(req: NextRequest) {
   const result = await persistWebsiteDefinition({
     supabase,
     user,
-    businessId: brief.businessId,
+    businessId: brief.businessId ?? null,
     definition: validated.data,
     meta: {
       source: brief.mode,

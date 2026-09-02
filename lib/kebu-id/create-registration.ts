@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generatePublicKebuId } from "@/lib/kebu-id/public-id";
-import { documentsComplete } from "@/lib/kebu-id/business-documents";
+import {
+  documentsComplete,
+  hasGovRegistrationCerts,
+  hasWestAfricaTradeDocs,
+} from "@/lib/kebu-id/business-documents";
+import { hasKebuOfficialRecord } from "@/lib/kebu-id/kebu-business-record";
 import {
   calculateBusinessReadiness,
   infoCompleteFromProfile,
@@ -253,6 +258,47 @@ export async function createRegisteredBusiness(opts: {
   return { ok: true, business, idempotent: false };
 }
 
+function seoHasLogo(seo: unknown): boolean {
+  if (!seo || typeof seo !== "object") return false;
+  const row = seo as Record<string, unknown>;
+  const favicon = typeof row.faviconUrl === "string" ? row.faviconUrl.trim() : "";
+  const og = typeof row.ogImageUrl === "string" ? row.ogImageUrl.trim() : "";
+  return Boolean(favicon || og);
+}
+
+async function gatherBusinessActivitySignals(
+  supabase: SupabaseClient,
+  businessId: string,
+): Promise<{
+  hasSiteLogo: boolean;
+  siteProductCount: number;
+  createAssetCount: number;
+}> {
+  const { data: linkedProjects } = await supabase
+    .from("projects")
+    .select("seo")
+    .eq("business_id", businessId);
+
+  const hasSiteLogo = (linkedProjects ?? []).some((p) => seoHasLogo(p.seo));
+
+  const { count: productCount } = await supabase
+    .from("project_products")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("is_active", true);
+
+  const { count: designCount } = await supabase
+    .from("create_designs")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId);
+
+  return {
+    hasSiteLogo,
+    siteProductCount: productCount ?? 0,
+    createAssetCount: designCount ?? 0,
+  };
+}
+
 export async function recalculateAndStoreReadiness(opts: {
   supabase: SupabaseClient;
   businessId: string;
@@ -282,6 +328,18 @@ export async function recalculateAndStoreReadiness(opts: {
   const uploadedDocTypes = [...new Set((docRows ?? []).map((d) => d.document_type))];
   const registrationDocumentsComplete = documentsComplete(uploadedDocTypes);
 
+  const { data: publishedSites } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("project_type", "website")
+    .not("published_at", "is", null)
+    .limit(1);
+
+  const kebuOfficialRecordGenerated = await hasKebuOfficialRecord(supabase, businessId);
+
+  const activity = await gatherBusinessActivitySignals(supabase, businessId);
+
   const readiness = calculateBusinessReadiness({
     legalName: business.legal_name,
     tradingName: business.trading_name,
@@ -297,6 +355,13 @@ export async function recalculateAndStoreReadiness(opts: {
     founderEmail: founder?.email,
     ownershipPercent: founder ? Number(founder.ownership_percent) : null,
     registrationDocumentsComplete,
+    hasPublishedWebsite: (publishedSites?.length ?? 0) > 0,
+    kebuOfficialRecordGenerated,
+    hasGovRegistrationCerts: hasGovRegistrationCerts(uploadedDocTypes),
+    hasWestAfricaTradeDocs: hasWestAfricaTradeDocs(uploadedDocTypes),
+    hasSiteLogo: activity.hasSiteLogo,
+    siteProductCount: activity.siteProductCount,
+    createAssetCount: activity.createAssetCount,
   });
 
   const { data: prev } = await supabase

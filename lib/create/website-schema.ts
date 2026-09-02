@@ -14,8 +14,11 @@ export const SECTION_TYPES = [
   "features",
   "testimonials",
   "faq",
+  "products",
   "contact",
+  "newsletter",
   "whatsapp",
+  "free-text",
   "footer",
   "maylecor-home",
   "maylecor-music",
@@ -40,13 +43,15 @@ const safeHref = z
   .max(300)
   .refine(
     (v) =>
+      v === "" ||
       v === "#" ||
       v.startsWith("#") ||
       v.startsWith("/") ||
       v.startsWith("https://") ||
       v.startsWith("http://") ||
       v.startsWith("mailto:") ||
-      v.startsWith("tel:"),
+      v.startsWith("tel:") ||
+      /^[a-z0-9][a-z0-9-]*$/.test(v),
     { message: "Invalid URL" }
   );
 
@@ -110,15 +115,15 @@ export const sectionPropsSchemas = {
   }),
   video: z.object({
     heading: z.string().trim().max(160).optional(),
-    src: z.string().trim().min(1).max(500),
+    src: z.string().trim().max(500).default(""),
     title: z.string().trim().max(120).optional(),
     caption: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
   }),
   audio: z.object({
     heading: z.string().trim().max(160).optional(),
-    /** YouTube, Spotify embed URL, SoundCloud, or direct .mp3 */
-    src: z.string().trim().min(1).max(500),
+    /** Uploaded file URL, direct .mp3, or embed URL */
+    src: z.string().trim().max(500).default(""),
     title: z.string().trim().max(120).optional(),
     artist: z.string().trim().max(80).optional(),
     hidden: z.boolean().optional(),
@@ -171,6 +176,22 @@ export const sectionPropsSchemas = {
       .default([]),
     hidden: z.boolean().optional(),
   }),
+  products: z.object({
+    heading: z.string().trim().max(160).default("Products"),
+    items: z
+      .array(
+        z.object({
+          name: z.string().trim().min(1).max(120),
+          description: z.string().trim().max(500).default(""),
+          priceLabel: z.string().trim().max(60).default(""),
+          imageUrl: imageUrl.default(""),
+          whatsappMessage: z.string().trim().max(300).optional(),
+        }),
+      )
+      .max(24)
+      .default([]),
+    hidden: z.boolean().optional(),
+  }),
   contact: z.object({
     heading: z.string().trim().max(160).default("Contact"),
     email: z.union([z.literal(""), z.string().trim().email().max(254)]).optional(),
@@ -178,10 +199,38 @@ export const sectionPropsSchemas = {
     address: z.string().trim().max(240).optional(),
     hidden: z.boolean().optional(),
   }),
+  newsletter: z.object({
+    heading: z.string().trim().max(160).default("Stay in the loop"),
+    subheading: z.string().trim().max(240).default("Get updates, offers, and news by email."),
+    buttonLabel: z.string().trim().max(40).default("Subscribe"),
+    successMessage: z.string().trim().max(160).default("Thanks — you're on the list."),
+    hidden: z.boolean().optional(),
+  }),
   whatsapp: z.object({
     label: z.string().trim().max(60).default("Chat on WhatsApp"),
     phone: z.string().trim().min(5).max(40),
     message: z.string().trim().max(200).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  "free-text": z.object({
+    heading: z.string().trim().max(160).optional(),
+    minHeight: z.number().int().min(120).max(2400).default(420),
+    backgroundImage: imageUrl.optional().default(""),
+    blocks: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(80),
+          text: z.string().trim().max(2000).default(""),
+          x: z.number().min(0).max(100).default(8),
+          y: z.number().min(0).max(100).default(8),
+          width: z.number().min(15).max(100).default(84),
+          fontSize: z.enum(["sm", "md", "lg", "xl", "hero"]).default("md"),
+          align: z.enum(["left", "center", "right"]).default("left"),
+          color: z.string().trim().max(40).optional().default(""),
+        }),
+      )
+      .max(24)
+      .default([]),
     hidden: z.boolean().optional(),
   }),
   footer: z.object({
@@ -220,6 +269,7 @@ export const sectionPropsSchemas = {
   "legally-blonde-hero": z.object({
     title: z.string().trim().min(1).max(120),
     subtitle: z.string().trim().max(500),
+    brandLabel: z.string().trim().max(80).optional(),
     backgroundLayer: imageUrl,
     titleLogo: imageUrl,
     cutoutLeft: imageUrl,
@@ -227,10 +277,22 @@ export const sectionPropsSchemas = {
     cutoutAccent: imageUrl,
     cutoutSparkle: imageUrl.optional().default(""),
     macbook: imageUrl,
-    sparkleGif: imageUrl,
+    sparkleGif: imageUrl.optional().default(""),
     heroPhoto: imageUrl,
     accentColor: z.string().trim().max(40).default("#e9006b"),
     motionEnabled: z.boolean().optional().default(true),
+    navLinks: z
+      .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
+      .max(8)
+      .optional()
+      .default([]),
+    socialLinks: socialLinksSchema.optional().default([]),
+    ctaLabel: z.string().trim().max(80).optional(),
+    ctaHref: safeHref.optional(),
+    appearance: z.enum(["light", "dark"]).optional(),
+    showExtras: z.boolean().optional().default(false),
+    /** viewport = single-screen hero (nav to other pages). parallax = Russian-style scroll scene. */
+    scrollMode: z.enum(["viewport", "parallax"]).optional().default("parallax"),
     hidden: z.boolean().optional(),
   }),
 } as const;
@@ -303,7 +365,8 @@ export function validateWebsiteDefinition(input: unknown): {
 
 export const createWebsiteBriefSchema = z.object({
   mode: z.enum(["blank", "template", "ai"]),
-  businessId: z.string().uuid(),
+  /** Optional — link a Kebu ID business later from Business or project settings. */
+  businessId: z.string().uuid().optional(),
   businessName: z.string().trim().min(1).max(120),
   category: z.string().trim().min(1).max(80),
   description: z.string().trim().min(10).max(1000),

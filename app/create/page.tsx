@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
-import { FEATURED_TEMPLATES } from "@/lib/create/featured-templates";
-import { publicTemplateSeeds } from "@/lib/create/templates-seed";
+import { TemplatePreviewCard } from "@/app/components/create/template-preview-card";
+import { getFeaturedGalleryTemplates } from "@/lib/create/template-gallery";
 import {
   kebuSitePreviewPath,
   liveSiteUrl,
@@ -70,29 +70,96 @@ export default function CreateHubPage() {
   const loadPortfolio = useCallback(async () => {
     setPortfolioBusy(true);
     setPortfolioNote(null);
-    const res = await fetch("/api/projects/ensure-portfolio?ensure=1", { credentials: "include" });
-    const data = await res.json().catch(() => ({}));
-    if (res.status === 401) {
-      router.replace("/login?next=/create");
+    try {
+      let res = await fetch("/api/projects/ensure-portfolio?ensure=1", { credentials: "include" });
+      let data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        router.replace("/login?next=/create");
+        return;
+      }
+      if (res.ok && data.allowed === true) {
+        setPortfolioAllowed(true);
+        let sites: PortfolioSiteRow[] = Array.isArray(data.sites) ? data.sites : [];
+        const needsCreate = sites.some((s) => !s.projectId);
+        if (needsCreate) {
+          const postRes = await fetch("/api/projects/ensure-portfolio", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          const postData = await postRes.json().catch(() => ({}));
+          if (postRes.ok && Array.isArray(postData.sites)) {
+            sites = postData.sites;
+            if (postData.errors?.length) {
+              setPortfolioNote(
+                `Some sites need attention: ${postData.errors.map((e: { key: string; error: string }) => `${e.key}: ${e.error}`).join(" · ")}`,
+              );
+            } else {
+              setPortfolioNote("May Lecor and K-Direction are ready — open the editor to connect your domain.");
+            }
+            await load();
+          } else if (typeof postData.error === "string") {
+            setPortfolioNote(
+              postData.detail ? `${postData.error} (${postData.detail})` : postData.error,
+            );
+          }
+        } else if (data.autoEnsured) {
+          setPortfolioNote("May Lecor and K-Direction are in My sites.");
+          await load();
+        }
+        setPortfolioSites(sites);
+        if (typeof data.error === "string" && !needsCreate) {
+          setPortfolioNote(
+            data.detail ? `${data.error} (${data.detail})` : data.error,
+          );
+        }
+      } else {
+        setPortfolioAllowed(false);
+        setPortfolioSites([]);
+      }
+    } catch {
+      setPortfolioNote("Could not load portfolio sites. Retry in a moment.");
+    } finally {
       setPortfolioBusy(false);
-      return;
     }
-    if (res.ok && data.allowed === true) {
+  }, [load, router]);
+
+  async function restorePortfolioSites() {
+    setPortfolioBusy(true);
+    setPortfolioNote(null);
+    try {
+      const res = await fetch("/api/projects/ensure-portfolio", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        router.replace("/login?next=/create");
+        return;
+      }
+      if (!res.ok) {
+        setPortfolioNote(typeof data.error === "string" ? data.error : "Could not create portfolio sites.");
+        return;
+      }
       setPortfolioAllowed(true);
       setPortfolioSites(Array.isArray(data.sites) ? data.sites : []);
-      if (data.autoEnsured) {
-        setPortfolioNote("May Lecor and K-Direction are in My sites.");
-        await load();
+      if (data.errors?.length) {
+        setPortfolioNote(
+          data.errors.map((e: { key: string; error: string }) => `${e.key}: ${e.error}`).join(" · "),
+        );
+      } else {
+        setPortfolioNote("May Lecor and K-Direction are ready.");
       }
-      if (typeof data.error === "string") {
-        setError(data.detail ? `${data.error} (${data.detail})` : data.error);
-      }
-    } else {
-      setPortfolioAllowed(false);
-      setPortfolioSites([]);
+      await load();
+    } catch {
+      setPortfolioNote("Network error. Retry.");
+    } finally {
+      setPortfolioBusy(false);
     }
-    setPortfolioBusy(false);
-  }, [load, router]);
+  }
 
   useEffect(() => {
     void load();
@@ -120,6 +187,13 @@ export default function CreateHubPage() {
     portfolioSites.map((s) => s.projectId).filter((id): id is string => Boolean(id)),
   );
   const otherProjects = projects.filter((p) => !portfolioProjectIds.has(p.id));
+  const galleryFeatured = getFeaturedGalleryTemplates().slice(0, 3);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#templates") {
+      router.replace("/create/templates");
+    }
+  }, [router]);
 
   return (
     <AppShell
@@ -128,42 +202,45 @@ export default function CreateHubPage() {
       actions={
         <Link
           href="/create/new"
-          className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+          className="rounded-full px-4 py-2 text-sm font-semibold"
           style={{ background: "#FF5500", color: "#FFFFFF" }}
         >
           + New site
         </Link>
       }
     >
-      <main className="max-w-5xl mx-auto px-5 py-10 sm:py-14">
-        <section className="mb-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.25em] mb-3" style={{ color: "#FF5500" }}>
-            Kebu Builder
-          </p>
-          <h1 className="text-3xl sm:text-5xl font-bold mb-4 max-w-2xl" style={{ fontFamily: "var(--font-fraunces)" }}>
-            Your website. Your photos. Live on Kebu.
-          </h1>
-          <p className="text-base max-w-xl leading-relaxed mb-6" style={{ color: "#5C5348" }}>
-            Pick a template, swap image URLs in the editor, preview, then publish. Live sites open at{" "}
-            <strong>/sites/your-name</strong> on this app. Branded <strong>*.kebu.africa</strong> comes after
-            that domain is owned + DNS.
-          </p>
-
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/create/new"
-              className="inline-flex rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wider"
-              style={{ background: "#FF5500", color: "#FFFFFF" }}
-            >
-              Start building
-            </Link>
-            <Link
-              href="/create/demo/musician-artist"
-              className="inline-flex rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-wider"
-              style={{ border: "2px solid #FF5500", color: "#FF5500" }}
-            >
-              Preview artist template
-            </Link>
+      <main className="max-w-6xl mx-auto px-5 py-10 sm:py-14">
+        <section className="relative rounded-[2rem] overflow-hidden mb-14 p-8 sm:p-12">
+          <div
+            className="absolute inset-0"
+            style={{
+              background: "linear-gradient(125deg, #FF5500 0%, #E10600 40%, #0A0A0A 100%)",
+            }}
+          />
+          <div className="absolute inset-0 opacity-20" aria-hidden style={{ backgroundImage: "radial-gradient(circle at 80% 20%, #fff 0%, transparent 40%)" }} />
+          <div className="relative text-white max-w-2xl">
+            <p className="text-[10px] font-bold uppercase tracking-[0.28em] mb-4 opacity-90">Kebu Builder</p>
+            <h1 className="text-3xl sm:text-5xl font-bold mb-4 leading-[1.05]" style={{ fontFamily: "var(--font-fraunces)" }}>
+              Build something people can see — not another SaaS dashboard.
+            </h1>
+            <p className="text-sm sm:text-base leading-relaxed opacity-90 mb-8">
+              Pick a template below, drop in your photos, publish to the world. Stores, artists, salons, agencies — all
+              visual, all yours.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/create/templates"
+                className="inline-flex rounded-full px-6 py-3 text-sm font-bold bg-white text-black"
+              >
+                Browse templates
+              </Link>
+              <Link
+                href="/create/new"
+                className="inline-flex rounded-full px-6 py-3 text-sm font-semibold border-2 border-white/80"
+              >
+                Blank site
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -182,50 +259,28 @@ export default function CreateHubPage() {
           </div>
         ) : null}
 
-        <section className="mb-12">
-          <div className="flex items-end justify-between gap-4 mb-5">
+        <section className="mb-14">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-xl font-bold">Featured templates</h2>
-              <p className="text-sm mt-1" style={{ color: "#6B5B45" }}>
-                Preview instantly · customize photos in the editor
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] mb-2" style={{ color: "#FF5500" }}>
+                Templates
               </p>
+              <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
+                See the site — not a description
+              </h2>
             </div>
-            <Link href="/create/new" className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-              Browse all {publicTemplateSeeds().length} templates →
+            <Link
+              href="/create/templates"
+              className="rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
+              style={{ background: "#0A0A0A", color: "#fff" }}
+            >
+              All templates →
             </Link>
           </div>
-
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {FEATURED_TEMPLATES.map((t) => (
-              <li
-                key={t.slug}
-                className="rounded-2xl overflow-hidden flex flex-col bg-white"
-                style={{ border: "1px solid rgba(10,10,10,0.1)", color: "#0A0A0A", boxShadow: "0 8px 24px rgba(255,85,0,0.06)" }}
-              >
-                <div className="h-2 w-full" style={{ background: t.accent }} />
-                <div className="p-5 flex flex-col flex-1">
-                  <p className="text-[10px] uppercase tracking-[0.2em] mb-2" style={{ color: t.accent }}>
-                    {t.category}
-                  </p>
-                  <h3 className="text-lg font-bold mb-2">{t.name}</h3>
-                  <p className="text-sm leading-relaxed flex-1" style={{ color: "#5C5348" }}>{t.tagline}</p>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <Link
-                      href={`/create/demo/${t.slug}`}
-                      className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
-                      style={{ background: "#FFF8F2", color: "#0A0A0A", border: "1px solid rgba(10,10,10,0.1)" }}
-                    >
-                      Preview demo
-                    </Link>
-                    <Link
-                      href={`/create/new?template=${t.slug}`}
-                      className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
-                      style={{ background: "#FF5500", color: "#FFFFFF" }}
-                    >
-                      Use template
-                    </Link>
-                  </div>
-                </div>
+          <ul className="grid gap-4 sm:grid-cols-3">
+            {galleryFeatured.map((t) => (
+              <li key={t.slug}>
+                <TemplatePreviewCard template={t} visualOnly />
               </li>
             ))}
           </ul>
@@ -257,7 +312,16 @@ export default function CreateHubPage() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-lg font-bold mb-2">My sites</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+            <h2 className="text-lg font-bold">My sites</h2>
+            <Link
+              href="/create/sites"
+              className="text-sm font-bold underline"
+              style={{ color: "#FF5500" }}
+            >
+              View all sites →
+            </Link>
+          </div>
           {portfolioBusy ? (
             <p className="text-sm mb-3" style={{ color: "#5C5348" }}>
               Loading your sites…
@@ -298,7 +362,10 @@ export default function CreateHubPage() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-bold">{s.title}</p>
-                        {path ? (
+                        <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{ color: "#8A8578" }}>
+                          {s.subdomain ? `/${s.subdomain}` : "Not created yet"}
+                        </p>
+                        {path && s.projectId ? (
                           <a
                             href={path}
                             target="_blank"
@@ -309,8 +376,8 @@ export default function CreateHubPage() {
                             {live}
                           </a>
                         ) : (
-                          <p className="text-xs" style={{ color: "#5C5348" }}>
-                            Setting up… refresh in a moment.
+                          <p className="text-xs mt-1" style={{ color: "#5C5348" }}>
+                            Site not provisioned yet — tap restore below.
                           </p>
                         )}
                       </div>
@@ -328,6 +395,24 @@ export default function CreateHubPage() {
                 );
               })}
             </ul>
+          ) : portfolioAllowed ? (
+            <div
+              className="rounded-2xl px-5 py-4 mb-8"
+              style={{ background: "#FFF8F2", border: "1px solid rgba(255,85,0,0.25)" }}
+            >
+              <p className="text-sm mb-3" style={{ color: "#5C5348" }}>
+                May Lecor and K-Direction are not in your account yet. One tap creates both sites.
+              </p>
+              <button
+                type="button"
+                disabled={portfolioBusy}
+                onClick={() => void restorePortfolioSites()}
+                className="rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+                style={{ background: "#FF5500", color: "#fff" }}
+              >
+                {portfolioBusy ? "Creating…" : "Add May Lecor & K-Direction"}
+              </button>
+            </div>
           ) : null}
 
           <h3 className="text-sm font-bold mb-3" style={{ color: "#5C5348" }}>
@@ -344,11 +429,11 @@ export default function CreateHubPage() {
             >
               <p className="text-sm" style={{ color: "#5C5348" }}>
                 {portfolioAllowed
-                  ? "No other sites yet — start from a shared template below."
-                  : "Pick a shared template to create your first site."}
+                  ? "No other sites yet — pick a template from the gallery."
+                  : "Pick a template from the gallery to create your first site."}
               </p>
-              <Link href="/create/new" className="text-sm font-semibold underline mt-3 inline-block" style={{ color: "#FF5500" }}>
-                New site from template
+              <Link href="/create/templates" className="text-sm font-semibold underline mt-3 inline-block" style={{ color: "#FF5500" }}>
+                Browse templates
               </Link>
             </div>
           ) : (
@@ -386,7 +471,7 @@ export default function CreateHubPage() {
                             </a>
                             {planned ? (
                               <p className="text-[11px]" style={{ color: "#8A8074" }}>
-                                Planned later: {planned}
+                                Branded kebu.africa later — use {live ?? path} today
                               </p>
                             ) : null}
                           </div>

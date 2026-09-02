@@ -1,11 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { LEGALLY_BLONDE_LAYERS } from "@/lib/create/legally-blonde-layers";
+import {
+  HERO_LOOP_ANIM,
+  parseSbsOpts,
+  parseTildaCss,
+  scrollOffsetFromOpts,
+} from "@/lib/create/legally-blonde-motion";
 import "./artist-motion.css";
+import "./legally-blonde-tilda.css";
+
+type TildaLayer = {
+  id: string;
+  type: string;
+  url: string | null;
+  text: string | null;
+  style: string | null;
+  atomStyle: string | null;
+  animOpts: string | null;
+};
 
 export type LegallyBlondeHeroProps = {
   title: string;
   subtitle: string;
+  brandLabel?: string;
   backgroundLayer: string;
   titleLogo: string;
   cutoutLeft: string;
@@ -13,51 +32,141 @@ export type LegallyBlondeHeroProps = {
   cutoutAccent: string;
   cutoutSparkle?: string;
   macbook: string;
-  sparkleGif: string;
+  sparkleGif?: string;
   heroPhoto: string;
   accentColor: string;
   motionEnabled: boolean;
+  appearance?: "light" | "dark";
+  navLinks?: { label: string; href: string }[];
+  socialLinks?: { label: string; iconUrl: string; href: string }[];
+  ctaLabel?: string;
+  ctaHref?: string;
+  /** When true, show extra music/contact blocks (not on Russian reference). */
+  showExtras?: boolean;
+  /** viewport = one screen, no scroll parallax. parallax = full Russian scroll scene. */
+  scrollMode?: "viewport" | "parallax";
 };
 
-/** Tilda artboard reference: 1200×700 desktop hero. */
-const ARTBOARD_W = 1200;
-const ARTBOARD_H = 700;
+const HERO_URL_BY_ID: Record<string, keyof LegallyBlondeHeroProps> = {
+  "1703760479272": "backgroundLayer",
+  "1703760485488": "backgroundLayer",
+  "1702905018850": "backgroundLayer",
+  "1702905074759": "cutoutAccent",
+  "1702905074752": "cutoutRight",
+  "1702905074754": "cutoutLeft",
+  "1702905074758": "cutoutSparkle",
+  "1702905074756": "titleLogo",
+  "1701609050895": "heroPhoto",
+  "1702050415366": "macbook",
+};
 
-function MotionWrap({
-  motion,
-  className,
-  style,
-  animation,
-  children,
-}: {
-  motion: boolean;
-  className?: string;
-  style?: React.CSSProperties;
-  animation?: string;
-  children: React.ReactNode;
-}) {
+function layerUrl(layer: TildaLayer, props: LegallyBlondeHeroProps): string | null {
+  const key = HERO_URL_BY_ID[layer.id];
+  if (key && typeof props[key] === "string" && props[key]) return props[key] as string;
+  return layer.url;
+}
+
+function renderLayer(
+  layer: TildaLayer,
+  props: LegallyBlondeHeroProps,
+  opts: {
+    motion: boolean;
+    scrollProgress?: number;
+    extraClass?: string;
+  },
+) {
+  const baseStyle = parseTildaCss(layer.style);
+  const atomStyle = parseTildaCss(layer.atomStyle);
+  const sbs = parseSbsOpts(layer.animOpts);
+  const scroll = scrollOffsetFromOpts(sbs, opts.scrollProgress ?? 0);
+  const hasScrollMotion = sbs.length >= 2 && Math.abs((sbs[sbs.length - 1]?.mx ?? 0) - (sbs[0]?.mx ?? 0)) > 1;
+
+  const transformParts: string[] = [];
+  if (baseStyle.transform && typeof baseStyle.transform === "string") {
+    transformParts.push(baseStyle.transform);
+  }
+  if (opts.motion && hasScrollMotion && opts.scrollProgress !== undefined) {
+    transformParts.push(`translate3d(${scroll.x}px, ${scroll.y}px, 0)`);
+    if (scroll.rotate) transformParts.push(`rotate(${scroll.rotate}deg)`);
+  }
+
+  const style: CSSProperties = {
+    ...baseStyle,
+    ...atomStyle,
+    transform: transformParts.length ? transformParts.join(" ") : baseStyle.transform,
+    animation:
+      opts.motion && HERO_LOOP_ANIM[layer.id] ? HERO_LOOP_ANIM[layer.id] : undefined,
+    willChange: opts.motion ? "transform" : undefined,
+  };
+
+  if (layer.type === "text" && layer.text) {
+    return (
+      <div
+        key={layer.id}
+        className={`lb-layer lb-text-steelfish ${opts.extraClass ?? ""}`}
+        style={style}
+      >
+        {layer.text}
+      </div>
+    );
+  }
+
+  const url = layerUrl(layer, props);
+  if (!url) return null;
+
+  if (layer.type === "shape") {
+    return (
+      <div
+        key={layer.id}
+        className={`lb-layer lb-shape ${opts.extraClass ?? ""}`}
+        style={{ ...style, backgroundImage: `url(${url})` }}
+        aria-hidden
+      />
+    );
+  }
+
   return (
-    <div
-      className={className}
-      style={{
-        ...style,
-        animation: motion && animation ? animation : undefined,
-        willChange: motion ? "transform" : undefined,
-      }}
-    >
-      {children}
+    <div key={layer.id} className={`lb-layer ${opts.extraClass ?? ""}`} style={style}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt=""
+        className={layer.id === "1702905074756" ? "lb-hero-logo" : undefined}
+      />
     </div>
   );
 }
 
-export function LegallyBlondeHeroLayout({ props }: { props: LegallyBlondeHeroProps }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
+export function LegallyBlondeHeroLayout({
+  props,
+}: {
+  props: LegallyBlondeHeroProps;
+  siteBase?: string;
+}) {
   const motion = props.motionEnabled !== false;
+  const viewportOnly = props.scrollMode === "viewport";
+  const scrollTrackRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [splashHide, setSplashHide] = useState(false);
+  const showExtras = props.showExtras === true;
 
   useEffect(() => {
-    if (!motion) return;
-    const el = scrollRef.current;
+    if (!motion || viewportOnly) {
+      setSplashVisible(false);
+      return;
+    }
+    const t1 = window.setTimeout(() => setSplashHide(true), 2800);
+    const t2 = window.setTimeout(() => setSplashVisible(false), 3600);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [motion, viewportOnly]);
+
+  useEffect(() => {
+    if (!motion || viewportOnly) return;
+    const el = scrollTrackRef.current;
     if (!el) return;
 
     const onScroll = () => {
@@ -78,200 +187,68 @@ export function LegallyBlondeHeroLayout({ props }: { props: LegallyBlondeHeroPro
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [motion]);
+  }, [motion, viewportOnly]);
 
-  const macbookShift = motion ? scrollProgress * 80 : 0;
-  const parallaxLeft = motion ? scrollProgress * -230 : 0;
-  const parallaxRight = motion ? scrollProgress * 50 : 0;
+  const hero = LEGALLY_BLONDE_LAYERS.hero;
+  const scroll = LEGALLY_BLONDE_LAYERS.scroll;
+  const scrollTrackHeight = viewportOnly ? undefined : motion ? "220vh" : `${scroll.artboardHeight}px`;
 
   return (
-    <div className={`bg-white ${motion ? "artist-motion-on" : ""}`}>
-      {/* ── HERO (Tilda block 682858777 — loop animations, 700px) ── */}
-      <section
-        className="relative mx-auto w-full overflow-hidden"
-        style={{ maxWidth: ARTBOARD_W, height: "min(100vh, 700px)", minHeight: 520 }}
-      >
-        {props.backgroundLayer ? (
-          <div
-            className="pointer-events-none absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${props.backgroundLayer})` }}
-            aria-hidden
-          />
-        ) : null}
-
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-white/70" />
-
-        <div className="relative mx-auto h-full w-full" style={{ maxWidth: ARTBOARD_W }}>
-          {/* Center wobble cutout — Group_546, top ~31%, rotate 353° + 14° wobble */}
-          {props.cutoutAccent ? (
-            <MotionWrap
-              motion={motion}
-              className="absolute z-20"
-              style={{
-                left: "50%",
-                top: `${(218 / ARTBOARD_H) * 100}%`,
-                width: `${(138 / ARTBOARD_W) * 100}%`,
-                maxWidth: 138,
-                marginLeft: -69,
-              }}
-              animation="lb-wobble-rotate 2s ease-in-out infinite"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={props.cutoutAccent} alt="" className="h-auto w-full object-contain drop-shadow-xl" />
-            </MotionWrap>
-          ) : null}
-
-          {/* Right cutout — Group_555, bobs down +16px */}
-          {props.cutoutRight ? (
-            <MotionWrap
-              motion={motion}
-              className="absolute z-20"
-              style={{
-                right: "14%",
-                top: `${(219 / ARTBOARD_H) * 100}%`,
-                width: `${(72 / ARTBOARD_W) * 100}%`,
-                maxWidth: 72,
-              }}
-              animation="lb-float-down 2s ease-in-out infinite"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={props.cutoutRight} alt="" className="h-auto w-full object-contain drop-shadow-xl" />
-            </MotionWrap>
-          ) : null}
-
-          {/* Left cutout — Group_556, bobs up −16px */}
-          {props.cutoutLeft ? (
-            <MotionWrap
-              motion={motion}
-              className="absolute z-20"
-              style={{
-                left: `${(500 / ARTBOARD_W) * 100}%`,
-                top: `${(235 / ARTBOARD_H) * 100}%`,
-                width: `${(72 / ARTBOARD_W) * 100}%`,
-                maxWidth: 72,
-              }}
-              animation="lb-float-up 2s ease-in-out infinite"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={props.cutoutLeft} alt="" className="h-auto w-full object-contain drop-shadow-xl" />
-            </MotionWrap>
-          ) : null}
-
-          {/* Sparkle portrait — Group_523, centered above logo */}
-          {props.cutoutSparkle ? (
-            <div
-              className="absolute z-10"
-              style={{
-                left: "50%",
-                top: `${((350 - 65) / ARTBOARD_H) * 100}%`,
-                width: `${(136 / ARTBOARD_W) * 100}%`,
-                maxWidth: 136,
-                transform: "translateX(-50%)",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={props.cutoutSparkle} alt="" className="h-auto w-full object-contain" />
-            </div>
-          ) : null}
-
-          {/* Title logo — Group_557.svg, 15s full rotation */}
-          {props.titleLogo ? (
-            <MotionWrap
-              motion={motion}
-              className="absolute z-30"
-              style={{
-                left: "50%",
-                top: `${((350 - 64) / ARTBOARD_H) * 100}%`,
-                width: `${(477 / ARTBOARD_W) * 100}%`,
-                maxWidth: 477,
-              }}
-              animation="lb-logo-spin 15s linear infinite"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={props.titleLogo} alt={props.title} className="h-auto w-full object-contain" />
-            </MotionWrap>
-          ) : (
-            <h1
-              className="absolute left-1/2 z-30 w-[min(72vw,477px)] -translate-x-1/2 text-center text-4xl font-bold uppercase sm:text-6xl"
-              style={{
-                top: `${((350 - 64) / ARTBOARD_H) * 100}%`,
-                color: props.accentColor,
-                fontFamily: "Georgia, serif",
-              }}
-            >
-              {props.title}
-            </h1>
-          )}
-
-          {props.sparkleGif ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={props.sparkleGif}
-              alt=""
-              className="absolute z-30 h-14 w-14 object-contain sm:h-20 sm:w-20"
-              style={{ right: "18%", top: "58%" }}
-            />
-          ) : null}
+    <div
+      id="top"
+      className={`lb-page ${motion ? "artist-motion-on" : ""} ${viewportOnly ? "lb-page--viewport" : ""} ${props.appearance === "dark" ? "bg-black text-white" : ""}`}
+    >
+      {splashVisible && !viewportOnly ? (
+        <div className={`lb-splash${splashHide ? " lb-splash--hide" : ""}`} aria-hidden={splashHide}>
+          <div className="lb-artboard" style={{ height: hero.artboardHeight }}>
+            {hero.elements.map((layer) => renderLayer(layer, props, { motion }))}
+          </div>
         </div>
-      </section>
+      ) : viewportOnly || !motion ? (
+        <section
+          className="relative mx-auto w-full overflow-hidden lb-viewport-hero"
+          style={{ maxWidth: 1200, height: viewportOnly ? "min(100vh, 900px)" : hero.artboardHeight }}
+          aria-label={props.title}
+        >
+          <div className="lb-artboard" style={{ height: viewportOnly ? "min(100vh, 900px)" : hero.artboardHeight }}>
+            {hero.elements.map((layer) => renderLayer(layer, props, { motion: viewportOnly ? motion : false }))}
+          </div>
+        </section>
+      ) : null}
 
-      {/* ── SCROLL SCENE (Tilda block 678997629 — horizontal parallax on scroll) ── */}
-      <div ref={scrollRef} style={{ height: motion ? "180vh" : "auto" }}>
-        <div className={`relative ${motion ? "sticky top-0" : ""} min-h-[70vh] overflow-hidden bg-white`}>
-          <div className="relative mx-auto w-full" style={{ maxWidth: ARTBOARD_W }}>
-            {props.macbook ? (
-              <div
-                className="relative z-10 mx-auto w-[min(95vw,720px)]"
-                style={{
-                  transform: `translate3d(0, ${macbookShift}px, 0)`,
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={props.macbook} alt="" className="w-full object-contain drop-shadow-2xl" />
-              </div>
-            ) : null}
-
-            {props.cutoutLeft && motion ? (
-              <div
-                className="pointer-events-none absolute left-[8%] top-[20%] z-20 w-[min(18vw,120px)]"
-                style={{ transform: `translate3d(${parallaxLeft * 0.3}px, 0, 0)` }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={props.cutoutLeft} alt="" className="w-full object-contain opacity-90" />
-              </div>
-            ) : null}
-
-            {props.cutoutRight && motion ? (
-              <div
-                className="pointer-events-none absolute right-[8%] top-[18%] z-20 w-[min(16vw,110px)]"
-                style={{ transform: `translate3d(${parallaxRight}px, 0, 0)` }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={props.cutoutRight} alt="" className="w-full object-contain opacity-90" />
-              </div>
-            ) : null}
+      {!viewportOnly ? (
+      <div ref={scrollTrackRef} className="lb-scroll-scene" style={{ height: scrollTrackHeight }}>
+        <div className={motion ? "lb-scroll-pin" : undefined}>
+          <div
+            className="lb-artboard"
+            style={{ height: scroll.artboardHeight, position: motion ? "relative" : undefined }}
+          >
+            {scroll.elements.map((layer) =>
+              renderLayer(layer, props, {
+                motion,
+                scrollProgress,
+              }),
+            )}
           </div>
         </div>
       </div>
+      ) : null}
 
-      {/* ── Content ── */}
-      <section className="relative z-10 bg-white px-6 py-16 sm:px-12">
-        <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2">
-          {props.heroPhoto ? (
-            // eslint-disable-next-line @next/next/no-img-element
+      {showExtras && props.heroPhoto ? (
+        <section id="music" className="relative z-10 px-6 py-16 sm:px-12">
+          <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={props.heroPhoto} alt="" className="w-full rounded-2xl object-cover shadow-xl" />
-          ) : null}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: props.accentColor }}>
-              Legally Blonde
-            </p>
-            <h2 className="mt-3 text-3xl font-bold leading-tight" style={{ fontFamily: "Georgia, serif" }}>
-              {props.title}
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-neutral-700">{props.subtitle}</p>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: props.accentColor }}>
+                {props.brandLabel ?? props.title}
+              </p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight">{props.title}</h2>
+              <p className="mt-4 text-base leading-relaxed opacity-80">{props.subtitle}</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
     </div>
   );
 }

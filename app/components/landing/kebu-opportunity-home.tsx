@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { KebuMark, KebuWordmark } from "@/app/components/kebu-mark";
+import { KebuMark } from "@/app/components/kebu-mark";
+import { KebuAppSidebar } from "@/app/components/kebu-app-sidebar";
+import { KebuLandingHeroCTA } from "@/app/components/kebu-landing-hero-cta";
+import { KebuMarketingFooter, KebuMarketingHeader } from "@/app/components/landing/kebu-marketing-chrome";
 import { KEBU } from "@/lib/kebu-brand";
 
 /** Landing — bright cream / white with orange energy. */
@@ -12,14 +15,7 @@ const C = {
   faint: KEBU.faint,
 } as const;
 
-/** Live product only — no sample /programs, /map, /path, etc. */
-const NAV = [
-  { label: "Opportunity", href: "/opportunity" },
-  { label: "Countries", href: "/opportunity/countries" },
-  { label: "Business", href: "/business" },
-  { label: "Kebu Builder", href: "/create" },
-] as const;
-
+/** Live product paths — hero cards only (not top nav). */
 const LIVE_PATHS = [
   {
     level: "Find opportunity",
@@ -35,81 +31,19 @@ const LIVE_PATHS = [
   },
   {
     level: "Build & publish a site",
-    desc: "Templates, editor, and publish to a kebu.africa subdomain when hosting is set up.",
+    desc: "Templates, editor, and publish to your Kebu site address — or connect your own domain.",
     href: "/create",
     stat: "Live now",
   },
 ] as const;
 
-function SignInButton({ className = "" }: { className?: string }) {
-  return (
-    <Link
-      href="/login"
-      className={`inline-flex items-center justify-center font-bold uppercase tracking-[0.1em] rounded-full transition-all hover:bg-black/[0.04] px-5 py-2.5 text-[11px] ${className}`}
-      style={{ border: `2px solid ${C.orange}`, color: C.orange, background: C.white }}
-    >
-      Sign in
-    </Link>
-  );
-}
-
-function StartButton({
-  href = "/signup",
-  className = "",
-  large = false,
-}: {
-  href?: string;
-  className?: string;
-  large?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.12em] transition-all hover:brightness-110 ${large ? "px-10 py-4 text-sm rounded-full" : "px-6 py-2.5 text-[11px] rounded-full"} ${className}`}
-      style={{ background: C.orange, color: C.white }}
-    >
-      Start
-      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" aria-hidden>
-        <path d="M5 12H19M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    </Link>
-  );
-}
-
 export function KebuOpportunityHome() {
   return (
-    <div className="min-h-screen" style={{ background: C.paper, color: C.ink }}>
-      <header className="sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.92)" }}>
-        <div
-          className="h-[4px] w-full"
-          style={{ background: `linear-gradient(90deg, ${C.red}, ${C.orange}, ${C.orangeLight})` }}
-        />
-        <nav style={{ borderBottom: `1px solid ${C.border}` }}>
-          <div className="max-w-[1400px] mx-auto px-5 sm:px-8 h-[68px] flex items-center justify-between gap-4">
-            <Link href="/" className="flex-shrink-0">
-              <KebuWordmark size={36} dark />
-            </Link>
+    <div className="min-h-screen flex" style={{ background: C.paper, color: C.ink }}>
+      <KebuAppSidebar />
 
-            <div className="hidden lg:flex items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.14em]">
-              {NAV.map(({ label, href }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="transition-colors hover:text-[#FF5500]"
-                  style={{ color: C.muted }}
-                >
-                  {label}
-                </Link>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <SignInButton />
-              <StartButton />
-            </div>
-          </div>
-        </nav>
-      </header>
+      <div className="flex-1 min-w-0 flex flex-col">
+      <KebuMarketingHeader />
 
       <section className="relative min-h-[92svh] overflow-hidden flex flex-col justify-center">
         <div
@@ -158,29 +92,9 @@ export function KebuOpportunityHome() {
           >
             Country Explorer, Kebu ID, and a real site builder — the live Phase One path. No fake product menus.
           </p>
-          <div className="kebu-landing-rise kebu-landing-rise-delay-3 flex flex-wrap items-center gap-4">
-            <StartButton large href="/signup" />
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.1em] transition-all hover:bg-black/[0.03]"
-              style={{ border: `2px solid ${C.border}`, color: C.ink }}
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/opportunity/countries"
-              className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.1em] transition-all hover:bg-black/[0.03]"
-              style={{ border: `2px solid ${C.orange}`, color: C.orange }}
-            >
-              Explore my country
-            </Link>
+          <div className="kebu-landing-rise kebu-landing-rise-delay-3">
+            <KebuLandingHeroCTA orange={C.orange} ink={C.ink} border={C.border} />
           </div>
-          <p className="kebu-landing-rise kebu-landing-rise-delay-3 mt-5 text-sm" style={{ color: C.faint }}>
-            Already started?{" "}
-            <Link href="/login" className="font-semibold hover:underline" style={{ color: C.orange }}>
-              Sign in to continue
-            </Link>
-          </p>
         </div>
       </section>
 
@@ -299,7 +213,7 @@ export function KebuOpportunityHome() {
                 <span style={{ color: C.orange }}> Build for it.</span>
               </h2>
               <p className="text-sm leading-relaxed mb-4" style={{ color: C.muted }}>
-                Templates, editor, and publish to a kebu.africa subdomain when hosting is active.
+                Templates, editor, and publish on Kebu — or connect your own domain like maylecor.com.
                 Live publish uses JOKO billing in production — editing stays free.
               </p>
               <p className="text-sm leading-relaxed mb-8" style={{ color: C.faint }}>
@@ -369,91 +283,25 @@ export function KebuOpportunityHome() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/signup"
+              href="/opportunity/countries"
               className="inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.12em] px-10 py-4 text-sm rounded-full transition-all hover:brightness-105"
               style={{ background: C.white, color: C.orange }}
             >
-              Create account
+              Explore countries
             </Link>
             <Link
-              href="/login"
+              href="/create"
               className="inline-flex items-center justify-center gap-2 font-bold uppercase tracking-[0.12em] px-10 py-4 text-sm rounded-full transition-all hover:brightness-105"
               style={{ background: "transparent", color: C.white, border: "2px solid rgba(255,255,255,0.85)" }}
             >
-              Sign in
+              Kebu Builder
             </Link>
           </div>
         </div>
       </section>
 
-      <footer style={{ background: C.white, borderTop: `1px solid ${C.border}` }}>
-        <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-14">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-10">
-            <div className="col-span-2 md:col-span-1">
-              <div className="mb-3">
-                <KebuWordmark size={28} dark />
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: C.faint }}>
-                Live product only in this menu. Sample explorers stay off the nav until they ship.
-              </p>
-            </div>
-            {[
-              {
-                title: "Product",
-                links: [
-                  ["Opportunity", "/opportunity"],
-                  ["Countries", "/opportunity/countries"],
-                  ["Business", "/business"],
-                  ["Create", "/create"],
-                ],
-              },
-              {
-                title: "Account",
-                links: [
-                  ["Sign in", "/login"],
-                  ["Sign up", "/signup"],
-                  ["Kebu Score", "/ka-score"],
-                ],
-              },
-              {
-                title: "Honest status",
-                links: [
-                  ["Country Explorer — live", "/opportunity/countries"],
-                  ["Site builder — live", "/create"],
-                  ["Business ID — live", "/business"],
-                ],
-              },
-            ].map((col) => (
-              <div key={col.title}>
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em] mb-4" style={{ color: C.orange }}>
-                  {col.title}
-                </p>
-                <div className="space-y-2">
-                  {col.links.map(([label, href]) => (
-                    <Link
-                      key={`${col.title}-${href}-${label}`}
-                      href={href}
-                      className="block text-xs transition-colors hover:text-[#FF5500]"
-                      style={{ color: C.muted }}
-                    >
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderTop: `1px solid ${C.border}` }}>
-            <p className="text-[11px]" style={{ color: C.faint }}>
-              © 2026 Kebu. Public sources labeled · AI analysis labeled separately.
-            </p>
-            <div className="flex items-center gap-3">
-              <SignInButton />
-              <StartButton href="/signup" />
-            </div>
-          </div>
-        </div>
-      </footer>
+      <KebuMarketingFooter />
+      </div>
     </div>
   );
 }

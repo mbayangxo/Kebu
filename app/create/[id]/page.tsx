@@ -4,12 +4,26 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CreateShell } from "@/app/components/create/create-shell";
-import { SiteRenderer } from "@/app/components/create/site-renderer";
+import { YandeAssistant } from "@/app/components/create/yande-assistant";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildDefinitionFromProjectParts } from "@/lib/create/editor-definition";
-import { SECTION_TYPES } from "@/lib/create/website-schema";
+import { BUILDER, BUILDER_QUICK_SECTIONS } from "@/lib/create/builder-ui";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
+import type { PublishState } from "@/lib/create/publish-state";
+import { customDomainDnsTarget, isObsoleteDnsTarget } from "@/lib/create/dns-target";
+import { SiteProductsPanel } from "@/app/components/create/site-products-panel";
+import { SectionPhotoField } from "@/app/components/create/section-photo-field";
+import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
+import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
+import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
+import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
+import { productRowToSectionItem, type ProjectProductRow } from "@/lib/create/project-products";
+import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
+import { BuilderColorPanel } from "@/app/components/create/builder-color-panel";
+import { SiteDomainSeoPanel } from "@/app/components/create/site-domain-seo-panel";
+import type { ThemeTokens } from "@/lib/create/website-schema";
+import { KEBU } from "@/lib/kebu-brand";
 
 type Section = {
   id: string;
@@ -48,7 +62,8 @@ export default function ProjectEditorPage() {
   const [seoSettings, setSeoSettings] = useState<SiteSeo>(() => defaultSiteSeo());
   const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<"content" | "site" | "launch">("content");
+  const [sidebarTab, setSidebarTab] = useState<"content" | "media" | "design" | "products" | "site" | "launch">("content");
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [billing, setBilling] = useState<{
     canPublish: boolean;
@@ -82,8 +97,13 @@ export default function ProjectEditorPage() {
   const [domainNote, setDomainNote] = useState<string | null>(null);
   const [domainSteps, setDomainSteps] = useState<string[]>([]);
   const [domainDnsTarget, setDomainDnsTarget] = useState<string | null>(null);
-  const [namecheapUrl, setNamecheapUrl] = useState<string | null>(null);
+  const [publishState, setPublishState] = useState<PublishState | null>(null);
+  const [appOrigin, setAppOrigin] = useState("");
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    setAppOrigin(window.location.origin);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,14 +124,35 @@ export default function ProjectEditorPage() {
         setError(typeof data.error === "string" ? data.error : "Could not load project.");
         return;
       }
-      setProject(data.project);
-      setPages(Array.isArray(data.pages) ? data.pages : []);
-      setSections(Array.isArray(data.sections) ? data.sections : []);
-      const firstPage = Array.isArray(data.pages) ? data.pages[0] : null;
-      if (firstPage?.slug) {
-        setPreviewPageSlug(firstPage.slug);
-        setEditPageId(firstPage.id);
+      let projectPayload = data;
+      if (typeof data.project?.description === "string" && data.project.description.includes("portfolio:maylecor")) {
+        const upRes = await fetch(`/api/projects/${projectId}/upgrade-maylecor`, {
+          method: "POST",
+          credentials: "include",
+        });
+        const upData = (await upRes.json().catch(() => ({}))) as { upgraded?: boolean };
+        if (upRes.ok && upData.upgraded) {
+          const res2 = await fetch(`/api/projects/${projectId}`, { credentials: "include" });
+          const data2 = await res2.json().catch(() => ({}));
+          if (res2.ok) projectPayload = data2;
+        }
       }
+      setProject(projectPayload.project ?? data.project);
+      setPages(Array.isArray(projectPayload.pages) ? projectPayload.pages : []);
+      setSections(Array.isArray(projectPayload.sections) ? projectPayload.sections : []);
+      if (projectPayload.publishState && typeof projectPayload.publishState === "object") {
+        setPublishState(projectPayload.publishState as PublishState);
+      }
+      const pageList = Array.isArray(projectPayload.pages) ? projectPayload.pages : [];
+      const firstPage = pageList[0] ?? null;
+      setEditPageId((current) => {
+        if (current && pageList.some((p: { id: string }) => p.id === current)) return current;
+        return firstPage?.id ?? "";
+      });
+      setPreviewPageSlug((current) => {
+        if (pageList.some((p: { slug: string }) => p.slug === current)) return current;
+        return firstPage?.slug ?? "home";
+      });
       const sub = typeof data.project?.subdomain === "string" ? data.project.subdomain : "";
       setSubdomainInput(sub);
       setPublishUrl(sub ? `/sites/${sub}` : null);
@@ -136,14 +177,21 @@ export default function ProjectEditorPage() {
       if (domainsRes.ok) {
         const list = Array.isArray(domainsData.domains) ? domainsData.domains : [];
         setCustomDomains(list);
+        if (typeof domainsData.dnsTarget === "string") {
+          const canonical = customDomainDnsTarget(sub);
+          setDomainDnsTarget(
+            isObsoleteDnsTarget(domainsData.dnsTarget) ? canonical : domainsData.dnsTarget,
+          );
+        } else if (domainsData.instructions?.dnsTarget) {
+          const raw = domainsData.instructions.dnsTarget as string;
+          setDomainDnsTarget(isObsoleteDnsTarget(raw) ? customDomainDnsTarget(sub) : raw);
+        } else if (sub) {
+          setDomainDnsTarget(customDomainDnsTarget(sub));
+        }
         if (domainsData.instructions?.steps) {
           setDomainSteps(domainsData.instructions.steps);
-          setDomainDnsTarget(domainsData.instructions.dnsTarget ?? null);
-          setNamecheapUrl(domainsData.instructions.namecheapUrl ?? null);
         } else {
           setDomainSteps([]);
-          setDomainDnsTarget(null);
-          setNamecheapUrl(null);
         }
         const verified = list.find(
           (d: { status?: string; hostname?: string }) => d.status === "verified",
@@ -152,6 +200,29 @@ export default function ProjectEditorPage() {
           setHttpsLiveUrl(`https://www.${verified.hostname}`);
         } else if (sub) {
           setHttpsLiveUrl(`/sites/${sub}`);
+        }
+        const pending = list.find(
+          (d: { status?: string; id?: string }) => d.status === "pending" || d.status === "failed",
+        );
+        if (pending?.id) {
+          void fetch(`/api/projects/${projectId}/domains/${pending.id}/verify`, {
+            method: "POST",
+            credentials: "include",
+          })
+            .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+            .then(({ ok, data }) => {
+              if (!ok || !data.domain) return;
+              setCustomDomains((prev) =>
+                prev.map((d) => (d.id === pending.id ? { ...d, ...data.domain } : d)),
+              );
+              if (data.ok && data.liveUrl) {
+                setHttpsLiveUrl(data.liveUrl);
+                setDomainNote(`Domain verified — live at ${data.liveUrl}`);
+              } else if (data.detail) {
+                setDomainNote(data.detail);
+              }
+            })
+            .catch(() => {});
         }
       } else if (typeof domainsData.error === "string") {
         setDomainNote(domainsData.error);
@@ -174,6 +245,24 @@ export default function ProjectEditorPage() {
       Object.values(timers).forEach(clearTimeout);
     };
   }, [load]);
+
+  function syncProductsPreview(rows: ProjectProductRow[]) {
+    const items = rows.filter((r) => r.is_active).map(productRowToSectionItem);
+    setSections((prev) =>
+      prev.map((s) =>
+        s.section_type === "products"
+          ? { ...s, props: { ...(s.props ?? {}), heading: (s.props?.heading as string) || "Shop", items } }
+          : s,
+      ),
+    );
+  }
+
+  async function ensureProductsSection() {
+    const hasProducts = sections.some((s) => s.section_type === "products");
+    if (!hasProducts) {
+      await addSection("products");
+    }
+  }
 
   function pushHistory(prev: Section[]) {
     setHistory((h) => [...h.slice(-19), prev]);
@@ -198,6 +287,11 @@ export default function ProjectEditorPage() {
       if (data.section) {
         setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, ...data.section } : s)));
       }
+      setPublishState((prev) =>
+        prev
+          ? { ...prev, hasUnpublishedChanges: true }
+          : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
+      );
       setSaveState("saved");
     } catch {
       setSaveState("error");
@@ -255,6 +349,20 @@ export default function ProjectEditorPage() {
     });
   }
 
+  async function reorderSections(orderedIds: string[]) {
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        fetch(`/api/projects/${projectId}/sections`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sectionId: id, sortOrder: index }),
+        }),
+      ),
+    );
+    await load();
+  }
+
   async function moveSection(sectionId: string, direction: -1 | 1) {
     const ordered = [...sections].sort((a, b) => a.sort_order - b.sort_order);
     const idx = ordered.findIndex((s) => s.id === sectionId);
@@ -280,7 +388,12 @@ export default function ProjectEditorPage() {
   }
 
   async function addPage() {
-    const slug = newPageSlug.trim().toLowerCase().replace(/\s+/g, "-");
+    const slug = newPageSlug
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/^-+|-+$/g, "");
     const title = newPageTitle.trim();
     if (!slug || !title) {
       setError("Page slug and title are required.");
@@ -388,7 +501,7 @@ export default function ProjectEditorPage() {
     }
   }
 
-  async function persistSiteSettings(nextSubdomain: string, nextSeo: SiteSeo) {
+  async function persistSiteSettings(nextSubdomain: string, nextSeo: SiteSeo, themePatch?: Partial<ThemeTokens>) {
     setSettingsState("saving");
     setSettingsNote(null);
     try {
@@ -401,6 +514,7 @@ export default function ProjectEditorPage() {
         body: JSON.stringify({
           ...(subdomainValid ? { subdomain: nextSubdomain.trim().toLowerCase() } : {}),
           seo: nextSeo,
+          ...(themePatch ? { theme: themePatch } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -424,17 +538,29 @@ export default function ProjectEditorPage() {
     }
   }
 
-  function queueSiteSettingsSave(patch: { subdomain?: string; seo?: Partial<SiteSeo> }) {
+  function queueSiteSettingsSave(patch: { subdomain?: string; seo?: Partial<SiteSeo>; theme?: Partial<ThemeTokens> }) {
     const nextSubdomain = patch.subdomain ?? subdomainInput;
-    const nextSeo = { ...seoSettings, ...(patch.seo ?? {}) };
+    const nextSeo: SiteSeo = {
+      ...seoSettings,
+      ...(patch.seo ?? {}),
+      commerce: {
+        merchantWhatsApp: seoSettings.commerce?.merchantWhatsApp ?? "",
+        preferJokoCheckout: seoSettings.commerce?.preferJokoCheckout ?? false,
+        ...(patch.seo?.commerce ?? {}),
+      },
+    };
     if (patch.subdomain !== undefined) setSubdomainInput(patch.subdomain);
     if (patch.seo) setSeoSettings(nextSeo);
+    if (patch.theme && project) {
+      setProject({ ...project, theme: { ...(project.theme as ThemeTokens), ...patch.theme } });
+    }
     if (settingsTimer.current) clearTimeout(settingsTimer.current);
     settingsTimer.current = setTimeout(() => {
       const subdomainValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextSubdomain.trim()) && nextSubdomain.trim().length >= 3;
       void persistSiteSettings(
         subdomainValid ? nextSubdomain.trim().toLowerCase() : subdomainInput.trim().toLowerCase(),
         nextSeo,
+        patch.theme,
       );
     }, 600);
   }
@@ -472,7 +598,6 @@ export default function ProjectEditorPage() {
       if (data.instructions?.steps) {
         setDomainSteps(data.instructions.steps);
         setDomainDnsTarget(data.instructions.dnsTarget ?? null);
-        setNamecheapUrl(data.instructions.namecheapUrl ?? null);
       }
       setDomainNote(data.message ?? "Domain saved. Update DNS at your registrar, then verify.");
       setCustomDomainInput("");
@@ -501,13 +626,31 @@ export default function ProjectEditorPage() {
         setCustomDomains((prev) => prev.map((d) => (d.id === domainId ? { ...d, ...data.domain } : d)));
       }
       if (data.liveUrl) setHttpsLiveUrl(data.liveUrl);
-      setDomainNote(data.detail ?? (data.ok ? "Domain verified!" : "DNS not ready yet."));
+      const noteParts = [data.detail];
+      if (typeof data.sslNote === "string") noteParts.push(data.sslNote);
+      setDomainNote(noteParts.filter(Boolean).join(" · ") || (data.ok ? "Domain verified!" : "DNS not ready yet."));
+      if (data.instructions?.steps) {
+        setDomainSteps(data.instructions.steps);
+        setDomainDnsTarget(data.instructions.dnsTarget ?? null);
+      }
+      if (data.ok) await load();
     } catch {
       setDomainNote("Network error. Retry.");
     } finally {
       setDomainBusy(false);
     }
   }
+
+  function copyDnsTarget() {
+    const target = customDomainDnsTarget(subdomainInput || "site");
+    void navigator.clipboard?.writeText(target);
+    setDomainNote(`Copied: ${target}`);
+  }
+
+  const canonicalDnsTarget = customDomainDnsTarget(subdomainInput || "site");
+
+  const livePath = subdomainInput.trim() ? `/sites/${subdomainInput.trim().toLowerCase()}` : null;
+  const fullLiveUrl = livePath && appOrigin ? `${appOrigin}${livePath}` : livePath;
 
   async function removeCustomDomain(domainId: string) {
     if (domainBusy) return;
@@ -570,7 +713,6 @@ export default function ProjectEditorPage() {
       setPublishUrl(data.deployment?.public_path ?? data.liveUrl);
       if (typeof data.liveUrl === "string") setHttpsLiveUrl(data.liveUrl);
       else if (typeof data.publicPath === "string") setHttpsLiveUrl(data.publicPath);
-      else if (typeof data.kebuAfricaUrl === "string") setHttpsLiveUrl(data.kebuAfricaUrl);
       await load();
     } catch {
       setError("Network error while publishing.");
@@ -620,7 +762,7 @@ export default function ProjectEditorPage() {
   }
 
   const previewDefinition: WebsiteDefinition | null = project
-    ? buildDefinitionFromProjectParts(project, pages, sections)
+    ? { ...buildDefinitionFromProjectParts({ ...project, seo: seoSettings }, pages, sections) }
     : null;
 
   const previewSiteBase = project?.subdomain ? `/sites/${project.subdomain}` : "";
@@ -629,17 +771,39 @@ export default function ProjectEditorPage() {
     .filter((s) => s.page_id === editPageId)
     .sort((a, b) => a.sort_order - b.sort_order);
 
+  const saveStatusLabel =
+    saveState === "saving"
+      ? "Saving draft…"
+      : saveState === "saved"
+        ? "Draft saved"
+        : saveState === "error"
+          ? "Save failed"
+          : "";
+
   return (
-    <div className="min-h-screen" style={{ background: "#FAFAF8", color: "#0F0D33" }}>
+    <div className="min-h-screen" style={{ background: BUILDER.bg, color: BUILDER.ink }}>
       <CreateShell
         step="edit"
         projectId={projectId}
         title={project?.title ?? "Editor"}
         actions={
           <>
-            <span className="text-white/50 hidden md:inline text-[10px]">
-              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Error" : ""}
-            </span>
+            {publishState ? (
+              <span
+                className="hidden md:inline rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider"
+                style={{
+                  background: publishState.hasUnpublishedChanges ? "#FFF8E8" : "#E8F8EE",
+                  color: publishState.hasUnpublishedChanges ? "#8B6914" : "#1B6B3A",
+                }}
+              >
+                {publishState.hasUnpublishedChanges
+                  ? publishState.isLive
+                    ? "Unpublished changes"
+                    : "Draft"
+                  : "Live"}
+              </span>
+            ) : null}
+            <span className="text-white/50 hidden md:inline text-[10px]">{saveStatusLabel}</span>
             <Link
               href={`/create/${projectId}/preview`}
               className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
@@ -654,19 +818,52 @@ export default function ProjectEditorPage() {
               className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
               style={{ background: "#00C851", color: "#0F0D33" }}
             >
-              {publishing ? "…" : "Publish"}
+              {publishing ? "…" : publishState?.hasUnpublishedChanges ? "Publish updates" : "Publish"}
             </button>
           </>
         }
       />
 
-      <main className="max-w-6xl mx-auto px-4 py-6 grid lg:grid-cols-[340px_1fr] gap-6">
+      {publishState?.hasUnpublishedChanges ? (
+        <div
+          className="border-b px-4 py-2.5 text-center text-xs leading-relaxed"
+          style={{ background: "#FFF8E8", borderColor: "#F0E4C8", color: "#6B5B45" }}
+        >
+          <strong style={{ color: "#0F0D33" }}>You are editing a draft.</strong> Changes save automatically but{" "}
+          <strong>visitors only see your last published version</strong> until you click{" "}
+          <strong>Publish updates</strong>.
+          {publishState.isLive && publishState.livePublicPath ? (
+            <>
+              {" "}
+              Live site:{" "}
+              <a href={publishState.livePublicPath} target="_blank" rel="noreferrer" className="underline font-semibold">
+                {publishState.livePublicPath}
+              </a>
+            </>
+          ) : null}
+        </div>
+      ) : publishState?.isLive ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px]"
+          style={{ background: "#E8F8EE", borderColor: "#C8E8D4", color: "#1B6B3A" }}
+        >
+          Live and up to date. Edit anytime — publish again when you want changes to go public.
+        </div>
+      ) : null}
+
+      {!loading && project && !project.business_id ? (
+        <div className="max-w-6xl mx-auto px-4 pt-4">
+          <BuilderBusinessNudge compact />
+        </div>
+      ) : null}
+
+      <main className="flex h-[calc(100dvh-56px)] w-full overflow-hidden">
         {loading ? (
-          <p className="text-sm" style={{ color: "#6B5B45" }}>
+          <p className="text-sm p-6" style={{ color: BUILDER.muted }}>
             Loading…
           </p>
         ) : error && !project ? (
-          <div role="alert" className="rounded-xl p-4" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
+          <div role="alert" className="rounded-xl p-4 m-6" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
             {error}
             <button type="button" className="underline ml-2" onClick={() => void load()}>
               Retry
@@ -674,7 +871,10 @@ export default function ProjectEditorPage() {
           </div>
         ) : (
           <>
-            <aside className="space-y-4">
+            <aside
+              className="w-full max-w-[min(420px,40vw)] shrink-0 overflow-y-auto border-r px-4 py-4 space-y-4"
+              style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
+            >
               <div
                 className="flex rounded-xl p-1 gap-1"
                 style={{ background: "#0F0D33" }}
@@ -683,9 +883,12 @@ export default function ProjectEditorPage() {
               >
                 {(
                   [
-                    ["content", "Content"],
-                    ["site", "Site & SEO"],
-                    ["launch", "Go live"],
+                    ["content", "Pages"],
+                    ["media", "Media"],
+                    ["design", "Colors"],
+                    ["products", "Shop"],
+                    ["site", "Domain"],
+                    ["launch", "Publish"],
                   ] as const
                 ).map(([id, label]) => (
                   <button
@@ -713,7 +916,8 @@ export default function ProjectEditorPage() {
                   {project?.subdomain ? ` · ${project.subdomain}` : ""}
                 </p>
                 <p className="text-xs mt-2" style={{ color: "#6B5B45" }}>
-                  Next: edit your pages, improve with AI if you want, then publish when ready.
+                  Edit freely — everything saves as a draft. Only <strong>Publish</strong> pushes changes to your live
+                  site.
                 </p>
                 <div
                   className="mt-3 rounded-xl p-3 text-xs leading-relaxed"
@@ -728,8 +932,7 @@ export default function ProjectEditorPage() {
                       {billing.periodEnd
                         ? ` until ${new Date(billing.periodEnd).toLocaleDateString()}`
                         : ""}
-                      . Publish writes a live deployment at <strong>/sites/your-name</strong>.{" "}
-                      <strong>*.kebu.africa</strong> is planned after that domain is owned.
+                      . Publish goes live at <strong>/sites/your-name</strong> on this Vercel app — no custom domain needed.
                     </p>
                   ) : (
                     <>
@@ -749,25 +952,21 @@ export default function ProjectEditorPage() {
                     </>
                   )}
                 </div>
-                {publishUrl && (
+                {fullLiveUrl && (
+                  <a href={fullLiveUrl} target="_blank" rel="noreferrer" className="block text-sm mt-2 font-bold underline break-all" style={{ color: "#0A0A0A" }}>
+                    Live URL: {fullLiveUrl}
+                  </a>
+                )}
+                {publishUrl && !fullLiveUrl && (
                   <a href={publishUrl} target="_blank" rel="noreferrer" className="block text-xs mt-2 font-semibold underline" style={{ color: "#FF5500" }}>
                     Open on Kebu: {publishUrl}
                   </a>
                 )}
-                {httpsLiveUrl && (
-                  <a href={httpsLiveUrl} target="_blank" rel="noreferrer" className="block text-sm mt-2 font-bold underline break-all" style={{ color: "#0A0A0A" }}>
-                    {httpsLiveUrl.includes("kebu.africa")
-                      ? "Planned (domain not owned): "
-                      : httpsLiveUrl.startsWith("/sites/")
-                        ? "Live path: "
-                        : "Your domain: "}
-                    {httpsLiveUrl}
-                  </a>
-                )}
-                {httpsLiveUrl?.startsWith("/sites/") && (
+                {fullLiveUrl && (
                   <p className="text-[11px] mt-1" style={{ color: "#5C5348" }}>
-                    Open this on your real app host (Vercel / alkebulan). maylecor.kebu.africa will not work until
-                    you own kebu.africa.
+                    Public URL: <strong>{fullLiveUrl}</strong>. Custom domain: open the <strong>Domain</strong> tab —
+                    CNAME <strong>www</strong> → <strong>{canonicalDnsTarget}</strong> at
+                    Namecheap.
                   </p>
                 )}
                 {improveNote && (
@@ -792,268 +991,110 @@ export default function ProjectEditorPage() {
               </div>
               )}
 
-              {sidebarTab === "site" && (
+              {sidebarTab === "products" && (
               <div className="rounded-2xl p-4 space-y-3" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider">Site address · DNS · SEO</p>
-                <p className="text-xs leading-relaxed" style={{ color: "#6B5B45" }}>
-                  Live today: <strong>/sites/your-name</strong> on this app. Slug label{" "}
-                  <strong>your-name.kebu.africa</strong> is reserved for later — Kebu does not own that domain yet.
-                  Path preview always works at <strong>/sites/your-name</strong>. Connect your own domain when
-                  ready — DNS verify here ≠ HTTPS done.
-                </p>
-                <label className="block text-[10px] uppercase tracking-wider">
-                  Subdomain (required to publish)
-                  <div className="mt-1 flex items-center gap-1 text-xs">
-                    <input
-                      className="w-full rounded-lg px-2 py-1.5"
-                      style={{ border: "1px solid #DDE0F0" }}
-                      value={subdomainInput}
-                      onChange={(e) => queueSiteSettingsSave({ subdomain: e.target.value.toLowerCase() })}
-                      placeholder="my-brand"
-                      aria-label="Site subdomain"
-                    />
-                    <span className="whitespace-nowrap text-[10px]" style={{ color: "#8A8578" }}>
-                      → /sites/{subdomainInput || "…"}
-                    </span>
-                  </div>
-                </label>
-
-                <div className="rounded-xl p-3 space-y-2" style={{ background: "#F8F7F4", border: "1px solid #E8E4DC" }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider">Your real domain</p>
-                  <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
-                    Verify checks DNS only. Attaching the domain for HTTPS on Vercel/host is still a manual
-                    ops step after DNS is correct. Kebu does not sell domains yet — buy at{" "}
-                    <a
-                      href={
-                        namecheapUrl ??
-                        `https://www.namecheap.com/domains/registration/results/?domain=${encodeURIComponent(customDomainInput || "mybrand.com")}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline font-semibold"
-                      style={{ color: "#FF5500" }}
-                    >
-                      Namecheap
-                    </a>{" "}
-                    (or any registrar), then connect it here.
-                  </p>
-                  <label className="block text-[10px] uppercase tracking-wider">
-                    Domain you own
-                    <input
-                      className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
-                      style={{ border: "1px solid #DDE0F0" }}
-                      value={customDomainInput}
-                      onChange={(e) => setCustomDomainInput(e.target.value.toLowerCase())}
-                      placeholder="mybrand.com"
-                      aria-label="Custom domain"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => void addCustomDomain()}
-                    disabled={domainBusy}
-                    className="w-full rounded-full py-2 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                    style={{ background: "#FF5500", color: "#fff" }}
-                  >
-                    {domainBusy ? "Saving…" : "Connect domain"}
-                  </button>
-                  {customDomains.length === 0 ? (
-                    <p className="text-[10px] leading-relaxed" style={{ color: "#8A8578" }}>
-                      No custom domain yet. Set your Kebu subdomain above, then connect a domain you already own.
-                    </p>
-                  ) : null}
-                  {customDomains.map((d) => (
-                    <div key={d.id} className="rounded-lg p-2 text-[10px]" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
-                      <p className="font-semibold">
-                        www.{d.hostname}{" "}
-                        <span
-                          style={{
-                            color: d.status === "verified" ? "#009E40" : d.status === "failed" ? "#8B1E1E" : "#8A8578",
-                          }}
-                        >
-                          · {d.status}
-                        </span>
-                      </p>
-                      {d.dns_target ? (
-                        <p className="mt-1" style={{ color: "#6B5B45" }}>
-                          CNAME <strong>www</strong> → <strong>{d.dns_target}</strong>
-                        </p>
-                      ) : null}
-                      {d.last_error ? (
-                        <p className="mt-1" style={{ color: "#8B1E1E" }}>
-                          {d.last_error}
-                        </p>
-                      ) : null}
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void verifyCustomDomain(d.id)}
-                          disabled={domainBusy}
-                          className="rounded-full px-3 py-1 text-[10px] font-bold uppercase disabled:opacity-50"
-                          style={{ background: "#00C851", color: "#0F0D33" }}
-                        >
-                          Verify DNS
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void removeCustomDomain(d.id)}
-                          disabled={domainBusy}
-                          className="rounded-full px-3 py-1 text-[10px] font-bold uppercase disabled:opacity-50"
-                          style={{ background: "#F4F2EC", color: "#8B1E1E" }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {domainSteps.length > 0 ? (
-                    <ol className="list-decimal pl-4 text-[10px] space-y-1" style={{ color: "#6B5B45" }}>
-                      {domainSteps.map((step) => (
-                        <li key={step}>{step}</li>
-                      ))}
-                    </ol>
-                  ) : null}
-                  {domainDnsTarget ? (
-                    <p className="text-[10px]" style={{ color: "#8A8578" }}>
-                      Quick copy: CNAME www → {domainDnsTarget}
-                    </p>
-                  ) : null}
-                  {domainNote ? (
-                    <p className="text-[10px]" style={{ color: domainNote.includes("verified") ? "#009E40" : "#6B5B45" }}>
-                      {domainNote}
-                    </p>
-                  ) : null}
-                </div>
-
-                <label className="block text-[10px] uppercase tracking-wider">
-                  SEO title
-                  <input
-                    className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    value={seoSettings.metaTitle}
-                    onChange={(e) => queueSiteSettingsSave({ seo: { metaTitle: e.target.value } })}
-                  />
-                </label>
-                <label className="block text-[10px] uppercase tracking-wider">
-                  SEO description
-                  <textarea
-                    className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    rows={3}
-                    maxLength={320}
-                    value={seoSettings.metaDescription}
-                    onChange={(e) => queueSiteSettingsSave({ seo: { metaDescription: e.target.value } })}
-                  />
-                </label>
-                <label className="block text-[10px] uppercase tracking-wider">
-                  Favicon URL
-                  <input
-                    className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    value={seoSettings.faviconUrl}
-                    onChange={(e) => queueSiteSettingsSave({ seo: { faviconUrl: e.target.value } })}
-                    placeholder="https://…/favicon.ico"
-                  />
-                </label>
-                <label className="block text-[10px] uppercase tracking-wider">
-                  Social share image (Open Graph)
-                  <input
-                    className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    value={seoSettings.ogImageUrl}
-                    onChange={(e) => queueSiteSettingsSave({ seo: { ogImageUrl: e.target.value } })}
-                    placeholder="https://…/cover.jpg"
-                  />
-                </label>
-                <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(seoSettings.noIndex)}
-                    onChange={(e) => queueSiteSettingsSave({ seo: { noIndex: e.target.checked } })}
-                  />
-                  Hide from Google (noindex)
-                </label>
-                <p className="text-[10px]" style={{ color: "#8A8578" }}>
-                  {settingsState === "saving"
-                    ? "Saving settings…"
-                    : settingsState === "saved"
-                      ? "Settings saved"
-                      : settingsState === "error"
-                        ? "Settings save failed"
-                        : "Autosaves to Supabase"}
-                </p>
-                {settingsNote ? (
-                  <p className="text-[10px]" style={{ color: "#009E40" }}>
-                    {settingsNote}
-                  </p>
-                ) : null}
-                <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
-                  Security: Kebu blocks script injection in site content, rate-limits saves, and serves live sites over HTTPS.
-                  Publish again after changing SEO so your live site updates.
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider">Site catalog</p>
+                <button
+                  type="button"
+                  onClick={() => void ensureProductsSection()}
+                  className="text-[10px] underline"
+                  style={{ color: "#FF5500" }}
+                >
+                  Add products section to page (if missing)
+                </button>
+                <SiteProductsPanel
+                  projectId={projectId}
+                  merchantWhatsApp={seoSettings.commerce?.merchantWhatsApp ?? ""}
+                  onMerchantWhatsAppChange={(merchantWhatsApp) =>
+                    queueSiteSettingsSave({
+                      seo: {
+                        commerce: {
+                          merchantWhatsApp,
+                          preferJokoCheckout: seoSettings.commerce?.preferJokoCheckout ?? false,
+                        },
+                      },
+                    })
+                  }
+                  onSyncedToSite={syncProductsPreview}
+                />
               </div>
+              )}
+
+              {sidebarTab === "site" && <SiteDomainSeoPanel projectId={projectId} />}
+
+              {sidebarTab === "media" && (
+                <div className="rounded-2xl p-4" style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}>
+                  <SiteAssetsPanel projectId={projectId} />
+                </div>
+              )}
+
+              {sidebarTab === "design" && (
+                <div className="rounded-2xl p-4" style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}>
+                  <BuilderColorPanel
+                    theme={(project?.theme as ThemeTokens) ?? previewDefinition?.theme ?? {
+                      primary: "#0F0D33",
+                      accent: "#E9006B",
+                      background: "#FAFAF8",
+                      text: "#0F0D33",
+                      fontDisplay: "Fraunces",
+                      fontBody: "system-ui",
+                      spacing: "comfortable",
+                    }}
+                    heroAccent={String(
+                      sections.find((s) => s.section_type === "legally-blonde-hero")?.props?.accentColor ?? "#E9006B",
+                    )}
+                    onThemeChange={(patch) => queueSiteSettingsSave({ theme: patch })}
+                    onHeroAccentChange={(color) => {
+                      const hero = sections.find((s) => s.section_type === "legally-blonde-hero");
+                      if (hero) updateProps(hero.id, { accentColor: color });
+                    }}
+                  />
+                </div>
               )}
 
               {sidebarTab === "content" && (
               <>
-              <div className="rounded-2xl p-4 flex flex-wrap gap-2" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
-                <button type="button" onClick={undo} className="text-xs px-2 py-1 rounded-lg" style={{ background: "#F4F2EC" }} disabled={history.length === 0}>
+              <div className="rounded-2xl p-3 flex flex-wrap items-center gap-2" style={{ background: "#fff", border: "1px solid rgba(10,10,10,0.08)", boxShadow: "0 4px 20px rgba(10,10,10,0.03)" }}>
+                <button type="button" onClick={undo} className="text-xs px-3 py-1.5 rounded-full" style={{ background: "#FFF8F2" }} disabled={history.length === 0}>
                   Undo
                 </button>
-                <button type="button" onClick={redo} className="text-xs px-2 py-1 rounded-lg" style={{ background: "#F4F2EC" }} disabled={future.length === 0}>
+                <button type="button" onClick={redo} className="text-xs px-3 py-1.5 rounded-full" style={{ background: "#FFF8F2" }} disabled={future.length === 0}>
                   Redo
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setImproveOpen((v) => !v)}
-                  disabled={improving || !project}
-                  className="text-xs px-3 py-1 rounded-full font-semibold disabled:opacity-50"
-                  style={{ background: "#0F0D33", color: "#fff" }}
-                >
-                  {improving ? "Yande…" : "Improve with Yande"}
-                </button>
+                {!improveOpen ? (
+                  <YandeAssistant
+                    variant="improve"
+                    value={improveInstruction}
+                    onChange={setImproveInstruction}
+                    onSubmit={() => {}}
+                    collapsed
+                    onExpand={() => setImproveOpen(true)}
+                    busy={improving}
+                  />
+                ) : null}
               </div>
 
               {improveOpen && (
-                <div className="rounded-2xl p-4 space-y-3" style={{ background: "#0F0D33", color: "#FAFAF8" }}>
-                  <p className="text-sm font-bold">Yande — your site assistant</p>
-                  <p className="text-xs text-white/70">
-                    Tell Yande what to change in plain words. Your draft updates on the server — your live site stays the same until you publish again.
-                  </p>
-                  <textarea
-                    className="w-full text-sm rounded-lg px-3 py-2 min-h-[88px] text-[#0F0D33]"
-                    placeholder="Example: Make the hero clearer for university students in Dakar. Add a WhatsApp call to action."
-                    value={improveInstruction}
-                    onChange={(e) => setImproveInstruction(e.target.value)}
-                    maxLength={800}
-                    disabled={improving}
-                    aria-label="What should AI improve"
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void improveWithAi()}
-                      disabled={improving}
-                      className="rounded-full px-4 py-2 text-sm font-bold disabled:opacity-50"
-                      style={{ background: "#00C851", color: "#0F0D33" }}
-                    >
-                      {improving ? "Working…" : "Apply with Yande"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImproveOpen(false)}
-                      disabled={improving}
-                      className="rounded-full px-4 py-2 text-sm text-white/80"
-                      style={{ background: "#1C1A45" }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+                <YandeAssistant
+                  variant="improve"
+                  value={improveInstruction}
+                  onChange={setImproveInstruction}
+                  onSubmit={() => void improveWithAi()}
+                  onCancel={() => setImproveOpen(false)}
+                  busy={improving}
+                />
               )}
 
-              <div className="rounded-2xl p-4" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2">Add section</p>
+              <div className="rounded-2xl p-4" style={{ background: BUILDER.surface, border: `1px solid ${BUILDER.border}`, boxShadow: BUILDER.shadowSoft }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: BUILDER.orange }}>
+                  Edit your site
+                </p>
+                <p className="text-xs mb-3 leading-relaxed" style={{ color: BUILDER.muted }}>
+                  Pick a page, change words and photos — preview updates live. Publish when you are happy.
+                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: BUILDER.faint }}>
+                  Add block
+                </p>
                 {pages.length > 1 && (
                   <label className="block text-[10px] uppercase tracking-wider mb-2">
                     Page
@@ -1078,16 +1119,16 @@ export default function ProjectEditorPage() {
                     </select>
                   </label>
                 )}
-                <div className="flex flex-wrap gap-1">
-                  {SECTION_TYPES.map((t) => (
+                <div className="flex flex-wrap gap-1.5">
+                  {BUILDER_QUICK_SECTIONS.map(({ type, label }) => (
                     <button
-                      key={t}
+                      key={type}
                       type="button"
-                      onClick={() => void addSection(t)}
-                      className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full"
-                      style={{ background: "#F4F2EC" }}
+                      onClick={() => void addSection(type)}
+                      className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1.5 rounded-full transition-opacity hover:opacity-80"
+                      style={{ background: BUILDER.surfaceMuted, color: BUILDER.ink, border: `1px solid ${BUILDER.border}` }}
                     >
-                      {t}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -1152,8 +1193,23 @@ export default function ProjectEditorPage() {
               </div>
 
               <div className="space-y-3">
+                <BuilderSectionListDnd
+                  sections={editPageSections}
+                  selectedSectionId={selectedSectionId}
+                  onSelect={(id) => setSelectedSectionId(id)}
+                  onReorder={(ids) => void reorderSections(ids)}
+                  onMoveUp={(id) => void moveSection(id, -1)}
+                  onMoveDown={(id) => void moveSection(id, 1)}
+                />
                 {editPageSections.map((section) => (
-                    <div key={section.id} className="rounded-2xl p-3" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
+                    <div
+                      key={section.id}
+                      className="rounded-2xl p-3"
+                      style={{
+                        background: selectedSectionId === section.id ? "#FFF3EB" : "#fff",
+                        border: selectedSectionId === section.id ? "2px solid #FF5500" : "1px solid #DDE0F0",
+                      }}
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] font-bold uppercase tracking-wider">{section.section_type}</span>
                         <div className="flex gap-1">
@@ -1170,6 +1226,9 @@ export default function ProjectEditorPage() {
                       </div>
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+                            Words
+                          </p>
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
@@ -1185,6 +1244,9 @@ export default function ProjectEditorPage() {
                             onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
                             aria-label="CTA label"
                           />
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
+                            Photos — tap upload
+                          </p>
                           {(
                             [
                               ["backgroundImage", "Background"],
@@ -1197,15 +1259,13 @@ export default function ProjectEditorPage() {
                               ["logoSmall", "Small logo"],
                             ] as const
                           ).map(([key, label]) => (
-                            <label key={key} className="block text-[10px] uppercase tracking-wider">
-                              {label} URL
-                              <input
-                                className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
-                                value={String(section.props[key] ?? "")}
-                                onChange={(e) => updateProps(section.id, { [key]: e.target.value })}
-                              />
-                            </label>
+                            <SectionPhotoField
+                              key={key}
+                              projectId={projectId}
+                              label={label}
+                              value={String(section.props[key] ?? "")}
+                              onChange={(url) => updateProps(section.id, { [key]: url })}
+                            />
                           ))}
                           <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
                             <input
@@ -1219,12 +1279,16 @@ export default function ProjectEditorPage() {
                       )}
                       {section.section_type === "legally-blonde-hero" && (
                         <div className="space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+                            Words
+                          </p>
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
                             value={String(section.props.title ?? "")}
                             onChange={(e) => updateProps(section.id, { title: e.target.value })}
                             aria-label="Title"
+                            placeholder="Artist or brand name"
                           />
                           <textarea
                             className="w-full text-sm rounded-lg px-2 py-1.5"
@@ -1233,29 +1297,37 @@ export default function ProjectEditorPage() {
                             value={String(section.props.subtitle ?? "")}
                             onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
                             aria-label="Subtitle"
+                            placeholder="Short bio or tagline"
                           />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.ctaLabel ?? "")}
+                            onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
+                            placeholder="Button text"
+                          />
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
+                            Photos — tap upload
+                          </p>
                           {(
                             [
+                              ["titleLogo", "Logo in navigation"],
                               ["backgroundLayer", "Background layer"],
-                              ["titleLogo", "Title logo"],
                               ["cutoutLeft", "Cutout left"],
                               ["cutoutRight", "Cutout right"],
-                              ["cutoutAccent", "Cutout accent (center wobble)"],
-                              ["cutoutSparkle", "Sparkle portrait"],
-                              ["macbook", "MacBook mockup"],
-                              ["sparkleGif", "Sparkle GIF"],
+                              ["cutoutAccent", "Center portrait"],
+                              ["cutoutSparkle", "Sparkle / small logo"],
+                              ["macbook", "Album / MacBook mockup"],
                               ["heroPhoto", "Story photo"],
                             ] as const
                           ).map(([key, label]) => (
-                            <label key={key} className="block text-[10px] uppercase tracking-wider">
-                              {label} URL
-                              <input
-                                className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
-                                value={String(section.props[key] ?? "")}
-                                onChange={(e) => updateProps(section.id, { [key]: e.target.value })}
-                              />
-                            </label>
+                            <SectionPhotoField
+                              key={key}
+                              projectId={projectId}
+                              label={label}
+                              value={String(section.props[key] ?? "")}
+                              onChange={(url) => updateProps(section.id, { [key]: url })}
+                            />
                           ))}
                           <label className="block text-[10px] uppercase tracking-wider">
                             Accent color
@@ -1272,7 +1344,17 @@ export default function ProjectEditorPage() {
                               checked={section.props.motionEnabled !== false}
                               onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
                             />
-                            Scroll layers + floating cutouts
+                            Floating cutout animation
+                          </label>
+                          <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={section.props.scrollMode !== "parallax"}
+                              onChange={(e) =>
+                                updateProps(section.id, { scrollMode: e.target.checked ? "viewport" : "parallax" })
+                              }
+                            />
+                            One-screen home (navigate with top menu — no scroll)
                           </label>
                         </div>
                       )}
@@ -1285,15 +1367,12 @@ export default function ProjectEditorPage() {
                             onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
                             aria-label="Artist name"
                           />
-                          <label className="block text-[10px] uppercase tracking-wider">
-                            Album art URL
-                            <input
-                              className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.albumArt ?? "")}
-                              onChange={(e) => updateProps(section.id, { albumArt: e.target.value })}
-                            />
-                          </label>
+                          <SectionPhotoField
+                            projectId={projectId}
+                            label="Album art"
+                            value={String(section.props.albumArt ?? "")}
+                            onChange={(url) => updateProps(section.id, { albumArt: url })}
+                          />
                         </div>
                       )}
                       {section.section_type === "hero" && (
@@ -1579,10 +1658,17 @@ export default function ProjectEditorPage() {
                       )}
                       {section.section_type === "video" && (
                         <div className="space-y-2">
+                          <SiteMediaUpload
+                            projectId={projectId}
+                            kind="video"
+                            value={String(section.props.src ?? "")}
+                            onChange={(src) => updateProps(section.id, { src })}
+                            label="Video file"
+                          />
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
-                            placeholder="YouTube URL or video ID"
+                            placeholder="Or YouTube URL"
                             value={String(section.props.src ?? "")}
                             onChange={(e) => updateProps(section.id, { src: e.target.value })}
                           />
@@ -1597,10 +1683,17 @@ export default function ProjectEditorPage() {
                       )}
                       {section.section_type === "audio" && (
                         <div className="space-y-2">
+                          <SiteMediaUpload
+                            projectId={projectId}
+                            kind="audio"
+                            value={String(section.props.src ?? "")}
+                            onChange={(src) => updateProps(section.id, { src })}
+                            label="Music file from your computer"
+                          />
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
-                            placeholder="Spotify / SoundCloud / MP3 URL"
+                            placeholder="Or paste MP3 URL"
                             value={String(section.props.src ?? "")}
                             onChange={(e) => updateProps(section.id, { src: e.target.value })}
                           />
@@ -1610,6 +1703,184 @@ export default function ProjectEditorPage() {
                             placeholder="Track title"
                             value={String(section.props.title ?? "")}
                             onChange={(e) => updateProps(section.id, { title: e.target.value })}
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            placeholder="Artist name"
+                            value={String(section.props.artist ?? "")}
+                            onChange={(e) => updateProps(section.id, { artist: e.target.value })}
+                          />
+                        </div>
+                      )}
+                      {section.section_type === "gallery" && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                            Upload photos or paste image URLs. Great for Photos and Videos pages.
+                          </p>
+                          {(Array.isArray(section.props.items) ? section.props.items : []).map(
+                            (item: { src?: string; alt?: string }, idx: number) => (
+                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: BUILDER.surfaceMuted }}>
+                                <SectionPhotoField
+                                  projectId={projectId}
+                                  label={`Photo ${idx + 1}`}
+                                  value={String(item?.src ?? "")}
+                                  onChange={(url) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], src: url, alt: items[idx]?.alt ?? "" };
+                                    updateProps(section.id, { items });
+                                  }}
+                                />
+                                <input
+                                  className="w-full text-xs rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  placeholder="Caption (optional)"
+                                  value={String(item?.alt ?? "")}
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], src: items[idx]?.src ?? "", alt: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="text-[10px] text-red-600"
+                                  onClick={() => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items.splice(idx, 1);
+                                    updateProps(section.id, { items });
+                                  }}
+                                >
+                                  Remove photo
+                                </button>
+                              </div>
+                            ),
+                          )}
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold underline"
+                            style={{ color: BUILDER.orange }}
+                            onClick={() => {
+                              const items = [
+                                ...(Array.isArray(section.props.items) ? section.props.items : []),
+                                { src: "", alt: "" },
+                              ];
+                              updateProps(section.id, { items });
+                            }}
+                          >
+                            + Add photo
+                          </button>
+                        </div>
+                      )}
+                      {section.section_type === "products" && (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            placeholder="Section heading"
+                          />
+                          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                            Use the <strong>Products</strong> tab for your full catalog. Edit quick items here — customers
+                            order via WhatsApp; store checkout with JOKO mobile money is coming soon.
+                          </p>
+                          {(Array.isArray(section.props.items) ? section.props.items : []).map(
+                            (
+                              item: {
+                                name?: string;
+                                description?: string;
+                                priceLabel?: string;
+                                imageUrl?: string;
+                                whatsappMessage?: string;
+                              },
+                              idx: number,
+                            ) => (
+                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: BUILDER.surfaceMuted }}>
+                                <input
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.name ?? "")}
+                                  placeholder="Product name"
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], name: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                />
+                                <input
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.priceLabel ?? "")}
+                                  placeholder="Price (e.g. 5 000 XOF)"
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], priceLabel: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
+                                />
+                                <SectionPhotoField
+                                  projectId={projectId}
+                                  label="Product image"
+                                  value={String(item?.imageUrl ?? "")}
+                                  onChange={(url) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], imageUrl: url };
+                                    updateProps(section.id, { items });
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="text-[10px] text-red-600"
+                                  onClick={() => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items.splice(idx, 1);
+                                    updateProps(section.id, { items });
+                                  }}
+                                >
+                                  Remove product
+                                </button>
+                              </div>
+                            ),
+                          )}
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold underline"
+                            style={{ color: BUILDER.orange }}
+                            onClick={() => {
+                              const items = [
+                                ...(Array.isArray(section.props.items) ? section.props.items : []),
+                                { name: "New product", description: "", priceLabel: "", imageUrl: "", whatsappMessage: "" },
+                              ];
+                              updateProps(section.id, { items });
+                            }}
+                          >
+                            + Add product
+                          </button>
+                        </div>
+                      )}
+                      {section.section_type === "newsletter" && (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            placeholder="Heading"
+                          />
+                          <textarea
+                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.subheading ?? "")}
+                            onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
+                            placeholder="Subheading"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.buttonLabel ?? "")}
+                            onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                            placeholder="Button label"
                           />
                         </div>
                       )}
@@ -1644,6 +1915,35 @@ export default function ProjectEditorPage() {
                           </div>
                         </div>
                       )}
+                      {section.section_type === "free-text" && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                            Shopify-style layout — click text in the preview to edit, drag blocks to move.
+                          </p>
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold underline"
+                            onClick={() => {
+                              const blocks = [
+                                ...(Array.isArray(section.props.blocks) ? section.props.blocks : []),
+                                {
+                                  id: `text-${Date.now()}`,
+                                  text: "New text block",
+                                  x: 10,
+                                  y: 20,
+                                  width: 80,
+                                  fontSize: "md",
+                                  align: "left",
+                                  color: "",
+                                },
+                              ];
+                              updateProps(section.id, { blocks });
+                            }}
+                          >
+                            + Add text block
+                          </button>
+                        </div>
+                      )}
                       {section.section_type === "events" && (
                         <div className="space-y-2">
                           <button
@@ -1661,7 +1961,7 @@ export default function ProjectEditorPage() {
                           </button>
                         </div>
                       )}
-                      {!["hero", "text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery"].includes(
+                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "maylecor-home", "maylecor-music", "legally-blonde-hero"].includes(
                         section.section_type
                       ) && (
                         <p className="text-[11px]" style={{ color: "#8A8578" }}>
@@ -1683,8 +1983,8 @@ export default function ProjectEditorPage() {
               )}
             </aside>
 
-            <section>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#0a0a0a]">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2">
                 {pages.length > 1 ? (
                   <div className="flex flex-wrap gap-2">
                     {pages
@@ -1694,7 +1994,10 @@ export default function ProjectEditorPage() {
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setPreviewPageSlug(p.slug)}
+                          onClick={() => {
+                            setPreviewPageSlug(p.slug);
+                            setEditPageId(p.id);
+                          }}
                           className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider"
                           style={{
                             background: previewPageSlug === p.slug ? "#0F0D33" : "#fff",
@@ -1721,21 +2024,45 @@ export default function ProjectEditorPage() {
                 </button>
               </div>
               <div
-                className="mx-auto overflow-hidden rounded-2xl shadow-sm"
+                className="mx-auto flex-1 w-full overflow-y-auto"
                 style={{
                   maxWidth: device === "mobile" ? 390 : "100%",
-                  border: "1px solid #DDE0F0",
-                  background: "#000",
                 }}
               >
+                <div
+                  className="mx-auto overflow-hidden"
+                  style={{
+                    minHeight: "100%",
+                    border: device === "mobile" ? "1px solid #333" : undefined,
+                    borderRadius: device === "mobile" ? 16 : 0,
+                  }}
+                >
                 {previewDefinition && (
-                  <SiteRenderer
+                  <BuilderEditablePreview
                     definition={previewDefinition}
-                    mode="preview"
                     pageSlug={previewPageSlug}
                     siteBase={previewSiteBase || undefined}
+                    editor={{
+                      selectedSectionId,
+                      onSelectSection: (id) => {
+                        setSelectedSectionId(id);
+                        const match = sections.find((s) => s.id === id);
+                        if (match) setEditPageId(match.page_id);
+                      },
+                      onPatchSection: updateProps,
+                      onMoveFreeTextBlock: (sectionId, blockId, x, y) => {
+                        const section = sections.find((s) => s.id === sectionId);
+                        if (!section || section.section_type !== "free-text") return;
+                        const blocks = Array.isArray(section.props.blocks) ? [...section.props.blocks] : [];
+                        const idx = blocks.findIndex((b: { id?: string }) => b.id === blockId);
+                        if (idx < 0) return;
+                        blocks[idx] = { ...blocks[idx], x, y };
+                        updateProps(sectionId, { blocks });
+                      },
+                    }}
                   />
                 )}
+                </div>
               </div>
             </section>
           </>

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { siteSeoSchema } from "@/lib/create/site-seo";
+import { themeSchema } from "@/lib/create/website-schema";
 import { builderRateLimit } from "@/lib/api-guard";
+import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,7 @@ const settingsSchema = z.object({
     .max(48)
     .optional(),
   seo: siteSeoSchema.partial().optional(),
+  theme: themeSchema.partial().optional(),
 });
 
 /** Update publish subdomain + SEO/favicon settings for an owned project. */
@@ -48,7 +51,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, owner_id, title, subdomain, seo")
+    .select("id, owner_id, title, subdomain, seo, theme")
     .eq("id", id)
     .eq("owner_id", user.id)
     .maybeSingle();
@@ -92,12 +95,19 @@ export async function PATCH(req: Request, { params }: Params) {
     patch.seo = merged;
   }
 
+  if (parsed.data.theme) {
+    const currentTheme =
+      project.theme && typeof project.theme === "object" ? (project.theme as Record<string, unknown>) : {};
+    const merged = themeSchema.parse({ ...currentTheme, ...parsed.data.theme });
+    patch.theme = merged;
+  }
+
   const { data: updated, error } = await supabase
     .from("projects")
     .update(patch)
     .eq("id", id)
     .eq("owner_id", user.id)
-    .select("id, subdomain, seo, updated_at")
+    .select("id, subdomain, seo, theme, updated_at")
     .single();
 
   if (error || !updated) {
@@ -115,6 +125,8 @@ export async function PATCH(req: Request, { params }: Params) {
 
   logCreate("website.settings_saved", { userId: user.id, projectId: id });
 
+  await recalculateReadinessForProject(supabase, id);
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
   const publicPath = updated.subdomain ? `/sites/${updated.subdomain}` : null;
 
@@ -122,7 +134,6 @@ export async function PATCH(req: Request, { params }: Params) {
     project: updated,
     httpsUrl: publicPath ? (appUrl ? `${appUrl}${publicPath}` : publicPath) : null,
     publicPath,
-    plannedKebuAfrica: updated.subdomain ? `${updated.subdomain}.kebu.africa` : null,
-    message: "Settings saved. Publish again to update your live site SEO.",
+    message: "Settings saved. Publish again to update your live site.",
   });
 }

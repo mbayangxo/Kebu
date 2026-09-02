@@ -32,6 +32,7 @@ export default async function PublicSiteSubPage({ params }: Params) {
       definition={deployment.definition}
       subdomain={deployment.subdomain}
       pageSlug={pageSlug}
+      projectId={deployment.projectId}
     />
   );
 }

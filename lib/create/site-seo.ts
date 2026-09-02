@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { siteCommerceSchema } from "./site-commerce";
 
 const imageUrl = z.union([z.literal(""), z.string().trim().url().max(500)]);
 
@@ -10,6 +11,7 @@ export const siteSeoSchema = z.object({
   ogTitle: z.string().trim().max(120).default(""),
   keywords: z.string().trim().max(240).default(""),
   noIndex: z.boolean().optional().default(false),
+  commerce: siteCommerceSchema.optional(),
 });
 
 export type SiteSeo = z.infer<typeof siteSeoSchema>;

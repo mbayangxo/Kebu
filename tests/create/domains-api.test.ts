@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const requireUser = vi.fn();
 const verifyDomainPointsToKebu = vi.fn();
@@ -204,6 +204,9 @@ function mockSupabaseGet(domains: DomainRow[], subdomain = "my-brand") {
               order: async () => ({ data: domains, error: null }),
             }),
           }),
+          update: () => ({
+            eq: async () => ({ error: null }),
+          }),
         };
       }
       return mockSupabaseForDomains({ domains, subdomain }).from(table);
@@ -212,9 +215,16 @@ function mockSupabaseGet(domains: DomainRow[], subdomain = "my-brand") {
 }
 
 describe("Custom domains API", () => {
+  const prevAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+
   beforeEach(() => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://alkebulan-platform.vercel.app";
     requireUser.mockReset();
     verifyDomainPointsToKebu.mockReset();
+  });
+
+  afterAll(() => {
+    process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
   });
 
   it("GET rejects logged-out users", async () => {
@@ -246,7 +256,7 @@ describe("Custom domains API", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.domains).toHaveLength(1);
-    expect(body.instructions?.dnsTarget).toBe("my-brand.kebu.africa");
+    expect(body.instructions?.dnsTarget).toBe("cname.vercel-dns.com");
   });
 
   it("POST rejects without subdomain on project", async () => {
@@ -315,7 +325,7 @@ describe("Custom domains API", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.domain.hostname).toBe("mybrand.com");
-    expect(body.instructions.dnsTarget).toBe("my-brand.kebu.africa");
+    expect(body.instructions.dnsTarget).toBe("cname.vercel-dns.com");
   });
 
   it("DELETE rejects logged-out users", async () => {

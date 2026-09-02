@@ -554,10 +554,10 @@ export default function BuildPage() {
                 style={{ background: "#FF5500", color: "#0A0A0A" }}>
                 Register a business →
               </Link>
-              <Link href="/ka-score"
+              <Link href="/account"
                 className="inline-flex items-center gap-2 font-semibold text-sm uppercase tracking-[0.08em] px-8 py-4 rounded-full transition-all"
                 style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(253,250,244,0.7)" }}>
-                View Kebu Score
+                My business hub
               </Link>
             </div>
 

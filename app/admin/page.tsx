@@ -37,7 +37,13 @@ export default function AdminPage() {
         <div className="max-w-5xl mx-auto">
           <p className="text-gold text-xs font-semibold uppercase tracking-widest mb-2">Internal</p>
           <h1 className="font-display text-3xl font-bold text-ivory">Data Admin</h1>
-          <p className="text-ivory/60 text-sm mt-1">Live counts from static data files. Refresh to update.</p>
+          <p className="text-ivory/60 text-sm mt-1">
+            Legacy static opportunity counts. For live platform ops use{" "}
+            <Link href="/admin/record" className="underline text-gold">
+              Kebu Record
+            </Link>
+            .
+          </p>
         </div>
       </div>
 

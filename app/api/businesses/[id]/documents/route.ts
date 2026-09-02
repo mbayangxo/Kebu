@@ -4,8 +4,11 @@ import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration"
 import {
   ALLOWED_DOCUMENT_MIMES,
   BUSINESS_DOCUMENTS_BUCKET,
+  GOVERNMENT_DOCUMENT_TYPES,
   MAX_DOCUMENT_BYTES,
   REQUIRED_REGISTRATION_DOCUMENT_TYPES,
+  UPLOADABLE_DOCUMENT_TYPES,
+  WEST_AFRICA_DOCUMENT_TYPES,
   sanitizeFileName,
   syncDocumentsUploadedStep,
   type RegistrationDocumentType,
@@ -21,6 +24,9 @@ const documentTypeSchema = z.enum([
   "business_plan",
   "address_proof",
   "registration_form",
+  "gov_rccm",
+  "gov_tax_certificate",
+  "ecowas_trade_packet",
   "other",
 ]);
 
@@ -101,6 +107,9 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json({
     documents: withUrls,
     required: REQUIRED_REGISTRATION_DOCUMENT_TYPES,
+    government: GOVERNMENT_DOCUMENT_TYPES,
+    westAfrica: WEST_AFRICA_DOCUMENT_TYPES,
+    uploadable: UPLOADABLE_DOCUMENT_TYPES,
     documentsStepComplete: sync.complete,
     uploadedTypes: sync.uploadedTypes,
   });

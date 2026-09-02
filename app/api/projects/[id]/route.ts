@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { computePublishState } from "@/lib/create/publish-state";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -60,11 +61,30 @@ export async function GET(_req: Request, { params }: Params) {
     sections = sectionRows ?? [];
   }
 
+  const { data: liveDeployment } = await supabase
+    .from("deployments")
+    .select("published_at, public_path")
+    .eq("project_id", id)
+    .eq("status", "live")
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const publishState = computePublishState({
+    projectUpdatedAt: project.updated_at,
+    pages: pages ?? [],
+    sections,
+    liveDeployment: liveDeployment
+      ? { published_at: liveDeployment.published_at, public_path: liveDeployment.public_path }
+      : null,
+  });
+
   const { owner_id: _, ...safeProject } = project;
   void _;
   return NextResponse.json({
     project: safeProject,
     pages: pages ?? [],
     sections,
+    publishState,
   });
 }

@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { AppShell } from "@/app/components/app-shell";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { RegistrationProgressTimeline } from "@/app/components/business/registration-progress-timeline";
 import { BusinessDocumentsPanel } from "@/app/components/business/business-documents-panel";
+import { BusinessStructureEditor } from "@/app/components/business/business-structure-editor";
+import { B2bProfileEditor } from "@/app/components/business/b2b-profile-editor";
+import { BusinessLogoEditor } from "@/app/components/business/business-logo-editor";
+import { EmailMarketingPanel } from "@/app/components/business/email-marketing-panel";
 import { KEBU } from "@/lib/kebu-brand";
 
 type Business = {
@@ -24,6 +29,7 @@ type Business = {
   registration_status: string;
   lifecycle_status: string;
   verification_level: number;
+  logo_url?: string | null;
 };
 
 type Readiness = {
@@ -121,6 +127,11 @@ export default function BusinessDashboardPage() {
     };
   }, [load]);
 
+  useEffect(() => {
+    if (!readiness || readiness.model_version === "business-readiness-v3" || recalcBusy) return;
+    void recalculate();
+  }, [readiness?.model_version]);
+
   async function recalculate() {
     if (recalcBusy) return;
     setRecalcBusy(true);
@@ -145,22 +156,13 @@ export default function BusinessDashboardPage() {
   }
 
   const structureLabel = business?.legal_structure?.replace(/_/g, " ") ?? "—";
+  const canEditStructure =
+    Boolean(business) &&
+    (role === "founder" || role === "administrator") &&
+    ["draft", "preparing", "ready_to_submit"].includes(business?.registration_status ?? "");
 
   return (
-    <div className="min-h-screen" style={{ background: KEBU.cream, color: KEBU.black }}>
-      <header className="sticky top-0 z-40" style={{ background: KEBU.black }}>
-        <div
-          className="h-[3px] w-full"
-          style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
-        />
-        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/business" className="flex items-center gap-2 text-white text-sm">
-            <KebuMark size={28} />
-            <span className="font-bold tracking-[0.12em]">← Businesses</span>
-          </Link>
-        </div>
-      </header>
-
+    <AppShell title={business?.legal_name ?? "Kebu Business"}>
       <main className="max-w-3xl mx-auto px-5 py-10">
         {loading ? (
           <p className="text-sm" style={{ color: KEBU.muted }}>
@@ -183,8 +185,11 @@ export default function BusinessDashboardPage() {
               className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3"
               style={{ color: KEBU.orange }}
             >
-              Business dashboard · registration
+              Founder portal · Kebu Business
             </p>
+            <Link href="/business" className="text-xs font-bold underline mb-4 inline-block" style={{ color: KEBU.orange }}>
+              ← All businesses
+            </Link>
             <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
               {business.legal_name}
             </h1>
@@ -199,7 +204,11 @@ export default function BusinessDashboardPage() {
               <p className="font-mono text-lg sm:text-xl" style={{ color: KEBU.orange }}>
                 {business.public_kebu_id}
               </p>
-              <p className="text-xs text-white/40 mt-3">
+              <p className="text-xs text-white/50 mt-3 leading-relaxed">
+                Your permanent business identifier inside Kebu — similar to an EIN in the United States. Use it across
+                sites, registration, and trade readiness.
+              </p>
+              <p className="text-xs text-white/40 mt-2">
                 {business.country_code}
                 {business.region ? ` · ${business.region}` : ""} · {structureLabel} ·{" "}
                 {business.registration_status.replace(/_/g, " ")}
@@ -221,7 +230,8 @@ export default function BusinessDashboardPage() {
               >
                 <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Business Readiness</h2>
                 <p className="text-[10px] mb-4 leading-relaxed" style={{ color: KEBU.faint }}>
-                  Profile completion score for registration — not the full Kebu Score (store, orders, and verified activity come later).
+                  Honest prep score — profile alone cannot reach 100. Upload gov documents, publish your site, and
+                  generate your Kebu record to raise it. Not the full Kebu Score (operations data comes later).
                 </p>
                 {readiness ? (
                   <>
@@ -247,11 +257,21 @@ export default function BusinessDashboardPage() {
                         </ul>
                       </div>
                     )}
+                    {readiness.limiting_factors?.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1">Holding you back</p>
+                        <ul className="text-xs space-y-1" style={{ color: KEBU.muted }}>
+                          {readiness.limiting_factors.slice(0, 5).map((f) => (
+                            <li key={f}>• {f}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     {readiness.missing_items?.length > 0 && (
                       <div className="mb-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1">Missing / next</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1">Next actions</p>
                         <ul className="text-xs space-y-1" style={{ color: KEBU.muted }}>
-                          {readiness.missing_items.slice(0, 6).map((f) => (
+                          {readiness.missing_items.slice(0, 8).map((f) => (
                             <li key={f}>• {f}</li>
                           ))}
                         </ul>
@@ -302,10 +322,61 @@ export default function BusinessDashboardPage() {
               </p>
               <BusinessDocumentsPanel
                 businessId={business.id}
+                publicKebuId={business.public_kebu_id}
                 canEdit={role === "founder" || role === "administrator"}
                 onProgressChange={() => void load()}
               />
             </section>
+
+            <section
+              className="rounded-2xl p-5 mb-6"
+              style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
+            >
+              <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Legal structure</h2>
+              <p className="text-[10px] mb-4 leading-relaxed" style={{ color: KEBU.faint }}>
+                Current: <strong>{structureLabel}</strong>. Pick the structure that matches how you work — you can
+                update it on your Kebu ID before government submission.
+              </p>
+              {business ? (
+                <BusinessStructureEditor
+                  businessId={business.id}
+                  countryCode={business.country_code}
+                  currentStructure={business.legal_structure}
+                  canEdit={canEditStructure}
+                  onUpdated={(code) => {
+                    setBusiness((prev) => (prev ? { ...prev, legal_structure: code } : prev));
+                    void load();
+                  }}
+                />
+              ) : null}
+            </section>
+
+            {(role === "founder" || role === "administrator") && (
+              <section className="mb-6">
+                <BusinessLogoEditor
+                  businessId={business.id}
+                  logoUrl={business.logo_url ?? null}
+                  businessName={business.trading_name || business.legal_name}
+                  onUpdated={(url) => setBusiness((prev) => (prev ? { ...prev, logo_url: url } : prev))}
+                />
+              </section>
+            )}
+
+            {(role === "founder" || role === "administrator" || role === "store_manager") && (
+              <section
+                className="rounded-2xl p-5 mb-6"
+                style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
+              >
+                <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Email & campaigns</h2>
+                <EmailMarketingPanel businessId={business.id} />
+              </section>
+            )}
+
+            {(role === "founder" || role === "administrator" || role === "store_manager") && (
+              <section className="mb-6">
+                <B2bProfileEditor businessId={business.id} />
+              </section>
+            )}
 
             <dl
               className="grid sm:grid-cols-2 gap-4 rounded-2xl p-5 mb-6"
@@ -387,7 +458,11 @@ export default function BusinessDashboardPage() {
                   Store
                 </dt>
                 <dd className="mt-1 text-sm" style={{ color: KEBU.muted }}>
-                  Not created yet (commerce is a later slice)
+                  B2C: add products in{" "}
+                  <Link href="/create/sites" className="underline font-semibold" style={{ color: KEBU.orange }}>
+                    Kebu Builder
+                  </Link>
+                  . Checkout & payouts coming next.
                 </dd>
               </div>
               <div className="sm:col-span-2">
@@ -455,6 +530,6 @@ export default function BusinessDashboardPage() {
           </>
         )}
       </main>
-    </div>
+    </AppShell>
   );
 }

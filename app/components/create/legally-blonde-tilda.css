@@ -1,0 +1,117 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+
+@font-face {
+  font-family: "Steelfish";
+  src: url("https://static.tildacdn.com/tild3866-3934-4138-b733-626161376238/SteelfishRg-Bold.woff") format("woff");
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+.lb-page {
+  margin: 0;
+  background: #fff;
+  color: #111;
+  overflow-x: hidden;
+}
+
+.lb-artboard {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lb-layer {
+  pointer-events: none;
+  user-select: none;
+}
+
+.lb-layer img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.lb-shape {
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.lb-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100005;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  transition: opacity 0.8s ease;
+}
+
+.lb-splash.lb-splash--hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lb-splash .lb-artboard {
+  height: 700px;
+  width: 100%;
+}
+
+.lb-scroll-scene {
+  position: relative;
+  z-index: 10;
+}
+
+.lb-scroll-pin {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.lb-scroll-pin .lb-artboard {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lb-text-steelfish {
+  font-family: "Steelfish", Arial, sans-serif;
+  font-weight: 600;
+  line-height: 1.55;
+  color: #e9006b;
+  white-space: pre-wrap;
+}
+
+/* Logo spin origin — Tilda centers via left calc, animation adds rotation. */
+.lb-hero-logo {
+  transform-origin: center center;
+}
+
+@media (max-width: 1199px) {
+  .lb-artboard {
+    transform: scale(calc(100vw / 1200));
+    transform-origin: top center;
+  }
+}
+
+.lb-page--viewport {
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.lb-viewport-hero {
+  min-height: min(100vh, 900px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-splash,
+  .lb-layer {
+    animation: none !important;
+    transition: none !important;
+  }
+}

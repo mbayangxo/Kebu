@@ -42,6 +42,7 @@ export function kebuAfricaSiteUrl(subdomain: string | null | undefined): string 
   return host ? `https://${host}` : null;
 }
 
+/** Human label for site address in product UI — live path, not planned kebu.africa. */
 export function formatSiteAddressLabel(subdomain: string | null | undefined): string | null {
-  return plannedKebuAfricaHost(subdomain);
+  return kebuSitePreviewPath(subdomain);
 }

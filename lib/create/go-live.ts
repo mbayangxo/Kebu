@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildSnapshotFromDb } from "@/lib/create/persist-site";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
-import { kebuAfricaSiteUrl } from "@/lib/create/site-urls";
+import { liveSiteUrl } from "@/lib/create/site-urls";
 
 /**
  * Push a project's current DB snapshot to a live public deployment.
@@ -14,7 +14,7 @@ export async function goLiveWebsiteProject(opts: {
   subdomain: string;
   businessId?: string | null;
 }): Promise<
-  | { ok: true; publicPath: string; kebuAfricaUrl: string; liveUrl: string }
+  | { ok: true; publicPath: string; liveUrl: string; plannedKebuAfricaUrl: string | null }
   | { ok: false; error: string; detail?: string }
 > {
   const { supabase, userId, projectId, subdomain, businessId } = opts;
@@ -46,6 +46,7 @@ export async function goLiveWebsiteProject(opts: {
   }
 
   const publicPath = `/sites/${normalized}`;
+  const publishedAt = new Date().toISOString();
   const { data: deployment, error: depErr } = await supabase
     .from("deployments")
     .insert({
@@ -55,6 +56,7 @@ export async function goLiveWebsiteProject(opts: {
       status: "live",
       published_by: userId,
       public_path: publicPath,
+      published_at: publishedAt,
     })
     .select("id")
     .single();
@@ -74,14 +76,17 @@ export async function goLiveWebsiteProject(opts: {
     .update({
       status: "published",
       subdomain: normalized,
-      published_at: new Date().toISOString(),
+      published_at: publishedAt,
+      updated_at: publishedAt,
     })
     .eq("id", projectId);
 
-  const kebuAfricaUrl = kebuAfricaSiteUrl(normalized) ?? `https://${normalized}.kebu.africa`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
+  const liveUrl = liveSiteUrl(normalized) ?? (appUrl ? `${appUrl}${publicPath}` : publicPath);
+  const plannedKebuAfricaUrl = `https://${normalized}.kebu.africa`;
+
   if (businessId) {
-    const appBase = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
-    const website = appBase ? `${appBase}${publicPath}` : publicPath;
+    const website = liveUrl.startsWith("http") ? liveUrl : appUrl ? `${appUrl}${publicPath}` : publicPath;
     await supabase.from("businesses").update({ website }).eq("id", businessId);
   }
 
@@ -101,10 +106,7 @@ export async function goLiveWebsiteProject(opts: {
     created_by: userId,
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
-  const liveUrl = appUrl ? `${appUrl}${publicPath}` : publicPath;
-
-  return { ok: true, publicPath, kebuAfricaUrl, liveUrl };
+  return { ok: true, publicPath, liveUrl, plannedKebuAfricaUrl };
 }
 
 /** True when project was seeded as owner May Lecor / K-Direction portfolio. */

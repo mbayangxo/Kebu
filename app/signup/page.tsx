@@ -46,7 +46,7 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: authCallbackUrl("/onboarding"),
+        emailRedirectTo: authCallbackUrl("/welcome"),
       },
     });
     if (error) {

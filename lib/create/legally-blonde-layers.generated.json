@@ -1,0 +1,407 @@
+hero elems 8 scroll elems 28
+ight": 700,
+    "elements": [
+      {
+        "id": "1703760479272",
+        "type": "shape",
+        "url": "https://static.tildacdn.com/tild3639-6261-4261-b361-646339346430/_1.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": null
+      },
+      {
+        "id": "1703760485488",
+        "type": "shape",
+        "url": "https://static.tildacdn.com/tild3639-6261-4261-b361-646339346430/_1.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": null
+      },
+      {
+        "id": "1702905018850",
+        "type": "shape",
+        "url": "https://static.tildacdn.com/tild3639-6261-4261-b361-646339346430/_1.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": null
+      },
+      {
+        "id": "1702905074759",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3333-3236-4631-a431-346338396264/Group_546_1.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'ti':0,'ea':'0','dt':0},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':14,'ti':1000,'ea':'0','dt':0},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'ti':1000,'ea':'0','dt':0}]"
+      },
+      {
+        "id": "1702905074752",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3466-3462-4430-a336-313662643530/Group_555.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'ti':0,'ea':'0','dt':0},{'mx':0,'my':16,'sx':1,'sy':1,'op':1,'ro':0,'ti':1000,'ea':'0','dt':0},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'ti':1000,'ea':'0','dt':0}]"
+      },
+      {
+        "id": "1702905074754",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6538-3665-4232-b661-376339363635/Group_556.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'ti':0,'ea':'0','dt':0},{'mx':0,'my':-16,'sx':1,'sy':1,'op':1,'ro':0,'ti':1000,'ea':'0','dt':0},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'ti':1000,'ea':'0','dt':0}]"
+      },
+      {
+        "id": "1702905074758",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6339-6666-4433-b930-346262333339/Group_523_1.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": null
+      },
+      {
+        "id": "1702905074756",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6237-6230-4862-b263-393533656538/Group_557.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'ti':0,'ea':'0','dt':0},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':360,'ti':15000,'ea':'0','dt':0}]"
+      }
+    ]
+  },
+  "scroll": {
+    "artboardHeight": 1645,
+    "elements": [
+      {
+        "id": "1701605895300",
+        "type": "shape",
+        "url": "https://static.tildacdn.com/tild6435-6337-4361-b532-306137316435/MacBook_Pro_16__-_60.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701607536305",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6334-6438-4030-b535-366239393732/Rectangle.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':-230,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':-230,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701607704847",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6236-6331-4265-a131-353866623566/clouds2.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':50,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':50,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701607770176",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3935-3931-4332-b766-643030643236/Group_352.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701607770153",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3437-3737-4132-b361-646434646331/Vector_343.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701608354489",
+        "type": "text",
+        "url": null,
+        "text": "В ЗАКОНЕ",
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1702130471850",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3463-3531-4735-b332-323537653136/Rectangle-1.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':-230,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':-230,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701607704845",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3732-6265-4535-a539-376339636230/clouds2_1.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':50,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':50,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701717014106",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6236-6331-4265-a131-353866623566/clouds2.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':50,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':50,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1702050415366",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3538-3362-4431-b431-373663306261/Group_569.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1702475877754",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6565-3265-4261-a332-653661656666/Group_529.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701609097828",
+        "type": "text",
+        "url": null,
+        "text": "RU",
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701609050895",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3063-6230-4137-a233-626364346663/photo.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701609118290",
+        "type": "text",
+        "url": null,
+        "text": "|",
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701609130988",
+        "type": "text",
+        "url": null,
+        "text": "ENG",
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1702475877743",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3737-3933-4833-a537-633537663162/photo.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1702488630256",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6530-3263-4166-b731-396239343436/Vector_345.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1702488630260",
+        "type": "text",
+        "url": null,
+        "text": "преобразилась в умную",
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701607770163",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6461-6635-4162-a434-386635306334/Vector_346.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701609484463",
+        "type": "text",
+        "url": null,
+        "text": "разрушив стереотипы",
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1704884127948",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3463-3663-4362-b933-613236366534/gray-right.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1706779394655",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3764-3465-4263-b131-663538656531/ribbon-black.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1702488630250",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3631-6161-4238-b963-396265376561/Vector_345-1.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1702488630254",
+        "type": "text",
+        "url": null,
+        "text": "И УСПЕШНУЮ ЮРИСТКУ,",
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-1080,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1706779988455",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild6634-6665-4166-a534-613363306662/designnominees-ribbo.png",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0','fi':'0'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'},{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701609451846",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3933-3661-4632-b363-626262626333/Vector_345.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701609451862",
+        "type": "text",
+        "url": null,
+        "text": "преобразилась в умную и успешную юристку,",
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':1000,'dd':'0','fi':'fixed'}]"
+      },
+      {
+        "id": "1701607770172",
+        "type": "image",
+        "url": "https://static.tildacdn.com/tild3661-3432-4361-b730-336331336164/_.svg",
+        "text": null,
+        "style": null,
+        "atomStyle": null,
+        "animEvent": null,
+        "animLoop": null,
+        "animOpts": "[{'mx':0,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'0','dd':'0'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'},{'mx':-900,'my':0,'sx':1,'sy':1,'op':1,'ro':0,'di':'1000','dd':'0','fi':'fixed'}]"
+      }
+    ]
+  }
+}

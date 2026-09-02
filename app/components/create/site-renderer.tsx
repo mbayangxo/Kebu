@@ -1,5 +1,19 @@
+"use client";
+
+import type { CSSProperties, ReactNode } from "react";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { VideoEmbed } from "@/app/components/video-embed";
+import { NewsletterSignup } from "@/app/components/create/newsletter-signup";
+import {
+  isDirectAudioUrl,
+  isDirectVideoUrl,
+} from "@/lib/create/site-asset-upload";
+import {
+  jokoCheckoutAvailable,
+  resolveMerchantWhatsApp,
+  whatsAppOrderHref,
+} from "@/lib/create/site-commerce";
+import type { SiteSeo } from "@/lib/create/site-seo";
 import {
   MaylecorHomeLayout,
   MaylecorMusicLayout,
@@ -10,6 +24,8 @@ import {
   LegallyBlondeHeroLayout,
   type LegallyBlondeHeroProps,
 } from "@/app/components/create/legally-blonde-layout";
+import { MaylecorMotionChrome } from "@/app/components/create/maylecor-motion-chrome";
+import { MaylecorSiteFooter } from "@/app/components/create/maylecor-site-footer";
 
 function resolvePage(definition: WebsiteDefinition, pageSlug?: string) {
   if (!definition.pages.length) return null;
@@ -36,13 +52,97 @@ function sectionAnchor(section: { id?: string; type: string }): string | undefin
       return "testimonials";
     case "faq":
       return "faq";
+    case "products":
+      return "products";
     case "contact":
       return "contact";
+    case "newsletter":
+      return "newsletter";
     case "whatsapp":
       return "whatsapp";
     default:
       return undefined;
   }
+}
+
+export type SiteRendererEditor = {
+  selectedSectionId?: string | null;
+  inlineEdit?: boolean;
+  onSelectSection?: (sectionId: string) => void;
+  onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
+  onMoveFreeTextBlock?: (sectionId: string, blockId: string, x: number, y: number) => void;
+};
+
+function wrapEditorSection(
+  sectionId: string | undefined,
+  editor: SiteRendererEditor | undefined,
+  children: ReactNode,
+): ReactNode {
+  if (!editor || !sectionId) return children;
+  const selected = editor.selectedSectionId === sectionId;
+  return (
+    <div
+      data-section-id={sectionId}
+      onClick={(e) => {
+        e.stopPropagation();
+        editor.onSelectSection?.(sectionId);
+      }}
+      onKeyDown={() => {}}
+      role="button"
+      tabIndex={0}
+      className={`relative ${selected ? "ring-2 ring-[#FF5500] ring-offset-2 z-10" : "hover:ring-1 hover:ring-[#FF5500]/50"}`}
+      style={{ cursor: "pointer" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function EditableText({
+  value,
+  tag: Tag = "span",
+  className,
+  style,
+  editor,
+  onChange,
+}: {
+  value: string;
+  tag?: "span" | "h1" | "h2" | "p";
+  className?: string;
+  style?: CSSProperties;
+  editor?: SiteRendererEditor;
+  onChange?: (next: string) => void;
+}) {
+  if (!editor?.inlineEdit || !onChange) {
+    return (
+      <Tag className={className} style={style}>
+        {value}
+      </Tag>
+    );
+  }
+  return (
+    <Tag
+      className={`${className ?? ""} outline-none focus:ring-1 focus:ring-[#FF5500]/60 rounded-sm`}
+      style={style}
+      contentEditable
+      suppressContentEditableWarning
+      onBlur={(e) => onChange(e.currentTarget.textContent ?? "")}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {value}
+    </Tag>
+  );
+}
+
+function findMotionHeroProps(definition: WebsiteDefinition): LegallyBlondeHeroProps | null {
+  for (const p of definition.pages) {
+    for (const s of p.sections) {
+      if (s.type === "legally-blonde-hero") {
+        return s.props as LegallyBlondeHeroProps;
+      }
+    }
+  }
+  return null;
 }
 
 /** Public/preview renderer — approved section types only. */
@@ -51,14 +151,22 @@ export function SiteRenderer({
   mode = "live",
   pageSlug,
   siteBase = "",
+  projectId,
+  editor,
 }: {
   definition: WebsiteDefinition;
   mode?: "live" | "preview";
   pageSlug?: string;
   /** e.g. /sites/maylecor for multi-page links */
   siteBase?: string;
+  /** Required for live newsletter capture */
+  projectId?: string;
+  editor?: SiteRendererEditor;
 }) {
   const theme = definition.theme;
+  const merchantPhone = resolveMerchantWhatsApp(definition, definition.seo as SiteSeo | undefined);
+  const preferJoko = Boolean((definition.seo as SiteSeo | undefined)?.commerce?.preferJokoCheckout);
+  const jokoLive = jokoCheckoutAvailable();
   const page = resolvePage(definition, pageSlug);
   if (!page) return null;
 
@@ -66,24 +174,59 @@ export function SiteRenderer({
     s.type === "maylecor-home" || s.type === "maylecor-music",
   );
   const legallyBlondeOnly = page.sections.every((s) => s.type === "legally-blonde-hero");
+  const motionHero = findMotionHeroProps(definition);
+  const motionSite = motionHero !== null;
+  const activeSlug = pageSlug && pageSlug !== "home" ? pageSlug : "home";
+  const viewportHome =
+    motionSite && activeSlug === "home" && motionHero?.scrollMode === "viewport";
 
   const shellStyle = maylecorOnly
     ? { background: "#000", color: "#fff", minHeight: mode === "preview" ? "100%" : "100vh" }
     : legallyBlondeOnly
       ? { background: "#fff", color: "#111", minHeight: mode === "preview" ? "100%" : "100vh" }
-      : {
-        background: theme.background,
-        color: theme.text,
-        minHeight: mode === "preview" ? "100%" : "100vh",
-        fontFamily: theme.fontBody,
-      };
+      : motionSite && activeSlug !== "home"
+        ? { background: "#0a0a0a", color: "#fff", minHeight: mode === "preview" ? "100%" : "100vh" }
+        : viewportHome
+          ? {
+              background: "#fff",
+              color: "#111",
+              height: mode === "preview" ? "100%" : "100vh",
+              overflow: "hidden",
+            }
+        : {
+          background: theme.background,
+          color: theme.text,
+          minHeight: mode === "preview" ? "100%" : "100vh",
+          fontFamily: theme.fontBody,
+        };
 
   return (
     <div style={shellStyle}>
+      {motionSite && motionHero ? (
+        <MaylecorMotionChrome
+          siteBase={siteBase}
+          brandLabel={motionHero.brandLabel ?? motionHero.title}
+          titleLogo={motionHero.titleLogo}
+          currentSlug={activeSlug}
+          accentColor={motionHero.accentColor}
+        />
+      ) : null}
+      {motionSite && activeSlug !== "home" ? (
+        <div className="sticky top-[52px] z-[100009] border-b border-white/10 bg-black/90 px-4 py-2 backdrop-blur-md">
+          <a
+            href={siteBase || "/"}
+            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/80 hover:text-white"
+          >
+            ← Back
+          </a>
+        </div>
+      ) : null}
       {page.sections.map((section, idx) => {
         if (section.props && (section.props as { hidden?: boolean }).hidden) return null;
         const key = section.id ?? `${section.type}-${idx}`;
+        const sectionId = section.id ?? key;
         const anchor = sectionAnchor(section);
+        const wrap = (node: ReactNode) => wrapEditorSection(sectionId, editor, node);
         switch (section.type) {
           case "maylecor-home":
             return (
@@ -136,7 +279,7 @@ export function SiteRenderer({
               align?: string;
               background?: string;
             };
-            return (
+            return wrap(
               <section
                 key={key}
                 className="px-5 py-16 sm:py-24"
@@ -146,14 +289,22 @@ export function SiteRenderer({
                   textAlign: p.align === "left" ? "left" : "center",
                 }}
               >
-                <h1
+                <EditableText
+                  tag="h1"
                   className="text-3xl sm:text-5xl font-bold max-w-3xl mx-auto"
                   style={{ fontFamily: theme.fontDisplay }}
-                >
-                  {p.heading}
-                </h1>
+                  value={p.heading}
+                  editor={editor}
+                  onChange={(heading) => editor?.onPatchSection?.(sectionId, { heading })}
+                />
                 {p.subheading && (
-                  <p className="mt-4 text-base sm:text-lg opacity-80 max-w-2xl mx-auto">{p.subheading}</p>
+                  <EditableText
+                    tag="p"
+                    className="mt-4 text-base sm:text-lg opacity-80 max-w-2xl mx-auto"
+                    value={p.subheading}
+                    editor={editor}
+                    onChange={(subheading) => editor?.onPatchSection?.(sectionId, { subheading })}
+                  />
                 )}
                 {p.buttonLabel && (
                   <a
@@ -164,20 +315,31 @@ export function SiteRenderer({
                     {p.buttonLabel}
                   </a>
                 )}
-              </section>
+              </section>,
             );
           }
           case "text": {
             const p = section.props as { heading?: string; body: string };
-            return (
+            return wrap(
               <section key={key} id={anchor} className="px-5 py-12 max-w-3xl mx-auto scroll-mt-20">
                 {p.heading && (
-                  <h2 className="text-2xl font-bold mb-3" style={{ fontFamily: theme.fontDisplay }}>
-                    {p.heading}
-                  </h2>
+                  <EditableText
+                    tag="h2"
+                    className="text-2xl font-bold mb-3"
+                    style={{ fontFamily: theme.fontDisplay }}
+                    value={p.heading}
+                    editor={editor}
+                    onChange={(heading) => editor?.onPatchSection?.(sectionId, { heading })}
+                  />
                 )}
-                <p className="leading-relaxed opacity-80 whitespace-pre-wrap">{p.body}</p>
-              </section>
+                <EditableText
+                  tag="p"
+                  className="leading-relaxed opacity-80 whitespace-pre-wrap"
+                  value={p.body}
+                  editor={editor}
+                  onChange={(body) => editor?.onPatchSection?.(sectionId, { body })}
+                />
+              </section>,
             );
           }
           case "features": {
@@ -230,6 +392,92 @@ export function SiteRenderer({
               </section>
             );
           }
+          case "products": {
+            const p = section.props as {
+              heading?: string;
+              items?: {
+                name: string;
+                description?: string;
+                priceLabel?: string;
+                imageUrl?: string;
+                whatsappMessage?: string;
+              }[];
+            };
+            return wrap(
+              <section key={key} id={anchor} className="px-5 py-12 max-w-5xl mx-auto scroll-mt-20">
+                <h2 className="text-2xl font-bold mb-6" style={{ fontFamily: theme.fontDisplay }}>
+                  {p.heading || "Products"}
+                </h2>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {(p.items ?? []).map((item) => {
+                    const message = item.whatsappMessage || `Hi — I want to order: ${item.name}`;
+                    const waHref = whatsAppOrderHref(merchantPhone, message);
+                    return (
+                      <article
+                        key={item.name}
+                        className="rounded-2xl overflow-hidden"
+                        style={{ background: "#fff", border: "1px solid #E8E6DF" }}
+                      >
+                        {item.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="w-full h-40 object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="w-full h-40 flex items-center justify-center text-sm opacity-40 bg-black/5">
+                            No image
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <h3 className="font-semibold">{item.name}</h3>
+                          {item.priceLabel ? (
+                            <p className="text-sm font-bold mt-1" style={{ color: theme.accent }}>
+                              {item.priceLabel}
+                            </p>
+                          ) : null}
+                          {item.description ? (
+                            <p className="text-sm opacity-70 mt-2 line-clamp-3">{item.description}</p>
+                          ) : null}
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <a
+                              href={waHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block rounded-full px-4 py-2 text-xs font-bold"
+                              style={{ background: "#25D366", color: "#fff" }}
+                            >
+                              Order on WhatsApp
+                            </a>
+                            {preferJoko && jokoLive ? (
+                              <span
+                                className="inline-block rounded-full px-4 py-2 text-xs font-bold opacity-60"
+                                style={{ background: theme.accent, color: theme.background }}
+                                title="JOKO product checkout — coming in next Kebu slice"
+                              >
+                                JOKO (soon)
+                              </span>
+                            ) : null}
+                          </div>
+                          {!merchantPhone ? (
+                            <p className="text-[10px] mt-2 opacity-50">
+                              Add your WhatsApp number in Shop settings so orders reach you.
+                            </p>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+                {(p.items ?? []).length === 0 ? (
+                  <p className="text-sm opacity-60">Add products in the Shop tab of your editor.</p>
+                ) : null}
+              </section>,
+            );
+          }
           case "contact": {
             const p = section.props as { heading?: string; email?: string; phone?: string; address?: string };
             return (
@@ -242,6 +490,25 @@ export function SiteRenderer({
                   {!p.email && !p.phone && !p.address && <li>Contact details coming soon.</li>}
                 </ul>
               </section>
+            );
+          }
+          case "newsletter": {
+            const p = section.props as {
+              heading?: string;
+              subheading?: string;
+              buttonLabel?: string;
+              successMessage?: string;
+            };
+            return (
+              <NewsletterSignup
+                key={key}
+                projectId={mode === "live" ? projectId : undefined}
+                preview={mode === "preview"}
+                heading={p.heading || "Stay in the loop"}
+                subheading={p.subheading || "Get updates by email."}
+                buttonLabel={p.buttonLabel || "Subscribe"}
+                successMessage={p.successMessage || "Thanks — you're on the list."}
+              />
             );
           }
           case "whatsapp": {
@@ -296,26 +563,40 @@ export function SiteRenderer({
           case "video": {
             const p = section.props as { heading?: string; src: string; title?: string; caption?: string };
             if (!p.src) return null;
-            return (
+            const direct = isDirectVideoUrl(p.src);
+            return wrap(
               <section key={key} id={anchor} className="px-5 py-12 max-w-4xl mx-auto scroll-mt-20">
                 {p.heading && (
                   <h2 className="text-2xl font-bold mb-6" style={{ fontFamily: theme.fontDisplay }}>
                     {p.heading}
                   </h2>
                 )}
-                <VideoEmbed src={p.src} title={p.title} caption={p.caption} />
-              </section>
+                {direct ? (
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <video
+                    controls
+                    preload="metadata"
+                    playsInline
+                    className="w-full rounded-2xl"
+                    src={p.src}
+                    title={p.title}
+                  />
+                ) : (
+                  <VideoEmbed src={p.src} title={p.title} caption={p.caption} />
+                )}
+                {direct && p.caption ? <p className="text-xs text-center mt-2 opacity-70">{p.caption}</p> : null}
+              </section>,
             );
           }
           case "audio": {
             const p = section.props as { heading?: string; src: string; title?: string; artist?: string };
             if (!p.src) return null;
             const src = p.src.trim();
-            const isMp3 = /\.mp3(\?|$)/i.test(src);
-            const spotifyEmbed = src.includes("open.spotify.com")
+            const isHosted = isDirectAudioUrl(src);
+            const spotifyEmbed = !isHosted && src.includes("open.spotify.com")
               ? src.replace("open.spotify.com/", "open.spotify.com/embed/")
               : null;
-            return (
+            return wrap(
               <section key={key} id={anchor} className="px-5 py-12 max-w-2xl mx-auto scroll-mt-20">
                 {p.heading && <h2 className="text-2xl font-bold mb-4">{p.heading}</h2>}
                 {(p.title || p.artist) && (
@@ -324,9 +605,9 @@ export function SiteRenderer({
                     {p.artist ? ` · ${p.artist}` : ""}
                   </p>
                 )}
-                {isMp3 ? (
+                {isHosted ? (
                   // eslint-disable-next-line jsx-a11y/media-has-caption
-                  <audio controls className="w-full" src={src} />
+                  <audio controls preload="metadata" className="w-full" src={src} />
                 ) : spotifyEmbed ? (
                   <iframe
                     src={spotifyEmbed}
@@ -346,7 +627,101 @@ export function SiteRenderer({
                     loading="lazy"
                   />
                 )}
-              </section>
+              </section>,
+            );
+          }
+          case "free-text": {
+            const p = section.props as {
+              heading?: string;
+              minHeight?: number;
+              backgroundImage?: string;
+              blocks?: {
+                id: string;
+                text: string;
+                x: number;
+                y: number;
+                width: number;
+                fontSize: "sm" | "md" | "lg" | "xl" | "hero";
+                align: "left" | "center" | "right";
+                color?: string;
+              }[];
+            };
+            const fontSizeMap = { sm: "0.875rem", md: "1rem", lg: "1.25rem", xl: "1.75rem", hero: "2.5rem" };
+            return wrap(
+              <section
+                key={key}
+                id={anchor}
+                className="relative w-full scroll-mt-20 overflow-hidden"
+                style={{
+                  minHeight: p.minHeight ?? 420,
+                  background: p.backgroundImage
+                    ? `center/cover no-repeat url(${p.backgroundImage})`
+                    : theme.background,
+                }}
+              >
+                {p.heading ? (
+                  <p className="absolute top-3 left-4 text-[10px] font-bold uppercase tracking-wider opacity-40 z-10">
+                    {p.heading}
+                  </p>
+                ) : null}
+                {(p.blocks ?? []).map((block) => (
+                  <div
+                    key={block.id}
+                    className="absolute px-2"
+                    style={{
+                      left: `${block.x}%`,
+                      top: `${block.y}%`,
+                      width: `${block.width}%`,
+                      textAlign: block.align,
+                      fontSize: fontSizeMap[block.fontSize] ?? fontSizeMap.md,
+                      color: block.color || theme.text,
+                      cursor: editor ? "move" : "default",
+                    }}
+                    onPointerDown={(e) => {
+                      if (!editor?.onMoveFreeTextBlock) return;
+                      e.stopPropagation();
+                      const parent = e.currentTarget.offsetParent as HTMLElement | null;
+                      if (!parent) return;
+                      const startX = e.clientX;
+                      const startY = e.clientY;
+                      const originX = block.x;
+                      const originY = block.y;
+                      let lastX = originX;
+                      let lastY = originY;
+                      const el = e.currentTarget;
+                      function onMove(ev: PointerEvent) {
+                        const rect = parent!.getBoundingClientRect();
+                        const dx = ((ev.clientX - startX) / rect.width) * 100;
+                        const dy = ((ev.clientY - startY) / rect.height) * 100;
+                        lastX = Math.min(95, Math.max(0, originX + dx));
+                        lastY = Math.min(95, Math.max(0, originY + dy));
+                        el.style.left = `${lastX}%`;
+                        el.style.top = `${lastY}%`;
+                      }
+                      function onUp() {
+                        window.removeEventListener("pointermove", onMove);
+                        window.removeEventListener("pointerup", onUp);
+                        editor?.onMoveFreeTextBlock?.(sectionId, block.id, lastX, lastY);
+                      }
+                      window.addEventListener("pointermove", onMove);
+                      window.addEventListener("pointerup", onUp);
+                    }}
+                  >
+                    <EditableText
+                      tag="p"
+                      className="leading-snug whitespace-pre-wrap"
+                      value={block.text}
+                      editor={editor}
+                      onChange={(text) => {
+                        const blocks = (p.blocks ?? []).map((b) =>
+                          b.id === block.id ? { ...b, text } : b,
+                        );
+                        editor?.onPatchSection?.(sectionId, { blocks });
+                      }}
+                    />
+                  </div>
+                ))}
+              </section>,
             );
           }
           case "map": {
@@ -435,6 +810,14 @@ export function SiteRenderer({
             return null;
         }
       })}
+      {motionSite && motionHero ? (
+        <MaylecorSiteFooter
+          brandLabel={motionHero.brandLabel ?? motionHero.title}
+          accentColor={motionHero.accentColor}
+          socialLinks={motionHero.socialLinks}
+          siteBase={siteBase}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { customDomainDnsTarget, buildDnsInstructions } from "@/lib/create/dns-target";
 import { verifyDomainPointsToKebu } from "@/lib/create/custom-domains";
+import { provisionCustomDomainOnVercel, vercelDomainAutoProvisionEnabled } from "@/lib/create/vercel-domains";
 
 export const dynamic = "force-dynamic";
 
@@ -43,14 +45,14 @@ export async function POST(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Domain not found." }, { status: 404 });
   }
 
-  const subdomain = project.subdomain;
+  const subdomain = project.subdomain ?? "";
+  const expected = customDomainDnsTarget(subdomain || "site");
 
-  const target = domain.dns_target ?? (subdomain ? `${subdomain}.kebu.africa` : "");
-  if (!target) {
-    return NextResponse.json({ error: "Project has no subdomain target." }, { status: 400 });
+  if (domain.dns_target !== expected) {
+    await supabase.from("site_domains").update({ dns_target: expected }).eq("id", domainId);
   }
 
-  const check = await verifyDomainPointsToKebu(domain.hostname, target);
+  const check = await verifyDomainPointsToKebu(domain.hostname);
   const now = new Date().toISOString();
 
   const { data: updated, error } = await supabase
@@ -77,10 +79,19 @@ export async function POST(_req: Request, { params }: Params) {
     hostname: domain.hostname,
   });
 
+  let sslNote: string | null = null;
+  if (check.ok) {
+    const vercel = await provisionCustomDomainOnVercel(domain.hostname);
+    sslNote = vercel.detail;
+  }
+
   return NextResponse.json({
     domain: updated,
     ok: check.ok,
     detail: check.detail,
     liveUrl: check.ok ? `https://www.${domain.hostname}` : null,
+    sslNote,
+    vercelAutoSsl: vercelDomainAutoProvisionEnabled(),
+    instructions: check.ok ? null : buildDnsInstructions(subdomain, domain.hostname),
   });
 }

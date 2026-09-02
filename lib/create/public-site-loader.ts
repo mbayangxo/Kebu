@@ -5,6 +5,7 @@ import { mergeSiteSeo, type SiteSeo } from "@/lib/create/site-seo";
 import { kebuSitePreviewPath, liveSiteUrl, plannedKebuAfricaHost } from "@/lib/create/site-urls";
 
 export type PublicDeployment = {
+  projectId: string;
   subdomain: string;
   publicPath: string;
   publishedAt: string | null;
@@ -89,6 +90,7 @@ export async function loadPublicDeployment(subdomain: string): Promise<PublicDep
     customDomainUrl ?? liveSiteUrl(data.subdomain) ?? path;
 
   return {
+    projectId: data.project_id,
     subdomain: data.subdomain,
     publicPath: data.public_path || path,
     publishedAt: data.published_at,

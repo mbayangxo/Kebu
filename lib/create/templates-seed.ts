@@ -1,6 +1,8 @@
 import type { WebsiteDefinition } from "./website-schema";
 import { defaultMaylecorHomeProps, defaultMaylecorMusicProps } from "./maylecor-defaults";
+import { defaultMaylecorKsendrProps } from "./maylecor-ksendr-defaults";
 import { defaultLegallyBlondeHeroProps } from "./legally-blonde-defaults";
+import { maylecorMotionSitePages } from "./maylecor-site-pages";
 import { buildCompleteSite, templateDefaultTheme } from "./template-builders";
 
 export type TemplateSeed = {
@@ -480,6 +482,33 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
             },
           ],
         },
+      ],
+    },
+  },
+  {
+    slug: "musician-maylecor-ksendr",
+    name: "May Lecor — ksendr motion layout (owner portfolio)",
+    category: "music",
+    description:
+      "May Lecor artist site — ksendrdesign.ru-style motion hero with May photos. Portfolio seed only.",
+    visibility: "owner_portfolio",
+    definition: {
+      schemaVersion: "website-v1",
+      title: "May Lecor",
+      theme: darkTheme("#E9006B"),
+      pages: [
+        {
+          slug: "home",
+          title: "Home",
+          sections: [
+            {
+              id: "maylecor-ksendr-1",
+              type: "legally-blonde-hero",
+              props: defaultMaylecorKsendrProps("MAY LECOR"),
+            },
+          ],
+        },
+        ...maylecorMotionSitePages("MAY LECOR").filter((p) => p.slug !== "home"),
       ],
     },
   },

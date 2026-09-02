@@ -23,6 +23,13 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
       return { heading: "FAQ", items: [{ question: "How do I start?", answer: "Contact us." }] };
     case "contact":
       return { heading: "Contact", email: "", phone: "", address: "" };
+    case "newsletter":
+      return {
+        heading: "Stay in the loop",
+        subheading: "Get updates, offers, and news by email.",
+        buttonLabel: "Subscribe",
+        successMessage: "Thanks — you're on the list.",
+      };
     case "whatsapp":
       return { label: "Chat on WhatsApp", phone: "+221770000000", message: "Hello" };
     case "footer":
@@ -35,6 +42,26 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
       return { heading: "Watch", src: "", title: "", caption: "" };
     case "audio":
       return { heading: "Listen", src: "", title: "", artist: "" };
+    case "products":
+      return { heading: "Shop", items: [] };
+    case "free-text":
+      return {
+        heading: "Custom layout",
+        minHeight: 420,
+        backgroundImage: "",
+        blocks: [
+          {
+            id: "text-1",
+            text: "Click to edit — drag to move",
+            x: 8,
+            y: 12,
+            width: 84,
+            fontSize: "lg",
+            align: "center",
+            color: "",
+          },
+        ],
+      };
     case "map":
       return { heading: "Find us", address: "Dakar, Senegal", latitude: 14.7167, longitude: -17.4677, zoom: 13 };
     case "events":

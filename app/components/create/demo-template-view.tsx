@@ -25,27 +25,26 @@ export function DemoTemplateView({
       <CreateShell
         step="preview"
         title="Template preview"
-        backHref="/create"
+        backHref="/create/templates"
         actions={
           <Link
             href={`/create/new?template=${slug}`}
-            className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider"
-            style={{ background: "#00C851", color: "#0F0D33" }}
+            className="rounded-full px-5 py-2 text-[10px] font-black uppercase tracking-wider"
+            style={{ background: "#FF5500", color: "#fff" }}
           >
-            Use this template
+            Start with this →
           </Link>
         }
       />
 
       <div
         className="border-b px-4 py-3 text-center sm:text-left sm:px-6"
-        style={{ background: "#12102a", borderColor: "rgba(255,255,255,0.08)", color: "#fff" }}
+        style={{ background: "#0A0A0A", borderColor: "rgba(255,85,0,0.3)", color: "#fff" }}
       >
-        <p className="text-[10px] font-semibold uppercase tracking-[0.25em]" style={{ color: "#00C851" }}>
-          Live demo · no database needed
+        <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: "#FF5500" }}>
+          Live preview · real layout & placeholder photos
         </p>
         <h1 className="mt-1 text-lg font-bold">{name}</h1>
-        <p className="text-sm text-white/60">{tagline}</p>
         {pages.length > 1 ? (
           <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
             {pages.map((p) => (
@@ -55,8 +54,8 @@ export function DemoTemplateView({
                 onClick={() => setPageSlug(p.slug)}
                 className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
                 style={{
-                  background: pageSlug === p.slug ? "#00C851" : "#1C1A45",
-                  color: pageSlug === p.slug ? "#0F0D33" : "#fff",
+                  background: pageSlug === p.slug ? "#FF5500" : "#1A1A1A",
+                  color: "#fff",
                 }}
               >
                 {p.title}

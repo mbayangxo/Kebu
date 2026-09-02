@@ -4,6 +4,7 @@ import { persistWebsiteDefinition } from "@/lib/create/persist-site";
 import { goLiveWebsiteProject } from "@/lib/create/go-live";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import type { CreateWebsiteBrief } from "@/lib/create/website-schema";
+import { upgradeMaylecorPortfolioProject } from "@/lib/create/upgrade-portfolio-maylecor";
 import { kebuAfricaSiteUrl, kebuSitePreviewPath } from "@/lib/create/site-urls";
 
 export type PortfolioSiteKey = "maylecor" | "kdirection";
@@ -21,7 +22,7 @@ export const PORTFOLIO_SITES: {
     key: "maylecor",
     title: "May Lecor",
     preferredSubdomain: "maylecor",
-    templateSlug: "musician-kdirection-artist",
+    templateSlug: "musician-maylecor-ksendr",
     category: "music",
     description: "portfolio:maylecor — May Lecor artist site on Kebu",
     countryCode: "SN",
@@ -147,6 +148,10 @@ export async function ensurePortfolioSitesForUser(opts: {
 
       if (!found.subdomain) {
         await supabase.from("projects").update({ subdomain }).eq("id", found.id);
+      }
+
+      if (site.key === "maylecor") {
+        await upgradeMaylecorPortfolioProject(supabase, found.id);
       }
 
       const live = await ensureLiveDeployment({

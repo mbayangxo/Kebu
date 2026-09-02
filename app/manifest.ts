@@ -17,9 +17,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
     ],
     shortcuts: [
-      { name: "Opportunity", url: "/opportunity/countries", description: "Explore countries and what you can build" },
+      { name: "Countries", url: "/opportunity/countries", description: "Explore countries and what you can build" },
       { name: "Create", url: "/create", description: "Build and publish your website with Kebu" },
-      { name: "Kebu Score", url: "/ka-score", description: "See your business readiness score" },
+      { name: "My business", url: "/account", description: "Personal info, Kebu ID, and readiness score" },
     ],
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, createContext, useContext } from "react";
 
 export interface UserProfile {
@@ -314,27 +315,12 @@ export function ProfileSetupModal() {
 }
 
 export function ProfileBadge() {
-  const { profile, setShowSetup } = useProfile();
-
-  if (!profile.setup_complete) {
-    return (
-      <button
-        type="button"
-        onClick={() => setShowSetup(true)}
-        className="fixed z-40 bg-gold text-deep-green text-xs font-bold px-4 py-2.5 rounded-full shadow-lg hover:bg-gold-light transition-colors flex items-center gap-1.5 right-4 bottom-[8.25rem] sm:bottom-16"
-      >
-        <span>✨</span> Personalize for me
-      </button>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={() => setShowSetup(true)}
-      className="fixed z-40 bg-deep-green text-ivory text-xs font-semibold px-3 py-2 rounded-full shadow-lg hover:bg-mid-green transition-colors flex items-center gap-1.5 right-4 bottom-[8.25rem] sm:bottom-16"
+    <Link
+      href="/welcome"
+      className="bg-gold text-deep-green text-xs font-bold px-4 py-2.5 rounded-full shadow-lg hover:bg-gold-light transition-colors flex items-center gap-1.5 whitespace-nowrap"
     >
-      {profile.gender === "woman" ? "👩" : "👤"} {profile.country_of_origin || "My profile"}
-    </button>
+      <span>✨</span> Personalize
+    </Link>
   );
 }

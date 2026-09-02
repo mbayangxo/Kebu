@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { AlkebulanLion } from "@/app/components/panther-motif";
+import { AppShell } from "@/app/components/app-shell";
+import { BusinessStructureGuide } from "@/app/components/business/business-structure-guide";
 import { KEBU } from "@/lib/kebu-brand";
+import type { LegalStructure } from "@/lib/kebu-id/countries/types";
 
-type LegalStructure = { code: string; label: string; description?: string };
 type CountryModule = {
   countryCode: string;
   countryName: string;
@@ -196,20 +197,7 @@ export default function RegisterBusinessWizardPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: KEBU.cream, color: KEBU.black }}>
-      <header className="sticky top-0 z-40" style={{ background: KEBU.black }}>
-        <div
-          className="h-[3px] w-full"
-          style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
-        />
-        <div className="max-w-xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/business" className="flex items-center gap-2 text-white text-sm">
-            <AlkebulanLion size={28} />
-            <span className="font-bold tracking-[0.12em]">Register a Business</span>
-          </Link>
-        </div>
-      </header>
-
+    <AppShell title="Register a business">
       <main className="max-w-xl mx-auto px-5 py-10">
         <p
           className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3"
@@ -374,39 +362,20 @@ export default function RegisterBusinessWizardPage() {
 
           {step === 1 && (
             <fieldset>
-              <legend className="text-xs font-semibold uppercase tracking-wider mb-3">
-                Business structure ({module?.countryName ?? countryCode})
+              <legend className="text-xs font-semibold uppercase tracking-wider mb-1">
+                Learn & choose your structure ({module?.countryName ?? countryCode})
               </legend>
-              <div className="space-y-2">
-                {(module?.legalStructures ?? []).map((s) => (
-                  <label
-                    key={s.code}
-                    className="flex items-start gap-3 rounded-xl px-3 py-3 cursor-pointer"
-                    style={{
-                      border: `1px solid ${legalStructure === s.code ? KEBU.orange : KEBU.border}`,
-                      background: legalStructure === s.code ? "rgba(255,85,0,0.08)" : KEBU.card,
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="legalStructure"
-                      value={s.code}
-                      checked={legalStructure === s.code}
-                      onChange={() => setLegalStructure(s.code)}
-                      disabled={submitting}
-                      className="mt-1"
-                    />
-                    <span>
-                      <span className="block text-sm font-semibold">{s.label}</span>
-                      {s.description && (
-                        <span className="block text-xs mt-0.5" style={{ color: "#6B5B45" }}>
-                          {s.description}
-                        </span>
-                      )}
-                    </span>
-                  </label>
-                ))}
-              </div>
+              <p className="text-[11px] mb-4 leading-relaxed" style={{ color: "#6B5B45" }}>
+                No business school needed — read the lesson, tap what sounds like you, then choose a structure.
+                Kebu saves your pick on your Kebu ID.
+              </p>
+              <BusinessStructureGuide
+                structures={module?.legalStructures ?? []}
+                selectedCode={legalStructure}
+                onSelect={setLegalStructure}
+                disabled={submitting}
+                countryName={module?.countryName ?? countryCode}
+              />
               {fieldErrors.legalStructure && (
                 <p className="text-red-700 text-[11px] mt-2">{fieldErrors.legalStructure[0]}</p>
               )}
@@ -520,6 +489,6 @@ export default function RegisterBusinessWizardPage() {
           </div>
         </form>
       </main>
-    </div>
+    </AppShell>
   );
 }

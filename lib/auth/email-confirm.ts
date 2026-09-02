@@ -3,7 +3,7 @@ export function isEmailNotConfirmed(message: string): boolean {
   return /email not confirmed|email_not_confirmed/i.test(message);
 }
 
-export function authCallbackUrl(nextPath = "/onboarding"): string {
+export function authCallbackUrl(nextPath = "/welcome"): string {
   if (typeof window === "undefined") {
     return `/auth/callback?next=${encodeURIComponent(nextPath)}`;
   }

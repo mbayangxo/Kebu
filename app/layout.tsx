@@ -5,6 +5,7 @@ import { PWARegister } from "@/app/components/pwa-register";
 import { LocaleProvider } from "@/app/components/locale-context";
 import { ProfileProvider } from "@/app/components/user-profile";
 import { AppChrome } from "@/app/components/app-chrome";
+import { AuthSessionKeeper } from "@/app/components/auth-session-keeper";
 import { EducationProvider } from "@/app/components/education-system";
 
 const syne = Syne({
@@ -77,6 +78,7 @@ export default function RootLayout({
         <ProfileProvider>
           <LocaleProvider>
             <EducationProvider>
+              <AuthSessionKeeper />
               <AppChrome />
               {children}
             </EducationProvider>

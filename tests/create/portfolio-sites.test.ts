@@ -37,7 +37,7 @@ describe("portfolio sites", () => {
   });
 
   it("uses owner-only template slugs for both sites", () => {
-    expect(PORTFOLIO_SITES.find((s) => s.key === "maylecor")?.templateSlug).toBe("musician-kdirection-artist");
+    expect(PORTFOLIO_SITES.find((s) => s.key === "maylecor")?.templateSlug).toBe("musician-maylecor-ksendr");
     expect(PORTFOLIO_SITES.find((s) => s.key === "kdirection")?.templateSlug).toBe("agency-kdirection");
   });
 });

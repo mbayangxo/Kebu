@@ -33,10 +33,10 @@
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Kebu Score",
-      "short_name": "Score",
-      "description": "See your business readiness score",
-      "url": "/ka-score",
+      "name": "My business",
+      "short_name": "Business",
+      "description": "Personal info, Kebu ID, and readiness score",
+      "url": "/account",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
