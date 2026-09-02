@@ -2,10 +2,22 @@
 
 import { useEffect } from "react";
 
+const PURGE_FLAG = "kebu-cache-purge-v4";
+
+function isSiteScopedSw(scriptURL: string): boolean {
+  return scriptURL.includes("/sw-site.js");
+}
+
+function isRootAppSw(scriptURL: string): boolean {
+  return Boolean(scriptURL) && !isSiteScopedSw(scriptURL);
+}
+
 /**
- * Clear broken legacy PWA workers that intercepted auth and cached the old
- * landing (with app sidebar). Do not register a root-scope SW for now —
- * published sites use /sw-site.js under /sites/ only.
+ * Stop stale HTML from old service workers.
+ * - If a root-scope SW exists → install kill-switch /sw.js (clears caches + unregisters).
+ * - If only legacy Cache Storage remains → delete it.
+ * - Never leave a long-lived root SW that caches pages.
+ * Published sites may use /sw-site.js under /sites/ (network-first HTML).
  */
 export function PWARegister() {
   useEffect(() => {
@@ -13,42 +25,47 @@ export function PWARegister() {
 
     let cancelled = false;
 
-    async function purgeBrokenWorkers() {
+    async function run() {
       try {
         const regs = await navigator.serviceWorker.getRegistrations();
-        let removedRootSw = false;
+        const rootRegs = regs.filter((reg) => {
+          const scriptURL =
+            reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || "";
+          return isRootAppSw(scriptURL);
+        });
+
+        const cacheKeys = "caches" in window ? await caches.keys() : [];
+        const legacyCaches = cacheKeys.filter(
+          (k) =>
+            k.startsWith("alkebulan") ||
+            k.startsWith("kebu-app") ||
+            k === "kebu-site-v1" ||
+            k.startsWith("kebu-app-"),
+        );
+
+        const needsPurge = rootRegs.length > 0 || legacyCaches.length > 0;
+        if (!needsPurge) return;
+
+        if (rootRegs.length > 0) {
+          // Update the existing registration to the kill-switch script.
+          await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        }
 
         await Promise.all(
           regs.map(async (reg) => {
             const scriptURL =
               reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || "";
-            // Keep site-scoped offline helper only.
-            if (scriptURL.includes("/sw-site.js")) return;
-            removedRootSw = true;
+            if (isSiteScopedSw(scriptURL)) return;
+            // Kill-switch will unregister itself; also force-remove immediately.
             await reg.unregister();
           }),
         );
 
-        if ("caches" in window) {
-          const keys = await caches.keys();
-          await Promise.all(
-            keys
-              .filter(
-                (k) =>
-                  k.startsWith("alkebulan") ||
-                  k.startsWith("kebu-app") ||
-                  k === "alkebulan-v1" ||
-                  k === "kebu-app-v2",
-              )
-              .map((k) => caches.delete(k)),
-          );
-        }
+        await Promise.all(legacyCaches.map((k) => caches.delete(k)));
 
-        // One-time hard reload after purge so landing drops cached sidebar HTML.
-        if (!cancelled && removedRootSw && typeof sessionStorage !== "undefined") {
-          const flag = "kebu-purged-sw-v3";
-          if (!sessionStorage.getItem(flag)) {
-            sessionStorage.setItem(flag, "1");
+        if (!cancelled && typeof sessionStorage !== "undefined") {
+          if (!sessionStorage.getItem(PURGE_FLAG)) {
+            sessionStorage.setItem(PURGE_FLAG, "1");
             window.location.reload();
           }
         }
@@ -57,7 +74,7 @@ export function PWARegister() {
       }
     }
 
-    if (!cancelled) void purgeBrokenWorkers();
+    void run();
     return () => {
       cancelled = true;
     };

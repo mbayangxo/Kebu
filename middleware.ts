@@ -22,6 +22,8 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
     "Content-Security-Policy",
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
   );
+  // HTML / app navigations through middleware — never browser-cache pages.
+  response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
   return response;
 }
 
