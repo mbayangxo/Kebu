@@ -35,8 +35,9 @@ export function TemplatesVisualPage({
             Pick a site you can see — not a brochure.
           </h1>
           <p className="text-sm mt-4 max-w-2xl leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
-            Every card is a <strong className="text-white">live mini-site</strong> with real layout and placeholder
-            photos. Tap to preview full screen, then start — upload your images in the editor and publish.
+            <strong className="text-white">May Lecor</strong> (Russian pink cutouts) and{" "}
+            <strong className="text-white">K-Direction</strong> (Wix canvas) are first — same layouts as your live sites.
+            Then salons, stores, agencies, and more.
           </p>
           <div className="flex flex-wrap gap-3 mt-6">
             <Link

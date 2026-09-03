@@ -11,11 +11,12 @@ describe("template catalog", () => {
     expect(total).toBe(publicTemplateSeeds().length);
   });
 
-  it("hides owner portfolio seeds from the public catalog", () => {
+  it("hides owner-only portfolio seeds; May Lecor + K-Direction are public templates", () => {
     expect(TEMPLATE_SEEDS.some((t) => t.slug === "musician-kdirection-artist")).toBe(true);
     expect(TEMPLATE_SEEDS.some((t) => t.slug === "agency-kdirection")).toBe(true);
     expect(publicTemplateSeeds().some((t) => t.slug === "musician-kdirection-artist")).toBe(false);
-    expect(publicTemplateSeeds().some((t) => t.slug === "agency-kdirection")).toBe(false);
+    expect(publicTemplateSeeds().some((t) => t.slug === "agency-kdirection")).toBe(true);
+    expect(publicTemplateSeeds().some((t) => t.slug === "musician-maylecor-ksendr")).toBe(true);
     expect(publicTemplateSeeds().some((t) => t.slug === "musician-artist")).toBe(true);
     expect(publicTemplateSeeds().some((t) => t.slug === "agency-creative")).toBe(true);
   });

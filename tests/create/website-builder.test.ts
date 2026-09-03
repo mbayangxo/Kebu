@@ -103,16 +103,18 @@ describe("templates", () => {
     expect(TEMPLATE_SEEDS.length).toBeGreaterThanOrEqual(28);
   });
 
-  it("keeps May Lecor as owner portfolio seed (not a public demo)", () => {
-    const seed = TEMPLATE_SEEDS.find((t) => t.slug === "musician-kdirection-artist");
-    expect(seed).toBeDefined();
-    expect(seed!.visibility).toBe("owner_portfolio");
-    const result = validateWebsiteDefinition(seed!.definition);
-    expect(result.ok).toBe(true);
-    const home = seed!.definition.pages.find((p) => p.slug === "home");
-    const maylecor = home?.sections.find((s) => s.type === "maylecor-home");
-    expect(maylecor?.props).toMatchObject({ ctaLabel: "LISTEN TO MAY'S NEW SINGLE" });
-    expect(seed!.definition.pages.some((p) => p.slug === "music")).toBe(true);
+  it("keeps legacy dark May collage as owner portfolio; public May Lecor is the Russian cutout template", () => {
+    const legacy = TEMPLATE_SEEDS.find((t) => t.slug === "musician-kdirection-artist");
+    expect(legacy).toBeDefined();
+    expect(legacy!.visibility).toBe("owner_portfolio");
+
+    const publicMay = TEMPLATE_SEEDS.find((t) => t.slug === "musician-maylecor-ksendr");
+    expect(publicMay).toBeDefined();
+    expect(publicMay!.visibility).not.toBe("owner_portfolio");
+    expect(validateWebsiteDefinition(publicMay!.definition).ok).toBe(true);
+    const home = publicMay!.definition.pages.find((p) => p.slug === "home");
+    const hero = home?.sections.find((s) => s.type === "legally-blonde-hero");
+    expect(hero).toBeDefined();
   });
 
   it("includes Legally Blonde animated showcase template", () => {

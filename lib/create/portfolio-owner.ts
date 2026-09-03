@@ -1,5 +1,6 @@
 /**
- * May Lecor + K-Direction are personal portfolio sites — not shared public templates.
+ * May Lecor + K-Direction live projects are auto-created for portfolio owners (My Sites).
+ * The same layouts are also public templates anyone can start from (`musician-maylecor-ksendr`, `agency-kdirection`).
  * Env `KEBU_PORTFOLIO_OWNER_EMAILS` (comma-separated) overrides the built-in founder list.
  */
 export const FOUNDER_PORTFOLIO_OWNER_EMAILS = ["goldendaffodilxo@gmail.com"] as const;

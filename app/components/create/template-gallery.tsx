@@ -27,7 +27,10 @@ export function TemplateGallery({
         : filter === "featured"
           ? featured
           : filter === ""
-            ? templates
+            ? [
+                ...(flagship ?? []),
+                ...templates.filter((t) => !(flagship ?? []).some((f) => f.slug === t.slug)),
+              ]
             : templates.filter((t) => t.groupId === filter);
     const q = query.trim().toLowerCase();
     if (q) {
