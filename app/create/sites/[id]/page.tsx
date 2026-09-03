@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/app/components/app-shell";
 import { SiteDomainSeoPanel } from "@/app/components/create/site-domain-seo-panel";
 import { SiteDetailInsights } from "@/app/components/create/site-detail-insights";
+import { SiteThemesPanel } from "@/app/components/create/site-themes-panel";
 import Link from "next/link";
 import { KEBU } from "@/lib/kebu-brand";
 
@@ -63,6 +64,14 @@ export default async function SiteDetailPage({ params }: Props) {
           title={project.title ?? "Site"}
           subdomain={project.subdomain}
         />
+
+        <section
+          id="templates"
+          className="rounded-2xl bg-white p-4 sm:p-6"
+          style={{ border: `1px solid ${KEBU.border}` }}
+        >
+          <SiteThemesPanel projectId={project.id} />
+        </section>
 
         <section
           id="domain"

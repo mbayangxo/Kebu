@@ -733,6 +733,13 @@ export default function ProjectEditorPage() {
               Domain &amp; SEO
             </Link>
             <Link
+              href={`/create/${projectId}/themes`}
+              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+              style={{ background: "#FFF0E8", color: "#9A3412" }}
+            >
+              Templates
+            </Link>
+            <Link
               href={`/create/${projectId}/preview`}
               className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
               style={{ background: "#1C1A45" }}

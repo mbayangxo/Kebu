@@ -63,6 +63,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Undo/redo | **IMPLEMENTED** | Client-only history |
 | Multi-page sites | **IN PROGRESS** | `/api/projects/[id]/pages` |
 | Templates (May Lecor ksendr + K-Direction Wix canvas) | **TESTED** | Russian cutouts hosted locally (transparent PNGs on pink bg — no black Tilda CDN boxes); click→upload/swap/drag; Media/nav/social; run `FIX_SECTION_TYPES_031.sql` |
+| Per-site named templates (Shopify-style) | **IMPLEMENTED** | `033_project_themes.sql`; drafts + one live; publish swaps previous live → draft; upload Kebu JSON only (not ThemeForest HTML); `/create/[id]/themes` |
 | Preview | **IN PROGRESS** | `/create/[id]/preview` |
 | Link project to Kebu ID business | **IMPLEMENTED** | `business_id` required on create; `/create/new?businessId=` |
 
