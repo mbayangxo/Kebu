@@ -28,6 +28,7 @@ import {
 } from "@/lib/create/builder-media-drop";
 import { BUILDER_DEVICE_FRAME } from "@/lib/create/builder-device";
 import { projectUsesMaylecorRussianLayout } from "@/lib/create/maylecor-russian-hero";
+import { projectUsesKdirectionLayout } from "@/lib/create/kdirection-local-assets";
 
 type Section = {
   id: string;
@@ -41,6 +42,7 @@ type Project = {
   id: string;
   title: string;
   status: string;
+  description?: string | null;
   subdomain?: string | null;
   theme?: WebsiteDefinition["theme"];
   business_id?: string | null;
@@ -75,6 +77,7 @@ export default function ProjectEditorPage() {
     periodEnd?: string | null;
   } | null>(null);
   const [improving, setImproving] = useState(false);
+  const [repairing, setRepairing] = useState(false);
   const [improveOpen, setImproveOpen] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
   const [improveNote, setImproveNote] = useState<string | null>(null);
@@ -649,12 +652,37 @@ export default function ProjectEditorPage() {
     }
   }
 
+  async function repairLayout() {
+    setRepairing(true);
+    setError(null);
+    try {
+      const path = maylecorRussianLayout
+        ? `/api/projects/${projectId}/upgrade-maylecor`
+        : `/api/projects/${projectId}/upgrade-kdirection`;
+      const upRes = await fetch(path, { method: "POST", credentials: "include" });
+      const upData = await upRes.json().catch(() => ({}));
+      if (!upRes.ok) {
+        setError(typeof upData.error === "string" ? upData.error : "Could not repair this site layout.");
+        return;
+      }
+      await load();
+    } catch {
+      setError("Network error while repairing layout.");
+    } finally {
+      setRepairing(false);
+    }
+  }
+
   const previewDefinition: WebsiteDefinition | null = project
     ? { ...buildDefinitionFromProjectParts({ ...project, seo: seoSettings }, pages, sections) }
     : null;
 
   const previewSiteBase = project?.subdomain ? `/sites/${project.subdomain}` : "";
   const maylecorRussianLayout = projectUsesMaylecorRussianLayout(
+    project?.description,
+    sections.map((s) => s.section_type),
+  );
+  const kdirectionLayout = projectUsesKdirectionLayout(
     project?.description,
     sections.map((s) => s.section_type),
   );
@@ -711,6 +739,17 @@ export default function ProjectEditorPage() {
             >
               Preview
             </Link>
+            {maylecorRussianLayout || kdirectionLayout ? (
+              <button
+                type="button"
+                onClick={() => void repairLayout()}
+                disabled={repairing || loading}
+                className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                style={{ background: "#FFE4F0", color: "#8B1A4A" }}
+              >
+                {repairing ? "Repairing…" : "Repair layout"}
+              </button>
+            ) : null}
             {!billing?.canPublish ? (
               <button
                 type="button"

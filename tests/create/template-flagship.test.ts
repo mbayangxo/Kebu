@@ -35,4 +35,19 @@ describe("flagship template gallery", () => {
       expect(publicSlugs.has(slug)).toBe(true);
     }
   });
+
+  it("gives every public template a card visual so gallery cards are not identical", () => {
+    const gallery = getGalleryTemplates();
+    expect(gallery.every((t) => Boolean(t.cardVisual?.previewGradient))).toBe(true);
+    const may = gallery.find((t) => t.slug === "musician-maylecor-ksendr");
+    const kd = gallery.find((t) => t.slug === "agency-kdirection");
+    const salon = gallery.find((t) => t.slug === "hair-salon");
+    const store = gallery.find((t) => t.slug === "shopping-store");
+    expect(may?.cardVisual?.layout).toBe("russian-cutouts");
+    expect(kd?.cardVisual?.layout).toBe("wix-collage");
+    expect(salon?.cardVisual?.layout).toBe("salon");
+    expect(store?.cardVisual?.layout).toBe("store");
+    expect(may?.cardVisual?.previewGradient).not.toBe(kd?.cardVisual?.previewGradient);
+    expect(salon?.cardVisual?.previewGradient).not.toBe(store?.cardVisual?.previewGradient);
+  });
 });

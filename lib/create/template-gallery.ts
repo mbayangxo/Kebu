@@ -53,7 +53,7 @@ export function getGalleryTemplates(): GalleryTemplate[] {
   return publicTemplateSeeds().map((t) => {
     const groupId = templateGroupId(t.category);
     const group = TEMPLATE_CATEGORY_GROUPS.find((g) => g.id === groupId);
-    const cardVisual = templateCardVisual(t.slug);
+    const cardVisual = templateCardVisual(t.slug, t.category);
     return {
       slug: t.slug,
       name: t.name,
