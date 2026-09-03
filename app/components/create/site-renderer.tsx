@@ -194,10 +194,11 @@ export function SiteRenderer({
     motionSite && activeSlug === "home" && motionHero?.scrollMode === "viewport";
 
   const editingPreview = mode === "preview" && Boolean(editor);
+  const motionBuilderPreview = editingPreview && motionSite;
   const shellStyle = maylecorOnly
     ? {
-        background: editingPreview ? "#1a1a1a" : "#000",
-        color: "#fff",
+        background: editingPreview ? "#FFE4F0" : "#000",
+        color: editingPreview ? "#111" : "#fff",
         minHeight: mode === "preview" ? "100%" : "100vh",
       }
     : legallyBlondeOnly
@@ -209,7 +210,11 @@ export function SiteRenderer({
       : kdirectionOnly
         ? { background: "transparent", color: "#111", minHeight: mode === "preview" ? "100%" : "100vh" }
       : motionSite && activeSlug !== "home"
-        ? { background: "#0a0a0a", color: "#fff", minHeight: mode === "preview" ? "100%" : "100vh" }
+        ? {
+            background: motionBuilderPreview ? "#FFE4F0" : "#0a0a0a",
+            color: motionBuilderPreview ? "#111" : "#fff",
+            minHeight: mode === "preview" ? "100%" : "100vh",
+          }
         : viewportHome
           ? {
               background: "#fff",

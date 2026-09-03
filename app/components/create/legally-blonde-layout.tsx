@@ -363,6 +363,7 @@ export function LegallyBlondeHeroLayout({
   const [splashHide, setSplashHide] = useState(false);
   const showExtras = props.showExtras === true;
   const editing = Boolean(editor?.onPatchSection && sectionId);
+  const builderPreview = Boolean(editor?.onPatchSection);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   const [selectedExtraId, setSelectedExtraId] = useState<string | null>(null);
 
@@ -418,7 +419,7 @@ export function LegallyBlondeHeroLayout({
   const selectedExtra = extraCutouts.find((c) => c.id === selectedExtraId) ?? null;
 
   /* Builder: pink edit canvas — never the black Tilda chrome (narrow preview looked empty). */
-  if (editing && sectionId) {
+  if ((editing || builderPreview) && sectionId) {
     return (
       <div
         id="top"

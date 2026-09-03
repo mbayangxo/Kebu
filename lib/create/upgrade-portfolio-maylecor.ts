@@ -1,39 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { maylecorMotionSitePages } from "./maylecor-site-pages";
 import {
-  defaultMaylecorKsendrProps,
-  maylecorHeroNeedsRussianRestore,
-} from "./maylecor-ksendr-defaults";
+  normalizeMaylecorRussianHeroProps,
+  projectUsesMaylecorRussianLayout,
+} from "./maylecor-russian-hero";
 import {
   defaultMaylecorPhotoGalleryItems,
   defaultMaylecorShopProducts,
 } from "./maylecor-content-defaults";
-import {
-  LEGALLY_BLONDE_ASSETS,
-  localizeLegallyBlondeAssetUrl,
-} from "./legally-blonde-defaults";
-
-function remapHeroAssetUrls(props: Record<string, unknown>): Record<string, unknown> {
-  const keys = [
-    "backgroundLayer",
-    "titleLogo",
-    "cutoutLeft",
-    "cutoutRight",
-    "cutoutAccent",
-    "cutoutSparkle",
-    "macbook",
-    "sparkleGif",
-    "heroPhoto",
-  ] as const;
-  const next = { ...props };
-  for (const key of keys) {
-    const raw = next[key];
-    if (typeof raw !== "string") continue;
-    const localized = localizeLegallyBlondeAssetUrl(raw);
-    if (localized != null) next[key] = localized;
-  }
-  return next;
-}
 
 function galleryIsEmpty(props: Record<string, unknown>): boolean {
   const items = props.items;
@@ -46,11 +20,19 @@ function productsIsEmpty(props: Record<string, unknown>): boolean {
   return !Array.isArray(items) || items.length === 0;
 }
 
-/** Ensure owner May Lecor portfolio has motion home + nav pages (music, videos, photos, shop, …). */
+/** Ensure May Lecor sites use legally-blonde-hero + local Russian cutouts (fixes black builder). */
 export async function upgradeMaylecorPortfolioProject(
   supabase: SupabaseClient,
   projectId: string,
 ): Promise<{ upgraded: boolean; detail?: string }> {
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, title, description")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (!project) return { upgraded: false, detail: "Project not found" };
+
   const { data: pages } = await supabase
     .from("project_pages")
     .select("id, slug, title, sort_order")
@@ -59,7 +41,23 @@ export async function upgradeMaylecorPortfolioProject(
 
   const list = pages ?? [];
   let upgraded = false;
-  const blueprint = maylecorMotionSitePages("MAY LECOR");
+  const artistName =
+    typeof project.title === "string" && project.title.trim() ? project.title.trim().toUpperCase() : "MAY LECOR";
+
+  const { data: allSectionRows } = await supabase
+    .from("project_sections")
+    .select("id, section_type, props, page_id")
+    .in(
+      "page_id",
+      list.map((p) => p.id),
+    );
+
+  const sectionTypes = (allSectionRows ?? []).map((s) => s.section_type);
+  if (!projectUsesMaylecorRussianLayout(project.description, sectionTypes)) {
+    return { upgraded: false, detail: "Not a May Lecor Russian layout project" };
+  }
+
+  const blueprint = maylecorMotionSitePages(artistName);
   const existingSlugs = new Set(list.map((p) => p.slug));
 
   for (let i = 0; i < blueprint.length; i++) {
@@ -99,70 +97,51 @@ export async function upgradeMaylecorPortfolioProject(
   const homePage = list.find((p) => p.slug === "home") ?? list[0];
   if (!homePage) return { upgraded, detail: upgraded ? "Added pages" : "No home page" };
 
-  const { data: homeSections } = await supabase
-    .from("project_sections")
-    .select("id, section_type, props")
-    .eq("page_id", homePage.id);
+  const homeSections = (allSectionRows ?? []).filter((s) => s.page_id === homePage.id);
+  let hero = homeSections.find((s) => s.section_type === "legally-blonde-hero");
+  const legacyHome = homeSections.find((s) => s.section_type === "maylecor-home");
 
-  const hero = homeSections?.find((s) => s.section_type === "legally-blonde-hero");
-  if (hero) {
+  if (!hero && legacyHome) {
+    const normalized = normalizeMaylecorRussianHeroProps(
+      (legacyHome.props ?? {}) as Record<string, unknown>,
+      artistName,
+    );
+    const { error } = await supabase
+      .from("project_sections")
+      .update({
+        section_type: "legally-blonde-hero",
+        props: normalized,
+      })
+      .eq("id", legacyHome.id);
+    if (error) return { upgraded, detail: error.message };
+    hero = { ...legacyHome, section_type: "legally-blonde-hero", props: normalized };
+    upgraded = true;
+  }
+
+  if (!hero) {
+    const normalized = normalizeMaylecorRussianHeroProps({}, artistName);
+    const { error } = await supabase.from("project_sections").insert({
+      page_id: homePage.id,
+      section_type: "legally-blonde-hero",
+      sort_order: 0,
+      props: normalized,
+    });
+    if (error) return { upgraded, detail: error.message };
+    upgraded = true;
+  } else {
     const props = (hero.props ?? {}) as Record<string, unknown>;
-    const next = defaultMaylecorKsendrProps("MAY LECOR");
-    // Restore exact Russian Tilda cutouts/bg/logo when old Wix photos were substituted.
-    const restored = (
-      maylecorHeroNeedsRussianRestore(props)
-        ? {
-            ...next,
-            title: String(props.title ?? next.title),
-            subtitle: String(props.subtitle ?? next.subtitle),
-            socialLinks: Array.isArray(props.socialLinks) ? props.socialLinks : next.socialLinks,
-            scrollMode: "parallax",
-            showExtras: false,
-            appearance: "light",
-            displayFont: "Steelfish",
-          }
-        : {
-            ...props,
-            scrollMode: props.scrollMode ?? "parallax",
-            showExtras: false,
-            appearance: props.appearance ?? "light",
-            displayFont: props.displayFont ?? "Steelfish",
-          }
-    ) as Record<string, unknown>;
-    // Always serve hero assets from Kebu-hosted files (avoid Tilda CDN black/403).
-    const merged = {
-      ...remapHeroAssetUrls(restored),
-      backgroundLayer:
-        localizeLegallyBlondeAssetUrl(String(restored.backgroundLayer ?? "")) ||
-        LEGALLY_BLONDE_ASSETS.backgroundLayer,
-      cutoutLeft:
-        String(restored.cutoutLeft ?? "").trim() === ""
-          ? ""
-          : localizeLegallyBlondeAssetUrl(String(restored.cutoutLeft ?? "")) || LEGALLY_BLONDE_ASSETS.cutoutLeft,
-      cutoutRight:
-        String(restored.cutoutRight ?? "").trim() === ""
-          ? ""
-          : localizeLegallyBlondeAssetUrl(String(restored.cutoutRight ?? "")) || LEGALLY_BLONDE_ASSETS.cutoutRight,
-      cutoutAccent:
-        String(restored.cutoutAccent ?? "").trim() === ""
-          ? ""
-          : localizeLegallyBlondeAssetUrl(String(restored.cutoutAccent ?? "")) || LEGALLY_BLONDE_ASSETS.cutoutAccent,
-    };
-    if (JSON.stringify(merged) !== JSON.stringify(props)) {
-      await supabase.from("project_sections").update({ props: merged }).eq("id", hero.id);
+    const normalized = normalizeMaylecorRussianHeroProps(props, artistName);
+    if (JSON.stringify(normalized) !== JSON.stringify(props)) {
+      const { error } = await supabase
+        .from("project_sections")
+        .update({ props: normalized })
+        .eq("id", hero.id);
+      if (error) return { upgraded, detail: error.message };
       upgraded = true;
     }
   }
 
-  const { data: allSections } = await supabase
-    .from("project_sections")
-    .select("id, section_type, props, page_id")
-    .in(
-      "page_id",
-      list.map((p) => p.id),
-    );
-
-  for (const section of allSections ?? []) {
+  for (const section of allSectionRows ?? []) {
     const props = (section.props ?? {}) as Record<string, unknown>;
     if (section.section_type === "gallery" && galleryIsEmpty(props)) {
       const page = list.find((p) => p.id === section.page_id);
@@ -185,5 +164,5 @@ export async function upgradeMaylecorPortfolioProject(
     }
   }
 
-  return { upgraded, detail: upgraded ? "Synced May Lecor motion site pages" : undefined };
+  return { upgraded, detail: upgraded ? "Synced May Lecor Russian cutout layout" : undefined };
 }

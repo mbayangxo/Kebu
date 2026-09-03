@@ -27,6 +27,7 @@ import {
   type KebuDragAsset,
 } from "@/lib/create/builder-media-drop";
 import { BUILDER_DEVICE_FRAME } from "@/lib/create/builder-device";
+import { projectUsesMaylecorRussianLayout } from "@/lib/create/maylecor-russian-hero";
 
 type Section = {
   id: string;
@@ -113,13 +114,21 @@ export default function ProjectEditorPage() {
         return;
       }
       let projectPayload = data;
-      if (typeof data.project?.description === "string" && data.project.description.includes("portfolio:maylecor")) {
+      const sectionRows = Array.isArray(data.sections) ? data.sections : [];
+      const needsMaylecorFix =
+        typeof data.project?.description === "string" &&
+        data.project.description.includes("portfolio:maylecor")
+          ? true
+          : sectionRows.some(
+              (s: { section_type?: string }) =>
+                s.section_type === "legally-blonde-hero" || s.section_type === "maylecor-home",
+            );
+      if (needsMaylecorFix) {
         const upRes = await fetch(`/api/projects/${projectId}/upgrade-maylecor`, {
           method: "POST",
           credentials: "include",
         });
-        const upData = (await upRes.json().catch(() => ({}))) as { upgraded?: boolean };
-        if (upRes.ok && upData.upgraded) {
+        if (upRes.ok) {
           const res2 = await fetch(`/api/projects/${projectId}`, { credentials: "include" });
           const data2 = await res2.json().catch(() => ({}));
           if (res2.ok) projectPayload = data2;
@@ -630,6 +639,10 @@ export default function ProjectEditorPage() {
     : null;
 
   const previewSiteBase = project?.subdomain ? `/sites/${project.subdomain}` : "";
+  const maylecorRussianLayout = projectUsesMaylecorRussianLayout(
+    project?.description,
+    sections.map((s) => s.section_type),
+  );
 
   const editPageSections = sections
     .filter((s) => s.page_id === editPageId)
@@ -2285,7 +2298,7 @@ export default function ProjectEditorPage() {
             <section
               className="flex min-w-0 flex-1 flex-col overflow-hidden"
               style={{
-                background: sections.some((s) => s.section_type === "legally-blonde-hero")
+                background: maylecorRussianLayout
                   ? "#FFE4F0"
                   : sections.some(
                         (s) =>
@@ -2299,7 +2312,7 @@ export default function ProjectEditorPage() {
               <div
                 className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2"
                 style={{
-                  borderColor: sections.some((s) => s.section_type === "legally-blonde-hero")
+                  borderColor: maylecorRussianLayout
                     ? "rgba(233,0,107,0.25)"
                     : "rgba(255,255,255,0.1)",
                 }}
@@ -2332,7 +2345,7 @@ export default function ProjectEditorPage() {
                   <span
                     className="text-xs font-semibold uppercase tracking-wider"
                     style={{
-                      color: sections.some((s) => s.section_type === "legally-blonde-hero")
+                      color: maylecorRussianLayout
                         ? "#8B1A4A"
                         : "#8A8578",
                     }}
