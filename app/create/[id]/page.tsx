@@ -61,6 +61,7 @@ export default function ProjectEditorPage() {
   const [supportAssist, setSupportAssist] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [payingHosting, setPayingHosting] = useState(false);
   const [publishUrl, setPublishUrl] = useState<string | null>(null);
@@ -96,6 +97,20 @@ export default function ProjectEditorPage() {
   useEffect(() => {
     setAppOrigin(window.location.origin);
   }, []);
+
+  useEffect(() => {
+    if (!previewFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreviewFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [previewFullscreen]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1230,7 +1245,9 @@ export default function ProjectEditorPage() {
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
                             value={String(section.props.title ?? "")}
-                            onChange={(e) => updateProps(section.id, { title: e.target.value })}
+                            onChange={(e) =>
+                              updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
+                            }
                             aria-label="Title"
                             placeholder="Artist or brand name"
                           />
@@ -1243,6 +1260,14 @@ export default function ProjectEditorPage() {
                             aria-label="Subtitle"
                             placeholder="Short bio or tagline"
                           />
+                          <label className="flex items-center gap-2 text-[11px] font-semibold">
+                            <input
+                              type="checkbox"
+                              checked={section.props.titleAsText === true}
+                              onChange={(e) => updateProps(section.id, { titleAsText: e.target.checked })}
+                            />
+                            Use my name as text instead of the spinning circle
+                          </label>
                           <label className="block text-[10px] uppercase tracking-wider">
                             Display font (Steelfish = Russian)
                             <input
@@ -2414,7 +2439,16 @@ export default function ProjectEditorPage() {
                     Live preview
                   </span>
                 )}
-                <div className="flex items-center gap-1 rounded-full p-0.5" style={{ background: "#ECEAE4" }}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewFullscreen(true)}
+                    className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+                    style={{ background: "#0F0D33", color: "#fff" }}
+                  >
+                    Fullscreen
+                  </button>
+                  <div className="flex items-center gap-1 rounded-full p-0.5" style={{ background: "#ECEAE4" }}>
                   {(
                     [
                       ["desktop", "Desktop"],
@@ -2436,6 +2470,7 @@ export default function ProjectEditorPage() {
                       {label}
                     </button>
                   ))}
+                  </div>
                 </div>
               </div>
               <div className="mx-auto flex-1 w-full overflow-y-auto p-3 sm:p-4">
@@ -2492,6 +2527,96 @@ export default function ProjectEditorPage() {
           </>
         )}
       </main>
+
+      {previewFullscreen && previewDefinition ? (
+        <div
+          className="fixed inset-0 z-[100] flex flex-col"
+          style={{ background: maylecorRussianLayout ? "#FFE4F0" : "#0a0a0a" }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Fullscreen site preview"
+        >
+          <div
+            className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3"
+            style={{
+              borderColor: "rgba(0,0,0,0.1)",
+              background: "rgba(255,255,255,0.95)",
+            }}
+          >
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#0F0D33" }}>
+              Fullscreen edit · Esc to exit
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {(
+                [
+                  ["desktop", "Desktop"],
+                  ["tablet", "Tablet"],
+                  ["mobile", "Phone"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setDevice(id)}
+                  className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+                  style={{
+                    background: device === id ? "#0F0D33" : "#ECEAE4",
+                    color: device === id ? "#fff" : "#5C5348",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPreviewFullscreen(false)}
+                className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white"
+                style={{ background: "#FF5500" }}
+              >
+                Exit fullscreen
+              </button>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
+            <div
+              className="mx-auto overflow-hidden bg-white shadow-2xl"
+              style={{
+                width: "100%",
+                maxWidth: device === "desktop" ? "100%" : BUILDER_DEVICE_FRAME[device],
+                minHeight: "calc(100vh - 6rem)",
+                borderRadius: device === "mobile" ? 28 : 12,
+              }}
+            >
+              <BuilderEditablePreview
+                definition={previewDefinition}
+                pageSlug={previewPageSlug}
+                siteBase={previewSiteBase || undefined}
+                projectId={projectId}
+                device={device}
+                onAssetDrop={(asset, drop) => void applyMediaAsset(asset, drop)}
+                editor={{
+                  selectedSectionId,
+                  onSelectSection: (id) => {
+                    setSelectedSectionId(id);
+                    const match = sections.find((s) => s.id === id);
+                    if (match) setEditPageId(match.page_id);
+                  },
+                  onPatchSection: updateProps,
+                  onMoveFreeTextBlock: (sectionId, blockId, x, y) => {
+                    const section = sections.find((s) => s.id === sectionId);
+                    if (!section || section.section_type !== "free-text") return;
+                    const blocks = Array.isArray(section.props.blocks) ? [...section.props.blocks] : [];
+                    const idx = blocks.findIndex((b: { id?: string }) => b.id === blockId);
+                    if (idx < 0) return;
+                    blocks[idx] = { ...blocks[idx], x, y };
+                    updateProps(sectionId, { blocks });
+                  },
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

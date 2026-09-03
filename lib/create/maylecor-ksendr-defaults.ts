@@ -115,4 +115,5 @@ export const maylecorKsendrPropsSchema = z.object({
   ctaHref: z.string().optional(),
   scrollMode: z.enum(["viewport", "parallax"]).optional().default("parallax"),
   appearance: z.enum(["light", "dark"]).optional().default("light"),
+  titleAsText: z.boolean().optional().default(false),
 });

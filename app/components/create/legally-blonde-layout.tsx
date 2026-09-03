@@ -70,6 +70,8 @@ export type LegallyBlondeHeroProps = {
   ctaHref?: string;
   showExtras?: boolean;
   scrollMode?: "viewport" | "parallax";
+  /** Replace spinning Russian logo circle with editable brand text. */
+  titleAsText?: boolean;
 };
 
 type EditorHooks = {
@@ -139,7 +141,8 @@ function renderLayer(
   },
 ) {
   const url = resolveLayerUrl(layer, props);
-  if (layer.type !== "text" && !url) return null;
+  const isTitleLogo = LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo";
+  if (layer.type !== "text" && !url && !(props.titleAsText && isTitleLogo)) return null;
 
   const baseStyle = parseTildaCss(layer.style);
   const atomStyle = parseTildaCss(layer.atomStyle);
@@ -212,6 +215,40 @@ function renderLayer(
     return (
       <div key={layer.id} className={`lb-layer lb-text-steelfish`} style={style}>
         {layer.text}
+      </div>
+    );
+  }
+
+  if (!url && !(props.titleAsText && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo")) return null;
+
+  /* Middle circle: brand name as text instead of Russian SVG logo. */
+  if (props.titleAsText && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo") {
+    return (
+      <div
+        key={layer.id}
+        className={`lb-layer lb-text-steelfish flex items-center justify-center text-center${editable ? " lb-layer--editable" : ""}`}
+        style={{
+          ...style,
+          backgroundImage: undefined,
+          color: props.accentColor || "#fff",
+          fontSize: "clamp(2rem, 8vw, 5.5rem)",
+          fontWeight: 700,
+          lineHeight: 0.95,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+          padding: "0.5rem",
+        }}
+        onPointerDown={editable ? onPointerDown : undefined}
+        onClick={(e) => {
+          if (!editable) return;
+          e.stopPropagation();
+          opts.onSelect?.();
+        }}
+        role={editable ? "button" : undefined}
+        tabIndex={editable ? 0 : undefined}
+        aria-label={props.title}
+      >
+        {props.title}
       </div>
     );
   }

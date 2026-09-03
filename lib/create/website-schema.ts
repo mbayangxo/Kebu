@@ -331,6 +331,8 @@ export const sectionPropsSchemas = {
     showExtras: z.boolean().optional().default(false),
     /** viewport = single-screen hero (nav to other pages). parallax = Russian-style scroll scene. */
     scrollMode: z.enum(["viewport", "parallax"]).optional().default("parallax"),
+    /** Show brand name as editable text instead of the spinning Russian logo circle. */
+    titleAsText: z.boolean().optional().default(false),
     hidden: z.boolean().optional(),
   }),
   "kdirection-home": z.object({
