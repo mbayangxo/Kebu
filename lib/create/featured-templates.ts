@@ -1,26 +1,18 @@
-/** Featured templates for hub cards and demos — three flagship site layouts first, then shared starters. */
+/** Featured templates — May Lecor IS the Russian cutout site; K-Direction is the Wix site. No duplicate “Russian” card. */
 export const FEATURED_TEMPLATES = [
   {
-    slug: "showcase-legally-blonde",
-    name: "Russian cutout showcase",
-    category: "film",
-    tagline: "Pink Russian layers, Steelfish type, floating Elle cutouts (ksendr-style)",
-    accent: "#E9006B",
-    pages: ["home"],
-  },
-  {
     slug: "musician-maylecor-ksendr",
-    name: "May Lecor — motion artist",
+    name: "May Lecor",
     category: "music",
-    tagline: "Same Russian motion layout as the live May site — music pages + social rail",
+    tagline: "Russian pink cutouts + Steelfish (ksendr) — the real May Lecor layout, not a separate demo",
     accent: "#E9006B",
     pages: ["home", "music", "videos", "tour", "merch", "contact"],
   },
   {
     slug: "agency-kdirection",
-    name: "K-Direction — Wix canvas",
+    name: "K-Direction",
     category: "agency",
-    tagline: "Soft gradient, yellow pill nav, scattered photo collage — label site",
+    tagline: "Soft gradient, yellow pill nav, photo collage — the real K-Direction Wix layout",
     accent: "#FFF86B",
     pages: ["home", "about", "artists", "contact"],
   },
@@ -28,7 +20,7 @@ export const FEATURED_TEMPLATES = [
     slug: "musician-artist",
     name: "Musician / artist (dark collage)",
     category: "music",
-    tagline: "Bold dark artist layout — swap your name, photos, and streaming links",
+    tagline: "Different layout: dark artist collage — not the Russian cutouts",
     accent: "#E8D5A3",
     pages: ["home", "music"],
   },

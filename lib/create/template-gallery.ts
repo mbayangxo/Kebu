@@ -72,7 +72,7 @@ export function getGalleryTemplates(): GalleryTemplate[] {
   });
 }
 
-/** The three real Kebu site layouts — Russian cutouts, May Lecor, K-Direction. */
+/** The two real Kebu site layouts — May Lecor (Russian cutouts) and K-Direction (Wix). */
 export function getFlagshipGalleryTemplates(): GalleryTemplate[] {
   const all = getGalleryTemplates();
   return FLAGSHIP_TEMPLATE_SLUGS.map((slug) => all.find((t) => t.slug === slug)).filter(

@@ -494,10 +494,10 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "musician-maylecor-ksendr",
-    name: "May Lecor — Russian motion artist",
+    name: "May Lecor",
     category: "music",
     description:
-      "Live May Lecor layout: ksendr Russian cutouts, Steelfish type, scroll motion, music/tour pages — swap your photos.",
+      "THE Russian cutout layout (ksendr / Legally Blonde pink layers + Steelfish) branded as May Lecor — music, tour, merch pages. Not a separate Russian demo.",
     definition: {
       schemaVersion: "website-v1",
       title: "May Lecor",
@@ -600,10 +600,11 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "showcase-legally-blonde",
-    name: "Russian cutout showcase",
+    name: "Legally Blonde demo (same engine as May Lecor)",
     category: "film",
     description:
-      "Original ksendr / Legally Blonde Russian demo — pink layers, Steelfish, floating cutouts. Search: Russian template.",
+      "Internal demo of the cutout engine only. Prefer the May Lecor template for the full artist site.",
+    visibility: "owner_portfolio",
     definition: {
       schemaVersion: "website-v1",
       title: "Legally Blonde",

@@ -4,31 +4,32 @@ import { isPublicTemplateSlug, publicTemplateSeeds } from "@/lib/create/template
 import { FLAGSHIP_TEMPLATE_SLUGS } from "@/lib/create/template-visuals";
 
 describe("flagship template gallery", () => {
-  it("exposes Russian, May Lecor, and K-Direction as public templates", () => {
+  it("exposes May Lecor + K-Direction as the two public flagship templates", () => {
+    expect([...FLAGSHIP_TEMPLATE_SLUGS]).toEqual(["musician-maylecor-ksendr", "agency-kdirection"]);
     for (const slug of FLAGSHIP_TEMPLATE_SLUGS) {
       expect(isPublicTemplateSlug(slug)).toBe(true);
     }
   });
 
-  it("returns three visually distinct flagship cards", () => {
+  it("does not advertise a separate public Russian demo (May Lecor IS the Russian layout)", () => {
+    expect(isPublicTemplateSlug("showcase-legally-blonde")).toBe(false);
     const flagship = getFlagshipGalleryTemplates();
-    expect(flagship).toHaveLength(3);
-    expect(flagship.map((t) => t.slug)).toEqual([...FLAGSHIP_TEMPLATE_SLUGS]);
-    expect(flagship.every((t) => t.cardVisual?.badge)).toBe(true);
-    expect(flagship[0]?.name.toLowerCase()).toContain("russian");
-    expect(flagship[1]?.name.toLowerCase()).toContain("may lecor");
-    expect(flagship[2]?.name.toLowerCase()).toContain("k-direction");
+    expect(flagship).toHaveLength(2);
+    expect(flagship[0]?.slug).toBe("musician-maylecor-ksendr");
+    expect(flagship[0]?.name).toBe("May Lecor");
+    expect(flagship[0]?.cardVisual?.badge.toLowerCase()).toContain("russian");
+    expect(flagship[1]?.slug).toBe("agency-kdirection");
   });
 
-  it("finds Russian template by search keyword", () => {
+  it("finds May Lecor when searching russian", () => {
     const russian = getGalleryTemplates().filter((t) =>
       t.cardVisual?.keywords.some((k) => k.includes("russian")),
     );
-    expect(russian.some((t) => t.slug === "showcase-legally-blonde")).toBe(true);
     expect(russian.some((t) => t.slug === "musician-maylecor-ksendr")).toBe(true);
+    expect(russian.some((t) => t.slug === "showcase-legally-blonde")).toBe(false);
   });
 
-  it("does not hide flagship templates as owner-only portfolio seeds", () => {
+  it("keeps flagship templates in the public seed list", () => {
     const publicSlugs = new Set(publicTemplateSeeds().map((t) => t.slug));
     for (const slug of FLAGSHIP_TEMPLATE_SLUGS) {
       expect(publicSlugs.has(slug)).toBe(true);

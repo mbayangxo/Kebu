@@ -60,7 +60,7 @@ export function TemplateGallery({
             <FilterChip
               active={filter === "flagship"}
               onClick={() => setFilter("flagship")}
-              label={`Russian · May · K-Direction (${flagship.length})`}
+              label={`May Lecor · K-Direction (${flagship.length})`}
               accent
             />
           ) : null}

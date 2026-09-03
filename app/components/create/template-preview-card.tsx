@@ -59,12 +59,15 @@ function StaticTemplateVisual({ template }: { template: GalleryTemplate }) {
           ))}
         </div>
       ) : null}
-      {template.slug === "showcase-legally-blonde" ? (
+      {template.slug === "musician-maylecor-ksendr" ? (
         <div
-          className="absolute left-[8%] top-[12%] z-10 max-w-[55%] text-[11px] font-black uppercase leading-none tracking-tight text-[#e9006b]"
+          className="absolute left-[8%] top-[12%] z-10 max-w-[70%] text-[11px] font-black uppercase leading-none tracking-tight text-white drop-shadow"
           style={{ fontFamily: "Georgia, serif" }}
         >
-          Russian cutouts
+          May Lecor
+          <span className="mt-1 block text-[8px] font-bold tracking-[0.15em] text-[#ffd6ec]">
+            Russian cutouts
+          </span>
         </div>
       ) : null}
     </div>

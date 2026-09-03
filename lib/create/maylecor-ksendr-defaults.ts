@@ -42,14 +42,19 @@ export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
   };
 }
 
-/** True when hero still has the old Wix-photo substitution (not custom uploads). */
+/** True when hero still needs the Russian local cutouts (not a custom upload set). */
 export function maylecorHeroNeedsRussianRestore(props: Record<string, unknown>): boolean {
   const val = (key: string) => String(props[key] ?? "");
   const cutouts = [val("cutoutLeft"), val("cutoutRight"), val("cutoutAccent"), val("backgroundLayer")];
   // Previous broken defaults used rectangular Wix photos instead of Tilda cutouts.
   const looksLikeOldWixSwap = cutouts.some((v) => v.includes("wixstatic.com"));
+  // Tilda CDN often 403s → black builder; force local Kebu assets.
+  const looksLikeRemoteTilda = cutouts.some((v) => v.includes("tildacdn.com") || v.includes("tilda.ws"));
+  const missingLocalRussian = cutouts.some(
+    (v) => v.trim() && !v.includes("/templates/legally-blonde/") && !v.startsWith("blob:"),
+  );
   const empty = cutouts.every((v) => !v.trim());
-  return looksLikeOldWixSwap || empty;
+  return looksLikeOldWixSwap || looksLikeRemoteTilda || empty || missingLocalRussian;
 }
 
 /** @deprecated use maylecorHeroNeedsRussianRestore — kept for older tests/call sites */

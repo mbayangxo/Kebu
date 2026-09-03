@@ -255,13 +255,13 @@ export default function CreateHubPage() {
           <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.25em] mb-2" style={{ color: "#FF5500" }}>
-                Flagship layouts
+                Real site layouts
               </p>
               <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-                Russian cutouts · May Lecor · K-Direction
+                May Lecor (Russian cutouts) · K-Direction (Wix)
               </h2>
               <p className="text-sm mt-2 max-w-xl" style={{ color: "#5C5348" }}>
-                Three different site engines — not the same layout with a new name. Each matches a real published Kebu site.
+                May Lecor <em>is</em> the Russian pink cutout site — not a separate template. K-Direction is the other engine.
               </p>
             </div>
             <Link
