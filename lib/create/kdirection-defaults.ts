@@ -1,10 +1,19 @@
-import { MAYLECOR_WIX } from "@/lib/create/maylecor-defaults";
 import { defaultDeviceLayoutsForCollage } from "@/lib/create/builder-device";
+import {
+  isBlockedRemoteMedia,
+  isUserUploadedSiteAsset,
+  KDIRECTION_ICON_ASSETS,
+  KDIRECTION_PORTRAIT,
+  localizeKdirectionAssetUrl,
+  localizeKdirectionIconUrl,
+} from "@/lib/create/kdirection-local-assets";
 
 /**
  * Exact Wix home look from kdirectionartistry.wixsite.com/k-direction:
  * multi-radial soft gradient, Oswald wordmark + mirror, yellow pill nav,
  * scattered tilted photo collage (editable).
+ *
+ * Collage photos + social icons are Kebu-hosted — Wix CDN returns 403 in the builder.
  */
 export const KDIRECTION_WIX_GRADIENT =
   "radial-gradient(circle at 11.6667% 0%, rgb(248, 188, 250) 0%, 17.5%, rgba(248, 188, 250, 0) 35%), " +
@@ -30,7 +39,7 @@ export const KDIRECTION_DEFAULTS = {
 export function defaultKdirectionCollagePhotos() {
   const base = [
     {
-      src: MAYLECOR_WIX.portraitMain,
+      src: KDIRECTION_PORTRAIT,
       alt: "Artist portrait",
       rotate: -18,
       topPct: 12,
@@ -39,7 +48,7 @@ export function defaultKdirectionCollagePhotos() {
       zIndex: 4,
     },
     {
-      src: MAYLECOR_WIX.bottomLeft,
+      src: KDIRECTION_PORTRAIT,
       alt: "Studio pose",
       rotate: 12,
       topPct: 8,
@@ -48,7 +57,7 @@ export function defaultKdirectionCollagePhotos() {
       zIndex: 5,
     },
     {
-      src: MAYLECOR_WIX.bottomRight,
+      src: KDIRECTION_PORTRAIT,
       alt: "Texture detail",
       rotate: -8,
       topPct: 42,
@@ -57,7 +66,7 @@ export function defaultKdirectionCollagePhotos() {
       zIndex: 3,
     },
     {
-      src: MAYLECOR_WIX.collageTop,
+      src: KDIRECTION_PORTRAIT,
       alt: "Portrait",
       rotate: 22,
       topPct: 48,
@@ -66,7 +75,7 @@ export function defaultKdirectionCollagePhotos() {
       zIndex: 6,
     },
     {
-      src: MAYLECOR_WIX.bottomLeft,
+      src: KDIRECTION_PORTRAIT,
       alt: "Pose",
       rotate: -25,
       topPct: 58,
@@ -75,7 +84,7 @@ export function defaultKdirectionCollagePhotos() {
       zIndex: 4,
     },
     {
-      src: MAYLECOR_WIX.bottomRight,
+      src: KDIRECTION_PORTRAIT,
       alt: "Detail",
       rotate: 8,
       topPct: 28,
@@ -102,20 +111,17 @@ export const KDIRECTION_NAV_DEFAULTS = [
 export const KDIRECTION_SOCIAL_DEFAULTS = [
   {
     label: "Instagram",
-    iconUrl:
-      "https://static.wixstatic.com/media/81af6121f84c41a5b4391d7d37fce12a.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/81af6121f84c41a5b4391d7d37fce12a.png",
+    iconUrl: KDIRECTION_ICON_ASSETS.Instagram,
     href: "https://instagram.com/",
   },
   {
     label: "YouTube",
-    iconUrl:
-      "https://static.wixstatic.com/media/203dcdc2ac8b48de89313f90d2a4cda1.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/203dcdc2ac8b48de89313f90d2a4cda1.png",
+    iconUrl: KDIRECTION_ICON_ASSETS.YouTube,
     href: "https://youtube.com/",
   },
   {
     label: "Spotify",
-    iconUrl:
-      "https://static.wixstatic.com/media/e18eec328e7446079b7c7cef09488b18.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/e18eec328e7446079b7c7cef09488b18.png",
+    iconUrl: KDIRECTION_ICON_ASSETS.Spotify,
     href: "https://open.spotify.com/",
   },
 ] as const;
@@ -141,7 +147,7 @@ export function defaultKdirectionHomeProps() {
     showHomeIcon: true,
     showArrows: true,
     featuredArtistName: KDIRECTION_DEFAULTS.featuredArtistName,
-    featuredArtistImage: MAYLECOR_WIX.portraitMain,
+    featuredArtistImage: KDIRECTION_PORTRAIT,
     featuredArtistHref: "/artists",
     newsCardLabel: "News",
     newsCardHref: "/news",
@@ -179,5 +185,113 @@ export function defaultKdirectionPageProps(title = "About us") {
     navLinks: KDIRECTION_NAV_DEFAULTS.map((l) => ({ ...l })),
     socialLinks: KDIRECTION_SOCIAL_DEFAULTS.map((s) => ({ ...s })),
     footerText: KDIRECTION_DEFAULTS.footerText,
+  };
+}
+
+function ensureCollageDeviceLayouts(photos: unknown): unknown {
+  if (!Array.isArray(photos)) return photos;
+  return photos.map((photo, index) => {
+    if (!photo || typeof photo !== "object") return photo;
+    const p = photo as Record<string, unknown>;
+    const src = localizeKdirectionAssetUrl(String(p.src ?? ""));
+    const base = {
+      src: src || KDIRECTION_PORTRAIT,
+      alt: typeof p.alt === "string" ? p.alt : "",
+      rotate: Number(p.rotate ?? 0),
+      topPct: Number(p.topPct ?? 10),
+      leftPct: Number(p.leftPct ?? 10),
+      widthPct: Number(p.widthPct ?? 16),
+      zIndex: typeof p.zIndex === "number" ? p.zIndex : 3,
+    };
+    if (p.tablet && p.mobile && !isBlockedRemoteMedia(String(p.src ?? ""))) {
+      return { ...p, src: base.src };
+    }
+    return {
+      ...p,
+      ...defaultDeviceLayoutsForCollage(base, index),
+      src: base.src,
+      tablet: p.tablet ?? defaultDeviceLayoutsForCollage(base, index).tablet,
+      mobile: p.mobile ?? defaultDeviceLayoutsForCollage(base, index).mobile,
+    };
+  });
+}
+
+/** Force local collage/social when Wix CDN URLs would 403 → black empty builder. */
+export function normalizeKdirectionHomeProps(props: Record<string, unknown>): Record<string, unknown> {
+  const next = defaultKdirectionHomeProps();
+  const missingCollage =
+    !Array.isArray(props.collagePhotos) || (props.collagePhotos as unknown[]).length === 0;
+  const collageHasBlocked =
+    Array.isArray(props.collagePhotos) &&
+    (props.collagePhotos as { src?: string }[]).some((p) => isBlockedRemoteMedia(String(p?.src ?? "")));
+  const missingWixBg = !String(props.backgroundCss ?? "").includes("radial-gradient");
+
+  const socialLinks = Array.isArray(props.socialLinks)
+    ? (props.socialLinks as { label?: string; iconUrl?: string; href?: string }[]).map((link) => ({
+        ...link,
+        iconUrl: localizeKdirectionIconUrl(String(link.label ?? ""), link.iconUrl),
+      }))
+    : next.socialLinks;
+
+  let featuredArtistImage = localizeKdirectionAssetUrl(String(props.featuredArtistImage ?? ""));
+  if (!featuredArtistImage || isBlockedRemoteMedia(String(props.featuredArtistImage ?? ""))) {
+    featuredArtistImage = next.featuredArtistImage;
+  }
+
+  let backgroundImage = String(props.backgroundImage ?? "");
+  if (isBlockedRemoteMedia(backgroundImage) && !isUserUploadedSiteAsset(backgroundImage)) {
+    backgroundImage = "";
+  }
+
+  return {
+    ...next,
+    ...props,
+    backgroundCss: missingWixBg ? next.backgroundCss : props.backgroundCss,
+    backgroundImage,
+    collagePhotos: missingCollage || collageHasBlocked
+      ? missingCollage
+        ? next.collagePhotos
+        : ensureCollageDeviceLayouts(props.collagePhotos)
+      : ensureCollageDeviceLayouts(props.collagePhotos),
+    displayFont: props.displayFont ?? next.displayFont,
+    navButtonBg: props.navButtonBg ?? next.navButtonBg,
+    logoColor: props.logoColor ?? next.logoColor,
+    logoMirrorColor: props.logoMirrorColor ?? next.logoMirrorColor,
+    logoImage: props.logoImage ?? "",
+    showHomeIcon: props.showHomeIcon ?? true,
+    showArrows: props.showArrows ?? true,
+    showOverlay: props.showOverlay ?? false,
+    featuredArtistImage,
+    socialLinks,
+  };
+}
+
+export function normalizeKdirectionPageProps(props: Record<string, unknown>): Record<string, unknown> {
+  const next = defaultKdirectionPageProps(String(props.title ?? "About us"));
+  const missingWixBg = !String(props.backgroundCss ?? "").includes("radial-gradient");
+  let heroImage = localizeKdirectionAssetUrl(String(props.heroImage ?? ""));
+  if (isBlockedRemoteMedia(String(props.heroImage ?? "")) && !isUserUploadedSiteAsset(String(props.heroImage ?? ""))) {
+    heroImage = KDIRECTION_PORTRAIT;
+  }
+  let backgroundImage = String(props.backgroundImage ?? "");
+  if (isBlockedRemoteMedia(backgroundImage) && !isUserUploadedSiteAsset(backgroundImage)) {
+    backgroundImage = "";
+  }
+  const socialLinks = Array.isArray(props.socialLinks)
+    ? (props.socialLinks as { label?: string; iconUrl?: string; href?: string }[]).map((link) => ({
+        ...link,
+        iconUrl: localizeKdirectionIconUrl(String(link.label ?? ""), link.iconUrl),
+      }))
+    : next.socialLinks;
+
+  return {
+    ...next,
+    ...props,
+    backgroundCss: missingWixBg ? next.backgroundCss : props.backgroundCss,
+    backgroundImage,
+    heroImage,
+    socialLinks,
+    displayFont: props.displayFont ?? next.displayFont,
+    navButtonBg: props.navButtonBg ?? next.navButtonBg,
   };
 }

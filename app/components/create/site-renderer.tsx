@@ -184,7 +184,7 @@ export function SiteRenderer({
     s.type === "maylecor-home" || s.type === "maylecor-music",
   );
   const legallyBlondeOnly = page.sections.every((s) => s.type === "legally-blonde-hero");
-  const kdirectionOnly = page.sections.every(
+  const hasKdirection = page.sections.some(
     (s) => s.type === "kdirection-home" || s.type === "kdirection-page",
   );
   const motionHero = findMotionHeroProps(definition);
@@ -207,7 +207,7 @@ export function SiteRenderer({
           color: "#111",
           minHeight: mode === "preview" ? "100%" : "100vh",
         }
-      : kdirectionOnly
+      : hasKdirection
         ? { background: "transparent", color: "#111", minHeight: mode === "preview" ? "100%" : "100vh" }
       : motionSite && activeSlug !== "home"
         ? {

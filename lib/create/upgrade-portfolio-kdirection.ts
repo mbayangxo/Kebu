@@ -1,33 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { kdirectionWixSitePages } from "./kdirection-site-pages";
-import { defaultKdirectionHomeProps } from "./kdirection-defaults";
-import { defaultDeviceLayoutsForCollage } from "./builder-device";
+import {
+  defaultKdirectionHomeProps,
+  normalizeKdirectionHomeProps,
+  normalizeKdirectionPageProps,
+} from "./kdirection-defaults";
 
-function ensureCollageDeviceLayouts(photos: unknown): unknown {
-  if (!Array.isArray(photos)) return photos;
-  return photos.map((photo, index) => {
-    if (!photo || typeof photo !== "object") return photo;
-    const p = photo as Record<string, unknown>;
-    if (p.tablet && p.mobile) return photo;
-    const base = {
-      src: String(p.src ?? ""),
-      alt: typeof p.alt === "string" ? p.alt : "",
-      rotate: Number(p.rotate ?? 0),
-      topPct: Number(p.topPct ?? 10),
-      leftPct: Number(p.leftPct ?? 10),
-      widthPct: Number(p.widthPct ?? 16),
-      zIndex: typeof p.zIndex === "number" ? p.zIndex : 3,
-    };
-    return {
-      ...p,
-      ...defaultDeviceLayoutsForCollage(base, index),
-      tablet: p.tablet ?? defaultDeviceLayoutsForCollage(base, index).tablet,
-      mobile: p.mobile ?? defaultDeviceLayoutsForCollage(base, index).mobile,
-    };
-  });
-}
-
-/** Upgrade owner K-Direction portfolio from generic agency seed → Wix-style template. */
+/** Upgrade K-Direction sites to Wix canvas + local assets (fixes black builder from Wix 403s). */
 export async function upgradeKdirectionPortfolioProject(
   supabase: SupabaseClient,
   projectId: string,
@@ -65,40 +44,6 @@ export async function upgradeKdirectionPortfolioProject(
       });
       if (error) return { upgraded: false, detail: error.message };
       upgraded = true;
-    } else {
-      const kd = (homeSections ?? []).find((s) => s.section_type === "kdirection-home");
-      if (kd) {
-        const props = (kd.props ?? {}) as Record<string, unknown>;
-        const next = defaultKdirectionHomeProps();
-        const missingCollage =
-          !Array.isArray(props.collagePhotos) || (props.collagePhotos as unknown[]).length === 0;
-        const missingWixBg = !String(props.backgroundCss ?? "").includes("radial-gradient");
-        const missingBuilderFields =
-          props.showHomeIcon === undefined || props.logoImage === undefined || !props.displayFont;
-        const collageNeedsDevices =
-          Array.isArray(props.collagePhotos) &&
-          (props.collagePhotos as { tablet?: unknown; mobile?: unknown }[]).some((p) => !p?.tablet || !p?.mobile);
-        if (missingCollage || missingWixBg || missingBuilderFields || collageNeedsDevices) {
-          const merged = {
-            ...next,
-            ...props,
-            backgroundCss: missingWixBg ? next.backgroundCss : props.backgroundCss,
-            collagePhotos: missingCollage
-              ? next.collagePhotos
-              : ensureCollageDeviceLayouts(props.collagePhotos),
-            displayFont: props.displayFont ?? next.displayFont,
-            navButtonBg: props.navButtonBg ?? next.navButtonBg,
-            logoColor: props.logoColor ?? next.logoColor,
-            logoMirrorColor: props.logoMirrorColor ?? next.logoMirrorColor,
-            logoImage: props.logoImage ?? "",
-            showHomeIcon: props.showHomeIcon ?? true,
-            showArrows: props.showArrows ?? true,
-            showOverlay: props.showOverlay ?? false,
-          };
-          await supabase.from("project_sections").update({ props: merged }).eq("id", kd.id);
-          upgraded = true;
-        }
-      }
     }
   }
 
@@ -137,12 +82,43 @@ export async function upgradeKdirectionPortfolioProject(
     upgraded = true;
   }
 
-  if (upgraded) {
-    await supabase
-      .from("projects")
-      .update({ title: "K-Direction", updated_at: new Date().toISOString() })
-      .eq("id", projectId);
+  const { data: pagesFresh } = await supabase
+    .from("project_pages")
+    .select("id")
+    .eq("project_id", projectId);
+  const pageIds = (pagesFresh ?? []).map((p) => p.id);
+  if (pageIds.length) {
+    const { data: allSections } = await supabase
+      .from("project_sections")
+      .select("id, section_type, props, page_id")
+      .in("page_id", pageIds);
+
+    for (const section of allSections ?? []) {
+      const props = (section.props ?? {}) as Record<string, unknown>;
+      if (section.section_type === "kdirection-home") {
+        const normalized = normalizeKdirectionHomeProps(props);
+        if (JSON.stringify(normalized) !== JSON.stringify(props)) {
+          const { error } = await supabase
+            .from("project_sections")
+            .update({ props: normalized })
+            .eq("id", section.id);
+          if (error) return { upgraded, detail: error.message };
+          upgraded = true;
+        }
+      }
+      if (section.section_type === "kdirection-page") {
+        const normalized = normalizeKdirectionPageProps(props);
+        if (JSON.stringify(normalized) !== JSON.stringify(props)) {
+          const { error } = await supabase
+            .from("project_sections")
+            .update({ props: normalized })
+            .eq("id", section.id);
+          if (error) return { upgraded, detail: error.message };
+          upgraded = true;
+        }
+      }
+    }
   }
 
-  return { upgraded, detail: upgraded ? "K-Direction Wix template applied" : "Already on K-Direction template" };
+  return { upgraded, detail: upgraded ? "K-Direction Wix template + local assets applied" : "Already on K-Direction template" };
 }

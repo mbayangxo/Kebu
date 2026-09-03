@@ -115,16 +115,31 @@ export default function ProjectEditorPage() {
       }
       let projectPayload = data;
       const sectionRows = Array.isArray(data.sections) ? data.sections : [];
+      const desc = typeof data.project?.description === "string" ? data.project.description : "";
       const needsMaylecorFix =
-        typeof data.project?.description === "string" &&
-        data.project.description.includes("portfolio:maylecor")
-          ? true
-          : sectionRows.some(
-              (s: { section_type?: string }) =>
-                s.section_type === "legally-blonde-hero" || s.section_type === "maylecor-home",
-            );
+        desc.includes("portfolio:maylecor") ||
+        sectionRows.some(
+          (s: { section_type?: string }) =>
+            s.section_type === "legally-blonde-hero" || s.section_type === "maylecor-home",
+        );
+      const needsKdirectionFix =
+        desc.includes("portfolio:kdirection") ||
+        sectionRows.some(
+          (s: { section_type?: string }) =>
+            s.section_type === "kdirection-home" || s.section_type === "kdirection-page",
+        );
       if (needsMaylecorFix) {
         const upRes = await fetch(`/api/projects/${projectId}/upgrade-maylecor`, {
+          method: "POST",
+          credentials: "include",
+        });
+        if (upRes.ok) {
+          const res2 = await fetch(`/api/projects/${projectId}`, { credentials: "include" });
+          const data2 = await res2.json().catch(() => ({}));
+          if (res2.ok) projectPayload = data2;
+        }
+      } else if (needsKdirectionFix) {
+        const upRes = await fetch(`/api/projects/${projectId}/upgrade-kdirection`, {
           method: "POST",
           credentials: "include",
         });

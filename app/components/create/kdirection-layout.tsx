@@ -10,6 +10,12 @@ import {
   type BuilderDevice,
   type CollagePhotoWithDevices,
 } from "@/lib/create/builder-device";
+import { KDIRECTION_WIX_GRADIENT } from "@/lib/create/kdirection-defaults";
+import {
+  KDIRECTION_PORTRAIT,
+  localizeKdirectionAssetUrl,
+  localizeKdirectionIconUrl,
+} from "@/lib/create/kdirection-local-assets";
 
 type KdEditor = {
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
@@ -238,10 +244,13 @@ function DraggablePhoto({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={photo.src}
+        src={localizeKdirectionAssetUrl(photo.src) || KDIRECTION_PORTRAIT}
         alt={photo.alt || altFallback || "Collage"}
         className="pointer-events-none block aspect-[3/4] w-full object-cover"
         draggable={false}
+        onError={(e) => {
+          e.currentTarget.src = KDIRECTION_PORTRAIT;
+        }}
       />
       {editing ? (
         <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
@@ -499,7 +508,14 @@ export function KdirectionHomeLayout({
               >
                 {link.iconUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={link.iconUrl} alt={link.label} className="h-8 w-8 object-contain" />
+                  <img
+                    src={localizeKdirectionIconUrl(link.label, link.iconUrl)}
+                    alt={link.label}
+                    className="h-8 w-8 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
                 ) : (
                   <span className="text-[10px] font-bold uppercase">{link.label}</span>
                 )}
@@ -632,7 +648,8 @@ export function KdirectionPageLayout({
   const overlay = props.showOverlay === true;
   const opacity = Math.min(0.85, Math.max(0, Number(props.overlayOpacity ?? 0.35)));
   const font = props.displayFont || "Oswald";
-  const bg = props.backgroundCss?.trim() || "#0a0a0a";
+  const bg = props.backgroundCss?.trim() || KDIRECTION_WIX_GRADIENT;
+  const heroSrc = localizeKdirectionAssetUrl(props.heroImage) || props.heroImage;
 
   function patch(next: Record<string, unknown>) {
     if (!sectionId || !editor?.onPatchSection) return;
@@ -681,9 +698,16 @@ export function KdirectionPageLayout({
           {props.title}
         </h1>
         {props.subtitle ? <p className="mt-3 text-white/70">{props.subtitle}</p> : null}
-        {props.heroImage ? (
+        {heroSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={props.heroImage} alt="" className="mt-8 w-full max-h-[28rem] object-cover shadow-xl" />
+          <img
+            src={heroSrc}
+            alt=""
+            className="mt-8 w-full max-h-[28rem] object-cover shadow-xl"
+            onError={(e) => {
+              e.currentTarget.src = KDIRECTION_PORTRAIT;
+            }}
+          />
         ) : null}
         {editing && projectId ? (
           <div className="mt-4" onClick={(e) => e.stopPropagation()}>

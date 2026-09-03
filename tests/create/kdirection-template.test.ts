@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultKdirectionHomeProps, KDIRECTION_WIX_GRADIENT } from "@/lib/create/kdirection-defaults";
 import { kdirectionWixSitePages } from "@/lib/create/kdirection-site-pages";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
+import { KDIRECTION_PORTRAIT } from "@/lib/create/kdirection-local-assets";
 
 describe("kdirection builder template", () => {
   it("ships Wix-accurate home defaults with editable collage + logo slots", () => {
@@ -13,13 +14,14 @@ describe("kdirection builder template", () => {
     expect(props.logoImage).toBe("");
     expect(props.collagePhotos.length).toBeGreaterThanOrEqual(4);
     for (const photo of props.collagePhotos) {
-      expect(photo.src).toMatch(/^https:\/\//);
+      expect(photo.src).toBe(KDIRECTION_PORTRAIT);
       expect(typeof photo.topPct).toBe("number");
       expect(typeof photo.leftPct).toBe("number");
       expect(typeof photo.rotate).toBe("number");
       expect(typeof photo.widthPct).toBe("number");
     }
     expect(props.socialLinks.length).toBeGreaterThanOrEqual(1);
+    expect(props.socialLinks[0]!.iconUrl.startsWith("/templates/kdirection/")).toBe(true);
     expect(props.navLinks.some((l) => /artist/i.test(l.label))).toBe(true);
   });
 
