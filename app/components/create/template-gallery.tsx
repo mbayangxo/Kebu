@@ -9,28 +9,39 @@ import { KEBU } from "@/lib/kebu-brand";
 export function TemplateGallery({
   templates,
   featured,
+  flagship,
   visualOnly = false,
 }: {
   templates: GalleryTemplate[];
   featured: GalleryTemplate[];
+  flagship?: GalleryTemplate[];
   visualOnly?: boolean;
 }) {
-  const [filter, setFilter] = useState<TemplateCategoryGroupId | "featured" | "">("");
+  const [filter, setFilter] = useState<TemplateCategoryGroupId | "featured" | "flagship" | "">("");
   const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
-    let list = filter === "featured" ? featured : filter === "" ? templates : templates.filter((t) => t.groupId === filter);
+    let list =
+      filter === "flagship" && flagship?.length
+        ? flagship
+        : filter === "featured"
+          ? featured
+          : filter === ""
+            ? templates
+            : templates.filter((t) => t.groupId === filter);
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
         (t) =>
           t.name.toLowerCase().includes(q) ||
           t.groupLabel.toLowerCase().includes(q) ||
-          t.category.toLowerCase().includes(q),
+          t.category.toLowerCase().includes(q) ||
+          t.description.toLowerCase().includes(q) ||
+          (t.cardVisual?.keywords ?? []).some((k) => k.includes(q)),
       );
     }
     return list;
-  }, [filter, templates, featured, query]);
+  }, [filter, templates, featured, flagship, query]);
 
   return (
     <div>
@@ -45,6 +56,14 @@ export function TemplateGallery({
         />
         <div className="flex flex-wrap gap-2">
           <FilterChip active={filter === ""} onClick={() => setFilter("")} label={`All (${templates.length})`} />
+          {flagship?.length ? (
+            <FilterChip
+              active={filter === "flagship"}
+              onClick={() => setFilter("flagship")}
+              label={`Russian · May · K-Direction (${flagship.length})`}
+              accent
+            />
+          ) : null}
           <FilterChip
             active={filter === "featured"}
             onClick={() => setFilter("featured")}

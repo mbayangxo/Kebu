@@ -494,11 +494,10 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "musician-maylecor-ksendr",
-    name: "May Lecor — ksendr motion layout (owner portfolio)",
+    name: "May Lecor — Russian motion artist",
     category: "music",
     description:
-      "Exact copy of ksendrdesign.ru/legallyblonderu (cutouts, Steelfish, background, scroll) — swap May photos in the editor.",
-    visibility: "owner_portfolio",
+      "Live May Lecor layout: ksendr Russian cutouts, Steelfish type, scroll motion, music/tour pages — swap your photos.",
     definition: {
       schemaVersion: "website-v1",
       title: "May Lecor",
@@ -581,23 +580,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
             {
               id: "artist-home-1",
               type: "maylecor-home",
-              props: {
-                ...defaultMaylecorHomeProps("YOUR NAME"),
-                portraitMain: "",
-                collageTop: "",
-                collageMiddle: "",
-                logoBanner: "",
-                bottomLeft: "",
-                bottomRight: "",
-                logoSmall: "",
-                backgroundImage: "",
-                ctaLabel: "LISTEN NOW",
-                socialLinks: [
-                  { label: "Spotify", iconUrl: "", href: "#" },
-                  { label: "Instagram", iconUrl: "", href: "#" },
-                  { label: "YouTube", iconUrl: "", href: "#" },
-                ],
-              },
+              props: defaultMaylecorHomeProps("YOUR NAME"),
             },
           ],
         },
@@ -608,10 +591,7 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
             {
               id: "artist-music-1",
               type: "maylecor-music",
-              props: {
-                ...defaultMaylecorMusicProps("YOUR NAME"),
-                albumArt: "",
-              },
+              props: defaultMaylecorMusicProps("YOUR NAME"),
             },
           ],
         },
@@ -620,10 +600,10 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "showcase-legally-blonde",
-    name: "Legally Blonde — animated cutout showcase",
+    name: "Russian cutout showcase",
     category: "film",
     description:
-      "Flowing cutout layers from ksendrdesign.ru/legallyblonderu — swap photo URLs in the editor",
+      "Original ksendr / Legally Blonde Russian demo — pink layers, Steelfish, floating cutouts. Search: Russian template.",
     definition: {
       schemaVersion: "website-v1",
       title: "Legally Blonde",
@@ -1326,11 +1306,10 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "agency-kdirection",
-    name: "K-Direction (owner portfolio — Wix layout)",
+    name: "K-Direction — Wix canvas label",
     category: "agency",
     description:
-      "Exact Wix home from kdirectionartistry.wixsite.com/k-direction — Oswald wordmark, soft gradient, yellow nav, editable collage photos.",
-    visibility: "owner_portfolio",
+      "Live K-Direction layout: Oswald wordmark, soft gradient, yellow pill nav, editable photo collage.",
     definition: {
       schemaVersion: "website-v1",
       title: "K-Direction",

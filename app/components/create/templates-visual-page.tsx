@@ -8,9 +8,11 @@ import { KEBU } from "@/lib/kebu-brand";
 export function TemplatesVisualPage({
   templates,
   featured,
+  flagship,
 }: {
   templates: GalleryTemplate[];
   featured: GalleryTemplate[];
+  flagship: GalleryTemplate[];
 }) {
   return (
     <div className="min-h-full">
@@ -80,7 +82,7 @@ export function TemplatesVisualPage({
           ))}
         </div>
 
-        <TemplateGallery templates={templates} featured={featured} visualOnly />
+        <TemplateGallery templates={templates} featured={featured} flagship={flagship} visualOnly />
       </div>
     </div>
   );

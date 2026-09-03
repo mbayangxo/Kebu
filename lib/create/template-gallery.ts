@@ -1,6 +1,11 @@
 import { FEATURED_TEMPLATES } from "@/lib/create/featured-templates";
 import { publicTemplateSeeds } from "@/lib/create/templates-seed";
 import { templateGroupId, TEMPLATE_CATEGORY_GROUPS, type TemplateCategoryGroupId } from "@/lib/create/template-catalog";
+import {
+  FLAGSHIP_TEMPLATE_SLUGS,
+  templateCardVisual,
+  type TemplateCardVisual,
+} from "@/lib/create/template-visuals";
 
 const CATEGORY_ACCENTS: Record<TemplateCategoryGroupId, string> = {
   music: "#E8D5A3",
@@ -29,6 +34,8 @@ export type GalleryTemplate = {
   groupLabel: string;
   accent: string;
   featured: boolean;
+  flagship: boolean;
+  cardVisual: TemplateCardVisual | null;
   previewPath: string;
   demoPath: string;
   usePath: string;
@@ -46,6 +53,7 @@ export function getGalleryTemplates(): GalleryTemplate[] {
   return publicTemplateSeeds().map((t) => {
     const groupId = templateGroupId(t.category);
     const group = TEMPLATE_CATEGORY_GROUPS.find((g) => g.id === groupId);
+    const cardVisual = templateCardVisual(t.slug);
     return {
       slug: t.slug,
       name: t.name,
@@ -55,11 +63,21 @@ export function getGalleryTemplates(): GalleryTemplate[] {
       groupLabel: group?.label ?? "Templates",
       accent: getTemplateAccent(t.slug, t.category),
       featured: featuredSlugs.has(t.slug),
+      flagship: FLAGSHIP_TEMPLATE_SLUGS.includes(t.slug as (typeof FLAGSHIP_TEMPLATE_SLUGS)[number]),
+      cardVisual,
       previewPath: `/create/templates/preview/${t.slug}`,
       demoPath: `/create/demo/${t.slug}`,
       usePath: `/create/new?template=${encodeURIComponent(t.slug)}`,
     };
   });
+}
+
+/** The three real Kebu site layouts — Russian cutouts, May Lecor, K-Direction. */
+export function getFlagshipGalleryTemplates(): GalleryTemplate[] {
+  const all = getGalleryTemplates();
+  return FLAGSHIP_TEMPLATE_SLUGS.map((slug) => all.find((t) => t.slug === slug)).filter(
+    (t): t is GalleryTemplate => Boolean(t),
+  );
 }
 
 export function getFeaturedGalleryTemplates(): GalleryTemplate[] {

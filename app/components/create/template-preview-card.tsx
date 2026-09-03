@@ -5,13 +5,68 @@ import { useEffect, useRef, useState } from "react";
 import type { GalleryTemplate } from "@/lib/create/template-gallery";
 import { KEBU } from "@/lib/kebu-brand";
 
-function PreviewSkeleton({ accent }: { accent: string }) {
+function PreviewSkeleton({ accent, gradient }: { accent: string; gradient?: string }) {
   return (
     <div
       className="absolute inset-0 flex items-center justify-center"
-      style={{ background: `linear-gradient(160deg, ${accent}33, ${KEBU.black})` }}
+      style={{
+        background: gradient ?? `linear-gradient(160deg, ${accent}33, ${KEBU.black})`,
+      }}
     >
       <div className="w-10 h-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+    </div>
+  );
+}
+
+function StaticTemplateVisual({ template }: { template: GalleryTemplate }) {
+  const visual = template.cardVisual;
+  if (!visual) return null;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden" aria-hidden>
+      <div
+        className="absolute inset-0"
+        style={{
+          background: visual.previewGradient ?? `linear-gradient(160deg, ${template.accent}55, #0a0a0a)`,
+        }}
+      />
+      {visual.previewImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={visual.previewImage}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-90"
+        />
+      ) : null}
+      {visual.previewImageSecondary ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={visual.previewImageSecondary}
+          alt=""
+          className="absolute bottom-[8%] right-[6%] z-10 w-[42%] rotate-6 object-cover shadow-2xl ring-2 ring-white/80"
+        />
+      ) : null}
+      {template.slug === "agency-kdirection" ? (
+        <div className="absolute inset-x-[10%] top-[18%] z-10 flex flex-wrap justify-center gap-1.5 opacity-95">
+          {["HOME", "ARTISTS", "CONTACT"].map((label) => (
+            <span
+              key={label}
+              className="rounded-full px-2 py-0.5 text-[7px] font-bold tracking-wider text-black"
+              style={{ background: "#FFF86B" }}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {template.slug === "showcase-legally-blonde" ? (
+        <div
+          className="absolute left-[8%] top-[12%] z-10 max-w-[55%] text-[11px] font-black uppercase leading-none tracking-tight text-[#e9006b]"
+          style={{ fontFamily: "Georgia, serif" }}
+        >
+          Russian cutouts
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -38,6 +93,12 @@ export function TemplatePreviewCard({
   const [frameReady, setFrameReady] = useState(false);
 
   useEffect(() => {
+    if (template.cardVisual?.previewImage || template.cardVisual?.previewGradient) {
+      setFrameReady(true);
+    }
+  }, [template.cardVisual]);
+
+  useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -62,6 +123,8 @@ export function TemplatePreviewCard({
         : "1px solid rgba(10,10,10,0.1)";
 
   const iframeScale = visualOnly ? 0.22 : 0.26;
+  const useStaticHero = Boolean(template.cardVisual?.previewImage || template.cardVisual?.previewGradient);
+  const showIframe = loadFrame && !useStaticHero;
 
   return (
     <article
@@ -83,8 +146,11 @@ export function TemplatePreviewCard({
         className="relative overflow-hidden bg-[#0A0A0A]"
         style={{ aspectRatio: visualOnly ? "9/14" : "10/13" }}
       >
-        {!frameReady ? <PreviewSkeleton accent={template.accent} /> : null}
-        {loadFrame ? (
+        {template.cardVisual ? <StaticTemplateVisual template={template} /> : null}
+        {!frameReady && !useStaticHero ? (
+          <PreviewSkeleton accent={template.accent} gradient={template.cardVisual?.previewGradient} />
+        ) : null}
+        {showIframe ? (
           <iframe
             src={template.previewPath}
             title={`${template.name} live preview`}
@@ -99,6 +165,17 @@ export function TemplatePreviewCard({
             loading="lazy"
             tabIndex={-1}
             onLoad={() => setFrameReady(true)}
+          />
+        ) : null}
+        {useStaticHero ? (
+          <iframe
+            src={template.previewPath}
+            title={`${template.name} live preview`}
+            className="absolute top-0 left-0 border-0 pointer-events-none origin-top-left opacity-0"
+            style={{ width: "1px", height: "1px" }}
+            tabIndex={-1}
+            onLoad={() => setFrameReady(true)}
+            aria-hidden
           />
         ) : null}
 
@@ -181,9 +258,9 @@ export function TemplatePreviewCard({
         ) : (
           <span
             className="absolute top-3 left-3 z-20 text-[8px] font-black uppercase tracking-wider px-2 py-1 rounded-full opacity-90"
-            style={{ background: KEBU.red, color: KEBU.white }}
+            style={{ background: template.cardVisual?.badge ? template.accent : KEBU.red, color: KEBU.white }}
           >
-            Live preview
+            {template.cardVisual?.badge ?? "Live preview"}
           </span>
         )}
       </div>

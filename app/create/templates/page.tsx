@@ -1,6 +1,6 @@
 import { AppShell } from "@/app/components/app-shell";
 import { TemplatesVisualPage } from "@/app/components/create/templates-visual-page";
-import { getFeaturedGalleryTemplates, getGalleryTemplates } from "@/lib/create/template-gallery";
+import { getFeaturedGalleryTemplates, getFlagshipGalleryTemplates, getGalleryTemplates } from "@/lib/create/template-gallery";
 
 export const metadata = {
   title: "Templates — Kebu Builder",
@@ -11,10 +11,11 @@ export const metadata = {
 export default function CreateTemplatesPage() {
   const templates = getGalleryTemplates();
   const featured = getFeaturedGalleryTemplates();
+  const flagship = getFlagshipGalleryTemplates();
 
   return (
     <AppShell title="Templates">
-      <TemplatesVisualPage templates={templates} featured={featured} />
+      <TemplatesVisualPage templates={templates} featured={featured} flagship={flagship} />
     </AppShell>
   );
 }

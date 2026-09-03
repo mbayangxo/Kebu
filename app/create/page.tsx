@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { TemplatePreviewCard } from "@/app/components/create/template-preview-card";
 import { MySitesGrid, type MySiteProject } from "@/app/components/create/my-sites-grid";
-import { getFeaturedGalleryTemplates } from "@/lib/create/template-gallery";
+import { getFeaturedGalleryTemplates, getFlagshipGalleryTemplates } from "@/lib/create/template-gallery";
 
 type ProjectRow = {
   id: string;
@@ -179,7 +179,7 @@ export default function CreateHubPage() {
     void checkDb();
   }, []);
 
-  const galleryFeatured = getFeaturedGalleryTemplates().slice(0, 3);
+  const galleryFlagship = getFlagshipGalleryTemplates();
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash === "#templates") {
@@ -255,11 +255,14 @@ export default function CreateHubPage() {
           <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.25em] mb-2" style={{ color: "#FF5500" }}>
-                Templates
+                Flagship layouts
               </p>
               <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-                See the site — not a description
+                Russian cutouts · May Lecor · K-Direction
               </h2>
+              <p className="text-sm mt-2 max-w-xl" style={{ color: "#5C5348" }}>
+                Three different site engines — not the same layout with a new name. Each matches a real published Kebu site.
+              </p>
             </div>
             <Link
               href="/create/templates"
@@ -270,11 +273,34 @@ export default function CreateHubPage() {
             </Link>
           </div>
           <ul className="grid gap-4 sm:grid-cols-3">
-            {galleryFeatured.map((t) => (
+            {galleryFlagship.map((t) => (
               <li key={t.slug}>
                 <TemplatePreviewCard template={t} visualOnly />
               </li>
             ))}
+          </ul>
+        </section>
+
+        <section className="mb-14">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] mb-2" style={{ color: "#FF5500" }}>
+                More templates
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
+                Salons, stores, agencies, and more
+              </h2>
+            </div>
+          </div>
+          <ul className="grid gap-4 sm:grid-cols-3">
+            {getFeaturedGalleryTemplates()
+              .filter((t) => !galleryFlagship.some((f) => f.slug === t.slug))
+              .slice(0, 3)
+              .map((t) => (
+                <li key={t.slug}>
+                  <TemplatePreviewCard template={t} visualOnly />
+                </li>
+              ))}
           </ul>
         </section>
 
