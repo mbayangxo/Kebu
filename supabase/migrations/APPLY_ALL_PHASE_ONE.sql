@@ -1094,15 +1094,9 @@ create policy "Founders update own draft businesses"
 -- Extends projects for business linkage, themes, subdomains; templates; versions; deployments.
 -- Public sites are served from deployments.snapshot only (draft data stays private).
 
--- Expand section types
-alter table public.project_sections drop constraint if exists project_sections_section_type_check;
-alter table public.project_sections
-  add constraint project_sections_section_type_check
-  check (section_type in (
-    'navigation', 'hero', 'text', 'image', 'gallery', 'features',
-    'testimonials', 'faq', 'contact', 'whatsapp', 'footer',
-    'heading', 'paragraph', 'button'
-  ));
+-- Section-type check is applied once at end of this file (031) with the full
+-- allowed set. Do not re-add a narrower check here — re-runs fail (23514) when
+-- existing rows already use later types (video, kdirection-*, etc.).
 
 -- Project hosting / brief fields
 alter table public.projects add column if not exists business_id uuid references public.businesses(id) on delete set null;
@@ -1188,6 +1182,7 @@ create index if not exists website_versions_project_idx
 alter table public.website_versions enable row level security;
 
 drop policy if exists "Owners manage website versions" on public.website_versions;
+drop policy if exists "Owners select website versions" on public.website_versions;
 create policy "Owners select website versions"
   on public.website_versions for select
   using (
@@ -1285,6 +1280,7 @@ create table if not exists public.site_domains (
 alter table public.site_domains enable row level security;
 
 drop policy if exists "Owners manage domains" on public.site_domains;
+drop policy if exists "Owners select domains" on public.site_domains;
 create policy "Owners select domains"
   on public.site_domains for select
   using (
@@ -1422,6 +1418,7 @@ alter table public.country_profiles
 
 -- Public read published only (replace open read if present)
 drop policy if exists "Anyone can read country profiles" on public.country_profiles;
+drop policy if exists "Anyone can read published country profiles" on public.country_profiles;
 create policy "Anyone can read published country profiles"
   on public.country_profiles for select
   using (publish_status = 'published');
@@ -1549,7 +1546,8 @@ create table if not exists public.site_subscriptions (
   owner_id uuid not null references auth.users(id) on delete cascade,
   status text not null default 'pending'
     check (status in ('pending', 'active', 'past_due', 'cancelled', 'expired')),
-  amount_usd_cents integer not null default 400 check (amount_usd_cents > 0),
+  -- amount >= 0 so Free ($0) works; 036 also re-asserts this for older DBs
+  amount_usd_cents integer not null default 0 check (amount_usd_cents >= 0),
   currency text not null default 'USD',
   period_start timestamptz,
   period_end timestamptz,
@@ -1590,10 +1588,47 @@ create policy "Owners select site subscriptions"
   on public.site_subscriptions for select
   using (owner_id = auth.uid());
 
+-- Free publish (036 + 038): allow $0 + active Free inserts on re-run of this file.
+-- CREATE TABLE IF NOT EXISTS does not update checks on existing DBs — alter below.
+alter table public.site_subscriptions
+  add column if not exists tier text not null default 'free';
+
+alter table public.site_subscriptions
+  add column if not exists billing_interval text not null default 'monthly';
+
+alter table public.site_subscriptions
+  drop constraint if exists site_subscriptions_amount_usd_cents_check;
+
+alter table public.site_subscriptions
+  add constraint site_subscriptions_amount_usd_cents_check
+  check (amount_usd_cents >= 0);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'site_subscriptions_tier_check'
+  ) then
+    alter table public.site_subscriptions
+      add constraint site_subscriptions_tier_check
+      check (tier in ('free', 'student', 'starter', 'shop', 'business', 'pro'));
+  end if;
+end $$;
+
 drop policy if exists "Owners insert pending site subscriptions" on public.site_subscriptions;
-create policy "Owners insert pending site subscriptions"
+drop policy if exists "Owners insert site subscriptions" on public.site_subscriptions;
+create policy "Owners insert site subscriptions"
   on public.site_subscriptions for insert
-  with check (owner_id = auth.uid() and status = 'pending');
+  with check (
+    owner_id = auth.uid()
+    and (
+      status = 'pending'
+      or (
+        status = 'active'
+        and coalesce(tier, 'free') = 'free'
+        and amount_usd_cents = 0
+      )
+    )
+  );
 
 drop policy if exists "Owners select template purchases" on public.template_purchases;
 create policy "Owners select template purchases"
@@ -1607,16 +1642,7 @@ create policy "Owners insert pending template purchases"
 
 -- ========== 011_maylecor_section_types.sql ==========
 -- May Lecor / K-Direction artist layout section types
-
-alter table public.project_sections drop constraint if exists project_sections_section_type_check;
-alter table public.project_sections
-  add constraint project_sections_section_type_check
-  check (section_type in (
-    'navigation', 'hero', 'text', 'image', 'gallery', 'features',
-    'testimonials', 'faq', 'contact', 'whatsapp', 'footer',
-    'heading', 'paragraph', 'button',
-    'maylecor-home', 'maylecor-music'
-  ));
+-- (section_type allow-list deferred to 031 below — safe for re-runs)
 
 create table if not exists public.builder_schema_meta (
   key text primary key,
@@ -1637,16 +1663,7 @@ create policy "Authenticated read builder schema meta"
 
 -- ========== 012_legally_blonde_section_type.sql ==========
 -- Legally Blonde animated showcase section type
-
-alter table public.project_sections drop constraint if exists project_sections_section_type_check;
-alter table public.project_sections
-  add constraint project_sections_section_type_check
-  check (section_type in (
-    'navigation', 'hero', 'text', 'image', 'gallery', 'features',
-    'testimonials', 'faq', 'contact', 'whatsapp', 'footer',
-    'heading', 'paragraph', 'button',
-    'maylecor-home', 'maylecor-music', 'legally-blonde-hero'
-  ));
+-- (section_type allow-list deferred to 031 below — safe for re-runs)
 
 insert into public.builder_schema_meta (key, value)
 values ('website_builder_version', '12')
@@ -1675,6 +1692,7 @@ create table if not exists public.site_health_checks (
 
 alter table public.site_health_checks enable row level security;
 
+drop policy if exists "Owners read health via deployment" on public.site_health_checks;
 create policy "Owners read health via deployment"
   on public.site_health_checks for select
   using (
@@ -1759,18 +1777,22 @@ create table if not exists public.marketplace_templates (
 alter table public.developer_profiles enable row level security;
 alter table public.marketplace_templates enable row level security;
 
+drop policy if exists "Developers read own profile" on public.developer_profiles;
 create policy "Developers read own profile"
   on public.developer_profiles for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Developers insert own profile" on public.developer_profiles;
 create policy "Developers insert own profile"
   on public.developer_profiles for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Developers update own pending profile" on public.developer_profiles;
 create policy "Developers update own pending profile"
   on public.developer_profiles for update
   using (auth.uid() = user_id);
 
+drop policy if exists "Public read published marketplace templates" on public.marketplace_templates;
 create policy "Public read published marketplace templates"
   on public.marketplace_templates for select
   using (status = 'published' or exists (
@@ -1778,6 +1800,7 @@ create policy "Public read published marketplace templates"
     where dp.id = marketplace_templates.developer_id and dp.user_id = auth.uid()
   ));
 
+drop policy if exists "Approved developers manage own templates" on public.marketplace_templates;
 create policy "Approved developers manage own templates"
   on public.marketplace_templates for all
   using (
@@ -2591,33 +2614,16 @@ create trigger afrique_ids_set_updated_at
 
 grant select, insert, update on public.afrique_ids to authenticated;
 
--- ========== 028_builder_section_types_extended.sql ==========
--- Allow all Phase One builder section types (video, audio, products, newsletter, …)
+-- ========== 028 + 031: final project_sections section_type allow-list ==========
+-- Single full constraint so re-running this file never shrinks allowed types.
 
 alter table public.project_sections drop constraint if exists project_sections_section_type_check;
 alter table public.project_sections
   add constraint project_sections_section_type_check
   check (section_type in (
     'navigation', 'hero', 'text', 'image', 'gallery', 'video', 'audio', 'map', 'events',
-    'features', 'testimonials', 'faq', 'products', 'contact', 'newsletter', 'whatsapp', 'footer',
-    'heading', 'paragraph', 'button',
-    'maylecor-home', 'maylecor-music', 'legally-blonde-hero'
-  ));
-
-insert into public.builder_schema_meta (key, value)
-values ('website_builder_version', '28')
-on conflict (key) do update set value = excluded.value, updated_at = now();
-
--- ========== 031_kdirection_section_types.sql ==========
--- K-Direction Wix builder sections (kdirection-home / kdirection-page)
-
-alter table public.project_sections drop constraint if exists project_sections_section_type_check;
-alter table public.project_sections
-  add constraint project_sections_section_type_check
-  check (section_type in (
-    'navigation', 'hero', 'text', 'image', 'gallery', 'video', 'audio', 'map', 'events',
-    'features', 'testimonials', 'faq', 'products', 'contact', 'newsletter', 'whatsapp',
-    'heading', 'paragraph', 'button', 'free-text', 'footer',
+    'features', 'testimonials', 'faq', 'products', 'contact', 'newsletter', 'email-popup',
+    'whatsapp', 'heading', 'paragraph', 'button', 'free-text', 'footer',
     'maylecor-home', 'maylecor-music', 'legally-blonde-hero',
     'kdirection-home', 'kdirection-page'
   ));

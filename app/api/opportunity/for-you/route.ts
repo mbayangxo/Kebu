@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
+import {
+  hasVerifiedAfricanOpportunityAccess,
+  loadAfricanOpportunityEntitlement,
+} from "@/lib/entitlements/african-opportunity-access";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { rowToOpportunityProfile } from "@/lib/opportunity/intake-schema";
 import {
@@ -12,11 +16,13 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/** Personalized Opportunity OS feed — only after intake; uses real DB data. */
+/** Personalized Kebu Opportunity OS feed — intake + verified African entitlement; uses real DB data. */
 export async function GET() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
+
+  const entitlement = await loadAfricanOpportunityEntitlement({ supabase, userId: user.id });
 
   const { data: profileRow } = await supabase
     .from("opportunity_profiles")
@@ -28,6 +34,21 @@ export async function GET() {
     return NextResponse.json({
       needsIntake: true,
       redirect: "/opportunity/intake",
+      entitlement,
+    });
+  }
+
+  if (!hasVerifiedAfricanOpportunityAccess(entitlement)) {
+    return NextResponse.json({
+      needsEntitlement: true,
+      entitlement,
+      message:
+        entitlement.status === "pending"
+          ? "Your African ID verification is in review. Protected personalization unlocks when verified."
+          : "Kebu Opportunity OS protected intelligence requires verified African Access. Country Explorer and Opportunity Cards stay open — verify once on your account.",
+      verifyHref: "/account#african-id",
+      exploreHref: "/opportunity/countries",
+      cardsHref: "/opportunity/cards",
     });
   }
 
@@ -55,6 +76,8 @@ export async function GET() {
 
   return NextResponse.json({
     needsIntake: false,
+    needsEntitlement: false,
+    entitlement,
     profile,
     plan,
     countries,

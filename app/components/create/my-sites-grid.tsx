@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { kebuSitePreviewPath, liveSiteUrl } from "@/lib/create/site-urls";
 import { KEBU } from "@/lib/kebu-brand";
+import { MY_SITES_HREF, mySiteDetailHref } from "@/lib/navigation/product-nav";
+import { UploadAestheticButton } from "@/app/components/create/upload-aesthetic-button";
 
 export type MySiteProject = {
   id: string;
@@ -14,6 +16,12 @@ export type MySiteProject = {
   updated_at: string;
   published_at?: string | null;
 };
+
+export type MySitesFilter = "all" | "live" | "draft";
+
+export function isSitePublished(p: MySiteProject): boolean {
+  return Boolean(p.published_at) || p.status === "published";
+}
 
 type Device = "desktop" | "tablet" | "mobile";
 
@@ -208,7 +216,7 @@ function DeviceFrame({
 }
 
 function SiteHealthCard({ project }: { project: MySiteProject }) {
-  const published = Boolean(project.published_at) || project.status === "published";
+  const published = isSitePublished(project);
   const src = useMemo(() => previewSrc(project), [project]);
   const live = liveSiteUrl(project.subdomain);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -411,7 +419,7 @@ function SiteHealthCard({ project }: { project: MySiteProject }) {
 
       {/* Desktop · Tablet · Mobile — tap Open detail for full analytics */}
       <Link
-        href={`/create/sites/${project.id}`}
+        href={mySiteDetailHref(project.id)}
         className="block w-full"
         aria-label={`Open detail and analytics for ${project.title}`}
       >
@@ -447,7 +455,7 @@ function SiteHealthCard({ project }: { project: MySiteProject }) {
         </p>
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/create/sites/${project.id}`}
+            href={mySiteDetailHref(project.id)}
             className="rounded-full px-4 py-2 text-xs font-bold text-white"
             style={{ background: KEBU.orange }}
           >
@@ -461,7 +469,7 @@ function SiteHealthCard({ project }: { project: MySiteProject }) {
             {health.status === "fail" || health.status === "slow" ? "Fix in editor" : "Edit site"}
           </Link>
           <Link
-            href={`/create/sites/${project.id}#domain`}
+            href={`${mySiteDetailHref(project.id)}#domain`}
             className="rounded-full px-4 py-2 text-xs font-bold"
             style={{ background: KEBU.cream, color: KEBU.black, border: `1px solid ${KEBU.border}` }}
           >
@@ -502,10 +510,29 @@ export function SitePreviewCard({ project }: { project: MySiteProject }) {
 export function MySitesGrid({
   projects,
   compact = false,
+  initialFilter = "all",
 }: {
   projects: MySiteProject[];
   compact?: boolean;
+  initialFilter?: MySitesFilter;
 }) {
+  const [filter, setFilter] = useState<MySitesFilter>(initialFilter);
+
+  useEffect(() => {
+    setFilter(initialFilter);
+  }, [initialFilter]);
+
+  const liveCount = projects.filter(isSitePublished).length;
+  const draftCount = projects.length - liveCount;
+
+  const visible = useMemo(() => {
+    if (filter === "live") return projects.filter(isSitePublished);
+    if (filter === "draft") return projects.filter((p) => !isSitePublished(p));
+    return projects;
+  }, [projects, filter]);
+
+  const filterHref = (id: MySitesFilter) => (id === "all" ? MY_SITES_HREF : `${MY_SITES_HREF}?filter=${id}`);
+
   return (
     <div className={compact ? "" : "max-w-6xl mx-auto px-4 sm:px-6 py-10"}>
       <div className={`flex flex-wrap items-end justify-between gap-4 ${compact ? "mb-4" : "mb-8"}`}>
@@ -513,23 +540,38 @@ export function MySitesGrid({
           {!compact ? (
             <>
               <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: KEBU.orange }}>
-                Builder
+                Your websites
               </p>
               <h1 className="text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
                 My sites
               </h1>
               <p className="text-sm mt-2 max-w-xl" style={{ color: KEBU.muted }}>
-                Build and edit in the visual editor. Connect your own domain and SEO from each site card — separate from
-                building.
+                Drafts and live sites in one place — edit, publish, domain, and analytics. Builder starts new work;
+                everything you own lives here.
               </p>
             </>
           ) : (
-            <h2 className="text-lg font-bold">My sites</h2>
+            <div>
+              <h2 className="text-lg font-bold">Recent sites</h2>
+              <p className="text-xs mt-1" style={{ color: KEBU.muted }}>
+                Drafts and live — open My sites for the full list.
+              </p>
+            </div>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!compact ? (
             <>
+              <Link
+                href="/create/aesthetics"
+                className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold border"
+                style={{ borderColor: KEBU.border }}
+              >
+                Aesthetics store
+              </Link>
+              <UploadAestheticButton
+                sites={projects.map((p) => ({ id: p.id, title: p.title || "Untitled site" }))}
+              />
               <Link
                 href="/create/domains"
                 className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold border"
@@ -546,26 +588,71 @@ export function MySitesGrid({
               </Link>
             </>
           ) : (
-            <Link href="/create/sites" className="text-sm font-bold underline" style={{ color: KEBU.orange }}>
-              View all →
+            <Link href={MY_SITES_HREF} className="text-sm font-bold underline" style={{ color: KEBU.orange }}>
+              My sites →
             </Link>
           )}
         </div>
       </div>
 
+      {!compact ? (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {(
+            [
+              ["all", `All (${projects.length})`],
+              ["live", `Live (${liveCount})`],
+              ["draft", `Drafts (${draftCount})`],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setFilter(id)}
+              className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
+              style={{
+                background: filter === id ? KEBU.black : KEBU.white,
+                color: filter === id ? KEBU.white : KEBU.black,
+                border: filter === id ? "none" : `1px solid ${KEBU.border}`,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {projects.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-black/15 p-12 text-center bg-white">
           <p className="text-lg font-semibold mb-2">No sites yet</p>
           <p className="text-sm mb-6" style={{ color: KEBU.muted }}>
-            Pick a template or start blank — your first site takes a few minutes.
+            Start in Builder — your draft appears here automatically. Publish when you are ready to go live.
           </p>
-          <Link href="/create/new" className="font-bold underline" style={{ color: KEBU.orange }}>
-            Create your first site
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link href="/create/new" className="font-bold underline" style={{ color: KEBU.orange }}>
+              + New site
+            </Link>
+            <Link href="/create/aesthetics" className="font-bold underline" style={{ color: KEBU.black }}>
+              Browse aesthetics
+            </Link>
+          </div>
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-black/15 p-8 text-center bg-white">
+          <p className="text-sm font-semibold mb-2">
+            {filter === "draft" ? "No drafts" : "No live sites yet"}
+          </p>
+          <p className="text-xs mb-4" style={{ color: KEBU.muted }}>
+            {filter === "draft"
+              ? "Everything here is published — or start a new site in Builder."
+              : "Publish a draft from the editor to see it here."}
+          </p>
+          <Link href={filterHref(filter === "draft" ? "all" : "draft")} className="text-sm font-bold underline" style={{ color: KEBU.orange }}>
+            {filter === "draft" ? "View all sites" : "View drafts"}
           </Link>
         </div>
       ) : (
         <div className="space-y-6">
-          {projects.map((p) => (
+          {visible.map((p) => (
             <SiteHealthCard key={p.id} project={p} />
           ))}
         </div>

@@ -155,6 +155,8 @@ export function defaultKdirectionHomeProps() {
     brandCardHref: "/about",
     collagePhotos: defaultKdirectionCollagePhotos(),
     navLinks: KDIRECTION_NAV_DEFAULTS.map((l) => ({ ...l })),
+    navSize: "fullscreen",
+    navScale: 1,
     socialLinks: KDIRECTION_SOCIAL_DEFAULTS.map((s) => ({ ...s })),
     footerText: KDIRECTION_DEFAULTS.footerText,
     motionEnabled: true,
@@ -183,6 +185,8 @@ export function defaultKdirectionPageProps(title = "About us") {
     ctaLabel: title === "Contact" ? "Email management" : "",
     ctaHref: title === "Contact" ? "mailto:mgmt@k-direction.com" : "",
     navLinks: KDIRECTION_NAV_DEFAULTS.map((l) => ({ ...l })),
+    navSize: "fullscreen",
+    navScale: 1,
     socialLinks: KDIRECTION_SOCIAL_DEFAULTS.map((s) => ({ ...s })),
     footerText: KDIRECTION_DEFAULTS.footerText,
   };
@@ -261,6 +265,9 @@ export function normalizeKdirectionHomeProps(props: Record<string, unknown>): Re
     showHomeIcon: props.showHomeIcon ?? true,
     showArrows: props.showArrows ?? true,
     showOverlay: props.showOverlay ?? false,
+    // Site nav is the only chrome — always edge-to-edge (never a centered 72rem strip).
+    navSize: "fullscreen",
+    navScale: typeof props.navScale === "number" ? props.navScale : next.navScale,
     featuredArtistImage,
     socialLinks,
   };
@@ -293,5 +300,7 @@ export function normalizeKdirectionPageProps(props: Record<string, unknown>): Re
     socialLinks,
     displayFont: props.displayFont ?? next.displayFont,
     navButtonBg: props.navButtonBg ?? next.navButtonBg,
+    navSize: "fullscreen",
+    navScale: typeof props.navScale === "number" ? props.navScale : next.navScale,
   };
 }

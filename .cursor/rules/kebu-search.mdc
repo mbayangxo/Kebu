@@ -1,0 +1,43 @@
+---
+description: Kebu Search — real crawl/index/rank engine; AI on top of sources, never chat-as-search
+alwaysApply: true
+---
+
+# Kebu Search — product law
+
+Full spec: `docs/product/KEBU-SEARCH.md` · Economic discovery: `docs/product/KEBU-ECONOMIC-DISCOVERY.md`
+
+## Economic discovery — not African Google
+
+Kebu Search = **intent + usefulness** hub. Basic unit: **opportunity · entity · transaction · relationship** — not only webpages. Flywheel: SEARCH → DISCOVER → UNDERSTAND → BUILD → SELL → GET CUSTOMERS → SCALE.
+
+## Foundational product (core Kebu — same umbrella)
+
+Kebu Search is a **core Kebu product** under **one Kebu Account** — **not** a separate company or second login.
+
+It is a **real, end-to-end search engine** — not a search box connected only to an AI API.
+
+**Wrong:** Search → ChatGPT answer  
+**Right:** Crawl/collect → index → rank → search results → **optional AI layer with citations**
+
+## AI position
+
+AI sits **on top of** search, **never instead of** search. Every AI summary must link to underlying indexed sources.
+
+## Result surfaces / modes (when built)
+
+Web · Africa · Business · Products · People/Talent · Research · Trade · Opportunities · Culture (RECT) · Local · **Ask Kebu** (citations required)
+
+## Global access
+
+**Kebu Search stays open globally** — separate from entitlement-gated Opportunity OS protected intelligence.
+
+## Account + context (with permission)
+
+Search connects to **one Kebu Account**. Contextual actions (Build store, Opportunity, Mail, Cloud, Analytics, Reach) require **explicit user consent** — account control center, revocable. **Not** surveillance. See `docs/product/KEBU-UNIFIED-ACCOUNT.md`.
+
+## Build discipline
+
+One vertical slice at a time. Do not ship chat-as-search, fake results, or empty Search home. Phase One may use Opportunity OS + Kebu business/site records as first honest corpus — not a fake global index.
+
+**Forbidden:** `chat-as-search` · invention without retrieval · no source metadata

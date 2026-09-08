@@ -41,7 +41,7 @@ export function KebuSidebarAuthFooter({ variant = "light" }: { variant?: "light"
     return (
       <div className="p-3 space-y-2" style={{ borderTop: `1px solid ${border}` }}>
         <Link
-          href="/dashboard"
+          href="/account"
           className="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors"
           style={{ background: dark ? "rgba(255,85,0,0.08)" : "transparent" }}
         >

@@ -47,6 +47,18 @@ export async function POST(req: Request) {
 
   const ua = req.headers.get("user-agent") ?? "";
   const device = parsed.data.device ?? deviceFromUserAgent(ua);
+  const cfCountry = (req.headers.get("cf-ipcountry") || req.headers.get("x-vercel-ip-country") || "")
+    .trim()
+    .toUpperCase();
+  const meta = {
+    ...(parsed.data.meta ?? {}),
+    ...(cfCountry && cfCountry !== "XX" ? { country: cfCountry, cfCountry } : {}),
+    ...(typeof parsed.data.meta?.referrer === "string"
+      ? {}
+      : req.headers.get("referer")
+        ? { referrer: req.headers.get("referer") }
+        : {}),
+  };
 
   const { error } = await service.from("site_analytics_events").insert({
     project_id: project.id,
@@ -57,7 +69,7 @@ export async function POST(req: Request) {
     metric_name: parsed.data.metricName ?? null,
     metric_value: parsed.data.metricValue ?? null,
     message: parsed.data.message ?? null,
-    meta: parsed.data.meta ?? {},
+    meta,
   });
 
   if (error) {

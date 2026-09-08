@@ -2,22 +2,22 @@
 
 import { useEffect } from "react";
 
-const PURGE_FLAG = "kebu-cache-purge-v4";
-
 function isSiteScopedSw(scriptURL: string): boolean {
   return scriptURL.includes("/sw-site.js");
 }
 
-function isRootAppSw(scriptURL: string): boolean {
-  return Boolean(scriptURL) && !isSiteScopedSw(scriptURL);
+function isKillSwitchSw(scriptURL: string): boolean {
+  return scriptURL.includes("/sw.js");
+}
+
+function isAppShellSw(scriptURL: string): boolean {
+  return scriptURL.includes("/sw-kebu-app.js");
 }
 
 /**
- * Stop stale HTML from old service workers.
- * - If a root-scope SW exists → install kill-switch /sw.js (clears caches + unregisters).
- * - If only legacy Cache Storage remains → delete it.
- * - Never leave a long-lived root SW that caches pages.
- * Published sites may use /sw-site.js under /sites/ (network-first HTML).
+ * - Purge legacy alkebulan / kill-switch SWs that cached broken HTML.
+ * - Register network-first app shell SW for Account · Create · Shop · Dashboard.
+ * - Keep /sites/ on sw-site.js (separate scope).
  */
 export function PWARegister() {
   useEffect(() => {
@@ -28,47 +28,30 @@ export function PWARegister() {
     async function run() {
       try {
         const regs = await navigator.serviceWorker.getRegistrations();
-        const rootRegs = regs.filter((reg) => {
+
+        for (const reg of regs) {
           const scriptURL =
             reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || "";
-          return isRootAppSw(scriptURL);
-        });
+          if (isSiteScopedSw(scriptURL) || isAppShellSw(scriptURL)) continue;
+          if (isKillSwitchSw(scriptURL) || scriptURL.includes("alkebulan") || !scriptURL) {
+            await reg.unregister();
+          }
+        }
 
         const cacheKeys = "caches" in window ? await caches.keys() : [];
         const legacyCaches = cacheKeys.filter(
           (k) =>
             k.startsWith("alkebulan") ||
-            k.startsWith("kebu-app") ||
             k === "kebu-site-v1" ||
-            k.startsWith("kebu-app-"),
+            (k.startsWith("kebu-app-") &&
+              !k.startsWith("kebu-app-html") &&
+              !k.startsWith("kebu-app-static")),
         );
-
-        const needsPurge = rootRegs.length > 0 || legacyCaches.length > 0;
-        if (!needsPurge) return;
-
-        if (rootRegs.length > 0) {
-          // Update the existing registration to the kill-switch script.
-          await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-        }
-
-        await Promise.all(
-          regs.map(async (reg) => {
-            const scriptURL =
-              reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || "";
-            if (isSiteScopedSw(scriptURL)) return;
-            // Kill-switch will unregister itself; also force-remove immediately.
-            await reg.unregister();
-          }),
-        );
-
         await Promise.all(legacyCaches.map((k) => caches.delete(k)));
 
-        if (!cancelled && typeof sessionStorage !== "undefined") {
-          if (!sessionStorage.getItem(PURGE_FLAG)) {
-            sessionStorage.setItem(PURGE_FLAG, "1");
-            window.location.reload();
-          }
-        }
+        if (cancelled) return;
+
+        await navigator.serviceWorker.register("/sw-kebu-app.js", { scope: "/" });
       } catch {
         // App works without SW.
       }

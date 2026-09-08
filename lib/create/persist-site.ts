@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WebsiteDefinition } from "./website-schema";
 import { sectionPropsSchemas, type ThemeTokens } from "./website-schema";
+import {
+  applySiteChromeToDefinition,
+  loadOrBootstrapSiteChrome,
+  parseSiteChrome,
+} from "./site-chrome";
 
 type AuthUser = { id: string };
 
@@ -245,7 +250,7 @@ export async function buildSnapshotFromDb(
 ): Promise<WebsiteDefinition | null> {
   const { data: project } = await supabase
     .from("projects")
-    .select("id, title, theme, seo")
+    .select("id, title, theme, seo, site_chrome")
     .eq("id", projectId)
     .maybeSingle();
   if (!project) return null;
@@ -287,7 +292,31 @@ export async function buildSnapshotFromDb(
       : [{ slug: "home", title: "Home", sections: [{ type: "hero", props: { heading: project.title, subheading: "" } }] }],
   };
 
-  return mergeCatalogProductsIntoSnapshot(supabase, projectId, base);
+  const homePage = pageList.find((p) => p.slug === "home") ?? pageList[0];
+  let homeSections: { section_type: string; props: unknown }[] = [];
+  if (homePage) {
+    const { data: homeSec } = await supabase
+      .from("project_sections")
+      .select("section_type, props")
+      .eq("page_id", homePage.id)
+      .order("sort_order", { ascending: true });
+    homeSections = homeSec ?? [];
+  }
+
+  const allTypes = defPages.flatMap((p) => p.sections.map((s) => s.type));
+  let chrome = parseSiteChrome((project as { site_chrome?: unknown }).site_chrome);
+  if (!chrome.enabled || (!chrome.header && !chrome.footer)) {
+    chrome = await loadOrBootstrapSiteChrome(
+      supabase,
+      projectId,
+      homeSections,
+      project.title,
+      allTypes,
+    );
+  }
+
+  const withProducts = await mergeCatalogProductsIntoSnapshot(supabase, projectId, base);
+  return applySiteChromeToDefinition(withProducts, chrome);
 }
 
 async function mergeCatalogProductsIntoSnapshot(

@@ -1,0 +1,41 @@
+---
+description: Opportunity OS — standalone product (economic intelligence); separate from Kebu Opportunity OS
+alwaysApply: true
+---
+
+# Opportunity OS — standalone product law
+
+Full spec: `docs/OPPORTUNITY-OS-MASTER-SPEC.md` · Kebu personalized layer: `docs/KEBU-OPPORTUNITY-OS.md`.
+
+## Product identity (non-negotiable)
+
+**Opportunity OS is a SEPARATE PRODUCT** from Kebu and from **Kebu Opportunity OS**.
+
+| | Opportunity OS | Kebu Opportunity OS |
+|--|----------------|---------------------|
+| **Job** | Continent-scale explore — evidence, trade, resources, cards, labs | For-you matching inside Kebu account |
+| **Database / APIs** | Own schemas and product boundary | Kebu account + entitlements; calls Opportunity OS via API when needed |
+| **UI** | Discovery, countries, cards, map, research — **not** Builder | Intake, personalized plan, handoff to Builder/Kebu ID |
+| **Merge?** | **Never** merge identities, nav, or schemas | Stays a Kebu feature module |
+
+Integration = **APIs only** (e.g. Build This → Kebu). Never auto-publish. Never collapse into Builder.
+
+## Nature
+
+```
+DATA → RESEARCH → PATTERNS → GAPS → OPPORTUNITY → BUSINESS MODEL → ACTION
+```
+
+Not a blog, directory, news site, or ChatGPT wrapper. Trust labels mandatory. AI reasons on **retrieved** data.
+
+## Slice order
+
+Country Explorer → Opportunity Card → Discovery → Trade → Import Replacement → Value Addition → Research Lab → Think Labs → …
+
+One vertical slice at a time. End-to-end only.
+
+## Code in this monorepo
+
+Explore domain: `lib/opportunity/*`, `app/opportunity/countries/*`, `app/api/opportunity/countries/*` — treat as **Opportunity OS**, not Kebu Builder.
+
+Do not put full Research Lab / Think Lab CMS inside Builder UI.

@@ -21,7 +21,7 @@ describe("maylecor-russian-hero", () => {
     expect(remapped.cutoutLeft).toBe("/templates/legally-blonde/cutout-left.png");
   });
 
-  it("forces local Russian cutouts when remote or empty", () => {
+  it("forces May Lecor cutouts instead of Elle stock when remote or empty", () => {
     const normalized = normalizeMaylecorRussianHeroProps(
       {
         cutoutLeft: "https://static.tildacdn.com/old.png",
@@ -30,18 +30,32 @@ describe("maylecor-russian-hero", () => {
       },
       "MAY LECOR",
     );
-    expect(normalized.cutoutLeft).toBe("/templates/legally-blonde/cutout-left.png");
-    expect(normalized.cutoutRight).toBe("/templates/legally-blonde/cutout-right.png");
+    expect(normalized.cutoutLeft).toBe("/templates/maylecor/may-figure.png");
+    expect(normalized.cutoutRight).toBe("/templates/maylecor/portrait.jpg");
     expect(normalized.backgroundLayer).toBe("/templates/legally-blonde/background.png");
+    expect(normalized.titleLogo).toBe("/templates/maylecor/logo-circle-seal.png");
+    expect(normalized.titleAsText).toBe(false);
     expect(normalized.title).toBe("MAY LECOR");
     expect(normalized.scrollMode).toBe("parallax");
+    expect(Array.isArray(normalized.navLinks) && normalized.navLinks.length).toBeGreaterThan(0);
+    const extras = normalized.extraCutouts as { id: string }[];
+    expect(extras.some((e) => e.id === "may-city-skyline")).toBe(true);
+    expect(extras.some((e) => e.id === "may-logo-banner")).toBe(false);
   });
 
-  it("preserves user-uploaded site assets", () => {
-    const uploaded =
-      "https://example.supabase.co/storage/v1/object/public/site-assets/user-cutout.png";
-    expect(isUserUploadedSiteAsset(uploaded)).toBe(true);
-    const normalized = normalizeMaylecorRussianHeroProps({ cutoutLeft: uploaded }, "MAY LECOR");
-    expect(normalized.cutoutLeft).toBe(uploaded);
+  it("replaces Elle stock paths with May cutout on upgrade normalize", () => {
+    const normalized = normalizeMaylecorRussianHeroProps(
+      {
+        cutoutAccent: "/templates/legally-blonde/cutout-accent.png",
+        heroPhoto: "/templates/legally-blonde/hero-photo.png",
+      },
+      "MAY LECOR",
+    );
+    expect(normalized.cutoutAccent).toBe("/templates/maylecor/may-figure.png");
+    expect(normalized.heroPhoto).toBe("/templates/maylecor/portrait.jpg");
+  });
+
+  it("treats stock /templates/maylecor paths as refreshable (not user uploads)", () => {
+    expect(isUserUploadedSiteAsset("/templates/maylecor/may-cutout-full.jpg")).toBe(false);
   });
 });

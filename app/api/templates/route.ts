@@ -26,7 +26,9 @@ function codePublicTemplates(): TemplateRow[] {
 
 /** Prefer flagship (May Lecor, K-Direction), then the rest alphabetically by name. */
 function sortTemplates(rows: TemplateRow[]): TemplateRow[] {
-  const flagshipOrder = new Map(FLAGSHIP_TEMPLATE_SLUGS.map((slug, i) => [slug, i]));
+  const flagshipOrder = new Map<string, number>(
+    FLAGSHIP_TEMPLATE_SLUGS.map((slug, i) => [slug, i]),
+  );
   return [...rows].sort((a, b) => {
     const ai = flagshipOrder.has(a.slug) ? flagshipOrder.get(a.slug)! : 1000;
     const bi = flagshipOrder.has(b.slug) ? flagshipOrder.get(b.slug)! : 1000;

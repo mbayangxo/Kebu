@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { sectionPropsSchemas } from "@/lib/create/website-schema";
 import { defaultMaylecorKsendrProps } from "@/lib/create/maylecor-ksendr-defaults";
-import { LEGALLY_BLONDE_ASSETS } from "@/lib/create/legally-blonde-defaults";
+import { MAYLECOR_FIGURE_ASSETS } from "@/lib/create/maylecor-defaults";
 
 describe("legally-blonde cutout edit path", () => {
-  it("keeps Russian Elle defaults and accepts swapped upload URLs", () => {
+  it("keeps May Lecor portrait defaults and accepts swapped upload URLs", () => {
     const base = defaultMaylecorKsendrProps();
-    expect(base.cutoutLeft).toBe(LEGALLY_BLONDE_ASSETS.cutoutLeft);
-    expect(base.cutoutAccent).toBe(LEGALLY_BLONDE_ASSETS.cutoutAccent);
+    expect(base.cutoutLeft).toBe(MAYLECOR_FIGURE_ASSETS.cutoutLeft);
+    expect(base.cutoutAccent).toBe(MAYLECOR_FIGURE_ASSETS.cutoutAccent);
 
     const longUpload =
       "https://abcdxyz.supabase.co/storage/v1/object/public/site-assets/" +
@@ -35,6 +35,30 @@ describe("legally-blonde cutout edit path", () => {
     expect(parsed.cutoutRight).toBe("");
     expect(parsed.extraCutouts).toHaveLength(1);
     expect(parsed.layerMoves?.["1702905074754"]?.dx).toBe(12);
+  });
+
+  it("accepts per-cutout click links on built-in slots and extras", () => {
+    const base = defaultMaylecorKsendrProps();
+    const parsed = sectionPropsSchemas["legally-blonde-hero"].parse({
+      ...base,
+      layerLinks: {
+        cutoutLeft: "mays-world",
+        cutoutAccent: "/about",
+        titleLogo: "https://open.spotify.com/artist/demo",
+      },
+      extraCutouts: [
+        {
+          id: "logo-banner",
+          src: "/templates/maylecor/logo-banner.png",
+          href: "press",
+          topPct: 8,
+          leftPct: 10,
+          widthPct: 20,
+        },
+      ],
+    });
+    expect(parsed.layerLinks?.cutoutLeft).toBe("mays-world");
+    expect(parsed.extraCutouts[0]?.href).toBe("press");
   });
 
   it("accepts removing a cutout with empty string (no fallback required by schema)", () => {

@@ -1,15 +1,17 @@
 import { notFound } from "next/navigation";
 import { DemoTemplateView } from "@/app/components/create/demo-template-view";
 import { FEATURED_TEMPLATES } from "@/lib/create/featured-templates";
-import { isPublicTemplateSlug, TEMPLATE_SEEDS } from "@/lib/create/templates-seed";
+import { TEMPLATE_SEEDS } from "@/lib/create/templates-seed";
 
 type Params = { params: Promise<{ slug: string }> };
 
-/** Preview any public template without Supabase — personal portfolio seeds are not demos. */
+/**
+ * Live demo from **code seed** (always matches Cursor edits).
+ * Includes owner portfolio seeds (e.g. May Lecor) so Mae’s cutout/city/logo are visible
+ * without waiting for a DB project upgrade — still not listed in the Aesthetic store.
+ */
 export default async function CreateDemoTemplatePage({ params }: Params) {
   const { slug } = await params;
-  if (!isPublicTemplateSlug(slug)) notFound();
-
   const seed = TEMPLATE_SEEDS.find((t) => t.slug === slug);
   if (!seed) notFound();
 

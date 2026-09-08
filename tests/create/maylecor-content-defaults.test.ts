@@ -18,28 +18,33 @@ describe("maylecor content defaults", () => {
   it("ships real May photos in gallery and shop seeds", () => {
     const photos = defaultMaylecorPhotoGalleryItems();
     expect(photos.length).toBeGreaterThanOrEqual(4);
-    expect(photos.every((p) => p.src.startsWith("https://"))).toBe(true);
+    expect(photos.some((p) => p.src.includes("/templates/maylecor/may-cutout-full"))).toBe(true);
 
     const products = defaultMaylecorShopProducts();
     expect(products.length).toBeGreaterThanOrEqual(2);
     expect(products[0]?.name).toMatch(/album/i);
   });
 
-  it("uses exact Russian Tilda cutouts/bg/font (editable in builder)", () => {
+  it("uses May portrait cutouts with Russian motion layout (editable in builder)", () => {
     const props = defaultMaylecorKsendrProps("MAY LECOR");
     const russian = defaultLegallyBlondeHeroProps();
     expect(props.backgroundLayer).toBe(russian.backgroundLayer);
-    expect(props.cutoutLeft).toBe(russian.cutoutLeft);
-    expect(props.cutoutRight).toBe(russian.cutoutRight);
-    expect(props.cutoutAccent).toBe(russian.cutoutAccent);
-    expect(props.titleLogo).toBe(russian.titleLogo);
-    expect(props.cutoutLeft).toContain("/templates/legally-blonde/");
+    expect(props.cutoutLeft).toBe("/templates/maylecor/may-cutout-full.jpg");
+    expect(props.cutoutRight).toBe("/templates/maylecor/portrait.jpg");
+    expect(props.cutoutAccent).toBe("/templates/maylecor/may-cutout-full.jpg");
+    expect(props.heroPhoto).toBe("/templates/maylecor/portrait.jpg");
+    expect(props.titleLogo).toBe("");
+    expect(props.titleAsText).toBe(true);
     expect(props.displayFont).toBe("Steelfish");
     expect(props.scrollMode).toBe("parallax");
+    expect(props.navLinks?.length).toBeGreaterThan(0);
     expect(maylecorHeroNeedsRussianRestore(props)).toBe(false);
     expect(maylecorHeroUsesPlaceholderAssets({ cutoutLeft: "https://static.wixstatic.com/x.png" })).toBe(
       true,
     );
+    expect(
+      maylecorHeroNeedsRussianRestore({ cutoutLeft: "/templates/legally-blonde/cutout-left.png" }),
+    ).toBe(true);
   });
 
   it("seeds music, photos, and shop pages with editable sections", () => {

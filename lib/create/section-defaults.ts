@@ -13,7 +13,14 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
     case "hero":
       return DEFAULT_HERO_PROPS;
     case "navigation":
-      return { brand: "My site", links: [{ label: "Home", href: "#" }] };
+      return {
+        brand: "My site",
+        links: [
+          { label: "Home", href: "/" },
+          { label: "About", href: "/about" },
+          { label: "Contact", href: "/contact" },
+        ],
+      };
     case "text":
       return { heading: "About", body: "Tell your story." };
     case "features":
@@ -31,6 +38,38 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
         buttonLabel: "Subscribe",
         successMessage: "Thanks — you're on the list.",
       };
+    case "form":
+      return {
+        heading: "Contact us",
+        subheading: "Send a message — we reply on WhatsApp or email.",
+        buttonLabel: "Send",
+        successMessage: "Thanks — we received your message.",
+        fields: [
+          { id: "name", label: "Your name", type: "text", required: true, placeholder: "", options: [] },
+          { id: "email", label: "Email", type: "email", required: false, placeholder: "", options: [] },
+          { id: "message", label: "Message", type: "textarea", required: true, placeholder: "", options: [] },
+        ],
+      };
+    case "blog-list":
+      return {
+        heading: "Blog",
+        subheading: "News and updates from our team.",
+        postsPerPage: 6,
+      };
+    case "email-popup":
+      return {
+        enabled: true,
+        mode: "both",
+        heading: "Stay in the loop",
+        body: "Get offers by email. We respect your inbox — unsubscribe anytime.",
+        buttonLabel: "Subscribe",
+        dismissLabel: "No thanks",
+        consentLabel: "I agree to cookies needed for this site to work.",
+        acceptConsentLabel: "Accept",
+        successMessage: "You're on the list.",
+        delaySeconds: 4,
+        remindAfterDays: 14,
+      };
     case "whatsapp":
       return { label: "Chat on WhatsApp", phone: "+221770000000", message: "Hello" };
     case "footer":
@@ -38,13 +77,24 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
     case "image":
       return { src: "", alt: "" };
     case "gallery":
-      return { items: [] };
+      return { items: [], layout: "grid", columns: 3 };
     case "video":
-      return { heading: "Watch", src: "", title: "", caption: "" };
+      return {
+        heading: "Videos",
+        src: "",
+        title: "",
+        caption: "",
+        layout: "grid",
+        columns: 2,
+        items: [
+          { src: "", title: "Video 1", caption: "", thumbnail: "" },
+          { src: "", title: "Video 2", caption: "", thumbnail: "" },
+        ],
+      };
     case "audio":
       return { heading: "Listen", src: "", title: "", artist: "" };
     case "products":
-      return { heading: "Shop", items: [] };
+      return { heading: "Shop", layout: "grid", columns: 3, items: [] };
     case "free-text":
       return {
         heading: "Custom layout",

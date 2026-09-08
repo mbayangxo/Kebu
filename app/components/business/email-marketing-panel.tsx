@@ -123,12 +123,9 @@ export function EmailMarketingPanel({ businessId }: { businessId: string }) {
       <div className="rounded-2xl border p-5" style={{ borderColor: KEBU.border }}>
         <h3 className="text-sm font-bold mb-1">Customer emails</h3>
         <p className="text-xs opacity-70 mb-4">
-          Emails captured from your published site newsletter block, plus ones you add here. Use campaigns to reach
-          them — attach a poster from{" "}
-          <Link href="/studio" className="underline font-semibold">
-            Kebu Create
-          </Link>
-          .
+          Emails captured from your published site newsletter / popup, plus ones you add here. Percent-off codes live
+          in Shop → Discounts (attach a draft campaign there). Full visual email designer (Kebu Studio) is{" "}
+          <strong>not built yet</strong> — plain text + optional Create poster only.
         </p>
 
         <form onSubmit={(e) => void addSubscriber(e)} className="flex flex-col sm:flex-row gap-2 mb-4">

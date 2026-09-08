@@ -8,7 +8,7 @@ const TOPICS = [
   { title: "Create your first site", href: "/create", body: "Pick a template, edit in the builder, publish when ready." },
   { title: "Kebu ID & business", href: "/business", body: "Draft your business identity and track registration readiness." },
   { title: "Opportunity OS", href: "/opportunity", body: "Explore countries and personalized opportunity paths." },
-  { title: "Account & Afrique ID", href: "/account", body: "Your personal profile separate from your business." },
+  { title: "Account & African ID", href: "/account", body: "Your personal profile and AID — separate from your business." },
   { title: "Templates gallery", href: "/templates", body: "Live preview every template before you start." },
   { title: "Pricing", href: "/pricing", body: "Free to build; hosting when you publish." },
 ];

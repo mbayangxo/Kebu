@@ -1,24 +1,71 @@
-/** Default May Lecor assets — local portrait + Wix secondary media (editable in the editor). */
+import { LEGALLY_BLONDE_ASSETS } from "./legally-blonde-defaults";
+
+/**
+ * Bump when Cursor updates stock May assets / hero composition.
+ * Drafts auto-sync on editor load when this does not match section props.seedRevision.
+ * Publish is still required only for the *live* public site.
+ */
+export const MAYLECOR_SEED_REVISION = "2026-09-08c";
+
+/** Bump when replacing files under /public/templates/maylecor so CDN/browser caches refresh. */
+const MAY_ASSET_V = "20260908c";
+
+function mayAsset(path: string): string {
+  return `${path}?v=${MAY_ASSET_V}`;
+}
+
+export const MAYLECOR_LOCAL_ASSETS = {
+  /** Full-body pink-outline cutout — May only (not fused to city). */
+  mayCutoutFull: mayAsset("/templates/maylecor/may-figure.png"),
+  mayFigure: mayAsset("/templates/maylecor/may-figure.png"),
+  /** NYC skyline cutout — scrolls behind May (no “May” wordmark on top). */
+  citySkyline: mayAsset("/templates/maylecor/city-skyline.png"),
+  portrait: mayAsset("/templates/maylecor/portrait.jpg"),
+  /** Stacked MA LÈCOR + rose (correct brand logo). */
+  logoBanner: mayAsset("/templates/maylecor/logo-stacked.png"),
+  logoSmall: mayAsset("/templates/maylecor/logo-stacked.png"),
+  logoStacked: mayAsset("/templates/maylecor/logo-stacked.png"),
+  /** Circular MAY LÈCOR seal — replaces Russian circle wordmark. */
+  logoCircleSeal: mayAsset("/templates/maylecor/logo-circle-seal.png"),
+  /** Gallery/marketing collage: figure + city + May logo (reference composite). */
+  heroCollage: mayAsset("/templates/maylecor/hero-collage.png"),
+} as const;
+
+/** Figure layers on the Russian-style May Lecor hero — prefer distinct local files when available. */
+export const MAYLECOR_FIGURE_ASSETS = {
+  cutoutLeft: MAYLECOR_LOCAL_ASSETS.mayFigure,
+  cutoutRight: MAYLECOR_LOCAL_ASSETS.portrait,
+  cutoutAccent: MAYLECOR_LOCAL_ASSETS.mayFigure,
+  heroPhoto: MAYLECOR_LOCAL_ASSETS.portrait,
+} as const;
+
+/** True when a hero layer still points at Elle / Legally Blonde stock cutouts. */
+export function isElleStockCutout(url: string | null | undefined): boolean {
+  const u = String(url ?? "").trim();
+  if (!u) return false;
+  return (
+    u.includes("/templates/legally-blonde/cutout-") ||
+    u.includes("/templates/legally-blonde/hero-photo")
+  );
+}
+
+/** Stock May template files we may refresh on upgrade (not founder Storage uploads). */
+export function isMaylecorStockTemplateAsset(url: string | null | undefined): boolean {
+  const u = String(url ?? "").trim().split("?")[0] ?? "";
+  return u.includes("/templates/maylecor/");
+}
+
+/** Default May Lecor gallery/shop media — local assets only (no fragile Wix CDN). */
 export const MAYLECOR_WIX = {
-  backgroundBlur:
-    "https://static.wixstatic.com/media/84770f_2ec341c74bcd4afda23cb618a7dbdae3~mv2_d_3840_2160_s_2.png/v1/fill/w_1920,h_1080,al_c,q_85,enc_auto/84770f_2ec341c74bcd4afda23cb618a7dbdae3~mv2_d_3840_2160_s_2.png",
-  /** Primary studio portrait (hot pink backdrop). */
-  portraitMain:
-    "https://static.wixstatic.com/media/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg/v1/crop/x_0,y_0,w_462,h_592/fill/w_554,h_496,al_c,lg_1,q_80,enc_auto/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg",
-  collageTop:
-    "https://static.wixstatic.com/media/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg/v1/crop/x_0,y_0,w_462,h_592/fill/w_554,h_496,al_c,lg_1,q_80,enc_auto/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg",
-  collageMiddle:
-    "https://static.wixstatic.com/media/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg/v1/crop/x_0,y_0,w_462,h_592/fill/w_554,h_496,al_c,lg_1,q_80,enc_auto/0380b3_383cb146197941bd8fb1336077c4e1b7~mv2.jpg",
-  logoBanner:
-    "https://static.wixstatic.com/media/0380b3_d04a151d63d345cab419f86a82512bc3~mv2.png/v1/crop/x_128,y_633,w_2494,h_1307/fill/w_543,h_285,al_c,q_85,enc_auto/0380b3_d04a151d63d345cab419f86a82512bc3~mv2.png",
-  bottomLeft:
-    "https://static.wixstatic.com/media/11062b_6a9d1f9d3bd241988071deb1c3da8c56~mv2.jpg/v1/fill/w_702,h_737,al_c,q_85,enc_auto/11062b_6a9d1f9d3bd241988071deb1c3da8c56~mv2.jpg",
-  bottomRight:
-    "https://static.wixstatic.com/media/11062b_017f998d03a44d5494c1f4eb4a9fcace~mv2.jpg/v1/fill/w_745,h_737,al_c,q_85,enc_auto/11062b_017f998d03a44d5494c1f4eb4a9fcace~mv2.jpg",
-  logoSmall:
-    "https://static.wixstatic.com/media/0380b3_8c2a479580ca493f857c3efb3f6b4aae~mv2.png/v1/crop/x_426,y_292,w_1845,h_1465/fill/w_256,h_206,al_c,q_85,enc_auto/0380b3_8c2a479580ca493f857c3efb3f6b4aae~mv2.png",
-  albumArt:
-    "https://static.wixstatic.com/media/0380b3_4c2757d9c5b84f7eb202847162b48432~mv2.png/v1/fill/w_800,h_280,al_c,q_85,enc_auto/May-Lecor-7.png",
+  backgroundBlur: LEGALLY_BLONDE_ASSETS.backgroundLayer,
+  portraitMain: MAYLECOR_LOCAL_ASSETS.mayFigure,
+  collageTop: MAYLECOR_LOCAL_ASSETS.portrait,
+  collageMiddle: MAYLECOR_LOCAL_ASSETS.mayFigure,
+  logoBanner: MAYLECOR_LOCAL_ASSETS.logoBanner,
+  bottomLeft: MAYLECOR_LOCAL_ASSETS.portrait,
+  bottomRight: MAYLECOR_LOCAL_ASSETS.mayFigure,
+  logoSmall: MAYLECOR_LOCAL_ASSETS.logoSmall,
+  albumArt: MAYLECOR_LOCAL_ASSETS.logoStacked,
 } as const;
 
 export const MAYLECOR_SOCIAL_DEFAULTS = [
@@ -60,6 +107,55 @@ export const MAYLECOR_SOCIAL_DEFAULTS = [
   },
 ] as const;
 
+/** Per-song listen destinations (icons in Music page). Paste real track URLs in the editor. */
+export const MAYLECOR_LISTEN_PLATFORMS = [
+  { id: "spotify", label: "Spotify", icon: "spotify" },
+  { id: "apple", label: "Apple Music", icon: "apple" },
+  { id: "youtube", label: "YouTube", icon: "youtube" },
+  { id: "soundcloud", label: "SoundCloud", icon: "soundcloud" },
+] as const;
+
+export function defaultMaylecorTracks() {
+  return [
+    {
+      id: "track-1",
+      title: "New single",
+      coverUrl: MAYLECOR_LOCAL_ASSETS.logoStacked,
+      links: [
+        { platform: "spotify", href: "" },
+        { platform: "apple", href: "" },
+        { platform: "youtube", href: "" },
+        { platform: "soundcloud", href: "https://soundcloud.com/maylecor" },
+      ],
+    },
+    {
+      id: "track-2",
+      title: "Track 2",
+      coverUrl: MAYLECOR_LOCAL_ASSETS.mayFigure,
+      links: [
+        { platform: "spotify", href: "" },
+        { platform: "apple", href: "" },
+        { platform: "youtube", href: "" },
+        { platform: "soundcloud", href: "" },
+      ],
+    },
+    {
+      id: "track-3",
+      title: "Track 3",
+      coverUrl: MAYLECOR_LOCAL_ASSETS.portrait,
+      links: [
+        { platform: "spotify", href: "" },
+        { platform: "apple", href: "" },
+        { platform: "youtube", href: "" },
+        { platform: "soundcloud", href: "" },
+      ],
+    },
+  ];
+}
+
+/** For The Mayjor Good — separate foundation site (edit URL in nav). */
+export const MAYJOR_GOOD_SITE_HREF = "https://forthemayjorgood.com";
+
 export function defaultMaylecorHomeProps(artistName = "MAY LECOR") {
   return {
     artistName,
@@ -89,6 +185,7 @@ export function defaultMaylecorMusicProps(artistName = "MAY LECOR") {
     artistName,
     albumArt: MAYLECOR_WIX.albumArt,
     homePageSlug: "home",
+    tracks: defaultMaylecorTracks(),
     socialLinks: MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s })),
     socialRailVisible: true,
     socialRailBg: "rgba(0,0,0,0.85)",

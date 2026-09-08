@@ -12,6 +12,8 @@ export type MeAfriqueIdSummary = {
   eligibilityStatus: AfriqueEligibilityStatus;
   eligibilityLabel: string;
   publicProfilePath: string;
+  identityType?: "indigenous" | "visitor";
+  identityTypeLabel?: string;
 };
 
 export type MeProfile = {

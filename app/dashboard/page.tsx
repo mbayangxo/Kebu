@@ -8,6 +8,7 @@ import { KEBU } from "@/lib/kebu-brand";
 import { displayFirstName } from "@/lib/account/user-profile";
 import type { HomeSummary, HomeUpdate } from "@/lib/account/home-summary";
 import { readStoredWorkspace } from "@/lib/navigation/kebu-workspace";
+import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 
 function StatCard({ value, label, href, accent }: { value: string | number; label: string; href: string; accent?: "orange" | "red" }) {
   const color = accent === "red" ? KEBU.red : KEBU.orange;
@@ -208,9 +209,9 @@ export default function KebuHomePage() {
           {summary ? (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-                <StatCard value={summary.stats.sitesTotal} label="Your sites" href="/create/sites" />
-                <StatCard value={summary.stats.sitesPublished} label="Published" href="/create/sites" accent="red" />
-                <StatCard value={summary.stats.storeProducts} label="Store products" href="/create/sites" />
+                <StatCard value={summary.stats.sitesTotal} label="Your sites" href={MY_SITES_HREF} />
+                <StatCard value={summary.stats.sitesPublished} label="Published" href={`${MY_SITES_HREF}?filter=live`} accent="red" />
+                <StatCard value={summary.stats.storeProducts} label="Store products" href={MY_SITES_HREF} />
                 <StatCard
                   value={summary.stats.emailSubscribers}
                   label="Email list"

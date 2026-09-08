@@ -1,7 +1,16 @@
 import { z } from "zod";
 import type { BuilderDevice } from "@/lib/create/builder-device";
 
-export const siteAnalyticsEventTypeSchema = z.enum(["pageview", "vital", "error", "perf"]);
+export const siteAnalyticsEventTypeSchema = z.enum([
+  "pageview",
+  "vital",
+  "error",
+  "perf",
+  "product_view",
+  "add_to_cart",
+  "checkout_start",
+  "purchase",
+]);
 
 export const siteAnalyticsIngestSchema = z.object({
   subdomain: z

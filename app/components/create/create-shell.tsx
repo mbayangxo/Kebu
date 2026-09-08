@@ -20,6 +20,7 @@ export function CreateShell({
   title = "Kebu Builder",
   backHref = "/create",
   actions,
+  compact = false,
 }: {
   step: CreateJourneyStep;
   projectId?: string;
@@ -27,28 +28,33 @@ export function CreateShell({
   /** Used when the browser has no history (e.g. opened in a new tab). */
   backHref?: string;
   actions?: React.ReactNode;
+  /** Thinner header so the site canvas can be almost fullscreen. */
+  compact?: boolean;
 }) {
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.95)" }}>
+    <header className="shrink-0 z-40 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.95)" }}>
       <div
         className="h-[3px] w-full"
         style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange}, ${KEBU.orangeLight})` }}
       />
       <div
-        className="max-w-[1600px] mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        className={`max-w-[1600px] mx-auto px-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between ${
+          compact ? "py-1.5" : "py-3 gap-3"
+        }`}
         style={{ borderBottom: `1px solid ${KEBU.border}` }}
       >
         <div className="flex items-center gap-3 min-w-0">
           <BackLink fallbackHref={backHref} label="Back" variant="strong" />
           <span className="h-4 w-px shrink-0" style={{ background: KEBU.border }} aria-hidden />
           <Link href="/create" className="flex items-center gap-2 shrink-0 min-w-0" style={{ color: KEBU.black }}>
-            <KebuMark size={26} />
+            <KebuMark size={compact ? 22 : 26} />
             <span className="font-bold tracking-[0.12em] text-xs sm:text-sm truncate">{title}</span>
           </Link>
         </div>
 
+        {!compact ? (
         <nav aria-label="Build journey" className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
           {STEPS.map((s, i) => {
             const done = i < stepIndex;
@@ -98,6 +104,7 @@ export function CreateShell({
             );
           })}
         </nav>
+        ) : null}
 
         {actions ? <div className="flex items-center gap-2 shrink-0">{actions}</div> : null}
       </div>

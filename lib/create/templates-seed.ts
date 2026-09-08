@@ -5,6 +5,25 @@ import { defaultLegallyBlondeHeroProps } from "./legally-blonde-defaults";
 import { maylecorMotionSitePages } from "./maylecor-site-pages";
 import { kdirectionWixSitePages } from "./kdirection-site-pages";
 import { buildCompleteSite, templateDefaultTheme } from "./template-builders";
+import { dklnsWebsiteDefinition } from "./dklns-site";
+import { ndaoanWebsiteDefinition } from "./ndaoan-site";
+import { rectWebsiteDefinition } from "./rect-site";
+import { mayjorGoodWebsiteDefinition } from "./mayjor-good-site";
+import { fashionAtelierWorldDefinition } from "./design-worlds/fashion-atelier-world";
+import { layersBeautyWorldDefinition } from "./design-worlds/layers-beauty-world";
+import { carmineCreativeWorldDefinition } from "./design-worlds/carmine-creative-world";
+import { perfumeMaisonWorldDefinition } from "./design-worlds/perfume-maison-world";
+import { restaurantTableWorldDefinition } from "./design-worlds/restaurant-table-world";
+import { hotelStayWorldDefinition } from "./design-worlds/hotel-stay-world";
+import { marcheBoutiqueWorldDefinition } from "./design-worlds/marche-boutique-world";
+import { whatsappCatalogWorldDefinition } from "./design-worlds/whatsapp-catalog-world";
+import { artistDarkStageWorldDefinition, streamingLaunchWorldDefinition } from "./design-worlds/music-worlds";
+import { productionHouseWorldDefinition, filmStudioWorldDefinition } from "./design-worlds/production-worlds";
+import { companySiteWorldDefinition, buildTradeWorldDefinition } from "./design-worlds/business-worlds";
+import { appLaunchWorldDefinition, techStartupWorldDefinition } from "./design-worlds/tech-worlds";
+import { proPortfolioWorldDefinition, studentPortfolioWorldDefinition } from "./design-worlds/portfolio-worlds";
+import { ngoImpactWorldDefinition, farmAgriWorldDefinition } from "./design-worlds/impact-worlds";
+import { professionalServicesWorldDefinition } from "./design-worlds/agency-professional-world";
 
 /**
  * Template seeds render through SiteRenderer → `.kebu-site` responsive base.
@@ -113,24 +132,22 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "fashion-atelier",
     name: "Fashion Atelier",
     category: "fashion",
-    description: "Lookbook-style fashion brand site",
-    definition: simpleSite(
-      "Fashion Atelier",
-      "Crafted for the modern African wardrobe",
-      "Ready-to-wear and custom pieces with local textiles.",
-      "Why us",
-      [
-        { title: "Local textiles", body: "Sourcing from regional weavers and makers." },
-        { title: "Made to measure", body: "Fits that respect your style and climate." },
-        { title: "Seasonal drops", body: "Limited collections, not endless inventory." },
-      ]
-    ),
+    description: "Editorial lookbook fashion brand — home, lookbook, and contact pages",
+    definition: fashionAtelierWorldDefinition(),
+  },
+  {
+    slug: "layers-beauty",
+    name: "LAYERS Beauty",
+    category: "beauty",
+    description:
+      "Organic skincare shop — home, shop, about, gallery, FAQ, journal, gifts, contact (not a generic spa page)",
+    definition: layersBeautyWorldDefinition(),
   },
   {
     slug: "beauty-studio",
     name: "Beauty Studio",
     category: "beauty",
-    description: "Beauty and wellness studio",
+    description: "Beauty and wellness studio (legacy simple seed — prefer LAYERS Beauty)",
     definition: simpleSite(
       "Beauty Studio",
       "Glow that starts with care",
@@ -147,52 +164,24 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "restaurant-table",
     name: "Restaurant Table",
     category: "restaurant",
-    description: "Restaurant / café landing page",
-    definition: simpleSite(
-      "Restaurant Table",
-      "Flavours from our kitchen to your table",
-      "Seasonal menus, warm hospitality, and dishes worth sharing.",
-      "On the menu",
-      [
-        { title: "Daily specials", body: "Market-fresh plates that change with the season." },
-        { title: "Catering", body: "Events and offices — ask via WhatsApp." },
-        { title: "Private dining", body: "Intimate spaces for celebrations." },
-      ]
-    ),
+    description: "Restaurant / café — menu, about, reserve, FAQ (not a one-page flyer)",
+    definition: restaurantTableWorldDefinition(),
   },
   {
     slug: "portfolio-pro",
-    name: "Professional Portfolio",
+    name: "Pro portfolio",
     category: "portfolio",
-    description: "Clean professional portfolio",
-    definition: simpleSite(
-      "Portfolio",
-      "Work that speaks clearly",
-      "Selected projects, skills, and a simple way to reach me.",
-      "Focus",
-      [
-        { title: "Selected work", body: "Case studies with outcomes, not buzzwords." },
-        { title: "Skills", body: "Tools and methods I use every week." },
-        { title: "Availability", body: "Open for collaborations and contracts." },
-      ]
-    ),
+    description:
+      "Freelancer portfolio — work, services, WhatsApp hire",
+    definition: proPortfolioWorldDefinition(),
   },
   {
     slug: "student-portfolio",
-    name: "Student Portfolio",
-    category: "student portfolio",
-    description: "Student / early-career portfolio",
-    definition: simpleSite(
-      "Student Portfolio",
-      "Learning in public",
-      "Projects, internships, and the skills I’m building.",
-      "Highlights",
-      [
-        { title: "Projects", body: "School and personal builds with clear goals." },
-        { title: "Internship", body: "What I contributed and what I learned." },
-        { title: "Next", body: "Roles and mentorship I’m looking for." },
-      ]
-    ),
+    name: "Student portfolio",
+    category: "portfolio",
+    description:
+      "Student portfolio — projects, skills, WhatsApp contact",
+    definition: studentPortfolioWorldDefinition(),
   },
   {
     slug: "artist-gallery",
@@ -213,113 +202,11 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "musician-streaming",
-    name: "Musician — Streaming hero",
+    name: "Streaming launch",
     category: "music",
-    description: "Singer site: big hero, listen links, shows, fan contact (Wix-style artist page A)",
-    definition: {
-      schemaVersion: "website-v1",
-      title: "Artist Name",
-      theme: baseTheme("#0a0a0a", "#00C851"),
-      pages: [
-        {
-          slug: "home",
-          title: "Home",
-          sections: [
-            {
-              id: "nav-1",
-              type: "navigation",
-              props: {
-                brand: "Artist Name",
-                links: [
-                  { label: "Music", href: "#music" },
-                  { label: "Shows", href: "#shows" },
-                  { label: "Contact", href: "#contact" },
-                ],
-              },
-            },
-            {
-              id: "hero-1",
-              type: "hero",
-              props: {
-                heading: "Artist Name",
-                subheading: "New single out now — stream on Spotify, Apple Music, and YouTube.",
-                buttonLabel: "Listen now",
-                buttonHref: "#music",
-                align: "center",
-                background: "#0a0a0a",
-              },
-            },
-            {
-              id: "about-1",
-              type: "text",
-              props: {
-                heading: "About",
-                body: "Write a short story — where you're from, your sound, and what you're building next. Keep it real and mobile-friendly.",
-              },
-            },
-            {
-              id: "feat-1",
-              type: "features",
-              props: {
-                heading: "Music & links",
-                items: [
-                  { title: "Latest release", body: "Link your newest single or album." },
-                  { title: "Stream everywhere", body: "Spotify · Apple Music · YouTube · Boomplay." },
-                  { title: "Music videos", body: "Embed or link your official video." },
-                ],
-              },
-            },
-            {
-              id: "shows-1",
-              type: "features",
-              props: {
-                heading: "Shows",
-                items: [
-                  { title: "Next date", body: "City · Venue · Date — link tickets." },
-                  { title: "More dates", body: "Add every show you want fans to see." },
-                  { title: "Booking", body: "WhatsApp or email for private events." },
-                ],
-              },
-            },
-            {
-              id: "quotes-1",
-              type: "testimonials",
-              props: {
-                heading: "Press & fans",
-                items: [
-                  { quote: "A voice that feels both local and global.", name: "Press or fan quote" },
-                  { quote: "Add real quotes as you grow.", name: "Another quote" },
-                ],
-              },
-            },
-            {
-              id: "contact-1",
-              type: "contact",
-              props: {
-                heading: "Contact",
-                email: "booking@example.com",
-                phone: "",
-                address: "",
-              },
-            },
-            {
-              id: "wa-1",
-              type: "whatsapp",
-              props: {
-                label: "Book on WhatsApp",
-                phone: "+221770000000",
-                message: "Hi, I'd like to book Artist Name.",
-              },
-            },
-            {
-              id: "footer-1",
-              type: "footer",
-              props: { text: "© Artist Name", links: [] },
-            },
-          ],
-        },
-      ],
-    },
+    description:
+      "Listen-first launch for singles/EPs — platforms, tour, press, WhatsApp",
+    definition: streamingLaunchWorldDefinition(),
   },
   {
     slug: "musician-press-kit",
@@ -497,7 +384,8 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     name: "May Lecor",
     category: "music",
     description:
-      "THE Russian cutout layout (ksendr / Legally Blonde pink layers + Steelfish) branded as May Lecor — music, tour, merch pages. Not a separate Russian demo.",
+      "Owner portfolio — Russian cutout layout. Not offered as a shared user aesthetic.",
+    visibility: "owner_portfolio",
     definition: {
       schemaVersion: "website-v1",
       title: "May Lecor",
@@ -565,38 +453,11 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "musician-artist",
-    name: "Musician / artist",
+    name: "Artist dark stage",
     category: "music",
-    description: "Bold artist site — swap your name, photos, and streaming links in the editor",
-    definition: {
-      schemaVersion: "website-v1",
-      title: "Your Artist Name",
-      theme: darkTheme("#E8D5A3"),
-      pages: [
-        {
-          slug: "home",
-          title: "Home",
-          sections: [
-            {
-              id: "artist-home-1",
-              type: "maylecor-home",
-              props: defaultMaylecorHomeProps("YOUR NAME"),
-            },
-          ],
-        },
-        {
-          slug: "music",
-          title: "Music",
-          sections: [
-            {
-              id: "artist-music-1",
-              type: "maylecor-music",
-              props: defaultMaylecorMusicProps("YOUR NAME"),
-            },
-          ],
-        },
-      ],
-    },
+    description:
+      "Senegal artist site — music, videos, shows, WhatsApp bookings (not May Lecor portfolio)",
+    definition: artistDarkStageWorldDefinition(),
   },
   {
     slug: "showcase-legally-blonde",
@@ -634,96 +495,19 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "film-studio",
-    name: "Film & video studio",
+    name: "Film studio",
     category: "film",
-    description: "Production company — showreel, services, crew, and client contact",
-    definition: {
-      schemaVersion: "website-v1",
-      title: "Film Studio",
-      theme: baseTheme("#1a1a2e", "#E94560"),
-      pages: [
-        {
-          slug: "home",
-          title: "Home",
-          sections: [
-            {
-              id: "nav-1",
-              type: "navigation",
-              props: {
-                brand: "Film Studio",
-                links: [
-                  { label: "Work", href: "#work" },
-                  { label: "Services", href: "#services" },
-                  { label: "Contact", href: "#contact" },
-                ],
-              },
-            },
-            {
-              id: "hero-1",
-              type: "hero",
-              props: {
-                heading: "Stories worth filming",
-                subheading: "Music videos, documentaries, commercials, and branded content across Africa.",
-                buttonLabel: "View our work",
-                buttonHref: "#work",
-                align: "center",
-                background: "#1a1a2e",
-              },
-            },
-            {
-              id: "work-1",
-              type: "gallery",
-              props: {
-                items: [
-                  { src: "", alt: "Showreel still 1" },
-                  { src: "", alt: "Showreel still 2" },
-                  { src: "", alt: "Showreel still 3" },
-                ],
-              },
-            },
-            {
-              id: "services-1",
-              type: "features",
-              props: {
-                heading: "Services",
-                items: [
-                  { title: "Music videos", body: "Concept to final cut for artists and labels." },
-                  { title: "Commercials", body: "Brand films that work on TV and social." },
-                  { title: "Documentary", body: "Real stories with cinematic quality." },
-                ],
-              },
-            },
-            {
-              id: "contact-1",
-              type: "contact",
-              props: { heading: "Start a project", email: "hello@filmstudio.com", phone: "", address: "" },
-            },
-            {
-              id: "footer-1",
-              type: "footer",
-              props: { text: "© Film Studio", links: [] },
-            },
-          ],
-        },
-      ],
-    },
+    description:
+      "Showreel-led film studio — projects, hire crew, WhatsApp",
+    definition: filmStudioWorldDefinition(),
   },
   {
     slug: "business-company",
-    name: "Business — company site",
+    name: "Company site",
     category: "business",
-    description: "General company landing — services, team story, and lead contact",
-    definition: simpleSite(
-      "Your Company",
-      "Built for growth in African markets",
-      "Clear services, trusted team, and a simple way to reach you.",
-      "What we do",
-      [
-        { title: "Core services", body: "What you deliver and who you serve." },
-        { title: "Why us", body: "Proof points — experience, clients, results." },
-        { title: "Get started", body: "Book a call or send a brief via WhatsApp." },
-      ],
-    ),
+    description:
+      "Clear company site — services, about, team, WhatsApp contact",
+    definition: companySiteWorldDefinition(),
   },
   {
     slug: "clothing-company",
@@ -814,189 +598,19 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "shopping-store",
-    name: "Shopping store",
+    name: "Marché Boutique",
     category: "store",
-    description: "Product storefront layout — catalog, categories, WhatsApp orders (checkout slice later)",
-    definition: {
-      schemaVersion: "website-v1",
-      title: "My Store",
-      theme: baseTheme("#0F0D33", "#FF6B35"),
-      pages: [
-        {
-          slug: "home",
-          title: "Home",
-          sections: [
-            {
-              id: "nav-1",
-              type: "navigation",
-              props: {
-                brand: "My Store",
-                links: [
-                  { label: "Products", href: "#products" },
-                  { label: "About", href: "#about" },
-                  { label: "Contact", href: "#contact" },
-                ],
-              },
-            },
-            {
-              id: "hero-1",
-              type: "hero",
-              props: {
-                heading: "Shop local. Ship fast.",
-                subheading: "Browse products, order on WhatsApp, pay with mobile money.",
-                buttonLabel: "Browse products",
-                buttonHref: "#products",
-                align: "center",
-              },
-            },
-            {
-              id: "products-1",
-              type: "features",
-              props: {
-                heading: "Featured products",
-                items: [
-                  { title: "Product one", body: "Short description · price in CFA or USD." },
-                  { title: "Product two", body: "Short description · price in CFA or USD." },
-                  { title: "Product three", body: "Short description · price in CFA or USD." },
-                ],
-              },
-            },
-            {
-              id: "gallery-1",
-              type: "gallery",
-              props: {
-                items: [
-                  { src: "", alt: "Product photo 1" },
-                  { src: "", alt: "Product photo 2" },
-                  { src: "", alt: "Product photo 3" },
-                ],
-              },
-            },
-            {
-              id: "about-1",
-              type: "text",
-              props: {
-                heading: "About the shop",
-                body: "Delivery areas, payment methods (JOKO, Wave, Orange Money), and return policy.",
-              },
-            },
-            {
-              id: "wa-1",
-              type: "whatsapp",
-              props: {
-                label: "Order on WhatsApp",
-                phone: "+221770000000",
-                message: "Hi, I want to place an order.",
-              },
-            },
-            {
-              id: "contact-1",
-              type: "contact",
-              props: { heading: "Contact", email: "shop@example.com", phone: "", address: "" },
-            },
-            {
-              id: "footer-1",
-              type: "footer",
-              props: { text: "© My Store", links: [] },
-            },
-          ],
-        },
-      ],
-    },
+    description:
+      "Senegal neighborhood shop — multipage IA, XOF products, WhatsApp / Wave / Orange Money (not fake card checkout)",
+    definition: marcheBoutiqueWorldDefinition(),
   },
   {
     slug: "app-launch",
-    name: "App launch page",
+    name: "App launch",
     category: "app",
-    description: "Mobile or web app — features, screenshots, download links, waitlist",
-    definition: {
-      schemaVersion: "website-v1",
-      title: "My App",
-      theme: baseTheme("#6366F1", "#22D3EE"),
-      pages: [
-        {
-          slug: "home",
-          title: "Home",
-          sections: [
-            {
-              id: "nav-1",
-              type: "navigation",
-              props: {
-                brand: "My App",
-                links: [
-                  { label: "Features", href: "#features" },
-                  { label: "Screens", href: "#screens" },
-                  { label: "Download", href: "#download" },
-                ],
-              },
-            },
-            {
-              id: "hero-1",
-              type: "hero",
-              props: {
-                heading: "The app that solves one real problem",
-                subheading: "Built for African users — fast on mobile, works on low bandwidth.",
-                buttonLabel: "Get the app",
-                buttonHref: "#download",
-                align: "center",
-                background: "#6366F1",
-              },
-            },
-            {
-              id: "features-1",
-              type: "features",
-              props: {
-                heading: "Why people use it",
-                items: [
-                  { title: "Simple", body: "One clear job done well." },
-                  { title: "Affordable", body: "Free tier or low monthly cost." },
-                  { title: "Secure", body: "Your data stays yours." },
-                ],
-              },
-            },
-            {
-              id: "screens-1",
-              type: "gallery",
-              props: {
-                items: [
-                  { src: "", alt: "App screen 1" },
-                  { src: "", alt: "App screen 2" },
-                  { src: "", alt: "App screen 3" },
-                ],
-              },
-            },
-            {
-              id: "download-1",
-              type: "features",
-              props: {
-                heading: "Download",
-                items: [
-                  { title: "App Store", body: "Link your iOS app when ready." },
-                  { title: "Google Play", body: "Link your Android app when ready." },
-                  { title: "Web app", body: "Use in the browser — no install needed." },
-                ],
-              },
-            },
-            {
-              id: "faq-1",
-              type: "faq",
-              props: {
-                heading: "FAQ",
-                items: [
-                  { question: "Is it free?", answer: "Explain your pricing plainly." },
-                  { question: "Which countries?", answer: "List where the app works today." },
-                ],
-              },
-            },
-            {
-              id: "footer-1",
-              type: "footer",
-              props: { text: "© My App", links: [] },
-            },
-          ],
-        },
-      ],
-    },
+    description:
+      "App launch — features, screens, waitlist, WhatsApp support",
+    definition: appLaunchWorldDefinition(),
   },
   {
     slug: "public-figure",
@@ -1115,126 +729,70 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "hotel-stay",
     name: "Hotel Stay",
     category: "hotel",
-    description: "Boutique hotel / guesthouse",
-    definition: simpleSite(
-      "Hotel Stay",
-      "Rest well. Explore freely.",
-      "Rooms, hospitality, and local experiences.",
-      "Stay with us",
-      [
-        { title: "Rooms", body: "Clean, calm spaces for every traveller." },
-        { title: "Breakfast", body: "Local flavours to start the day." },
-        { title: "Concierge", body: "Tips for the neighbourhood and beyond." },
-      ]
-    ),
+    description: "Boutique hotel / guesthouse — rooms, amenities, book, FAQ, contact",
+    definition: hotelStayWorldDefinition(),
   },
   {
     slug: "agriculture-farm",
-    name: "Agriculture Farm",
-    category: "agriculture",
-    description: "Farm / agribusiness",
-    definition: simpleSite(
-      "Agriculture Farm",
-      "From our fields to your market",
-      "Fresh produce, reliable supply, and transparent farming.",
-      "What we grow",
-      [
-        { title: "Crops", body: "Seasonal harvests with careful handling." },
-        { title: "Supply", body: "Wholesale and retail partnerships." },
-        { title: "Traceability", body: "Know where your food comes from." },
-      ]
-    ),
+    name: "Farm & agri",
+    category: "impact",
+    description:
+      "Farm storefront — produce, story, WhatsApp / Wave orders",
+    definition: farmAgriWorldDefinition(),
   },
   {
     slug: "construction-build",
-    name: "Construction Build",
-    category: "construction",
-    description: "Construction / contractor",
-    definition: simpleSite(
-      "Construction Build",
-      "Built to last",
-      "Residential and commercial projects delivered with care.",
-      "Capabilities",
-      [
-        { title: "Design-build", body: "From plan to handover." },
-        { title: "Renovation", body: "Upgrades that respect structure and budget." },
-        { title: "Safety", body: "Site standards you can trust." },
-      ]
-    ),
+    name: "Build & trade",
+    category: "business",
+    description:
+      "Contractors and trade — projects, services, WhatsApp quotes",
+    definition: buildTradeWorldDefinition(),
   },
   {
     slug: "ngo-impact",
-    name: "NGO Impact",
-    category: "ngo",
-    description: "Nonprofit / NGO",
-    definition: simpleSite(
-      "NGO Impact",
-      "Community first",
-      "Programs, transparency, and ways to get involved.",
-      "Our work",
-      [
-        { title: "Programs", body: "Education, health, and livelihood initiatives." },
-        { title: "Impact", body: "Clear metrics — not empty claims." },
-        { title: "Partner", body: "Volunteer, donate, or collaborate." },
-      ]
-    ),
+    name: "NGO & impact",
+    category: "impact",
+    description:
+      "NGO site — mission, programs, partner, WhatsApp",
+    definition: ngoImpactWorldDefinition(),
   },
   {
     slug: "professional-services",
-    name: "Professional Services",
-    category: "professional services",
-    description: "Consulting / professional firm",
-    definition: simpleSite(
-      "Professional Services",
-      "Clarity for complex decisions",
-      "Advisory for growing African businesses.",
-      "How we help",
-      [
-        { title: "Strategy", body: "Practical plans tied to local markets." },
-        { title: "Operations", body: "Processes that scale without chaos." },
-        { title: "Compliance", body: "Guidance that respects your context." },
-      ]
-    ),
+    name: "Professional services",
+    category: "agency",
+    description:
+      "Consulting firm — services, approach, team, WhatsApp intake",
+    definition: professionalServicesWorldDefinition(),
   },
   {
     slug: "tech-startup",
-    name: "Technology Startup",
+    name: "Tech startup",
     category: "technology startup",
-    description: "Tech product landing page",
-    definition: simpleSite(
-      "Technology Startup",
-      "Infrastructure for African builders",
-      "Software that solves real operational problems.",
-      "Product",
-      [
-        { title: "Core product", body: "One clear job — done reliably." },
-        { title: "Security", body: "Ownership and privacy by default." },
-        { title: "Roadmap", body: "Shipped in public with customer feedback." },
-      ]
-    ),
+    description:
+      "Startup — problem → product → pricing → WhatsApp demo",
+    definition: techStartupWorldDefinition(),
   },
   {
     slug: "online-store-preview",
-    name: "Online Store Preview",
-    category: "online store preview only",
-    description: "Storefront preview layout only — not commerce checkout",
-    definition: simpleSite(
-      "Online Store Preview",
-      "Your products, clearly presented",
-      "Preview layout for a future store — checkout is a later slice.",
-      "Preview",
-      [
-        { title: "Featured products", body: "Placeholders for catalog items." },
-        { title: "Collections", body: "Group products by theme." },
-        { title: "Next", body: "Connect real commerce in the store slice." },
-      ]
-    ),
+    name: "WhatsApp Catalog",
+    category: "store",
+    description:
+      "Senegal chat-commerce catalog — mobile-first photos + WhatsApp order path for informal sellers",
+    definition: whatsappCatalogWorldDefinition(),
+  },
+  {
+    slug: "carmine-creative",
+    name: "Carmine Creative",
+    category: "agency",
+    description:
+      "Bold creative agency — work, services, about, journal, contact (not a one-page hero stack)",
+    definition: carmineCreativeWorldDefinition(),
   },
   {
     slug: "agency-creative",
     name: "Creative agency",
     category: "agency",
-    description: "Full agency site — services, case studies, team story, and client contact",
+    description: "Legacy single-page agency seed — prefer Carmine Creative",
     definition: buildCompleteSite({
       title: "Creative Agency",
       theme: templateDefaultTheme("#0F0D33", "#7C3AED"),
@@ -1310,7 +868,8 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     name: "K-Direction — Wix canvas label",
     category: "agency",
     description:
-      "Live K-Direction layout: Oswald wordmark, soft gradient, yellow pill nav, editable photo collage.",
+      "Owner portfolio — Oswald wordmark, soft gradient, yellow pill nav. Not a shared user aesthetic.",
+    visibility: "owner_portfolio",
     definition: {
       schemaVersion: "website-v1",
       title: "K-Direction",
@@ -1335,80 +894,48 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     },
   },
   {
-    slug: "production-company",
-    name: "Production company",
+    slug: "agency-dklns",
+    name: "DkLNS — management & creative agency",
+    category: "agency",
+    description:
+      "Owner portfolio — DkLNS lumen. Not a shared user aesthetic.",
+    visibility: "owner_portfolio",
+    definition: dklnsWebsiteDefinition(),
+  },
+  {
+    slug: "production-ndaoan-house",
+    name: "Ndaoan House — production & content studio",
     category: "production",
-    description: "Events, commercials, and media production — full services page with portfolio",
-    definition: buildCompleteSite({
-      title: "Production Co",
-      theme: templateDefaultTheme("#1a1a2e", "#E94560"),
-      navLinks: [
-        { label: "About", href: "#about" },
-        { label: "Services", href: "#services" },
-        { label: "Portfolio", href: "#gallery" },
-        { label: "Contact", href: "#contact" },
-      ],
-      hero: {
-        heading: "Production that delivers on time",
-        subheading: "Corporate events, TV commercials, music videos, and branded content — end to end.",
-        buttonLabel: "Request a quote",
-        buttonHref: "#contact",
-        background: "#1a1a2e",
-      },
-      about: {
-        heading: "Who we are",
-        body: "A full-service production house with crew, gear, and post-production. Replace this with your cities, credits, and specialties.",
-      },
-      features: {
-        heading: "Production services",
-        items: [
-          { title: "Commercial & TV", body: "Scripts, shoot days, and broadcast-ready delivery." },
-          { title: "Events & live", body: "Stage design, streaming, and show calling." },
-          { title: "Post-production", body: "Edit, colour, sound, and subtitles." },
-        ],
-      },
-      gallery: {
-        items: [
-          {
-            src: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80",
-            alt: "Film production set",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=800&q=80",
-            alt: "Camera crew",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80",
-            alt: "Live event production",
-          },
-        ],
-      },
-      testimonials: {
-        heading: "Clients",
-        items: [
-          { quote: "Professional crew and clean deliverables every time.", name: "Brand manager" },
-          { quote: "They handled our launch event from concept to broadcast.", name: "Event director" },
-        ],
-      },
-      faq: {
-        heading: "Production FAQ",
-        items: [
-          { question: "Minimum budget?", answer: "Share your brief — we propose tiered packages." },
-          { question: "Locations?", answer: "We shoot across West Africa; travel quoted separately." },
-        ],
-      },
-      contact: {
-        heading: "Start a production",
-        email: "production@company.com",
-        phone: "+221770000000",
-        address: "Abidjan · Dakar · Lagos",
-      },
-      whatsapp: {
-        label: "WhatsApp production desk",
-        phone: "+221770000000",
-        message: "Hello, I have a production brief to share.",
-      },
-    }),
+    description:
+      "Owner portfolio — Ndaoan cinema. Not a shared user aesthetic.",
+    visibility: "owner_portfolio",
+    definition: ndaoanWebsiteDefinition(),
+  },
+  {
+    slug: "entertainment-rect",
+    name: "RECT — music streaming & entertainment tech",
+    category: "music",
+    description:
+      "Owner portfolio — RECT signal (lime / black / orange). Music + label now; film, Watch, social as honest roadmap. Not a shared user aesthetic.",
+    visibility: "owner_portfolio",
+    definition: rectWebsiteDefinition(),
+  },
+  {
+    slug: "foundation-mayjor-good",
+    name: "For The Mayjor Good — foundation",
+    category: "nonprofit",
+    description:
+      "Owner portfolio — For The Mayjor Good (art, opportunity, service). Not a shared user aesthetic.",
+    visibility: "owner_portfolio",
+    definition: mayjorGoodWebsiteDefinition(),
+  },
+  {
+    slug: "production-company",
+    name: "Production house",
+    category: "production",
+    description:
+      "Dakar production house — work, services, clients, WhatsApp briefs",
+    definition: productionHouseWorldDefinition(),
   },
   {
     slug: "hair-salon",
@@ -1489,75 +1016,64 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "perfume-brand",
     name: "Perfume & fragrance",
     category: "fragrance",
-    description: "Scent brand — collections, story, stockists, and WhatsApp orders",
+    description:
+      "Fragrance house — shop, story, stockists, FAQ, contact (not a one-page brochure)",
+    definition: perfumeMaisonWorldDefinition(),
+  },
+  {
+    slug: "scent-boutique",
+    name: "Scent boutique",
+    category: "fragrance",
+    description: "Intimate fragrance boutique — soft cream layout, story, and WhatsApp orders (different from Perfume house)",
     definition: buildCompleteSite({
-      title: "Maison Scent",
-      theme: templateDefaultTheme("#1a0a14", "#C9A962"),
+      title: "Atelier Brume",
+      theme: templateDefaultTheme("#F7F2EC", "#8B5E6B"),
       navLinks: [
         { label: "Story", href: "#about" },
-        { label: "Collections", href: "#services" },
-        { label: "Gallery", href: "#gallery" },
-        { label: "Order", href: "#contact" },
+        { label: "Scents", href: "#services" },
+        { label: "Visit", href: "#contact" },
       ],
       hero: {
-        heading: "Scents inspired by Africa",
-        subheading: "Eau de parfum crafted with oud, baobab flower, and coastal notes — limited batches.",
-        buttonLabel: "Shop collection",
+        heading: "Walk in. Smell. Take home.",
+        subheading: "A quiet boutique for discovery sets and signature oils — built for WhatsApp and walk-in sales.",
+        buttonLabel: "See scents",
         buttonHref: "#services",
-        background: "#1a0a14",
+        background: "#F7F2EC",
       },
       about: {
-        heading: "Our story",
-        body: "Describe your nose, ingredients, and where you make each bottle. Replace gallery photos with your product shots.",
+        heading: "The boutique",
+        body: "Tell guests where you are, your hours, and how you source notes. Keep photos light — Data Saver friendly.",
       },
       features: {
-        heading: "Collections",
+        heading: "On the shelf",
         items: [
-          { title: "Signature — 50ml", body: "Day to night. Notes: citrus, amber, musk." },
-          { title: "Limited — 30ml", body: "Seasonal drop. Swap names and notes in editor." },
-          { title: "Gift sets", body: "Discovery kit + card — perfect for events." },
+          { title: "Discovery set", body: "5 samples — swap names in the editor." },
+          { title: "House oil", body: "Your bestseller — price in Shop products." },
+          { title: "Refill ritual", body: "Bring the bottle back for a refill discount." },
         ],
       },
       gallery: {
         items: [
           {
-            src: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80",
-            alt: "Perfume bottle",
+            src: "https://images.unsplash.com/photo-1595425970377-c9703cf48b6d?w=800&q=80",
+            alt: "Boutique shelf",
           },
           {
-            src: "https://images.unsplash.com/photo-1592945403244-b3fbafd72529?w=800&q=80",
-            alt: "Fragrance collection",
+            src: "https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=800&q=80",
+            alt: "Fragrance bottles",
           },
-          {
-            src: "https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=800&q=80",
-            alt: "Product flat lay",
-          },
-        ],
-      },
-      testimonials: {
-        heading: "Reviews",
-        items: [
-          { quote: "Lasts all day — I get compliments every time.", name: "Customer, Dakar" },
-          { quote: "Finally a luxury scent that feels African, not copied.", name: "Boutique owner" },
-        ],
-      },
-      faq: {
-        heading: "Orders & shipping",
-        items: [
-          { question: "How to order?", answer: "WhatsApp us your size and scent — we confirm stock and delivery." },
-          { question: "International?", answer: "Edit this answer for your shipping countries." },
         ],
       },
       contact: {
-        heading: "Stockists & orders",
-        email: "orders@maisonscent.com",
+        heading: "Visit or order",
+        email: "hello@atelierbrume.com",
         phone: "+221770000000",
-        address: "Available at select boutiques — list yours here",
+        address: "Your street, your city",
       },
       whatsapp: {
         label: "Order on WhatsApp",
         phone: "+221770000000",
-        message: "Hi, I want to order from Maison Scent.",
+        message: "Hi, I want to order from Atelier Brume.",
       },
     }),
   },

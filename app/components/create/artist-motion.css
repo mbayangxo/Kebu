@@ -106,9 +106,128 @@
   }
 }
 
+@keyframes lb-circular-brand-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lb-circular-brand-spin {
+  animation: lb-circular-brand-spin 18s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+.lb-layer-motion-spin {
+  animation: lb-logo-spin 14s linear infinite;
+  transform-origin: center center;
+}
+
+.lb-layer-motion-float {
+  animation: lb-float-up 2.4s ease-in-out infinite;
+}
+
+.lb-layer-motion-bob {
+  animation: maylecor-float-a 3.2s ease-in-out infinite;
+}
+
+/* May's World — animated moodboard room tiles */
+.mays-world-moodboard {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.mays-world-moodboard__tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.1rem;
+  min-height: 11.5rem;
+  background: linear-gradient(145deg, rgba(233, 0, 107, 0.22), rgba(10, 10, 10, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: inherit;
+  text-decoration: none;
+  isolation: isolate;
+}
+
+.mays-world-moodboard__tile--1 {
+  grid-column: span 7;
+  min-height: 14rem;
+  animation: maylecor-float-a 5.2s ease-in-out infinite;
+}
+.mays-world-moodboard__tile--2 {
+  grid-column: span 5;
+  animation: maylecor-float-b 4.6s ease-in-out infinite;
+}
+.mays-world-moodboard__tile--3 {
+  grid-column: span 4;
+  animation: maylecor-float-a 6s ease-in-out infinite 0.2s;
+}
+.mays-world-moodboard__tile--4 {
+  grid-column: span 4;
+  animation: maylecor-float-b 5.4s ease-in-out infinite 0.35s;
+}
+.mays-world-moodboard__tile--5 {
+  grid-column: span 4;
+  animation: maylecor-float-a 4.8s ease-in-out infinite 0.15s;
+}
+.mays-world-moodboard__tile--6 {
+  grid-column: span 12;
+  min-height: 12rem;
+  animation: maylecor-float-b 5.8s ease-in-out infinite 0.1s;
+}
+
+.mays-world-moodboard__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.mays-world-moodboard__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+  animation: maylecor-kenburns 18s ease-in-out infinite alternate;
+  transform-origin: center center;
+}
+
+.mays-world-moodboard__copy {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.15rem 1.2rem 1.25rem;
+  background: linear-gradient(180deg, transparent 15%, rgba(0, 0, 0, 0.78) 100%);
+}
+
+@media (max-width: 720px) {
+  .mays-world-moodboard__tile--1,
+  .mays-world-moodboard__tile--2,
+  .mays-world-moodboard__tile--3,
+  .mays-world-moodboard__tile--4,
+  .mays-world-moodboard__tile--5,
+  .mays-world-moodboard__tile--6 {
+    grid-column: span 12;
+    min-height: 10.5rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .artist-motion-on * {
     animation: none !important;
     transition: none !important;
+  }
+  .lb-circular-brand-spin,
+  .lb-layer-motion-spin,
+  .lb-layer-motion-float,
+  .lb-layer-motion-bob,
+  .mays-world-moodboard__tile,
+  .mays-world-moodboard__media img {
+    animation: none !important;
   }
 }

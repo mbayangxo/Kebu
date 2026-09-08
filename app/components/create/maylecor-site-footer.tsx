@@ -1,6 +1,7 @@
 "use client";
 
 import { MAYLECOR_SOCIAL_DEFAULTS } from "@/lib/create/maylecor-defaults";
+import { MaylecorSocialBar } from "@/app/components/create/maylecor-social-bar";
 
 type Social = { label: string; iconUrl: string; href: string };
 
@@ -26,20 +27,8 @@ export function MaylecorSiteFooter({
       <p className="text-[10px] font-bold uppercase tracking-[0.35em]" style={{ color: accentColor }}>
         {brandLabel}
       </p>
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-4">
-        {links.map((s) => (
-          <a
-            key={s.label}
-            href={s.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="opacity-70 transition-opacity hover:opacity-100"
-            aria-label={s.label}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={s.iconUrl} alt="" className="h-8 w-8 object-contain" />
-          </a>
-        ))}
+      <div className="mt-6">
+        <MaylecorSocialBar links={links} accentColor={accentColor} variant="footer" />
       </div>
       <p className="mt-6 text-[10px] uppercase tracking-widest opacity-50">
         © {year} {brandLabel}

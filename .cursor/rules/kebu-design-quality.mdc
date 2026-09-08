@@ -1,0 +1,39 @@
+---
+description: Universal design quality — dossiers not names; if it looks AI-generated it failed
+alwaysApply: true
+---
+
+# Kebu Design Quality (all products)
+
+Full Builder templates: `docs/product/KEBU-DESIGN-QUALITY-STANDARD.md` · **Product Architect:** `docs/product/KEBU-PRODUCT-ARCHITECT-PHASE.md` · `docs/product/KEBU-TEMPLATE-INTELLIGENCE.md`
+
+## Product density
+
+Professional application density — **not** landing-page prototype (oversized cards, giant buttons, excessive whitespace). **Do not interpret simplicity as removing functionality.**
+
+## No MVP-looking UI
+
+Use final design language even for early slices. **Fewer complete features > many superficial screens with fake buttons.**
+
+## Reference products
+
+**Never** instruct from product name alone (Shopify, Canva, Spotify, Wix). Use **reference dossiers** + screenshots: `docs/reference/REFERENCE-DOSSIER-FORMAT.md` · `{shopify,spotify,canva}/PRODUCT-BENCHMARK.md`.
+
+Extract **design principles** from visuals — do not pixel-copy.
+
+## Universal Cursor rules
+
+1. Optimize for **underlying product system** — not surface resemblance.  
+2. Never substitute **simplified UI** for a **complete workflow**.  
+3. Never generate **generic templates** to satisfy a **count**.  
+4. Every design: **purpose · audience · hierarchy · interaction · visual identity**.  
+5. **If it looks AI-generated, it failed quality review — redesign.**  
+6. **One exceptional artifact first** (template, screen, flow) — pass review before quantity.
+
+Applies to: Kebu Builder · Studio · Property · Reach · any assigned slice.
+
+## Template-specific (Builder)
+
+Business **archetype** changes **IA** (fashion ≠ restaurant). Compositions from section library — not Hero + three cards × colors.
+
+Run **10-question design review** before marking template/world complete.

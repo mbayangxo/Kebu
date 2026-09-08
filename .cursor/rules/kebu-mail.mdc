@@ -1,0 +1,25 @@
+---
+description: Kebu Mail — real email via provider abstraction; NOT STARTED until assigned
+alwaysApply: false
+globs: "**/*mail*"
+---
+
+# Kebu Mail
+
+Full spec: `docs/product/KEBU-MAIL.md`
+
+**NOT STARTED** until explicitly assigned. Do not ship fake inbox UI or simulated send.
+
+## Law
+
+- **Kebu Identity + Mail** — not “Kebu Gmail”
+- **Real** send/receive interoperable with Gmail, Outlook, Yahoo, internet mail
+- **Provider abstraction** — do not build raw SMTP/MX stack in v1
+- Personal `@kebu.africa` — **FREE** (target)
+- Business mail on **verified domains** — RBAC, shared mailboxes, audit
+- **One Kebu Account** — switch mailbox context, not new login
+- End-to-end slice: UI → API → provider → DB → inbound webhook → inbox → refresh
+
+## Cursor (when assigned)
+
+Provider adapter first. No fake sending. Replaceable infrastructure. One slice at a time.

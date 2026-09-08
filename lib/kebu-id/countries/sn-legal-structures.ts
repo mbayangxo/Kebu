@@ -3,6 +3,32 @@ import type { LegalStructure } from "./types";
 /** Senegal legal structures — plain-language lessons for first-time founders. */
 export const senegalLegalStructures: LegalStructure[] = [
   {
+    code: "informal_unregistered",
+    label: "Informal / not registered yet",
+    description: "Activité informelle — pas encore d'immatriculation",
+    simpleAnalogy: "You're already selling — Kebu just gives you a digital home before the paperwork.",
+    summary:
+      "You sell today without a formal company number. That is valid on Kebu — limits may be lower until you register.",
+    whoItsFor: "Market sellers, WhatsApp shops, home cooks, artisans, and anyone testing an idea.",
+    bestWhen:
+      "You want to take orders online now and register (NINEA / company) later when revenue justifies it.",
+    examples: [
+      "A cousin selling fabric on WhatsApp from Thiès",
+      "A home baker taking weekend orders",
+      "A student reselling phone accessories from campus",
+    ],
+    pros: [
+      "No shame — informal is welcome",
+      "Fastest path to a live storefront",
+      "You can upgrade legal structure later without losing your Kebu ID",
+    ],
+    cons: [
+      "Some banks and big buyers want a registered company",
+      "Higher commerce limits (Joko depth) need AfriID + Kebu ID linked",
+      "Tax and formal contracts still need registration when you grow",
+    ],
+  },
+  {
     code: "individual_enterprise",
     label: "Individual Enterprise",
     description: "Entreprise individuelle",

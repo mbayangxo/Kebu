@@ -1,43 +1,28 @@
 ---
-description: Kebu Opportunity OS — AI opportunity operating system (not a blog)
+description: Kebu Opportunity OS — personalized for-you layer inside Kebu; NOT standalone Opportunity OS
 alwaysApply: true
 ---
 
-# KEBU OPPORTUNITY OS
+# Kebu Opportunity OS (Kebu ecosystem feature)
 
-Opportunity OS is an **AI-powered Opportunity Operating System** — not a blog, not a static article list, not a brochure.
+Standalone **Opportunity OS** product law: `.cursor/rules/opportunity-os-master.mdc` · `docs/OPPORTUNITY-OS-MASTER-SPEC.md`.
 
-**Mission:** Help African entrepreneurs answer (1) What should I build? (2) How do I build it? Every opportunity should connect toward Kebu’s business builder.
+**Kebu Opportunity OS** = helps an individual/business discover opportunities **relevant to them** inside a Kebu account.
 
-## Navigation pillars (build slice-by-slice)
+**Opportunity OS** = separate economic intelligence platform (explore). **Do not merge.**
 
-Countries · Industries · Resources · Imports · Exports · Trade · Manufacturing · Agriculture · Technology · Tourism · Infrastructure · Government Programs · Grants · Startup Ecosystem · Entrepreneur Stories · Company Case Studies · Opportunity Explorer · Opportunity AI · Build This Business
+## Rules
 
-## Trust labels (mandatory)
+- **For you** only — not Country Explorer, not Opportunity Cards engine, not Research Lab product UI.
+- **Not** Website Builder. Do not dump explore/for-you into editor chrome.
+- **Build This → Kebu** = API handoff to Builder / Kebu ID — never auto-publish.
+- Protected personalization + deep African intelligence: server-checked **`african_opportunity_access`** (or equivalent) after one-time verification — not `if African` everywhere.
+- Public may discover products exist; unverified users get clear eligibility path — not fake protected data.
+- Personal eligibility ≠ **Kebu ID**.
 
-Always separate:
+## Current routes (repo)
 
-- **Verified** public information
-- **Estimated**
-- **AI-generated** opportunity analysis
-- **Requires validation**
+- **Opportunity OS explore:** `/opportunity/countries`, country APIs  
+- **Kebu Opportunity OS:** `/opportunity` for-you, `/opportunity/intake`, `/api/opportunity/for-you`  
 
-Never present AI assumptions as verified facts.
-
-## Data & CMS
-
-Normalized entities (countries, industries, resources, commodities, imports/exports, opportunities, case studies, sources, confidence…). Content must be DB/CMS-backed — **not hard-coded production pages**. Admin CMS for publish/version/archive (when that slice is assigned).
-
-## Build integration (later slices)
-
-“Build This Business” creates drafts only (business, brand, website, optional store, roadmap, checklist, Kebu ID draft, readiness) — never auto-publish.
-
-## Security
-
-Opportunity catalog is public unless marked otherwise. Never leak private business data. Admin actions require RBAC.
-
-## Slice order (do not skip)
-
-1 Country Explorer → 2 Industry → 3 Resource → 4 Import → 5 Export → 6 Opportunity Explorer → 7 Entrepreneur Stories → 8 Case Studies → 9 Opportunity AI → 10 Build This Business
-
-A static content-only page is **not** a completed slice. Finish and verify one vertical path before the next.
+Keep boundaries clear when extending either product.

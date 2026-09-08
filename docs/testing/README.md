@@ -1,44 +1,65 @@
 # Testing documentation
 
-## Commands
+## CI gate chain (mandatory before merge/deploy)
 
-```bash
-npm test              # Vitest unit tests (all)
-npm run typecheck     # tsc --noEmit
-npm run build         # Production build
-npm run lint          # ESLint (repo has legacy noise; lint changed files before merge)
+See **`docs/CI_PIPELINE.md`**.
+
+```
+TypeScript → Lint → Unit → Integration → Database → RLS → E2E → Build
 ```
 
-## Layout
+**Any failure → DEPLOYMENT STOPS.**
+
+```bash
+npm run ci              # all gates in order
+npm run typecheck
+npm run lint
+npm test                # unit (+ integration/db/rls when named *.integration.test.ts etc.)
+npm run test:e2e        # Playwright (needs KEBU_E2E_BASE_URL)
+npm run build
+```
+
+---
+
+## Test tiers
+
+| Tier | File pattern | Gate |
+|------|--------------|------|
+| Unit | `tests/**/*.test.ts` | 3 |
+| Integration | `tests/**/*.integration.test.ts` | 4 |
+| Database | `tests/**/*.db.test.ts` | 5 |
+| RLS | `tests/**/*.rls.test.ts` | 6 |
+| E2E | `tests/**/*.spec.ts` (Playwright) | 7 |
+
+Vitest config: `vitest.config.ts` — extend with separate projects as tiers grow.
+
+---
+
+## Layout (current)
 
 | Path | Scope |
 |------|--------|
 | `tests/kebu-id/` | Kebu ID, registration, security contracts |
-| `tests/create/` | Builder schemas, SEO, domains lib, templates |
+| `tests/create/` | Builder schemas, SEO, domains, templates |
+| `tests/shop/` | Commerce, cart, payments |
 | `tests/billing/` | Pricing |
 | `tests/opportunity/` | Country explorer |
-| `tests/kebu-id/e2e-draft-business.spec.ts` | Playwright (optional, needs `KEBU_E2E_BASE_URL`) |
+| `tests/kebu-id/e2e-draft-business.spec.ts` | Playwright E2E |
 
-## Required per slice (Definition of Done)
+---
 
-| Level | When |
-|-------|------|
-| Unit | Pure logic, schemas, score calc |
-| Integration | API route + mocked or test Supabase |
-| E2E | Critical user journeys (register business, publish site, connect domain) |
+## Required per slice
 
-## Current gaps
+Every feature: `docs/product/DEFINITION_OF_DONE.md` — not only unit tests for API/DB features.
 
-- **Custom domains:** lib unit tests only — no API integration/E2E  
-- **Builder publish:** partial unit coverage  
-- **KA Score:** no production tests (system not built)  
-- **Opportunity Build This Business:** not started  
+---
 
-## CI recommendation
+## Current gaps (honest)
 
-1. `npm run typecheck`  
-2. `npm test`  
-3. `npm run build`  
-4. Playwright on staging with secrets  
+- Dedicated `*.db.test.ts` / `*.rls.test.ts` tiers — **NOT STARTED**  
+- Some unit test / typecheck failures to repair  
+- Full-repo ESLint — cleanup in progress  
+- Playwright baselines — **NOT STARTED**  
+- CI E2E with staging secrets — configure in GitHub  
 
-Status tracked in `docs/IMPLEMENTATION_STATUS.md`.
+Status: `docs/IMPLEMENTATION_STATUS.md`

@@ -105,3 +105,325 @@
   max-width: 100%;
   overflow-x: clip;
 }
+
+/* Named Aesthetics: spacing, type, and cards follow persisted theme tokens */
+.kebu-site {
+  font-family: var(--kebu-font-body, system-ui), system-ui, sans-serif;
+  font-size: var(--kebu-body-size, 1rem);
+  letter-spacing: var(--kebu-tracking, 0);
+  color: var(--kebu-text, #0a0a0a);
+}
+
+.kebu-site .kebu-section {
+  padding-block: var(--kebu-section-pad, 3.5rem);
+}
+
+.kebu-site h1,
+.kebu-site h2,
+.kebu-site .kebu-display {
+  font-family: var(--kebu-font-display, Fraunces), Georgia, serif;
+  letter-spacing: var(--kebu-tracking, 0);
+}
+
+.kebu-site h1 {
+  font-size: calc(2.25rem * var(--kebu-heading-scale, 1));
+}
+
+.kebu-site h2 {
+  font-size: calc(1.5rem * var(--kebu-heading-scale, 1));
+}
+
+.kebu-site .kebu-card {
+  border-radius: var(--kebu-radius, 1.25rem);
+  background: color-mix(in srgb, var(--kebu-bg, #fff) 92%, #fff);
+  border: 1px solid color-mix(in srgb, var(--kebu-text, #111) 12%, transparent);
+}
+
+.kebu-site .kebu-cta {
+  background: var(--kebu-accent, #ff5500);
+  color: var(--kebu-primary, #0a0a0a);
+}
+
+/* —— Data modes (Africa low-bandwidth) —— */
+.kebu-site.kebu-mode-data-saver img,
+.kebu-site.kebu-mode-offline img {
+  content-visibility: auto;
+}
+
+.kebu-site.kebu-mode-data-saver video[data-kebu-autoplay],
+.kebu-site.kebu-mode-ultra video,
+.kebu-site.kebu-mode-offline video {
+  display: none !important;
+}
+
+.kebu-site.kebu-mode-ultra {
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+.kebu-site.kebu-mode-ultra h1,
+.kebu-site.kebu-mode-ultra h2,
+.kebu-site.kebu-mode-ultra .kebu-display {
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+.kebu-site.kebu-mode-ultra .kebu-heavy-media,
+.kebu-site.kebu-mode-offline .kebu-heavy-media {
+  display: none !important;
+}
+
+.kebu-site.kebu-mode-data-saver iframe[src*="youtube"],
+.kebu-site.kebu-mode-data-saver iframe[src*="vimeo"],
+.kebu-site.kebu-mode-ultra iframe[src*="youtube"],
+.kebu-site.kebu-mode-ultra iframe[src*="vimeo"],
+.kebu-site.kebu-mode-offline iframe[src*="youtube"],
+.kebu-site.kebu-mode-offline iframe[src*="vimeo"] {
+  display: none !important;
+}
+
+.kebu-data-mode-dock {
+  position: fixed;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 60;
+  max-width: min(100vw - 1.5rem, 22rem);
+  padding: 0.6rem 0.75rem;
+  border-radius: 1rem;
+  background: rgba(255, 251, 247, 0.94);
+  border: 1px solid rgba(10, 10, 10, 0.12);
+  box-shadow: 0 8px 24px rgba(10, 10, 10, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+/* App shell Ultra / Offline — text-first (Account · Shop · Builder chrome) */
+html.kebu-mode-ultra,
+html.kebu-mode-offline {
+  --kebu-ui-font: system-ui, -apple-system, sans-serif;
+}
+
+html.kebu-mode-ultra .kebu-app video,
+html.kebu-mode-offline .kebu-app video,
+html.kebu-mode-ultra .kebu-app iframe[src*="youtube"],
+html.kebu-mode-ultra .kebu-app iframe[src*="vimeo"] {
+  display: none !important;
+}
+
+html.kebu-mode-ultra .kebu-app {
+  font-family: var(--kebu-ui-font) !important;
+}
+
+/* Per-aesthetic order sheet (products.orderStyle = sheet) */
+.kebu-order-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.kebu-order-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(10, 10, 10, 0.45);
+  cursor: pointer;
+}
+
+.kebu-order-sheet-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 28rem);
+  max-height: min(85vh, 36rem);
+  overflow: auto;
+  margin: 0;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: #fff;
+  box-shadow: 0 -8px 32px rgba(10, 10, 10, 0.18);
+}
+
+/* Email / consent overlay */
+.kebu-email-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .kebu-email-popup {
+    align-items: center;
+  }
+}
+
+.kebu-email-popup__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(10, 10, 10, 0.48);
+  cursor: pointer;
+}
+
+.kebu-email-popup__card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 24rem);
+  padding: 1.25rem 1.25rem 1rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(10, 10, 10, 0.22);
+  color: #0a0a0a;
+}
+
+.kebu-email-popup__heading {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.kebu-email-popup__body {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  opacity: 0.78;
+}
+
+.kebu-email-popup__form {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.kebu-email-popup__check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.kebu-email-popup__check input {
+  margin-top: 0.15rem;
+}
+
+.kebu-email-popup__input {
+  width: 100%;
+  border: 1px solid #dde0f0;
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+}
+
+.kebu-email-popup__primary {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #fff;
+  background: #ff5500;
+  cursor: pointer;
+}
+
+.kebu-email-popup__primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.kebu-email-popup__dismiss {
+  border: 0;
+  background: transparent;
+  font-size: 0.75rem;
+  opacity: 0.55;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0.25rem;
+}
+
+.kebu-email-popup__error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #b91c1c;
+}
+
+.kebu-email-popup__success {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #00a651;
+}
+
+.kebu-email-popup__preview-note {
+  margin: 0;
+  font-size: 0.625rem;
+  opacity: 0.45;
+}
+
+/* Multi-item shop cart FAB + drawer */
+.kebu-shop-cart-fab {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  z-index: 70;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1.15rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--site-primary, #0a0a0a);
+  box-shadow: 0 8px 24px rgba(10, 10, 10, 0.28);
+  cursor: pointer;
+}
+
+.kebu-shop-cart-root {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .kebu-shop-cart-root {
+    align-items: center;
+  }
+}
+
+.kebu-shop-cart-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(10, 10, 10, 0.45);
+  cursor: pointer;
+}
+
+.kebu-shop-cart-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 26rem);
+  max-height: min(88vh, 40rem);
+  overflow: auto;
+  margin: 0;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: #fff;
+  color: #0a0a0a;
+  box-shadow: 0 -8px 32px rgba(10, 10, 10, 0.18);
+}
+
+@media (min-width: 640px) {
+  .kebu-shop-cart-panel {
+    border-radius: 1.25rem;
+    margin: 1rem;
+  }
+}
+

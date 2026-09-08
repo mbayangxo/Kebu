@@ -9,7 +9,7 @@ type ThemeRow = {
   id: string;
   name: string;
   status: "live" | "draft";
-  source: "current" | "catalog" | "upload";
+  source: "current" | "catalog" | "upload" | "marketplace" | "library";
   catalogSlug: string | null;
   publishedAt: string | null;
   createdAt: string;
@@ -39,14 +39,14 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
       const res = await fetch(`/api/projects/${projectId}/themes`, { credentials: "include" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not load templates.");
+        setError(typeof data.error === "string" ? data.error : "Could not load aesthetics.");
         return;
       }
       setThemes(Array.isArray(data.themes) ? data.themes : []);
       setActiveThemeId(data.activeThemeId ?? null);
       setLiveThemeId(data.liveThemeId ?? null);
     } catch {
-      setError("Network error while loading templates.");
+      setError("Network error while loading aesthetics.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
   async function add(source: "current" | "catalog" | "upload", extra?: { catalogSlug?: string; fileJson?: unknown }) {
     const name = newName.trim();
     if (!name) {
-      setError("Give this template a name first.");
+      setError("Give this aesthetic a name first.");
       return;
     }
     setBusyId("add");
@@ -90,7 +90,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not add template.");
+        setError(typeof data.error === "string" ? data.error : "Could not add aesthetic.");
         return;
       }
       setNewName("");
@@ -133,7 +133,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
   }
 
   async function remove(themeId: string) {
-    if (!confirm("Delete this draft template? This cannot be undone.")) return;
+    if (!confirm("Delete this draft aesthetic? This cannot be undone.")) return;
     setBusyId(themeId);
     setError(null);
     try {
@@ -157,7 +157,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
   async function download(theme: ThemeRow) {
     const res = await fetch(`/api/projects/${projectId}/themes/${theme.id}`, { credentials: "include" });
     if (!res.ok) {
-      setError("Could not export this template.");
+      setError("Could not export this aesthetic.");
       return;
     }
     const json = await res.json();
@@ -165,7 +165,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${theme.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "kebu-template"}.json`;
+    a.download = `${theme.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "kebu-aesthetic"}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -173,7 +173,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
   function onPickFile(file: File | undefined) {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".json")) {
-      setError("Upload a Kebu .json template — not a zip, HTML, or WordPress/ThemeForest file.");
+      setError("Upload a Kebu .json aesthetic — not a zip, HTML, or WordPress/ThemeForest file.");
       return;
     }
     const reader = new FileReader();
@@ -195,13 +195,16 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
     <div className="space-y-8">
       <header>
         <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
-          Templates for this site
+          Aesthetics for this site
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-          Like Shopify themes: each template has a name. One is <strong>live</strong> (public if you published the site).
-          The rest are <strong>drafts</strong>. Edit a draft, then publish it — the old live template becomes a draft.
-          You can copy this site, pick a Kebu gallery template, or upload a Kebu JSON file. HTML / ThemeForest zips
-          cannot run here.
+          Like Shopify themes: each aesthetic has a name. One is <strong>live</strong> (public if you published the site).
+          The rest are <strong>drafts</strong>. Edit a draft, then publish it — the old live aesthetic becomes a draft.
+          Buy or accept looks from the{" "}
+          <Link href="/create/aesthetics" className="font-semibold underline" style={{ color: KEBU.orange }}>
+            Aesthetics store
+          </Link>{" "}
+          (no re-upload). Or copy this site / upload Kebu JSON. HTML / ThemeForest zips cannot run here.
         </p>
       </header>
 
@@ -216,7 +219,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
         </p>
       ) : null}
 
-      {loading ? <p className="text-sm" style={{ color: KEBU.muted }}>Loading templates…</p> : null}
+      {loading ? <p className="text-sm" style={{ color: KEBU.muted }}>Loading aesthetics…</p> : null}
 
       {live ? (
         <section>
@@ -260,10 +263,10 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
 
       <section className="rounded-2xl bg-white p-4 sm:p-6" style={{ border: `1px solid ${KEBU.border}` }}>
         <h3 className="text-sm font-bold" style={{ color: KEBU.black }}>
-          Add a named template
+          Add a named aesthetic
         </h3>
         <label className="mt-3 block text-[11px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-          Template name
+          Aesthetic name
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -290,7 +293,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
               className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm"
               style={{ borderColor: KEBU.border }}
             >
-              <option value="">Kebu gallery template…</option>
+              <option value="">Kebu gallery aesthetic…</option>
               {catalog.map((t) => (
                 <option key={t.slug} value={t.slug}>
                   {t.name} ({t.category})
@@ -330,7 +333,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
       </section>
 
       <p className="text-xs" style={{ color: KEBU.muted }}>
-        Live template id: {liveThemeId ?? "—"}.{" "}
+        Live aesthetic id: {liveThemeId ?? "—"}.{" "}
         <Link href={`/create/${projectId}`} className="font-semibold underline" style={{ color: KEBU.orange }}>
           Open editor
         </Link>

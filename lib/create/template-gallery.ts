@@ -47,10 +47,12 @@ export function getTemplateAccent(slug: string, category: string): string {
   return CATEGORY_ACCENTS[templateGroupId(category)] ?? "#FF5500";
 }
 
+/** Gallery: curated user aesthetics first; other public seeds still available but not featured. */
 export function getGalleryTemplates(): GalleryTemplate[] {
   const featuredSlugs = new Set<string>(FEATURED_TEMPLATES.map((t) => t.slug));
+  const featuredOrder = FEATURED_TEMPLATES.map((f) => f.slug);
 
-  return publicTemplateSeeds().map((t) => {
+  const all = publicTemplateSeeds().map((t) => {
     const groupId = templateGroupId(t.category);
     const group = TEMPLATE_CATEGORY_GROUPS.find((g) => g.id === groupId);
     const cardVisual = templateCardVisual(t.slug, t.category);
@@ -70,9 +72,16 @@ export function getGalleryTemplates(): GalleryTemplate[] {
       usePath: `/create/new?template=${encodeURIComponent(t.slug)}`,
     };
   });
+
+  const bySlug = new Map(all.map((t) => [t.slug, t]));
+  const featuredFirst = featuredOrder
+    .map((slug) => bySlug.get(slug))
+    .filter((t): t is GalleryTemplate => Boolean(t));
+  const rest = all.filter((t) => !featuredSlugs.has(t.slug));
+  return [...featuredFirst, ...rest];
 }
 
-/** The two real Kebu site layouts — May Lecor (Russian cutouts) and K-Direction (Wix). */
+/** Recommended starters for new users (shop + agency) — not owner brands. */
 export function getFlagshipGalleryTemplates(): GalleryTemplate[] {
   const all = getGalleryTemplates();
   return FLAGSHIP_TEMPLATE_SLUGS.map((slug) => all.find((t) => t.slug === slug)).filter(

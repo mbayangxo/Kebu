@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { loadPublicDeployment } from "@/lib/create/public-site-loader";
 import { PublicSiteView } from "@/app/components/create/public-site-view";
+import { SiteBillingSuspendedView } from "@/app/components/create/site-billing-suspended";
 import { siteMetadataFromDefinition } from "@/lib/create/site-seo";
 import { SiteJsonLd } from "@/app/components/create/site-json-ld";
 
@@ -14,6 +15,9 @@ export async function generateMetadata({ params }: Params) {
 
   const deployment = await loadPublicDeployment(subdomain);
   if (!deployment) return { title: "Site not found" };
+  if (deployment.billingSuspended) {
+    return { title: "Site paused — hosting", robots: { index: false, follow: false } };
+  }
 
   const page = deployment.definition.pages.find((p) => p.slug === pageSlug);
   return siteMetadataFromDefinition({
@@ -31,6 +35,12 @@ export default async function PublicSiteSubPage({ params }: Params) {
 
   const deployment = await loadPublicDeployment(subdomain);
   if (!deployment) notFound();
+
+  if (deployment.billingSuspended) {
+    return (
+      <SiteBillingSuspendedView subdomain={deployment.subdomain} projectId={deployment.projectId} />
+    );
+  }
 
   const pageExists = deployment.definition.pages.some((p) => p.slug === pageSlug);
   if (!pageExists) notFound();

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { meProfilePatchSchema, rowToMeProfile } from "@/lib/account/user-profile";
 import { ensureAfriqueIdForUser } from "@/lib/afrique-id/ensure-afrique-id";
-import { eligibilityStatusLabel } from "@/lib/afrique-id/types";
+import { africanIdTypeLabel, eligibilityStatusLabel } from "@/lib/afrique-id/types";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +44,8 @@ export async function GET() {
           eligibilityStatus: ensured.afriqueId.eligibilityStatus,
           eligibilityLabel: eligibilityStatusLabel(ensured.afriqueId.eligibilityStatus),
           publicProfilePath: `/id/${ensured.afriqueId.publicAfriqueId.toLowerCase()}`,
+          identityType: ensured.afriqueId.identityType,
+          identityTypeLabel: africanIdTypeLabel(ensured.afriqueId.identityType),
         }
       : null,
   };
@@ -106,6 +108,8 @@ export async function PATCH(req: Request) {
           eligibilityStatus: ensured.afriqueId.eligibilityStatus,
           eligibilityLabel: eligibilityStatusLabel(ensured.afriqueId.eligibilityStatus),
           publicProfilePath: `/id/${ensured.afriqueId.publicAfriqueId.toLowerCase()}`,
+          identityType: ensured.afriqueId.identityType,
+          identityTypeLabel: africanIdTypeLabel(ensured.afriqueId.identityType),
         }
       : null,
   };

@@ -4,6 +4,7 @@ import { aiRateLimit } from "@/lib/api-guard";
 import { assertBusinessEditor } from "@/lib/create/business-access";
 import {
   buildStructuredSiteFromBrief,
+  buildStructuredSiteFromPhotos,
   definitionFromTemplateSlug,
   generateWebsiteWithAi,
   suggestSubdomain,
@@ -56,10 +57,20 @@ export async function POST(req: NextRequest) {
   let definition;
   let usedAi = false;
   let repaired = false;
+  let usedFallback = false;
   let templateId: string | null = null;
 
   if (brief.mode === "blank") {
     definition = buildStructuredSiteFromBrief(brief);
+  } else if (brief.mode === "photos") {
+    const photos = brief.photoUrls ?? [];
+    if (photos.length < 1) {
+      return NextResponse.json(
+        { error: "Upload at least one photo for Create from photos." },
+        { status: 400 },
+      );
+    }
+    definition = buildStructuredSiteFromPhotos(brief);
   } else if (brief.mode === "template") {
     if (!brief.templateSlug) {
       return NextResponse.json({ error: "templateSlug required for template mode." }, { status: 400 });
@@ -105,6 +116,7 @@ export async function POST(req: NextRequest) {
     definition = ai.definition;
     usedAi = ai.usedAi;
     repaired = ai.repaired;
+    usedFallback = Boolean(ai.fallback);
   }
 
   const validated = validateWebsiteDefinition(definition);
@@ -147,6 +159,12 @@ export async function POST(req: NextRequest) {
       project: result.project,
       usedAi,
       repaired,
+      usedFallback,
+      message: usedAi
+        ? "Yande built a draft site from your words. Edit anything, then publish."
+        : brief.mode === "ai"
+          ? "Draft site created from your words (structured Kebu pages). Yande AI was not used — edit and publish as usual."
+          : undefined,
       publicPathPreview: `/sites/${subdomain}`,
     },
     { status: 201 }

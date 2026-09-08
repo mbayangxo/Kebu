@@ -1,0 +1,44 @@
+---
+description: Kebu Account — one identity for entire universe; Personal + Business layers
+alwaysApply: true
+---
+
+# Kebu Account Model
+
+Full spec: `docs/product/KEBU-UNIFIED-ACCOUNT.md` · `docs/product/KEBU-ACCOUNT-MODEL.md`
+
+## One Kebu identity — not ten product accounts
+
+**Single Supabase Auth user** connects Search, Mail, Builder, Cloud, Analytics, Business, Opportunity OS (APIs), Score, Reach.
+
+**Forbidden:** separate signups per product · duplicate auth · “Kebu Search account” vs “Kebu Builder account.”
+
+## Structure
+
+```
+KEBU ACCOUNT → Kebu Profile + Personal Kebu + Business Kebu (Kebu ID workspaces)
+```
+
+**Kebu Mail** = communication layer (personal `may@…` + business `hello@…` / `orders@…`). Switch context — not new login.
+
+## Personal Kebu — FREE
+
+Email · Search · Studio basic · profile · saved searches · Cloud starter · activate Builder when ready.
+
+## Business Kebu
+
+**Create a Business** → Kebu ID workspace. Team invites → **business only**, not founder’s personal Kebu.
+
+## Privacy = control center
+
+Connected services + **revocable permissions** (e.g. Search may use business profile). **Not** “Kebu knows everything.” Server-stored consents — never browser-only flags.
+
+## Pricing
+
+Personal FREE · Builder/Shop tiers — `docs/product/KEBU-PRICING.md`.
+
+## Foundation slice priority
+
+Account + Kebu ID + workspace + permissions **before** bolting on products. See `kebu-master-engineering.mdc`.
+
+Personal eligibility ≠ **Kebu ID** — see `kebu-id.mdc`.

@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { storeDb, type StoreOrder, type StoreSite } from "@/lib/store-data";
-import { analyticsDb } from "@/lib/analytics-store";
 import { sendOrderNotification } from "@/lib/notifications";
 
 // Currency mapping for Flutterwave (based on site country)
@@ -106,7 +105,6 @@ export async function POST(req: NextRequest) {
   };
 
   storeDb.orders.save(order);
-  analyticsDb.recordOrder(order.siteSlug);
 
   const site = storeDb.sites.get(body.siteSlug);
 

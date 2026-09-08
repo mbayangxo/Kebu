@@ -4,75 +4,81 @@ import Link from "next/link";
 import { useState } from "react";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
-import { CreateShell } from "@/app/components/create/create-shell";
 
+/**
+ * Full-bleed template demo — site chrome only (no second black Kebu nav bar).
+ * Page chips + Use CTA float over the live theme background.
+ */
 export function DemoTemplateView({
   definition,
   slug,
   name,
-  tagline,
 }: {
   definition: WebsiteDefinition;
   slug: string;
   name: string;
-  tagline: string;
+  tagline?: string;
 }) {
-  const pages = definition.pages.slice().sort((a, b) => a.slug.localeCompare(b.slug));
+  const pages = definition.pages.slice().sort((a, b) => {
+    if (a.slug === "home") return -1;
+    if (b.slug === "home") return 1;
+    return a.slug.localeCompare(b.slug);
+  });
   const [pageSlug, setPageSlug] = useState(pages[0]?.slug ?? "home");
+  const isMaylecor = slug.includes("maylecor") || slug.includes("legally");
+  const themeBg = definition.theme?.background || (isMaylecor ? "#FFE4F0" : "#0a0a12");
+  const themeText = definition.theme?.text || "#fff";
 
   return (
-    <div className="min-h-screen" style={{ background: "#0a0a12" }}>
-      <CreateShell
-        step="preview"
-        title="Template preview"
-        backHref="/create/templates"
-        actions={
+    <div className="relative min-h-screen" style={{ background: themeBg, color: themeText }}>
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex items-start justify-between gap-3 p-3 sm:p-4">
+        <Link
+          href="/create/templates"
+          className="pointer-events-auto rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md"
+          style={{ background: "rgba(10,10,10,0.72)", color: "#fff" }}
+        >
+          ← Templates
+        </Link>
+        <div className="pointer-events-auto flex max-w-[min(100%,42rem)] flex-wrap items-center justify-end gap-2">
+          {pages.length > 1 ? (
+            <div
+              className="flex max-h-[40vh] max-w-[70vw] flex-wrap justify-end gap-1 overflow-y-auto rounded-2xl p-1 backdrop-blur-md"
+              style={{ background: "rgba(10,10,10,0.55)" }}
+              role="navigation"
+              aria-label="Demo pages"
+            >
+              {pages.map((p) => (
+                <button
+                  key={p.slug}
+                  type="button"
+                  onClick={() => setPageSlug(p.slug)}
+                  className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider"
+                  style={{
+                    background: pageSlug === p.slug ? "#FF5500" : "transparent",
+                    color: "#fff",
+                  }}
+                >
+                  {p.title}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <Link
-            href={`/create/new?template=${slug}`}
-            className="rounded-full px-5 py-2 text-[10px] font-black uppercase tracking-wider"
+            href={`/create/new?template=${encodeURIComponent(slug)}`}
+            className="rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-wider"
             style={{ background: "#FF5500", color: "#fff" }}
           >
-            Start with this →
+            Use {name.split(" ")[0] ?? "this"} →
           </Link>
-        }
+        </div>
+      </div>
+
+      <SiteRenderer
+        definition={definition}
+        mode="preview"
+        pageSlug={pageSlug}
+        siteBase={`/create/demo/${slug}`}
       />
-
-      <div
-        className="border-b px-4 py-3 text-center sm:text-left sm:px-6"
-        style={{ background: "#0A0A0A", borderColor: "rgba(255,85,0,0.3)", color: "#fff" }}
-      >
-        <p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: "#FF5500" }}>
-          Live preview · real layout & placeholder photos
-        </p>
-        <h1 className="mt-1 text-lg font-bold">{name}</h1>
-        {pages.length > 1 ? (
-          <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
-            {pages.map((p) => (
-              <button
-                key={p.slug}
-                type="button"
-                onClick={() => setPageSlug(p.slug)}
-                className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
-                style={{
-                  background: pageSlug === p.slug ? "#FF5500" : "#1A1A1A",
-                  color: "#fff",
-                }}
-              >
-                {p.title}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="mx-auto max-w-[100vw] overflow-hidden">
-        <SiteRenderer
-          definition={definition}
-          mode="preview"
-          pageSlug={pageSlug}
-          siteBase={`/create/demo/${slug}`}
-        />
-      </div>
     </div>
   );
 }

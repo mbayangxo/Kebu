@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
-import { projectProductSchema } from "@/lib/create/project-products";
+import {
+  PRODUCT_SELECT,
+  PRODUCT_SELECT_LEGACY,
+  PRODUCT_SELECT_MID,
+  PRODUCT_SELECT_CODES,
+  projectProductSchema,
+} from "@/lib/create/project-products";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +53,33 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.name !== undefined) patch.name = parsed.data.name;
   if (parsed.data.description !== undefined) patch.description = parsed.data.description;
   if (parsed.data.priceLabel !== undefined) patch.price_label = parsed.data.priceLabel;
+  if (parsed.data.priceXof !== undefined) patch.price_xof = parsed.data.priceXof;
+  if (parsed.data.upc !== undefined) patch.upc = parsed.data.upc;
+  if (parsed.data.sku !== undefined) patch.sku = parsed.data.sku;
+  if (parsed.data.trackStock !== undefined) {
+    patch.track_stock = parsed.data.trackStock;
+    if (!parsed.data.trackStock) {
+      patch.stock_qty = null;
+    } else if (parsed.data.stockQty !== undefined) {
+      patch.stock_qty = parsed.data.stockQty ?? 0;
+    } else {
+      patch.stock_qty = 0;
+    }
+  } else if (parsed.data.stockQty !== undefined) {
+    patch.stock_qty = parsed.data.stockQty;
+  }
+  if (parsed.data.isSubscription !== undefined) {
+    patch.is_subscription = parsed.data.isSubscription;
+    if (!parsed.data.isSubscription) {
+      patch.subscription_interval = null;
+    } else if (parsed.data.subscriptionInterval !== undefined) {
+      patch.subscription_interval = parsed.data.subscriptionInterval ?? "monthly";
+    } else {
+      patch.subscription_interval = "monthly";
+    }
+  } else if (parsed.data.subscriptionInterval !== undefined) {
+    patch.subscription_interval = parsed.data.subscriptionInterval;
+  }
   if (parsed.data.imageUrl !== undefined) patch.image_url = parsed.data.imageUrl;
   if (parsed.data.whatsappOrderMessage !== undefined) {
     patch.whatsapp_order_message = parsed.data.whatsappOrderMessage;
@@ -55,15 +87,108 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.sortOrder !== undefined) patch.sort_order = parsed.data.sortOrder;
   if (parsed.data.isActive !== undefined) patch.is_active = parsed.data.isActive;
 
-  const { data: product, error } = await supabase
+  let { data: product, error } = await supabase
     .from("project_products")
     .update(patch)
     .eq("id", productId)
     .eq("project_id", projectId)
-    .select(
-      "id, project_id, business_id, name, description, price_label, image_url, whatsapp_order_message, sort_order, is_active, created_at, updated_at",
-    )
+    .select(PRODUCT_SELECT)
     .maybeSingle();
+
+  if (error && /duplicate|unique/i.test(error.message ?? "")) {
+    return NextResponse.json(
+      { error: "That UPC or SKU is already used on another product in this shop." },
+      { status: 409 },
+    );
+  }
+
+  if (error && /is_subscription|subscription_interval/i.test(error.message ?? "")) {
+    delete patch.is_subscription;
+    delete patch.subscription_interval;
+    const retry = await supabase
+      .from("project_products")
+      .update(patch)
+      .eq("id", productId)
+      .eq("project_id", projectId)
+      .select(PRODUCT_SELECT_CODES)
+      .maybeSingle();
+    product = retry.data
+      ? { ...retry.data, is_subscription: false, subscription_interval: null }
+      : null;
+    error = retry.error;
+  }
+
+  if (error && /track_stock|stock_qty/i.test(error.message ?? "")) {
+    delete patch.track_stock;
+    delete patch.stock_qty;
+    const retry = await supabase
+      .from("project_products")
+      .update(patch)
+      .eq("id", productId)
+      .eq("project_id", projectId)
+      .select(PRODUCT_SELECT_CODES)
+      .maybeSingle();
+    product = retry.data
+      ? {
+          ...retry.data,
+          track_stock: false,
+          stock_qty: null,
+          is_subscription: false,
+          subscription_interval: null,
+        }
+      : null;
+    error = retry.error;
+  }
+
+  if (error && /upc|sku/i.test(error.message ?? "")) {
+    delete patch.upc;
+    delete patch.sku;
+    const retry = await supabase
+      .from("project_products")
+      .update(patch)
+      .eq("id", productId)
+      .eq("project_id", projectId)
+      .select(PRODUCT_SELECT_MID)
+      .maybeSingle();
+    product = retry.data
+      ? {
+          ...retry.data,
+          upc: null,
+          sku: null,
+          track_stock: false,
+          stock_qty: null,
+          is_subscription: false,
+          subscription_interval: null,
+        }
+      : null;
+    error = retry.error;
+  }
+
+  if (error && /price_xof/i.test(error.message ?? "")) {
+    delete patch.price_xof;
+    delete patch.upc;
+    delete patch.sku;
+    const retry = await supabase
+      .from("project_products")
+      .update(patch)
+      .eq("id", productId)
+      .eq("project_id", projectId)
+      .select(PRODUCT_SELECT_LEGACY)
+      .maybeSingle();
+    product = retry.data
+      ? {
+          ...retry.data,
+          price_xof: null,
+          upc: null,
+          sku: null,
+          track_stock: false,
+          stock_qty: null,
+          is_subscription: false,
+          subscription_interval: null,
+        }
+      : null;
+    error = retry.error;
+  }
 
   if (error || !product) {
     return NextResponse.json({ error: "Could not update product." }, { status: 500 });

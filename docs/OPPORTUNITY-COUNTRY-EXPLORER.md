@@ -1,5 +1,9 @@
 # Opportunity OS — Slice 1: Country Explorer
 
+**Product:** **Opportunity OS** under Kebu (explore layer). Personalized intake/for-you is the same module’s matching layer — not a separate company. Not Website Builder.
+
+See `docs/OPPORTUNITY-OS-MASTER-SPEC.md` · `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md`.
+
 ## What shipped
 
 DB-backed country profiles (extends `country_profiles`) + separate `country_ai_analyses`.

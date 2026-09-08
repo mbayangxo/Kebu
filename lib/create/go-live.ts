@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ensureProjectPagesBeforePublish } from "@/lib/create/ensure-project-pages";
 import { buildSnapshotFromDb } from "@/lib/create/persist-site";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { liveSiteUrl } from "@/lib/create/site-urls";
@@ -19,6 +20,8 @@ export async function goLiveWebsiteProject(opts: {
 > {
   const { supabase, userId, projectId, subdomain, businessId } = opts;
   const normalized = subdomain.trim().toLowerCase();
+
+  await ensureProjectPagesBeforePublish(supabase, projectId);
 
   const snapshot = await buildSnapshotFromDb(supabase, projectId);
   if (!snapshot) {
@@ -71,7 +74,7 @@ export async function goLiveWebsiteProject(opts: {
     };
   }
 
-  await supabase
+  const { error: projectErr } = await supabase
     .from("projects")
     .update({
       status: "published",
@@ -80,6 +83,15 @@ export async function goLiveWebsiteProject(opts: {
       updated_at: publishedAt,
     })
     .eq("id", projectId);
+
+  if (projectErr) {
+    await supabase.from("deployments").update({ status: "failed" }).eq("id", deployment.id);
+    return {
+      ok: false,
+      error: "Published snapshot saved but project status failed. Retry publish.",
+      detail: projectErr.message,
+    };
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "";
   const liveUrl = liveSiteUrl(normalized) ?? (appUrl ? `${appUrl}${publicPath}` : publicPath);
@@ -98,7 +110,7 @@ export async function goLiveWebsiteProject(opts: {
     .limit(1)
     .maybeSingle();
 
-  await supabase.from("website_versions").insert({
+  const { error: versionErr } = await supabase.from("website_versions").insert({
     project_id: projectId,
     version_number: (lastVer?.version_number ?? 0) + 1,
     label: "Published",
@@ -106,13 +118,24 @@ export async function goLiveWebsiteProject(opts: {
     created_by: userId,
   });
 
+  if (versionErr) {
+    // Site is live; version history is best-effort.
+  }
+
   return { ok: true, publicPath, liveUrl, plannedKebuAfricaUrl };
 }
 
 /** True when project was seeded as owner May Lecor / K-Direction portfolio. */
 export function isOwnerPortfolioDescription(description: string | null | undefined): boolean {
   const d = description ?? "";
-  return d.includes("portfolio:maylecor") || d.includes("portfolio:kdirection");
+  return (
+    d.includes("portfolio:maylecor") ||
+    d.includes("portfolio:kdirection") ||
+    d.includes("portfolio:dklns") ||
+    d.includes("portfolio:ndaoan") ||
+    d.includes("portfolio:rect") ||
+    d.includes("portfolio:mayjorgood")
+  );
 }
 
 export async function projectIsOwnerPortfolio(

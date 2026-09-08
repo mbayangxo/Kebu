@@ -1,0 +1,38 @@
+---
+description: Product Architect Phase — decompose before code; no simplified prototypes
+alwaysApply: true
+---
+
+# Product Architect Phase
+
+Full spec: `docs/product/KEBU-PRODUCT-ARCHITECT-PHASE.md`
+
+## First instruction (before any code)
+
+**STOP. DO NOT WRITE APPLICATION CODE.**
+
+Reverse-engineer the product category into a **complete implementation blueprint**:
+
+IA · navigation · screens · journeys · features · interactions · components · data model · state · permissions · loading/empty/error/success · responsive · keyboard · backend · integrations · tests.
+
+**Do not simplify** into a prototype. **Do not substitute visual approximation for functionality.**
+
+Reference **dossiers** (`docs/reference/*/PRODUCT-BENCHMARK.md`) — **not** product names alone.
+
+## Product density
+
+Professional application density — **not** landing-page prototype (oversized cards, giant buttons, fake simplicity).
+
+## Maturity target (not clone)
+
+Shopify-**level** UX · Canva-**level** tooling · Spotify-**level** discovery — **our** identity, not Frankenstein copy.
+
+## After blueprint only
+
+**Vertical slices** end-to-end (Supabase) — never entire frontend then backend shell.
+
+**Design QA loop** — inspect running app; fix spacing/hierarchy/density until standard met. **If it looks AI-generated or MVP-ish, failed.**
+
+**Fewer complete features > many fake screens.** No MVP aesthetics unless explicitly requested.
+
+Broken dependency → **STOP and repair** (`kebu-master-engineering.mdc`).

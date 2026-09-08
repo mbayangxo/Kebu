@@ -10,6 +10,7 @@ type YandeAssistantProps = {
   onSubmit: () => void;
   onCancel?: () => void;
   busy?: boolean;
+  submitLabel?: string;
   /** Collapsed trigger only (editor toolbar) */
   collapsed?: boolean;
   onExpand?: () => void;
@@ -22,6 +23,7 @@ export function YandeAssistant({
   onSubmit,
   onCancel,
   busy = false,
+  submitLabel,
   collapsed = false,
   onExpand,
 }: YandeAssistantProps) {
@@ -66,8 +68,8 @@ export function YandeAssistant({
             </p>
             <p className="text-sm leading-relaxed mt-1" style={{ color: BUILDER.muted }}>
               {variant === "create"
-                ? "Describe your business in your own words — Yande builds the first draft of your site structure."
-                : "Tell Yande what to change. Your draft updates on the server; visitors still see the last published version until you publish again."}
+                ? "Describe what you’re building — Yande designs the whole storefront as editable Kebu pages. Then keep instructing until it feels right."
+                : "Yande is the designer. Say what to change — less Shopify-looking, add wholesale, different mobile — and the structured site updates. Publish when live should change."}
             </p>
           </div>
         </div>
@@ -100,8 +102,8 @@ export function YandeAssistant({
           }}
           placeholder={
             variant === "create"
-              ? "Example: I sell handmade bags in Dakar. I want a clean shop look, orange accents, and WhatsApp to order."
-              : "Example: Make the homepage feel more premium and add a section for customer reviews."
+              ? "Example: Create a Senegalese fashion store. Luxury African fashion magazine. Sand, deep green and gold. Founder story under the hero. Large editorial product cards."
+              : "Example: Make it less Shopify-looking. Add a wholesale section. Make mobile completely different from desktop."
           }
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -118,7 +120,10 @@ export function YandeAssistant({
             className="rounded-full px-6 py-2.5 text-sm font-bold disabled:opacity-40 transition-all hover:brightness-105"
             style={{ background: BUILDER.gradient, color: "#fff" }}
           >
-            {busy ? "Yande is building…" : variant === "create" ? "Generate my site" : "Apply changes"}
+            {busy
+              ? "Yande is building…"
+              : submitLabel ??
+                (variant === "create" ? "Generate my site" : "Apply changes")}
           </button>
           {onCancel ? (
             <button

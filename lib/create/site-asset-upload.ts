@@ -29,8 +29,8 @@ export const SITE_ASSET_SPECS = {
   },
   section: {
     label: "Image",
-    hint: "JPG or transparent PNG cutout — keep under 5 MB for fast loading on mobile.",
-    accept: "image/png,image/jpeg,image/webp",
+    hint: "JPG or transparent PNG cutout — keep under 5 MB. iPhone: use JPEG (not HEIC).",
+    accept: "image/png,image/jpeg,image/jpg,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif",
     maxBytes: 5_000_000,
     storageKind: "image" as const,
   },
@@ -59,6 +59,8 @@ const MIME_BY_EXT: Record<string, string> = {
   webp: "image/webp",
   gif: "image/gif",
   ico: "image/x-icon",
+  heic: "image/heic",
+  heif: "image/heif",
   mp3: "audio/mpeg",
   m4a: "audio/mp4",
   wav: "audio/wav",
@@ -69,10 +71,28 @@ const MIME_BY_EXT: Record<string, string> = {
   mov: "video/quicktime",
 };
 
+/** Normalize browser quirks (image/jpg, empty, octet-stream) for Supabase bucket rules. */
+export function normalizeMimeType(mime: string): string {
+  const m = mime.toLowerCase().trim();
+  if (m === "image/jpg" || m === "image/pjpeg") return "image/jpeg";
+  if (m === "image/x-png") return "image/png";
+  return m;
+}
+
 export function guessContentType(file: File): string {
-  if (file.type) return file.type;
+  const raw = (file.type || "").toLowerCase().trim();
+  if (raw && raw !== "application/octet-stream") {
+    return normalizeMimeType(raw);
+  }
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   return MIME_BY_EXT[ext] ?? "application/octet-stream";
+}
+
+export function isHeicLike(file: File): boolean {
+  const t = guessContentType(file);
+  if (t === "image/heic" || t === "image/heif") return true;
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return ext === "heic" || ext === "heif";
 }
 
 export function isHostedMediaUrl(src: string): boolean {

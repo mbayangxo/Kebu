@@ -17,20 +17,20 @@ export const WORKSPACE_OPTIONS: {
     id: "kebu",
     title: "Explore",
     subtitle: "Discover Africa, learn, personalize — no business required.",
-    bullets: ["Opportunity OS", "Your dashboard", "Personalize & Afrique ID"],
+    bullets: ["Opportunity OS", "Your dashboard", "Personalize & African ID"],
     homeHref: "/dashboard",
   },
   {
     id: "business",
-    title: "Business",
-    subtitle: "Build, sell, and grow a real business.",
-    bullets: ["Builder — websites & stores", "Create — apps & graphics", "Kebu ID & Alkebulan B2B"],
+    title: "My KEBU",
+    subtitle: "Your space — sites, shop, aesthetics, studio.",
+    bullets: ["My Space dashboard", "My Sites + Aesthetic store", "Kebu Shop · Studio · Alkebulan separate"],
     homeHref: "/business",
   },
   {
     id: "studio",
-    title: "Studio",
-    subtitle: "Design posters, flyers, and social graphics for your brand.",
+    title: "Kebu Studio",
+    subtitle: "Design posters, flyers, video, and social graphics.",
     bullets: ["Create designs", "Linked to your business", "Export for WhatsApp & social"],
     homeHref: "/studio",
   },
@@ -48,10 +48,12 @@ export function isKebuWorkspace(value: string | null | undefined): value is Kebu
 export function inferWorkspaceFromPath(pathname: string): KebuWorkspace | null {
   if (
     pathname.startsWith("/create") ||
+    pathname.startsWith("/my-sites") ||
     pathname.startsWith("/business") ||
     pathname.startsWith("/b2b") ||
     pathname.startsWith("/ka-score") ||
-    pathname.startsWith("/sites/")
+    pathname.startsWith("/sites/") ||
+    pathname.startsWith("/shop")
   ) {
     return "business";
   }

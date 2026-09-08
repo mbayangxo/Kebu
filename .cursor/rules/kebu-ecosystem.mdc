@@ -27,6 +27,16 @@ Every major experience answers one or more of: What opportunity exists? What can
 
 Every screen must clarify the **next action**. No dashboards that only display data.
 
+## Global platform, African intelligence
+
+**Build for everyone. Empower Africans with more.** Full spec: `docs/product/KEBU-GLOBAL-ACCESS-PHILOSOPHY.md`.
+
+Kebu is **globally accessible technology infrastructure** — African-built, **not** an “Africans-only internet.” Search, Mail, Builder, Cloud, Domains, Analytics, Business, Reach = **anyone** (when live).
+
+**Opportunity OS protected intelligence** = **entitlement-gated** for verified Africans (`african_opportunity_access` or equivalent). Verify **once**; check server-side — not per page, not browser flags. Public may **discover** Opportunity OS exists. **Kebu Search stays open globally.**
+
+Personal eligibility ≠ **Kebu ID**. See `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md`.
+
 ## Phase One only (current product)
 
 **Phase One** = Africa’s AI Business Builder and Opportunity Operating System. This is the only ecosystem product under full implementation.
@@ -41,11 +51,15 @@ Do **not** expand Phase One into unrelated productivity or infrastructure system
 
 Intelligent assistant tied to the user’s businesses, projects, websites, stores, products, orders, analytics, opportunities, goals, research, learning — with **RBAC and business boundaries**. Never a general chatbot only. Never access another user’s private business data.
 
-## Opportunity OS & news
+## Opportunity OS + Kebu Opportunity OS
 
-Opportunity OS: discover what to build; trust labels mandatory (Verified / public-source / Estimated / AI-generated / Requires validation). “Build This Opportunity” → connected business journey.
+**Opportunity OS** = standalone explore product (`docs/OPPORTUNITY-OS-MASTER-SPEC.md`, `opportunity-os-master.mdc`). **Kebu Opportunity OS** = for-you in Kebu (`docs/KEBU-OPPORTUNITY-OS.md`, `kebu-opportunity-os.mdc`). Do **not** merge into Website Builder.
+
+Trust labels mandatory (Verified / Estimated / AI-generated / Requires validation). “Build This” → Kebu drafts only — never auto-publish. Framing: **verify the economics**.
 
 Business news (working names only — do not finalize): Kebu Pulse / Today / Business / Opportunities / Brief. Youth-oriented; every story → implications + opportunity to research/build. No unsupported claims. **Do not build unless assigned.**
+
+Umbrella: `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md`.
 
 ## Kebu Score (= KA Score)
 
@@ -56,12 +70,23 @@ Business score on a Kebu ID. Explainable: helping/hurting factors, missing data,
 | Product | Role | Phase One rule |
 |--------|------|----------------|
 | **Kebu Cloud** | Broader app deploy/hosting (not Phase One site hosting) | Do not build |
-| **Kebu Studio** | Design / brand / packaging canvas | Basic branding OK; no Canva-style editor |
-| **Kebu Learn** | Project-based education | Guidance OK; no full LMS |
+| **Kebu Studio** | Design / brand / packaging canvas → Builder/Shop | Basic branding OK; no Canva-style editor |
+| **Kebu Search** | **Foundational** real engine: crawl → index → rank; AI on top with citations | **NOT STARTED** — `docs/product/KEBU-SEARCH.md`; never chat-as-search |
+| **Kebu Maps** | Practical nav first → African road/farm/needs layers | Do not build until assigned; see `docs/KEBU-MAPS-AND-INFRASTRUCTURE.md` |
+| **Kebu Mail** | Personal + business **real email** (provider abstraction v1) | Do not build until assigned — `docs/product/KEBU-MAIL.md` |
+| **Kebu Network** | Professional discovery (not Instagram) | Do not build social feed |
+| **Kebu Jobs** | Jobs tied to Kebu profile | Do not build until assigned |
+| **Kebu Learn** | **No watching** — learn by building | Guidance in product OK; no LMS / lectures — `docs/product/KEBU-NO-WATCHING.md` |
 | **Kebu Docs** | Docs/sheets/slides suite | Downloadable reports OK; no office suite |
 | **Kebu Labs** | Research arm feeding Opportunity OS | Architecture for sources OK; no institution CMS |
 | **Kebu Ventures** | Incubation / investment (legally separate) | Score may flag readiness; never auto-fund |
 | **Talent / work network** | Cofounders, hire, teams | Optimize for work done; no social feed |
+
+**No watching:** learn by building real projects — not lecture courses or LMS theater. Spec: `docs/product/KEBU-NO-WATCHING.md` · rule: `kebu-no-watching.mdc`.
+
+**Account model:** one Kebu Account → Personal Kebu (person) + Business Kebu workspaces (Kebu ID). Monetize business infrastructure; personal entry should stay free / nearly free.
+
+**No watching:** education means shipping real projects inside Kebu — not passive video courses.
 
 Shared later: account, profile, business memberships, Kebu ID, permissions, billing, notifications, AI infra, design system, audit, security — **separate product domains**, not one giant table/nav.
 
@@ -79,7 +104,7 @@ Mobile & connectivity: compressed assets · progressive load · efficient APIs �
 
 When implementing Phase One:
 
-- Do not build Cloud / Studio / Docs / Learn / Ventures / Labs / talent network merely because they appear here.
+- Do not build Cloud / Studio / Docs / Learn / Search engine / Ventures / Labs / talent network merely because they appear here.
 - No unfinished pages, placeholder dashboards, empty nav, “Coming Soon”, fake integrations, empty unused tables, or buttons that lead nowhere unless explicitly requested.
 - Do not let future products distract from the **assigned vertical slice**.
 

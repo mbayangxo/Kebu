@@ -1,0 +1,24 @@
+---
+description: CI gate chain — nothing built until npm run ci passes; deployment stops on failure
+alwaysApply: true
+---
+
+# CI gate chain
+
+Full spec: `docs/CI_PIPELINE.md`
+
+**Nothing is “built”** until UI, business logic, database, auth, permissions, error states, and backend are **connected and tested end-to-end**.
+
+Before claiming a slice complete:
+
+```bash
+npm run ci
+```
+
+Gate order: **TypeScript → Lint → Unit → Integration → DB → RLS → E2E → Build**
+
+**Any failure → fix root cause.** Do not skip gates, suppress TS errors, or delete failing tests.
+
+**Deployment stops** if CI fails — see `docs/DEPLOYMENT.md`.
+
+Add tests in the correct tier: `*.test.ts` · `*.integration.test.ts` · `*.db.test.ts` · `*.rls.test.ts` · `*.spec.ts`

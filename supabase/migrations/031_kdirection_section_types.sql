@@ -8,8 +8,8 @@ alter table public.project_sections
   check (
     section_type in (
       'navigation', 'hero', 'text', 'image', 'gallery', 'video', 'audio', 'map', 'events',
-      'features', 'testimonials', 'faq', 'products', 'contact', 'newsletter', 'whatsapp',
-      'heading', 'paragraph', 'button', 'free-text', 'footer',
+      'features', 'testimonials', 'faq', 'products', 'contact', 'newsletter', 'email-popup',
+      'whatsapp', 'heading', 'paragraph', 'button', 'free-text', 'footer',
       'maylecor-home', 'maylecor-music', 'legally-blonde-hero',
       'kdirection-home', 'kdirection-page'
     )

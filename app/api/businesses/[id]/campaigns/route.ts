@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { createDesignCanvasSchema } from "@/lib/create/create-designs";
+import { assertBusinessManager } from "@/lib/business/assert-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ const campaignSchema = z.object({
   bodyText: z.string().trim().max(20000).optional(),
   fromName: z.string().trim().max(120).optional(),
   createDesignId: z.string().uuid().optional().nullable(),
+  /** Optional shop discount to mention + link on the campaign row. */
+  discountCodeId: z.string().uuid().optional().nullable(),
 });
 
 function designBlockFromCanvas(canvas: z.infer<typeof createDesignCanvasSchema>): string {
@@ -28,21 +31,6 @@ function designBlockFromCanvas(canvas: z.infer<typeof createDesignCanvasSchema>)
   </div>`;
 }
 
-async function assertManager(
-  supabase: import("@supabase/supabase-js").SupabaseClient,
-  businessId: string,
-  userId: string,
-) {
-  const { data } = await supabase
-    .from("business_members")
-    .select("role")
-    .eq("business_id", businessId)
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .maybeSingle();
-  return Boolean(data && ["founder", "administrator", "store_manager"].includes(data.role));
-}
-
 /** List email campaigns for a business. */
 export async function GET(_req: Request, { params }: Params) {
   const { id: businessId } = await params;
@@ -50,7 +38,7 @@ export async function GET(_req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
 
-  if (!(await assertManager(supabase, businessId, user.id))) {
+  if (!(await assertBusinessManager(supabase, businessId, user.id))) {
     return NextResponse.json({ error: "Not allowed." }, { status: 403 });
   }
 
@@ -78,7 +66,7 @@ export async function POST(req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
 
-  if (!(await assertManager(supabase, businessId, user.id))) {
+  if (!(await assertBusinessManager(supabase, businessId, user.id))) {
     return NextResponse.json({ error: "Not allowed." }, { status: 403 });
   }
 
@@ -95,7 +83,9 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   let bodyHtml = parsed.data.bodyHtml;
+  let bodyText = parsed.data.bodyText ?? "";
   let createDesignId = parsed.data.createDesignId ?? null;
+  let discountCodeId = parsed.data.discountCodeId ?? null;
 
   if (createDesignId) {
     const { data: design } = await supabase
@@ -116,6 +106,20 @@ export async function POST(req: Request, { params }: Params) {
     bodyHtml = `${designBlockFromCanvas(canvas)}${bodyHtml}`;
   }
 
+  if (discountCodeId) {
+    const { data: disc } = await supabase
+      .from("shop_discount_codes")
+      .select("id, code, percent_off, business_id, project_id")
+      .eq("id", discountCodeId)
+      .maybeSingle();
+    if (!disc || (disc.business_id && disc.business_id !== businessId)) {
+      return NextResponse.json({ error: "Discount code not found for this business." }, { status: 404 });
+    }
+    const line = `Use code ${disc.code} for ${disc.percent_off}% off on your next order.`;
+    bodyHtml = `${bodyHtml}<p style="margin:20px 0;font-weight:700">${line}</p>`;
+    bodyText = `${bodyText}\n\n${line}`.trim();
+  }
+
   const { data: business } = await supabase
     .from("businesses")
     .select("trading_name, legal_name")
@@ -128,26 +132,47 @@ export async function POST(req: Request, { params }: Params) {
     business?.legal_name ||
     "Your business";
 
-  const { data, error } = await supabase
+  const insertRow: Record<string, unknown> = {
+    business_id: businessId,
+    create_design_id: createDesignId,
+    subject: parsed.data.subject,
+    body_html: bodyHtml,
+    body_text: bodyText,
+    from_name: fromName,
+    status: "draft",
+    created_by: user.id,
+  };
+  if (discountCodeId) insertRow.discount_code_id = discountCodeId;
+
+  let { data, error } = await supabase
     .from("business_email_campaigns")
-    .insert({
-      business_id: businessId,
-      create_design_id: createDesignId,
-      subject: parsed.data.subject,
-      body_html: bodyHtml,
-      body_text: parsed.data.bodyText ?? "",
-      from_name: fromName,
-      status: "draft",
-      created_by: user.id,
-    })
+    .insert(insertRow)
     .select("id, subject, status, create_design_id, created_at")
     .single();
 
-  if (error) {
+  if (error && /discount_code_id/i.test(error.message ?? "")) {
+    delete insertRow.discount_code_id;
+    const retry = await supabase
+      .from("business_email_campaigns")
+      .insert(insertRow)
+      .select("id, subject, status, create_design_id, created_at")
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
+
+  if (error || !data) {
     return NextResponse.json(
-      { error: error.message.includes("does not exist") ? "Apply migration 025." : "Could not create campaign." },
+      { error: error?.message?.includes("does not exist") ? "Apply migration 025." : "Could not create campaign." },
       { status: 500 },
     );
+  }
+
+  if (discountCodeId && data.id) {
+    await supabase
+      .from("shop_discount_codes")
+      .update({ campaign_id: data.id, updated_at: new Date().toISOString() })
+      .eq("id", discountCodeId);
   }
 
   return NextResponse.json({ campaign: data });

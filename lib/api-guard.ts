@@ -62,6 +62,13 @@ export function publicSiteRateLimit(req: Request | NextRequest): Response | null
   return rateLimit(req as NextRequest, PUBLIC_LIMIT, "public");
 }
 
+const SHOP_ORDER_LIMIT = 20;
+
+/** Customer order posts from live sites. */
+export function shopOrderRateLimit(req: Request | NextRequest): Response | null {
+  return rateLimit(req as NextRequest, SHOP_ORDER_LIMIT, "shop-order");
+}
+
 /** Login / admin login — stops password guessing from one IP. */
 export function authRateLimit(req: Request | NextRequest): Response | null {
   return rateLimit(req as NextRequest, AUTH_LIMIT, "auth");

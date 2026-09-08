@@ -1,6 +1,12 @@
 import type { WebsiteDefinition } from "./website-schema";
 import type { SiteSeo } from "./site-seo";
 import { mergeSiteSeo } from "./site-seo";
+import {
+  applySiteChromeToDefinition,
+  projectUsesEmbeddedNav,
+  stripChromeSections,
+  type SiteChrome,
+} from "./site-chrome";
 
 type ApiPage = { id: string; slug: string; title: string; sort_order: number };
 type ApiSection = {
@@ -28,6 +34,9 @@ export function buildDefinitionFromProjectParts(
       fontDisplay: "Fraunces",
       fontBody: "system-ui",
       spacing: "comfortable",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
     },
     seo: mergeSiteSeo(project.seo, project.title),
     pages: sortedPages.length
@@ -51,4 +60,21 @@ export function buildDefinitionFromProjectParts(
           },
         ],
   };
+}
+
+/** Editor/publish preview — inject universal header/footer when enabled. */
+export function buildEditorPreviewDefinition(
+  project: { title: string; theme?: WebsiteDefinition["theme"]; seo?: SiteSeo | Record<string, unknown> | null },
+  pages: ApiPage[],
+  sections: ApiSection[],
+  chrome: SiteChrome | null | undefined,
+): WebsiteDefinition {
+  const sectionTypes = sections.map((s) => s.section_type);
+  const useChrome = Boolean(chrome?.enabled && !projectUsesEmbeddedNav(sectionTypes));
+  const bodySections = useChrome ? stripChromeSections(sections) : sections;
+  const base = buildDefinitionFromProjectParts(project, pages, bodySections);
+  if (useChrome && chrome) {
+    return applySiteChromeToDefinition(base, chrome);
+  }
+  return base;
 }

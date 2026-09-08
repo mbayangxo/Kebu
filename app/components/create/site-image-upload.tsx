@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { SITE_ASSET_SPECS, type SiteAssetKind } from "@/lib/create/site-asset-upload";
+import { resolveClientDataMode } from "@/lib/create/data-mode";
+import { formatKb, maxUploadBytesForMode } from "@/lib/create/kb-budget";
 
 export function SiteImageUpload({
   projectId,
@@ -20,10 +22,21 @@ export function SiteImageUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [kbNote, setKbNote] = useState<string | null>(null);
 
   async function onFile(file: File) {
     setBusy(true);
     setError(null);
+    setKbNote(null);
+    const mode = resolveClientDataMode();
+    const maxBytes = maxUploadBytesForMode(kind, mode);
+    if (file.size > maxBytes) {
+      setError(
+        `Data mode ${mode}: max ${formatKb(maxBytes / 1024)}. Compress the photo or switch to Normal.`,
+      );
+      setBusy(false);
+      return;
+    }
     try {
       const form = new FormData();
       form.append("file", file);
@@ -31,14 +44,21 @@ export function SiteImageUpload({
       const res = await fetch(`/api/projects/${projectId}/assets/upload`, {
         method: "POST",
         credentials: "include",
+        headers: { "X-Kebu-Data-Mode": mode },
         body: form,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Upload failed.");
+        const msg = [data.error, data.detail].filter(Boolean).join(" — ");
+        setError(msg || "Upload failed.");
         return;
       }
       onChange(data.url as string);
+      if (data.transferKb) {
+        setKbNote(
+          `Upload used ${data.transferKb} KB (budget ${data.budgetKb ?? "—"} KB)${data.withinBudget === false ? " — over budget" : ""}.`,
+        );
+      }
     } catch {
       setError("Network error during upload.");
     } finally {
@@ -100,6 +120,7 @@ export function SiteImageUpload({
         ) : null}
       </div>
       {error ? <p className="text-[10px] text-red-600">{error}</p> : null}
+      {kbNote ? <p className="text-[10px]" style={{ color: "#166534" }}>{kbNote}</p> : null}
     </div>
   );
 }

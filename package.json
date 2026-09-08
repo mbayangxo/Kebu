@@ -10,6 +10,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:unit": "vitest run 'tests/**/*.test.ts'",
+    "test:integration": "vitest run 'tests/**/*.integration.test.ts'",
+    "test:db": "vitest run 'tests/**/*.db.test.ts'",
+    "test:rls": "vitest run 'tests/**/*.rls.test.ts'",
+    "test:e2e": "playwright test",
+    "ci": "npm run typecheck && npm run lint && npm test && npm run build",
     "db:apply:business": "node scripts/apply-business-migrations.mjs"
   },
   "dependencies": {
@@ -21,8 +27,10 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "critters": "^0.0.23",
+    "jszip": "^3.10.1",
     "motion": "^12.40.0",
     "next": "16.2.4",
+    "pdf-lib": "^1.17.1",
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",

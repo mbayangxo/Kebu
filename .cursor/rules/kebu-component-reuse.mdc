@@ -1,0 +1,16 @@
+---
+description: Reuse shared components — do not duplicate primitives per screen
+alwaysApply: true
+---
+
+# Component reuse
+
+Full spec: `docs/product/DESIGN_SYSTEM.md`
+
+**Before creating a new component**, search the repository for existing behavior. **Reuse or extend** — do not create visually similar duplicates.
+
+Build shared primitives once: Button · Input · Select · Modal · Card · EmptyState · etc.
+
+Per-screen one-off buttons/cards → inconsistent “AI app” feel.
+
+When adding a primitive, place it in the **shared** location and consume from all screens.

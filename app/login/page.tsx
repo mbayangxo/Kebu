@@ -116,6 +116,15 @@ function LoginForm() {
           </div>
         )}
 
+        {searchParams.get("reset") === "1" && (
+          <div
+            className="rounded-xl px-4 py-3 text-sm mb-6"
+            style={{ background: "rgba(0,200,81,0.12)", color: KEBU.black }}
+          >
+            Password updated. Sign in with your new password.
+          </div>
+        )}
+
         {callbackError === "confirm_failed" && (
           <div className="rounded-xl px-4 py-3 text-sm mb-6" style={{ background: KEBU.errorBg, color: KEBU.errorText }}>
             That confirmation link expired or was already used. Resend a new link below.
@@ -169,9 +178,18 @@ function LoginForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: KEBU.black }}>
-              Password
-            </label>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <label className="block text-sm font-semibold" style={{ color: KEBU.black }}>
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-semibold"
+                style={{ color: KEBU.orange }}
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}

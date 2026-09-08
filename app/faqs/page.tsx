@@ -9,8 +9,8 @@ const FAQS = [
     a: "Building and editing sites is free. You pay hosting when you publish a live site — see Pricing for current rates.",
   },
   {
-    q: "What is the difference between Afrique ID and Kebu ID?",
-    a: "Afrique ID is your personal account identity. Kebu ID is your business identity — site, store, and readiness score attach to the business, not you as a person.",
+    q: "What is the difference between African ID (AID) and Kebu ID?",
+    a: "African ID (AID) is your personal account identity — Indigenous African or Visitor. Kebu ID is your business identity — site, store, and readiness score attach to the business, not you as a person.",
   },
   {
     q: "Can I use my own domain?",

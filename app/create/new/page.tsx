@@ -11,6 +11,8 @@ import {
   BuilderSurface,
   builderInputClass,
   builderInputStyle,
+  isBuilderCreateModeImplemented,
+  type BuilderCreateMode,
 } from "@/app/components/create/builder-mode-picker";
 import { TemplatePickerGrid } from "@/app/components/create/template-picker-grid";
 import { YandeAssistant } from "@/app/components/create/yande-assistant";
@@ -51,8 +53,21 @@ function CreateWebsiteWizardInner() {
   const businessIdParam = search.get("businessId") ?? "";
   const templateParam = search.get("template") ?? "";
   const categoryParam = search.get("category") ?? "";
+  const modeParam = search.get("mode");
 
-  const [mode, setMode] = useState<"ai" | "template" | "blank">("template");
+  const initialMode: BuilderCreateMode =
+    modeParam === "ai" ||
+    modeParam === "photos" ||
+    modeParam === "blank" ||
+    modeParam === "template" ||
+    modeParam === "import" ||
+    modeParam === "code"
+      ? modeParam
+      : templateParam
+        ? "template"
+        : "ai";
+
+  const [mode, setMode] = useState<BuilderCreateMode>(initialMode);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [businessId, setBusinessId] = useState(businessIdParam);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -65,6 +80,8 @@ function CreateWebsiteWizardInner() {
   const [locale, setLocale] = useState("en");
   const [subdomain, setSubdomain] = useState("");
   const [subdomainTouched, setSubdomainTouched] = useState(false);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
@@ -140,12 +157,24 @@ function CreateWebsiteWizardInner() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submittingRef.current) return;
+    if (!isBuilderCreateModeImplemented(mode)) {
+      setError("This creation mode is not implemented yet. Use AI, template, or blank.");
+      return;
+    }
     if (mode === "template" && !templateSlug) {
       setError("Pick a template from the gallery above.");
       return;
     }
     if (mode === "ai" && description.trim().length < 20) {
       setError("Tell Yande a bit more about your business (at least 20 characters).");
+      return;
+    }
+    if (mode === "photos" && photoUrls.length < 1) {
+      setError("Upload at least one photo of your products, place, or work.");
+      return;
+    }
+    if (mode === "photos" && description.trim().length < 10) {
+      setError("Add a short line about what these photos show (at least 10 characters).");
       return;
     }
     if (!subdomain.trim() || subdomain.trim().length < 3) {
@@ -163,8 +192,16 @@ function CreateWebsiteWizardInner() {
         description,
         countryCode,
         locale,
-        desiredPages: ["home"],
+        desiredPages:
+          mode === "ai" || mode === "photos"
+            ? category === "fashion" || category === "beauty" || category === "store"
+              ? ["home", "shop", "about", "contact"]
+              : category === "restaurant"
+                ? ["home", "menu", "about", "contact"]
+                : ["home", "about", "contact"]
+            : ["home"],
         templateSlug: mode === "template" ? templateSlug : undefined,
+        photoUrls: mode === "photos" ? photoUrls : undefined,
         subdomain: subdomain.trim().toLowerCase(),
       };
       if (businessId) payload.businessId = businessId;
@@ -184,7 +221,10 @@ function CreateWebsiteWizardInner() {
         setError(typeof data.error === "string" ? data.error : "Could not create website.");
         return;
       }
-      router.replace(`/create/${data.project.id}`);
+      const usedAi = data.usedAi === true;
+      router.replace(
+        `/create/${data.project.id}?created=1&usedAi=${usedAi ? "1" : "0"}`,
+      );
     } catch {
       setError("Network error. Retry.");
     } finally {
@@ -204,16 +244,34 @@ function CreateWebsiteWizardInner() {
           New site
         </p>
         <h1 className="text-3xl sm:text-5xl font-bold mb-3 max-w-2xl" style={{ fontFamily: "var(--font-fraunces)" }}>
-          {mode === "ai" ? "Describe it. Yande builds it." : mode === "blank" ? "Start from nothing" : "Pick a design you love"}
+          {mode === "ai"
+            ? "Describe it. Yande builds it."
+            : mode === "photos"
+              ? "Your photos. Your site."
+            : mode === "blank"
+              ? "Start from nothing"
+              : mode === "import"
+                ? "Import your existing site"
+                : mode === "code"
+                  ? "Build with code"
+                  : "Pick a design you love"}
         </h1>
         <p className="text-base mb-8 leading-relaxed max-w-xl" style={{ color: BUILDER.muted }}>
           {mode === "ai"
-            ? "No templates to browse — tell Yande what you sell and who it’s for. You’ll edit everything before you go live."
-            : "Live previews, real sites. Customize photos and copy, then publish at "}
-          {mode !== "ai" ? (
+            ? "Tell Yande what you want — luxury fashion, restaurant, artist, agency. You get an editable draft, not a locked HTML page."
+            : mode === "photos"
+              ? "Upload real photos from your phone (under 2 MB each). Kebu builds pages around them — edit and publish when ready."
+            : mode === "import"
+              ? "Kebu will analyze an existing URL and reconstruct it as editable Kebu structured data — when this slice ships."
+              : mode === "code"
+                ? "Advanced users will be able to extend sites with real code alongside the Kebu schema — when assigned."
+                : mode === "blank"
+                  ? "Empty site — add every section yourself. Full creative freedom."
+                  : "Live previews, real sites. Customize photos and copy, then publish at "}
+          {mode === "template" || mode === "blank" ? (
             <strong>/sites/{subdomain || "your-name"}</strong>
           ) : null}
-          {mode === "ai" ? (
+          {mode === "ai" || mode === "photos" ? (
             <>
               {" "}
               Live at <strong>/sites/{subdomain || "your-name"}</strong> when you publish.
@@ -225,21 +283,142 @@ function CreateWebsiteWizardInner() {
 
         <form ref={formRef} onSubmit={onSubmit} className="space-y-8" id="create-site-form">
           <BuilderSurface>
-            <BuilderFieldLabel hint="Templates, Yande, or blank — switch anytime before you create.">
+            <BuilderFieldLabel hint="Primary path: describe your business. Yande designs the site. Aesthetics are optional inspiration.">
               How do you want to start?
             </BuilderFieldLabel>
             <BuilderModePicker value={mode} onChange={setMode} />
           </BuilderSurface>
 
-          {mode === "ai" && (
-            <YandeAssistant
-              variant="create"
-              value={description}
-              onChange={setDescription}
-              onSubmit={() => formRef.current?.requestSubmit()}
-              busy={submitting}
-            />
+          {(mode === "import" || mode === "code") && (
+            <BuilderSurface>
+              <p className="text-sm font-bold" style={{ color: BUILDER.ink }}>
+                {mode === "import" ? "Import website" : "Build with code"} — not implemented yet
+              </p>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: BUILDER.muted }}>
+                {mode === "import"
+                  ? "You will paste a URL; Kebu retrieves public structure and rebuilds it as editable website-v1 schema — never a frozen HTML import."
+                  : "Developers will extend Kebu projects with code hooks alongside the structured renderer — for when you need more than the visual editor."}
+              </p>
+              <p className="mt-3 text-xs" style={{ color: BUILDER.faint }}>
+                Use AI, template, or blank to create a site today.
+              </p>
+            </BuilderSurface>
           )}
+
+          {mode === "ai" && (
+            <>
+              <YandeAssistant
+                variant="create"
+                value={description}
+                onChange={setDescription}
+                onSubmit={() => formRef.current?.requestSubmit()}
+                busy={submitting}
+              />
+              <BuilderSurface className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                  Try a brief like this
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Create a Senegalese fashion store. Luxury African fashion magazine feel. Sand, deep green and gold. Founder story right under the hero. Large editorial product cards.",
+                    "Make it feel less like Shopify and more like a high-end fashion website — bold type, big photos, fewer small cards.",
+                    "Beauty brand for Dakar — soft pink and black, gloss products, Klarna-style pay later note, WhatsApp order CTA.",
+                  ].map((example) => (
+                    <button
+                      key={example.slice(0, 40)}
+                      type="button"
+                      onClick={() => setDescription(example)}
+                      className="max-w-full rounded-full px-3 py-1.5 text-left text-[11px] font-medium leading-snug transition hover:opacity-90"
+                      style={{
+                        background: BUILDER.surfaceMuted,
+                        border: `1px solid ${BUILDER.border}`,
+                        color: BUILDER.ink,
+                      }}
+                    >
+                      {example.length > 110 ? `${example.slice(0, 110)}…` : example}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                  After the site is created, keep talking to Yande in the editor (“Add a wholesale section”, “Make
+                  mobile completely different”) — Yande redesigns the structured site, not a locked theme.
+                </p>
+              </BuilderSurface>
+            </>
+          )}
+
+          {mode === "photos" ? (
+            <BuilderSurface className="space-y-3">
+              <BuilderFieldLabel hint="JPG / PNG / WebP · max 2 MB each · up to 8 photos (Data Saver friendly).">
+                Your photos
+              </BuilderFieldLabel>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                disabled={uploadingPhotos || photoUrls.length >= 8}
+                onChange={(e) => {
+                  const list = e.target.files;
+                  if (!list?.length) return;
+                  void (async () => {
+                    setUploadingPhotos(true);
+                    setError(null);
+                    try {
+                      const form = new FormData();
+                      const remaining = 8 - photoUrls.length;
+                      Array.from(list)
+                        .slice(0, remaining)
+                        .forEach((f) => form.append("files", f));
+                      const res = await fetch("/api/create/draft-photos", {
+                        method: "POST",
+                        credentials: "include",
+                        body: form,
+                      });
+                      const data = await res.json().catch(() => ({}));
+                      if (!res.ok) {
+                        setError(typeof data.error === "string" ? data.error : "Photo upload failed.");
+                        return;
+                      }
+                      const urls = Array.isArray(data.photoUrls) ? (data.photoUrls as string[]) : [];
+                      setPhotoUrls((prev) => [...prev, ...urls].slice(0, 8));
+                    } catch {
+                      setError("Network error uploading photos.");
+                    } finally {
+                      setUploadingPhotos(false);
+                      e.target.value = "";
+                    }
+                  })();
+                }}
+                className="block w-full text-xs"
+              />
+              {uploadingPhotos ? (
+                <p className="text-xs" style={{ color: BUILDER.muted }}>
+                  Uploading…
+                </p>
+              ) : null}
+              {photoUrls.length > 0 ? (
+                <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {photoUrls.map((url) => (
+                    <li key={url} className="relative aspect-square overflow-hidden rounded-lg border">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        className="absolute right-1 top-1 rounded bg-black/70 px-1.5 text-[10px] font-bold text-white"
+                        onClick={() => setPhotoUrls((prev) => prev.filter((u) => u !== url))}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs" style={{ color: BUILDER.muted }}>
+                  No photos yet — add product shots, your shop front, or your work.
+                </p>
+              )}
+            </BuilderSurface>
+          ) : null}
 
           {mode === "template" && (
             <BuilderSurface className="space-y-4">
@@ -254,8 +433,8 @@ function CreateWebsiteWizardInner() {
                 <Link
                   href={
                     businessId
-                      ? `/create/templates?businessId=${encodeURIComponent(businessId)}`
-                      : "/create/templates"
+                      ? `/create/aesthetics?businessId=${encodeURIComponent(businessId)}`
+                      : "/create/aesthetics"
                   }
                   className="text-[10px] font-black uppercase tracking-wider underline shrink-0"
                   style={{ color: "#FF5500" }}
@@ -280,6 +459,7 @@ function CreateWebsiteWizardInner() {
             </BuilderSurface>
           )}
 
+          {isBuilderCreateModeImplemented(mode) ? (
           <BuilderSurface className="space-y-5">
             <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
               Site details
@@ -412,9 +592,12 @@ function CreateWebsiteWizardInner() {
               ? "Creating…"
               : mode === "ai"
                 ? "Create with Yande →"
+                : mode === "photos"
+                  ? "Create site from photos →"
                 : "Create & open editor →"}
           </button>
           </BuilderSurface>
+          ) : null}
         </form>
       </main>
     </div>

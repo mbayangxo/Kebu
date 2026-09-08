@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { StudioGenerationHistory } from "@/app/components/studio/studio-generation-history";
+import { StudioDesignLibrary } from "@/app/components/studio/studio-design-library";
+import { StudioEcosystemStrip } from "@/app/components/studio/studio-ecosystem-strip";
+import { studioRoleLabel, type StudioDesignRole } from "@/lib/studio/design-access";
 
 export default async function StudioHomePage() {
   const supabase = await createClient();
@@ -17,66 +21,128 @@ export default async function StudioHomePage() {
     .select("id, title, design_type, updated_at")
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false })
-    .limit(24);
+    .limit(48);
+
+  const { data: collabs } = await supabase
+    .from("studio_design_collaborators")
+    .select("design_id, role")
+    .eq("user_id", user.id)
+    .eq("status", "active");
+
+  const sharedIds = (collabs ?? []).map((c) => c.design_id as string);
+  const roleByDesign = new Map(
+    (collabs ?? []).map((c) => [
+      c.design_id as string,
+      (c.role === "editor" ? "editor" : "viewer") as StudioDesignRole,
+    ]),
+  );
+
+  let shared: {
+    id: string;
+    title: string;
+    design_type: string;
+    updated_at: string;
+    accessRole: "editor" | "viewer";
+  }[] = [];
+  if (sharedIds.length) {
+    const { data } = await supabase
+      .from("create_designs")
+      .select("id, title, design_type, updated_at")
+      .in("id", sharedIds)
+      .order("updated_at", { ascending: false })
+      .limit(48);
+    shared = (data ?? []).map((d) => ({
+      ...d,
+      accessRole: (roleByDesign.get(d.id) === "editor" ? "editor" : "viewer") as "editor" | "viewer",
+    }));
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "#FFF8F0" }}>
       <header className="border-b border-black/10 bg-white/80 backdrop-blur px-4 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-orange-600">Kebu Create</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-orange-600">Kebu Studio</p>
             <h1 className="font-display text-2xl font-bold text-ink">Design for your business</h1>
             <p className="text-sm text-muted mt-1">
-              Posters, flyers, and social graphics — separate from Kebu Builder websites.
+              Create blank, from templates, or AI — then flow into Builder, Shop, Reach.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Link href="/create" className="text-sm underline text-muted">
+          <div className="flex flex-wrap gap-2">
+            <Link href="/create" className="text-sm underline text-muted self-center">
               Kebu Builder
             </Link>
             <Link
-              href="/studio/new"
-              className="inline-flex rounded-full px-4 py-2 text-sm font-bold"
-              style={{ background: "#E05A2B", color: "#fff" }}
+              href="/studio/templates"
+              className="inline-flex rounded-full px-4 py-2 text-sm font-bold border border-black/10 bg-white"
             >
-              New poster
+              Templates
+            </Link>
+            <Link
+              href="/studio/new"
+              className="inline-flex rounded-full px-4 py-2 text-sm font-bold text-white"
+              style={{ background: "#E05A2B" }}
+            >
+              Create
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-10">
-        {(designs ?? []).length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-black/15 p-10 text-center bg-white">
-            <p className="text-lg font-semibold mb-2">No designs yet</p>
-            <p className="text-sm text-muted mb-6">
-              Start with a poster for your shop opening, sale, or WhatsApp catalog.
-            </p>
-            <Link
-              href="/studio/new"
-              className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold"
-              style={{ background: "#0F0D33", color: "#fff" }}
-            >
-              Create your first poster
-            </Link>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(designs ?? []).map((d) => (
-              <Link
-                key={d.id}
-                href={`/studio/${d.id}`}
-                className="rounded-2xl border border-black/10 bg-white p-4 hover:shadow-md transition-shadow"
-              >
-                <p className="font-semibold truncate">{d.title}</p>
-                <p className="text-xs text-muted mt-1 capitalize">{d.design_type.replace("_", " ")}</p>
-                <p className="text-[10px] text-muted mt-3">
-                  Updated {new Date(d.updated_at).toLocaleDateString()}
-                </p>
-              </Link>
-            ))}
-          </div>
-        )}
+      <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+        <StudioEcosystemStrip />
+
+        <section className="rounded-3xl border border-black/10 bg-white p-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link href="/studio/new" className="rounded-2xl border border-black/10 p-4 hover:border-orange-400">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">Blank</p>
+            <p className="font-semibold mt-1">Pick a size</p>
+            <p className="text-xs opacity-60 mt-1">IG, story, WhatsApp, flyer, poster…</p>
+          </Link>
+          <Link
+            href="/studio/templates"
+            className="rounded-2xl border border-black/10 p-4 hover:border-orange-400"
+          >
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">Templates</p>
+            <p className="font-semibold mt-1">Start from a look</p>
+            <p className="text-xs opacity-60 mt-1">Filter and open on the canvas</p>
+          </Link>
+          <Link
+            href="/studio/new?tab=ai"
+            className="rounded-2xl border border-black/10 p-4 hover:border-orange-400"
+          >
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">AI</p>
+            <p className="font-semibold mt-1">Do it for me · Teach me</p>
+            <p className="text-xs opacity-60 mt-1">Generate — or learn why on the work</p>
+          </Link>
+          <Link
+            href="/studio/video/new"
+            className="rounded-2xl border border-black/10 p-4 hover:border-orange-400"
+          >
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">Video</p>
+            <p className="font-semibold mt-1">Multi-track editor</p>
+            <p className="text-xs opacity-60 mt-1">Upload · trim · timeline · save</p>
+          </Link>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider opacity-60">AI campaign history</h2>
+          <StudioGenerationHistory />
+        </section>
+
+        <StudioDesignLibrary
+          initialOwned={designs ?? []}
+          initialShared={shared.map((d) => ({
+            ...d,
+            accessRole: d.accessRole,
+          }))}
+        />
+
+        {shared.length === 0 ? (
+          <p className="text-[10px] opacity-40 text-center">
+            Tip: invite teammates from a design’s Share panel · {studioRoleLabel("viewer")} links appear
+            under Shared with me.
+          </p>
+        ) : null}
       </main>
     </div>
   );

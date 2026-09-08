@@ -48,6 +48,14 @@ const nextConfig: NextConfig = {
         source: "/sw-site.js",
         headers: [...SECURITY_HEADERS, { key: "Cache-Control", value: NO_STORE }],
       },
+      {
+        source: "/sw-kebu-app.js",
+        headers: [
+          ...SECURITY_HEADERS,
+          { key: "Cache-Control", value: NO_STORE },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
       // HTML, APIs, and app routes — never serve a stale landing / login / builder shell.
       {
         source: "/:path*",

@@ -1,13 +1,14 @@
-import { MAYLECOR_WIX } from "./maylecor-defaults";
+import { MAYLECOR_LOCAL_ASSETS, MAYLECOR_WIX } from "./maylecor-defaults";
 
 export function defaultMaylecorPhotoGalleryItems() {
+  /** Empty slots — founder uploads May photos via Media → drop onto gallery in the editor. */
   return [
-    { src: MAYLECOR_WIX.collageTop, alt: "May Lecor — studio" },
-    { src: MAYLECOR_WIX.bottomLeft, alt: "May Lecor — live" },
-    { src: MAYLECOR_WIX.bottomRight, alt: "May Lecor — performance" },
-    { src: MAYLECOR_WIX.logoBanner, alt: "May Lecor — brand" },
-    { src: MAYLECOR_WIX.albumArt, alt: "May Lecor — album art" },
-    { src: MAYLECOR_WIX.portraitMain, alt: "May Lecor — portrait" },
+    { src: "", alt: "Upload photo 1" },
+    { src: "", alt: "Upload photo 2" },
+    { src: "", alt: "Upload photo 3" },
+    { src: "", alt: "Upload photo 4" },
+    { src: "", alt: "Upload photo 5" },
+    { src: "", alt: "Upload photo 6" },
   ];
 }
 
@@ -19,12 +20,43 @@ export function defaultMaylecorVideoGalleryItems() {
   ];
 }
 
+/** Multi-video grid defaults — paste real YouTube URLs / upload files in the editor. */
+export function defaultMaylecorVideoItems() {
+  return [
+    {
+      src: "",
+      title: "Video 1",
+      caption: "Paste a YouTube URL or upload a video file",
+      thumbnail: MAYLECOR_WIX.portraitMain,
+    },
+    {
+      src: "",
+      title: "Video 2",
+      caption: "Add another clip",
+      thumbnail: MAYLECOR_WIX.bottomLeft,
+    },
+    {
+      src: "",
+      title: "Video 3",
+      caption: "Add another clip",
+      thumbnail: MAYLECOR_WIX.bottomRight,
+    },
+    {
+      src: "",
+      title: "Video 4",
+      caption: "Add another clip",
+      thumbnail: MAYLECOR_WIX.collageTop,
+    },
+  ];
+}
+
 /** Sample merch — editable in builder Products tab or inline on shop page. */
 export function defaultMaylecorShopProducts() {
   return [
     {
       name: "May Lecor — Digital Album",
-      description: "Full album download. Pay via mobile money or WhatsApp — we confirm your order manually.",
+      description:
+        "Full album download. Pay via mobile money or WhatsApp — we confirm your order manually.",
       priceLabel: "5 000 XOF",
       imageUrl: MAYLECOR_WIX.albumArt,
       whatsappMessage: "Hi May Lecor team — I want to buy the digital album.",
@@ -50,5 +82,5 @@ export function defaultMaylecorShopProducts() {
 export const MAYLECOR_DEFAULT_SPOTIFY_EMBED =
   "https://open.spotify.com/embed/artist/4YRxDV8wJFPHPTeXepOstw?utm_source=generator";
 
-export const MAYLECOR_DEFAULT_YOUTUBE_EMBED =
-  "https://www.youtube.com/embed/videoseries?list=UUuser";
+/** @deprecated Prefer defaultMaylecorVideoItems() — kept for older call sites. */
+export const MAYLECOR_DEFAULT_YOUTUBE_EMBED = "";

@@ -1,0 +1,23 @@
+---
+description: No fake functionality — implement or do not present as complete
+alwaysApply: true
+---
+
+# No fake functionality
+
+Full spec: `docs/product/PRODUCT_RULES.md`
+
+**Never create a visual representation of functionality that does not exist.**
+
+If UI shows a feature, the **full functional path** must work — or label **NOT IMPLEMENTED** honestly.
+
+**Forbidden in production paths:**
+
+- Fake search · upload · payment · dashboard stats · AI generation · notifications · profiles · filters  
+- Dead buttons · placeholder cards as real content · “Coming soon” on presented complete features  
+
+Mocks OK **only** when explicitly labeled development fixtures.
+
+**AI features:** prompt → validation → request → loading → result → storage → persistence → history — not fake “Your design is ready!”
+
+Implement it **or** don’t ship the control.

@@ -47,6 +47,8 @@ export type CollageLayoutFields = {
 export type CollagePhotoWithDevices = CollageLayoutFields & {
   src: string;
   alt?: string;
+  /** Optional link when visitors tap the photo (live site only). */
+  href?: string;
   tablet?: Partial<CollageLayoutFields>;
   mobile?: Partial<CollageLayoutFields>;
 };
@@ -55,12 +57,13 @@ export type CollagePhotoWithDevices = CollageLayoutFields & {
 export function resolveCollagePhotoForDevice(
   photo: CollagePhotoWithDevices,
   device: BuilderDevice,
-): CollageLayoutFields & { src: string; alt?: string; hidden: boolean } {
+): CollageLayoutFields & { src: string; alt?: string; href?: string; hidden: boolean } {
   const overlay =
     device === "mobile" ? photo.mobile : device === "tablet" ? photo.tablet : undefined;
   return {
     src: photo.src,
     alt: photo.alt,
+    href: photo.href,
     rotate: overlay?.rotate ?? photo.rotate,
     topPct: overlay?.topPct ?? photo.topPct,
     leftPct: overlay?.leftPct ?? photo.leftPct,

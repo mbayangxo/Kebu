@@ -16,6 +16,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { labelForSectionType } from "@/lib/create/builder-section-catalog";
 
 type SectionRow = {
   id: string;
@@ -29,6 +30,7 @@ function SortableSectionRow({
   onSelect,
   onMoveUp,
   onMoveDown,
+  onRemove,
   isFirst,
   isLast,
 }: {
@@ -37,6 +39,7 @@ function SortableSectionRow({
   onSelect: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onRemove?: () => void;
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -67,7 +70,7 @@ function SortableSectionRow({
         ⋮⋮
       </button>
       <button type="button" onClick={onSelect} className="flex-1 text-left text-xs font-semibold truncate">
-        {section.section_type}
+        {labelForSectionType(section.section_type)}
       </button>
       <div className="flex gap-1 shrink-0">
         <button type="button" disabled={isFirst} onClick={onMoveUp} className="text-[10px] px-1 disabled:opacity-30">
@@ -76,6 +79,16 @@ function SortableSectionRow({
         <button type="button" disabled={isLast} onClick={onMoveDown} className="text-[10px] px-1 disabled:opacity-30">
           ↓
         </button>
+        {onRemove ? (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-[10px] px-1.5 font-semibold text-[#B91C1C]"
+            aria-label={`Remove ${labelForSectionType(section.section_type)}`}
+          >
+            Remove
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -88,6 +101,7 @@ export function BuilderSectionListDnd({
   onReorder,
   onMoveUp,
   onMoveDown,
+  onRemove,
 }: {
   sections: SectionRow[];
   selectedSectionId: string | null;
@@ -95,6 +109,8 @@ export function BuilderSectionListDnd({
   onReorder: (orderedIds: string[]) => void;
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
+  /** Shorten the page — persists via DELETE sections. */
+  onRemove?: (id: string) => void;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -126,6 +142,7 @@ export function BuilderSectionListDnd({
               onSelect={() => onSelect(section.id)}
               onMoveUp={() => onMoveUp(section.id)}
               onMoveDown={() => onMoveDown(section.id)}
+              onRemove={onRemove ? () => onRemove(section.id) : undefined}
               isFirst={idx === 0}
               isLast={idx === sections.length - 1}
             />

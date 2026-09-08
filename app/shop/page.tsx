@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { KEBU } from "@/lib/kebu-brand";
+import { formatXof } from "@/lib/shop/commerce-insights";
 
 type ProjectRow = {
   id: string;
@@ -15,13 +16,20 @@ type ProjectRow = {
   updated_at: string;
 };
 
+type Pulse = {
+  orders: number;
+  paidRevenue: string;
+  pageviews: string;
+};
+
 /**
- * Kebu Shop — separate from the website builder (Shopify-style).
- * Catalog, WhatsApp order phone, and sell settings live here — not inside the site editor.
+ * Kebu Shop — separate from the website builder.
+ * Hub lists every storefront with a 30-day pulse so you can switch and compare.
  */
 export default function ShopHubPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
+  const [pulse, setPulse] = useState<Record<string, Pulse>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +49,33 @@ export default function ShopHubPage() {
         return;
       }
       const rows = (Array.isArray(data.projects) ? data.projects : []) as ProjectRow[];
-      setProjects(rows.filter((p) => p.project_type === "website"));
+      const shops = rows.filter((p) => p.project_type === "website");
+      setProjects(shops);
+
+      const next: Record<string, Pulse> = {};
+      await Promise.all(
+        shops.slice(0, 12).map(async (p) => {
+          try {
+            const a = await fetch(`/api/projects/${p.id}/shop-analytics?days=30`, {
+              credentials: "include",
+            });
+            const body = await a.json().catch(() => ({}));
+            if (!a.ok || !body.summary) return;
+            const s = body.summary as {
+              orders: { total: number; revenuePaidXof: number };
+              traffic: { pageviews: number | null };
+            };
+            next[p.id] = {
+              orders: s.orders.total,
+              paidRevenue: formatXof(s.orders.revenuePaidXof),
+              pageviews: s.traffic.pageviews == null ? "—" : String(s.traffic.pageviews),
+            };
+          } catch {
+            /* pulse optional */
+          }
+        }),
+      );
+      setPulse(next);
     } catch {
       setError("Network error. Retry.");
       setProjects([]);
@@ -64,11 +98,11 @@ export default function ShopHubPage() {
           className="mt-2 text-3xl font-bold"
           style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
         >
-          Your shop
+          Your shops
         </h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-          Like Shopify: products and orders live here. Your website builder stays for pages and design.
-          Pick a site storefront, then add products buyers can order (WhatsApp today; JOKO checkout next).
+          Each store has its own dashboard, analytics, orders, and team. Open one to run it — switch stores
+          anytime from the header.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-2">
@@ -117,38 +151,49 @@ export default function ShopHubPage() {
           </div>
         ) : (
           <ul className="mt-8 space-y-3">
-            {projects.map((p) => (
-              <li
-                key={p.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-4 py-4"
-                style={{ border: `1px solid ${KEBU.border}` }}
-              >
-                <div className="min-w-0">
-                  <p className="font-bold truncate" style={{ color: KEBU.black }}>
-                    {p.title}
-                  </p>
-                  <p className="text-xs font-mono mt-0.5" style={{ color: KEBU.muted }}>
-                    {p.subdomain ? `${p.subdomain}.kebu.africa` : "No address yet"} · {p.status}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    href={`/shop/${p.id}`}
-                    className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
-                    style={{ background: KEBU.orange }}
-                  >
-                    Open shop
-                  </Link>
-                  <Link
-                    href={`/create/${p.id}`}
-                    className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-                    style={{ background: KEBU.black, color: KEBU.white }}
-                  >
-                    Edit website
-                  </Link>
-                </div>
-              </li>
-            ))}
+            {projects.map((p) => {
+              const stats = pulse[p.id];
+              return (
+                <li
+                  key={p.id}
+                  className="rounded-2xl bg-white px-4 py-4"
+                  style={{ border: `1px solid ${KEBU.border}` }}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-bold truncate" style={{ color: KEBU.black }}>
+                        {p.title}
+                      </p>
+                      <p className="text-xs font-mono mt-0.5" style={{ color: KEBU.muted }}>
+                        {p.subdomain ? `${p.subdomain}.kebu.africa` : "No address yet"} · {p.status}
+                      </p>
+                      {stats ? (
+                        <p className="mt-2 text-xs tabular-nums" style={{ color: KEBU.muted }}>
+                          30d · {stats.orders} orders · {stats.paidRevenue} paid · {stats.pageviews}{" "}
+                          views
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/shop/${p.id}?tab=overview`}
+                        className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
+                        style={{ background: KEBU.orange }}
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        href={`/create/${p.id}`}
+                        className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
+                        style={{ background: KEBU.black, color: KEBU.white }}
+                      >
+                        Edit website
+                      </Link>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

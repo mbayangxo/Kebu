@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
-import { projectHasLiveHosting } from "@/lib/billing/subscriptions";
+import {
+  ensureFreeHostingEntitlement,
+  projectHasLiveHosting,
+} from "@/lib/billing/subscriptions";
 import { SITE_HOSTING_BILLING_LABEL, SITE_HOSTING_DESCRIPTION } from "@/lib/billing/pricing";
 import { goLiveWebsiteProject } from "@/lib/create/go-live";
 import { builderRateLimit } from "@/lib/api-guard";
@@ -69,19 +72,25 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Subdomain required to publish." }, { status: 400 });
   }
 
-  const hostingActive = await projectHasLiveHosting(supabase, id, user.id);
+  const hostingActive = await projectHasLiveHosting(supabase, id, user.id, user.email);
   if (!hostingActive) {
-    return NextResponse.json(
-      {
-        error: "Active site hosting required before publish.",
-        billingRequired: true,
-        provider: "joko",
-        monthlyLabel: SITE_HOSTING_BILLING_LABEL,
-        description: SITE_HOSTING_DESCRIPTION,
-        subscribeUrl: `/api/projects/${id}/billing/subscribe`,
-      },
-      { status: 402 },
-    );
+    // projectHasLiveHosting already tried Free entitlement. Failure usually means
+    // migration 038 (RLS) or 036 (amount >= 0) is missing — not a paywall.
+    const freeRetry = await ensureFreeHostingEntitlement(supabase, id, user.id);
+    if (!freeRetry) {
+      return NextResponse.json(
+        {
+          error:
+            "Could not activate Free hosting for publish. Apply FIX_free_publish.sql (or migrations 036 + 038) in Supabase, then try again. Paid plans still use JOKO checkout.",
+          billingRequired: false,
+          migrationHint: "FIX_free_publish.sql (036_kebu_subscription_tiers.sql + 038_free_hosting_entitlement_rls.sql)",
+          subscribeUrl: `/api/projects/${id}/billing/subscribe`,
+          monthlyLabel: SITE_HOSTING_BILLING_LABEL,
+          description: SITE_HOSTING_DESCRIPTION,
+        },
+        { status: 503 },
+      );
+    }
   }
 
   const published = await goLiveWebsiteProject({

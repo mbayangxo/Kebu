@@ -96,6 +96,7 @@ create index if not exists website_versions_project_idx
 alter table public.website_versions enable row level security;
 
 drop policy if exists "Owners manage website versions" on public.website_versions;
+drop policy if exists "Owners select website versions" on public.website_versions;
 create policy "Owners select website versions"
   on public.website_versions for select
   using (
@@ -193,6 +194,7 @@ create table if not exists public.site_domains (
 alter table public.site_domains enable row level security;
 
 drop policy if exists "Owners manage domains" on public.site_domains;
+drop policy if exists "Owners select domains" on public.site_domains;
 create policy "Owners select domains"
   on public.site_domains for select
   using (

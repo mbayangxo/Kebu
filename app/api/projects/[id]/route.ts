@@ -5,6 +5,8 @@ import {
   assertProjectEditorAccess,
   dbForProjectAccess,
 } from "@/lib/create/project-access";
+import { loadOrBootstrapSiteChrome, parseSiteChrome } from "@/lib/create/site-chrome";
+import { ensureProjectPagesBeforePublish } from "@/lib/create/ensure-project-pages";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -24,7 +26,7 @@ export async function GET(_req: Request, { params }: Params) {
     email: user.email,
     projectId: id,
     select:
-      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo",
+      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo, site_chrome",
     action: "get",
   });
 
@@ -34,6 +36,13 @@ export async function GET(_req: Request, { params }: Params) {
 
   const db = dbForProjectAccess(supabase, access.via);
   const project = access.project;
+
+  /**
+   * Owner portfolio drafts (May Lecor, etc.): sync seed → draft on every load.
+   * Viewing the saved draft always shows current Cursor/seed edits.
+   * Live public site still only changes on Publish.
+   */
+  const sync = await ensureProjectPagesBeforePublish(db, id);
 
   const { data: pages, error: pagesError } = await db
     .from("project_pages")
@@ -68,6 +77,22 @@ export async function GET(_req: Request, { params }: Params) {
     sections = sectionRows ?? [];
   }
 
+  const homePage = (pages ?? []).find((p) => p.slug === "home") ?? pages?.[0];
+  let homeSections: Array<{ section_type: string; props: unknown }> = [];
+  if (homePage) {
+    homeSections = sections
+      .filter((s) => s.page_id === homePage.id)
+      .map((s) => ({ section_type: String(s.section_type), props: s.props }));
+  }
+  const allTypes = sections.map((s) => String(s.section_type));
+  const siteChrome = await loadOrBootstrapSiteChrome(
+    db,
+    id,
+    homeSections,
+    String(project.title ?? "My site"),
+    allTypes,
+  );
+
   const { data: liveDeployment } = await db
     .from("deployments")
     .select("published_at, public_path")
@@ -92,7 +117,10 @@ export async function GET(_req: Request, { params }: Params) {
     project: safeProject,
     pages: pages ?? [],
     sections,
+    siteChrome: parseSiteChrome(siteChrome),
     publishState,
     supportAssist: access.via === "support",
+    draftSeedSynced: sync.synced,
+    draftSeedDetail: sync.detail ?? null,
   });
 }

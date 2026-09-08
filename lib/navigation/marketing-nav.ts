@@ -4,7 +4,7 @@ export const KEBU_MARKETING_NAV = [
   { label: "Pricing", href: "/pricing" },
   { label: "About us", href: "/about" },
   { label: "Contact us", href: "/contact" },
-  { label: "Templates", href: "/templates" },
+  { label: "Aesthetics", href: "/templates" },
   { label: "Kebu Icon", href: "/kebu-icon" },
 ] as const;
 

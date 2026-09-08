@@ -1,0 +1,79 @@
+---
+description: Kebu master engineering contract — inspect, vertical slices, Supabase E2E, audit loop
+alwaysApply: true
+---
+
+# Kebu Master Engineering Instruction
+
+Full contract: `docs/product/KEBU-MASTER-ENGINEERING-INSTRUCTION.md` · **Product Architect:** `docs/product/KEBU-PRODUCT-ARCHITECT-PHASE.md` · Summary: `docs/product/ENGINEERING-MANDATE.md` · Status: `docs/IMPLEMENTATION_STATUS.md`
+
+## Non-negotiables
+
+Kebu is **NOT** a prototype, mock UI, or “looks done” demo. **No MVP-looking UI** unless explicitly requested. **Fewer complete features > many fake screens.**
+
+Every feature = full chain:
+
+**USER → UI → state → API → logic → Supabase → DB/storage/auth → response → UI → refresh persists**
+
+**Supabase:** Auth · Postgres · **RLS** · Storage · migrations only · never service role in browser · never bypass RLS.
+
+## Before code
+
+**Product Architect Phase first** for new major surfaces — blueprint before code (`kebu-product-architect.mdc`).
+
+**Inspect first** — framework, schema, migrations, auth, routes, APIs, tests, broken/disconnected paths. **Do not** duplicate existing systems. Plan concisely, then implement **one assigned slice only**.
+
+## One vertical slice
+
+FEATURE → DATABASE → BACKEND → FRONTEND → SUPABASE → TEST → DEBUG → **COMPLETE**
+
+Forbidden: all-pages-first · all-APIs-first · giant schema-first · fake buttons/success · hardcoded persistence · mock prod DB ops.
+
+## Dependency rule (stop and repair)
+
+If you discover a **previous slice is incomplete, broken, or disconnected**, **STOP the current task** and **repair that dependency first**.
+
+**Do not** build new functionality on top of broken functionality.
+
+Order: identify blocking defect → fix root cause → verify end-to-end → **then** resume the assigned slice.
+
+## Error honesty
+
+**Never hide an error** — suppress console/network failures, swallow exceptions, empty catch blocks, or fake success — **simply to make the UI appear functional.**
+
+Surface errors honestly (UI + logs). Fix root cause or label **BLOCKED** / **NOT IMPLEMENTED** with the missing dependency.
+
+## Build → Design QA → audit → repair (mandatory loop)
+
+1. **Implement Slice N end-to-end** — do not start Slice N+1  
+2. **Design QA** — open running app; fix spacing/hierarchy/density/polish until standard met  
+3. **Adversarial audit** — trace every user action FE→Supabase→FE; fix bugs, authz, RLS, persistence, errors, tests  
+4. **Update IMPLEMENTATION_STATUS** — then next slice  
+
+## Definition of done
+
+FE + BE + Supabase + migration + RLS + auth + authz + persist + refresh + all states + validation + tests + build. Missing any applicable item = **INCOMPLETE**. Not done = label **NOT IMPLEMENTED** or **BLOCKED** — never fake success.
+
+## Bugs
+
+Discover → reproduce → **root cause** (FE→API→Supabase→DB) → fix → regression test when practical. **Never ignore, suppress, or paper over** — including hiding errors so the UI looks fine.
+
+## Foundation priority
+
+**Kebu Account + Kebu ID + workspace/business + Supabase** — Builder, Cloud, Search, Mail, Analytics, Opportunity OS, Score all depend on this.
+
+## Product law (do not violate while building)
+
+- **Opportunity OS** ≠ **Kebu Opportunity OS** — separate products; API integration only  
+- **Personal Kebu** (free) ≠ **Business Kebu** (Kebu ID workspace) — one login  
+- **Kebu Search** = real engine; AI on top with citations — never chat-as-search  
+- **Builder** = structured schema — not static HTML dump; not Shopify clone checklist  
+- **Nav only when real** — no fake future-product dashboards  
+
+## After every slice
+
+Typecheck · lint · **`npm run ci`** · migration/RLS check · manual journey · console/network · refresh · unauthorized user denied.
+
+**CI failure → deployment stops** — `docs/CI_PIPELINE.md`
+
+**REAL FUNCTIONALITY > NUMBER OF FEATURES.**

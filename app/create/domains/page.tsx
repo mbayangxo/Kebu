@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { KEBU } from "@/lib/kebu-brand";
+import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import { customDomainDnsTarget, normalizeHostname, validateCustomHostname } from "@/lib/create/dns-target";
 
 export default function KebuDomainsPage() {
@@ -98,7 +99,7 @@ export default function KebuDomainsPage() {
                 <p className="mt-3 text-xs">
                   Domain purchase checkout in Kebu is not live yet (~$5+/year at most registrars). Buy the name
                   elsewhere, then connect it in{" "}
-                  <Link href="/create/sites" className="font-bold underline" style={{ color: KEBU.orange }}>
+                  <Link href={MY_SITES_HREF} className="font-bold underline" style={{ color: KEBU.orange }}>
                     My sites → Domain &amp; SEO
                   </Link>
                   . Connecting + HTTPS on Kebu is what works end-to-end today.
@@ -123,7 +124,7 @@ export default function KebuDomainsPage() {
             Do not point DNS at kebu.africa — that zone is not live yet.
           </p>
           <Link
-            href="/create/sites"
+            href={MY_SITES_HREF}
             className="inline-flex rounded-full px-6 py-3 text-xs font-bold uppercase text-white"
             style={{ background: KEBU.black }}
           >

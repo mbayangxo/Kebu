@@ -11,7 +11,13 @@ import type { OpportunityProfile } from "@/lib/opportunity/intake-schema";
 
 type ForYouPayload = {
   needsIntake: boolean;
+  needsEntitlement?: boolean;
   redirect?: string;
+  message?: string;
+  verifyHref?: string;
+  exploreHref?: string;
+  cardsHref?: string;
+  entitlement?: { status: string };
   profile?: OpportunityProfile;
   plan?: {
     headline: string;
@@ -93,6 +99,59 @@ export default function OpportunityOsHubPage() {
     );
   }
 
+  if (data?.needsEntitlement) {
+    return (
+      <OpportunityOsShell
+        title="Opportunity OS"
+        headline="Protected intelligence — verify once"
+        subhead="Kebu Opportunity OS personalized matching is for verified Africans. Explore countries and opportunity cards openly while you complete African ID verification."
+        heroVisual={
+          <div
+            className="rounded-full w-48 h-48 mx-auto flex items-center justify-center text-5xl"
+            style={{ background: `linear-gradient(135deg, ${KEBU.orange}33, ${KEBU.cream})` }}
+          >
+            🔐
+          </div>
+        }
+      >
+        <div className="max-w-lg">
+          <p className="text-sm mb-6 leading-relaxed" style={{ color: KEBU.muted }}>
+            {data.message ??
+              "Verify your African ID once on your account. We check entitlement server-side — not in the browser."}
+          </p>
+          {data.entitlement?.status === "pending" ? (
+            <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: KEBU.orange }}>
+              Status: verification in review
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={data.verifyHref ?? "/account#african-id"}
+              className="inline-flex rounded-full px-8 py-3.5 text-sm font-bold text-white"
+              style={{ background: KEBU.orange }}
+            >
+              Verify African Access
+            </Link>
+            <Link
+              href={data.exploreHref ?? "/opportunity/countries"}
+              className="inline-flex rounded-full px-8 py-3.5 text-sm font-bold"
+              style={{ border: `2px solid ${KEBU.black}`, color: KEBU.black }}
+            >
+              Explore countries
+            </Link>
+            <Link
+              href={data.cardsHref ?? "/opportunity/cards"}
+              className="inline-flex rounded-full px-8 py-3.5 text-sm font-bold"
+              style={{ border: `2px solid ${KEBU.black}`, color: KEBU.black }}
+            >
+              Opportunity cards
+            </Link>
+          </div>
+        </div>
+      </OpportunityOsShell>
+    );
+  }
+
   const profile = data?.profile;
   const plan = data?.plan;
   const countries = data?.countries ?? [];
@@ -160,6 +219,9 @@ export default function OpportunityOsHubPage() {
           </div>
           <Link href="/opportunity/countries" className="text-xs font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
             All countries →
+          </Link>
+          <Link href="/opportunity/listings" className="text-xs font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
+            Programs & listings →
           </Link>
         </div>
         {countries.length > 0 ? (

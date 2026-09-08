@@ -196,24 +196,49 @@ export async function improveWebsiteWithAi(
   }
 
   const anthropic = new Anthropic({ apiKey });
-  const system = `You are Yande, Kebu's AI site assistant. Improve Kebu website structures. Return ONLY JSON matching schemaVersion "website-v1".
+  const system = `You are Yande — Kebu's website DESIGNER. Improve Kebu website structures. Return ONLY JSON matching schemaVersion "website-v1".
 Allowed section types: navigation, hero, text, image, gallery, features, testimonials, faq, contact, whatsapp, footer, maylecor-home, maylecor-music, legally-blonde-hero, kdirection-home, kdirection-page.
-Do not include HTML, scripts, or markdown. Keep copy clear for African youth entrepreneurs — plain language, mobile-friendly, concrete next actions.
-Preserve useful facts from the current site (phones, emails, WhatsApp, brand name, photo URLs, collagePhotos positions, socialLinks hrefs/icons, logoImage) unless the user asks to change them.
-For kdirection-home: keep Wix structure (backgroundCss radial gradients, Oswald displayFont, yellow navButtonBg, mirrored wordmark, collagePhotos array with rotate/topPct/leftPct/widthPct). You may rewrite mission, brandLine1/2, footerText, nav link labels, and social link labels/hrefs. Do not wipe collagePhotos or set empty image URLs.
-For legally-blonde-hero: keep Tilda cutout URLs (backgroundLayer, cutoutLeft/Right/Accent, titleLogo) unless the user asks to swap photos. Prefer scrollMode "parallax" and displayFont "Steelfish" for the Russian layout.
-Keep at least one home page. Never invent fake phone numbers.`;
+Do not include HTML, scripts, or markdown.
+The user iterates in natural language (e.g. “less Shopify-looking”, “add wholesale”, “mobile completely different from desktop”). Treat each instruction as a design brief — restyle theme, reorder sections, rewrite copy, add pages/sections as needed — still structured schema only.
+When asked to avoid generic ecommerce: increase editorial hierarchy, larger product/gallery treatments, stronger typography contrast, fewer equal card grids.
+When asked for mobile different from desktop: adjust spacing, section order, and copy length for mobile-first; note intent in section headings/subcopy where schema allows (full separate mobile trees are limited by current schema — do the best with props + page structure).
+Preserve useful facts (phones, emails, WhatsApp, brand name, photo URLs, collagePhotos, socialLinks, logoImage) unless the user asks to change them.
+For kdirection-home: keep Wix structure (backgroundCss, Oswald, collagePhotos geometry). Do not wipe collagePhotos or empty image URLs.
+For legally-blonde-hero: keep cutout URLs unless user asks to swap photos.
+Keep at least one home page. Never invent fake phone numbers. Plain language for African youth.`;
+
+  const modeHint =
+    brief.mode === "redesign"
+      ? "MODE A5 Redesign: Restyle the whole site look (theme colors, hierarchy, spacing feel) while preserving brand facts, phones, and photo URLs. Stronger first impression for African mobile visitors."
+      : brief.mode === "page"
+        ? `MODE A6 Generate page/section: Add or strengthen page "${brief.focusPageSlug?.trim() || "home"}" with useful sections (hero, features, contact/WhatsApp). Do not delete unrelated pages.`
+        : brief.mode === "rewrite"
+          ? "MODE A7 Rewrite copy: Improve headlines and body only. Do not change layout structure, image URLs, or navigation hrefs unless broken."
+          : brief.mode === "convert"
+            ? "MODE A8 Optimize conversion/mobile: Shorten copy, clearer CTAs, WhatsApp/Wave/order paths, mobile-first hierarchy. Prefer fewer words, stronger next actions."
+            : "";
 
   const focus =
     brief.focusSectionTypes && brief.focusSectionTypes.length > 0
       ? `Focus changes on these section types: ${brief.focusSectionTypes.join(", ")}. Leave other sections mostly intact.`
-      : "Improve clarity, offer strength, and contact readiness across the whole home page.";
+      : brief.mode === "page"
+        ? "Focus on the requested page; keep other pages stable."
+        : "Improve clarity, offer strength, and contact readiness across the whole home page.";
 
   const userInstruction = brief.instruction?.trim()
     ? `User request: ${brief.instruction.trim()}`
-    : "User request: Make this website clearer and more persuasive for first-time visitors on mobile.";
+    : brief.mode === "redesign"
+      ? "User request: Redesign this site so it feels more premium and mobile-ready without losing our brand facts."
+      : brief.mode === "page"
+        ? "User request: Generate or strengthen a useful page with clear sections and a WhatsApp CTA."
+        : brief.mode === "rewrite"
+          ? "User request: Rewrite the copy so it is clearer and more persuasive for first-time visitors."
+          : brief.mode === "convert"
+            ? "User request: Optimize for conversion on mobile — clearer CTAs, WhatsApp order path, less fluff."
+            : "User request: Make this website clearer and more persuasive for first-time visitors on mobile.";
 
-  const userPrompt = `${userInstruction}
+  const userPrompt = `${modeHint}
+${userInstruction}
 ${focus}
 
 Current website JSON:

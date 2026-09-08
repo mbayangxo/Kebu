@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { loadPublicDeployment } from "@/lib/create/public-site-loader";
 import { PublicSiteView } from "@/app/components/create/public-site-view";
+import { SiteBillingSuspendedView } from "@/app/components/create/site-billing-suspended";
 
 type Params = { params: Promise<{ subdomain: string }> };
 
@@ -8,6 +9,12 @@ export default async function PublicSitePage({ params }: Params) {
   const { subdomain } = await params;
   const deployment = await loadPublicDeployment(subdomain);
   if (!deployment) notFound();
+
+  if (deployment.billingSuspended) {
+    return (
+      <SiteBillingSuspendedView subdomain={deployment.subdomain} projectId={deployment.projectId} />
+    );
+  }
 
   const siteBase = deployment.customDomainUrl ? "" : `/sites/${deployment.subdomain}`;
 

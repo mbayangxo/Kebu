@@ -2,10 +2,10 @@ import { KDIRECTION_WIX_GRADIENT } from "@/lib/create/kdirection-defaults";
 import { LEGALLY_BLONDE_ASSETS } from "@/lib/create/legally-blonde-defaults";
 import { KDIRECTION_PORTRAIT } from "@/lib/create/kdirection-local-assets";
 
-/** Flagship public templates = the two real site engines (May = Russian cutouts, K-Direction = Wix). */
+/** Recommended starters for new users — not owner brands. */
 export const FLAGSHIP_TEMPLATE_SLUGS = [
-  "musician-maylecor-ksendr",
-  "agency-kdirection",
+  "shopping-store",
+  "carmine-creative",
 ] as const;
 
 export type FlagshipTemplateSlug = (typeof FLAGSHIP_TEMPLATE_SLUGS)[number];
@@ -45,11 +45,11 @@ export type TemplateCardVisual = {
 
 export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
   "musician-maylecor-ksendr": {
-    previewImage: LEGALLY_BLONDE_ASSETS.backgroundLayer,
-    previewImageSecondary: LEGALLY_BLONDE_ASSETS.cutoutLeft,
+    previewImage: "/templates/maylecor/hero-collage.png?v=20260908b",
+    previewImageSecondary: "/templates/maylecor/may-figure.png?v=20260908b",
     previewGradient: "linear-gradient(180deg, #ffd6ec 0%, #e9006b 55%, #0a0a0a 100%)",
-    badge: "May Lecor · Russian cutouts",
-    keywords: ["may lecor", "russian", "ksendr", "cutout", "pink", "music"],
+    badge: "May Lecor · cutout + city",
+    keywords: ["may lecor", "russian", "ksendr", "cutout", "pink", "music", "city"],
     layout: "russian-cutouts",
     wordmark: "MAY LECOR",
   },
@@ -60,6 +60,34 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     keywords: ["k-direction", "wix", "label", "collage", "oswald"],
     layout: "wix-collage",
     wordmark: "K DIRECTION",
+  },
+  "agency-dklns": {
+    previewGradient: "linear-gradient(145deg, #071210 0%, #0B1A16 45%, #5CFFB0 100%)",
+    badge: "DkLNS · Agency",
+    keywords: ["dklns", "agency", "management", "creative", "may lecor"],
+    layout: "agency",
+    wordmark: "DkLNS",
+  },
+  "production-ndaoan-house": {
+    previewGradient: "linear-gradient(160deg, #030303 0%, #1A1408 50%, #D4A017 100%)",
+    badge: "Ndaoan House · Production",
+    keywords: ["ndaoan", "film", "commercials", "animation", "photography", "studio"],
+    layout: "film",
+    wordmark: "NDAOAN",
+  },
+  "entertainment-rect": {
+    previewGradient: "linear-gradient(145deg, #050505 0%, #1A1A00 40%, #B8FF00 72%, #FF5500 100%)",
+    badge: "RECT · Entertainment tech",
+    keywords: ["rect", "music", "streaming", "label", "film", "watch", "entertainment"],
+    layout: "music",
+    wordmark: "RECT",
+  },
+  "foundation-mayjor-good": {
+    previewGradient: "linear-gradient(160deg, #FFF8F3 0%, #FFE4F0 45%, #E9006B 100%)",
+    badge: "For The Mayjor Good · Foundation",
+    keywords: ["mayjor", "foundation", "nonprofit", "art", "opportunity", "service", "may lecor"],
+    layout: "portfolio",
+    wordmark: "MAYJOR GOOD",
   },
   "musician-artist": {
     previewGradient: "linear-gradient(180deg, #1a1a1a 0%, #000 100%)",
@@ -90,6 +118,14 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     layout: "dark-artist",
     wordmark: "ROSTER",
   },
+  "carmine-creative": {
+    previewImage: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
+    previewGradient: "linear-gradient(160deg, #FAF7F5 0%, #C1121F 50%, #1A0505 100%)",
+    badge: "Carmine · Creative agency",
+    keywords: ["carmine", "agency", "creative", "brand", "campaign"],
+    layout: "agency",
+    wordmark: "CARMINE",
+  },
   "agency-creative": {
     previewGradient: "linear-gradient(135deg, #FF5500 0%, #0A0A0A 70%)",
     badge: "Creative agency",
@@ -118,7 +154,16 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     layout: "salon",
     wordmark: "SALON",
   },
+  "layers-beauty": {
+    previewImage: "/templates/gallery/luxe-beauty-ref.png",
+    previewGradient: "linear-gradient(160deg, #F7F1EB 0%, #C4786A 45%, #1F1A17 100%)",
+    badge: "LAYERS · Skincare shop",
+    keywords: ["layers", "beauty", "skincare", "shop", "organic", "ritual"],
+    layout: "salon",
+    wordmark: "LAYERS",
+  },
   "beauty-studio": {
+    previewImage: "/templates/gallery/skinby-ref.png",
     previewGradient: "linear-gradient(160deg, #FFF0F5 0%, #E8B4BC 55%, #8B4557 100%)",
     badge: "Beauty studio",
     keywords: ["beauty", "makeup", "studio"],
@@ -131,6 +176,13 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     keywords: ["perfume", "fragrance", "luxury"],
     layout: "perfume",
     wordmark: "SCENT",
+  },
+  "scent-boutique": {
+    previewGradient: "linear-gradient(145deg, #F7F2EC 0%, #E8D5C4 40%, #8B5E6B 100%)",
+    badge: "Scent boutique",
+    keywords: ["boutique", "fragrance", "atelier", "brume"],
+    layout: "perfume",
+    wordmark: "BRUME",
   },
   "fashion-atelier": {
     previewGradient: "linear-gradient(160deg, #FAFAF8 0%, #E8E4DC 40%, #1A1A2E 100%)",

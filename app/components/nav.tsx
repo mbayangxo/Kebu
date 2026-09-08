@@ -14,9 +14,9 @@ import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 const PRIMARY = [
   { label: "Your Kebu", href: "/dashboard" },
   { label: "Opportunity OS", href: "/opportunity" },
-  { label: "Kebu Builder", href: "/create" },
-  { label: "Kebu Create", href: "/studio" },
-  { label: "My business", href: "/account" },
+  { label: "Aesthetics", href: "/create/aesthetics" },
+  { label: "Kebu Studio", href: "/studio" },
+  { label: "My KEBU", href: "/business" },
 ];
 
 function NavDot() {
@@ -109,7 +109,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
             {authReady && signedIn ? (
               <>
                 <Link
-                  href="/dashboard"
+                  href="/account"
                   className="inline-flex items-center gap-2 font-bold uppercase tracking-[0.08em] rounded-full px-5 py-2.5 text-[11px]"
                   style={{ border: `2px solid ${KEBU.orange}`, color: KEBU.orange, background: KEBU.white }}
                 >
@@ -152,7 +152,7 @@ export function Nav({ transparent = false }: { transparent?: boolean }) {
 
           {authReady && signedIn ? (
             <Link
-              href="/dashboard"
+              href="/account"
               className="lg:hidden text-[11px] font-bold uppercase tracking-[0.08em] px-4 py-2 rounded-full"
               style={{ border: `1px solid ${KEBU.orange}`, color: KEBU.orange }}
             >

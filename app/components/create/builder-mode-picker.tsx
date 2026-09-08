@@ -2,24 +2,58 @@
 
 import { BUILDER } from "@/lib/create/builder-ui";
 
-const MODES = [
+export type BuilderCreateMode = "ai" | "photos" | "template" | "blank" | "import" | "code";
+
+type ModeDef = {
+  id: BuilderCreateMode;
+  title: string;
+  desc: string;
+  icon: string;
+  available: boolean;
+};
+
+const MODES: ModeDef[] = [
   {
-    id: "template" as const,
-    title: "Start from a design",
-    desc: "Browse live previews — pick a look, then customize.",
-    icon: "◆",
-  },
-  {
-    id: "ai" as const,
-    title: "Describe it to Yande",
-    desc: "Tell Yande your business — get a tailored first draft.",
+    id: "ai",
+    title: "Describe it — Yande designs",
+    desc: "Yande is the designer. Describe the store → get a full editable site → keep instructing until it feels right.",
     icon: "✦",
+    available: true,
   },
   {
-    id: "blank" as const,
+    id: "photos",
+    title: "Create from photos",
+    desc: "Upload your product or place photos — Kebu builds an editable site around them.",
+    icon: "▣",
+    available: true,
+  },
+  {
+    id: "template",
+    title: "Start from an aesthetic",
+    desc: "Optional inspiration from the Aesthetic store — still fully transformable with Yande.",
+    icon: "◆",
+    available: true,
+  },
+  {
+    id: "blank",
     title: "Blank canvas",
-    desc: "Empty site — you add every section yourself.",
+    desc: "You add every page and section yourself.",
     icon: "○",
+    available: true,
+  },
+  {
+    id: "import",
+    title: "Import my website",
+    desc: "Kebu analyzes your existing site and reconstructs it as editable structured data.",
+    icon: "↗",
+    available: false,
+  },
+  {
+    id: "code",
+    title: "Build with code",
+    desc: "For developers — code hooks alongside the Kebu schema.",
+    icon: "</>",
+    available: false,
   },
 ];
 
@@ -27,11 +61,11 @@ export function BuilderModePicker({
   value,
   onChange,
 }: {
-  value: "ai" | "template" | "blank";
-  onChange: (mode: "ai" | "template" | "blank") => void;
+  value: BuilderCreateMode;
+  onChange: (mode: BuilderCreateMode) => void;
 }) {
   return (
-    <div className="grid sm:grid-cols-3 gap-3">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {MODES.map((m) => {
         const active = value === m.id;
         return (
@@ -44,17 +78,28 @@ export function BuilderModePicker({
               background: active ? BUILDER.surface : BUILDER.surfaceMuted,
               border: active ? `2px solid ${BUILDER.orange}` : `1px solid ${BUILDER.border}`,
               boxShadow: active ? BUILDER.shadow : "none",
+              opacity: m.available ? 1 : active ? 1 : 0.88,
             }}
           >
-            <span
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm mb-3"
-              style={{
-                background: active ? BUILDER.orangeGlow : "#fff",
-                color: active ? BUILDER.orange : BUILDER.muted,
-              }}
-            >
-              {m.icon}
-            </span>
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <span
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm"
+                style={{
+                  background: active ? BUILDER.orangeGlow : "#fff",
+                  color: active ? BUILDER.orange : BUILDER.muted,
+                }}
+              >
+                {m.icon}
+              </span>
+              {!m.available ? (
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                  style={{ background: "rgba(10,10,10,0.06)", color: BUILDER.muted }}
+                >
+                  Not implemented
+                </span>
+              ) : null}
+            </div>
             <p className="text-sm font-bold leading-snug">{m.title}</p>
             <p className="text-xs mt-1.5 leading-relaxed" style={{ color: BUILDER.muted }}>
               {m.desc}
@@ -64,6 +109,10 @@ export function BuilderModePicker({
       })}
     </div>
   );
+}
+
+export function isBuilderCreateModeImplemented(mode: BuilderCreateMode): boolean {
+  return mode === "ai" || mode === "photos" || mode === "template" || mode === "blank";
 }
 
 export function BuilderSurface({

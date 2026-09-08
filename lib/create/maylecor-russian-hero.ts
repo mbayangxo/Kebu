@@ -2,7 +2,15 @@ import {
   LEGALLY_BLONDE_ASSETS,
   localizeLegallyBlondeAssetUrl,
 } from "./legally-blonde-defaults";
-import { defaultMaylecorKsendrProps } from "./maylecor-ksendr-defaults";
+import { defaultMaylecorKsendrProps, mergeMaylecorLogoExtras } from "./maylecor-ksendr-defaults";
+import {
+  MAYLECOR_FIGURE_ASSETS,
+  MAYLECOR_LOCAL_ASSETS,
+  MAYLECOR_SEED_REVISION,
+  isElleStockCutout,
+  isMaylecorStockTemplateAsset,
+} from "./maylecor-defaults";
+import { sanitizeMaylecorNavLinks } from "./maylecor-nav";
 
 const HERO_ASSET_KEYS = [
   "backgroundLayer",
@@ -16,10 +24,19 @@ const HERO_ASSET_KEYS = [
   "heroPhoto",
 ] as const;
 
+const MAYLECOR_FIGURE_KEYS = [
+  "cutoutLeft",
+  "cutoutRight",
+  "cutoutAccent",
+  "heroPhoto",
+] as const;
+
 /** User-uploaded assets must not be overwritten by Russian restore. */
 export function isUserUploadedSiteAsset(url: string): boolean {
   const u = url.trim();
   if (!u || u.startsWith("blob:")) return Boolean(u);
+  // Stock /templates/maylecor/* are NOT user uploads — upgrade may refresh them.
+  if (isMaylecorStockTemplateAsset(u)) return false;
   return (
     u.includes("/storage/v1/object/public/site-assets/") ||
     u.includes("/api/projects/") ||
@@ -44,6 +61,13 @@ export function normalizeMaylecorRussianHeroProps(
   artistName = "MAY LECOR",
 ): Record<string, unknown> {
   const base = defaultMaylecorKsendrProps(artistName);
+  const staleSeed = String(props.seedRevision ?? "") !== MAYLECOR_SEED_REVISION;
+  const userExtras = Array.isArray(props.extraCutouts) ? props.extraCutouts : null;
+  /** On seed bump, re-merge logo/city from current defaults so Cursor edits land in the draft. */
+  const extrasSource =
+    staleSeed || !userExtras || userExtras.length === 0
+      ? (base.extraCutouts ?? [])
+      : userExtras;
   const merged = {
     ...base,
     ...props,
@@ -51,11 +75,53 @@ export function normalizeMaylecorRussianHeroProps(
     brandLabel: String(props.brandLabel ?? props.title ?? base.brandLabel ?? artistName),
     subtitle: String(props.subtitle ?? base.subtitle),
     socialLinks: Array.isArray(props.socialLinks) ? props.socialLinks : base.socialLinks,
+    navLinks: sanitizeMaylecorNavLinks(
+      (Array.isArray(props.navLinks) ? props.navLinks : base.navLinks) as {
+        label?: string;
+        href?: string;
+      }[],
+    ),
     scrollMode: "parallax" as const,
     showExtras: false,
     appearance: "light" as const,
     displayFont: "Steelfish",
     motionEnabled: props.motionEnabled !== false,
+    /** Prefer circle seal image over generated Russian/English text ring. */
+    titleAsText: props.titleAsText === true ? true : false,
+    layerScales: staleSeed
+      ? { ...(base.layerScales as Record<string, number>) }
+      : {
+          ...(base.layerScales as Record<string, number>),
+          ...((props.layerScales as Record<string, number> | undefined) ?? {}),
+        },
+    layerMotions: {
+      ...((base.layerMotions as Record<string, string> | undefined) ?? {}),
+      ...((props.layerMotions as Record<string, string> | undefined) ?? {}),
+    },
+    layerLinks: {
+      ...((props.layerLinks as Record<string, string> | undefined) ?? {}),
+    },
+    hiddenLayers: Array.isArray(props.hiddenLayers)
+      ? (props.hiddenLayers as string[])
+      : [],
+    extraCutouts: mergeMaylecorLogoExtras(
+      extrasSource as {
+        id: string;
+        src: string;
+        alt?: string;
+        href?: string;
+        topPct: number;
+        leftPct: number;
+        widthPct: number;
+        rotate?: number;
+        zIndex?: number;
+        parallaxRole?: "city" | "figure" | "none";
+      }[],
+    ),
+    chromeLogo: staleSeed
+      ? MAYLECOR_LOCAL_ASSETS.logoStacked
+      : String(props.chromeLogo ?? "").trim() || MAYLECOR_LOCAL_ASSETS.logoStacked,
+    seedRevision: MAYLECOR_SEED_REVISION,
   } as Record<string, unknown>;
 
   const remapped = remapHeroAssetUrls(merged);
@@ -67,18 +133,61 @@ export function normalizeMaylecorRussianHeroProps(
       typeof fallback === "string"
         ? fallback
         : LEGALLY_BLONDE_ASSETS[key as keyof typeof LEGALLY_BLONDE_ASSETS];
-    if (!val || !isUserUploadedSiteAsset(val)) {
+    if (key === "titleLogo") {
+      const asText = remapped.titleAsText === true;
+      if (asText) {
+        remapped[key] = "";
+        remapped.titleAsText = true;
+        continue;
+      }
+      // Force May Lècor circle seal (not Russian SVG / empty).
       if (
+        staleSeed ||
         !val ||
+        val.includes("logo-banner.svg") ||
+        val.includes("logo-small.svg") ||
+        val.includes("/templates/legally-blonde/") ||
         val.includes("tildacdn.com") ||
         val.includes("wixstatic.com") ||
-        !val.includes("/templates/legally-blonde/")
+        isMaylecorStockTemplateAsset(val)
       ) {
+        remapped[key] = MAYLECOR_LOCAL_ASSETS.logoCircleSeal;
+        remapped.titleAsText = false;
+      }
+      continue;
+    }
+    const isFigure = (MAYLECOR_FIGURE_KEYS as readonly string[]).includes(key);
+    if (staleSeed && !isUserUploadedSiteAsset(val)) {
+      if (isFigure) {
+        remapped[key] = MAYLECOR_FIGURE_ASSETS[key as keyof typeof MAYLECOR_FIGURE_ASSETS];
+      } else {
+        remapped[key] = localDefault;
+      }
+      continue;
+    }
+    if (!val || !isUserUploadedSiteAsset(val)) {
+      const shouldReplaceFigure =
+        isFigure &&
+        (isElleStockCutout(val) ||
+          !val ||
+          isMaylecorStockTemplateAsset(val) ||
+          !val.includes("/templates/maylecor/"));
+      const shouldReplaceDecor =
+        !isFigure &&
+        (!val ||
+          val.includes("tildacdn.com") ||
+          val.includes("wixstatic.com") ||
+          isMaylecorStockTemplateAsset(val) ||
+          (key === "backgroundLayer" && !val.includes("/templates/legally-blonde/") && !val.includes("/templates/maylecor/")));
+      if (shouldReplaceFigure) {
+        remapped[key] = MAYLECOR_FIGURE_ASSETS[key as keyof typeof MAYLECOR_FIGURE_ASSETS];
+      } else if (shouldReplaceDecor) {
         remapped[key] = localDefault;
       }
     }
   }
 
+  remapped.seedRevision = MAYLECOR_SEED_REVISION;
   return remapped;
 }
 

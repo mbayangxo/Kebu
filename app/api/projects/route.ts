@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { createProjectSchema, DEFAULT_HERO_PROPS } from "@/lib/create/schemas";
+import { createServiceClient } from "@/lib/opportunity/admin";
+import { SHOP_TEAM_ROLES } from "@/lib/create/project-access";
 
 export const dynamic = "force-dynamic";
 
-/** List the signed-in user's projects. */
+/** List the signed-in user's projects + shops on businesses they can operate. */
 export async function GET() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
@@ -30,7 +32,53 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({ projects: data ?? [] });
+  const byId = new Map(
+    (data ?? []).map((p) => [p.id as string, p as Record<string, unknown>]),
+  );
+
+  const svc = createServiceClient();
+  if (svc) {
+    try {
+      const { data: memberships } = await svc
+        .from("business_members")
+        .select("business_id, role")
+        .eq("user_id", user.id)
+        .eq("status", "active");
+
+      const businessIds = [
+        ...new Set(
+          (memberships ?? [])
+            .filter((m) => (SHOP_TEAM_ROLES as readonly string[]).includes(String(m.role)))
+            .map((m) => m.business_id as string)
+            .filter(Boolean),
+        ),
+      ];
+
+      if (businessIds.length) {
+        const { data: teamProjects } = await svc
+          .from("projects")
+          .select("id, title, project_type, status, subdomain, created_at, updated_at")
+          .in("business_id", businessIds)
+          .order("updated_at", { ascending: false });
+
+        for (const p of teamProjects ?? []) {
+          if (!byId.has(p.id as string)) {
+            byId.set(p.id as string, p as Record<string, unknown>);
+          }
+        }
+      }
+    } catch {
+      /* team shops best-effort — owned list still returned */
+    }
+  }
+
+  const projects = [...byId.values()].sort((a, b) => {
+    const au = String(a.updated_at ?? "");
+    const bu = String(b.updated_at ?? "");
+    return bu.localeCompare(au);
+  });
+
+  return NextResponse.json({ projects });
 }
 
 /** Create a blank website project with a Home page (no sections yet). */

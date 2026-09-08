@@ -1,0 +1,20 @@
+---
+description: When requirements are ambiguous — propose options, do not silently invent
+alwaysApply: true
+---
+
+# Ambiguity — when NOT to code
+
+If requirements are **ambiguous**, do **not** silently invent major product decisions:
+
+- Navigation structure · pricing · data models · workflows · UI behavior · permissions
+
+Instead:
+
+1. **Identify** the ambiguity  
+2. Propose the **smallest** set of reasonable options  
+3. Document accepted decision in `docs/decisions/` when resolved  
+
+For **new major surfaces**, complete **Product Architect Phase** first — `docs/product/KEBU-PRODUCT-ARCHITECT-PHASE.md`.
+
+Do not substitute guessing for specification.

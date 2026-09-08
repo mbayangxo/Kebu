@@ -126,10 +126,47 @@
   overflow: hidden;
 }
 
+/* Builder parallax preview — scroll track inside editor pane (not window). */
+.lb-editor-parallax-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+.lb-editor-scroll-scene {
+  position: relative;
+  height: 220%;
+}
+
+.lb-editor-scroll-pin {
+  position: sticky;
+  top: 0;
+  height: 45.454%;
+  overflow: hidden;
+}
+
+@keyframes lb-cutout-pulse {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.07);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.lb-cutout-pulse {
+  animation: lb-cutout-pulse 0.36s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lb-splash,
   .lb-layer {
     animation: none !important;
     transition: none !important;
+  }
+
+  .lb-cutout-pulse {
+    animation: none !important;
   }
 }

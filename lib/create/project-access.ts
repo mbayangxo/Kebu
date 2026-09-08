@@ -7,12 +7,25 @@ export type ProjectAccessRow = {
   owner_id: string;
   title?: string | null;
   subdomain?: string | null;
+  business_id?: string | null;
   [key: string]: unknown;
 };
 
+export type ProjectAccessVia = "owner" | "support" | "team";
+
+/** Roles that may operate a linked shop (not viewers / finance-only). */
+export const SHOP_TEAM_ROLES = [
+  "founder",
+  "cofounder",
+  "administrator",
+  "store_manager",
+  "manager",
+  "creative",
+] as const;
+
 /**
- * Owner always wins. Support admins (env allowlist) may load/edit via service role
- * because RLS only allows owner_id = auth.uid().
+ * Owner always wins. Active business members with shop roles may access via service role
+ * (RLS is owner-scoped). Support admins (env allowlist) may load/edit the same way.
  */
 export async function assertProjectEditorAccess(
   userClient: SupabaseClient,
@@ -23,8 +36,8 @@ export async function assertProjectEditorAccess(
     select?: string;
     action?: string;
   },
-): Promise<{ project: ProjectAccessRow; via: "owner" | "support" } | null> {
-  const select = opts.select ?? "id, owner_id, title, subdomain";
+): Promise<{ project: ProjectAccessRow; via: ProjectAccessVia } | null> {
+  const select = opts.select ?? "id, owner_id, title, subdomain, business_id";
   const { data: owned } = await userClient
     .from("projects")
     .select(select)
@@ -36,12 +49,11 @@ export async function assertProjectEditorAccess(
     return { project: owned as unknown as ProjectAccessRow, via: "owner" };
   }
 
-  if (!isSupportAdminEmail(opts.email)) {
+  const service = createServiceClient();
+  if (!service) {
+    if (!isSupportAdminEmail(opts.email)) return null;
     return null;
   }
-
-  const service = createServiceClient();
-  if (!service) return null;
 
   const { data: project } = await service
     .from("projects")
@@ -52,6 +64,29 @@ export async function assertProjectEditorAccess(
   if (!project) return null;
 
   const row = project as unknown as ProjectAccessRow;
+  const businessId =
+    typeof row.business_id === "string" && row.business_id ? row.business_id : null;
+
+  if (businessId) {
+    const { data: member } = await service
+      .from("business_members")
+      .select("role")
+      .eq("business_id", businessId)
+      .eq("user_id", opts.userId)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (
+      member &&
+      (SHOP_TEAM_ROLES as readonly string[]).includes(String(member.role))
+    ) {
+      return { project: row, via: "team" };
+    }
+  }
+
+  if (!isSupportAdminEmail(opts.email)) {
+    return null;
+  }
 
   logSupportAccess({
     supportUserId: opts.userId,
@@ -64,10 +99,10 @@ export async function assertProjectEditorAccess(
   return { project: row, via: "support" };
 }
 
-/** Client to use for subsequent reads/writes (service role when support). */
+/** Client to use for subsequent reads/writes (service role when support/team). */
 export function dbForProjectAccess(
   userClient: SupabaseClient,
-  via: "owner" | "support",
+  via: ProjectAccessVia,
 ): SupabaseClient {
   if (via === "owner") return userClient;
   const service = createServiceClient();

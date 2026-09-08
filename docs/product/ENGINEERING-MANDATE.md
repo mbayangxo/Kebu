@@ -2,7 +2,23 @@
 
 Kebu is a **real production-oriented full-stack platform** — not a landing page, prototype, or demo.
 
-This document is the engineering contract for all slices. Agent rules: `.cursor/rules/kebu-constitution.mdc`, `kebu-vertical-slice.mdc`, `kebu-single-slice.mdc`.
+**Master contract (paste into Cursor):** `docs/product/KEBU-MASTER-ENGINEERING-INSTRUCTION.md`  
+**Agent rules:** `.cursor/rules/kebu-product-architect.mdc` · `kebu-master-engineering.mdc` · `kebu-vertical-slice.mdc` · `kebu-single-slice.mdc` · `kebu-constitution.mdc`
+
+---
+
+## How to use this with Cursor
+
+Do **not** give Cursor a vague “build Kebu” or “build Canva/Spotify/Shopify” prompt.
+
+0. **Product Architect Phase** — *“STOP. Do not write code. Decompose the product into a complete blueprint.”* — `docs/product/KEBU-PRODUCT-ARCHITECT-PHASE.md`  
+1. Point it at this mandate + `docs/IMPLEMENTATION_STATUS.md`  
+2. Assign **one slice**: *“Implement Slice N completely. Do not proceed to Slice N+1. End-to-end with Supabase before you stop.”*  
+3. **Design QA** — inspect running app; fix visual deficiencies until standard met  
+4. **Adversarial audit**: *“Audit Slice N. Trace every action frontend → Supabase → frontend. Fix bugs, RLS, authz, persistence, errors. Do not move on.”*  
+5. Update status · repeat  
+
+**Foundation first for new work:** Kebu Account + Kebu ID + Supabase + workspace/business — everything else depends on it.
 
 ---
 
@@ -10,124 +26,80 @@ This document is the engineering contract for all slices. Agent rules: `.cursor/
 
 Kebu helps African users **discover → learn → create → launch → operate → scale** digital businesses.
 
-Connected products (separate boundaries, shared core):
+Connected products (separate boundaries, shared core): Builder · Opportunity OS · Kebu Opportunity OS · Search · Cloud · Mail · Domains · Analytics · Business Infrastructure · AI (Yande) · Studio · Learn (No watching).
 
-1. **Kebu Builder** — sites, stores, templates, AI, domains, hosting, payments architecture, analytics  
-2. **Kebu Opportunity OS** — discovery, country/industry intelligence, build-this-opportunity  
-3. **Kebu Cloud** — deploy apps, DB, workers (future; invisible to beginners)  
-4. **Kebu Mail** — business email on custom domains (future)  
-5. **Kebu Domains** — connect/buy domains, DNS (partial via Builder today)  
-6. **Kebu Analytics** — business intelligence (future product)  
-7. **Kebu Business Infrastructure** — Kebu ID, registration, KA Score, team, documents  
-8. **Kebu AI** — assistant across products with RBAC  
-
-See `docs/KEBU-ECOSYSTEM.md` for the full map.
-
----
-
-## Architectural principle
-
-Products share **authentication, Kebu ID, billing, AI gateway, audit, notifications** — but must **not** become one tangled app.
-
-- Clear domain boundaries  
-- No duplicate core logic  
-- **No fake integrations**  
+See `docs/KEBU-ECOSYSTEM.md` · `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md` · `docs/product/KEBU-ACCOUNT-MODEL.md`.
 
 ---
 
 ## Absolute full-stack rule
 
-**Never:**
-
-- Frontend-only features  
-- Buttons that pretend to work  
-- Hardcoded fake data where persistence is required  
-- Frontend API calls without backend  
-- Backend without frontend flow  
-- Unused database tables  
-- UI for non-existent functionality  
-- “Complete” because the page looks finished  
-
-**Every feature:**
-
 ```
-UI → state → validation → API → auth → authz → logic → DB/storage → external services
-→ loading / empty / error / success → persistence → tests
+UI → state → validation → API → auth → authz → logic → Supabase → DB/storage
+→ loading / empty / error / success → persistence → refresh → tests
 ```
+
+**Never:** frontend-only · fake buttons · hardcoded fake data · disconnected APIs · unused tables · “complete” because UI looks finished · **building on a broken prior slice** · **hiding errors so the UI looks functional**.
 
 ---
 
-## Vertical slice development
+## Dependency repair (stop and fix first)
 
-**One complete vertical slice at a time.**
+If a **dependency slice is incomplete or broken**, **STOP** the current task. **Repair the dependency end-to-end** before adding new functionality.
 
-For each slice: define outcome → FE/BE/DB/auth → states → implement full flow → test → fix → refresh verify → authz verify → mobile → **then** next slice.
+Never stack new features on broken auth, migrations, RLS, persistence, or APIs.
+
+**Never hide errors** to make screens look working — surface failures honestly; fix root cause or mark **BLOCKED**.
+
+---
+
+## Supabase
+
+- Auth · PostgreSQL · **RLS** · Storage · migrations in `docs/migrations-to-apply/`  
+- Every persistent feature = schema + migration + RLS  
+- Service role **server-only** · never bypass RLS · never expose secrets to browser  
+
+---
+
+## Vertical slices
+
+One complete slice at a time: inspect → report → implement → test → adversarial audit → repair → status update → next slice.
 
 ---
 
 ## Definition of done
 
-Not done until:
+Fresh account works · refresh persists · auth + authz · all UI states · invalid/duplicate/network/unauthorized handled · FE/BE contracts match · critical tests · typecheck · lint · build · no fake prod behavior.
 
-- Fresh account works  
-- Refresh persists data  
-- Backend + DB verified  
-- Validation, auth, authz  
-- All UI states + invalid input + duplicates + network errors  
-- Unauthorized rejected; cross-user denied  
-- Important actions logged  
-- Automated tests for critical paths  
-- FE/BE contracts match  
-- No placeholder/TODO treated as done  
-- Typecheck, lint (changed files), build, tests pass  
+Status: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `IMPLEMENTED` · `TESTED` · `PRODUCTION READY`
 
 ---
 
 ## Bug policy
 
-Find root cause: frontend → API → backend → DB → external. Fix underlying issue. Add regression test when practical. **Do not hide errors.**
+Discover → reproduce → **root cause** → fix → regression test when practical. **Never hide errors** to make the UI appear functional. Never ignore or claim zero bugs.
 
----
-
-## Database policy
-
-Real entities, migrations only, FKs/constraints, server validation, ownership, RLS, indexes, idempotency where needed.
-
----
-
-## Security policy
-
-Secrets server-side only. Authz on server. Protect IDOR, injection, XSS, abuse, rate limits, file uploads.
-
----
-
-## AI policy
-
-Provider interface, validated output, no silent destructive ops, user understands when AI acts.
-
----
-
-## African-first
-
-Mobile, low bandwidth, affordability, plain language, first-time founders — not generic Western SaaS with new colors.
-
----
-
-## Before every implementation
-
-Inspect repo → plan → files/DB/APIs/tests → avoid duplicating existing systems.
-
----
-
-## After every implementation
-
-Typecheck · lint · unit · integration · E2E · build · migration validation · manual user journey trace.
+If a **prior slice is broken**, **stop** and repair it before continuing — do not build on broken foundations.
 
 ---
 
 ## No fake completion
 
-If not implementable yet, label **NOT IMPLEMENTED**. Build integration boundaries + document remaining config.
+**NOT IMPLEMENTED** or **BLOCKED** with explicit dependency — never “Saved” / “Published” / “Paid” without real backend proof.
+
+---
+
+## Builder · Search · Opportunity (product law)
+
+- Builder: next-gen African commerce + website **OS** — exceeds incumbents where it matters; structured schema; Kebu Business workspaces — `docs/product/KEBU-BUILDER-NEXT-GEN.md`  
+- Search: crawl → index → rank; AI on top with citations — **never chat-as-search** — `docs/product/KEBU-SEARCH.md`  
+- Opportunity OS (explore) ≠ Kebu Opportunity OS (for-you) — never merge  
+
+---
+
+## Documentation (keep in sync)
+
+`docs/ARCHITECTURE.md` · `docs/DATABASE.md` · `docs/API.md` · `docs/SECURITY.md` · `docs/TESTING.md` · `docs/ROADMAP.md` · **`docs/IMPLEMENTATION_STATUS.md`**
 
 ---
 

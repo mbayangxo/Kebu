@@ -11,7 +11,15 @@ import { BusinessStructureEditor } from "@/app/components/business/business-stru
 import { B2bProfileEditor } from "@/app/components/business/b2b-profile-editor";
 import { BusinessLogoEditor } from "@/app/components/business/business-logo-editor";
 import { EmailMarketingPanel } from "@/app/components/business/email-marketing-panel";
+import { BusinessEventsPanel } from "@/app/components/business/business-events-panel";
+import { BusinessOpsPanel } from "@/app/components/business/business-ops-panel";
+import { BusinessTeamPanel } from "@/app/components/business/business-team-panel";
+import { BusinessPressPanel } from "@/app/components/business/business-press-panel";
+import { BusinessArtistCampaignsPanel } from "@/app/components/business/business-artist-campaigns-panel";
+import { BusinessArtistMediaPanel } from "@/app/components/business/business-artist-media-panel";
 import { KEBU } from "@/lib/kebu-brand";
+import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
+import { portalModulesForCategory } from "@/lib/business/portal-modules";
 
 type Business = {
   id: string;
@@ -52,7 +60,6 @@ type ProgressStep = {
   completed_at: string | null;
 };
 
-type Member = { id: string; role: string; status: string; user_id: string };
 type Owner = { full_name: string; email: string; ownership_percent: number; is_primary_founder: boolean };
 type StatusRow = { id: string; from_status: string | null; to_status: string; note: string | null; created_at: string };
 
@@ -73,7 +80,6 @@ export default function BusinessDashboardPage() {
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
   const [role, setRole] = useState<string | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [progress, setProgress] = useState<ProgressStep[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusRow[]>([]);
@@ -104,7 +110,6 @@ export default function BusinessDashboardPage() {
       }
       setBusiness(data.business);
       setRole(data.membership?.role ?? null);
-      setMembers(Array.isArray(data.members) ? data.members : []);
       setOwners(Array.isArray(data.owners) ? data.owners : []);
       setProgress(Array.isArray(data.registrationProgress) ? data.registrationProgress : []);
       setStatusHistory(Array.isArray(data.statusHistory) ? data.statusHistory : []);
@@ -367,6 +372,39 @@ export default function BusinessDashboardPage() {
                 className="rounded-2xl p-5 mb-6"
                 style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
               >
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.muted }}>
+                  Portal for this business type ({business.category})
+                </p>
+                <ul className="flex flex-wrap gap-2 mb-4">
+                  {portalModulesForCategory(business.category).map((m) => (
+                    <li
+                      key={m.id}
+                      className="rounded-full px-3 py-1 text-[10px] font-semibold"
+                      style={{ background: KEBU.cream, color: KEBU.black }}
+                      title={m.why}
+                    >
+                      {m.label}
+                    </li>
+                  ))}
+                </ul>
+                <BusinessEventsPanel businessId={business.id} />
+              </section>
+            )}
+
+            {(role === "founder" || role === "administrator" || role === "store_manager") && (
+              <section
+                className="rounded-2xl p-5 mb-6"
+                style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
+              >
+                <BusinessOpsPanel businessId={business.id} />
+              </section>
+            )}
+
+            {(role === "founder" || role === "administrator" || role === "store_manager") && (
+              <section
+                className="rounded-2xl p-5 mb-6"
+                style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
+              >
                 <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Email & campaigns</h2>
                 <EmailMarketingPanel businessId={business.id} />
               </section>
@@ -459,7 +497,7 @@ export default function BusinessDashboardPage() {
                 </dt>
                 <dd className="mt-1 text-sm" style={{ color: KEBU.muted }}>
                   B2C: add products in{" "}
-                  <Link href="/create/sites" className="underline font-semibold" style={{ color: KEBU.orange }}>
+                  <Link href={MY_SITES_HREF} className="underline font-semibold" style={{ color: KEBU.orange }}>
                     Kebu Builder
                   </Link>
                   . Checkout & payouts coming next.
@@ -475,30 +513,29 @@ export default function BusinessDashboardPage() {
               </div>
             </dl>
 
+            <BusinessTeamPanel businessId={id} />
+            <BusinessPressPanel businessId={id} />
+            <BusinessArtistCampaignsPanel businessId={id} />
+            <BusinessArtistMediaPanel businessId={id} />
+
             <section
               className="rounded-2xl p-5 mb-6"
               style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
             >
-              <h2 className="text-sm font-bold uppercase tracking-wider mb-3">Members</h2>
-              <ul className="text-sm space-y-2">
-                {members.map((m) => (
-                  <li key={m.id} style={{ color: KEBU.muted }}>
-                    {m.role} · {m.status}
-                  </li>
-                ))}
-              </ul>
-              {owners.length > 0 && (
-                <>
-                  <h3 className="text-xs font-bold uppercase tracking-wider mt-4 mb-2">Owners</h3>
-                  <ul className="text-sm space-y-2">
-                    {owners.map((o) => (
-                      <li key={o.email} style={{ color: KEBU.muted }}>
-                        {o.full_name} · {Number(o.ownership_percent)}% · {o.email}
-                        {o.is_primary_founder ? " · founder" : ""}
-                      </li>
-                    ))}
-                  </ul>
-                </>
+              <h2 className="text-sm font-bold uppercase tracking-wider mb-3">Owners</h2>
+              {owners.length === 0 ? (
+                <p className="text-sm" style={{ color: KEBU.muted }}>
+                  No ownership rows yet.
+                </p>
+              ) : (
+                <ul className="text-sm space-y-2">
+                  {owners.map((o) => (
+                    <li key={o.email} style={{ color: KEBU.muted }}>
+                      {o.full_name} · {Number(o.ownership_percent)}% · {o.email}
+                      {o.is_primary_founder ? " · founder" : ""}
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
 

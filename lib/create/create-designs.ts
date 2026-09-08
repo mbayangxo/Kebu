@@ -1,7 +1,7 @@
 import { z } from "zod";
+import { canvasDocumentSchema, STUDIO_DESIGN_TYPES } from "@/lib/studio/canvas-document";
 
-export const CREATE_DESIGN_TYPES = ["poster", "social_square", "flyer"] as const;
-
+/** @deprecated Legacy flat poster fields — use CanvasDocument via parseCanvasDocument */
 export const createDesignCanvasSchema = z.object({
   headline: z.string().trim().max(120).default(""),
   subheadline: z.string().trim().max(200).default(""),
@@ -12,11 +12,13 @@ export const createDesignCanvasSchema = z.object({
   businessName: z.string().trim().max(120).default(""),
 });
 
+export const CREATE_DESIGN_TYPES = STUDIO_DESIGN_TYPES;
+
 export const createDesignSchema = z.object({
   title: z.string().trim().min(1).max(120),
   designType: z.enum(CREATE_DESIGN_TYPES).default("poster"),
   businessId: z.string().uuid().optional().nullable(),
-  canvas: createDesignCanvasSchema.partial().optional(),
+  canvas: z.union([createDesignCanvasSchema.partial(), canvasDocumentSchema]).optional(),
 });
 
 export type CreateDesignCanvas = z.infer<typeof createDesignCanvasSchema>;

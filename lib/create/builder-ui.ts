@@ -17,37 +17,52 @@ export const BUILDER = {
 } as const;
 
 export const YANDE_SUGGESTIONS_CREATE = [
-  "Fashion brand in Dakar — bold, mobile-first, WhatsApp orders",
+  "Create a Senegalese fashion store. Luxury African fashion magazine feel. Sand, deep green and gold. Founder story under the hero. Large editorial product cards.",
+  "Beauty brand in Dakar — soft pink and black, big product photos, WhatsApp to order",
   "Music artist site with streaming links and tour dates",
-  "Restaurant with menu, photos, and reservation button",
-  "Creative agency portfolio for West African clients",
+  "Neighborhood shop — XOF prices, Wave + WhatsApp checkout",
 ] as const;
 
 export const YANDE_SUGGESTIONS_IMPROVE = [
-  "Make the hero clearer for young customers in Dakar",
+  "Make it less Shopify-looking and more like a high-end fashion website",
+  "Add a wholesale section",
+  "Make the mobile version completely different from desktop",
+  "Make the homepage feel more expensive",
   "Add a WhatsApp call-to-action on every page",
-  "Use warmer, more confident language",
-  "Highlight our best products above the fold",
-  "Keep the Wix K-Direction look — only improve the mission and social link labels",
-  "Rewrite Artist / Events / News page copy in plain language",
+  "Put the founder story immediately below the hero",
 ] as const;
 
-/** Curated section types for the editor — not every internal type at once. */
-export const BUILDER_QUICK_SECTIONS: { type: string; label: string }[] = [
-  { type: "text", label: "Text" },
-  { type: "free-text", label: "Moveable text layout" },
-  { type: "image", label: "Image" },
-  { type: "gallery", label: "Photo grid" },
-  { type: "video", label: "Video" },
-  { type: "audio", label: "Music / audio" },
-  { type: "products", label: "Products" },
-  { type: "features", label: "Features" },
-  { type: "testimonials", label: "Quotes" },
-  { type: "faq", label: "FAQ" },
-  { type: "contact", label: "Contact" },
-  { type: "newsletter", label: "Email list" },
-  { type: "whatsapp", label: "WhatsApp" },
-  { type: "events", label: "Events" },
-  { type: "map", label: "Map" },
-  { type: "hero", label: "Hero banner" },
-];
+/** AI builder modes A5–A8 (inside existing site editor). */
+export const YANDE_IMPROVE_MODES = [
+  {
+    id: "redesign" as const,
+    label: "A5 Redesign",
+    hint: "Restyle the whole look — keep your facts & photos",
+    seed: "Redesign this site to feel more premium and mobile-ready for customers in Senegal.",
+  },
+  {
+    id: "page" as const,
+    label: "A6 Page",
+    hint: "Generate or strengthen a page / section",
+    seed: "Add or strengthen a clear page with hero, proof, and WhatsApp contact.",
+  },
+  {
+    id: "rewrite" as const,
+    label: "A7 Rewrite",
+    hint: "Improve headlines and body copy only",
+    seed: "Rewrite the copy so it is clearer and more persuasive — do not change photos or layout.",
+  },
+  {
+    id: "convert" as const,
+    label: "A8 Convert",
+    hint: "Optimize CTAs & mobile conversion",
+    seed: "Optimize for mobile conversion — clearer CTAs, WhatsApp / Wave order path, less fluff.",
+  },
+] as const;
+
+export {
+  BUILDER_QUICK_SECTIONS,
+  BUILDER_SECTION_CATALOG,
+  BUILDER_SECTION_CATEGORIES,
+  labelForSectionType,
+} from "./builder-section-catalog";

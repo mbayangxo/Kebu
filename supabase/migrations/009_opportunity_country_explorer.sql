@@ -82,6 +82,7 @@ alter table public.country_profiles
 
 -- Public read published only (replace open read if present)
 drop policy if exists "Anyone can read country profiles" on public.country_profiles;
+drop policy if exists "Anyone can read published country profiles" on public.country_profiles;
 create policy "Anyone can read published country profiles"
   on public.country_profiles for select
   using (publish_status = 'published');

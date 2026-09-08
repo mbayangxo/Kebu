@@ -1,0 +1,37 @@
+---
+description: African property infrastructure — trust/Passport/Scam Shield; NOT STARTED until assigned
+alwaysApply: true
+---
+
+# Kebu Property Infrastructure
+
+Full spec: `docs/product/KEBU-PROPERTY-INFRASTRUCTURE.md`
+
+**NOT STARTED** until explicitly assigned. Do not build listing UI, fake verify badges, or property nav in Phase One without assignment.
+
+## Framing
+
+**Not** a property website or “African Mubawab.” **Infrastructure underneath African property transactions.**
+
+**Trust is the product:** Property Passport (e.g. `SN-SAL-004821`) with honest **N/M checks completed** — never “Verified” when incomplete.
+
+## Core systems (future — slice order in spec)
+
+Scam Shield (proactive fraud) · Payment orchestration (cash + Wave/Orange/cards — one ledger) · Diaspora mode · Professionals network + transparent Trust Scores · BUILD HERE + construction escrow/milestones · Property OS · Short-stay · Use-case search (“land near…”) · Intelligence with Verified/Estimate/AI labels · **Africa Lens** country modules · Admin OS
+
+## V1 (Senegal first when assigned)
+
+DISCOVER · VERIFY (Passport) · CONNECT · SAVE · MESSAGE — only. Not V2–V6 until V1 is TESTED.
+
+## Domains
+
+PROPERTY CORE · MARKETPLACE · TRANSACTIONS · BUILD · OPERATIONS · INTELLIGENCE — shared Kebu Account; separate schemas; API boundaries.
+
+## Rules
+
+- Mobile-first · PWA · low bandwidth · eventual WhatsApp/SMS/USSD  
+- One Kebu Account — diaspora uses same identity  
+- End-to-end slices only · repair broken deps first · never hide errors  
+- **Forbidden:** fake verification · fake scores · digital-only payments pretense · launching all 17 layers at once
+
+Moat = **verification + transaction + reputation + fraud data** — not UI.

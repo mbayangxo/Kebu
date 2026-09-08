@@ -21,6 +21,7 @@ describe("kebu-workspace", () => {
   });
 
   it("infers workspace from deep links", () => {
+    expect(inferWorkspaceFromPath("/my-sites")).toBe("business");
     expect(inferWorkspaceFromPath("/create/sites")).toBe("business");
     expect(inferWorkspaceFromPath("/b2b")).toBe("business");
     expect(inferWorkspaceFromPath("/studio/new")).toBe("studio");

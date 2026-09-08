@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { siteSeoSchema, containsUnsafeSiteContent } from "./site-seo";
+import { navLinksArraySchema } from "./maylecor-nav";
 
 export const SECTION_TYPES = [
   "navigation",
@@ -17,6 +18,9 @@ export const SECTION_TYPES = [
   "products",
   "contact",
   "newsletter",
+  "email-popup",
+  "form",
+  "blog-list",
   "whatsapp",
   "free-text",
   "footer",
@@ -37,6 +41,12 @@ export const themeSchema = z.object({
   fontDisplay: z.string().trim().max(80).default("Fraunces"),
   fontBody: z.string().trim().max(80).default("system-ui"),
   spacing: z.enum(["compact", "comfortable", "airy"]).default("comfortable"),
+  /** Relative heading size — Shopify-style typography scale. */
+  headingScale: z.enum(["sm", "md", "lg", "xl"]).optional().default("md"),
+  /** Body text size. */
+  bodySize: z.enum(["sm", "md", "lg"]).optional().default("md"),
+  letterSpacing: z.enum(["tight", "normal", "wide"]).optional().default("normal"),
+  aestheticId: z.string().trim().max(40).optional(),
 });
 
 const safeHref = z
@@ -88,6 +98,14 @@ const socialRailFields = {
   socialRailIconSize: z.number().min(16).max(80).optional().default(40),
 };
 
+/** Per-device copy/layout overrides (W9) — tablet/mobile only; desktop uses base props. */
+const deviceOverridesSchema = z
+  .object({
+    tablet: z.record(z.string(), z.unknown()).optional(),
+    mobile: z.record(z.string(), z.unknown()).optional(),
+  })
+  .optional();
+
 export const sectionPropsSchemas = {
   navigation: z.object({
     brand: z.string().trim().min(1).max(80),
@@ -95,7 +113,13 @@ export const sectionPropsSchemas = {
       .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
       .max(8)
       .default([]),
+    /** compact → fullscreen width; combined with navScale. */
+    navSize: z.enum(["compact", "comfortable", "large", "fullscreen"]).optional().default("comfortable"),
+    navScale: z.number().min(0.7).max(2.2).optional().default(1),
+    /** Top bar (regular) or left side rail. */
+    navLayout: z.enum(["top", "side"]).optional().default("top"),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   hero: z.object({
     heading: z.string().trim().min(1).max(160),
@@ -105,11 +129,13 @@ export const sectionPropsSchemas = {
     align: z.enum(["left", "center"]).default("center"),
     background: z.string().trim().max(40).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   text: z.object({
     heading: z.string().trim().max(160).optional(),
     body: z.string().trim().min(1).max(2000),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   image: z.object({
     src: imageUrl,
@@ -118,17 +144,45 @@ export const sectionPropsSchemas = {
     hidden: z.boolean().optional(),
   }),
   gallery: z.object({
+    heading: z.string().trim().max(160).optional(),
     items: z
-      .array(z.object({ src: z.string().trim().max(500), alt: z.string().trim().max(160).default("") }))
-      .max(12)
+      .array(
+        z.object({
+          src: z.string().trim().max(500),
+          alt: z.string().trim().max(160).default(""),
+          href: safeHref.optional().default(""),
+        }),
+      )
+      .max(24)
       .default([]),
+    /** grid = thumbnails · single = one full-width photo · featured = first large + rest grid */
+    layout: z.enum(["grid", "single", "featured"]).optional().default("grid"),
+    columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().default(3),
     hidden: z.boolean().optional(),
   }),
   video: z.object({
     heading: z.string().trim().max(160).optional(),
-    src: z.string().trim().max(500).default(""),
+    /** Legacy single video — still works; prefer `items` for multi-video pages. */
+    src: z.string().trim().max(500).optional().default(""),
     title: z.string().trim().max(120).optional(),
     caption: z.string().trim().max(200).optional(),
+    /** Custom poster image (uploaded) for the legacy single video. */
+    thumbnail: imageUrl.optional().default(""),
+    items: z
+      .array(
+        z.object({
+          src: z.string().trim().max(500).default(""),
+          title: z.string().trim().max(120).optional().default(""),
+          caption: z.string().trim().max(200).optional().default(""),
+          thumbnail: imageUrl.optional().default(""),
+        }),
+      )
+      .max(24)
+      .optional()
+      .default([]),
+    /** grid = thumbnail cards · single = one player · featured = first large + rest as thumbs */
+    layout: z.enum(["grid", "single", "featured"]).optional().default("grid"),
+    columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().default(2),
     hidden: z.boolean().optional(),
   }),
   audio: z.object({
@@ -165,11 +219,21 @@ export const sectionPropsSchemas = {
   }),
   features: z.object({
     heading: z.string().trim().max(160).default("Features"),
+    /** grid = cards · moodboard = animated mosaic tiles (May's World / artist hubs) */
+    layout: z.enum(["grid", "moodboard"]).optional().default("grid"),
     items: z
-      .array(z.object({ title: z.string().trim().max(80), body: z.string().trim().max(240) }))
-      .max(8)
+      .array(
+        z.object({
+          title: z.string().trim().max(80),
+          body: z.string().trim().max(240),
+          href: z.string().trim().max(500).optional(),
+          image: imageUrl.optional().default(""),
+        }),
+      )
+      .max(12)
       .default([]),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   testimonials: z.object({
     heading: z.string().trim().max(160).default("What customers say"),
@@ -186,9 +250,20 @@ export const sectionPropsSchemas = {
       .max(12)
       .default([]),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   products: z.object({
     heading: z.string().trim().max(160).default("Products"),
+    /** How products appear on the shop page. */
+    layout: z.enum(["grid", "grid-dense", "list", "featured"]).optional().default("grid"),
+    /** Columns for grid layouts (ignored for list). */
+    columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional().default(3),
+    /**
+     * How Place order opens — each aesthetic can pick a different checkout chrome.
+     * inline = expand under product; sheet = bottom sheet; card = bordered panel; minimal = compact fields.
+     */
+    orderStyle: z.enum(["inline", "sheet", "card", "minimal"]).optional().default("inline"),
+    orderCtaLabel: z.string().trim().max(40).optional().default("Place order"),
     items: z
       .array(
         z.object({
@@ -197,11 +272,32 @@ export const sectionPropsSchemas = {
           priceLabel: z.string().trim().max(60).default(""),
           imageUrl: imageUrl.default(""),
           whatsappMessage: z.string().trim().max(300).optional(),
+          productId: z.string().uuid().optional(),
+          isSubscription: z.boolean().optional(),
+          subscriptionInterval: z
+            .enum(["weekly", "monthly", "quarterly", "yearly"])
+            .optional(),
+          hasVariants: z.boolean().optional(),
+          variants: z
+            .array(
+              z.object({
+                id: z.string().uuid(),
+                name: z.string().trim().max(120),
+                option1: z.string().trim().max(60).default(""),
+                option2: z.string().trim().max(60).default(""),
+                option3: z.string().trim().max(60).default(""),
+                priceLabel: z.string().trim().max(60).default(""),
+                imageUrl: imageUrl.default(""),
+              }),
+            )
+            .max(48)
+            .optional(),
         }),
       )
       .max(24)
       .default([]),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   contact: z.object({
     heading: z.string().trim().max(160).default("Contact"),
@@ -215,6 +311,66 @@ export const sectionPropsSchemas = {
     subheading: z.string().trim().max(240).default("Get updates, offers, and news by email."),
     buttonLabel: z.string().trim().max(40).default("Subscribe"),
     successMessage: z.string().trim().max(160).default("Thanks — you're on the list."),
+    hidden: z.boolean().optional(),
+  }),
+  form: z.object({
+    heading: z.string().trim().max(160).default("Contact us"),
+    subheading: z
+      .string()
+      .trim()
+      .max(240)
+      .default("Send a message — we reply on WhatsApp or email."),
+    buttonLabel: z.string().trim().max(40).default("Send"),
+    successMessage: z.string().trim().max(160).default("Thanks — we received your message."),
+    notifyEmail: z.union([z.literal(""), z.string().trim().email().max(254)]).optional(),
+    fields: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(40),
+          label: z.string().trim().min(1).max(80),
+          type: z.enum(["text", "email", "phone", "textarea", "select"]).default("text"),
+          required: z.boolean().default(false),
+          placeholder: z.string().trim().max(120).default(""),
+          options: z.array(z.string().trim().max(60)).max(12).default([]),
+        }),
+      )
+      .min(1)
+      .max(12)
+      .default([
+        { id: "name", label: "Your name", type: "text", required: true, placeholder: "", options: [] },
+        { id: "email", label: "Email", type: "email", required: false, placeholder: "", options: [] },
+        { id: "message", label: "Message", type: "textarea", required: true, placeholder: "", options: [] },
+      ]),
+    hidden: z.boolean().optional(),
+  }),
+  "blog-list": z.object({
+    heading: z.string().trim().max(160).default("Blog"),
+    subheading: z.string().trim().max(240).default("News and updates from our team."),
+    postsPerPage: z.number().int().min(1).max(12).default(6),
+    hidden: z.boolean().optional(),
+  }),
+  /** Overlay: cookie/privacy consent and/or email capture (persists via localStorage + DB list). */
+  "email-popup": z.object({
+    enabled: z.boolean().optional().default(true),
+    mode: z.enum(["email", "consent", "both"]).default("both"),
+    heading: z.string().trim().max(160).default("Stay in the loop"),
+    body: z
+      .string()
+      .trim()
+      .max(400)
+      .default("Get offers by email. We respect your inbox — unsubscribe anytime."),
+    buttonLabel: z.string().trim().max(40).default("Subscribe"),
+    dismissLabel: z.string().trim().max(40).default("No thanks"),
+    consentLabel: z
+      .string()
+      .trim()
+      .max(200)
+      .default("I agree to cookies needed for this site to work."),
+    acceptConsentLabel: z.string().trim().max(40).default("Accept"),
+    successMessage: z.string().trim().max(160).default("You're on the list."),
+    delaySeconds: z.number().int().min(0).max(60).default(4),
+    /** Days before showing again after dismiss (0 = every visit until accept). */
+    remindAfterDays: z.number().int().min(0).max(365).default(14),
     hidden: z.boolean().optional(),
   }),
   whatsapp: z.object({
@@ -274,6 +430,26 @@ export const sectionPropsSchemas = {
     artistName: z.string().trim().min(1).max(80),
     albumArt: imageUrl,
     homePageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(40).default("home"),
+    tracks: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(40),
+          title: z.string().trim().min(1).max(120),
+          coverUrl: imageUrl.optional().default(""),
+          links: z
+            .array(
+              z.object({
+                platform: z.enum(["spotify", "apple", "youtube", "soundcloud", "other"]),
+                href: safeHref.optional().default(""),
+              }),
+            )
+            .max(8)
+            .default([]),
+        }),
+      )
+      .max(24)
+      .optional()
+      .default([]),
     socialLinks: socialLinksSchema,
     ...socialRailFields,
     motionEnabled: z.boolean().optional().default(true),
@@ -296,30 +472,71 @@ export const sectionPropsSchemas = {
     /** Steelfish = Russian original; swap to Oswald/Bebas/etc in editor. */
     displayFont: z.string().trim().max(80).optional().default("Steelfish"),
     motionEnabled: z.boolean().optional().default(true),
-    navLinks: z
-      .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
-      .max(8)
-      .optional()
-      .default([]),
+    navLinks: navLinksArraySchema.optional().default([]),
+    /** Top nav size: compact / comfortable / large / fullscreen (edge-to-edge). */
+    navSize: z.enum(["compact", "comfortable", "large", "fullscreen"]).optional().default("comfortable"),
+    /** Extra scale on nav type & padding (0.7–2.2). */
+    navScale: z.number().min(0.7).max(2.2).optional().default(1),
+    /** Top bar (regular) or left side rail. */
+    navLayout: z.enum(["top", "side"]).optional().default("top"),
+    /**
+     * How top nav labels render: words · built-in icons · custom photos/icons per link.
+     * Per-link iconUrl always wins when set.
+     */
+    navDisplay: z.enum(["text", "icons", "photos"]).optional().default("text"),
+    /** Small May logo in the upper chrome (click → home). Empty + showChromeLogo false = hidden. */
+    chromeLogo: imageUrl.optional().default(""),
+    showChromeLogo: z.boolean().optional().default(true),
     socialLinks: socialLinksSchema.optional().default([]),
     ...socialRailFields,
     /** Pixel nudges for Tilda layers while editing (keyed by layer id). */
     layerMoves: z
-      .record(z.string(), z.object({ dx: z.number().min(-800).max(800), dy: z.number().min(-800).max(800) }))
+      .record(z.string(), z.object({ dx: z.number().min(-2000).max(2000), dy: z.number().min(-2000).max(2000) }))
       .optional()
       .default({}),
+    /** Absolute % positions for builder canvas layers (preferred over layerMoves for edit canvas). */
+    layerPositions: z
+      .record(
+        z.string(),
+        z.object({
+          leftPct: z.number().min(-20).max(110),
+          topPct: z.number().min(-20).max(110),
+        }),
+      )
+      .optional()
+      .default({}),
+    /** Scale multipliers for layers / cutouts (1 = default). Mouse-resize writes here. */
+    layerScales: z
+      .record(z.string(), z.number().min(0.15).max(3))
+      .optional()
+      .default({}),
+    /** Per-layer motion: spin / float / bob / none. */
+    layerMotions: z
+      .record(z.string(), z.enum(["spin", "float", "bob", "none"]))
+      .optional()
+      .default({}),
+    /** Click-through links for built-in cutout slots (keyed by prop name, e.g. cutoutLeft). */
+    layerLinks: z
+      .record(z.string().trim().min(1).max(40), safeHref)
+      .optional()
+      .default({}),
+    /** Built-in cutout keys the founder removed (do not fall back to Russian assets). */
+    hiddenLayers: z.array(z.string().trim().min(1).max(40)).max(20).optional().default([]),
     /** Extra user cutouts on the hero artboard (drag / upload / delete). */
     extraCutouts: z
       .array(
-        z.object({
+          z.object({
           id: z.string().trim().min(1).max(40),
           src: imageUrl,
           alt: z.string().trim().max(120).optional().default(""),
+          href: safeHref.optional().default(""),
           topPct: z.number().min(-20).max(110).default(30),
           leftPct: z.number().min(-20).max(110).default(40),
-          widthPct: z.number().min(4).max(60).default(14),
+          widthPct: z.number().min(4).max(80).default(14),
           rotate: z.number().min(-45).max(45).optional().default(0),
           zIndex: z.number().int().min(1).max(40).optional().default(12),
+          /** city = scrolls behind May; figure = stays forward; none = fixed. */
+          parallaxRole: z.enum(["city", "figure", "none"]).optional().default("none"),
         }),
       )
       .max(12)
@@ -331,7 +548,7 @@ export const sectionPropsSchemas = {
     showExtras: z.boolean().optional().default(false),
     /** viewport = single-screen hero (nav to other pages). parallax = Russian-style scroll scene. */
     scrollMode: z.enum(["viewport", "parallax"]).optional().default("parallax"),
-    /** Show brand name as editable text instead of the spinning Russian logo circle. */
+    /** false = use titleLogo image (May Lècor circle seal); true = CircularBrandRing text. */
     titleAsText: z.boolean().optional().default(false),
     hidden: z.boolean().optional(),
   }),
@@ -367,6 +584,7 @@ export const sectionPropsSchemas = {
         z.object({
           src: imageUrl,
           alt: z.string().trim().max(80).optional().default(""),
+          href: safeHref.optional().default(""),
           rotate: z.number().min(-60).max(60).default(0),
           topPct: z.number().min(-20).max(120).default(10),
           leftPct: z.number().min(-20).max(120).default(10),
@@ -398,10 +616,10 @@ export const sectionPropsSchemas = {
       .max(12)
       .optional()
       .default([]),
-    navLinks: z
-      .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
-      .max(10)
-      .default([]),
+    navLinks: navLinksArraySchema.default([]),
+    navSize: z.enum(["compact", "comfortable", "large", "fullscreen"]).optional().default("comfortable"),
+    navScale: z.number().min(0.7).max(2.2).optional().default(1),
+    navLayout: z.enum(["top", "side"]).optional().default("top"),
     socialLinks: socialLinksSchema.default([]),
     footerText: z.string().trim().max(160).default(""),
     motionEnabled: z.boolean().optional().default(true),
@@ -420,10 +638,10 @@ export const sectionPropsSchemas = {
     navButtonBg: z.string().trim().max(40).optional().default("#FFF86B"),
     ctaLabel: z.string().trim().max(80).optional().default(""),
     ctaHref: safeHref.optional().default(""),
-    navLinks: z
-      .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
-      .max(10)
-      .default([]),
+    navLinks: navLinksArraySchema.default([]),
+    navSize: z.enum(["compact", "comfortable", "large", "fullscreen"]).optional().default("comfortable"),
+    navScale: z.number().min(0.7).max(2.2).optional().default(1),
+    navLayout: z.enum(["top", "side"]).optional().default("top"),
     socialLinks: socialLinksSchema.default([]),
     footerText: z.string().trim().max(160).default(""),
     hidden: z.boolean().optional(),
@@ -497,7 +715,7 @@ export function validateWebsiteDefinition(input: unknown): {
 }
 
 export const createWebsiteBriefSchema = z.object({
-  mode: z.enum(["blank", "template", "ai"]),
+  mode: z.enum(["blank", "template", "ai", "photos"]),
   /** Optional — link a Kebu ID business later from Business or project settings. */
   businessId: z.string().uuid().optional(),
   businessName: z.string().trim().min(1).max(120),
@@ -508,6 +726,20 @@ export const createWebsiteBriefSchema = z.object({
   desiredPages: z.array(z.string().trim().max(40)).max(8).default(["home"]),
   visualDirection: z.string().trim().max(240).optional(),
   templateSlug: z.string().trim().max(80).optional(),
+  /** A4 — public image URLs from draft photo upload (required when mode is photos). */
+  photoUrls: z
+    .array(
+      z.union([
+        z.string().trim().url().max(500),
+        z
+          .string()
+          .trim()
+          .max(500)
+          .regex(/^\/[a-zA-Z0-9._\-/]+$/),
+      ]),
+    )
+    .max(8)
+    .optional(),
   subdomain: z
     .string()
     .trim()
@@ -522,6 +754,11 @@ export type CreateWebsiteBrief = z.infer<typeof createWebsiteBriefSchema>;
 
 /** Optional instruction when improving an existing draft site with AI. */
 export const aiImproveBriefSchema = z.object({
+  /**
+   * A5 redesign · A6 page/section · A7 rewrite copy · A8 convert/mobile.
+   * Modes shape the default instruction when the user picks a chip.
+   */
+  mode: z.enum(["redesign", "page", "rewrite", "convert", "free"]).optional().default("free"),
   instruction: z
     .string()
     .trim()
@@ -532,6 +769,8 @@ export const aiImproveBriefSchema = z.object({
     .array(sectionTypeSchema)
     .max(8)
     .optional(),
+  /** Target page slug for A6 generate/rewrite on one page. */
+  focusPageSlug: z.string().trim().max(80).optional(),
 });
 
 export type AiImproveBrief = z.infer<typeof aiImproveBriefSchema>;

@@ -1,44 +1,79 @@
 /** Signed-in navigation — grouped by workspace. One account, connected products. */
 
+export const MY_SITES_HREF = "/my-sites" as const;
+
+export function mySiteDetailHref(projectId: string): string {
+  return `${MY_SITES_HREF}/${projectId}`;
+}
+
+/** Scope business nav to active Kebu ID when one is selected. */
+export function businessNavHref(href: string, activeBusinessId: string | null): string {
+  if (!activeBusinessId) return href;
+  if (href === "/business" || href === "/business/") return `/business/${activeBusinessId}`;
+  if (href.startsWith("/business/register")) return href;
+  if (href.startsWith("/ka-score")) return `/ka-score?business=${activeBusinessId}`;
+  return href;
+}
+
 export type NavItem = { label: string; href: string; exact?: boolean };
 
+/**
+ * Product IA (2026-09-08):
+ * - My Account = avatar top-right only (not a sidebar row)
+ * - My KEBU = your space / sites / shop (not “Builder” / “Create”)
+ * - Aesthetics = theme store (compact gallery)
+ * - Kebu Studio = graphics/video
+ * - Alkebulan = B2B — separate, not under Business
+ * - Register business stays on Opportunity / signup — not My KEBU chrome
+ */
 export const PRODUCT_NAV = {
-  /** Visible in every workspace */
-  account: [{ label: "My Account", href: "/account" }] satisfies NavItem[],
   opportunity: [{ label: "Opportunity OS", href: "/opportunity" }] satisfies NavItem[],
 
-  /** Kebu — explore, learn, personalize */
   kebu: [
     { label: "Your Kebu", href: "/dashboard", exact: true },
     { label: "Personalize", href: "/welcome" },
   ] satisfies NavItem[],
 
-  /** Kebu Business — identity, builder, create, trade */
-  businessHome: [
-    { label: "Business home", href: "/business", exact: true },
-    { label: "Register business", href: "/business/register" },
+  /** Your operating space — sites dashboard + edit list */
+  myKebu: [
+    { label: "My Space", href: "/business", exact: true },
+    { label: "My Sites", href: MY_SITES_HREF },
+    { label: "Messages", href: "/messages" },
     { label: "KA Score", href: "/ka-score" },
   ] satisfies NavItem[],
-  builder: [
-    { label: "Builder home", href: "/create", exact: true },
-    { label: "Templates", href: "/create/templates" },
-    { label: "My sites", href: "/create/sites" },
-    { label: "Kebu Domains", href: "/create/domains" },
-    { label: "New site", href: "/create/new" },
+
+  /** Aesthetic store — looks to try; Build a site is secondary */
+  aesthetics: [
+    { label: "Aesthetics", href: "/create/aesthetics", exact: true },
+    { label: "Build a site", href: "/create/new" },
   ] satisfies NavItem[],
-  /** Shop — separate from website builder (Shopify-style) */
-  shop: [
-    { label: "Kebu Shop", href: "/shop", exact: true },
-  ] satisfies NavItem[],
-  create: [
-    { label: "Kebu Create", href: "/studio", exact: true },
+
+  shop: [{ label: "Kebu Shop", href: "/shop", exact: true }] satisfies NavItem[],
+
+  studio: [
+    { label: "Kebu Studio", href: "/studio", exact: true },
     { label: "New design", href: "/studio/new" },
   ] satisfies NavItem[],
+
+  /** Continent B2B — not under My KEBU */
   alkebulan: [{ label: "Alkebulan", href: "/b2b" }] satisfies NavItem[],
 
-  /** Kebu Studio — focused design workspace */
-  studio: [
-    { label: "Studio home", href: "/studio", exact: true },
+  /** @deprecated use myKebu — kept for any leftover imports */
+  businessHome: [
+    { label: "My Space", href: "/business", exact: true },
+    { label: "My Sites", href: MY_SITES_HREF },
+    { label: "KA Score", href: "/ka-score" },
+  ] satisfies NavItem[],
+  /** @deprecated use aesthetics */
+  builder: [
+    { label: "Aesthetics", href: "/create/aesthetics", exact: true },
+    { label: "My Sites", href: MY_SITES_HREF },
+    { label: "Build a site", href: "/create/new" },
+  ] satisfies NavItem[],
+  /** @deprecated use studio */
+  create: [
+    { label: "Kebu Studio", href: "/studio", exact: true },
     { label: "New design", href: "/studio/new" },
   ] satisfies NavItem[],
+  account: [{ label: "My Account", href: "/account" }] satisfies NavItem[],
 } as const;

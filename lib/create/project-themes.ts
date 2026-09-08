@@ -13,7 +13,7 @@ export type ProjectThemeRow = {
   project_id: string;
   name: string;
   status: "live" | "draft";
-  source: "current" | "catalog" | "upload";
+  source: "current" | "catalog" | "upload" | "marketplace" | "library";
   catalog_slug: string | null;
   definition: WebsiteDefinition;
   published_at: string | null;
@@ -26,7 +26,7 @@ function tableMissing(message: string | undefined): boolean {
 }
 
 export function themesTableMissingMessage(): string {
-  return "Template library tables missing. Apply supabase/migrations/033_project_themes.sql in Supabase.";
+  return "Aesthetics library tables missing. Apply supabase/migrations/033_project_themes.sql in Supabase.";
 }
 
 async function requireOwnedProject(
@@ -188,7 +188,7 @@ export async function addProjectTheme(
   projectId: string,
   input: {
     name: string;
-    source: "current" | "catalog" | "upload";
+    source: "current" | "catalog" | "upload" | "marketplace" | "library";
     catalogSlug?: string;
     definition?: WebsiteDefinition;
   },
@@ -202,14 +202,15 @@ export async function addProjectTheme(
     .eq("project_id", projectId);
 
   if ((count ?? 0) >= MAX_PROJECT_THEMES) {
-    return { ok: false, status: 400, error: `This site already has ${MAX_PROJECT_THEMES} templates. Delete a draft first.` };
+    return { ok: false, status: 400, error: `This site already has ${MAX_PROJECT_THEMES} aesthetics. Delete a draft first.` };
   }
 
   const name = input.name.trim().slice(0, 80);
-  if (!name) return { ok: false, status: 400, error: "Each template needs a name." };
+  if (!name) return { ok: false, status: 400, error: "Each aesthetic needs a name." };
 
   let definition: WebsiteDefinition;
   let catalogSlug: string | null = null;
+  let source: ProjectThemeRow["source"] = input.source;
 
   if (input.source === "current") {
     const snapshot = await buildSnapshotFromDb(supabase, projectId);
@@ -220,15 +221,15 @@ export async function addProjectTheme(
   } else if (input.source === "catalog") {
     const slug = input.catalogSlug?.trim() ?? "";
     if (!slug || !isPublicTemplateSlug(slug)) {
-      return { ok: false, status: 400, error: "Unknown public template." };
+      return { ok: false, status: 400, error: "Unknown public aesthetic." };
     }
     const seed = publicTemplateSeeds().find((t) => t.slug === slug);
-    if (!seed) return { ok: false, status: 400, error: "Unknown public template." };
+    if (!seed) return { ok: false, status: 400, error: "Unknown public aesthetic." };
     const brief = {
       mode: "template" as const,
       businessName: owned.project.title || seed.name,
       category: seed.category,
-      description: seed.description || "Site from Kebu template gallery.",
+      description: seed.description || "Site from Kebu aesthetics gallery.",
       countryCode: "SN",
       locale: "en",
       desiredPages: ["home"],
@@ -237,13 +238,19 @@ export async function addProjectTheme(
     };
     const fromCatalog = definitionFromTemplateSlug(slug, brief) ?? (seed.definition as WebsiteDefinition);
     const validated = validateWebsiteDefinition(fromCatalog);
-    if (!validated.ok) return { ok: false, status: 400, error: "Gallery template failed validation." };
+    if (!validated.ok) return { ok: false, status: 400, error: "Gallery aesthetic failed validation." };
     definition = validated.data;
     catalogSlug = slug;
+  } else if (input.source === "marketplace" || input.source === "library") {
+    if (!input.definition) return { ok: false, status: 400, error: "Owned aesthetic is missing a website definition." };
+    const validated = validateWebsiteDefinition(input.definition);
+    if (!validated.ok) return { ok: false, status: 400, error: "Owned aesthetic failed validation." };
+    definition = validated.data;
+    catalogSlug = input.catalogSlug?.trim() || null;
   } else {
     if (!input.definition) return { ok: false, status: 400, error: "Upload is missing a website definition." };
     const validated = validateWebsiteDefinition(input.definition);
-    if (!validated.ok) return { ok: false, status: 400, error: "Uploaded template failed validation." };
+    if (!validated.ok) return { ok: false, status: 400, error: "Uploaded aesthetic failed validation." };
     definition = validated.data;
   }
 
@@ -253,7 +260,7 @@ export async function addProjectTheme(
       project_id: projectId,
       name,
       status: "draft",
-      source: input.source,
+      source,
       catalog_slug: catalogSlug,
       definition,
     })
@@ -265,8 +272,29 @@ export async function addProjectTheme(
   if (error && tableMissing(error.message)) {
     return { ok: false, status: 503, error: themesTableMissingMessage() };
   }
+  // Pre-040 DBs only allow current|catalog|upload — retry as upload.
+  if (error && /source|check constraint/i.test(error.message) && (source === "marketplace" || source === "library")) {
+    const retry = await supabase
+      .from("project_themes")
+      .insert({
+        project_id: projectId,
+        name,
+        status: "draft",
+        source: "upload",
+        catalog_slug: catalogSlug,
+        definition,
+      })
+      .select(
+        "id, project_id, name, status, source, catalog_slug, definition, published_at, created_at, updated_at",
+      )
+      .single();
+    if (retry.error || !retry.data) {
+      return { ok: false, status: 500, error: retry.error?.message ?? "Could not add aesthetic." };
+    }
+    return { ok: true, theme: retry.data as ProjectThemeRow };
+  }
   if (error || !data) {
-    return { ok: false, status: 500, error: error?.message ?? "Could not add template." };
+    return { ok: false, status: 500, error: error?.message ?? "Could not add aesthetic." };
   }
   return { ok: true, theme: data as ProjectThemeRow };
 }

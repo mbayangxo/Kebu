@@ -3,13 +3,14 @@
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import type { BuilderDevice } from "@/lib/create/builder-device";
-import { labelBuilderDevice } from "@/lib/create/builder-device";
 import {
   KEBU_ASSET_DRAG_MIME,
   dropPercentFromClient,
   parseKebuDragAsset,
   type KebuDragAsset,
 } from "@/lib/create/builder-media-drop";
+import { AddSectionPicker } from "@/app/components/create/add-section-picker";
+import { useDataMode } from "@/app/components/create/data-mode-provider";
 import { useRef, useState } from "react";
 
 export type BuilderEditorState = {
@@ -17,6 +18,15 @@ export type BuilderEditorState = {
   onSelectSection: (sectionId: string) => void;
   onPatchSection: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => void;
+  /** Switch the builder preview to another site page (keeps you in the editor). */
+  onNavigatePage?: (slug: string) => void;
+  onDuplicateSection?: (sectionId: string) => void;
+  onDeleteSection?: (sectionId: string) => void;
+  onMoveSection?: (sectionId: string, direction: "up" | "down") => void;
+  /** Add a section below — makes the page longer (Shopify-style). */
+  onAddSection?: (type: string) => void | Promise<void>;
+  /** B8: insert after section id on inline canvas stack (null = top). */
+  onAddSectionAfter?: (type: string, afterSectionId: string | null) => void | Promise<void>;
 };
 
 /** Shopify-style canvas: click sections in preview, inline text edit, drag free-text / K-Direction photos. */
@@ -28,6 +38,9 @@ export function BuilderEditablePreview({
   device = "desktop",
   editor,
   onAssetDrop,
+  pageTitle = "Home",
+  /** When true, site fills the pane — no + Add section strip under the canvas. */
+  canvasFill = false,
 }: {
   definition: WebsiteDefinition;
   pageSlug: string;
@@ -37,14 +50,17 @@ export function BuilderEditablePreview({
   editor: BuilderEditorState;
   /** Drop from Media library onto the canvas. */
   onAssetDrop?: (asset: KebuDragAsset, drop: { leftPct: number; topPct: number }) => void;
+  pageTitle?: string;
+  canvasFill?: boolean;
 }) {
+  const { mode: dataMode } = useDataMode();
   const rootRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
   return (
     <div
       ref={rootRef}
-      className="relative min-h-full"
+      className={canvasFill ? "relative flex h-full min-h-0 w-full flex-1 flex-col" : "relative min-h-full"}
       onDragOver={(e) => {
         if (!onAssetDrop) return;
         if (
@@ -72,9 +88,6 @@ export function BuilderEditablePreview({
         onAssetDrop(asset, drop);
       }}
     >
-      <p className="absolute top-2 left-2 z-20 rounded-full bg-black/70 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white pointer-events-none">
-        {labelBuilderDevice(device)} · Media tab → drag photos here · reorder nav in Content
-      </p>
       {dragOver ? (
         <div
           className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-lg border-2 border-dashed"
@@ -85,18 +98,37 @@ export function BuilderEditablePreview({
           </span>
         </div>
       ) : null}
-      <SiteRenderer
-        definition={definition}
-        mode="preview"
-        pageSlug={pageSlug}
-        siteBase={siteBase}
-        projectId={projectId}
-        editor={{
-          ...editor,
-          inlineEdit: true,
-          editDevice: device,
-        }}
-      />
+      <div className={canvasFill ? "min-h-0 flex-1" : undefined}>
+        <SiteRenderer
+          definition={definition}
+          mode="preview"
+          pageSlug={pageSlug}
+          siteBase={siteBase}
+          projectId={projectId}
+          dataMode={dataMode}
+          editor={{
+            ...editor,
+            inlineEdit: true,
+            editDevice: device,
+            onAddSectionAfter: editor.onAddSectionAfter,
+          }}
+        />
+      </div>
+      {editor.onAddSection && !editor.onAddSectionAfter && !canvasFill ? (
+        <div className="border-t border-dashed border-black/15 bg-[#FAFAF8] px-4 py-6">
+          <div className="mx-auto max-w-md">
+            <AddSectionPicker
+              pageTitle={pageTitle}
+              onAdd={async (type) => {
+                await editor.onAddSection?.(type);
+              }}
+            />
+            <p className="mt-2 text-center text-[11px] text-black/45">
+              Add a section to make the page longer. Select a section on the site, then Remove to shorten it.
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

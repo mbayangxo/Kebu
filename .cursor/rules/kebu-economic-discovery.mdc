@@ -1,0 +1,46 @@
+---
+description: Economic discovery system — Search hub, multi-revenue beyond ads, entity-centric results
+alwaysApply: true
+---
+
+# Kebu Economic Discovery
+
+Full spec: `docs/product/KEBU-ECONOMIC-DISCOVERY.md` · Search: `docs/product/KEBU-SEARCH.md`
+
+## Thesis (20-year)
+
+Kebu/RECT = **economic discovery system** — not an ad network. Not “African Google.”
+
+**Google unit:** webpage. **Kebu unit (target):** opportunity · entity · transaction · relationship.
+
+Flywheel: **SEARCH → DISCOVER → UNDERSTAND → BUILD → SELL → GET CUSTOMERS → SCALE**
+
+## Search = hub (core Kebu product)
+
+Modes: Web · Africa · Business · Products · People/Talent · Research · Trade · Opportunities · Culture (RECT) · Local.
+
+**Ask Kebu:** AI synthesis **with citations** — on top of retrieval, never instead.
+
+Example query surfaces: Products · Businesses · Trade · Opportunity (sourced) · People · Culture · Intelligence · Build · Finance — **one index slice at a time**.
+
+## Revenue systems (not ads alone)
+
+| System | Notes |
+|--------|--------|
+| **Reach** | Ads/placement — tiny budgets OK — NOT STARTED until slice |
+| **Marketplace** | Transaction fees on Shop/commerce |
+| **Leads** | Quote requests to verified businesses |
+| **Business Profiles** | Discoverable Kebu ID infrastructure |
+| **B2B / Trade** | Suppliers, Opportunity OS + Search — high priority long-term |
+| **RECT** | Creator economy; Culture index in Search |
+| **Cloud · Builder · Mail/Domains** | Usage + subscriptions — build first, monetize success |
+| **Intelligence** | Paid depth — sourced, trust-labeled |
+| **Capital** | Future, regulated, separate — never fake |
+
+## Rules
+
+- Monetize **attention + transactions + leads + intelligence** — subscriptions are one stream.  
+- Small African businesses: **low experiment cost** for Reach/Leads.  
+- **No invented market stats** · trust labels mandatory · end-to-end slices only.  
+- RECT = cultural source; Kebu = infrastructure — **Kebu is not the media company.** See `docs/product/KEBU-RECT-ECOSYSTEM.md`.  
+- **Forbidden:** banner-only Reach · fake supplier listings · chat-as-search · revenue UI without backend.

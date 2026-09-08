@@ -12,6 +12,20 @@ Agent-enforced summary: `.cursor/rules/kebu-ecosystem.mdc`.
 
 ---
 
+## Global platform, African intelligence layer
+
+**Build for everyone. Empower Africans with more.** See `docs/product/KEBU-GLOBAL-ACCESS-PHILOSOPHY.md`.
+
+**One Kebu Account** threads the entire journey — Search entry, same login for Builder, Mail, Cloud, Business. See `docs/product/KEBU-UNIFIED-ACCOUNT.md`. Privacy = **control center** with revocable product permissions — not surveillance.
+
+Kebu is **globally accessible technology infrastructure** — not an “Africans-only internet.”
+
+**Opportunity OS** and related African opportunity / trade / resource intelligence require **one-time verified African entitlement** on the same account — modular verification, server-enforced, not per-page. Public may discover Opportunity OS without accessing protected datasets. **Kebu Search remains open globally.**
+
+Architecture: `Kebu Account → Access Entitlements → african_opportunity_access`. Personal eligibility ≠ **Kebu ID** (business identity).
+
+---
+
 ## African Builder Ecosystem — end-to-end infrastructure
 
 Kebu is one connected **African Builder Ecosystem**. Three product pillars sit on shared core services. Everything flows through the same account, business identity, and permissions — not separate silos.
@@ -49,7 +63,8 @@ Kebu is one connected **African Builder Ecosystem**. Three product pillars sit o
 | Product | Job | Phase One status |
 |--------|-----|------------------|
 | **Kebu Builder** | Turn an idea into website, store, brand, templates, AI edits | **Active** — `/create`, `/sites`, stores |
-| **Kebu Opportunity OS** | Discover what to build — countries, industries, resources, trade, Build This Business | **Active slice-by-slice** — Country Explorer and related routes |
+| **Opportunity OS** | Standalone economic intelligence platform (**explore**) | **Active slice-by-slice** — Country Explorer; see `docs/OPPORTUNITY-OS-MASTER-SPEC.md` |
+| **Kebu Opportunity OS** | Kebu feature: personalized matching (**for you**) | **In progress** — intake + for-you; see `docs/KEBU-OPPORTUNITY-OS.md`; not Builder |
 | **Kebu Domains** | Connect (later: buy) real domains; anchor identity and Mail | **Active slice** — custom domain connect; registrar links until Kebu sells |
 | **Kebu Analytics** | Business and store intelligence, next actions | **Partial** — store/site analytics when assigned; no fake dashboards |
 | **Kebu Cloud** | Run software you built — deploy, DB, APIs, compute (invisible to beginners) | **Future** — compatibility only; do not ship placeholders |
@@ -57,6 +72,45 @@ Kebu is one connected **African Builder Ecosystem**. Three product pillars sit o
 | **Kebu ID** | Permanent digital identity of the **business** | **Active** — draft business, roles, country modules |
 | **Kebu Score (KA Score)** | Explainable business readiness tied to a Kebu ID | **After real ops data** — readiness UI exists |
 | **Kebu Mail** | Business email on your domain | **Future** — after verified domains |
+| **Kebu Search** | **Foundational** real engine: crawl → index → rank; AI on top with citations | **NOT STARTED** — spec `docs/product/KEBU-SEARCH.md`; never chat-as-search |
+| **Kebu Maps** | Practical navigation first; then African road/farm/production/Africa Needs layers | **Future** — `docs/KEBU-MAPS-AND-INFRASTRUCTURE.md`; no empty map shells |
+| **Kebu Property** | African **property transaction infrastructure** (Passport, Scam Shield, not Mubawab clone) | **NOT STARTED** — `docs/product/KEBU-PROPERTY-INFRASTRUCTURE.md`; V1 Senegal only when assigned |
+| **Kebu Studio** | Create brand / design assets; send to Builder / Shop / Reach | **Future** — basic branding in Builder only |
+| **Kebu Learn** | Learn by building (**No watching** — brand principle) | **Future** — spec `docs/product/KEBU-NO-WATCHING.md`; no LMS / lecture courses |
+
+### Personal Kebu vs Business Kebu (one account)
+
+One **Kebu Account** owns both layers. Do not force a second login to start a company. Full spec: `docs/product/KEBU-ACCOUNT-MODEL.md`.
+
+```
+                         KEBU ACCOUNT
+                              │
+                ┌─────────────┴─────────────┐
+                │                           │
+         PERSONAL KEBU                BUSINESS KEBU
+                │                           │
+        Kebu email (personal)        Business email
+        Kebu Search                  Kebu Builder
+        Kebu Studio (basic)          Kebu Shop
+        Personal Cloud / files       Analytics
+        Calendar (future)            Domains
+        Basic AI                     Team accounts
+        Profile                      Kebu Cloud
+        Saved searches/projects      Kebu Score
+                │                           │
+                └─────────────┬─────────────┘
+                              │
+              Shared: auth · billing · RBAC · Yande · data graph
+              Kebu ID = business only — not personal eligibility
+```
+
+**Personal Kebu = FREE entry** (target): email, Search, Studio basic, personal storage, basic AI, profile — **monetize the business they create**, not the 17-year-old.
+
+**Create a Business** → separate workspace (Kebu ID). Example: May keeps `may@kebu.africa`; May Beauty gets `hello@`, `orders@`, `support@`, `accounting@` — employees invite to **business**, not May’s personal Kebu.
+
+**Youth entry:** “What do you want to create?” — Design · Website · App · Business · Learn (No watching) · Opportunity · Search · Email · Deploy. Guide, don’t dump AWS+Canva+Shopify vocabulary on day one.
+
+**Pricing philosophy (target):** Personal FREE · **Shop $5 hero** · Starter $2 · Business $10 · Pro $20 · Student $1. Full spec: `docs/product/KEBU-PRICING.md`. Current tiers: `lib/billing/plans.ts`.
 
 ### How products connect (end-to-end)
 
@@ -66,8 +120,12 @@ Kebu is one connected **African Builder Ecosystem**. Three product pillars sit o
 4. **Builder + commerce → Score** — Orders, publish state, fulfillment, and records become score inputs (never browser-set numbers).
 5. **Builder domains → Mail (future)** — Verified custom domains (`www.mybrand.com`) are the anchor for business email when Kebu Mail ships.
 6. **Cloud (future)** — Same account and Kebu ID; deploy apps that can link to Builder sites, stores, and Opportunity data via APIs.
+7. **Search (future)** — Indexed Web / Africa / Trade / Opportunity / Research / Business / Products results; optional AI summary cites those sources. Never replace the index with an ungrounded chat answer.
+8. **Studio → Builder → Shop (future)** — Brand kit and assets flow into the live site and catalog — one creation pipeline, not copy-paste silos.
 
-**Engineering rule:** Shared core is real infrastructure (auth, ID, billing, RBAC). Product pillars stay separate domains — no single mega-table or fake “coming soon” nav for Cloud or Mail.
+**Engineering rule:** Shared core is real infrastructure (auth, ID, billing, RBAC). Product pillars stay separate domains — no single mega-table or fake “coming soon” nav for Cloud, Search, Studio, Learn, or Mail.
+
+**Full-stack rule (non-negotiable):** Every assigned feature must be end-to-end — UI ↔ API ↔ authz ↔ DB ↔ persistence ↔ refresh ↔ tests. No wiring gaps, fake success, or “looks done” frontend. See `docs/product/ENGINEERING-MANDATE.md`.
 
 ### Why products stay separate (do not merge Cloud into Opportunity OS)
 
@@ -75,11 +133,12 @@ They are **fundamentally different jobs**. Connected in the user journey — not
 
 | Product | Core question |
 |--------|----------------|
-| **Kebu Opportunity OS** | What can I build? Where is the opportunity? What resources exist? Who can I work with? How do I start this business? |
+| **Opportunity OS (explore)** | What opportunities exist / what’s missing / what should Africa build next? |
+| **Kebu Opportunity OS (for you)** | What can *I* / *my business* build? (personalized matching in Kebu) |
 | **Kebu Builder** | How do I turn my idea into a website, store, and brand? |
 | **Kebu Cloud** | How do I run the software I’ve built? (Infrastructure — mostly invisible to beginners.) |
 
-Opportunity OS is intelligence and discovery. Builder is creation and launch. Cloud is runtime infrastructure. **Do not collapse these into one “giant app screen.”**
+**Opportunity OS** is a **separate product** (explore). **Kebu Opportunity OS** is a **Kebu feature** (for-you). Builder is creation. Cloud is runtime. **Do not merge** product identities, schemas, or UIs.
 
 The user should feel one **coherent ecosystem**, not a Swiss Army knife with seventy buttons.
 
@@ -88,7 +147,9 @@ The user should feel one **coherent ecosystem**, not a Swiss Army knife with sev
 Think of Kebu as **the platform**, with separate products:
 
 - **Kebu Builder** — websites, stores, templates, AI sites (apps later)
-- **Kebu Opportunity** — African opportunities, resources, markets, trade, business intelligence
+- **Opportunity OS** — standalone explore (`docs/OPPORTUNITY-OS-MASTER-SPEC.md`)
+- **Kebu Opportunity OS** — for-you inside Kebu (`docs/KEBU-OPPORTUNITY-OS.md`)
+- **Kebu Search / Mail / Network / Jobs / Commerce** — umbrella modules (see `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md`); build only when assigned
 - **Kebu Cloud** — infrastructure for developers and scaling businesses
 - **Kebu Mail** — business communication on your domain
 - **Kebu Domains** — digital identity and domain connection (Phase One: connect domains you own; later: sell domains)
@@ -227,17 +288,24 @@ It must never access another user’s private business information.
 
 ---
 
-## 6. Kebu Opportunity OS
+## 6. Opportunity OS + Kebu Opportunity OS (separate products)
 
-Opportunity OS helps users discover what they can build.
+**Opportunity OS** = standalone economic intelligence platform (explore). Spec: `docs/OPPORTUNITY-OS-MASTER-SPEC.md`.
 
-It should include country and industry opportunities, import-substitution and export opportunities, intra-African trade, agricultural-processing and manufacturing opportunities, technology gaps, service-business opportunities, government programs, grants, incubators, public tenders where available, entrepreneur stories, company case studies, and resource/commodity value chains.
+**Kebu Opportunity OS** = Kebu ecosystem feature for personalized matching (for-you). Spec: `docs/KEBU-OPPORTUNITY-OS.md`. Do **not** merge into Website Builder.
 
-Every opportunity should distinguish: verified information, public-source data, estimates, AI-generated ideas, assumptions, and questions requiring validation.
+| Layer | Product | Question |
+|-------|---------|----------|
+| **Explore** | Opportunity OS | What exists / what’s missing / what should Africa build next? |
+| **For you** | Kebu Opportunity OS | What could *I* / *my business* pursue? |
 
-Users should be able to click **Build This Opportunity**, which creates a connected business-building journey inside Kebu.
+Explore includes country/industry/resource/trade intelligence, import replacement, value addition, opportunity cards, Research Lab, Think Lab, challenges — **Opportunity OS product domain**, not Builder.
 
-See `.cursor/rules/kebu-opportunity-os.mdc`.
+Trust labels mandatory. AI is not the database. Framing: **verify the economics**.
+
+**Build This** may hand off to Kebu via **API** — never auto-publish.
+
+Umbrella: `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md` · Rules: `.cursor/rules/opportunity-os-master.mdc` · `.cursor/rules/kebu-opportunity-os.mdc`.
 
 ---
 
@@ -291,31 +359,97 @@ Current code should avoid becoming permanently dependent on one cloud provider w
 
 ## 9b. Future product: Kebu Mail
 
-Kebu Mail is business email tied to a Kebu ID and verified domain from Kebu Builder (e.g. `hello@mybrand.com`, `orders@mybrand.com`).
+**Full spec:** `docs/product/KEBU-MAIL.md` · **Rule:** `kebu-mail.mdc`
 
-It is not personal webmail. It should respect RBAC (who can send as the business), audit, and the same billing/core account as Builder.
+Kebu Mail is **real email** — not a UI that looks like email. Users get addresses like `maya@kebu.africa` (personal, **free** target) and `hello@`, `orders@`, `support@` on **verified business domains**. Sends to Gmail/Outlook/Yahoo and **receives replies** via proper SMTP/MX + SPF/DKIM/DMARC.
 
-Do not build Kebu Mail during Phase One unless explicitly assigned. Custom domain connection in Builder is the prerequisite path.
+**Kebu Identity + Mail** — same Kebu Account connects Search, Builder, Business, etc. Switch personal vs business mailbox context; **not** a second login.
 
----
+**v1:** Kebu mail app + identity layer + **provider abstraction** (proven infrastructure underneath). **Do not** build a mail server from scratch day one. Architecture must be **replaceable** for future Kebu-operated mail infrastructure.
 
-## 10. Future product: Kebu Studio
+Shared mailboxes (`support@company.com`, team RBAC, no shared password) are in scope when assigned — not in slice 1.
 
-Kebu Studio is a future separate design product (logos, brand kits, posters, packaging, social graphics, short video, AI design, template marketplace).
-
-Kebu Phase One may generate basic business branding and website assets. That does not mean Phase One should become a full Canva-style editor.
-
-Do not build a free-form professional design canvas inside the current website builder unless explicitly assigned.
+Do not build Kebu Mail during Phase One unless explicitly assigned. **Prerequisite path:** Kebu Account + domain verification (Builder custom domains slice).
 
 ---
 
-## 11. Future product: Kebu Learn
+## 9c. Future product: Kebu Search (economic discovery hub)
 
-Kebu Learn is a future education product focused on learning through building (coding, AI, design, entrepreneurship, finance, marketing, manufacturing, agriculture, trade, product development, cloud, registration, analytics).
+Kebu Search is a **core product** and **economic discovery system** — not “African Google.” Basic unit: **opportunity · entity · transaction · relationship**. Full architecture: `docs/product/KEBU-ECONOMIC-DISCOVERY.md` · `docs/product/KEBU-SEARCH.md`.
 
-Learning should be project-based: real websites, stores, portfolios, plans, apps, product concepts, research reports, manufacturing plans.
+**Wrong:** Search → ChatGPT answer · African Google clone  
+**Right:** Intent + usefulness; real crawl/index/rank; AI **on top with citations** — **never instead of** search.
 
-Phase One may contain guidance and explanations. Do not build a full LMS unless explicitly assigned.
+Pipeline (required architecture):
+
+```
+Web crawlers / document collection
+        ↓
+Index
+        ↓
+Ranking
+        ↓
+Search engine
+        ↓
+Kebu Search
+        ↓
+Optional AI layer (with citations)
+```
+
+Example: *“How can Senegal export processed mango products?”* → surfaces for **Web**, **Africa**, **Trade**, **Opportunity** (trust-labeled), **Research**, **Business**, **Products**, plus **AI summary with links** — not invented prose alone.
+
+| Surface | Shows |
+|--------|--------|
+| **Web** | Relevant sites and documents |
+| **Africa** | African businesses, institutions, resources |
+| **Trade** | Markets and trade information |
+| **Opportunity** | Opportunity OS analysis (trust-labeled) |
+| **Research** | Reports and papers |
+| **Business** | Companies (permissioned / public as appropriate) |
+| **Products** | Things actually for sale on Kebu |
+| **AI summary** | Synthesis **with links** to the sources above |
+
+**Forbidden:** chat-as-search · results without retrieval/ranking · AI answers without source links.
+
+Full spec: `docs/product/KEBU-SEARCH.md` · rule: `.cursor/rules/kebu-search.mdc`.
+
+**Phase One path:** Opportunity OS entities, sources, trust labels, and Kebu business/site records are the honest first retrieval corpus. Do not fake a global crawler or empty Search home until a slice is assigned.
+
+---
+
+## 10. Future product: Kebu Studio (major product)
+
+Kebu Studio is a **major product** — not “posters in Builder.” Spec: `docs/product/KEBU-STUDIO.md`.
+
+**Wrong:** Canva clone checklist. **Right:** **Create anything** with AI built in — social, flyers, logos, pitch decks, product photography, video, brand kits, campaigns — then **send to Builder → Shop → Reach** as one pipeline.
+
+Example prompt: *“Launch campaign for my Senegalese skincare company”* → Instagram post + story + flyer + email + web banner + product graphics + ad variants → user edits visually → brand tokens flow to site and shop when connected.
+
+**Personal Kebu** includes Studio **basic** (free). Premium Studio = separate line ($2–5/mo target).
+
+Phase One: `/studio` posters only — do not claim full Studio until slices ship end-to-end.
+
+---
+
+## 11. Future product: Kebu Learn — **No watching** (brand principle)
+
+**No watching** is a **Kebu brand principle** — not only a product name. Full text: `docs/product/KEBU-NO-WATCHING.md` · rule: `.cursor/rules/kebu-no-watching.mdc`.
+
+Kebu Learn is a future education product that must inherit this principle:
+
+### **No watching**
+
+Young people do not “learn to code” by bingeing lecture videos. They learn by **actually building**:
+
+- real websites and stores (Builder)
+- real brand assets (Studio, later)
+- real apps / deploys (Cloud, later)
+- real opportunity research (Opportunity OS)
+- real business records (Kebu ID)
+
+“Learn to code” on Kebu means: **open a project, ship something, get stuck, get unstuck, ship again** — with guidance attached to the work, not a traditional programming course LMS.
+
+Phase One may contain guidance and explanations **inside Builder / Opportunity / registration**. Do not build a course catalog, progress theater, or video-school product unless explicitly assigned.
 
 ---
 
@@ -462,7 +596,7 @@ Do not build multiple major slices simultaneously.
 
 When implementing Phase One:
 
-- Do not build Kebu Cloud, Studio, Docs, Learn, or Ventures merely because they appear in this document.
+- Do not build Kebu Cloud, Studio, Docs, Learn, Search (full engine), or Ventures merely because they appear in this document.
 - Do not build incomplete placeholder routes for future products.
 - Do not add buttons that lead nowhere.
 - Do not create empty database tables without a current use.

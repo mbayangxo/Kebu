@@ -4,6 +4,7 @@ import Link from "next/link";
 import { TemplateGallery } from "@/app/components/create/template-gallery";
 import type { GalleryTemplate } from "@/lib/create/template-gallery";
 import { KEBU } from "@/lib/kebu-brand";
+import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 
 export function TemplatesVisualPage({
   templates,
@@ -15,75 +16,43 @@ export function TemplatesVisualPage({
   flagship: GalleryTemplate[];
 }) {
   return (
-    <div className="min-h-full">
-      <div className="relative overflow-hidden" style={{ background: KEBU.black }}>
-        <div
-          className="absolute inset-0 pointer-events-none opacity-50"
-          aria-hidden
-          style={{
-            background: `radial-gradient(ellipse 80% 100% at 100% 0%, ${KEBU.orange}, transparent 50%), radial-gradient(ellipse 60% 80% at 0% 100%, ${KEBU.red}, transparent 45%)`,
-          }}
-        />
-        <div className="relative max-w-7xl mx-auto px-5 lg:px-10 py-10 lg:py-14">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] mb-2" style={{ color: KEBU.orange }}>
-            Kebu Builder · Templates
-          </p>
-          <h1
-            className="text-3xl lg:text-5xl font-black text-white max-w-3xl leading-[1.05]"
-            style={{ fontFamily: "var(--font-fraunces)" }}
-          >
-            Pick a site you can see — not a brochure.
-          </h1>
-          <p className="text-sm mt-4 max-w-2xl leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
-            <strong className="text-white">May Lecor</strong> (Russian pink cutouts) and{" "}
-            <strong className="text-white">K-Direction</strong> (Wix canvas) are first — same layouts as your live sites.
-            Then salons, stores, agencies, and more.
-          </p>
-          <div className="flex flex-wrap gap-3 mt-6">
+    <div className="min-h-full" style={{ background: KEBU.bright }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-1" style={{ color: KEBU.orange }}>
+              Templates
+            </p>
+            <h1
+              className="text-2xl sm:text-3xl font-bold"
+              style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
+            >
+              Pick a layout — filter by business type
+            </h1>
+            <p className="text-sm mt-1 max-w-xl" style={{ color: KEBU.muted }}>
+              Compact grid with live-style previews. May Lecor scroll motion is the real site experience — open preview,
+              then use it on your account.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Link
               href="/create/new?mode=blank"
-              className="rounded-full px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider border-2 border-white/80 text-white"
+              className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider border"
+              style={{ borderColor: KEBU.border, color: KEBU.black }}
             >
-              Start blank
+              Blank
             </Link>
             <Link
-              href="/create/sites"
-              className="rounded-full px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider"
+              href={MY_SITES_HREF}
+              className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider"
               style={{ background: KEBU.orange, color: KEBU.white }}
             >
               My sites
             </Link>
           </div>
         </div>
-        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }} />
-      </div>
 
-      <div className="max-w-7xl mx-auto px-5 lg:px-10 py-10 lg:py-14">
-        <div
-          className="rounded-2xl px-5 py-4 mb-8 flex flex-wrap items-center gap-4"
-          style={{ background: KEBU.white, border: `2px solid ${KEBU.black}`, boxShadow: "4px 4px 0 #0A0A0A" }}
-        >
-          {[
-            { n: "1", t: "See the real layout" },
-            { n: "2", t: "Upload your photos" },
-            { n: "3", t: "Edit text & colors" },
-            { n: "4", t: "Publish live" },
-          ].map((step) => (
-            <div key={step.n} className="flex items-center gap-2">
-              <span
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white"
-                style={{ background: KEBU.orange }}
-              >
-                {step.n}
-              </span>
-              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: KEBU.black }}>
-                {step.t}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <TemplateGallery templates={templates} featured={featured} flagship={flagship} visualOnly />
+        <TemplateGallery templates={templates} featured={featured} flagship={flagship} visualOnly compact />
       </div>
     </div>
   );

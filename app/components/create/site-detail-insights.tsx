@@ -316,6 +316,13 @@ export function SiteDetailInsights({
             <span>Tablet {summary?.byDevice.tablet ?? 0}</span>
             <span>Phone {summary?.byDevice.mobile ?? 0}</span>
           </div>
+          <Link
+            href={`/shop/${projectId}?tab=analytics`}
+            className="mt-3 inline-block text-[11px] font-bold uppercase tracking-wider underline"
+            style={{ color: KEBU.orange }}
+          >
+            Shop orders &amp; patterns →
+          </Link>
           <div className="mt-4 space-y-1.5">
             {(summary?.byDay ?? []).length === 0 ? (
               <p className="text-[11px]" style={{ color: KEBU.muted }}>

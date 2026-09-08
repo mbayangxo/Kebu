@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
 import type { MeAfriqueIdSummary } from "@/lib/account/user-profile";
 
@@ -15,9 +15,38 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [identityType, setIdentityType] = useState<"indigenous" | "visitor">(
+    afriqueId.identityType ?? "visitor",
+  );
+
+  useEffect(() => {
+    setIdentityType(afriqueId.identityType ?? "visitor");
+  }, [afriqueId.identityType]);
 
   const verified = afriqueId.eligibilityStatus === "verified";
   const canRequest = afriqueId.eligibilityStatus === "unverified" || afriqueId.eligibilityStatus === "rejected";
+
+  async function saveIdentityType(next: "indigenous" | "visitor") {
+    setIdentityType(next);
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    const res = await fetch("/api/me/afrique-id", {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identityType: next }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? "Could not save ID type.");
+      setIdentityType(afriqueId.identityType ?? "visitor");
+      return;
+    }
+    setMessage(data.message ?? "Saved.");
+    onRefresh();
+  }
 
   async function requestVerification() {
     setBusy(true);
@@ -37,7 +66,7 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
   async function copyId() {
     try {
       await navigator.clipboard.writeText(afriqueId.publicId);
-      setMessage("Copied Afrique ID.");
+      setMessage("Copied African ID (AID).");
     } catch {
       setError("Could not copy — select and copy manually.");
     }
@@ -48,10 +77,11 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: KEBU.orange }}>
-            Afrique ID · You on Kebu
+            African ID (AID) · You on Kebu
           </p>
           <p className="text-sm" style={{ color: KEBU.muted }}>
-            Your personal identity — separate from your business Kebu ID. People can recognize you by this ID.
+            Your personal identity — separate from your business Kebu ID. Choose whether you are an Indigenous
+            African person or a Visitor.
           </p>
         </div>
         <span
@@ -65,6 +95,42 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
         </span>
       </div>
 
+      <fieldset className="mb-4 space-y-2" disabled={busy}>
+        <legend className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.faint }}>
+          ID type
+        </legend>
+        <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <input
+            type="radio"
+            name="aid-type"
+            checked={identityType === "indigenous"}
+            onChange={() => void saveIdentityType("indigenous")}
+            className="mt-0.5"
+          />
+          <span>
+            <strong>Indigenous African</strong>
+            <span className="block text-xs" style={{ color: KEBU.muted }}>
+              You identify as an Indigenous African person on Kebu.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <input
+            type="radio"
+            name="aid-type"
+            checked={identityType === "visitor"}
+            onChange={() => void saveIdentityType("visitor")}
+            className="mt-0.5"
+          />
+          <span>
+            <strong>Visitor</strong>
+            <span className="block text-xs" style={{ color: KEBU.muted }}>
+              You are visiting or using Kebu from outside that identity — still welcome to build and explore.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
       <div
         className="rounded-xl px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3"
         style={{ background: "rgba(255,106,0,0.06)", border: `1px solid ${KEBU.border}` }}
@@ -74,6 +140,11 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
           <p className="font-mono text-sm font-bold" style={{ color: KEBU.orange }}>
             {afriqueId.publicId}
           </p>
+          {afriqueId.identityTypeLabel ? (
+            <p className="text-[10px] mt-1 uppercase tracking-wider" style={{ color: KEBU.muted }}>
+              {afriqueId.identityTypeLabel}
+            </p>
+          ) : null}
         </div>
         <button
           type="button"

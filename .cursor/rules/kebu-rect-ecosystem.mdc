@@ -1,0 +1,40 @@
+---
+description: Kebu + RECT interlock — Kebu builds/operates; RECT creates culture; Reach connects
+alwaysApply: true
+---
+
+# Kebu + RECT Ecosystem
+
+Full spec: `docs/product/KEBU-RECT-ECOSYSTEM.md`
+
+## Distinction (non-negotiable)
+
+| | Role |
+|--|------|
+| **KEBU** | **Build and operate** — account, ID, Builder, Shop, Cloud, Search, business infra |
+| **RECT** | **Create, distribute, discover, monetize culture** — audiences, creators, cultural network |
+| **Kebu Reach** | Connect **money to attention** — campaigns, placement, attribution (not banner-only) |
+
+**Kebu is NOT the entertainment/media company.** Do not merge RECT into Kebu as one tangled app.
+
+## Interlock
+
+RECT creates **audiences** → Kebu lets people **capture economic value** → Reach **connects** brands/creators/customers.
+
+- **Create Store** on RECT → handoff to **Kebu Builder/Shop** (same Kebu Account)  
+- **Culture** in Kebu Search indexes RECT (attribution) — not separate login  
+- **Creator Marketplace** (RECT) + **Reach** tracking views→clicks→sales — NOT STARTED until slice  
+
+## Creator model
+
+Creator **business profile** (Kebu ID) — engaged audience by geography, not vanity followers only. Performance reputation from **attributed outcomes**.
+
+## Engineering
+
+Separate product schemas (RECT artist/social ≠ Kebu business) — **API + shared account** integration. Privacy: permissioned audience insights, revocable.
+
+## Forbidden
+
+Kebu as media company · fake creator/campaign metrics · auto-publish store from RECT without confirm · RECT schemas dumped into Kebu DB without migration slice.
+
+Flywheel: **CREATE → AUDIENCE → BUSINESS → REVENUE → DATA → FINANCING → SCALE**

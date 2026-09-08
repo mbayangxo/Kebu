@@ -6,9 +6,18 @@ import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import type { CreateWebsiteBrief } from "@/lib/create/website-schema";
 import { upgradeMaylecorPortfolioProject } from "@/lib/create/upgrade-portfolio-maylecor";
 import { upgradeKdirectionPortfolioProject } from "@/lib/create/upgrade-portfolio-kdirection";
+import { upgradeDklnsPortfolioProject } from "@/lib/create/upgrade-portfolio-dklns";
+import { upgradeMayjorGoodPortfolioProject } from "@/lib/create/upgrade-portfolio-mayjor-good";
+import { upgradeNdaoanPortfolioProject } from "@/lib/create/upgrade-portfolio-ndaoan";
 import { kebuAfricaSiteUrl, kebuSitePreviewPath } from "@/lib/create/site-urls";
 
-export type PortfolioSiteKey = "maylecor" | "kdirection";
+export type PortfolioSiteKey =
+  | "maylecor"
+  | "kdirection"
+  | "dklns"
+  | "ndaoan"
+  | "rect"
+  | "mayjorgood";
 
 export const PORTFOLIO_SITES: {
   key: PortfolioSiteKey;
@@ -35,6 +44,43 @@ export const PORTFOLIO_SITES: {
     templateSlug: "agency-kdirection",
     category: "agency",
     description: "portfolio:kdirection — K-Direction Artistry label site on Kebu",
+    countryCode: "SN",
+  },
+  {
+    key: "dklns",
+    title: "DkLNS",
+    preferredSubdomain: "dklns",
+    templateSlug: "agency-dklns",
+    category: "agency",
+    description: "portfolio:dklns — DkLNS management & creative agency (May Lecor signed)",
+    countryCode: "SN",
+  },
+  {
+    key: "ndaoan",
+    title: "Ndaoan House",
+    preferredSubdomain: "ndaoan",
+    templateSlug: "production-ndaoan-house",
+    category: "production",
+    description: "portfolio:ndaoan — Ndaoan House production & content studio",
+    countryCode: "SN",
+  },
+  {
+    key: "rect",
+    title: "RECT",
+    preferredSubdomain: "rect",
+    templateSlug: "entertainment-rect",
+    category: "music",
+    description: "portfolio:rect — RECT music streaming & entertainment tech (lime / black / orange)",
+    countryCode: "SN",
+  },
+  {
+    key: "mayjorgood",
+    title: "For The Mayjor Good",
+    preferredSubdomain: "mayjorgood",
+    templateSlug: "foundation-mayjor-good",
+    category: "nonprofit",
+    description:
+      "portfolio:mayjorgood — For The Mayjor Good (school supplies, talibés/SST, food, medical, groceries, orphans, youth jobs)",
     countryCode: "SN",
   },
 ];
@@ -84,27 +130,37 @@ async function ensureLiveDeployment(opts: {
   projectId: string;
   subdomain: string;
   businessId?: string | null;
+  /** When true, always publish a fresh snapshot (after template upgrades). */
+  forceRepublish?: boolean;
 }): Promise<{ ok: true; kebuAfricaUrl: string; previewPath: string } | { ok: false; error: string }> {
-  const { supabase, userId, projectId, subdomain, businessId } = opts;
+  const { supabase, userId, projectId, subdomain, businessId, forceRepublish } = opts;
 
-  const { data: live } = await supabase
-    .from("deployments")
-    .select("id")
-    .eq("project_id", projectId)
-    .eq("subdomain", subdomain)
-    .eq("status", "live")
-    .maybeSingle();
+  if (!forceRepublish) {
+    const { data: live } = await supabase
+      .from("deployments")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("subdomain", subdomain)
+      .eq("status", "live")
+      .maybeSingle();
 
-  if (!live) {
-    const published = await goLiveWebsiteProject({
-      supabase,
-      userId,
-      projectId,
-      subdomain,
-      businessId,
-    });
-    if (!published.ok) return { ok: false, error: published.error };
+    if (live) {
+      return {
+        ok: true,
+        kebuAfricaUrl: kebuAfricaSiteUrl(subdomain) ?? `https://${subdomain}.kebu.africa`,
+        previewPath: kebuSitePreviewPath(subdomain) ?? `/sites/${subdomain}`,
+      };
+    }
   }
+
+  const published = await goLiveWebsiteProject({
+    supabase,
+    userId,
+    projectId,
+    subdomain,
+    businessId,
+  });
+  if (!published.ok) return { ok: false, error: published.error };
 
   return {
     ok: true,
@@ -151,11 +207,26 @@ export async function ensurePortfolioSitesForUser(opts: {
         await supabase.from("projects").update({ subdomain }).eq("id", found.id);
       }
 
+      let didUpgrade = false;
       if (site.key === "maylecor") {
-        await upgradeMaylecorPortfolioProject(supabase, found.id);
+        const u = await upgradeMaylecorPortfolioProject(supabase, found.id);
+        didUpgrade = Boolean(u.upgraded);
       }
       if (site.key === "kdirection") {
-        await upgradeKdirectionPortfolioProject(supabase, found.id);
+        const u = await upgradeKdirectionPortfolioProject(supabase, found.id);
+        didUpgrade = didUpgrade || Boolean(u.upgraded);
+      }
+      if (site.key === "dklns") {
+        const u = await upgradeDklnsPortfolioProject(supabase, found.id);
+        didUpgrade = didUpgrade || Boolean(u.upgraded);
+      }
+      if (site.key === "ndaoan") {
+        const u = await upgradeNdaoanPortfolioProject(supabase, found.id);
+        didUpgrade = didUpgrade || Boolean(u.upgraded);
+      }
+      if (site.key === "mayjorgood") {
+        const u = await upgradeMayjorGoodPortfolioProject(supabase, found.id);
+        didUpgrade = didUpgrade || Boolean(u.upgraded);
       }
 
       const live = await ensureLiveDeployment({
@@ -164,6 +235,8 @@ export async function ensurePortfolioSitesForUser(opts: {
         projectId: found.id,
         subdomain,
         businessId: typeof found.business_id === "string" ? found.business_id : businessId,
+        // Upgrades change draft sections — must refresh the public deployment snapshot.
+        forceRepublish: didUpgrade,
       });
 
       if (!live.ok) {

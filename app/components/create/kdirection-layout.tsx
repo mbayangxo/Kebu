@@ -16,6 +16,7 @@ import {
   localizeKdirectionAssetUrl,
   localizeKdirectionIconUrl,
 } from "@/lib/create/kdirection-local-assets";
+import { navChromeMetrics, type NavSizePreset } from "@/lib/create/nav-chrome-size";
 
 type KdEditor = {
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
@@ -53,25 +54,51 @@ function WixNav({
   siteBase,
   buttonBg,
   showHomeIcon,
+  navScale,
+  navSize,
 }: {
   links: NavLink[];
   siteBase: string;
   buttonBg: string;
   showHomeIcon?: boolean;
+  navScale?: number;
+  navSize?: NavSizePreset;
 }) {
+  // Site nav is the real chrome — full bleed by default (not a centered max-width strip).
+  const m = navChromeMetrics({ scale: navScale, size: navSize ?? "fullscreen" });
+  const homeSize = Math.max(28, Math.round(m.logoH * 0.85));
   return (
     <nav
-      className="relative z-30 flex flex-wrap items-center justify-center gap-1 px-2 py-3 sm:gap-2 sm:px-6 sm:py-4"
+      className="relative z-30 flex w-full flex-wrap items-center justify-center"
       aria-label="Site"
+      style={{
+        gap: Math.max(4, Math.round(m.gap * 0.35)),
+        paddingTop: m.padY,
+        paddingBottom: m.padY,
+        paddingLeft: m.padX,
+        paddingRight: m.padX,
+        maxWidth: undefined,
+        marginLeft: 0,
+        marginRight: 0,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
     >
       {showHomeIcon !== false ? (
         <a
           href={resolveHref("/", siteBase)}
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1e293b] text-white sm:h-9 sm:w-9"
+          className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#1e293b] text-white"
+          style={{ width: homeSize, height: homeSize }}
           aria-label="Home"
           title="Home"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <svg
+            width={Math.round(homeSize * 0.45)}
+            height={Math.round(homeSize * 0.45)}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden
+          >
             <path d="M12 3.2 3 11h2.5v9h5v-6h3v6h5v-9H21L12 3.2z" />
           </svg>
         </a>
@@ -80,8 +107,14 @@ function WixNav({
         <a
           key={`${link.label}-${link.href}`}
           href={resolveHref(link.href, siteBase)}
-          className="rounded-full px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-black sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-[0.14em]"
-          style={{ background: buttonBg || "#FFF86B", fontFamily: "Arial, Helvetica, sans-serif" }}
+          className="rounded-full font-bold uppercase text-black"
+          style={{
+            background: buttonBg || "#FFF86B",
+            fontFamily: "Arial, Helvetica, sans-serif",
+            fontSize: m.fontPx,
+            letterSpacing: m.tracking,
+            padding: `${Math.max(4, Math.round(m.padY * 0.45))}px ${Math.max(10, Math.round(m.padX * 0.7))}px`,
+          }}
         >
           {link.label}
         </a>
@@ -195,28 +228,42 @@ function DraggablePhoto({
     const originLeft = photo.leftPct;
     const originTop = photo.topPct;
     const el = e.currentTarget;
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
     dragging.current = true;
     let lastLeft = originLeft;
     let lastTop = originTop;
+    let didMove = false;
 
     function onMove(ev: PointerEvent) {
       if (!dragging.current) return;
       const rect = parent!.getBoundingClientRect();
       const dx = ((ev.clientX - startX) / rect.width) * 100;
       const dy = ((ev.clientY - startY) / rect.height) * 100;
+      if (Math.abs(dx) + Math.abs(dy) > 0.5) didMove = true;
       lastLeft = Math.min(92, Math.max(-8, originLeft + dx));
       lastTop = Math.min(92, Math.max(-8, originTop + dy));
       el.style.left = `${lastLeft}%`;
       el.style.top = `${lastTop}%`;
     }
-    function onUp() {
+    function onUp(ev: PointerEvent) {
       dragging.current = false;
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      onMoved(lastTop, lastLeft);
+      window.removeEventListener("pointercancel", onUp);
+      try {
+        el.releasePointerCapture(ev.pointerId);
+      } catch {
+        /* ignore */
+      }
+      if (didMove) onMoved(lastTop, lastLeft);
     }
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   }
 
   return (
@@ -231,6 +278,7 @@ function DraggablePhoto({
         transform: `rotate(${photo.rotate}deg)`,
         zIndex: photo.zIndex ?? 3,
         touchAction: editing ? "none" : undefined,
+        userSelect: editing ? "none" : undefined,
       }}
       onPointerDown={onPointerDown}
       onClick={(e) => {
@@ -253,9 +301,17 @@ function DraggablePhoto({
         }}
       />
       {editing ? (
-        <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
-          Drag · {index + 1}
+        <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
+          ⋮⋮ Drag · {index + 1}
         </span>
+      ) : photo.href ? (
+        <a
+          href={photo.href}
+          className="absolute inset-0 z-10"
+          aria-label={photo.alt || altFallback || "Open link"}
+          target={photo.href.startsWith("http") ? "_blank" : undefined}
+          rel={photo.href.startsWith("http") ? "noopener noreferrer" : undefined}
+        />
       ) : null}
     </div>
   );
@@ -289,6 +345,8 @@ export type KdirectionHomeProps = {
   brandCardHref: string;
   collagePhotos?: KdirectionCollagePhoto[];
   navLinks: NavLink[];
+  navScale?: number;
+  navSize?: NavSizePreset;
   socialLinks: SocialLink[];
   footerText: string;
   motionEnabled?: boolean;
@@ -400,6 +458,8 @@ export function KdirectionHomeLayout({
         siteBase={siteBase}
         buttonBg={props.navButtonBg || "#FFF86B"}
         showHomeIcon={props.showHomeIcon !== false}
+        navScale={props.navScale}
+        navSize={props.navSize}
       />
 
       {props.showArrows !== false ? (
@@ -422,9 +482,9 @@ export function KdirectionHomeLayout({
         </p>
       ) : null}
 
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-5xl flex-col items-center justify-center px-3 pb-16 pt-4 sm:px-4">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-none flex-col items-center justify-center px-2 pb-16 pt-4 sm:px-4">
         <div
-          className="relative w-full max-w-3xl py-4 sm:py-8"
+          className="relative w-full max-w-6xl py-4 sm:py-8 lg:max-w-[92vw]"
           style={{ minHeight: device === "mobile" ? "22rem" : device === "tablet" ? "26rem" : "28rem" }}
         >
           {props.logoImage ? (
@@ -454,6 +514,7 @@ export function KdirectionHomeLayout({
               photo={{
                 src: layout.src,
                 alt: layout.alt,
+                href: layout.href,
                 rotate: layout.rotate,
                 topPct: layout.topPct,
                 leftPct: layout.leftPct,
@@ -555,6 +616,22 @@ export function KdirectionHomeLayout({
             />
           </div>
           <label className="mt-2 block text-[9px] uppercase">
+            Link when visitors tap this photo
+            <input
+              className="mt-1 w-full rounded px-2 py-1 text-xs"
+              style={{ border: "1px solid #DDE0F0" }}
+              value={String((props.collagePhotos ?? [])[selectedPhoto]?.href ?? "")}
+              placeholder="https://… or /artists"
+              onChange={(e) => {
+                const next = [...(props.collagePhotos ?? [])];
+                const cur = next[selectedPhoto];
+                if (!cur) return;
+                next[selectedPhoto] = { ...cur, href: e.target.value };
+                patch({ collagePhotos: next });
+              }}
+            />
+          </label>
+          <label className="mt-2 block text-[9px] uppercase">
             Rotate ({labelBuilderDevice(device)})
             <input
               type="range"
@@ -627,6 +704,8 @@ export type KdirectionPageProps = {
   ctaLabel?: string;
   ctaHref?: string;
   navLinks: NavLink[];
+  navScale?: number;
+  navSize?: NavSizePreset;
   socialLinks: SocialLink[];
   footerText: string;
 };
@@ -678,6 +757,8 @@ export function KdirectionPageLayout({
         siteBase={siteBase}
         buttonBg={props.navButtonBg || "#FFF86B"}
         showHomeIcon={props.showHomeIcon !== false}
+        navScale={props.navScale}
+        navSize={props.navSize}
       />
 
       <main className="relative z-10 mx-auto max-w-3xl px-4 py-12 sm:px-8">

@@ -10,6 +10,8 @@ type PublicCard = {
   publicAfriqueId: string;
   displayName: string;
   countryCode: string;
+  identityType?: "indigenous" | "visitor";
+  identityTypeLabel?: string;
   eligibilityStatus: "verified";
   avatarUrl: string | null;
   verifiedAt: string | null;
@@ -37,7 +39,7 @@ export default function PublicAfriqueIdPage() {
   }, [params.publicId]);
 
   return (
-    <AppShell title="Afrique ID">
+    <AppShell title="African ID">
       <div className="max-w-md mx-auto px-5 py-12 text-center">
         {loading ? (
           <p className="text-sm" style={{ color: KEBU.muted }}>
@@ -66,12 +68,17 @@ export default function PublicAfriqueIdPage() {
               </span>
             )}
             <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: KEBU.orange }}>
-              Verified · Afrique ID
+              Verified · African ID (AID)
             </p>
             <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "var(--font-fraunces)" }}>
               {card.displayName}
             </h1>
-            <p className="font-mono text-sm mb-4">{card.publicAfriqueId}</p>
+            <p className="font-mono text-sm mb-2">{card.publicAfriqueId}</p>
+            {card.identityTypeLabel ? (
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.muted }}>
+                {card.identityTypeLabel}
+              </p>
+            ) : null}
             <p className="text-xs" style={{ color: KEBU.muted }}>
               Country focus: {card.countryCode} · Personal identity on Kebu
             </p>

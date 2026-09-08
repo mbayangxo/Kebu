@@ -1,0 +1,34 @@
+---
+description: Kebu pricing — youth affordability, $5 Shop hero, limits, multi-revenue
+alwaysApply: true
+---
+
+# Kebu Pricing
+
+Full spec: `docs/product/KEBU-PRICING.md` · Code: `lib/billing/plans.ts`.
+
+## Mission
+
+Do **not** price like Shopify/Wix (~$29+/mo e-commerce). African youth affordability is core — **not** $20–30/mo as the default ask.
+
+## Canonical tiers (Builder + Store)
+
+| Plan | $/mo | Role |
+|------|------|------|
+| Free | 0 | Build before you pay |
+| Starter | 2 | Creators, personal sites |
+| **Shop** | **5** | **Hero** — small businesses selling |
+| Business | 10 | Growing businesses |
+| Pro | 20 | Serious teams (cap — not $30) |
+| Student | 1 | Verified students (verification slice) |
+
+## Rules
+
+- **$5 Shop** = push hardest; must deliver real website + store + hosting + analytics + AI — with **honest limits**.
+- **Capability grows with tier** — not punishment for merchant success.
+- **Multi-revenue:** subscription + transparent transaction fee + domains + email + AI overage + templates + Reach — not subscription-only squeeze.
+- **Personal Kebu** stays FREE (account model) — these tiers are business/site infrastructure.
+- **Forbidden:** unlimited claims at $5 · fake Shop bundle items on pricing · student $5 when $1/free verification is the target.
+- Enforce limits **server-side** when implementing gates — UI hiding ≠ authorization.
+
+Marketing headline: **“Everything you need to build your business.”** — not “cheaper than Shopify” alone.

@@ -29,6 +29,47 @@ describe("ai improve brief", () => {
   });
 });
 
+describe("summarizeAiChanges", () => {
+  it("lists title and copy changes", async () => {
+    const { summarizeAiChanges } = await import("@/lib/create/ai-change-summary");
+    const before = buildStructuredSiteFromBrief({
+      mode: "blank",
+      businessId: "11111111-1111-4111-8111-111111111111",
+      businessName: "Maison Sahel",
+      category: "services",
+      description: "Local consulting.",
+      countryCode: "SN",
+      locale: "fr",
+      desiredPages: ["home"],
+    });
+    const after = structuredClone(before);
+    after.title = "Maison Sahel Studio";
+    const hero = after.pages[0]?.sections.find((s) => s.type === "hero");
+    if (hero && hero.props && typeof hero.props === "object") {
+      (hero.props as { heading?: string }).heading = "Consulting for young founders";
+    }
+    const intents = summarizeAiChanges(before, after);
+    expect(intents.some((i) => i.includes("Maison Sahel Studio"))).toBe(true);
+    expect(intents.some((i) => i.includes("heading"))).toBe(true);
+  });
+
+  it("returns a fallback when structures match", async () => {
+    const { summarizeAiChanges } = await import("@/lib/create/ai-change-summary");
+    const def = buildStructuredSiteFromBrief({
+      mode: "blank",
+      businessId: "11111111-1111-4111-8111-111111111111",
+      businessName: "Test Co",
+      category: "services",
+      description: "Test.",
+      countryCode: "SN",
+      locale: "fr",
+      desiredPages: ["home"],
+    });
+    const intents = summarizeAiChanges(def, structuredClone(def));
+    expect(intents).toEqual(["Refine layout and copy across the site"]);
+  });
+});
+
 describe("ai improve validation gate", () => {
   it("keeps a blank site valid after clone (replace input shape)", () => {
     const def = buildStructuredSiteFromBrief({

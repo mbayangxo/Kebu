@@ -1,0 +1,27 @@
+---
+description: Build for everyone. Empower Africans with more — global access + entitlement layer
+alwaysApply: true
+---
+
+# Kebu Global Access
+
+Full spec: `docs/product/KEBU-GLOBAL-ACCESS-PHILOSOPHY.md`
+
+## Core philosophy
+
+**Build for everyone. Empower Africans with more.**
+
+Kebu is **not** locking technology away from the world. It is **African-built infrastructure open globally**, plus an **additional entitlement-gated layer** (Kebu Opportunity OS protected intelligence) to **close the opportunity gap**.
+
+## Rules
+
+- **Global:** Search, Builder, Shop, Cloud, Mail, Domains, Analytics, Business, Reach, Studio (when live) — **anyone** with a Kebu account.
+- **Entitlement-gated:** Kebu Opportunity OS protected African intelligence — verify once → server-side check (e.g. `african_opportunity_access`) — **not** per-page scattered checks.
+- **Opportunity OS** (explore) = separate product; **Kebu Opportunity OS** = Kebu for-you — do not merge.
+- Personal eligibility ≠ **Kebu ID**.
+- Public may **discover** Opportunity OS exists; protected data requires entitlement.
+- **Kebu Search stays open globally.**
+
+## Forbidden
+
+“Africans-only internet” · hiding global products behind verification · hard-coded African checks everywhere · pretending protected intelligence is public · pretending public tools are entitlement-only.

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
+import { maylecorAboutPageSections } from "@/lib/create/maylecor-about-bio";
+import { syncProjectChromeNavFromPages } from "@/lib/create/site-chrome";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +15,8 @@ const slugSchema = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(1).
 const addPageSchema = z.object({
   slug: slugSchema,
   title: z.string().trim().min(1).max(120),
+  /** Optional starter content — about-may seeds the full May Lècor bio. */
+  seed: z.enum(["blank", "about-may"]).optional().default("blank"),
 });
 
 const patchPageSchema = z.object({
@@ -99,17 +103,52 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Could not add page.", detail: pageError?.message }, { status: 500 });
   }
 
-  const heroProps = defaultSectionProps("hero");
-  const { error: secError } = await supabase.from("project_sections").insert({
-    page_id: page.id,
-    section_type: "hero",
-    sort_order: 0,
-    props: heroProps,
-  });
+  const heroProps = {
+    ...defaultSectionProps("hero"),
+    heading: parsed.data.title,
+    subheading: "Add sections below — or remove any you don’t need — to make this page longer or shorter.",
+    buttonLabel: "Contact",
+    buttonHref: "/contact",
+  };
+  const textProps = {
+    ...defaultSectionProps("text"),
+    heading: parsed.data.title,
+    body: "Write your story here. Use Add section to grow this page (gallery, FAQ, products, form…). Use Remove on any section to shorten the scroll.",
+  };
+  const seedSections =
+    parsed.data.seed === "about-may"
+      ? maylecorAboutPageSections().map((section, sort_order) => ({
+          page_id: page.id,
+          section_type: section.type,
+          sort_order,
+          props: section.props,
+        }))
+      : [
+          {
+            page_id: page.id,
+            section_type: "hero",
+            sort_order: 0,
+            props: heroProps,
+          },
+          {
+            page_id: page.id,
+            section_type: "text",
+            sort_order: 1,
+            props: textProps,
+          },
+        ];
+
+  const { error: secError } = await supabase.from("project_sections").insert(seedSections);
 
   if (secError) {
     await supabase.from("project_pages").delete().eq("id", page.id);
     return NextResponse.json({ error: "Could not create default section.", detail: secError.message }, { status: 500 });
+  }
+
+  try {
+    await syncProjectChromeNavFromPages(supabase as never, projectId);
+  } catch {
+    /* chrome sync is best-effort */
   }
 
   logCreate("pages.add", { userId: user.id, projectId, pageId: page.id, slug: page.slug });
@@ -183,6 +222,14 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Could not update page.", detail: error?.message }, { status: 500 });
   }
 
+  if (parsed.data.title || parsed.data.slug || parsed.data.sortOrder !== undefined) {
+    try {
+      await syncProjectChromeNavFromPages(supabase as never, projectId);
+    } catch {
+      /* best-effort */
+    }
+  }
+
   return NextResponse.json({ page: updated });
 }
 
@@ -236,6 +283,12 @@ export async function DELETE(req: Request, { params }: Params) {
   const { error } = await supabase.from("project_pages").delete().eq("id", parsed.data.pageId);
   if (error) {
     return NextResponse.json({ error: "Could not delete page.", detail: error.message }, { status: 500 });
+  }
+
+  try {
+    await syncProjectChromeNavFromPages(supabase as never, projectId);
+  } catch {
+    /* best-effort */
   }
 
   logCreate("pages.delete", { userId: user.id, projectId, pageId: parsed.data.pageId });

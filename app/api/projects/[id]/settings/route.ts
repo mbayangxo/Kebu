@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { mergeSiteCommerce } from "@/lib/create/site-commerce";
 import { siteSeoSchema } from "@/lib/create/site-seo";
 import { themeSchema } from "@/lib/create/website-schema";
 import { builderRateLimit } from "@/lib/api-guard";
@@ -91,7 +92,29 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.seo) {
     const currentSeo =
       project.seo && typeof project.seo === "object" ? (project.seo as Record<string, unknown>) : {};
-    const merged = siteSeoSchema.parse({ ...currentSeo, ...parsed.data.seo });
+    const nextSeo = { ...parsed.data.seo };
+    if (nextSeo.commerce !== undefined) {
+      nextSeo.commerce = mergeSiteCommerce(nextSeo.commerce, currentSeo.commerce);
+      const mergedCommerce = nextSeo.commerce as { preferJokoCheckout?: boolean };
+      const wasJoko =
+        currentSeo.commerce &&
+        typeof currentSeo.commerce === "object" &&
+        Boolean((currentSeo.commerce as { preferJokoCheckout?: boolean }).preferJokoCheckout);
+      if (mergedCommerce.preferJokoCheckout && !wasJoko) {
+        const { resolveSellerTrust, sellerTrustDenyJokoMessage } = await import("@/lib/shop/seller-trust");
+        const trust = await resolveSellerTrust(supabase, { projectId: id, userId: user.id });
+        if (!trust.canEnableJoko) {
+          return NextResponse.json(
+            {
+              error: sellerTrustDenyJokoMessage(trust),
+              sellerTrust: trust,
+            },
+            { status: 403 },
+          );
+        }
+      }
+    }
+    const merged = siteSeoSchema.parse({ ...currentSeo, ...nextSeo });
     patch.seo = merged;
   }
 

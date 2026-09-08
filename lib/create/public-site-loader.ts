@@ -3,6 +3,7 @@ import { createClient as createServiceClient, type SupabaseClient } from "@supab
 import { websiteDefinitionSchema, type WebsiteDefinition } from "@/lib/create/website-schema";
 import { mergeSiteSeo, type SiteSeo } from "@/lib/create/site-seo";
 import { kebuSitePreviewPath, liveSiteUrl, plannedKebuAfricaHost } from "@/lib/create/site-urls";
+import { projectHostingIsPaid } from "@/lib/billing/subscriptions";
 
 export type PublicDeployment = {
   projectId: string;
@@ -13,6 +14,8 @@ export type PublicDeployment = {
   seo: SiteSeo;
   httpsUrl: string;
   customDomainUrl: string | null;
+  /** True when hosting lapsed — show paywall page instead of site content. */
+  billingSuspended?: boolean;
 };
 
 export type PublicLoadError = {
@@ -84,7 +87,9 @@ export async function loadPublicDeployment(subdomain: string): Promise<PublicDep
     .from("deployments")
     .select("id, project_id, subdomain, snapshot, public_path, published_at, status")
     .eq("subdomain", normalized)
-    .eq("status", "live")
+    .in("status", ["live", "suspended"])
+    .order("published_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error || !data) return null;
@@ -100,6 +105,15 @@ export async function loadPublicDeployment(subdomain: string): Promise<PublicDep
   const httpsUrl =
     customDomainUrl ?? liveSiteUrl(data.subdomain) ?? path;
 
+  let billingSuspended = data.status === "suspended";
+  // Paid/free check needs service role (owner RLS hides rows from anon SSR).
+  // Without it, trust deployment.status — never false-suspend a live site.
+  const admin = serviceClientOrNull();
+  if (!billingSuspended && data.project_id && admin) {
+    const hosting = await projectHostingIsPaid(admin, data.project_id);
+    billingSuspended = !hosting.paid;
+  }
+
   return {
     projectId: data.project_id,
     subdomain: data.subdomain,
@@ -109,6 +123,7 @@ export async function loadPublicDeployment(subdomain: string): Promise<PublicDep
     seo,
     httpsUrl,
     customDomainUrl,
+    billingSuspended,
   };
 }
 

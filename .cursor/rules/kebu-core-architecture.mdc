@@ -1,0 +1,60 @@
+---
+description: Kebu umbrella — African productivity cloud; Maps practical-first; infrastructure sovereignty; low-data; Opportunity OS separate from Kebu Opportunity OS
+alwaysApply: true
+---
+
+# Kebu — Core architecture law
+
+Full text: `docs/KEBU-CORE-PRODUCT-ARCHITECTURE.md` · Maps + sovereignty: `docs/KEBU-MAPS-AND-INFRASTRUCTURE.md`.
+
+## Thesis
+
+Kebu = **Africa’s productivity, commerce, discovery, and opportunity cloud** — increasingly on **infrastructure Africa controls**. Not an African Shopify/Google clone; not disconnected apps.
+
+**Build for everyone. Empower Africans with more.** Open global infrastructure + **entitlement-gated** opportunity layer for verified Africans — not an “Africans-only internet.” Spec: `docs/product/KEBU-GLOBAL-ACCESS-PHILOSOPHY.md` · rule: `kebu-global-access.mdc`.
+
+**Global access:** Builder, Search, Mail, Cloud, Domains, Analytics, Business tools = **anyone** with a Kebu account (when built). **Kebu Opportunity OS + protected African intelligence** = **entitlement-gated** (`african_opportunity_access` or equivalent) after one-time verification — public can discover products exist; protected data checks entitlement server-side.
+
+Windows into one stack: **Kebu Search** (real engine) · **Maps** · Builder · Commerce · **Opportunity OS** · **Kebu Opportunity OS** · Yande · Cloud · Mail · Jobs · Network.
+
+## Kebu Search (economic discovery hub — when assigned)
+
+**Not African Google.** Economic discovery: entity · opportunity · transaction · relationship. Real crawl/index/rank; AI **on top** with citations — **never chat-as-search**. Globally open. RECT = Culture index. Multi-revenue beyond ads — `docs/product/KEBU-ECONOMIC-DISCOVERY.md` · `docs/product/KEBU-SEARCH.md` · `kebu-search.mdc` · `kebu-economic-discovery.mdc`.
+
+## No watching (brand principle)
+
+Learn by **building** inside Kebu — not lecture LMS. Spec: `docs/product/KEBU-NO-WATCHING.md` · rule: `kebu-no-watching.mdc`.
+
+## Opportunity OS vs Kebu Opportunity OS
+
+**Opportunity OS** = separate product (explore). **Kebu Opportunity OS** = Kebu for-you feature. **Not** Builder. Specs: `docs/OPPORTUNITY-OS-MASTER-SPEC.md` · `docs/KEBU-OPPORTUNITY-OS.md`. API integration only.
+
+## Kebu Maps
+
+1. **Practical navigation first** — streets, routing, local transport, real POIs.  
+2. Then African road intelligence (paved, flood, vehicle class, coverage, UGC verification).  
+3. Then Farm Map · production maps · infrastructure gaps · **Africa Needs** → Opportunity OS.  
+
+Do not ship empty Maps. Do not fake road conditions without sources.
+
+## Infrastructure sovereignty (progressive)
+
+1 Software → 2 **Data (own early)** → 3 African CDN/edge → 4 Kebu Cloud → 5 Physical **regional** hubs (not 54 DCs day one).  
+Expose APIs so Africans build on Kebu. Do not claim ownership of rented foreign infra.
+
+## Module list (build only when assigned)
+
+**Kebu Search** (real engine) · **Maps** · Mail · Cloud · Builder · Business · Commerce (B2C+B2B) · B2B · Network · Jobs · **Opportunity OS** · **Kebu Opportunity OS** · Resource / Value Leakage / Build-It-Here · Yande / Yande Code · **No watching** (learn by building).
+
+**Nav only when real.**
+
+## Non-negotiables
+
+- Africa-first · mobile-first · **low-bandwidth-first** (ask **KB per action**) · Offline / Data Saver / Ultra  
+- Shared identity/data · adapters · sources + confidence  
+- **End-to-end always** · bugs: discover → reproduce → root cause → regress  
+- Learn from Africa: observe → verify → improve  
+
+## Method
+
+`docs/IMPLEMENTATION_STATUS.md` · one vertical slice · architecture ≠ empty shells.

@@ -5,6 +5,8 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/signup",
+  "/forgot-password",
+  "/reset-password",
   "/auth/callback",
   "/map",
   "/dashboard",
@@ -75,8 +77,8 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect authenticated users away from login/signup
-  if (user && (pathname === "/login" || pathname === "/signup")) {
+  // Redirect authenticated users away from login/signup (keep /reset-password for recovery).
+  if (user && (pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

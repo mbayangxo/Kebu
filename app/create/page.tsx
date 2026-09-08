@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { TemplatePreviewCard } from "@/app/components/create/template-preview-card";
-import { MySitesGrid, type MySiteProject } from "@/app/components/create/my-sites-grid";
 import { getFeaturedGalleryTemplates, getFlagshipGalleryTemplates } from "@/lib/create/template-gallery";
+import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 
 type ProjectRow = {
   id: string;
@@ -31,7 +31,6 @@ type PortfolioSiteRow = {
 export default function CreateHubPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dbHealth, setDbHealth] = useState<{ saveReady: boolean; message: string } | null>(null);
   const [portfolioBusy, setPortfolioBusy] = useState(false);
@@ -40,7 +39,6 @@ export default function CreateHubPage() {
   const [portfolioSites, setPortfolioSites] = useState<PortfolioSiteRow[]>([]);
 
   const load = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/projects", { credentials: "include" });
@@ -58,8 +56,6 @@ export default function CreateHubPage() {
     } catch {
       setError("Network error. Check your connection and retry.");
       setProjects([]);
-    } finally {
-      setLoading(false);
     }
   }, [router]);
 
@@ -183,13 +179,13 @@ export default function CreateHubPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash === "#templates") {
-      router.replace("/create/templates");
+      router.replace("/create/aesthetics");
     }
   }, [router]);
 
   return (
     <AppShell
-      title="Kebu Builder"
+      title="My Space"
       portfolioSites={portfolioAllowed ? portfolioSites : []}
       actions={
         <Link
@@ -211,26 +207,28 @@ export default function CreateHubPage() {
           />
           <div className="absolute inset-0 opacity-20" aria-hidden style={{ backgroundImage: "radial-gradient(circle at 80% 20%, #fff 0%, transparent 40%)" }} />
           <div className="relative text-white max-w-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.28em] mb-4 opacity-90">Kebu Builder</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.28em] mb-4 opacity-90">
+              Aesthetic store · build a site
+            </p>
             <h1 className="text-3xl sm:text-5xl font-bold mb-4 leading-[1.05]" style={{ fontFamily: "var(--font-fraunces)" }}>
-              Build something people can see — not another SaaS dashboard.
+              Pick a look. See the demo. Start your site.
             </h1>
             <p className="text-sm sm:text-base leading-relaxed opacity-90 mb-8">
-              Pick a template below, drop in your photos, publish to the world. Stores, artists, salons, agencies — all
-              visual, all yours.
+              Themes live in Aesthetics. Your websites live in My Sites. Studio is for graphics — separate. Mae / owner
+              brands are not mixed into the store.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/create/templates"
+                href="/create/aesthetics"
                 className="inline-flex rounded-full px-6 py-3 text-sm font-bold bg-white text-black"
               >
-                Browse templates
+                Open Aesthetic store
               </Link>
               <Link
-                href="/create/new"
+                href="/create/new?mode=ai"
                 className="inline-flex rounded-full px-6 py-3 text-sm font-semibold border-2 border-white/80"
               >
-                Blank site
+                Build a site with Yande
               </Link>
             </div>
           </div>
@@ -265,11 +263,11 @@ export default function CreateHubPage() {
               </p>
             </div>
             <Link
-              href="/create/templates"
+              href="/create/aesthetics"
               className="rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
               style={{ background: "#0A0A0A", color: "#fff" }}
             >
-              All templates →
+              All aesthetics →
             </Link>
           </div>
           <ul className="grid gap-4 sm:grid-cols-3">
@@ -309,10 +307,10 @@ export default function CreateHubPage() {
           style={{ background: "#fff", border: "1px solid rgba(10,10,10,0.1)" }}
         >
           {[
-            { n: "1", t: "Pick template", d: "Artist, agency, salon, store — starters for everyone" },
-            { n: "2", t: "Edit photos", d: "Swap any image URL — motion stays" },
+            { n: "1", t: "Words or template", d: "Describe the business, or pick a real starting design" },
+            { n: "2", t: "Edit the draft", d: "Yande output is Kebu pages you can change — not a locked HTML dump" },
             { n: "3", t: "Preview", d: "Desktop + mobile before you publish" },
-            { n: "4", t: "Go live", d: "Public at /sites/your-name" },
+            { n: "4", t: "Go live", d: "Public at /sites/your-name — then Shop, payments, operate" },
           ].map((step) => (
             <div key={step.n}>
               <span
@@ -329,95 +327,51 @@ export default function CreateHubPage() {
           ))}
         </section>
 
-        <section className="mb-8 flex flex-wrap items-center justify-between gap-3">
+        <section
+          className="rounded-2xl p-6 mb-10 flex flex-wrap items-center justify-between gap-4"
+          style={{ background: "#fff", border: "1px solid rgba(10,10,10,0.1)" }}
+        >
           <div>
-            <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-              Website builder
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-1" style={{ color: "#FF5500" }}>
+              My sites — not aesthetics
+            </p>
+            <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
+              Your websites live here
             </h2>
-            <p className="text-xs mt-1" style={{ color: "#6B5B45" }}>
-              Sites and design live here. Selling is separate in{" "}
-              <Link href="/shop" className="font-bold underline" style={{ color: "#FF5500" }}>
-                Kebu Shop
-              </Link>
-              .
+            <p className="text-sm mt-2 max-w-lg" style={{ color: "#5C5348" }}>
+              Drafts and live sites only. Theme browsing is under Aesthetics — do not mix the two.
             </p>
-          </div>
-          <Link
-            href="/shop"
-            className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
-            style={{ background: "#FF5500" }}
-          >
-            Open Shop
-          </Link>
-        </section>
-
-        <section className="mb-8">
-          {portfolioBusy ? (
-            <p className="text-sm mb-3" style={{ color: "#5C5348" }}>
-              Loading your sites…
-            </p>
-          ) : null}
-          {portfolioNote ? (
-            <p className="text-xs mb-3" style={{ color: "#FF5500" }} role="status">
-              {portfolioNote}
-            </p>
-          ) : null}
-          {error ? (
-            <div role="alert" className="rounded-xl p-4 text-sm mb-3" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
-              {error}
-              <button
-                type="button"
-                className="underline ml-2"
-                onClick={() => {
-                  void load();
-                  void loadPortfolio();
-                }}
-              >
-                Retry
-              </button>
-            </div>
-          ) : null}
-
-          {portfolioAllowed && portfolioSites.every((s) => !s.projectId) ? (
-            <div
-              className="rounded-2xl px-5 py-4 mb-6"
-              style={{ background: "#FFF8F2", border: "1px solid rgba(255,85,0,0.25)" }}
-            >
-              <p className="text-sm mb-3" style={{ color: "#5C5348" }}>
-                May Lecor and K-Direction are not in your account yet. One tap creates both sites.
+            {portfolioNote ? (
+              <p className="text-xs mt-2" style={{ color: "#FF5500" }} role="status">
+                {portfolioNote}
               </p>
+            ) : null}
+            {error ? (
+              <p className="text-xs mt-2" style={{ color: "#8B1E1E" }} role="alert">
+                {error}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {portfolioAllowed && portfolioSites.every((s) => !s.projectId) ? (
               <button
                 type="button"
                 disabled={portfolioBusy}
                 onClick={() => void restorePortfolioSites()}
                 className="rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
-                style={{ background: "#FF5500", color: "#fff" }}
+                style={{ background: "#0A0A0A", color: "#fff" }}
               >
-                {portfolioBusy ? "Creating…" : "Add May Lecor & K-Direction"}
+                {portfolioBusy ? "Creating…" : "Add brand sites"}
               </button>
-            </div>
-          ) : null}
-
-          {loading ? (
-            <p className="text-sm" style={{ color: "#5C5348" }}>
-              Loading…
-            </p>
-          ) : (
-            <MySitesGrid
-              compact
-              projects={projects.map(
-                (p): MySiteProject => ({
-                  id: p.id,
-                  title: p.title,
-                  status: p.status,
-                  subdomain: p.subdomain,
-                  project_type: p.project_type,
-                  updated_at: p.updated_at,
-                  published_at: p.status === "published" ? p.updated_at : null,
-                }),
-              )}
-            />
-          )}
+            ) : null}
+            <Link
+              href={MY_SITES_HREF}
+              className="rounded-full px-6 py-3 text-sm font-bold text-white"
+              style={{ background: "#FF5500" }}
+            >
+              Open My sites{projects.length ? ` (${projects.length})` : ""}
+            </Link>
+          </div>
         </section>
 
         <p className="text-center text-xs" style={{ color: "#8A8578" }}>
@@ -425,7 +379,7 @@ export default function CreateHubPage() {
             My businesses
           </Link>
           {" · "}
-          Live hosting $3/month or $27/year via JOKO when you publish
+          Start free — Shop is $5/month for store + hosting via JOKO
         </p>
       </main>
     </AppShell>

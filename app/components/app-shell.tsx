@@ -5,18 +5,25 @@ import { usePathname } from "next/navigation";
 import { BackLink } from "@/app/components/back-link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuAppSidebar, type PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
+import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
+import { KebuMobileNav } from "@/app/components/kebu-mobile-nav";
+import { DataModeDock, DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
+import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
+import "@/app/components/create/kebu-site-responsive.css";
 
 export type { PortfolioNavSite };
 
 function fallbackForPath(pathname: string): string {
-  if (pathname.startsWith("/create/sites/")) return "/create/sites";
-  if (pathname === "/create/sites" || pathname === "/create/domains" || pathname === "/create/templates") {
-    return "/create";
+  if (pathname.startsWith("/my-sites/")) return MY_SITES_HREF;
+  if (pathname === MY_SITES_HREF) return "/business";
+  if (pathname.startsWith("/create/sites")) return MY_SITES_HREF;
+  if (pathname === "/create/domains" || pathname === "/create/templates" || pathname === "/create/aesthetics") {
+    return "/create/aesthetics";
   }
-  if (pathname === "/create" || pathname === "/create/") return "/dashboard";
-  if (pathname.startsWith("/create")) return "/create";
+  if (pathname === "/create" || pathname === "/create/") return "/create/aesthetics";
+  if (pathname.startsWith("/create")) return "/create/aesthetics";
   if (pathname.startsWith("/shop")) return "/shop";
   if (pathname.startsWith("/business/")) return "/business";
   if (pathname.startsWith("/studio/")) return "/studio";
@@ -43,7 +50,6 @@ export function AppShell({
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup");
 
-  // Marketing / auth pages: content only — never the logged-in left rail.
   if (publicSurface) {
     return <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>{children}</div>;
   }
@@ -51,62 +57,74 @@ export function AppShell({
   const fallback = fallbackForPath(pathname);
 
   return (
-    <div className="min-h-screen flex" style={{ background: KEBU.bright, color: KEBU.black }}>
-      <KebuAppSidebar portfolioSites={portfolioSites} />
+    <DataModeProvider>
+      <div
+        className="kebu-app min-h-screen flex"
+        style={{ background: KEBU.bright, color: KEBU.black }}
+      >
+        <KebuAppSidebar portfolioSites={portfolioSites} />
 
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Mobile header */}
-        <header
-          className="sticky top-0 z-30 lg:hidden"
-          style={{ background: KEBU.black, borderBottom: `2px solid ${KEBU.orange}` }}
-        >
-          <div
-            className="h-[3px] w-full"
-            style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
-          />
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <BackLink fallbackHref={fallback} variant="onDark" />
-            <p className="text-sm font-bold truncate text-white" style={{ fontFamily: "var(--font-fraunces)" }}>
-              {title}
-            </p>
-            <Link href="/" className="shrink-0">
-              <KebuMark size={24} />
-            </Link>
-          </div>
-        </header>
-
-        {/* Desktop top bar — back on every page */}
-        <div
-          className="hidden lg:flex items-center justify-between gap-3 px-8 py-3 sticky top-0 z-30 backdrop-blur-md"
-          style={{
-            background: "rgba(255,251,247,0.92)",
-            borderBottom: `1px solid rgba(255,85,0,0.15)`,
-          }}
-        >
-          <div className="flex items-center gap-4 min-w-0">
-            <BackLink fallbackHref={fallback} variant="strong" />
-            <h1
-              className="text-sm font-bold truncate"
-              style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
-            >
-              {title}
-            </h1>
-          </div>
-          {actions ? <div className="flex items-center gap-2 shrink-0">{actions}</div> : null}
-        </div>
-
-        {/* Mobile-only actions row when provided */}
-        {actions ? (
-          <div
-            className="flex lg:hidden items-center justify-end gap-2 px-4 py-2"
-            style={{ borderBottom: `1px solid rgba(255,85,0,0.12)` }}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <header
+            className="sticky top-0 z-30 lg:hidden"
+            style={{ background: KEBU.black, borderBottom: `2px solid ${KEBU.orange}` }}
           >
-            {actions}
-          </div>
-        ) : null}
+            <div
+              className="h-[3px] w-full"
+              style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
+            />
+            <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <KebuMobileNav />
+                <BackLink fallbackHref={fallback} variant="onDark" />
+              </div>
+              <p className="text-sm font-bold truncate text-white flex-1 text-center" style={{ fontFamily: "var(--font-fraunces)" }}>
+                {title}
+              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <KebuAccountCorner onDark />
+                <Link href="/" className="shrink-0">
+                  <KebuMark size={22} />
+                </Link>
+              </div>
+            </div>
+          </header>
 
-        <main className="flex-1 min-h-0">{children}</main>
+          <div
+            className="hidden lg:flex items-center justify-between gap-3 px-8 py-3 sticky top-0 z-30 backdrop-blur-md"
+            style={{
+              background: "rgba(255,251,247,0.92)",
+              borderBottom: `1px solid rgba(255,85,0,0.15)`,
+            }}
+          >
+            <div className="flex items-center gap-4 min-w-0">
+              <BackLink fallbackHref={fallback} variant="strong" />
+              <h1
+                className="text-sm font-bold truncate"
+                style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
+              >
+                {title}
+              </h1>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              {actions}
+              <KebuAccountCorner />
+            </div>
+          </div>
+
+          {actions ? (
+            <div
+              className="flex lg:hidden items-center justify-end gap-2 px-4 py-2"
+              style={{ borderBottom: `1px solid rgba(255,85,0,0.12)` }}
+            >
+              {actions}
+            </div>
+          ) : null}
+
+          <main className="flex-1 min-h-0">{children}</main>
+        </div>
+        <DataModeDock />
       </div>
-    </div>
+    </DataModeProvider>
   );
 }

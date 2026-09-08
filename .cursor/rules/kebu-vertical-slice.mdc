@@ -5,7 +5,13 @@ alwaysApply: true
 
 # Kebu — Task Workflow
 
+**Master contract:** `docs/product/KEBU-MASTER-ENGINEERING-INSTRUCTION.md` · **Product Architect:** `docs/product/KEBU-PRODUCT-ARCHITECT-PHASE.md` · `kebu-master-engineering.mdc`
+
 For every assigned feature (never invent scope):
+
+## A0. Product Architect (new major surfaces)
+
+If the slice introduces a **new product category or major surface**, output full blueprint **before code** — IA, screens, journeys, data, states, backend, tests. See `kebu-product-architect.mdc`.
 
 ## A. Inspect first (no edits)
 
@@ -17,15 +23,21 @@ Exists · missing · broken · disconnected · files to change · DB changes · 
 
 ## C. One vertical slice
 
-User action → FE validation → authenticated request → authorization → business logic → DB → response → UI → **refresh verification**.
+User action → FE validation → authenticated request → authorization → business logic → **Supabase** → DB → response → UI → **refresh verification**.
+
+**If a dependency slice is broken:** **STOP** — repair dependency end-to-end before continuing. **Do not** build new functionality on broken functionality.
 
 ## D–E. Test and manually verify
 
 Unit + integration + E2E (critical) · typecheck · lint · production build · valid/invalid/logged-out/wrong-user/network/duplicate/refresh/mobile/DB/logs.
 
-## F. Adversarial self-audit
+## F. Adversarial self-audit (mandatory before next slice)
 
-Frontend-only · disconnected API · missing writes · fake success · missing authz · cross-user leaks · races · duplicate requests · broken refresh · weak tests · skipped requirements. Repair before claiming progress.
+Frontend-only · disconnected API · missing writes · fake success · missing authz · cross-user leaks · RLS gaps · races · duplicate requests · broken refresh · weak tests · skipped requirements · competitor-clone UI without Kebu differentiation. **Trace every user action frontend → Supabase → frontend.** Repair before claiming progress or starting the next slice.
+
+**Assigned audit prompt:** *“Audit Slice N as an adversarial senior engineer. Fix everything you find. Do not move to Slice N+1.”*
+
+**Bugs:** discover → reproduce → root-cause fix → regression test when practical. **Never hide errors** to make UI look functional. Do not ignore. Do not claim zero bugs. **Stop and repair broken dependencies** before stacking new work.
 
 ## G. Completion report
 

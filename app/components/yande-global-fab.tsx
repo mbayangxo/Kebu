@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { YandeMark } from "@/app/components/yande-mark";
 import { BUILDER } from "@/lib/create/builder-ui";
 
@@ -12,11 +12,30 @@ const STARTERS = [
   "What should I publish first?",
 ] as const;
 
+const POS_KEY = "kebu.yande.fab.pos";
+
+type FabPos = { x: number; y: number };
+
+function clampPos(x: number, y: number, size: number): FabPos {
+  if (typeof window === "undefined") return { x, y };
+  const pad = 8;
+  const maxX = Math.max(pad, window.innerWidth - size - pad);
+  const maxY = Math.max(pad, window.innerHeight - size - pad);
+  return {
+    x: Math.min(maxX, Math.max(pad, x)),
+    y: Math.min(maxY, Math.max(pad, y)),
+  };
+}
+
+function defaultPos(size: number): FabPos {
+  if (typeof window === "undefined") return { x: 16, y: 16 };
+  return clampPos(window.innerWidth - size - 16, window.innerHeight - size - 24, size);
+}
+
 export function YandeGlobalFab({
   variant = "fixed",
   projectId,
 }: {
-  /** fixed = bottom-right solo. stacked = sits above Learn in the FAB column. */
   variant?: "fixed" | "stacked";
   projectId?: string;
 }) {
@@ -27,9 +46,42 @@ export function YandeGlobalFab({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const size = variant === "stacked" ? 56 : 64;
+  const [pos, setPos] = useState<FabPos>(() => defaultPos(size));
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+    moved: boolean;
+  } | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   const inBuilder =
     pathname.startsWith("/create/") && pathname !== "/create" && !pathname.startsWith("/create/sites");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(POS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as FabPos;
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          setPos(clampPos(parsed.x, parsed.y, size));
+          return;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    setPos(defaultPos(size));
+  }, [size]);
+
+  useEffect(() => {
+    const onResize = () => setPos((p) => clampPos(p.x, p.y, size));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [size]);
 
   useEffect(() => {
     if (!open) return;
@@ -39,6 +91,14 @@ export function YandeGlobalFab({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  const persistPos = useCallback((next: FabPos) => {
+    try {
+      localStorage.setItem(POS_KEY, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   async function ask(text: string) {
     const q = text.trim();
@@ -111,7 +171,7 @@ export function YandeGlobalFab({
           </div>
         ) : (
           <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-            Ask about pages, photos, colors, music, shop, or what to do next.
+            Ask about pages, photos, colors, music, shop, or what to do next. Drag the icon to move it.
           </p>
         )}
 
@@ -159,16 +219,63 @@ export function YandeGlobalFab({
     </div>
   ) : null;
 
-  /** Person avatar only — bottom-right, like a real assistant. */
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (variant === "stacked") return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: pos.x,
+      origY: pos.y,
+      moved: false,
+    };
+    setDragging(true);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 6) d.moved = true;
+    if (d.moved) {
+      setPos(clampPos(d.origX + dx, d.origY + dy, size));
+    }
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    dragRef.current = null;
+    setDragging(false);
+    if (d.moved) {
+      setPos((p) => {
+        const next = clampPos(p.x, p.y, size);
+        persistPos(next);
+        return next;
+      });
+      return;
+    }
+    setOpen((o) => !o);
+  };
+
   const trigger = (
     <button
       type="button"
-      onClick={() => setOpen((o) => !o)}
-      className="group relative rounded-full transition-transform hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5500]"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      className={`group relative rounded-full transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5500] ${
+        dragging ? "scale-105 cursor-grabbing" : "hover:scale-105 active:scale-95 cursor-grab"
+      }`}
       aria-expanded={open}
-      aria-label={open ? "Close Yande" : "Ask Yande"}
+      aria-label={open ? "Close Yande" : "Ask Yande — drag to move"}
+      title="Drag to move · tap to open"
+      style={{ touchAction: "none" }}
     >
-      <YandeMark size={variant === "stacked" ? 56 : 64} />
+      <YandeMark size={size} />
       <span
         className="pointer-events-none absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white"
         style={{ background: "#00C851" }}
@@ -182,7 +289,20 @@ export function YandeGlobalFab({
     return (
       <div className="flex flex-col items-end">
         {panel}
-        {trigger}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="group relative rounded-full transition-transform hover:scale-105 active:scale-95"
+          aria-expanded={open}
+          aria-label={open ? "Close Yande" : "Ask Yande"}
+        >
+          <YandeMark size={size} />
+          <span
+            className="pointer-events-none absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white"
+            style={{ background: "#00C851" }}
+            aria-hidden
+          />
+        </button>
       </div>
     );
   }
@@ -197,11 +317,16 @@ export function YandeGlobalFab({
         />
       ) : null}
       <div
-        className="fixed z-[70] right-4 flex flex-col items-end gap-3 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] lg:bottom-6"
-        style={{ maxWidth: "min(100vw - 2rem, 380px)" }}
+        className="fixed z-[70] flex flex-col-reverse items-end gap-3"
+        style={{
+          left: pos.x,
+          top: pos.y,
+          maxWidth: "min(100vw - 2rem, 380px)",
+          transform: "translateY(0)",
+        }}
       >
-        {panel}
         {trigger}
+        {panel}
       </div>
     </>
   );

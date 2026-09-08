@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Nav } from "@/app/components/nav";
-import { SAMPLE_OPPORTUNITIES } from "@/lib/data/sample-opportunities";
+import { TrackListingButton } from "@/app/components/opportunity/track-listing-button";
 import { computeFreshness, freshnessUI } from "@/lib/verification";
 import { FlagListing } from "@/app/components/flag-listing";
+import { createClient } from "@/lib/supabase/server";
+import { getOpportunityListingById } from "@/lib/opportunity/listings";
 
 export default async function OpportunityPage({
   params,
@@ -11,8 +13,11 @@ export default async function OpportunityPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const opp = SAMPLE_OPPORTUNITIES.find((o) => o.id === id);
-  if (!opp) notFound();
+
+  const supabase = await createClient();
+  const { listing: opp, missingTable } = await getOpportunityListingById(supabase, id);
+
+  if (missingTable || !opp) notFound();
 
   const freshness = computeFreshness(opp);
   const freshnessStyle = freshnessUI(freshness);
@@ -46,12 +51,16 @@ export default async function OpportunityPage({
       <Nav />
 
       <div
-        className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm"
+        className="border-b border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm"
         role="status"
       >
-        <strong>Sample listing</strong> — not Opportunity OS. Demo data only. Live country profiles:{" "}
-        <Link href="/opportunity/countries" className="font-semibold underline text-deep-green">
-          Country Explorer
+        <strong>Opportunity OS listing</strong> — stored in Kebu database. Verify deadline and eligibility at{" "}
+        <a href={opp.source_url} target="_blank" rel="noopener noreferrer" className="font-semibold underline text-deep-green">
+          {opp.source_name}
+        </a>
+        . Browse all:{" "}
+        <Link href="/opportunity/listings" className="font-semibold underline text-deep-green">
+          Programs & listings
         </Link>
         .
       </div>
@@ -266,21 +275,16 @@ export default async function OpportunityPage({
         )}
 
         {/* CTA */}
-        <div className="flex gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <a
             href={opp.source_url}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 bg-deep-green text-ivory font-bold py-4 rounded-xl hover:bg-mid-green transition-colors text-center"
           >
-            Apply now →
+            Apply at official source →
           </a>
-          <Link
-            href="/assistant"
-            className="flex-1 border border-deep-green text-deep-green font-bold py-4 rounded-xl hover:bg-deep-green hover:text-ivory transition-colors text-center"
-          >
-            Get AI coaching
-          </Link>
+          <TrackListingButton opportunityId={opp.id} />
         </div>
 
         {/* Crowdsourced correction — every listing, day one */}

@@ -9,6 +9,7 @@ const TABS = [
   { href: "/opportunity", label: "For you", exact: true },
   { href: "/welcome", label: "About you", exact: false },
   { href: "/opportunity/countries", label: "Countries", exact: false },
+  { href: "/opportunity/cards", label: "Cards", exact: false },
 ] as const;
 
 export function OpportunityOsShell({

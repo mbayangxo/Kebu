@@ -1,16 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { resolveSubdomainForCustomHost } from "@/lib/create/resolve-custom-domain";
+import { hostOnly, MAIN_HOSTS, resolveMiddlewareRewrite } from "@/lib/create/middleware-routing";
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/admin/admin-session";
-
-const MAIN_HOSTS = new Set([
-  "alkebulan.com",
-  "www.alkebulan.com",
-  "alkebulan.co",
-  "www.alkebulan.co",
-  "kebu.africa",
-  "www.kebu.africa",
-]);
 
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -28,8 +20,16 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-function hostOnly(raw: string): string {
-  return raw.split(":")[0]?.toLowerCase() ?? "";
+/** Seed Data Saver cookie on first visit so SSR + client share Africa-first default. */
+function withDataModeCookie(request: NextRequest, response: NextResponse): NextResponse {
+  if (!request.cookies.get("kebu_data_mode")?.value) {
+    response.cookies.set("kebu_data_mode", "data_saver", {
+      path: "/",
+      maxAge: 31_536_000,
+      sameSite: "lax",
+    });
+  }
+  return response;
 }
 
 export async function middleware(request: NextRequest) {
@@ -41,62 +41,35 @@ export async function middleware(request: NextRequest) {
   if (isProduction && proto === "http" && !hostname.includes("localhost")) {
     const secure = request.nextUrl.clone();
     secure.protocol = "https:";
-    return withSecurityHeaders(NextResponse.redirect(secure, 308));
+    return withDataModeCookie(request, withSecurityHeaders(NextResponse.redirect(secure, 308)));
   }
 
-  const isKebuSubdomain =
-    !MAIN_HOSTS.has(host) &&
-    host.endsWith(".kebu.africa") &&
-    !host.startsWith("localhost");
-
-  if (isKebuSubdomain) {
-    const slug = host.split(".")[0];
-    const url = request.nextUrl.clone();
-    if (url.pathname === "/" || url.pathname.startsWith("/sites/")) {
-      if (url.pathname === "/") {
-        url.pathname = `/sites/${slug}`;
-      }
-      return withSecurityHeaders(NextResponse.rewrite(url));
-    }
-    url.pathname = `/sites/${slug}${url.pathname}`;
-    return withSecurityHeaders(NextResponse.rewrite(url));
-  }
-
-  const isCustomDomain =
+  const customSlug =
     !MAIN_HOSTS.has(host) &&
     !host.endsWith(".kebu.africa") &&
     !host.endsWith(".vercel.app") &&
     !host.includes("localhost") &&
     !host.endsWith(".alkebulan.com") &&
-    !host.endsWith(".alkebulan.co");
+    !host.endsWith(".alkebulan.co")
+      ? await resolveSubdomainForCustomHost(host)
+      : null;
 
-  if (isCustomDomain) {
-    const slug = await resolveSubdomainForCustomHost(host);
-    if (slug) {
-      const url = request.nextUrl.clone();
-      if (url.pathname === "/" || url.pathname.startsWith("/sites/")) {
-        if (url.pathname === "/") {
-          url.pathname = `/sites/${slug}`;
-        }
-        return withSecurityHeaders(NextResponse.rewrite(url));
-      }
-      url.pathname = `/sites/${slug}${url.pathname}`;
-      return withSecurityHeaders(NextResponse.rewrite(url));
-    }
+  const rewrite = resolveMiddlewareRewrite({
+    host,
+    pathname: request.nextUrl.pathname,
+    customDomainSlug: customSlug,
+  });
+
+  if (rewrite.kind === "kebu-subdomain" || rewrite.kind === "custom-domain") {
+    const url = request.nextUrl.clone();
+    url.pathname = rewrite.pathname;
+    return withDataModeCookie(request, withSecurityHeaders(NextResponse.rewrite(url)));
   }
 
-  const isSubdomain =
-    !MAIN_HOSTS.has(host) &&
-    (host.endsWith(".alkebulan.com") || host.endsWith(".alkebulan.co")) &&
-    !host.startsWith("localhost");
-
-  if (isSubdomain) {
-    const slug = host.split(".")[0];
+  if (rewrite.kind === "legacy-alkebulan-store") {
     const url = request.nextUrl.clone();
-    if (url.pathname === "/") {
-      url.pathname = `/store/${slug}`;
-      return withSecurityHeaders(NextResponse.rewrite(url));
-    }
+    url.pathname = rewrite.pathname;
+    return withDataModeCookie(request, withSecurityHeaders(NextResponse.rewrite(url)));
   }
 
   const { pathname } = request.nextUrl;
@@ -106,11 +79,11 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/login";
       url.searchParams.set("next", pathname);
-      return withSecurityHeaders(NextResponse.redirect(url));
+      return withDataModeCookie(request, withSecurityHeaders(NextResponse.redirect(url)));
     }
   }
 
-  return withSecurityHeaders(await updateSession(request));
+  return withDataModeCookie(request, withSecurityHeaders(await updateSession(request)));
 }
 
 export const config = {

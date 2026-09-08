@@ -3,11 +3,25 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CreateShell } from "@/app/components/create/create-shell";
+import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
+import { BuilderAestheticsPanel } from "@/app/components/create/builder-aesthetics-panel";
 import { YandeAssistant } from "@/app/components/create/yande-assistant";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
-import { buildDefinitionFromProjectParts } from "@/lib/create/editor-definition";
-import { BUILDER, BUILDER_QUICK_SECTIONS } from "@/lib/create/builder-ui";
+import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
+import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
+import { AddSectionPicker } from "@/app/components/create/add-section-picker";
+import { BuilderSiteChromePanel } from "@/app/components/create/builder-site-chrome-panel";
+import { BuilderBlogPanel } from "@/app/components/create/builder-blog-panel";
+import {
+  CHROME_FOOTER_ID,
+  CHROME_HEADER_ID,
+  isChromeSectionId,
+  parseSiteChrome,
+  patchSiteChromePart,
+  projectUsesEmbeddedNav,
+  type SiteChrome,
+} from "@/lib/create/site-chrome";
+import { defaultMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import type { PublishState } from "@/lib/create/publish-state";
@@ -15,13 +29,16 @@ import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
+import { BuilderSiteCommandBar } from "@/app/components/create/builder-site-command-bar";
 import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
+import { BuilderPagesPanel } from "@/app/components/create/builder-pages-panel";
+import { BuilderAiPreviewPanel } from "@/app/components/create/builder-ai-preview-panel";
+import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
 import { NavLinksEditor } from "@/app/components/create/nav-links-editor";
+import { NavSizeEditor } from "@/app/components/create/nav-size-editor";
 import { SocialLinksEditor } from "@/app/components/create/social-links-editor";
-import { BuilderColorPanel } from "@/app/components/create/builder-color-panel";
 import type { ThemeTokens } from "@/lib/create/website-schema";
-import { KEBU } from "@/lib/kebu-brand";
 import {
   planMediaAssetApply,
   type KebuDragAsset,
@@ -29,6 +46,18 @@ import {
 import { BUILDER_DEVICE_FRAME } from "@/lib/create/builder-device";
 import { projectUsesMaylecorRussianLayout } from "@/lib/create/maylecor-russian-hero";
 import { projectUsesKdirectionLayout } from "@/lib/create/kdirection-local-assets";
+import { clampNavScale, parseNavLayout, parseNavSize } from "@/lib/create/nav-chrome-size";
+import { mySiteDetailHref } from "@/lib/navigation/product-nav";
+import {
+  DataModeDock,
+  DataModeProvider,
+} from "@/app/components/create/data-mode-provider";
+import { resolveClientDataMode } from "@/lib/create/data-mode";
+import { measureResponseBytes, evaluateKb } from "@/lib/create/kb-budget";
+import {
+  enqueueSaveSection,
+  isBrowserOnline,
+} from "@/lib/create/offline-queue";
 
 type Section = {
   id: string;
@@ -59,7 +88,7 @@ export default function ProjectEditorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [supportAssist, setSupportAssist] = useState(false);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "error">("idle");
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -69,33 +98,56 @@ export default function ProjectEditorPage() {
   const [seoSettings, setSeoSettings] = useState<SiteSeo>(() => defaultSiteSeo());
   const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<"content" | "media" | "design">("content");
+  const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [billing, setBilling] = useState<{
     canPublish: boolean;
     label: string;
     periodEnd?: string | null;
+    billingExempt?: boolean;
+    autopayEnabled?: boolean;
+    tier?: string;
+    plans?: Array<{ id: string; name: string; monthlyUsd: number; hero?: boolean }>;
   } | null>(null);
+  const [checkoutTier, setCheckoutTier] = useState("shop");
   const [improving, setImproving] = useState(false);
   const [repairing, setRepairing] = useState(false);
-  const [improveOpen, setImproveOpen] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
+  const [improveMode, setImproveMode] = useState<"free" | "redesign" | "page" | "rewrite" | "convert">(
+    "free",
+  );
   const [improveNote, setImproveNote] = useState<string | null>(null);
+  const [aiPreview, setAiPreview] = useState<{
+    definition: WebsiteDefinition;
+    intents: string[];
+    sectionChanges: AiSectionChange[];
+    acceptedSectionIds: Set<string>;
+    repaired: boolean;
+  } | null>(null);
+  const [createNote, setCreateNote] = useState<string | null>(null);
   const [history, setHistory] = useState<Section[][]>([]);
   const [future, setFuture] = useState<Section[][]>([]);
   const [pages, setPages] = useState<Array<{ id: string; slug: string; title: string; sort_order: number }>>([]);
+  const [siteChrome, setSiteChrome] = useState<SiteChrome | null>(null);
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
   const [editPageId, setEditPageId] = useState("");
-  const [newPageSlug, setNewPageSlug] = useState("");
-  const [newPageTitle, setNewPageTitle] = useState("");
-  const [pageBusy, setPageBusy] = useState(false);
   const [publishState, setPublishState] = useState<PublishState | null>(null);
   const [appOrigin, setAppOrigin] = useState("");
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setAppOrigin(window.location.origin);
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("created") !== "1") return;
+    const usedAi = q.get("usedAi") === "1";
+    setCreateNote(
+      usedAi
+        ? "Yande built this draft from your words. Every page is editable Kebu structure — change anything, then publish."
+        : "Draft site created from your words. Yande AI was not used this time (no key or generation fell back). You still have a full editable multi-page site.",
+    );
   }, []);
 
   useEffect(() => {
@@ -171,6 +223,9 @@ export default function ProjectEditorPage() {
       setSupportAssist(Boolean(projectPayload.supportAssist ?? data.supportAssist));
       setPages(Array.isArray(projectPayload.pages) ? projectPayload.pages : []);
       setSections(Array.isArray(projectPayload.sections) ? projectPayload.sections : []);
+      if (projectPayload.siteChrome && typeof projectPayload.siteChrome === "object") {
+        setSiteChrome(parseSiteChrome(projectPayload.siteChrome));
+      }
       if (projectPayload.publishState && typeof projectPayload.publishState === "object") {
         setPublishState(projectPayload.publishState as PublishState);
       }
@@ -195,11 +250,21 @@ export default function ProjectEditorPage() {
       const billingRes = await fetch(`/api/projects/${projectId}/billing`, { credentials: "include" });
       const billingData = await billingRes.json().catch(() => ({}));
       if (billingRes.ok) {
+        const tier =
+          typeof billingData.subscription?.tier === "string"
+            ? billingData.subscription.tier
+            : "free";
         setBilling({
           canPublish: Boolean(billingData.canPublish),
-          label: typeof billingData.label === "string" ? billingData.label : "$3/month",
+          label: typeof billingData.label === "string" ? billingData.label : "$5/month",
           periodEnd: billingData.subscription?.periodEnd ?? null,
+          billingExempt: Boolean(billingData.billingExempt),
+          autopayEnabled: Boolean(billingData.subscription?.autopayEnabled),
+          tier,
+          plans: Array.isArray(billingData.plans) ? billingData.plans : undefined,
         });
+        if (tier && tier !== "free") setCheckoutTier(tier);
+        else setCheckoutTier("shop");
       }
     } catch {
       setError("Network error. Retry.");
@@ -217,6 +282,7 @@ export default function ProjectEditorPage() {
     return () => {
       cancelled = true;
       Object.values(timers).forEach(clearTimeout);
+      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
     };
   }, [load]);
 
@@ -225,15 +291,32 @@ export default function ProjectEditorPage() {
     setFuture([]);
   }
 
+  const [kbSaveNote, setKbSaveNote] = useState<string | null>(null);
+
   async function persistProps(sectionId: string, props: Record<string, unknown>) {
+    const mode = resolveClientDataMode();
+    const offline = !isBrowserOnline() || mode === "offline";
+    if (offline) {
+      enqueueSaveSection({ projectId, sectionId, props });
+      setSaveState("queued");
+      setKbSaveNote("Not saved on server yet — queued until Syncing…");
+      setError(null);
+      return;
+    }
     setSaveState("saving");
     try {
       const res = await fetch(`/api/projects/${projectId}/sections`, {
         method: "PATCH",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Kebu-Data-Mode": mode,
+        },
         body: JSON.stringify({ sectionId, props }),
       });
+      const bytes = await measureResponseBytes(res);
+      const ev = evaluateKb({ action: "save_section", mode, usedBytes: bytes });
+      setKbSaveNote(ev.summary);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSaveState("error");
@@ -262,12 +345,73 @@ export default function ProjectEditorPage() {
       setSaveState("saved");
       setError(null);
     } catch {
-      setSaveState("error");
-      setError("Network error while saving.");
+      enqueueSaveSection({ projectId, sectionId, props });
+      setSaveState("queued");
+      setKbSaveNote("Not saved on server yet — queued until Syncing…");
+      setError(null);
     }
   }
 
+  async function persistChrome(part: "header" | "footer", props: Record<string, unknown>) {
+    const mode = resolveClientDataMode();
+    const offline = !isBrowserOnline() || mode === "offline";
+    if (offline) {
+      setSaveState("queued");
+      setKbSaveNote("Site header/footer queued until Syncing…");
+      return;
+    }
+    setSaveState("saving");
+    try {
+      const body = part === "header" ? { header: props } : { footer: props };
+      const res = await fetch(`/api/projects/${projectId}/site-chrome`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-Kebu-Data-Mode": mode },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSaveState("error");
+        setError(typeof data.error === "string" ? data.error : "Could not save site header/footer.");
+        return;
+      }
+      if (data.siteChrome) {
+        setSiteChrome(parseSiteChrome(data.siteChrome));
+      }
+      setPublishState((prev) =>
+        prev
+          ? { ...prev, hasUnpublishedChanges: true }
+          : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
+      );
+      setSaveState("saved");
+      setError(null);
+    } catch {
+      setSaveState("queued");
+      setKbSaveNote("Site header/footer queued until Syncing…");
+    }
+  }
+
+  function updateChromeProps(part: "header" | "footer", patch: Record<string, unknown>) {
+    setSiteChrome((prev) => {
+      const base = prev ?? parseSiteChrome(null);
+      const next = patchSiteChromePart({ ...base, enabled: true }, part, patch);
+      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
+      chromeSaveTimer.current = setTimeout(() => {
+        const props =
+          part === "header"
+            ? next.header?.props
+            : next.footer?.props;
+        if (props) void persistChrome(part, props as Record<string, unknown>);
+      }, 500);
+      return next;
+    });
+  }
+
   function updateProps(sectionId: string, patch: Record<string, unknown>) {
+    if (isChromeSectionId(sectionId)) {
+      updateChromeProps(sectionId === CHROME_HEADER_ID ? "header" : "footer", patch);
+      return;
+    }
     setSections((prev) => {
       pushHistory(prev);
       const next = prev.map((s) =>
@@ -282,8 +426,37 @@ export default function ProjectEditorPage() {
     });
   }
 
-  async function addSection(type: string, props?: Record<string, unknown>): Promise<Section | null> {
+  async function addSection(
+    type: string,
+    props?: Record<string, unknown>,
+    insertAfterSectionId?: string | null,
+  ): Promise<Section | null> {
+    const embeddedNav = projectUsesEmbeddedNav(sections.map((s) => s.section_type));
+    if (siteChrome?.enabled && !embeddedNav && (type === "navigation" || type === "footer")) {
+      setError('Header and footer apply to every page — use "Site header" or "Site footer" in the sidebar.');
+      setSelectedSectionId(type === "navigation" ? CHROME_HEADER_ID : CHROME_FOOTER_ID);
+      setSidebarTab("content");
+      setLeftPanelOpen(true);
+      return null;
+    }
     const page = pages.find((p) => p.id === editPageId) ?? pages[0];
+    let nextProps = props;
+    if (type === "navigation" && !props) {
+      const links =
+        pages.length > 0
+          ? pages
+              .slice()
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((p) => ({
+                label: p.title,
+                href: p.slug === "home" ? "/" : `/${p.slug}`,
+              }))
+          : defaultMaylecorNavLinks();
+      nextProps = {
+        brand: project?.title?.trim() || "My site",
+        links,
+      };
+    }
     const res = await fetch(`/api/projects/${projectId}/sections`, {
       method: "POST",
       credentials: "include",
@@ -291,7 +464,8 @@ export default function ProjectEditorPage() {
       body: JSON.stringify({
         type,
         pageSlug: page?.slug ?? "home",
-        ...(props ? { props } : {}),
+        ...(insertAfterSectionId !== undefined ? { insertAfterSectionId } : {}),
+        ...(nextProps ? { props: nextProps } : {}),
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -302,9 +476,17 @@ export default function ProjectEditorPage() {
     const section = data.section as Section;
     setSections((prev) => {
       pushHistory(prev);
-      return [...prev, section];
+      return [...prev, section].sort((a, b) => a.sort_order - b.sort_order);
     });
+    setSelectedSectionId(section.id);
+    setSidebarTab("content");
     return section;
+  }
+
+  async function duplicateSection(sectionId: string) {
+    const source = sections.find((s) => s.id === sectionId);
+    if (!source) return;
+    await addSection(source.section_type, { ...source.props });
   }
 
   /** Media library → canvas / current page (photo collage, video, or audio). */
@@ -386,7 +568,9 @@ export default function ProjectEditorPage() {
   }
 
   async function moveSection(sectionId: string, direction: -1 | 1) {
-    const ordered = [...sections].sort((a, b) => a.sort_order - b.sort_order);
+    const ordered = [...sections]
+      .filter((s) => s.page_id === editPageId)
+      .sort((a, b) => a.sort_order - b.sort_order);
     const idx = ordered.findIndex((s) => s.id === sectionId);
     const swapIdx = idx + direction;
     if (idx < 0 || swapIdx < 0 || swapIdx >= ordered.length) return;
@@ -407,63 +591,6 @@ export default function ProjectEditorPage() {
       }),
     ]);
     await load();
-  }
-
-  async function addPage() {
-    const slug = newPageSlug
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/^-+|-+$/g, "");
-    const title = newPageTitle.trim();
-    if (!slug || !title) {
-      setError("Page slug and title are required.");
-      return;
-    }
-    setPageBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/pages`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, title }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not add page.");
-        return;
-      }
-      setNewPageSlug("");
-      setNewPageTitle("");
-      await load();
-      if (data.page?.id) setEditPageId(data.page.id);
-      if (data.page?.slug) setPreviewPageSlug(data.page.slug);
-    } finally {
-      setPageBusy(false);
-    }
-  }
-
-  async function removePage(pageId: string) {
-    if (!confirm("Delete this page and all its sections?")) return;
-    setPageBusy(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/pages`, {
-        method: "DELETE",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not delete page.");
-        return;
-      }
-      await load();
-    } finally {
-      setPageBusy(false);
-    }
   }
 
   function undo() {
@@ -493,7 +620,11 @@ export default function ProjectEditorPage() {
     });
   }
 
-  async function payHostingWithJoko() {
+  async function payHostingWithJoko(opts?: {
+    autopay?: boolean;
+    forceRenew?: boolean;
+    tier?: string;
+  }) {
     if (payingHosting) return;
     setPayingHosting(true);
     setError(null);
@@ -501,13 +632,20 @@ export default function ProjectEditorPage() {
       const res = await fetch(`/api/projects/${projectId}/billing/subscribe`, {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tier: opts?.tier ?? checkoutTier ?? "shop",
+          plan: "monthly",
+          autopay: opts?.autopay ?? true,
+          forceRenew: opts?.forceRenew ?? false,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
         router.replace(`/login?next=/create/${projectId}`);
         return;
       }
-      if (data.alreadyActive) {
+      if (data.exempt || data.alreadyActive) {
         await load();
         return;
       }
@@ -557,6 +695,9 @@ export default function ProjectEditorPage() {
       setSettingsNote(
         typeof data.message === "string" ? data.message : "Site settings saved to Supabase.",
       );
+      if (data.project?.theme && typeof data.project.theme === "object") {
+        setProject((prev) => (prev ? { ...prev, theme: data.project.theme as ThemeTokens } : prev));
+      }
     } catch {
       setSettingsState("error");
       setError("Network error while saving site settings.");
@@ -607,9 +748,17 @@ export default function ProjectEditorPage() {
         body: JSON.stringify({ subdomain: subdomainInput.trim().toLowerCase() }),
       });
       const data = await res.json().catch(() => ({}));
+      if (typeof data.migrationHint === "string" && data.migrationHint.length > 0) {
+        setError(
+          typeof data.error === "string"
+            ? data.error
+            : "Free hosting needs a database update. Run FIX_free_publish.sql in Supabase, then try Publish again.",
+        );
+        return;
+      }
       if (res.status === 402 && data.billingRequired) {
         setError(
-          `Live hosting is ${data.monthlyLabel ?? "$3/month"} via JOKO mobile money. Pay below, then publish again.`,
+          `Publish needs hosting. Free works on a Kebu subdomain — or pay ${data.monthlyLabel ?? "$5/month"} (Shop) via JOKO.`,
         );
         setBilling((b) => (b ? { ...b, canPublish: false } : b));
         return;
@@ -627,18 +776,20 @@ export default function ProjectEditorPage() {
     }
   }
 
-  async function improveWithAi() {
+  async function previewWithAi() {
     if (improving) return;
     setImproving(true);
     setError(null);
     setImproveNote(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/ai-improve`, {
+      const res = await fetch(`/api/projects/${projectId}/ai-improve/preview`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instruction: improveInstruction.trim() || undefined,
+          mode: improveMode === "free" ? undefined : improveMode,
+          focusPageSlug: previewPageSlug || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -647,24 +798,77 @@ export default function ProjectEditorPage() {
         return;
       }
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not improve with AI.");
+        setError(typeof data.error === "string" ? data.error : "Could not preview AI changes.");
         return;
       }
+      if (!data.definition || !Array.isArray(data.intents)) {
+        setError("Preview response was incomplete. Retry.");
+        return;
+      }
+      const sectionChanges = Array.isArray(data.sectionChanges)
+        ? (data.sectionChanges as AiSectionChange[])
+        : [];
+      const defaultAccepted = new Set(sectionChanges.map((c) => c.sectionId));
+      setAiPreview({
+        definition: data.definition as WebsiteDefinition,
+        intents: data.intents as string[],
+        sectionChanges,
+        acceptedSectionIds: defaultAccepted,
+        repaired: Boolean(data.repaired),
+      });
+    } catch {
+      setError("Network error while previewing. Retry.");
+    } finally {
+      setImproving(false);
+    }
+  }
+
+  async function applyAiPreview() {
+    if (improving || !aiPreview) return;
+    setImproving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/ai-improve/apply`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          definition: aiPreview.definition,
+          acceptedSectionIds:
+            aiPreview.sectionChanges.length > 0
+              ? [...aiPreview.acceptedSectionIds]
+              : undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        router.replace(`/login?next=/create/${projectId}`);
+        return;
+      }
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not apply AI changes.");
+        return;
+      }
+      setAiPreview(null);
       setImproveNote(
         typeof data.message === "string"
           ? data.message
-          : "Draft updated. Publish again to update your live site."
+          : "Draft updated. Publish again to update your live site.",
       );
-      setImproveOpen(false);
       setHistory([]);
       setFuture([]);
       await load();
       setSaveState("saved");
     } catch {
-      setError("Network error while improving. Retry.");
+      setError("Network error while applying changes. Retry.");
     } finally {
       setImproving(false);
     }
+  }
+
+  function discardAiPreview() {
+    setAiPreview(null);
+    setImproveNote(null);
   }
 
   async function repairLayout() {
@@ -688,9 +892,55 @@ export default function ProjectEditorPage() {
     }
   }
 
+  const canvasEditor = {
+    selectedSectionId,
+    onSelectSection: (id: string) => {
+      setSelectedSectionId(id);
+      setSidebarTab("content");
+      setLeftPanelOpen(true);
+      const match = sections.find((s) => s.id === id);
+      if (match) setEditPageId(match.page_id);
+    },
+    onPatchSection: updateProps,
+    onNavigatePage: (slug: string) => {
+      setPreviewPageSlug(slug);
+      const match = pages.find((p) => p.slug === slug);
+      if (match) setEditPageId(match.id);
+    },
+    onDuplicateSection: (id: string) => {
+      if (isChromeSectionId(id)) return;
+      void duplicateSection(id);
+    },
+    onDeleteSection: (id: string) => {
+      if (isChromeSectionId(id)) return;
+      void deleteSection(id);
+    },
+    onMoveSection: (id: string, dir: "up" | "down") => {
+      if (isChromeSectionId(id)) return;
+      void moveSection(id, dir === "up" ? -1 : 1);
+    },
+    onAddSectionAfter: async (type: string, afterSectionId: string | null) => {
+      await addSection(type, undefined, afterSectionId);
+    },
+    onAddSection: async (type: string) => {
+      await addSection(type);
+    },
+    onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => {
+      const section = sections.find((s) => s.id === sectionId);
+      if (!section || section.section_type !== "free-text") return;
+      const blocks = Array.isArray(section.props.blocks) ? [...section.props.blocks] : [];
+      const idx = blocks.findIndex((b: { id?: string }) => b.id === blockId);
+      if (idx < 0) return;
+      blocks[idx] = { ...blocks[idx], x, y };
+      updateProps(sectionId, { blocks });
+    },
+  };
+
   const previewDefinition: WebsiteDefinition | null = project
-    ? { ...buildDefinitionFromProjectParts({ ...project, seo: seoSettings }, pages, sections) }
+    ? buildEditorPreviewDefinition({ ...project, seo: seoSettings }, pages, sections, siteChrome)
     : null;
+
+  const canvasDefinition = aiPreview?.definition ?? previewDefinition;
 
   const previewSiteBase = project?.subdomain ? `/sites/${project.subdomain}` : "";
   const maylecorRussianLayout = projectUsesMaylecorRussianLayout(
@@ -702,100 +952,154 @@ export default function ProjectEditorPage() {
     sections.map((s) => s.section_type),
   );
 
+  const chromeActive =
+    Boolean(siteChrome?.enabled) &&
+    !projectUsesEmbeddedNav(sections.map((s) => s.section_type)) &&
+    !maylecorRussianLayout &&
+    !kdirectionLayout;
+
+  useEffect(() => {
+    if (maylecorRussianLayout) setLeftPanelOpen(false);
+  }, [maylecorRussianLayout]);
+
+  function openStudioTab(tab: BuilderStudioTab) {
+    if (leftPanelOpen && sidebarTab === tab) {
+      setLeftPanelOpen(false);
+      return;
+    }
+    setSidebarTab(tab);
+    setLeftPanelOpen(true);
+  }
+
   const editPageSections = sections
     .filter((s) => s.page_id === editPageId)
+    .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
     .sort((a, b) => a.sort_order - b.sort_order);
 
   const saveStatusLabel =
     saveState === "saving"
       ? "Saving draft…"
-      : saveState === "saved"
-        ? "Draft saved"
-        : saveState === "error"
-          ? "Save failed"
-          : "";
+      : saveState === "queued"
+        ? "Not saved yet — queued"
+        : saveState === "saved"
+          ? "Draft saved"
+          : saveState === "error"
+            ? "Save failed"
+            : "";
+
+  const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
+  /** Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames. */
+  const wideCanvas = flagshipCanvas || device === "desktop";
 
   return (
-    <div className="min-h-screen" style={{ background: BUILDER.bg, color: BUILDER.ink }}>
-      <CreateShell
-        step="edit"
+    <DataModeProvider>
+    <div
+      className="relative flex h-dvh flex-col overflow-hidden"
+      style={{ background: BUILDER.bg, color: BUILDER.ink }}
+    >
+      <BuilderStudioChrome
         projectId={projectId}
         title={project?.title ?? "Editor"}
-        backHref="/create/sites"
-        actions={
-          <>
-            {publishState ? (
-              <span
-                className="hidden md:inline rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider"
-                style={{
-                  background: publishState.hasUnpublishedChanges ? "#FFF8E8" : "#E8F8EE",
-                  color: publishState.hasUnpublishedChanges ? "#8B6914" : "#1B6B3A",
-                }}
-              >
-                {publishState.hasUnpublishedChanges
-                  ? publishState.isLive
-                    ? "Unpublished changes"
-                    : "Draft"
-                  : "Live"}
-              </span>
-            ) : null}
-            <span className="text-white/50 hidden lg:inline text-[10px]">{saveStatusLabel}</span>
-            <Link
-              href={`/create/sites/${projectId}`}
-              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-              style={{ background: "#ECEAE4", color: "#0F0D33" }}
-            >
-              Domain &amp; SEO
-            </Link>
-            <Link
-              href={`/create/${projectId}/themes`}
-              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-              style={{ background: "#FFF0E8", color: "#9A3412" }}
-            >
-              Templates
-            </Link>
-            <Link
-              href={`/create/${projectId}/preview`}
-              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
-              style={{ background: "#1C1A45" }}
-            >
-              Preview
-            </Link>
-            {maylecorRussianLayout || kdirectionLayout ? (
-              <button
-                type="button"
-                onClick={() => void repairLayout()}
-                disabled={repairing || loading}
-                className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                style={{ background: "#FFE4F0", color: "#8B1A4A" }}
-              >
-                {repairing ? "Repairing…" : "Repair layout"}
-              </button>
-            ) : null}
-            {!billing?.canPublish ? (
-              <button
-                type="button"
-                onClick={() => void payHostingWithJoko()}
-                disabled={payingHosting}
-                className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                style={{ background: "#FFF4EC", color: "#C2410C", border: "1px solid rgba(255,85,0,0.35)" }}
-                title="Hosting required before publish"
-              >
-                {payingHosting ? "…" : "Pay hosting"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void publish()}
-              disabled={publishing || improving}
-              className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-              style={{ background: "#00C851", color: "#0F0D33" }}
-            >
-              {publishing ? "…" : publishState?.hasUnpublishedChanges ? "Publish updates" : "Publish"}
-            </button>
-          </>
+        saveLabel={saveStatusLabel}
+        draftLabel={
+          publishState?.hasUnpublishedChanges
+            ? publishState.isLive
+              ? "Unpublished"
+              : "Draft"
+            : publishState?.isLive
+              ? "Live"
+              : undefined
         }
+        device={device}
+        onDevice={setDevice}
+        canUndo={history.length > 0}
+        canRedo={future.length > 0}
+        onUndo={undo}
+        onRedo={redo}
+        publishing={publishing || improving}
+        publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Publish"}
+        onPublish={() => void publish()}
+        minimal={flagshipCanvas}
+        floating={flagshipCanvas}
       />
+
+      {billing && !billing.billingExempt && !billing.canPublish && !flagshipCanvas ? (
+        <div
+          className="border-b px-4 py-2.5 text-center text-xs leading-relaxed"
+          style={{ background: "#FFF4EC", borderColor: "#F0D9C8", color: "#9A3412" }}
+        >
+          This site needs an active plan to publish.{" "}
+          <strong>Kebu Shop ({billing.label})</strong> is the plan we recommend.{" "}
+          {billing.plans && billing.plans.filter((p) => p.monthlyUsd > 0).length > 0 ? (
+            <>
+              <label className="sr-only" htmlFor="checkout-tier">
+                Plan
+              </label>
+              <select
+                id="checkout-tier"
+                className="mx-1 rounded border px-1 py-0.5 text-[11px] font-semibold"
+                value={checkoutTier}
+                onChange={(e) => setCheckoutTier(e.target.value)}
+              >
+                {billing.plans
+                  .filter((p) => p.monthlyUsd > 0)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — ${p.monthlyUsd}/mo
+                    </option>
+                  ))}
+              </select>{" "}
+            </>
+          ) : null}
+          <button
+            type="button"
+            className="font-bold underline"
+            onClick={() => void payHostingWithJoko({ autopay: true })}
+            disabled={payingHosting}
+          >
+            Pay with JOKO
+          </button>
+          {" · "}
+          <Link href="/account" className="font-bold underline">
+            Manage billing
+          </Link>
+        </div>
+      ) : null}
+
+      {billing &&
+      !billing.billingExempt &&
+      billing.canPublish &&
+      billing.tier === "free" &&
+      !flagshipCanvas ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px] leading-relaxed"
+          style={{ background: "#F8FAFC", borderColor: "#E2E8F0", color: "#334155" }}
+        >
+          You&apos;re on <strong>Kebu Free</strong> — publish on a Kebu subdomain. Upgrade to{" "}
+          <strong>Shop ($5/mo)</strong> for store + custom domain.{" "}
+          <button
+            type="button"
+            className="font-bold underline"
+            onClick={() => void payHostingWithJoko({ autopay: true, tier: "shop", forceRenew: true })}
+            disabled={payingHosting}
+          >
+            Upgrade with JOKO
+          </button>
+          {" · "}
+          <Link href="/pricing" className="font-bold underline">
+            All plans
+          </Link>
+        </div>
+      ) : null}
+
+      {billing?.billingExempt && !flagshipCanvas ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px]"
+          style={{ background: "#F0FDF4", color: "#166534" }}
+        >
+          Your account does not pay for hosting — publish anytime.
+        </div>
+      ) : null}
 
       {supportAssist ? (
         <div
@@ -814,14 +1118,24 @@ export default function ProjectEditorPage() {
         >
           {error}{" "}
           {!subdomainInput.trim() ? (
-            <Link href={`/create/sites/${projectId}`} className="font-bold underline">
+            <Link href={mySiteDetailHref(projectId)} className="font-bold underline">
               Open Domain &amp; SEO
             </Link>
           ) : null}
         </div>
       ) : null}
 
-      {improveNote ? (
+      {createNote && !maylecorRussianLayout ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px] font-medium"
+          style={{ background: "#F0FDF4", color: "#166534" }}
+          role="status"
+        >
+          {createNote}
+        </div>
+      ) : null}
+
+      {improveNote && !maylecorRussianLayout ? (
         <div
           className="border-b px-4 py-2 text-center text-[11px] font-medium"
           style={{ background: "#FFF4EC", color: "#C2410C" }}
@@ -831,7 +1145,17 @@ export default function ProjectEditorPage() {
         </div>
       ) : null}
 
-      {publishState?.hasUnpublishedChanges ? (
+      {aiPreview && !maylecorRussianLayout ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px] font-medium"
+          style={{ background: "#EFF6FF", color: "#1D4ED8" }}
+          role="status"
+        >
+          Previewing Yande&apos;s proposal — apply to save your draft or discard to revert the canvas.
+        </div>
+      ) : null}
+
+      {publishState?.hasUnpublishedChanges && !maylecorRussianLayout ? (
         <div
           className="border-b px-4 py-2.5 text-center text-xs leading-relaxed"
           style={{ background: "#FFF8E8", borderColor: "#F0E4C8", color: "#6B5B45" }}
@@ -858,7 +1182,7 @@ export default function ProjectEditorPage() {
             </>
           ) : null}
         </div>
-      ) : publishState?.isLive ? (
+      ) : publishState?.isLive && !maylecorRussianLayout ? (
         <div
           className="border-b px-4 py-2 text-center text-[11px]"
           style={{ background: "#E8F8EE", borderColor: "#C8E8D4", color: "#1B6B3A" }}
@@ -880,13 +1204,13 @@ export default function ProjectEditorPage() {
         </div>
       ) : null}
 
-      {!loading && project && !project.business_id ? (
+      {!loading && project && !project.business_id && !maylecorRussianLayout ? (
         <div className="max-w-6xl mx-auto px-4 pt-4">
           <BuilderBusinessNudge compact />
         </div>
       ) : null}
 
-      <main className="flex h-[calc(100dvh-56px)] w-full overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 w-full overflow-hidden">
         {loading ? (
           <p className="text-sm p-6" style={{ color: BUILDER.muted }}>
             Loading…
@@ -900,39 +1224,56 @@ export default function ProjectEditorPage() {
           </div>
         ) : (
           <>
+            <BuilderStudioRail
+              railTab={sidebarTab}
+              panelOpen={leftPanelOpen}
+              onRail={openStudioTab}
+              extras={
+                <>
+                  <Link
+                    href={mySiteDetailHref(projectId)}
+                    title="Domain & SEO"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase leading-none"
+                    style={{ color: BUILDER.muted }}
+                  >
+                    SEO
+                  </Link>
+                  {maylecorRussianLayout || kdirectionLayout ? (
+                    <button
+                      type="button"
+                      title="Repair layout"
+                      onClick={() => void repairLayout()}
+                      disabled={repairing || loading}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase disabled:opacity-40"
+                      style={{ color: BUILDER.muted }}
+                    >
+                      Fix
+                    </button>
+                  ) : null}
+                </>
+              }
+            />
             <aside
-              className="w-full max-w-[min(420px,40vw)] shrink-0 overflow-y-auto border-r px-4 py-4 space-y-4"
+              className={`${
+                leftPanelOpen ? "relative w-[min(420px,94vw)]" : "hidden"
+              } shrink-0 overflow-y-auto border-r px-4 py-4 space-y-4`}
               style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
             >
-              <div
-                className="flex rounded-xl p-1 gap-1"
-                style={{ background: "#0F0D33" }}
-                role="tablist"
-                aria-label="Editor panels"
-              >
-                {(
-                  [
-                    ["content", "Pages"],
-                    ["media", "Media"],
-                    ["design", "Colors"],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={sidebarTab === id}
-                    onClick={() => setSidebarTab(id)}
-                    className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase tracking-wider"
-                    style={{
-                      background: sidebarTab === id ? "#00C851" : "transparent",
-                      color: sidebarTab === id ? "#0F0D33" : "rgba(255,255,255,0.7)",
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+
+              {sidebarTab === "pages" && project ? (
+                <BuilderPagesPanel
+                  projectId={projectId}
+                  pages={pages}
+                  editPageId={editPageId}
+                  previewPageSlug={previewPageSlug}
+                  onSelectPage={(p) => {
+                    setEditPageId(p.id);
+                    setPreviewPageSlug(p.slug);
+                  }}
+                  onRefresh={load}
+                  onError={setError}
+                />
+              ) : null}
 
               {sidebarTab === "media" && (
                 <div className="rounded-2xl p-4" style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}>
@@ -943,9 +1284,9 @@ export default function ProjectEditorPage() {
                 </div>
               )}
 
-              {sidebarTab === "design" && (
+              {sidebarTab === "aesthetics" && (
                 <div className="rounded-2xl p-4" style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}>
-                  <BuilderColorPanel
+                  <BuilderAestheticsPanel
                     theme={(project?.theme as ThemeTokens) ?? previewDefinition?.theme ?? {
                       primary: "#0F0D33",
                       accent: "#E9006B",
@@ -967,53 +1308,103 @@ export default function ProjectEditorPage() {
                 </div>
               )}
 
-              {sidebarTab === "content" && (
-              <>
-              <div className="rounded-2xl p-3 flex flex-wrap items-center gap-2" style={{ background: "#fff", border: "1px solid rgba(10,10,10,0.08)", boxShadow: "0 4px 20px rgba(10,10,10,0.03)" }}>
-                <button type="button" onClick={undo} className="text-xs px-3 py-1.5 rounded-full" style={{ background: "#FFF8F2" }} disabled={history.length === 0}>
-                  Undo
-                </button>
-                <button type="button" onClick={redo} className="text-xs px-3 py-1.5 rounded-full" style={{ background: "#FFF8F2" }} disabled={future.length === 0}>
-                  Redo
-                </button>
-                {!improveOpen ? (
-                  <YandeAssistant
-                    variant="improve"
-                    value={improveInstruction}
-                    onChange={setImproveInstruction}
-                    onSubmit={() => {}}
-                    collapsed
-                    onExpand={() => setImproveOpen(true)}
-                    busy={improving}
-                  />
-                ) : null}
-              </div>
-
-              {improveOpen && (
+              {sidebarTab === "yande" && (
+                <>
                 <YandeAssistant
                   variant="improve"
                   value={improveInstruction}
                   onChange={setImproveInstruction}
-                  onSubmit={() => void improveWithAi()}
-                  onCancel={() => setImproveOpen(false)}
+                  onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
                   busy={improving}
+                  submitLabel={aiPreview ? "Apply changes" : "Preview changes"}
                 />
+                {aiPreview ? (
+                  <BuilderAiPreviewPanel
+                    intents={aiPreview.intents}
+                    sectionChanges={aiPreview.sectionChanges}
+                    acceptedSectionIds={aiPreview.acceptedSectionIds}
+                    busy={improving}
+                    onToggleSection={(sectionId) => {
+                      setAiPreview((prev) => {
+                        if (!prev) return prev;
+                        const next = new Set(prev.acceptedSectionIds);
+                        if (next.has(sectionId)) next.delete(sectionId);
+                        else next.add(sectionId);
+                        return { ...prev, acceptedSectionIds: next };
+                      });
+                    }}
+                    onSelectAll={() => {
+                      setAiPreview((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
+                            }
+                          : prev,
+                      );
+                    }}
+                    onClearAll={() => {
+                      setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
+                    }}
+                    onApply={() => void applyAiPreview()}
+                    onDiscard={discardAiPreview}
+                  />
+                ) : null}
+                </>
               )}
 
-              <div className="rounded-2xl p-4" style={{ background: BUILDER.surface, border: `1px solid ${BUILDER.border}`, boxShadow: BUILDER.shadowSoft }}>
+              {sidebarTab === "content" && (
+              <>
+              {selectedSectionId ? (
+                <div
+                  className="sticky top-0 z-10 -mx-4 -mt-4 mb-1 flex items-center justify-between gap-2 border-b px-4 py-2.5"
+                  style={{ background: BUILDER.surface, borderColor: BUILDER.border }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>
+                      Selected
+                    </p>
+                    <p className="truncate text-sm font-semibold" style={{ color: BUILDER.ink }}>
+                      {selectedSectionId === CHROME_HEADER_ID
+                        ? "Site header"
+                        : selectedSectionId === CHROME_FOOTER_ID
+                          ? "Site footer"
+                          : labelForSectionType(
+                              sections.find((s) => s.id === selectedSectionId)?.section_type ?? "section",
+                            )}
+                      {device !== "desktop" ? (
+                        <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider opacity-50">
+                          · {device}
+                        </span>
+                      ) : null}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSectionId(null)}
+                    className="shrink-0 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
+                    style={{ background: BUILDER.surfaceMuted, color: BUILDER.muted, border: `1px solid ${BUILDER.border}` }}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : null}
+              <div className="rounded-2xl p-4 space-y-3" style={{ background: BUILDER.surface, border: `1px solid ${BUILDER.border}`, boxShadow: BUILDER.shadowSoft }}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: BUILDER.orange }}>
-                  Edit your site
+                  Sections
                 </p>
-                <p className="text-xs mb-3 leading-relaxed" style={{ color: BUILDER.muted }}>
-                  Pick a page, change words and photos — preview updates live. Use{" "}
-                  <strong>Publish</strong> (top right) when ready. Domain &amp; SEO are outside this editor.
+                {!selectedSectionId ? (
+                <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
+                  Add a block to this page. Drag to reorder. Changes save as you work — publish when the live site should update.
                 </p>
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: BUILDER.faint }}>
-                  Add block
+                ) : (
+                <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
+                  Edit this block below, or click another section on the canvas. On phone/tablet preview, text edits save as device-specific copy.
                 </p>
+                )}
                 {pages.length > 1 && (
-                  <label className="block text-[10px] uppercase tracking-wider mb-2">
-                    Page
+                  <label className="block text-[10px] uppercase tracking-wider">
+                    Editing page
                     <select
                       value={editPageId}
                       onChange={(e) => {
@@ -1035,8 +1426,21 @@ export default function ProjectEditorPage() {
                     </select>
                   </label>
                 )}
+                <AddSectionPicker
+                  pageTitle={
+                    pages.find((p) => p.id === editPageId)?.title ??
+                    pages[0]?.title ??
+                    "Home"
+                  }
+                  onAdd={async (type) => {
+                    await addSection(type);
+                  }}
+                />
+                <p className="text-[10px] font-semibold uppercase tracking-wider pt-1" style={{ color: BUILDER.faint }}>
+                  Quick add
+                </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {BUILDER_QUICK_SECTIONS.map(({ type, label }) => (
+                  {BUILDER_QUICK_SECTIONS.slice(0, 8).map(({ type, label }) => (
                     <button
                       key={type}
                       type="button"
@@ -1044,71 +1448,38 @@ export default function ProjectEditorPage() {
                       className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1.5 rounded-full transition-opacity hover:opacity-80"
                       style={{ background: BUILDER.surfaceMuted, color: BUILDER.ink, border: `1px solid ${BUILDER.border}` }}
                     >
-                      {label}
+                      + {label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-2xl p-4 space-y-3" style={{ background: "#fff", border: "1px solid #DDE0F0" }}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider">Pages</p>
-                <ul className="space-y-1 text-xs">
-                  {pages
-                    .slice()
-                    .sort((a, b) => a.sort_order - b.sort_order)
-                    .map((p) => (
-                      <li key={p.id} className="flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          className="font-semibold text-left truncate"
-                          onClick={() => {
-                            setEditPageId(p.id);
-                            setPreviewPageSlug(p.slug);
-                          }}
-                        >
-                          {p.title} <span className="opacity-50">/{p.slug}</span>
-                        </button>
-                        {pages.length > 1 && (
-                          <button
-                            type="button"
-                            className="text-[10px] opacity-60 hover:opacity-100"
-                            disabled={pageBusy}
-                            onClick={() => void removePage(p.id)}
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                </ul>
-                <div className="grid gap-2 pt-2 border-t border-[#E8E6DF]">
-                  <input
-                    className="w-full text-xs rounded-lg px-2 py-1.5"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    placeholder="Page title (e.g. Shop)"
-                    value={newPageTitle}
-                    onChange={(e) => setNewPageTitle(e.target.value)}
-                  />
-                  <input
-                    className="w-full text-xs rounded-lg px-2 py-1.5"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    placeholder="Slug (e.g. shop)"
-                    value={newPageSlug}
-                    onChange={(e) => setNewPageSlug(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    disabled={pageBusy}
-                    onClick={() => void addPage()}
-                    className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                    style={{ background: "#FF5500", color: "#0A0A0A" }}
-                  >
-                    Add page
-                  </button>
-                </div>
-              </div>
+              <BuilderBlogPanel projectId={projectId} />
 
               <div className="space-y-3">
+                {chromeActive && siteChrome ? (
+                  <>
+                    <BuilderSiteChromePanel
+                      part="header"
+                      chrome={siteChrome}
+                      selected={selectedSectionId === CHROME_HEADER_ID}
+                      onSelect={() => setSelectedSectionId(CHROME_HEADER_ID)}
+                      onPatch={(patch) => updateChromeProps("header", patch)}
+                    />
+                    <p className="text-[10px] font-bold uppercase tracking-wider px-1" style={{ color: BUILDER.orange }}>
+                      Page sections ({editPageSections.length})
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 px-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>
+                      Sections on this page ({editPageSections.length})
+                    </p>
+                    <span className="text-[10px]" style={{ color: BUILDER.faint }}>
+                      Drag to reorder · Remove to shorten
+                    </span>
+                  </div>
+                )}
                 <BuilderSectionListDnd
                   sections={editPageSections}
                   selectedSectionId={selectedSectionId}
@@ -1116,7 +1487,17 @@ export default function ProjectEditorPage() {
                   onReorder={(ids) => void reorderSections(ids)}
                   onMoveUp={(id) => void moveSection(id, -1)}
                   onMoveDown={(id) => void moveSection(id, 1)}
+                  onRemove={(id) => void deleteSection(id)}
                 />
+                {chromeActive && siteChrome ? (
+                  <BuilderSiteChromePanel
+                    part="footer"
+                    chrome={siteChrome}
+                    selected={selectedSectionId === CHROME_FOOTER_ID}
+                    onSelect={() => setSelectedSectionId(CHROME_FOOTER_ID)}
+                    onPatch={(patch) => updateChromeProps("footer", patch)}
+                  />
+                ) : null}
                 {editPageSections.map((section) => (
                     <div
                       key={section.id}
@@ -1126,17 +1507,40 @@ export default function ProjectEditorPage() {
                         border: selectedSectionId === section.id ? "2px solid #FF5500" : "1px solid #DDE0F0",
                       }}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{section.section_type}</span>
-                        <div className="flex gap-1">
-                          <button type="button" className="text-[10px] px-1" onClick={() => void moveSection(section.id, -1)}>
+                      <div className="flex items-center justify-between mb-2 gap-2">
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold uppercase tracking-wider text-left"
+                          onClick={() => setSelectedSectionId(section.id)}
+                        >
+                          {labelForSectionType(section.section_type)}
+                        </button>
+                        <div className="flex flex-wrap gap-1 justify-end">
+                          <button type="button" className="text-[10px] px-1.5 py-0.5 rounded" style={{ border: "1px solid #DDE0F0" }} onClick={() => void moveSection(section.id, -1)}>
                             ↑
                           </button>
-                          <button type="button" className="text-[10px] px-1" onClick={() => void moveSection(section.id, 1)}>
+                          <button type="button" className="text-[10px] px-1.5 py-0.5 rounded" style={{ border: "1px solid #DDE0F0" }} onClick={() => void moveSection(section.id, 1)}>
                             ↓
                           </button>
-                          <button type="button" className="text-[10px] px-1" onClick={() => void deleteSection(section.id)}>
-                            Del
+                          <button
+                            type="button"
+                            className="text-[10px] px-1.5 py-0.5 rounded font-semibold"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            onClick={() => void duplicateSection(section.id)}
+                          >
+                            Duplicate
+                          </button>
+                          <button
+                            type="button"
+                            className="text-[10px] px-1.5 py-0.5 rounded font-semibold text-red-600"
+                            style={{ border: "1px solid #FECACA" }}
+                            onClick={() => {
+                              if (window.confirm(`Remove “${labelForSectionType(section.section_type)}” from this page?`)) {
+                                void deleteSection(section.id);
+                              }
+                            }}
+                          >
+                            Remove
                           </button>
                         </div>
                       </div>
@@ -1263,26 +1667,102 @@ export default function ProjectEditorPage() {
                           <label className="flex items-center gap-2 text-[11px] font-semibold">
                             <input
                               type="checkbox"
-                              checked={section.props.titleAsText === true}
+                              checked={section.props.titleAsText !== false}
                               onChange={(e) => updateProps(section.id, { titleAsText: e.target.checked })}
                             />
-                            Use my name as text instead of the spinning circle
+                            Use my English name instead of the Russian spinning circle
                           </label>
-                          <label className="block text-[10px] uppercase tracking-wider">
-                            Display font (Steelfish = Russian)
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: "#FF5500" }}>
+                            Top bar logo (clicks → home)
+                          </p>
+                          <label className="flex items-center gap-2 text-[11px] font-semibold">
                             <input
+                              type="checkbox"
+                              checked={section.props.showChromeLogo !== false}
+                              onChange={(e) => updateProps(section.id, { showChromeLogo: e.target.checked })}
+                            />
+                            Show small May logo in the upper bar
+                          </label>
+                          {section.props.showChromeLogo !== false ? (
+                            <SectionPhotoField
+                              projectId={projectId}
+                              label="Upper logo (optional — leave default or upload)"
+                              value={String(section.props.chromeLogo ?? "")}
+                              onChange={(url) => updateProps(section.id, { chromeLogo: url })}
+                            />
+                          ) : null}
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Nav look
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.navDisplay ?? "text")}
+                              onChange={(e) =>
+                                updateProps(section.id, {
+                                  navDisplay: e.target.value as "text" | "icons" | "photos",
+                                })
+                              }
+                            >
+                              <option value="text">Words</option>
+                              <option value="icons">Built-in icons</option>
+                              <option value="photos">Photos / custom icons</option>
+                            </select>
+                          </label>
+                          <NavLinksEditor
+                            projectId={projectId}
+                            allowIcons
+                            links={(
+                              (section.props.navLinks as {
+                                label?: string;
+                                href?: string;
+                                iconUrl?: string;
+                                showLabel?: boolean;
+                              }[]) ?? []
+                            ).map((l) => ({
+                              label: String(l.label ?? ""),
+                              href: String(l.href ?? ""),
+                              iconUrl: String(l.iconUrl ?? ""),
+                              showLabel: l.showLabel !== false,
+                            }))}
+                            onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                          />
+                          <NavSizeEditor
+                            scale={clampNavScale(section.props.navScale, 1)}
+                            size={parseNavSize(section.props.navSize)}
+                            layout={parseNavLayout(section.props.navLayout)}
+                            onChange={(patch) => updateProps(section.id, patch)}
+                          />
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Display font (Steelfish = Russian original)
+                            <select
                               className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
                               style={{ border: "1px solid #DDE0F0" }}
                               value={String(section.props.displayFont ?? "Steelfish")}
                               onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
-                              placeholder="Steelfish"
-                            />
+                            >
+                              {(
+                                [
+                                  "Steelfish",
+                                  "Oswald",
+                                  "Bebas Neue",
+                                  "Playfair Display",
+                                  "Fraunces",
+                                  "Syne",
+                                  "Georgia",
+                                  "system-ui",
+                                ] as const
+                              ).map((f) => (
+                                <option key={f} value={f}>
+                                  {f}
+                                </option>
+                              ))}
+                            </select>
                           </label>
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            Russian cutouts — keep Elle / Legally Blonde, or swap
+                            May Lecor cutouts — drag on canvas or upload here
                           </p>
                           <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
-                            Upload a transparent PNG to replace a cutout. On the preview: click a cutout → Upload, then drag it. Use + Add my cutout for extra photos. Remove clears that layer (does not fall back to the old image).
+                            Default portrait is May&apos;s studio cutout. Click a photo on the preview → upload to replace. Drag to move; use + Add my cutout for extra layers.
                           </p>
                           {(
                             [
@@ -1338,6 +1818,17 @@ export default function ProjectEditorPage() {
                                 onChange={(url) => {
                                   const next = [...((section.props.extraCutouts as typeof cut[]) ?? [])];
                                   next[idx] = { ...next[idx]!, src: url };
+                                  updateProps(section.id, { extraCutouts: next });
+                                }}
+                              />
+                              <input
+                                className="w-full text-xs rounded px-2 py-1"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String((cut as { href?: string }).href ?? "")}
+                                placeholder="Link when photo is clicked (https://… or /page)"
+                                onChange={(e) => {
+                                  const next = [...((section.props.extraCutouts as typeof cut[]) ?? [])];
+                                  next[idx] = { ...next[idx]!, href: e.target.value } as typeof cut;
                                   updateProps(section.id, { extraCutouts: next });
                                 }}
                               />
@@ -1584,6 +2075,19 @@ export default function ProjectEditorPage() {
                                   updateProps(section.id, { collagePhotos: next });
                                 }}
                               />
+                              <input
+                                className="w-full text-xs rounded px-2 py-1"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String((photo as { href?: string }).href ?? "")}
+                                placeholder="Link when photo is clicked (https://… or /artists)"
+                                onChange={(e) => {
+                                  const next = [
+                                    ...((section.props.collagePhotos as (typeof photo & { href?: string })[]) ?? []),
+                                  ];
+                                  next[idx] = { ...next[idx]!, href: e.target.value };
+                                  updateProps(section.id, { collagePhotos: next });
+                                }}
+                              />
                               <div className="grid grid-cols-2 gap-1">
                                 <label className="text-[9px]">
                                   Rotate
@@ -1670,6 +2174,12 @@ export default function ProjectEditorPage() {
                               href: String(l.href ?? ""),
                             }))}
                             onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                          />
+                          <NavSizeEditor
+                            scale={clampNavScale(section.props.navScale, 1)}
+                            size={parseNavSize(section.props.navSize)}
+                            layout={parseNavLayout(section.props.navLayout)}
+                            onChange={(patch) => updateProps(section.id, patch)}
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
                             Social / music links
@@ -1786,6 +2296,12 @@ export default function ProjectEditorPage() {
                             }))}
                             onChange={(navLinks) => updateProps(section.id, { navLinks })}
                           />
+                          <NavSizeEditor
+                            scale={clampNavScale(section.props.navScale, 1)}
+                            size={parseNavSize(section.props.navSize)}
+                            layout={parseNavLayout(section.props.navLayout)}
+                            onChange={(patch) => updateProps(section.id, patch)}
+                          />
                         </div>
                       )}
                       {section.section_type === "maylecor-music" && (
@@ -1888,6 +2404,12 @@ export default function ProjectEditorPage() {
                               href: String(l.href ?? ""),
                             }))}
                             onChange={(links) => updateProps(section.id, { links })}
+                          />
+                          <NavSizeEditor
+                            scale={clampNavScale(section.props.navScale, 1)}
+                            size={parseNavSize(section.props.navSize)}
+                            layout={parseNavLayout(section.props.navLayout)}
+                            onChange={(patch) => updateProps(section.id, patch)}
                           />
                         </div>
                       )}
@@ -2118,27 +2640,151 @@ export default function ProjectEditorPage() {
                       )}
                       {section.section_type === "video" && (
                         <div className="space-y-2">
-                          <SiteMediaUpload
-                            projectId={projectId}
-                            kind="video"
-                            value={String(section.props.src ?? "")}
-                            onChange={(src) => updateProps(section.id, { src })}
-                            label="Video file"
-                          />
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
-                            placeholder="Or YouTube URL"
-                            value={String(section.props.src ?? "")}
-                            onChange={(e) => updateProps(section.id, { src: e.target.value })}
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            placeholder="Heading (optional)"
+                            placeholder="Heading (Videos)"
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                           />
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Layout
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.layout ?? "grid")}
+                              onChange={(e) =>
+                                updateProps(section.id, {
+                                  layout: e.target.value as "grid" | "single" | "featured",
+                                })
+                              }
+                            >
+                              <option value="grid">Grid thumbnails</option>
+                              <option value="single">One video (full width)</option>
+                              <option value="featured">Featured + grid</option>
+                            </select>
+                          </label>
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Columns
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.columns ?? 2)}
+                              onChange={(e) =>
+                                updateProps(section.id, { columns: Number(e.target.value) as 1 | 2 | 3 })
+                              }
+                            >
+                              <option value={1}>1</option>
+                              <option value={2}>2</option>
+                              <option value={3}>3</option>
+                            </select>
+                          </label>
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+                            Videos — YouTube / Vimeo link, upload, or custom thumbnail
+                          </p>
+                          {(
+                            (section.props.items as {
+                              src?: string;
+                              title?: string;
+                              caption?: string;
+                              thumbnail?: string;
+                            }[]) ??
+                            (section.props.src
+                              ? [
+                                  {
+                                    src: String(section.props.src),
+                                    title: String(section.props.title ?? ""),
+                                    caption: String(section.props.caption ?? ""),
+                                    thumbnail: String(section.props.thumbnail ?? ""),
+                                  },
+                                ]
+                              : [])
+                          ).map((item, idx) => {
+                            const items =
+                              (section.props.items as typeof item[]) ??
+                              (section.props.src
+                                ? [
+                                    {
+                                      src: String(section.props.src),
+                                      title: String(section.props.title ?? ""),
+                                      caption: String(section.props.caption ?? ""),
+                                      thumbnail: String(section.props.thumbnail ?? ""),
+                                    },
+                                  ]
+                                : []);
+                            return (
+                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
+                                <input
+                                  className="w-full text-xs rounded px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  placeholder="Title"
+                                  value={item.title ?? ""}
+                                  onChange={(e) => {
+                                    const next = [...items];
+                                    next[idx] = { ...next[idx]!, title: e.target.value };
+                                    updateProps(section.id, { items: next, src: next[0]?.src ?? "" });
+                                  }}
+                                />
+                                <input
+                                  className="w-full text-xs rounded px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  placeholder="YouTube / Vimeo URL or link"
+                                  value={item.src ?? ""}
+                                  onChange={(e) => {
+                                    const next = [...items];
+                                    next[idx] = { ...next[idx]!, src: e.target.value };
+                                    updateProps(section.id, { items: next, src: next[0]?.src ?? "" });
+                                  }}
+                                />
+                                <SiteMediaUpload
+                                  projectId={projectId}
+                                  kind="video"
+                                  value={String(item.src ?? "")}
+                                  onChange={(src) => {
+                                    const next = [...items];
+                                    next[idx] = { ...next[idx]!, src };
+                                    updateProps(section.id, { items: next, src: next[0]?.src ?? "" });
+                                  }}
+                                  label="Or upload video file"
+                                />
+                                <SectionPhotoField
+                                  projectId={projectId}
+                                  label="Custom thumbnail (optional)"
+                                  value={String(item.thumbnail ?? "")}
+                                  onChange={(url) => {
+                                    const next = [...items];
+                                    next[idx] = { ...next[idx]!, thumbnail: url };
+                                    updateProps(section.id, { items: next });
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="text-[10px] font-bold uppercase text-red-600"
+                                  onClick={() => {
+                                    const next = items.filter((_, i) => i !== idx);
+                                    updateProps(section.id, { items: next, src: next[0]?.src ?? "" });
+                                  }}
+                                >
+                                  Remove video
+                                </button>
+                              </div>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            className="w-full rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white"
+                            style={{ background: "#0F0D33" }}
+                            onClick={() => {
+                              const items = [
+                                ...((section.props.items as { src: string; title: string; caption: string; thumbnail: string }[]) ??
+                                  []),
+                                { src: "", title: `Video ${((section.props.items as unknown[]) ?? []).length + 1}`, caption: "", thumbnail: "" },
+                              ];
+                              updateProps(section.id, { items });
+                            }}
+                          >
+                            + Add video
+                          </button>
                         </div>
                       )}
                       {section.section_type === "audio" && (
@@ -2178,6 +2824,38 @@ export default function ProjectEditorPage() {
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Upload photos or paste image URLs. Great for Photos and Videos pages.
                           </p>
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Photo layout
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.layout ?? "grid")}
+                              onChange={(e) =>
+                                updateProps(section.id, {
+                                  layout: e.target.value as "grid" | "single" | "featured",
+                                })
+                              }
+                            >
+                              <option value="grid">Grid</option>
+                              <option value="single">One photo (full width)</option>
+                              <option value="featured">Featured + grid</option>
+                            </select>
+                          </label>
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Columns
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.columns ?? 3)}
+                              onChange={(e) =>
+                                updateProps(section.id, { columns: Number(e.target.value) as 1 | 2 | 3 })
+                              }
+                            >
+                              <option value={1}>1</option>
+                              <option value={2}>2</option>
+                              <option value={3}>3</option>
+                            </select>
+                          </label>
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
                             (item: { src?: string; alt?: string }, idx: number) => (
                               <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: BUILDER.surfaceMuted }}>
@@ -2233,7 +2911,7 @@ export default function ProjectEditorPage() {
                         </div>
                       )}
                       {section.section_type === "products" && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
@@ -2241,15 +2919,112 @@ export default function ProjectEditorPage() {
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             placeholder="Section heading"
                           />
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
+                            Shop layout
+                          </p>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {(
+                              [
+                                ["grid", "Grid"],
+                                ["grid-dense", "Dense grid"],
+                                ["list", "List"],
+                                ["featured", "Featured"],
+                              ] as const
+                            ).map(([id, label]) => {
+                              const on = String(section.props.layout ?? "grid") === id;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => updateProps(section.id, { layout: id })}
+                                  className="rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider"
+                                  style={{
+                                    background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                                    color: on ? "#fff" : BUILDER.ink,
+                                    border: `1px solid ${BUILDER.border}`,
+                                  }}
+                                  aria-pressed={on}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {String(section.props.layout ?? "grid") !== "list" ? (
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: BUILDER.faint }}>
+                                Columns
+                              </p>
+                              <div className="flex gap-1.5">
+                                {([2, 3, 4] as const).map((n) => {
+                                  const on = Number(section.props.columns ?? 3) === n;
+                                  return (
+                                    <button
+                                      key={n}
+                                      type="button"
+                                      onClick={() => updateProps(section.id, { columns: n })}
+                                      className="flex-1 rounded-lg py-2 text-[11px] font-bold"
+                                      style={{
+                                        background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                                        color: on ? "#fff" : BUILDER.ink,
+                                        border: `1px solid ${BUILDER.border}`,
+                                      }}
+                                      aria-pressed={on}
+                                    >
+                                      {n}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
+                            Order form look
+                          </p>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {(
+                              [
+                                ["inline", "Inline"],
+                                ["sheet", "Bottom sheet"],
+                                ["card", "Card"],
+                                ["minimal", "Minimal"],
+                              ] as const
+                            ).map(([id, label]) => {
+                              const on = String(section.props.orderStyle ?? "inline") === id;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => updateProps(section.id, { orderStyle: id })}
+                                  className="rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider"
+                                  style={{
+                                    background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                                    color: on ? "#fff" : BUILDER.ink,
+                                    border: `1px solid ${BUILDER.border}`,
+                                  }}
+                                  aria-pressed={on}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.orderCtaLabel ?? "Place order")}
+                            onChange={(e) => updateProps(section.id, { orderCtaLabel: e.target.value })}
+                            placeholder="Order button label"
+                          />
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Catalog lives in{" "}
-                            <Link href={`/shop/${projectId}`} className="font-bold underline" style={{ color: "#FF5500" }}>
-                              Kebu Shop
-                            </Link>{" "}
-                            (separate from this builder). Add or edit products there, then publish this site.
+                            <Link href={`/shop/${projectId}?tab=products`} className="font-bold underline" style={{ color: "#FF5500" }}>
+                              Kebu Shop → Products
+                            </Link>
+                            . Layout here only changes how the shop page looks.
                           </p>
                           <Link
-                            href={`/shop/${projectId}`}
+                            href={`/shop/${projectId}?tab=products`}
                             className="inline-block rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white"
                             style={{ background: "#FF5500" }}
                           >
@@ -2280,6 +3055,86 @@ export default function ProjectEditorPage() {
                             onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
                             placeholder="Button label"
                           />
+                        </div>
+                      )}
+                      {section.section_type === "email-popup" && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                            Overlay on the live site. Emails save to your business list (same as Email list).
+                            Consent is stored in the visitor’s browser — not a full legal cookie platform.
+                          </p>
+                          <label className="flex items-center gap-2 text-[11px]">
+                            <input
+                              type="checkbox"
+                              checked={section.props.enabled !== false}
+                              onChange={(e) => updateProps(section.id, { enabled: e.target.checked })}
+                            />
+                            Show popup
+                          </label>
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Mode
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.mode ?? "both")}
+                              onChange={(e) => updateProps(section.id, { mode: e.target.value })}
+                            >
+                              <option value="both">Email + consent</option>
+                              <option value="email">Email only</option>
+                              <option value="consent">Consent only</option>
+                            </select>
+                          </label>
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            placeholder="Heading"
+                          />
+                          <textarea
+                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.body ?? "")}
+                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                            placeholder="Body"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.consentLabel ?? "")}
+                            onChange={(e) => updateProps(section.id, { consentLabel: e.target.value })}
+                            placeholder="Consent checkbox text"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Delay (sec)
+                              <input
+                                type="number"
+                                min={0}
+                                max={60}
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={Number(section.props.delaySeconds ?? 4)}
+                                onChange={(e) =>
+                                  updateProps(section.id, { delaySeconds: Number(e.target.value) })
+                                }
+                              />
+                            </label>
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Remind (days)
+                              <input
+                                type="number"
+                                min={0}
+                                max={365}
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={Number(section.props.remindAfterDays ?? 14)}
+                                onChange={(e) =>
+                                  updateProps(section.id, { remindAfterDays: Number(e.target.value) })
+                                }
+                              />
+                            </label>
+                          </div>
                         </div>
                       )}
                       {section.section_type === "map" && (
@@ -2359,7 +3214,7 @@ export default function ProjectEditorPage() {
                           </button>
                         </div>
                       )}
-                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page"].includes(
+                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "email-popup", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page"].includes(
                         section.section_type
                       ) && (
                         <p className="text-[11px]" style={{ color: "#8A8578" }}>
@@ -2376,159 +3231,107 @@ export default function ProjectEditorPage() {
                       </label>
                     </div>
                   ))}
+                <AddSectionPicker
+                  pageTitle={
+                    pages.find((p) => p.id === editPageId)?.title ??
+                    pages[0]?.title ??
+                    "Home"
+                  }
+                  onAdd={async (type) => {
+                    await addSection(type);
+                  }}
+                />
               </div>
               </>
               )}
             </aside>
 
             <section
-              className="flex min-w-0 flex-1 flex-col overflow-hidden"
+              className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
               style={{
                 background: maylecorRussianLayout
                   ? "#FFE4F0"
-                  : sections.some(
-                        (s) =>
-                          s.section_type === "kdirection-home" ||
-                          s.section_type === "kdirection-page",
-                      )
+                  : kdirectionLayout
                     ? "#f5f5f5"
                     : "#0a0a0a",
               }}
             >
               <div
-                className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2"
-                style={{
-                  borderColor: maylecorRussianLayout
-                    ? "rgba(233,0,107,0.25)"
-                    : "rgba(255,255,255,0.1)",
-                }}
+                className={`mx-auto flex min-h-0 flex-1 w-full ${
+                  wideCanvas ? "overflow-hidden p-0" : "overflow-y-auto p-4 sm:p-6"
+                }`}
               >
-                {pages.length > 1 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {pages
-                      .slice()
-                      .sort((a, b) => a.sort_order - b.sort_order)
-                      .map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setPreviewPageSlug(p.slug);
-                            setEditPageId(p.id);
-                          }}
-                          className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider"
-                          style={{
-                            background: previewPageSlug === p.slug ? "#0F0D33" : "#fff",
-                            color: previewPageSlug === p.slug ? "#fff" : "#0F0D33",
-                            border: "1px solid #DDE0F0",
-                          }}
-                        >
-                          {p.title}
-                        </button>
-                      ))}
-                  </div>
-                ) : (
-                  <span
-                    className="text-xs font-semibold uppercase tracking-wider"
-                    style={{
-                      color: maylecorRussianLayout
-                        ? "#8B1A4A"
-                        : "#8A8578",
-                    }}
-                  >
-                    Live preview
-                  </span>
-                )}
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewFullscreen(true)}
-                    className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ background: "#0F0D33", color: "#fff" }}
-                  >
-                    Fullscreen
-                  </button>
-                  <div className="flex items-center gap-1 rounded-full p-0.5" style={{ background: "#ECEAE4" }}>
-                  {(
-                    [
-                      ["desktop", "Desktop"],
-                      ["tablet", "Tablet"],
-                      ["mobile", "Phone"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setDevice(id)}
-                      className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
-                      style={{
-                        background: device === id ? "#0F0D33" : "transparent",
-                        color: device === id ? "#fff" : "#5C5348",
-                      }}
-                      aria-pressed={device === id}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                  </div>
-                </div>
-              </div>
-              <div className="mx-auto flex-1 w-full overflow-y-auto p-3 sm:p-4">
                 <div
-                  className="mx-auto overflow-hidden bg-white"
-                  style={{
-                    width: "100%",
-                    maxWidth: BUILDER_DEVICE_FRAME[device],
-                    minHeight: device === "mobile" ? 520 : device === "tablet" ? 640 : 560,
-                    border:
-                      device === "mobile"
-                        ? "3px solid #1a1a1a"
-                        : device === "tablet"
-                          ? "2px solid #333"
-                          : "1px solid #c8c4bc",
-                    borderRadius: device === "mobile" ? 28 : device === "tablet" ? 18 : 12,
-                    boxShadow:
-                      device === "desktop"
-                        ? "0 16px 48px rgba(0,0,0,0.22)"
-                        : "0 12px 40px rgba(0,0,0,0.18)",
-                  }}
+                  className={`mx-auto overflow-hidden bg-white ${
+                    wideCanvas ? "flex h-full min-h-0 w-full flex-1 flex-col" : ""
+                  }`}
+                  style={
+                    wideCanvas
+                      ? {
+                          width: "100%",
+                          maxWidth: "100%",
+                          height: "100%",
+                          border: "none",
+                          borderRadius: 0,
+                          boxShadow: "none",
+                        }
+                      : {
+                          width: "100%",
+                          maxWidth: BUILDER_DEVICE_FRAME[device],
+                          minHeight: device === "mobile" ? 520 : device === "tablet" ? 640 : 560,
+                          border:
+                            device === "mobile"
+                              ? "3px solid #1a1a1a"
+                              : device === "tablet"
+                                ? "2px solid #333"
+                                : "1px solid #c8c4bc",
+                          borderRadius: device === "mobile" ? 28 : device === "tablet" ? 18 : 12,
+                          boxShadow:
+                            device === "desktop"
+                              ? "0 16px 48px rgba(0,0,0,0.22)"
+                              : "0 12px 40px rgba(0,0,0,0.18)",
+                        }
+                  }
                 >
-                {previewDefinition && (
+                {canvasDefinition && (
                   <BuilderEditablePreview
-                    definition={previewDefinition}
+                    definition={canvasDefinition}
                     pageSlug={previewPageSlug}
                     siteBase={previewSiteBase || undefined}
                     projectId={projectId}
                     device={device}
+                    canvasFill={wideCanvas}
+                    pageTitle={
+                      pages.find((p) => p.slug === previewPageSlug)?.title ??
+                      pages.find((p) => p.id === editPageId)?.title ??
+                      "Home"
+                    }
                     onAssetDrop={(asset, drop) => void applyMediaAsset(asset, drop)}
-                    editor={{
-                      selectedSectionId,
-                      onSelectSection: (id) => {
-                        setSelectedSectionId(id);
-                        const match = sections.find((s) => s.id === id);
-                        if (match) setEditPageId(match.page_id);
-                      },
-                      onPatchSection: updateProps,
-                      onMoveFreeTextBlock: (sectionId, blockId, x, y) => {
-                        const section = sections.find((s) => s.id === sectionId);
-                        if (!section || section.section_type !== "free-text") return;
-                        const blocks = Array.isArray(section.props.blocks) ? [...section.props.blocks] : [];
-                        const idx = blocks.findIndex((b: { id?: string }) => b.id === blockId);
-                        if (idx < 0) return;
-                        blocks[idx] = { ...blocks[idx], x, y };
-                        updateProps(sectionId, { blocks });
-                      },
-                    }}
+                    editor={canvasEditor}
                   />
                 )}
                 </div>
               </div>
+              {canvasDefinition ? (
+                <BuilderSiteCommandBar
+                  value={improveInstruction}
+                  onChange={setImproveInstruction}
+                  mode={improveMode}
+                  onModeChange={setImproveMode}
+                  onPreview={() => void previewWithAi()}
+                  onApply={() => void applyAiPreview()}
+                  onDiscard={discardAiPreview}
+                  busy={improving}
+                  device={device}
+                  preview={aiPreview ? { intents: aiPreview.intents, repaired: aiPreview.repaired } : null}
+                />
+              ) : null}
             </section>
           </>
         )}
       </main>
 
-      {previewFullscreen && previewDefinition ? (
+      {previewFullscreen && canvasDefinition ? (
         <div
           className="fixed inset-0 z-[100] flex flex-col"
           style={{ background: maylecorRussianLayout ? "#FFE4F0" : "#0a0a0a" }}
@@ -2588,35 +3391,33 @@ export default function ProjectEditorPage() {
               }}
             >
               <BuilderEditablePreview
-                definition={previewDefinition}
+                definition={canvasDefinition}
                 pageSlug={previewPageSlug}
                 siteBase={previewSiteBase || undefined}
                 projectId={projectId}
                 device={device}
+                pageTitle={
+                  pages.find((p) => p.slug === previewPageSlug)?.title ??
+                  pages.find((p) => p.id === editPageId)?.title ??
+                  "Home"
+                }
                 onAssetDrop={(asset, drop) => void applyMediaAsset(asset, drop)}
-                editor={{
-                  selectedSectionId,
-                  onSelectSection: (id) => {
-                    setSelectedSectionId(id);
-                    const match = sections.find((s) => s.id === id);
-                    if (match) setEditPageId(match.page_id);
-                  },
-                  onPatchSection: updateProps,
-                  onMoveFreeTextBlock: (sectionId, blockId, x, y) => {
-                    const section = sections.find((s) => s.id === sectionId);
-                    if (!section || section.section_type !== "free-text") return;
-                    const blocks = Array.isArray(section.props.blocks) ? [...section.props.blocks] : [];
-                    const idx = blocks.findIndex((b: { id?: string }) => b.id === blockId);
-                    if (idx < 0) return;
-                    blocks[idx] = { ...blocks[idx], x, y };
-                    updateProps(sectionId, { blocks });
-                  },
-                }}
+                editor={canvasEditor}
               />
             </div>
           </div>
         </div>
       ) : null}
+      {kbSaveNote ? (
+        <p
+          className="pointer-events-none fixed left-3 bottom-3 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
+          style={{ background: "rgba(255,251,247,0.95)", color: "#166534", border: "1px solid #E8E6DF" }}
+        >
+          {kbSaveNote}
+        </p>
+      ) : null}
+      <DataModeDock />
     </div>
+    </DataModeProvider>
   );
 }

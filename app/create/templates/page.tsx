@@ -1,21 +1,8 @@
-import { AppShell } from "@/app/components/app-shell";
-import { TemplatesVisualPage } from "@/app/components/create/templates-visual-page";
-import { getFeaturedGalleryTemplates, getFlagshipGalleryTemplates, getGalleryTemplates } from "@/lib/create/template-gallery";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Templates — Kebu Builder",
-  description: "Visual website templates — live previews with real layouts and placeholder photos.",
-};
+export const dynamic = "force-dynamic";
 
-/** Dedicated templates gallery — visual previews, filters, no SaaS copy. */
-export default function CreateTemplatesPage() {
-  const templates = getGalleryTemplates();
-  const featured = getFeaturedGalleryTemplates();
-  const flagship = getFlagshipGalleryTemplates();
-
-  return (
-    <AppShell title="Templates">
-      <TemplatesVisualPage templates={templates} featured={featured} flagship={flagship} />
-    </AppShell>
-  );
+/** Templates renamed to Aesthetics. */
+export default function CreateTemplatesRedirect() {
+  redirect("/create/aesthetics");
 }

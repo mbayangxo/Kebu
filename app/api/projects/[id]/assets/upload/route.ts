@@ -4,12 +4,15 @@ import { builderRateLimit } from "@/lib/api-guard";
 import {
   SITE_ASSET_SPECS,
   guessContentType,
+  isHeicLike,
   type SiteAssetKind,
 } from "@/lib/create/site-asset-upload";
+import { kebuTransferHeaders, maxUploadBytesForMode, parseDataModeHeader } from "@/lib/create/kb-budget";
 import {
   assertProjectEditorAccess,
   dbForProjectAccess,
 } from "@/lib/create/project-access";
+import { createServiceClient } from "@/lib/opportunity/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +28,25 @@ function safeExtForKind(kind: SiteAssetKind, fileName: string): string {
   const ext = fileName.split(".").pop()?.toLowerCase() || "bin";
   if (kind === "audio") return AUDIO_EXT.has(ext) ? ext : "mp3";
   if (kind === "video") return VIDEO_EXT.has(ext) ? ext : "mp4";
-  return IMAGE_EXT.has(ext) ? ext : "jpg";
+  if (ext === "heic" || ext === "heif") return "jpg";
+  return IMAGE_EXT.has(ext) ? (ext === "jpeg" ? "jpg" : ext) : "jpg";
+}
+
+function friendlyUploadError(message: string | undefined): string {
+  const m = (message ?? "").toLowerCase();
+  if (m.includes("bucket not found")) {
+    return "Photo storage is not set up yet. Apply Supabase migrations 023, 029, and 034.";
+  }
+  if (m.includes("mime type") || m.includes("not supported")) {
+    return "That file type is not allowed. Use JPG, PNG, or WebP (not HEIC).";
+  }
+  if (m.includes("row-level security") || m.includes("rls") || m.includes("policy")) {
+    return "Upload blocked by storage permissions. Sign out and back in, then try again.";
+  }
+  if (m.includes("payload") || m.includes("too large") || m.includes("size")) {
+    return "File is too large for upload.";
+  }
+  return message?.trim() || "Upload failed.";
 }
 
 /** Upload site media (images, audio, video) to public storage. */
@@ -63,24 +84,55 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   const spec = SITE_ASSET_SPECS[kind as SiteAssetKind];
+  const dataMode = parseDataModeHeader(req);
+  const maxBytes = maxUploadBytesForMode(kind as SiteAssetKind, dataMode);
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "Choose a file to upload." }, { status: 400 });
   }
 
-  if (file.size > spec.maxBytes) {
+  if (file.size > maxBytes) {
+    const mb = Math.round((maxBytes / (1024 * 1024)) * 10) / 10;
     return NextResponse.json(
-      { error: `File is too large. Max ${Math.round(spec.maxBytes / (1024 * 1024))} MB for ${spec.label}.` },
+      {
+        error:
+          dataMode === "normal"
+            ? `File is too large. Max ${Math.round(spec.maxBytes / (1024 * 1024))} MB for ${spec.label}.`
+            : `Data Saver limit: keep ${spec.label} under ${mb < 1 ? `${Math.round(maxBytes / 1024)} KB` : `${mb} MB`}. Compress the image or switch to Normal mode.`,
+        budgetKb: Math.round(maxBytes / 1024),
+        dataMode,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (kind !== "audio" && kind !== "video" && isHeicLike(file)) {
+    return NextResponse.json(
+      {
+        error:
+          "iPhone HEIC photos are not supported yet. In Photos → share → “Most Compatible” / export as JPEG, then upload.",
+      },
       { status: 400 },
     );
   }
 
   const safeExt = safeExtForKind(kind as SiteAssetKind, file.name);
-  const objectPath = `${ownerId}/${projectId}/${kind}-${Date.now()}.${safeExt}`;
+  // Prefer the signed-in user folder so storage RLS matches; owners are always user.id.
+  const folderUserId = access.via === "owner" ? user.id : ownerId;
+  const objectPath = `${folderUserId}/${projectId}/${kind}-${Date.now()}.${safeExt}`;
   const contentType = guessContentType(file);
 
+  if (contentType === "application/octet-stream") {
+    return NextResponse.json(
+      { error: "Could not detect file type. Use a JPG, PNG, or WebP image." },
+      { status: 400 },
+    );
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: uploadErr } = await db.storage.from("site-assets").upload(objectPath, buffer, {
+  // Service role bypasses storage RLS after we already authorized the editor.
+  const storageClient = createServiceClient() ?? db;
+  const { error: uploadErr } = await storageClient.storage.from("site-assets").upload(objectPath, buffer, {
     contentType,
     upsert: false,
   });
@@ -88,25 +140,28 @@ export async function POST(req: Request, { params }: Params) {
   if (uploadErr) {
     return NextResponse.json(
       {
-        error: uploadErr.message?.includes("Bucket not found")
-          ? "Site assets storage missing. Apply migrations 023 and 029."
-          : uploadErr.message?.includes("mime type")
-            ? "File type not allowed. Apply migration 029 for audio/video."
-            : "Upload failed.",
+        error: friendlyUploadError(uploadErr.message),
         detail: uploadErr.message,
       },
       { status: 500 },
     );
   }
 
-  const { data: publicUrl } = db.storage.from("site-assets").getPublicUrl(objectPath);
+  const { data: publicUrl } = storageClient.storage.from("site-assets").getPublicUrl(objectPath);
 
-  await db.from("website_assets").insert({
+  const { error: metaErr } = await db.from("website_assets").insert({
     project_id: projectId,
     kind: spec.storageKind,
     url: publicUrl.publicUrl,
     created_by: user.id,
   });
+  if (metaErr) {
+    logCreate("website.asset_meta_failed", {
+      userId: user.id,
+      projectId,
+      detail: metaErr.message,
+    });
+  }
 
   logCreate("website.asset_uploaded", {
     userId: user.id,
@@ -114,12 +169,22 @@ export async function POST(req: Request, { params }: Params) {
     kind,
     storageKind: spec.storageKind,
     via: access.via,
+    dataMode,
+    bytes: file.size,
   });
 
-  return NextResponse.json({
-    url: publicUrl.publicUrl,
-    path: objectPath,
-    kind,
-    storageKind: spec.storageKind,
-  });
+  const headers = kebuTransferHeaders(file.size, "upload_image", dataMode);
+  return NextResponse.json(
+    {
+      url: publicUrl.publicUrl,
+      path: objectPath,
+      kind,
+      storageKind: spec.storageKind,
+      transferKb: headers["X-Kebu-Transfer-Kb"],
+      budgetKb: headers["X-Kebu-Budget-Kb"],
+      withinBudget: headers["X-Kebu-Within-Budget"] === "1",
+      dataMode,
+    },
+    { headers },
+  );
 }

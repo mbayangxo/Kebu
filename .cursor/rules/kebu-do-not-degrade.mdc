@@ -1,0 +1,18 @@
+---
+description: Do not fix one feature by breaking another — verify dependents
+alwaysApply: true
+---
+
+# Do not degrade
+
+**Never fix one feature by degrading another.**
+
+Before modifying **shared** components, layouts, hooks, or APIs:
+
+1. Identify **all dependent screens**  
+2. Implement fix  
+3. **Verify dependents** in running app (or tests)  
+
+Especially: navigation · auth · shared modals · design tokens · business nav tree.
+
+Quality gate: `docs/product/QUALITY_GATE.md`

@@ -22,6 +22,7 @@ function shouldHideFloatingActions(pathname: string): boolean {
     pathname === "/dashboard" ||
     pathname === "/account" ||
     pathname.startsWith("/business") ||
+    pathname.startsWith("/my-sites") ||
     pathname.startsWith("/create/sites") ||
     pathname.startsWith("/create/domains") ||
     pathname.startsWith("/opportunity") ||
@@ -36,6 +37,7 @@ function usesAppShellLayout(pathname: string): boolean {
     pathname === "/dashboard" ||
     pathname === "/account" ||
     pathname.startsWith("/business") ||
+    pathname.startsWith("/my-sites") ||
     pathname.startsWith("/create/sites") ||
     pathname.startsWith("/create/domains") ||
     pathname.startsWith("/opportunity") ||

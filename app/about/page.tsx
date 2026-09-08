@@ -24,7 +24,7 @@ export default function AboutPage() {
             <strong style={{ color: KEBU.black }}>how do I build it?</strong>
           </p>
           <p>
-            Your personal account (Afrique ID) stays separate from your business (Kebu ID). That way your identity as a
+            Your personal account (African ID / AID) stays separate from your business (Kebu ID). That way your identity as a
             person never gets mixed up with your company, store, or score.
           </p>
           <p>

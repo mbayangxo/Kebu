@@ -33,11 +33,11 @@ export async function ensurePortfolioOwnerBusiness(
       .from("businesses")
       .insert({
         public_kebu_id: publicId,
-        legal_name: "May Lecor & K-Direction",
+        legal_name: "May Lecor · DkLNS · Ndaoan House · K-Direction",
         trading_name: "Portfolio",
         country_code: "SN",
         category: "creative",
-        description: "Kebu portfolio holder for May Lecor and K-Direction sites.",
+        description: "Kebu portfolio holder for May Lecor, DkLNS, Ndaoan House, and K-Direction sites.",
         lifecycle_status: "draft",
         verification_level: 1,
         registration_status: "draft",

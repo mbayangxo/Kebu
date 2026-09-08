@@ -9,6 +9,11 @@ import {
 } from "@/lib/create/project-access";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { containsUnsafeSiteContent } from "@/lib/create/site-seo";
+import { applyInsertBump, nextSortOrderAfter } from "@/lib/create/section-insert";
+import {
+  parseSiteChrome,
+  patchSiteChromePart,
+} from "@/lib/create/site-chrome";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +38,8 @@ const deleteSchema = z.object({
 
 const addSectionBodySchema = addSectionSchema.extend({
   pageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(60).optional(),
+  /** B8: insert after this section id (omit = append). Null top handled client-side as omit + reorder. */
+  insertAfterSectionId: z.string().uuid().nullable().optional(),
 });
 
 async function requireProjectDb(
@@ -105,12 +112,28 @@ export async function POST(req: Request, { params }: Params) {
 
   const { data: existing } = await db
     .from("project_sections")
-    .select("sort_order")
+    .select("id, sort_order")
     .eq("page_id", page.id)
-    .order("sort_order", { ascending: false })
-    .limit(1);
+    .order("sort_order", { ascending: true });
 
-  const nextOrder = existing && existing.length > 0 ? (existing[0]!.sort_order ?? 0) + 1 : 0;
+  const siblings = (existing ?? []).map((r) => ({ id: r.id, sort_order: r.sort_order ?? 0 }));
+
+  let nextOrder: number;
+  if (parsed.data.insertAfterSectionId === undefined) {
+    nextOrder = siblings.length ? Math.max(...siblings.map((s) => s.sort_order)) + 1 : 0;
+  } else {
+    const { insertOrder, bumpFrom } = nextSortOrderAfter(parsed.data.insertAfterSectionId, siblings);
+    if (bumpFrom !== null) {
+      const bumped = applyInsertBump(siblings, bumpFrom);
+      for (const row of bumped) {
+        const original = siblings.find((s) => s.id === row.id);
+        if (original && original.sort_order !== row.sort_order) {
+          await db.from("project_sections").update({ sort_order: row.sort_order }).eq("id", row.id);
+        }
+      }
+    }
+    nextOrder = insertOrder;
+  }
 
   const { data: section, error } = await db
     .from("project_sections")
@@ -129,6 +152,21 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   await db.from("projects").update({ updated_at: new Date().toISOString() }).eq("id", projectId);
+
+  if (type === "navigation" || type === "footer") {
+    const { data: proj } = await db.from("projects").select("site_chrome, title").eq("id", projectId).maybeSingle();
+    let chrome = parseSiteChrome(proj?.site_chrome);
+    if (!chrome.header && !chrome.footer) {
+      chrome = { enabled: true, ...chrome };
+    }
+    chrome = patchSiteChromePart(
+      { ...chrome, enabled: true },
+      type === "navigation" ? "header" : "footer",
+      propsParsed.data as Record<string, unknown>,
+    );
+    await db.from("projects").update({ site_chrome: chrome }).eq("id", projectId);
+  }
+
   return NextResponse.json({ section }, { status: 201 });
 }
 
@@ -224,6 +262,20 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   await db.from("projects").update({ updated_at: new Date().toISOString() }).eq("id", projectId);
+
+  if (sectionRow.section_type === "navigation" || sectionRow.section_type === "footer") {
+    const { data: proj } = await db.from("projects").select("site_chrome").eq("id", projectId).maybeSingle();
+    let chrome = parseSiteChrome(proj?.site_chrome);
+    if (update.props) {
+      chrome = patchSiteChromePart(
+        { ...chrome, enabled: true },
+        sectionRow.section_type === "navigation" ? "header" : "footer",
+        update.props as Record<string, unknown>,
+      );
+      await db.from("projects").update({ site_chrome: chrome }).eq("id", projectId);
+    }
+  }
+
   return NextResponse.json({ section: updated });
 }
 

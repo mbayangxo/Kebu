@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
-import { subscriptionPeriodEnd } from "@/lib/billing/subscriptions";
+import {
+  extendPeriodEnd,
+  parseHostingPlan,
+  restoreSuspendedDeploymentsForProject,
+} from "@/lib/billing/subscriptions";
+import { parseKebuPlanId } from "@/lib/billing/pricing";
 import { verifyJokoWebhookSignature } from "@/lib/joko/payments";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +17,7 @@ type JokoWebhookPayload = {
   metadata?: Record<string, string>;
 };
 
-/** JOKO payment confirmation — activates site hosting or template purchase. */
+/** JOKO payment confirmation — activates / renews site hosting or template purchase. */
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-joko-signature") || req.headers.get("x-webhook-signature");
@@ -42,12 +47,14 @@ export async function POST(req: NextRequest) {
   const paymentId = payload.payment_id;
 
   if (kind === "site_subscription" && reference) {
-    const now = new Date().toISOString();
-    const periodEnd = subscriptionPeriodEnd(new Date());
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const plan = parseHostingPlan(payload.metadata?.plan);
+    const tier = parseKebuPlanId(payload.metadata?.tier ?? "shop");
 
     const { data: sub } = await supabase
       .from("site_subscriptions")
-      .select("id, project_id, owner_id, status")
+      .select("id, project_id, owner_id, status, period_end, plan, billing_interval, tier, autopay_enabled")
       .eq("joko_reference", reference)
       .maybeSingle();
 
@@ -55,16 +62,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Subscription not found." }, { status: 404 });
     }
 
+    const effectivePlan = parseHostingPlan(sub.billing_interval ?? sub.plan ?? plan);
+    const effectiveTier = parseKebuPlanId(sub.tier ?? tier);
+    let baseEnd = sub.period_end as string | null;
+
+    // When renewing, extend from the previous active row if this pending row has no end yet.
+    if (payload.metadata?.previous_subscription_id) {
+      const { data: prev } = await supabase
+        .from("site_subscriptions")
+        .select("period_end, autopay_enabled")
+        .eq("id", payload.metadata.previous_subscription_id)
+        .maybeSingle();
+      if (prev?.period_end) baseEnd = prev.period_end;
+      if (prev?.autopay_enabled) {
+        await supabase
+          .from("site_subscriptions")
+          .update({ autopay_enabled: true, autopay_consent_at: nowIso })
+          .eq("id", sub.id);
+      }
+      await supabase
+        .from("site_subscriptions")
+        .update({ status: "expired", updated_at: nowIso })
+        .eq("id", payload.metadata.previous_subscription_id)
+        .eq("status", "active");
+    }
+
+    const periodEnd = extendPeriodEnd(baseEnd, effectivePlan, now);
+
     await supabase
       .from("site_subscriptions")
       .update({
         status: "active",
-        period_start: now,
+        plan: effectivePlan,
+        billing_interval: effectivePlan,
+        tier: effectiveTier,
+        period_start: nowIso,
         period_end: periodEnd,
+        next_billing_at: periodEnd,
         joko_payment_id: paymentId ?? sub.id,
-        updated_at: now,
+        pending_checkout_url: null,
+        updated_at: nowIso,
       })
       .eq("id", sub.id);
+
+    const restored = await restoreSuspendedDeploymentsForProject(supabase, sub.project_id);
 
     console.info(
       JSON.stringify({
@@ -72,10 +113,19 @@ export async function POST(req: NextRequest) {
         projectId: sub.project_id,
         ownerId: sub.owner_id,
         reference,
+        plan: effectivePlan,
+        periodEnd,
+        restoredDeployments: restored,
       }),
     );
 
-    return NextResponse.json({ ok: true, kind: "site_subscription", subscriptionId: sub.id });
+    return NextResponse.json({
+      ok: true,
+      kind: "site_subscription",
+      subscriptionId: sub.id,
+      periodEnd,
+      restoredDeployments: restored,
+    });
   }
 
   if (kind === "template_purchase" && reference) {
@@ -109,6 +159,50 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ ok: true, kind: "template_purchase", purchaseId: purchase.id });
+  }
+
+  if (kind === "aesthetic_purchase" && reference) {
+    const { markAestheticPurchasePaid } = await import("@/lib/create/aesthetics-marketplace");
+    const paid = await markAestheticPurchasePaid(supabase, reference, paymentId ?? null);
+    if (!paid.ok) {
+      return NextResponse.json({ error: paid.error }, { status: 404 });
+    }
+    console.info(
+      JSON.stringify({
+        event: "billing.aesthetic_purchased",
+        libraryId: paid.libraryId,
+        marketplaceId: paid.marketplaceId,
+        reference,
+      }),
+    );
+    return NextResponse.json({ ok: true, kind: "aesthetic_purchase", libraryId: paid.libraryId });
+  }
+
+  if (kind === "shop_order" && reference) {
+    const { markShopOrderPaid } = await import("@/lib/shop/joko-order");
+    const paid = await markShopOrderPaid(supabase, reference, paymentId ?? null);
+    if (!paid.ok) {
+      return NextResponse.json({ error: paid.error }, { status: 404 });
+    }
+    console.info(
+      JSON.stringify({
+        event: "shop.order_paid_joko",
+        orderId: paid.orderId,
+        projectId: paid.projectId,
+        reference,
+      }),
+    );
+    return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
+  }
+
+  // Metadata kind sometimes missing — fall back on reference prefix.
+  if ((!kind || kind === "unknown") && reference?.startsWith("shop_order_")) {
+    const { markShopOrderPaid } = await import("@/lib/shop/joko-order");
+    const paid = await markShopOrderPaid(supabase, reference, paymentId ?? null);
+    if (!paid.ok) {
+      return NextResponse.json({ error: paid.error }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 
   return NextResponse.json({ ok: true, ignored: true, reason: "unknown_kind" });

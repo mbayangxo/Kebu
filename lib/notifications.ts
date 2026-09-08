@@ -23,7 +23,7 @@ export async function sendOrderNotification(data: OrderNotificationPayload): Pro
     `Order: ${data.itemsSummary}`,
     `Payment: ${data.paymentMethod}`,
     `ID: ${data.orderId}`,
-    `Manage: kebu.com/store/dashboard`,
+    `Manage: kebu.africa/shop`,
   ].join("\n");
 
   const emailText = [
@@ -37,7 +37,7 @@ export async function sendOrderNotification(data: OrderNotificationPayload): Pro
     `Order ID: ${data.orderId}`,
     ``,
     `Confirm or manage this order at:`,
-    `https://kebu.com/store/dashboard`,
+    `https://kebu.africa/shop`,
   ].join("\n");
 
   await Promise.allSettled([

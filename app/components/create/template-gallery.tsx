@@ -11,13 +11,18 @@ export function TemplateGallery({
   featured,
   flagship,
   visualOnly = false,
+  compact = false,
 }: {
   templates: GalleryTemplate[];
   featured: GalleryTemplate[];
   flagship?: GalleryTemplate[];
   visualOnly?: boolean;
+  /** Dense business-type grid — smaller cards, more columns. */
+  compact?: boolean;
 }) {
-  const [filter, setFilter] = useState<TemplateCategoryGroupId | "featured" | "flagship" | "">("");
+  const [filter, setFilter] = useState<TemplateCategoryGroupId | "featured" | "flagship" | "">(
+    flagship?.length ? "flagship" : "",
+  );
   const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
@@ -48,22 +53,25 @@ export function TemplateGallery({
 
   return (
     <div>
-      <div className="sticky top-0 z-20 -mx-5 px-5 py-4 mb-6 backdrop-blur-md lg:static lg:mx-0 lg:px-0 lg:py-0 lg:mb-8" style={{ background: visualOnly ? "rgba(255,251,247,0.92)" : "transparent" }}>
+      <div
+        className="sticky top-0 z-20 -mx-4 px-4 py-3 mb-4 backdrop-blur-md sm:static sm:mx-0 sm:px-0 sm:py-0 sm:mb-5"
+        style={{ background: visualOnly ? "rgba(255,251,247,0.94)" : "transparent" }}
+      >
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search templates…"
-          className="w-full max-w-md rounded-full px-5 py-2.5 text-sm font-medium mb-4"
-          style={{ border: `2px solid ${KEBU.black}`, background: KEBU.white }}
+          placeholder="Search by name or business type…"
+          className="w-full max-w-sm rounded-full px-4 py-2 text-sm font-medium mb-3"
+          style={{ border: `1px solid ${KEBU.border}`, background: KEBU.white }}
         />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           <FilterChip active={filter === ""} onClick={() => setFilter("")} label={`All (${templates.length})`} />
           {flagship?.length ? (
             <FilterChip
               active={filter === "flagship"}
               onClick={() => setFilter("flagship")}
-              label={`May Lecor · K-Direction (${flagship.length})`}
+              label={`Flagship (${flagship.length})`}
               accent
             />
           ) : null}
@@ -86,21 +94,21 @@ export function TemplateGallery({
 
       <ul
         className={
-          visualOnly
-            ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+          compact || visualOnly
+            ? "grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
             : "grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
         }
       >
         {visible.map((t) => (
           <li key={t.slug}>
-            <TemplatePreviewCard template={t} visualOnly={visualOnly} />
+            <TemplatePreviewCard template={t} visualOnly={visualOnly} compact={compact || visualOnly} />
           </li>
         ))}
       </ul>
 
       {visible.length === 0 ? (
-        <p className="text-sm text-center py-16 font-semibold" style={{ color: KEBU.black }}>
-          No templates match — try another filter.
+        <p className="text-sm py-12 text-center" style={{ color: KEBU.muted }}>
+          No templates in this filter. Try another business type.
         </p>
       ) : null}
     </div>

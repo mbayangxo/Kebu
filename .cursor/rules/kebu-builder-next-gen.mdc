@@ -1,0 +1,70 @@
+---
+description: Kebu Builder — next-gen African commerce + website OS (exceed competitors; not a clone); business workspaces; AI agent
+alwaysApply: true
+---
+
+# Kebu Builder — next-generation law
+
+Full text: `docs/product/KEBU-BUILDER-NEXT-GEN.md` · References: `docs/reference/README.md`.
+
+## Framing for Cursor (never violate)
+
+**Do not** instruct: “build a Shopify clone.” That produces **Shopify with different colors**.
+
+**Do** instruct:
+
+> Build a **new-generation African commerce + website creation operating system** that **exceeds** Shopify, Wix, Squarespace, and current AI builders **in the areas that matter to Kebu users** — while remaining globally usable.
+
+Shopify, Wix, Squarespace, Canva, Spotify, and Figma = **maturity references** when screenshots/docs are in `docs/reference/` — **not** assumed knowledge from the product name. **Product thinking:** `docs/product/KEBU-BUILDER-PRODUCT-THINKING.md` · **Paste:** `docs/product/CURSOR-BUILDER-INSTRUCTION.md`.
+
+**Goal:** Reproduce **level of product sophistication** — not visual clone. Mature product **feel** = density, hierarchy, states, completeness.
+
+**Reality check:** Those platforms already combine AI site generation, visual editing, ecommerce, marketing, analytics, inventory, SEO, and multichannel selling. Kebu must go **beyond** bolting the same feature set together. Differentiate on: **AI as business agent** (not one-shot generator) · **action-oriented intelligence** (WHAT → WHY → ACT) · **Africa-native commerce adapters** · **Opportunity OS connection** · **design worlds** · **Kebu Business workspaces** · **honest end-to-end engineering**.
+
+**Merchant UX:** Different **pages and workspaces**. The merchant must feel they are **running a business**, not only **editing a webpage**. Kebu Business IA: `lib/navigation/kebu-business-nav.ts` · home `/my-sites/[id]`.
+
+Objective: *Describe the business → beautiful functioning business online → keep building with AI.*
+
+## AI pipeline (not prompt → JSX)
+
+AI must output **structured Kebu schema + design system tokens + IA + pages** — never arbitrary production HTML. Flow: understand business → goals → IA → design world → components → content → commerce hooks → render → critique → persist → hybrid edit.
+
+## Design worlds (not Modern Store 1/2/3)
+
+Templates = **design worlds** (Editorial Atelier, Modern Heritage, Culture Magazine, Gallery, …) where layout and business logic match. Flagship portfolios (May Lecor, K-Direction, DkLNS, Ndaoan) are reference worlds — not generic hero/features/contact stacks.
+
+## Editor target (creative studio)
+
+Center = live site (full bleed on flagships). Left rail = pages + section tree. Canvas click = contextual controls. **Bottom command bar = Ask your site** (agent, not buried in sidebar). Hybrid **AI ↔ manual** always. Not “generic left + canvas + right” as the whole product.
+
+## Five creation modes
+
+AI · Template · Blank (live). Import · Code (**NOT IMPLEMENTED**). Same stack for beginners and developers.
+
+## AI command bar
+
+“Ask your site” with **preview of intended changes** before apply. System-level reasoning (typography, spacing, hierarchy) — not one CSS tweak.
+
+## AI Design Director
+
+Post-launch: Yande uses real brand + analytics for WHAT HAPPENED → WHY → WHAT TO DO. Not a fake copilot.
+
+## Navigation law
+
+Only expose nav when functionality exists. Future products = **NOT IMPLEMENTED** until assigned.
+
+## Commerce · intelligence · quality
+
+Same as before: Africa-native adapters, real analytics, end-to-end slices, honest bug standard. See full doc.
+
+## Method
+
+One vertical slice · inspect `docs/IMPLEMENTATION_STATUS.md` · do not rewrite working paths unnecessarily.
+
+## Template Intelligence + design quality
+
+**Not** `template1/2/3` with different colors. **Business archetypes** change IA (fashion ≠ restaurant). Compositions from section library — `docs/product/KEBU-TEMPLATE-INTELLIGENCE.md`.
+
+**One exceptional template first** — pass 10-question design review — `docs/product/KEBU-DESIGN-QUALITY-STANDARD.md`. **If it looks AI-generated, it failed.**
+
+**Reference dossiers** (not product names): `docs/reference/{shopify,spotify,canva}/PRODUCT-BENCHMARK.md` · format: `docs/reference/REFERENCE-DOSSIER-FORMAT.md`.

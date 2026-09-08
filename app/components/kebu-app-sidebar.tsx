@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuSidebarAuthFooter } from "@/app/components/kebu-sidebar-auth-footer";
+import { KebuAccountContextSwitcher } from "@/app/components/kebu-account-context-switcher";
 import { useKebuWorkspace } from "@/app/hooks/use-kebu-workspace";
+import { useKebuAccountContext } from "@/app/hooks/use-kebu-account-context";
 import { KEBU } from "@/lib/kebu-brand";
-import { PRODUCT_NAV } from "@/lib/navigation/product-nav";
+import { PRODUCT_NAV, businessNavHref } from "@/lib/navigation/product-nav";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { workspaceHome, workspaceLabel } from "@/lib/navigation/kebu-workspace";
 
@@ -63,7 +65,7 @@ function isActive(pathname: string, href: string, exact?: boolean): boolean {
 function renderItems(pathname: string, items: readonly { label: string; href: string; exact?: boolean }[]) {
   return items.map((item) => (
     <NavItem
-      key={item.href}
+      key={`${item.href}-${item.label}`}
       href={item.href}
       label={item.label}
       active={isActive(pathname, item.href, item.exact)}
@@ -71,7 +73,7 @@ function renderItems(pathname: string, items: readonly { label: string; href: st
   ));
 }
 
-/** Left rail — workspace-aware. Black + orange + red. */
+/** Left rail — workspace-aware. Black + orange + red. Account is top-right, not here. */
 export function KebuAppSidebar({
   portfolioSites = [],
   className = "",
@@ -81,10 +83,11 @@ export function KebuAppSidebar({
 }) {
   const pathname = usePathname();
   const { workspace, ready } = useKebuWorkspace();
+  const { context: accountContext } = useKebuAccountContext();
   const ws = workspace ?? "kebu";
   const homeHref = workspaceHome(ws);
+  const activeBusinessId = accountContext?.activeBusinessId ?? null;
 
-  // Hard guard: never show app rail on public marketing / landing.
   if (pathname === "/" || isMarketingPath(pathname) || pathname.startsWith("/login") || pathname.startsWith("/signup")) {
     return null;
   }
@@ -121,9 +124,10 @@ export function KebuAppSidebar({
         </Link>
       </div>
 
+      <KebuAccountContextSwitcher />
+
       <nav className="flex-1 px-2 py-5">
         <NavSection title="Connected">
-          {renderItems(pathname, PRODUCT_NAV.account)}
           {PRODUCT_NAV.opportunity.map((item) => (
             <NavItem
               key={item.href}
@@ -140,20 +144,25 @@ export function KebuAppSidebar({
         {ws === "kebu" ? (
           <NavSection title="Explore">
             {renderItems(pathname, PRODUCT_NAV.kebu)}
-            <NavItem href="/" label="Home" active={pathname === "/"} />
           </NavSection>
         ) : null}
 
         {ws === "business" ? (
           <>
-            <NavSection title="Business">
-              {renderItems(pathname, PRODUCT_NAV.businessHome)}
-            </NavSection>
-
-            <NavSection title="Builder">
-              {renderItems(pathname, PRODUCT_NAV.builder)}
+            <NavSection title="My KEBU">
+              {PRODUCT_NAV.myKebu.map((item) => (
+                <NavItem
+                  key={item.href}
+                  href={businessNavHref(item.href, activeBusinessId)}
+                  label={item.label}
+                  active={isActive(pathname, businessNavHref(item.href, activeBusinessId), item.exact)}
+                />
+              ))}
               {portfolioSites.length > 0 ? (
                 <div className="mt-2 ml-3 pl-3 space-y-0.5" style={{ borderLeft: `2px solid ${KEBU.red}` }}>
+                  <p className="px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-white/40">
+                    Mae / owner sites
+                  </p>
                   {portfolioSites.map((site) =>
                     site.editorUrl ? (
                       <NavItem
@@ -168,24 +177,20 @@ export function KebuAppSidebar({
               ) : null}
             </NavSection>
 
-            <NavSection title="Shop">
-              {renderItems(pathname, PRODUCT_NAV.shop)}
+            <NavSection title="Aesthetic store">
+              {renderItems(pathname, PRODUCT_NAV.aesthetics)}
             </NavSection>
 
-            <NavSection title="Create">
-              {renderItems(pathname, PRODUCT_NAV.create)}
-            </NavSection>
+            <NavSection title="Shop">{renderItems(pathname, PRODUCT_NAV.shop)}</NavSection>
 
-            <NavSection title="Alkebulan">
-              {renderItems(pathname, PRODUCT_NAV.alkebulan)}
-            </NavSection>
+            <NavSection title="Studio">{renderItems(pathname, PRODUCT_NAV.studio)}</NavSection>
+
+            <NavSection title="Alkebulan">{renderItems(pathname, PRODUCT_NAV.alkebulan)}</NavSection>
           </>
         ) : null}
 
         {ws === "studio" ? (
-          <NavSection title="Studio">
-            {renderItems(pathname, PRODUCT_NAV.studio)}
-          </NavSection>
+          <NavSection title="Studio">{renderItems(pathname, PRODUCT_NAV.studio)}</NavSection>
         ) : null}
       </nav>
 

@@ -7,6 +7,9 @@ import { ProfileProvider } from "@/app/components/user-profile";
 import { AppChrome } from "@/app/components/app-chrome";
 import { AuthSessionKeeper } from "@/app/components/auth-session-keeper";
 import { EducationProvider } from "@/app/components/education-system";
+import { KebuDataModeRoot } from "@/app/components/kebu-data-mode-root";
+import { cookies } from "next/headers";
+import { DATA_MODE_COOKIE, parseDataMode } from "@/lib/create/data-mode";
 
 const syne = Syne({
   variable: "--font-fraunces",
@@ -63,13 +66,28 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jar = await cookies();
+  const mode = parseDataMode(jar.get(DATA_MODE_COOKIE)?.value, "data_saver");
+  const modeClass =
+    mode === "offline"
+      ? "kebu-mode-offline kebu-mode-data-saver"
+      : mode === "ultra"
+        ? "kebu-mode-ultra"
+        : mode === "normal"
+          ? "kebu-mode-normal"
+          : "kebu-mode-data-saver";
+
   return (
-    <html lang="en" className={`${syne.variable} ${jakarta.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${syne.variable} ${jakarta.variable} h-full antialiased ${modeClass}`}
+      data-kebu-data-mode={mode}
+    >
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
@@ -78,9 +96,11 @@ export default function RootLayout({
         <ProfileProvider>
           <LocaleProvider>
             <EducationProvider>
-              <AuthSessionKeeper />
-              <AppChrome />
-              {children}
+              <KebuDataModeRoot>
+                <AuthSessionKeeper />
+                <AppChrome />
+                {children}
+              </KebuDataModeRoot>
             </EducationProvider>
           </LocaleProvider>
         </ProfileProvider>

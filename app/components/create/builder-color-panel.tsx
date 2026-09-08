@@ -14,6 +14,19 @@ const SWATCHES = [
   "#2563EB",
 ] as const;
 
+const DISPLAY_FONTS = [
+  "Fraunces",
+  "Playfair Display",
+  "Oswald",
+  "Bebas Neue",
+  "Syne",
+  "Steelfish",
+  "Georgia",
+  "system-ui",
+] as const;
+
+const BODY_FONTS = ["IBM Plex Sans", "system-ui", "Inter", "Georgia", "Arial", "Helvetica Neue"] as const;
+
 function ColorField({
   label,
   value,
@@ -57,6 +70,7 @@ function ColorField({
   );
 }
 
+/** Shopify-style theme colors — primary, accent, background, text + May hero accent. */
 export function BuilderColorPanel({
   theme,
   heroAccent,
@@ -71,9 +85,9 @@ export function BuilderColorPanel({
   return (
     <div className="space-y-4">
       <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-        Site-wide colors — accent shows on buttons and highlights. Motion hero accent updates the pink on May-style
-        layouts.
+        Full color control for the live site. Save to draft, then publish so visitors see the change.
       </p>
+      <ColorField label="Primary" value={theme.primary} onChange={(primary) => onThemeChange({ primary })} />
       <ColorField label="Accent" value={theme.accent} onChange={(accent) => onThemeChange({ accent })} />
       <ColorField label="Background" value={theme.background} onChange={(background) => onThemeChange({ background })} />
       <ColorField label="Text" value={theme.text} onChange={(text) => onThemeChange({ text })} />
@@ -84,6 +98,149 @@ export function BuilderColorPanel({
           onChange={onHeroAccentChange}
         />
       ) : null}
+    </div>
+  );
+}
+
+/** Fonts + type scale (Shopify theme typography). */
+export function BuilderTypographyPanel({
+  theme,
+  onThemeChange,
+}: {
+  theme: ThemeTokens;
+  onThemeChange: (patch: Partial<ThemeTokens>) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
+        Typography
+      </p>
+      <label className="block text-[10px] uppercase tracking-wider">
+        Display / headings
+        <select
+          className="mt-1 w-full rounded-lg px-2 py-2 text-xs"
+          style={{ border: `1px solid ${BUILDER.border}` }}
+          value={theme.fontDisplay}
+          onChange={(e) => onThemeChange({ fontDisplay: e.target.value })}
+        >
+          {DISPLAY_FONTS.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-[10px] uppercase tracking-wider">
+        Body
+        <select
+          className="mt-1 w-full rounded-lg px-2 py-2 text-xs"
+          style={{ border: `1px solid ${BUILDER.border}` }}
+          value={theme.fontBody}
+          onChange={(e) => onThemeChange({ fontBody: e.target.value })}
+        >
+          {BODY_FONTS.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div>
+        <p className="text-[10px] uppercase tracking-wider mb-1.5">Heading size</p>
+        <div className="flex gap-1">
+          {(["sm", "md", "lg", "xl"] as const).map((id) => {
+            const on = (theme.headingScale ?? "md") === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onThemeChange({ headingScale: id })}
+                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                style={{
+                  background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                  color: on ? "#fff" : BUILDER.ink,
+                  border: `1px solid ${BUILDER.border}`,
+                }}
+                aria-pressed={on}
+              >
+                {id}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] uppercase tracking-wider mb-1.5">Body size</p>
+        <div className="flex gap-1">
+          {(["sm", "md", "lg"] as const).map((id) => {
+            const on = (theme.bodySize ?? "md") === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onThemeChange({ bodySize: id })}
+                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                style={{
+                  background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                  color: on ? "#fff" : BUILDER.ink,
+                  border: `1px solid ${BUILDER.border}`,
+                }}
+                aria-pressed={on}
+              >
+                {id}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] uppercase tracking-wider mb-1.5">Letter spacing</p>
+        <div className="flex gap-1">
+          {(["tight", "normal", "wide"] as const).map((id) => {
+            const on = (theme.letterSpacing ?? "normal") === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onThemeChange({ letterSpacing: id })}
+                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                style={{
+                  background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                  color: on ? "#fff" : BUILDER.ink,
+                  border: `1px solid ${BUILDER.border}`,
+                }}
+                aria-pressed={on}
+              >
+                {id}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div>
+        <p className="text-[10px] uppercase tracking-wider mb-1.5">Section spacing</p>
+        <div className="flex gap-1">
+          {(["compact", "comfortable", "airy"] as const).map((id) => {
+            const on = theme.spacing === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onThemeChange({ spacing: id })}
+                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                style={{
+                  background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                  color: on ? "#fff" : BUILDER.ink,
+                  border: `1px solid ${BUILDER.border}`,
+                }}
+                aria-pressed={on}
+              >
+                {id}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

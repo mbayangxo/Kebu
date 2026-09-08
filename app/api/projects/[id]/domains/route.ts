@@ -4,6 +4,7 @@ import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { customDomainDnsTarget, buildDnsInstructions, normalizeHostname, validateCustomHostname } from "@/lib/create/dns-target";
 import { provisionCustomDomainOnHosting, hostingDomainAutoProvisionEnabled } from "@/lib/create/vercel-domains";
+import { assertProjectPlanLimit } from "@/lib/billing/enforce-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,14 @@ export async function POST(req: Request, { params }: Params) {
 
   const project = await assertOwnedProject(supabase, user.id, projectId);
   if (!project) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+
+  const planGate = await assertProjectPlanLimit(supabase, projectId, user.id, "customDomain");
+  if (!planGate.ok) {
+    return NextResponse.json(
+      { error: planGate.error, upgradeHint: planGate.upgradeHint, tier: planGate.tier },
+      { status: 403 },
+    );
+  }
 
   if (!project.subdomain?.trim()) {
     return NextResponse.json(

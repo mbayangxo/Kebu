@@ -12,10 +12,22 @@ import {
   EditableSocialRail,
   socialRailStyleFromProps,
 } from "@/app/components/create/editable-social-rail";
-import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import { LegallyBlondeEditCanvas } from "@/app/components/create/legally-blonde-edit-canvas";
+import {
+  CircularBrandRing,
+  layerMotionClass,
+  type LayerMotion,
+} from "@/app/components/create/circular-brand-ring";
 import { ScaledArtboard } from "@/app/components/create/scaled-artboard";
 import { localizeLegallyBlondeAssetUrl } from "@/lib/create/legally-blonde-defaults";
+import {
+  cutoutHrefToPageSlug,
+  cutoutLinkRel,
+  cutoutLinkTarget,
+  resolveCutoutHref,
+} from "@/lib/create/cutout-links";
+import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
+import { cssFontStack } from "@/lib/create/site-theme-fonts";
 import "./artist-motion.css";
 import "./legally-blonde-tilda.css";
 
@@ -33,11 +45,14 @@ export type ExtraCutout = {
   id: string;
   src: string;
   alt?: string;
+  href?: string;
   topPct: number;
   leftPct: number;
   widthPct: number;
   rotate?: number;
   zIndex?: number;
+  /** city scrolls behind May; figure stays forward. */
+  parallaxRole?: "city" | "figure" | "none";
 };
 
 export type LegallyBlondeHeroProps = {
@@ -57,7 +72,22 @@ export type LegallyBlondeHeroProps = {
   displayFont?: string;
   motionEnabled: boolean;
   appearance?: "light" | "dark";
-  navLinks?: { label: string; href: string }[];
+  navLinks?: {
+    label: string;
+    href: string;
+    multiNav?: boolean;
+    children?: { label: string; href: string; iconUrl?: string }[];
+    iconUrl?: string;
+    showLabel?: boolean;
+  }[];
+  navScale?: number;
+  navSize?: "compact" | "comfortable" | "large" | "fullscreen";
+  navLayout?: "top" | "side";
+  /** words · built-in icons · custom photos/icons */
+  navDisplay?: "text" | "icons" | "photos";
+  /** Small May logo in upper chrome (click → home). */
+  chromeLogo?: string;
+  showChromeLogo?: boolean;
   socialLinks?: { label: string; iconUrl: string; href: string }[];
   socialRailVisible?: boolean;
   socialRailBg?: string;
@@ -65,12 +95,16 @@ export type LegallyBlondeHeroProps = {
   socialRailTopPct?: number;
   socialRailIconSize?: number;
   layerMoves?: Record<string, { dx: number; dy: number }>;
+  layerScales?: Record<string, number>;
+  layerMotions?: Record<string, "spin" | "float" | "bob" | "none">;
+  layerLinks?: Record<string, string>;
+  hiddenLayers?: string[];
   extraCutouts?: ExtraCutout[];
   ctaLabel?: string;
   ctaHref?: string;
   showExtras?: boolean;
   scrollMode?: "viewport" | "parallax";
-  /** Replace spinning Russian logo circle with editable brand text. */
+  /** Replace spinning Russian logo circle with editable brand text around the circle. */
   titleAsText?: boolean;
 };
 
@@ -78,6 +112,7 @@ type EditorHooks = {
   sectionId?: string;
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
   onSelectSection?: (sectionId: string) => void;
+  onNavigatePage?: (slug: string) => void;
 };
 
 /** Maps Tilda layer ids → editable prop keys (Russian Elle / Legally Blonde assets). */
@@ -128,6 +163,47 @@ function layerLabel(layerId: string): string {
   return "Layer";
 }
 
+function CutoutLinkOverlay({
+  href,
+  siteBase,
+  label,
+  onNavigatePage,
+}: {
+  href: string;
+  siteBase?: string;
+  label: string;
+  onNavigatePage?: (slug: string) => void;
+}) {
+  const resolved = resolveCutoutHref(href, siteBase);
+  if (!resolved) return null;
+
+  const pageSlug = cutoutHrefToPageSlug(href);
+  if (pageSlug && onNavigatePage) {
+    return (
+      <button
+        type="button"
+        className="absolute inset-0 z-10 cursor-pointer border-0 bg-transparent p-0"
+        aria-label={label}
+        onClick={(e) => {
+          e.stopPropagation();
+          onNavigatePage(pageSlug);
+        }}
+      />
+    );
+  }
+
+  return (
+    <a
+      href={resolved}
+      className="absolute inset-0 z-10"
+      aria-label={label}
+      target={cutoutLinkTarget(href)}
+      rel={cutoutLinkRel(href)}
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
+}
+
 function renderLayer(
   layer: TildaLayer,
   props: LegallyBlondeHeroProps,
@@ -136,13 +212,18 @@ function renderLayer(
     scrollProgress?: number;
     editing?: boolean;
     selected?: boolean;
+    siteBase?: string;
+    onNavigatePage?: (slug: string) => void;
     onSelect?: () => void;
     onMoved?: (dx: number, dy: number) => void;
+    onTitleChange?: (value: string) => void;
   },
 ) {
   const url = resolveLayerUrl(layer, props);
   const isTitleLogo = LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo";
-  if (layer.type !== "text" && !url && !(props.titleAsText && isTitleLogo)) return null;
+  const propKey = LB_EDITABLE_LAYER_KEYS[layer.id];
+  if (propKey && (props.hiddenLayers ?? []).includes(propKey)) return null;
+  if (layer.type !== "text" && !url && !(props.titleAsText !== false && isTitleLogo)) return null;
 
   const baseStyle = parseTildaCss(layer.style);
   const atomStyle = parseTildaCss(layer.atomStyle);
@@ -150,11 +231,32 @@ function renderLayer(
   const scroll = scrollOffsetFromOpts(sbs, opts.scrollProgress ?? 0);
   const hasScrollMotion = sbs.length >= 2 && Math.abs((sbs[sbs.length - 1]?.mx ?? 0) - (sbs[0]?.mx ?? 0)) > 1;
   const move = props.layerMoves?.[layer.id];
+  const scaleKey = LB_EDITABLE_LAYER_KEYS[layer.id];
+  const scale =
+    (scaleKey && props.layerScales?.[scaleKey]) ||
+    props.layerScales?.[layer.id] ||
+    (LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo" ? 0.55 : 1);
+  const layerHref = scaleKey ? String(props.layerLinks?.[scaleKey] ?? "").trim() : "";
   const editable = Boolean(opts.editing && LB_EDITABLE_LAYER_KEYS[layer.id] && CUTOUT_LAYER_IDS.has(layer.id));
+
+  function linkOverlay(label: string) {
+    if (opts.editing || !layerHref) return null;
+    return (
+      <CutoutLinkOverlay
+        href={layerHref}
+        siteBase={opts.siteBase}
+        label={label}
+        onNavigatePage={opts.onNavigatePage}
+      />
+    );
+  }
 
   const transformParts: string[] = [];
   if (baseStyle.transform && typeof baseStyle.transform === "string") {
     transformParts.push(baseStyle.transform);
+  }
+  if (scale !== 1) {
+    transformParts.push(`scale(${scale})`);
   }
   if (move && (move.dx || move.dy)) {
     transformParts.push(`translate3d(${move.dx}px, ${move.dy}px, 0)`);
@@ -169,10 +271,20 @@ function renderLayer(
     ...atomStyle,
     transform: transformParts.length ? transformParts.join(" ") : baseStyle.transform,
     animation:
-      opts.motion && !opts.editing && HERO_LOOP_ANIM[layer.id] ? HERO_LOOP_ANIM[layer.id] : undefined,
+      opts.motion && !opts.editing
+        ? (() => {
+            const key = propKey || layer.id;
+            const custom = props.layerMotions?.[key] as LayerMotion | undefined;
+            if (custom === "none") return undefined;
+            if (custom === "spin") return "lb-logo-spin 14s linear infinite";
+            if (custom === "float") return "lb-float-up 2.4s ease-in-out infinite";
+            if (custom === "bob") return "maylecor-float-a 3.2s ease-in-out infinite";
+            return HERO_LOOP_ANIM[layer.id];
+          })()
+        : undefined,
     willChange: opts.motion ? "transform" : undefined,
-    pointerEvents: editable ? "auto" : undefined,
-    cursor: editable ? "grab" : undefined,
+    pointerEvents: editable || (!opts.editing && layerHref) ? "auto" : undefined,
+    cursor: editable ? "grab" : !opts.editing && layerHref ? "pointer" : undefined,
     outline: opts.selected ? "2px solid #FF5500" : undefined,
     outlineOffset: opts.selected ? 4 : undefined,
     zIndex: opts.selected ? 50 : baseStyle.zIndex,
@@ -219,24 +331,22 @@ function renderLayer(
     );
   }
 
-  if (!url && !(props.titleAsText && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo")) return null;
+  if (!url && !(props.titleAsText !== false && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo")) return null;
 
-  /* Middle circle: brand name as text instead of Russian SVG logo. */
-  if (props.titleAsText && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo") {
+  /* Middle circle: English name around the ring instead of Russian SVG. */
+  if ((props.titleAsText !== false) && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo") {
+    const motionKey = propKey || layer.id;
+    const customMotion = (props.layerMotions?.[motionKey] ?? "spin") as LayerMotion;
     return (
       <div
         key={layer.id}
-        className={`lb-layer lb-text-steelfish flex items-center justify-center text-center${editable ? " lb-layer--editable" : ""}`}
+        className={`lb-layer${editable ? " lb-layer--editable" : ""} ${
+          customMotion !== "spin" ? layerMotionClass(customMotion, opts.motion && !opts.editing) : ""
+        }`}
         style={{
           ...style,
           backgroundImage: undefined,
-          color: props.accentColor || "#fff",
-          fontSize: "clamp(2rem, 8vw, 5.5rem)",
-          fontWeight: 700,
-          lineHeight: 0.95,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          padding: "0.5rem",
+          animation: undefined,
         }}
         onPointerDown={editable ? onPointerDown : undefined}
         onClick={(e) => {
@@ -248,7 +358,12 @@ function renderLayer(
         tabIndex={editable ? 0 : undefined}
         aria-label={props.title}
       >
-        {props.title}
+        <CircularBrandRing
+          text={props.title || "MAY LECOR"}
+          color={props.accentColor || "#E9006B"}
+          spinning={opts.motion && !opts.editing && customMotion === "spin"}
+        />
+        {linkOverlay(props.title || "Open link")}
       </div>
     );
   }
@@ -261,14 +376,16 @@ function renderLayer(
         key={layer.id}
         className={`lb-layer lb-shape${editable ? " lb-layer--editable" : ""}`}
         style={{ ...style, backgroundImage: `url(${url})` }}
-        aria-hidden={!editable}
+        aria-hidden={!editable && !layerHref}
         onPointerDown={editable ? onPointerDown : undefined}
         onClick={(e) => {
           if (!editable) return;
           e.stopPropagation();
           opts.onSelect?.();
         }}
-      />
+      >
+        {linkOverlay(layerLabel(layer.id))}
+      </div>
     );
   }
 
@@ -294,6 +411,7 @@ function renderLayer(
         className={layer.id === "1702905074756" ? "lb-hero-logo" : undefined}
         draggable={false}
       />
+      {linkOverlay(layerLabel(layer.id))}
     </div>
   );
 }
@@ -302,16 +420,31 @@ function ExtraCutoutItem({
   photo,
   editing,
   selected,
+  siteBase,
+  onNavigatePage,
   onSelect,
   onMoved,
+  scrollProgress = 0,
+  motion = false,
 }: {
   photo: ExtraCutout;
   editing: boolean;
   selected: boolean;
+  siteBase?: string;
+  onNavigatePage?: (slug: string) => void;
   onSelect: () => void;
   onMoved: (topPct: number, leftPct: number) => void;
+  scrollProgress?: number;
+  motion?: boolean;
 }) {
   const dragging = useRef(false);
+  const role = photo.parallaxRole ?? (photo.id.includes("city") ? "city" : "none");
+  const parallaxY =
+    !editing && motion && role === "city"
+      ? Math.round(scrollProgress * -160)
+      : !editing && motion && role === "figure"
+        ? Math.round(scrollProgress * -36)
+        : 0;
 
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     if (!editing) return;
@@ -358,10 +491,14 @@ function ExtraCutoutItem({
         top: `${photo.topPct}%`,
         left: `${photo.leftPct}%`,
         width: `${photo.widthPct}%`,
-        transform: `rotate(${photo.rotate ?? 0}deg)`,
+        transform: `rotate(${photo.rotate ?? 0}deg)${
+          parallaxY ? ` translate3d(0, ${parallaxY}px, 0)` : ""
+        }`,
         zIndex: photo.zIndex ?? 12,
         touchAction: editing ? "none" : undefined,
-        pointerEvents: editing ? "auto" : "none",
+        pointerEvents: editing || Boolean(photo.href) ? "auto" : "none",
+        position: "absolute",
+        willChange: parallaxY ? "transform" : undefined,
       }}
       onPointerDown={onPointerDown}
       onClick={(e) => {
@@ -374,6 +511,14 @@ function ExtraCutoutItem({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={photo.src} alt={photo.alt ?? ""} className="h-auto w-full select-none" draggable={false} />
+      {!editing && photo.href ? (
+        <CutoutLinkOverlay
+          href={photo.href}
+          siteBase={siteBase}
+          label={photo.alt || "Open link"}
+          onNavigatePage={onNavigatePage}
+        />
+      ) : null}
     </div>
   );
 }
@@ -384,6 +529,8 @@ export function LegallyBlondeHeroLayout({
   sectionId,
   editor,
   projectId,
+  siteBase = "",
+  pageSlug = "home",
 }: {
   props: LegallyBlondeHeroProps;
   siteBase?: string;
@@ -391,6 +538,7 @@ export function LegallyBlondeHeroLayout({
   sectionId?: string;
   editor?: EditorHooks;
   projectId?: string;
+  pageSlug?: string;
 }) {
   const motion = props.motionEnabled !== false;
   const viewportOnly = props.scrollMode === "viewport";
@@ -452,26 +600,20 @@ export function LegallyBlondeHeroLayout({
   const scroll = LEGALLY_BLONDE_LAYERS.scroll;
   const scrollTrackHeight = viewportOnly || editing ? undefined : motion ? "220vh" : `${scroll.artboardHeight}px`;
   const extraCutouts = props.extraCutouts ?? [];
-  const selectedPropKey = selectedLayerId ? LB_EDITABLE_LAYER_KEYS[selectedLayerId] : null;
-  const selectedExtra = extraCutouts.find((c) => c.id === selectedExtraId) ?? null;
 
-  /* Builder: pink edit canvas — never the black Tilda chrome (narrow preview looked empty). */
+  /* Builder: site fills the preview — no pink padding / tip boxes above the artboard. */
   if ((editing || builderPreview) && sectionId) {
     return (
-      <div
-        id="top"
-        className="relative w-full p-3 sm:p-5"
-        style={{ background: "#FFE4F0", minHeight: 420 }}
-      >
+      <div id="top" className="relative flex h-full min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]">
         <LegallyBlondeEditCanvas
           props={props as unknown as Record<string, unknown>}
           projectId={projectId}
+          siteBase={siteBase}
+          currentSlug={pageSlug}
           onPatch={patch}
           onSelectSection={() => editor?.onSelectSection?.(sectionId)}
+          onNavigatePage={editor?.onNavigatePage}
         />
-        <p className="mt-3 text-center text-[11px] text-black/50">
-          Social side icons: edit them in the left Content panel (Social links). They show on the live site.
-        </p>
       </div>
     );
   }
@@ -482,6 +624,8 @@ export function LegallyBlondeHeroLayout({
         renderLayer(layer, props, {
           motion: editing ? false : motion,
           editing,
+          siteBase,
+          onNavigatePage: editor?.onNavigatePage,
           selected: selectedLayerId === layer.id,
           onSelect: () => {
             setSelectedLayerId(layer.id);
@@ -496,16 +640,23 @@ export function LegallyBlondeHeroLayout({
               },
             });
           },
+          onTitleChange: (value) => {
+            patch({ title: value, brandLabel: value, titleAsText: true });
+          },
         }),
       )}
       {extraCutouts
         .filter((c) => c.src)
-        .map((photo) => (
+        .map((photo) => {
+          const scale = props.layerScales?.[photo.id] ?? 1;
+          return (
           <ExtraCutoutItem
             key={photo.id}
-            photo={photo}
+            photo={{ ...photo, widthPct: photo.widthPct * scale }}
             editing={editing}
             selected={selectedExtraId === photo.id}
+            siteBase={siteBase}
+            onNavigatePage={editor?.onNavigatePage}
             onSelect={() => {
               setSelectedExtraId(photo.id);
               setSelectedLayerId(null);
@@ -517,8 +668,11 @@ export function LegallyBlondeHeroLayout({
               );
               patch({ extraCutouts: next });
             }}
+            scrollProgress={scrollProgress}
+            motion={editing ? false : motion}
           />
-        ))}
+          );
+        })}
     </ScaledArtboard>
   );
 
@@ -531,11 +685,15 @@ export function LegallyBlondeHeroLayout({
           ["--lb-accent" as string]: props.accentColor || "#e9006b",
           ["--lb-display-font" as string]:
             props.displayFont && props.displayFont !== "Steelfish"
-              ? `${props.displayFont}, Arial, sans-serif`
+              ? cssFontStack(props.displayFont)
               : '"Steelfish", Arial, sans-serif',
         } as CSSProperties
       }
     >
+      <SiteThemeFonts
+        fontDisplay={props.displayFont && props.displayFont !== "Steelfish" ? props.displayFont : "Oswald"}
+        fontBody="system-ui"
+      />
       <EditableSocialRail
         links={props.socialLinks ?? []}
         style={socialRailStyleFromProps(props as unknown as Record<string, unknown>)}
@@ -547,12 +705,6 @@ export function LegallyBlondeHeroLayout({
             : undefined
         }
       />
-
-      {editing ? (
-        <p className="sticky top-0 z-[60] bg-black/80 px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-          Click a cutout → upload/swap · drag to move · add your own below
-        </p>
-      ) : null}
 
       {splashVisible && !viewportOnly && !editing ? (
         <div
@@ -583,112 +735,12 @@ export function LegallyBlondeHeroLayout({
                 renderLayer(layer, props, {
                   motion,
                   scrollProgress,
+                  siteBase,
+                  onNavigatePage: editor?.onNavigatePage,
                 }),
               )}
             </ScaledArtboard>
           </div>
-        </div>
-      ) : null}
-
-      {editing && projectId && (selectedPropKey || selectedExtra) ? (
-        <div
-          className="sticky bottom-3 z-[70] mx-auto max-w-md rounded-2xl p-3 shadow-xl"
-          style={{ background: "#fff", border: "2px solid #FF5500" }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {selectedPropKey ? (
-            <>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-                Swap {layerLabel(selectedLayerId!)} — Russian original stays until you upload
-              </p>
-              <SiteImageUpload
-                projectId={projectId}
-                kind="section"
-                label="Upload your cutout / photo"
-                value={String(props[selectedPropKey] ?? "")}
-                onChange={(url) => patch({ [selectedPropKey]: url })}
-              />
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="rounded-full px-3 py-1 text-[10px] font-bold uppercase"
-                  style={{ border: "1px solid #DDE0F0" }}
-                  onClick={() => patch({ [selectedPropKey]: "" })}
-                >
-                  Remove from site
-                </button>
-                <button
-                  type="button"
-                  className="rounded-full px-3 py-1 text-[10px] font-bold uppercase"
-                  style={{ border: "1px solid #DDE0F0" }}
-                  onClick={() => {
-                    const moves = { ...(props.layerMoves ?? {}) };
-                    if (selectedLayerId) delete moves[selectedLayerId];
-                    patch({ layerMoves: moves });
-                  }}
-                >
-                  Reset position
-                </button>
-              </div>
-            </>
-          ) : null}
-          {selectedExtra ? (
-            <>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-                Your added cutout — upload or delete
-              </p>
-              <SiteImageUpload
-                projectId={projectId}
-                kind="section"
-                label="Upload photo"
-                value={selectedExtra.src}
-                onChange={(url) => {
-                  const next = extraCutouts.map((c) =>
-                    c.id === selectedExtra.id ? { ...c, src: url } : c,
-                  );
-                  patch({ extraCutouts: next });
-                }}
-              />
-              <button
-                type="button"
-                className="mt-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase text-red-600"
-                style={{ border: "1px solid #DDE0F0" }}
-                onClick={() => {
-                  patch({ extraCutouts: extraCutouts.filter((c) => c.id !== selectedExtra.id) });
-                  setSelectedExtraId(null);
-                }}
-              >
-                Delete cutout
-              </button>
-            </>
-          ) : null}
-        </div>
-      ) : null}
-
-      {editing ? (
-        <div className="flex justify-center gap-2 px-4 py-3">
-          <button
-            type="button"
-            className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
-            style={{ background: "#0F0D33" }}
-            onClick={() => {
-              const next: ExtraCutout = {
-                id: `cut-${Date.now()}`,
-                src: String(props.cutoutAccent || props.cutoutLeft || ""),
-                alt: "My cutout",
-                topPct: 25 + Math.round(Math.random() * 30),
-                leftPct: 20 + Math.round(Math.random() * 40),
-                widthPct: 14,
-                rotate: -8 + Math.round(Math.random() * 16),
-                zIndex: 14,
-              };
-              patch({ extraCutouts: [...extraCutouts, next] });
-              setSelectedExtraId(next.id);
-              setSelectedLayerId(null);
-            }}
-          >
-            + Add my cutout
-          </button>
         </div>
       ) : null}
 
