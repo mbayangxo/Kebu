@@ -18,6 +18,9 @@ describe("Studio composition architecture", () => {
     expect(c.editMode).toBe("full_timeline");
     expect(c.tracks.filter((t) => t.kind === "video")).toHaveLength(2);
     expect(c.tracks.some((t) => t.kind === "audio")).toBe(true);
+    expect(c.tracks.some((t) => t.kind === "music")).toBe(true);
+    expect(c.tracks.some((t) => t.kind === "overlay")).toBe(true);
+    expect(c.tracks.some((t) => t.kind === "caption")).toBe(true);
     expect(c.assets).toEqual([]);
     expect(studioCompositionSchema.safeParse(c).success).toBe(true);
   });

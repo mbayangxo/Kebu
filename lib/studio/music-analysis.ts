@@ -11,6 +11,12 @@ export type MusicAnalysisResult = {
   /** Confidence 0–1 for BPM estimate */
   confidence: number;
   method: "energy_onset";
+  /** Downsampled waveform peaks 0–1 for timeline drawing (V1) */
+  peaks: number[];
+  /** Energy envelope times (ms) aligned with energyValues (Audio Reactive foundation) */
+  energyMs: number[];
+  /** Normalized energy 0–1 at energyMs */
+  energyValues: number[];
 };
 
 export function roundCaurisLike(n: number, decimals = 2): number {
@@ -104,13 +110,90 @@ export function analyzeBeatsFromSamples(
     beatIntervalMs * 0.35,
   );
 
+  const peaks = buildWaveformPeaks(samples.subarray(0, maxSamples), 240);
+  const { energyMs, energyValues } = buildEnergyEnvelope(energies, hop, sampleRate, 120);
+
   return {
     durationMs,
     bpm: Math.round(bpm * 10) / 10,
     beatsMs: merged.slice(0, 800),
     confidence: bpmEst.confidence,
     method: "energy_onset",
+    peaks,
+    energyMs,
+    energyValues,
   };
+}
+
+/** Absolute-value downsample for waveform UI (V1). */
+export function buildWaveformPeaks(samples: Float32Array, buckets = 240): number[] {
+  const n = Math.max(1, Math.min(buckets, 512));
+  if (!samples.length) return Array.from({ length: n }, () => 0);
+  const out: number[] = [];
+  const bucket = Math.max(1, Math.floor(samples.length / n));
+  let maxAbs = 1e-6;
+  for (let i = 0; i < n; i++) {
+    let peak = 0;
+    const start = i * bucket;
+    const end = Math.min(samples.length, start + bucket);
+    for (let j = start; j < end; j++) peak = Math.max(peak, Math.abs(samples[j]!));
+    out.push(peak);
+    maxAbs = Math.max(maxAbs, peak);
+  }
+  return out.map((v) => Math.min(1, v / maxAbs));
+}
+
+/** Coarse energy curve for Audio Reactive foundation (not animation presets). */
+export function buildEnergyEnvelope(
+  frameEnergies: number[],
+  hop: number,
+  sampleRate: number,
+  buckets = 120,
+): { energyMs: number[]; energyValues: number[] } {
+  const n = Math.max(1, Math.min(buckets, 256));
+  if (!frameEnergies.length) {
+    return { energyMs: [0], energyValues: [0] };
+  }
+  const bucket = Math.max(1, Math.floor(frameEnergies.length / n));
+  const energyMs: number[] = [];
+  const raw: number[] = [];
+  let maxE = 1e-9;
+  for (let i = 0; i < n; i++) {
+    const start = i * bucket;
+    const end = Math.min(frameEnergies.length, start + bucket);
+    let sum = 0;
+    for (let j = start; j < end; j++) sum += frameEnergies[j]!;
+    const avg = sum / Math.max(1, end - start);
+    raw.push(avg);
+    maxE = Math.max(maxE, avg);
+    const frameIdx = Math.floor((start + end) / 2);
+    energyMs.push(Math.round((frameIdx * hop * 1000) / sampleRate));
+  }
+  return {
+    energyMs,
+    energyValues: raw.map((v) => Math.min(1, v / maxE)),
+  };
+}
+
+/** Sample energy at timeline time (Audio Reactive foundation). */
+export function energyAtTimeMs(
+  energyMs: number[],
+  energyValues: number[],
+  timeMs: number,
+): number {
+  if (!energyMs.length || !energyValues.length) return 0;
+  if (timeMs <= energyMs[0]!) return energyValues[0]!;
+  for (let i = 1; i < energyMs.length; i++) {
+    if (timeMs <= energyMs[i]!) {
+      const t0 = energyMs[i - 1]!;
+      const t1 = energyMs[i]!;
+      const v0 = energyValues[i - 1]!;
+      const v1 = energyValues[i]!;
+      const u = t1 === t0 ? 0 : (timeMs - t0) / (t1 - t0);
+      return v0 + (v1 - v0) * u;
+    }
+  }
+  return energyValues[energyValues.length - 1]!;
 }
 
 function clampBpm(bpm: number): number {

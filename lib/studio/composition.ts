@@ -31,7 +31,7 @@ export const musicSectionSchema = z.object({
 
 export type MusicSection = z.infer<typeof musicSectionSchema>;
 
-/** Extended music analysis — beats live; sections reserved until detection ships. */
+/** Extended music analysis — beats + waveform + energy (V1 Audio Reactive foundation). */
 export const compositionMusicAnalysisSchema = z.object({
   bpm: z.number().min(40).max(220).nullable(),
   beatsMs: z.array(z.number().int().min(0).max(600_000)).max(2000).default([]),
@@ -39,6 +39,13 @@ export const compositionMusicAnalysisSchema = z.object({
   sections: z.array(musicSectionSchema).max(64).default([]),
   confidence: z.number().min(0).max(1).optional().nullable(),
   method: z.string().trim().max(40).optional().nullable(),
+  soundtrackUrl: z.union([z.literal(""), z.string().trim().url().max(500)]).optional().nullable(),
+  fileName: z.string().trim().max(200).optional().nullable(),
+  durationMs: z.number().int().min(0).max(600_000).optional().nullable(),
+  peaks: z.array(z.number().min(0).max(1)).max(512).default([]),
+  energyMs: z.array(z.number().int().min(0).max(600_000)).max(256).default([]),
+  energyValues: z.array(z.number().min(0).max(1)).max(256).default([]),
+  analyzedAt: z.string().trim().max(40).optional().nullable(),
 });
 
 export const compositionClipSchema = z.object({
@@ -55,6 +62,14 @@ export const compositionClipSchema = z.object({
   speed: z.number().min(0.1).max(8).default(1),
   volume: z.number().min(0).max(2).default(1),
   opacity: z.number().min(0).max(1).default(1),
+  /** V1 fades (ms) — ramp volume/opacity at clip edges */
+  fadeInMs: z.number().int().min(0).max(10_000).default(0),
+  fadeOutMs: z.number().int().min(0).max(10_000).default(0),
+  /** Optional transform (V2) — keyframes override when present */
+  x: z.number().min(-4000).max(4000).default(0),
+  y: z.number().min(-4000).max(4000).default(0),
+  scale: z.number().min(0.05).max(8).default(1),
+  rotation: z.number().min(-360).max(360).default(0),
   /** Optional link to storyboard scene */
   sceneId: z.string().trim().max(40).nullable().optional(),
 });
@@ -127,6 +142,7 @@ export const studioCompositionSchema = z.object({
   storyboard: z.array(storyboardSceneSchema).max(100).default([]),
   assets: z.array(compositionAssetSchema).max(100).default([]),
   music: compositionMusicAnalysisSchema.nullable().optional(),
+  snapToBeats: z.boolean().default(true),
   markers: z
     .array(
       z.object({
@@ -157,7 +173,7 @@ export function parseStudioComposition(raw: unknown): StudioComposition {
   throw new Error("Invalid video composition.");
 }
 
-/** Empty composition sized for a common social format — Phase 1: V1, V2, A1, Music. */
+/** Empty composition sized for a common social format — multi creative tracks. */
 export function emptyStudioComposition(opts: {
   width: number;
   height: number;
@@ -182,11 +198,27 @@ export function emptyStudioComposition(opts: {
     },
     {
       id: newCompositionId("tr"),
-      kind: "audio" as const,
-      name: "A1",
+      kind: "overlay" as const,
+      name: "Graphics",
       muted: false,
       locked: false,
       order: 2,
+    },
+    {
+      id: newCompositionId("tr"),
+      kind: "caption" as const,
+      name: "Text",
+      muted: false,
+      locked: false,
+      order: 3,
+    },
+    {
+      id: newCompositionId("tr"),
+      kind: "audio" as const,
+      name: "Voice",
+      muted: false,
+      locked: false,
+      order: 4,
     },
     {
       id: newCompositionId("tr"),
@@ -194,7 +226,7 @@ export function emptyStudioComposition(opts: {
       name: "Music",
       muted: false,
       locked: false,
-      order: 3,
+      order: 5,
     },
   ];
   return studioCompositionSchema.parse({
@@ -210,6 +242,7 @@ export function emptyStudioComposition(opts: {
     storyboard: [],
     assets: [],
     music: null,
+    snapToBeats: true,
     markers: [],
   });
 }
@@ -270,6 +303,12 @@ export function addClipFromAsset(
     speed: 1,
     volume: 1,
     opacity: 1,
+    fadeInMs: 0,
+    fadeOutMs: 0,
+    x: 0,
+    y: 0,
+    scale: 1,
+    rotation: 0,
     sceneId: null,
   };
 
@@ -351,6 +390,12 @@ export function compileStoryboardToClips(
       speed: 1,
       volume: 1,
       opacity: 1,
+      fadeInMs: 0,
+      fadeOutMs: 0,
+      x: 0,
+      y: 0,
+      scale: 1,
+      rotation: 0,
       sceneId: scene.id,
     };
     t += scene.durationMs;
@@ -382,4 +427,112 @@ export function snapCompositionTimeToBeats(
 export function everyNthBeat(beatsMs: number[], n: number): number[] {
   const step = Math.max(1, Math.floor(n));
   return beatsMs.filter((_, i) => i % step === 0);
+}
+
+export function addMarker(
+  c: StudioComposition,
+  timeMs: number,
+  label?: string,
+): StudioComposition {
+  const marker = {
+    id: newCompositionId("mk"),
+    timeMs: Math.max(0, Math.min(600_000, Math.round(timeMs))),
+    label: (label ?? "Marker").slice(0, 80),
+  };
+  return studioCompositionSchema.parse({
+    ...c,
+    markers: [...c.markers, marker].slice(0, 200),
+  });
+}
+
+export function deleteMarker(c: StudioComposition, markerId: string): StudioComposition {
+  return { ...c, markers: c.markers.filter((m) => m.id !== markerId) };
+}
+
+/** Attach analyzed soundtrack to composition + Music track clip. */
+export function attachSoundtrack(
+  c: StudioComposition,
+  opts: {
+    url: string;
+    fileName?: string;
+    analysis: {
+      durationMs: number;
+      bpm: number;
+      beatsMs: number[];
+      confidence: number;
+      method?: string;
+      peaks?: number[];
+      energyMs?: number[];
+      energyValues?: number[];
+    };
+  },
+): StudioComposition {
+  const musicTrack = c.tracks.find((t) => t.kind === "music");
+  let next: StudioComposition = {
+    ...c,
+    music: {
+      bpm: opts.analysis.bpm,
+      beatsMs: opts.analysis.beatsMs,
+      downbeatsMs: opts.analysis.beatsMs.filter((_, i) => i % 4 === 0),
+      sections: c.music?.sections ?? [],
+      confidence: opts.analysis.confidence,
+      method: opts.analysis.method ?? "energy_onset",
+      soundtrackUrl: opts.url,
+      fileName: opts.fileName ?? null,
+      durationMs: opts.analysis.durationMs,
+      peaks: opts.analysis.peaks ?? [],
+      energyMs: opts.analysis.energyMs ?? [],
+      energyValues: opts.analysis.energyValues ?? [],
+      analyzedAt: new Date().toISOString(),
+    },
+    snapToBeats: true,
+  };
+
+  const asset: CompositionAsset = {
+    id: newCompositionId("as"),
+    kind: "audio",
+    url: opts.url,
+    fileName: opts.fileName ?? "soundtrack",
+    durationMs: opts.analysis.durationMs,
+  };
+  next = addAssetToComposition(next, asset);
+
+  if (musicTrack) {
+    const withoutOldMusic = {
+      ...next,
+      clips: next.clips.filter((cl) => cl.trackId !== musicTrack.id),
+    };
+    const placed = addClipFromAsset(withoutOldMusic, asset.id, { trackId: musicTrack.id, atMs: 0 });
+    if (!("error" in placed)) next = placed;
+  }
+  return studioCompositionSchema.parse(next);
+}
+
+/** Opacity after V1 fades at absolute timeline time. */
+export function clipOpacityAtTime(clip: CompositionClip, timeMs: number): number {
+  if (timeMs < clip.startMs || timeMs >= clip.startMs + clip.durationMs) return 0;
+  const local = timeMs - clip.startMs;
+  let mul = 1;
+  if (clip.fadeInMs > 0 && local < clip.fadeInMs) mul = local / clip.fadeInMs;
+  if (clip.fadeOutMs > 0 && local > clip.durationMs - clip.fadeOutMs) {
+    mul = Math.min(mul, (clip.startMs + clip.durationMs - timeMs) / clip.fadeOutMs);
+  }
+  return Math.max(0, Math.min(1, clip.opacity * mul));
+}
+
+/** Volume after V1 fades. */
+export function clipVolumeAtTime(clip: CompositionClip, timeMs: number): number {
+  if (timeMs < clip.startMs || timeMs >= clip.startMs + clip.durationMs) return 0;
+  const local = timeMs - clip.startMs;
+  let mul = 1;
+  if (clip.fadeInMs > 0 && local < clip.fadeInMs) mul = local / clip.fadeInMs;
+  if (clip.fadeOutMs > 0 && local > clip.durationMs - clip.fadeOutMs) {
+    mul = Math.min(mul, (clip.startMs + clip.durationMs - timeMs) / clip.fadeOutMs);
+  }
+  return Math.max(0, Math.min(2, clip.volume * mul));
+}
+
+export function maybeSnapTime(c: StudioComposition, timeMs: number, thresholdMs = 90): number {
+  if (!c.snapToBeats || !c.music?.beatsMs?.length) return timeMs;
+  return snapCompositionTimeToBeats(timeMs, c.music.beatsMs, thresholdMs);
 }

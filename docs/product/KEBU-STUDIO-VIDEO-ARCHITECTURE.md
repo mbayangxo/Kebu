@@ -101,8 +101,8 @@ Beyond CapCut-style beat ticks:
 | **V2** | Keyframes · transforms · transitions · audio-reactive animation |
 | **V3** | AI music editing (“cuts follow the beat”, “use the chorus”, “photos every two beats”) |
 
-**Live today (partial V1):** soundtrack upload · BPM estimate · beat markers · snap scrub · play sync · Video Phase 1 multi-track (`075`).  
-**Not live:** section labels · Audio Reactive preset UI · “cut on every 4th beat” automation · Quick Edit montage · CapCut-complete · DAW mixer.
+**Live today:** soundtrack upload · BPM · beat markers · waveform peaks · energy curve · scrub snap · play sync · multi creative tracks (V/Graphics/Text/Voice/Music) · trim/fades · markers UI · **V2** keyframes/transforms/transitions/Audio Reactive presets · **V3** AI music edit commands on `/studio/video/[id]`.  
+**Not CapCut-complete / not a DAW:** Quick Edit montage wizard · live cursors · nested sequences · pro color · marketplace.
 
 ---
 

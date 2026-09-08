@@ -6,8 +6,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addAssetToComposition,
   addClipFromAsset,
+  addMarker,
+  attachSoundtrack,
   compositionDurationMs,
   deleteClip,
+  deleteMarker,
+  maybeSnapTime,
   newCompositionId,
   splitClipAt,
   updateClip,
@@ -15,30 +19,45 @@ import {
   type CompositionClip,
   type StudioComposition,
 } from "@/lib/studio/composition";
+import { analyzeMusicFromUrl } from "@/lib/studio/music-analysis";
+import {
+  addTransition,
+  applyAudioReactivePreset,
+  clipTransformAtTime,
+  upsertKeyframe,
+  type AudioReactivePreset,
+} from "@/lib/studio/keyframes";
+import { applyAiMusicCommand } from "@/lib/studio/ai-music-edit";
 
 const HISTORY_CAP = 40;
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-/** Phase 1: multi-track video editor — upload · place · trim · move · split · autosave. */
+/** Full Timeline: multi-track + music-aware V1 → keyframes V2 → AI music edit V3. */
 export default function StudioVideoEditorPage() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
   const [title, setTitle] = useState("");
   const [comp, setComp] = useState<StudioComposition | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [pxPerSec, setPxPerSec] = useState(60);
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [musicBusy, setMusicBusy] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("cut every 4 beats");
+  const [aiBusy, setAiBusy] = useState(false);
   const [history, setHistory] = useState<StudioComposition[]>([]);
   const [future, setFuture] = useState<StudioComposition[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const musicRef = useRef<HTMLInputElement>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const compRef = useRef<StudioComposition | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const soundtrackRef = useRef<HTMLAudioElement>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/studio/video/${projectId}`, { credentials: "include" });
@@ -116,10 +135,11 @@ export default function StudioVideoEditorPage() {
     return () => window.clearInterval(id);
   }, [playing, comp]);
 
-  /** Sync preview video to active clip under playhead on V1. */
   useEffect(() => {
     if (!comp) return;
-    const v1 = comp.tracks.find((t) => t.kind === "video" && t.order === 0) ?? comp.tracks.find((t) => t.kind === "video");
+    const v1 =
+      comp.tracks.find((t) => t.kind === "video" && t.order === 0) ??
+      comp.tracks.find((t) => t.kind === "video");
     if (!v1) return;
     const clip = comp.clips.find(
       (c) => c.trackId === v1.id && playheadMs >= c.startMs && playheadMs < c.startMs + c.durationMs,
@@ -131,20 +151,44 @@ export default function StudioVideoEditorPage() {
       el.load();
       return;
     }
-    if (el.src !== clip.sourceUrl) {
-      el.src = clip.sourceUrl;
-    }
+    if (el.src !== clip.sourceUrl) el.src = clip.sourceUrl;
     const local = (playheadMs - clip.startMs) * clip.speed + clip.sourceInMs;
+    const xf = clipTransformAtTime(comp, clip, playheadMs);
+    el.style.opacity = String(xf.opacity);
+    el.style.transform = `translate(${xf.x}px, ${xf.y}px) scale(${xf.scale}) rotate(${xf.rotation}deg)`;
+    el.volume = Math.min(1, xf.volume);
     try {
-      if (Math.abs(el.currentTime * 1000 - local) > 200) {
-        el.currentTime = local / 1000;
-      }
+      if (Math.abs(el.currentTime * 1000 - local) > 200) el.currentTime = local / 1000;
     } catch {
       /* not ready */
     }
     if (playing) void el.play().catch(() => undefined);
     else el.pause();
   }, [comp, playheadMs, playing]);
+
+  useEffect(() => {
+    const audio = soundtrackRef.current;
+    const url = comp?.music?.soundtrackUrl;
+    if (!audio || !url) return;
+    if (audio.src !== url) audio.src = url;
+    try {
+      if (Math.abs(audio.currentTime * 1000 - playheadMs) > 180) {
+        audio.currentTime = playheadMs / 1000;
+      }
+    } catch {
+      /* ignore */
+    }
+    if (playing) void audio.play().catch(() => undefined);
+    else audio.pause();
+  }, [comp?.music?.soundtrackUrl, playheadMs, playing]);
+
+  function setPlayhead(ms: number, fromUser = true) {
+    if (!comp) return;
+    let next = Math.max(0, Math.min(ms, compositionDurationMs(comp)));
+    if (fromUser) next = maybeSnapTime(comp, next);
+    setPlaying(false);
+    setPlayheadMs(next);
+  }
 
   async function onUpload(file: File | null) {
     if (!file || !comp) return;
@@ -184,6 +228,44 @@ export default function StudioVideoEditorPage() {
     }
   }
 
+  async function onSoundtrack(file: File | null) {
+    if (!file || !comp) return;
+    setMusicBusy(true);
+    setError(null);
+    setNote(null);
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      const res = await fetch("/api/studio/upload", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || typeof data.url !== "string") {
+        setError(typeof data.error === "string" ? data.error : "Soundtrack upload failed.");
+        return;
+      }
+      const analysis = await analyzeMusicFromUrl(data.url);
+      if ("error" in analysis) {
+        setError(analysis.error);
+        return;
+      }
+      const next = attachSoundtrack(comp, {
+        url: data.url,
+        fileName: file.name,
+        analysis,
+      });
+      applyComp(next);
+      setNote(
+        `Soundtrack · ${analysis.bpm} BPM · ${analysis.beatsMs.length} beats · energy curve ready (Audio Reactive foundation).`,
+      );
+    } finally {
+      setMusicBusy(false);
+      if (musicRef.current) musicRef.current.value = "";
+    }
+  }
+
   function placeAsset(assetId: string) {
     if (!comp) return;
     const placed = addClipFromAsset(comp, assetId, { atMs: playheadMs });
@@ -216,6 +298,22 @@ export default function StudioVideoEditorPage() {
     });
   }
 
+  function runAiEdit() {
+    if (!comp) return;
+    setAiBusy(true);
+    setError(null);
+    const result = applyAiMusicCommand(comp, aiPrompt, {
+      clipId: selectedClipId ?? undefined,
+    });
+    setAiBusy(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    applyComp(result.composition);
+    setNote(result.summary);
+  }
+
   if (error && !comp) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-4">
@@ -234,11 +332,20 @@ export default function StudioVideoEditorPage() {
   const totalMs = compositionDurationMs(comp);
   const selected = comp.clips.find((c) => c.id === selectedClipId) ?? null;
   const tracks = [...comp.tracks].sort((a, b) => a.order - b.order);
+  const peaks = comp.music?.peaks ?? [];
+  const beats = comp.music?.beatsMs ?? [];
   const saveLabel =
-    saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : "Autosave on";
+    saveState === "saving"
+      ? "Saving…"
+      : saveState === "saved"
+        ? "Saved"
+        : saveState === "error"
+          ? "Save failed"
+          : "Autosave on";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#14121f] text-white">
+      <audio ref={soundtrackRef} preload="auto" className="hidden" />
       <header className="shrink-0 border-b border-white/10 px-3 py-2 flex flex-wrap items-center gap-2">
         <Link href="/studio" className="text-xs underline opacity-60">
           ← Studio
@@ -246,24 +353,20 @@ export default function StudioVideoEditorPage() {
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => comp && void persist(comp, title)}
+          onBlur={() => void persist(comp, title)}
           className="bg-transparent font-display font-bold text-sm min-w-[140px] flex-1 border-b border-transparent focus:border-orange-500 outline-none"
         />
         <span className="text-[10px] uppercase tracking-wider opacity-50">{saveLabel}</span>
-        <button
-          type="button"
-          disabled={!history.length}
-          onClick={undo}
-          className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30"
-        >
+        {comp.music?.bpm ? (
+          <span className="text-[10px] font-mono text-emerald-300/90">
+            {comp.music.bpm} BPM
+            {comp.music.confidence != null ? ` · ${Math.round(comp.music.confidence * 100)}%` : ""}
+          </span>
+        ) : null}
+        <button type="button" disabled={!history.length} onClick={undo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
           Undo
         </button>
-        <button
-          type="button"
-          disabled={!future.length}
-          onClick={redo}
-          className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30"
-        >
+        <button type="button" disabled={!future.length} onClick={redo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
           Redo
         </button>
         <button
@@ -277,11 +380,11 @@ export default function StudioVideoEditorPage() {
       </header>
 
       {error ? <p className="px-3 py-1 text-xs text-red-300 bg-red-950/40">{error}</p> : null}
+      {note ? <p className="px-3 py-1 text-xs text-emerald-200/90 bg-emerald-950/30">{note}</p> : null}
 
       <div className="flex flex-1 min-h-0">
-        {/* Left: media */}
         <aside className="w-[200px] shrink-0 border-r border-white/10 flex flex-col bg-[#1a1828]">
-          <div className="p-2 border-b border-white/10">
+          <div className="p-2 border-b border-white/10 space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Media</p>
             <input
               ref={fileRef}
@@ -290,19 +393,34 @@ export default function StudioVideoEditorPage() {
               className="hidden"
               onChange={(e) => void onUpload(e.target.files?.[0] ?? null)}
             />
+            <input
+              ref={musicRef}
+              type="file"
+              accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/*"
+              className="hidden"
+              onChange={(e) => void onSoundtrack(e.target.files?.[0] ?? null)}
+            />
             <button
               type="button"
               disabled={uploadBusy}
               onClick={() => fileRef.current?.click()}
-              className="mt-2 w-full rounded-lg py-2 text-xs font-bold bg-orange-600 disabled:opacity-50"
+              className="w-full rounded-lg py-2 text-xs font-bold bg-orange-600 disabled:opacity-50"
             >
-              {uploadBusy ? "Uploading…" : "Upload"}
+              {uploadBusy ? "Uploading…" : "Upload clip"}
+            </button>
+            <button
+              type="button"
+              disabled={musicBusy}
+              onClick={() => musicRef.current?.click()}
+              className="w-full rounded-lg py-2 text-xs font-bold bg-emerald-700 disabled:opacity-50"
+            >
+              {musicBusy ? "Analyzing…" : "Soundtrack"}
             </button>
           </div>
           <ul className="flex-1 overflow-y-auto p-2 space-y-1">
             {comp.assets.length === 0 ? (
               <li className="text-[11px] opacity-40 p-2 leading-relaxed">
-                Upload video, audio, or images. They save with the project.
+                Upload clips, then a soundtrack for BPM, waveform, and Audio Reactive.
               </li>
             ) : (
               comp.assets.map((a) => (
@@ -311,7 +429,6 @@ export default function StudioVideoEditorPage() {
                     type="button"
                     onClick={() => placeAsset(a.id)}
                     className="w-full text-left rounded-lg px-2 py-1.5 text-[11px] hover:bg-white/10 border border-white/5"
-                    title="Add to timeline at playhead"
                   >
                     <span className="font-semibold truncate block">{a.fileName || a.kind}</span>
                     <span className="opacity-40 uppercase text-[9px]">{a.kind}</span>
@@ -320,9 +437,25 @@ export default function StudioVideoEditorPage() {
               ))
             )}
           </ul>
+          <div className="p-2 border-t border-white/10 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">AI music edit</p>
+            <input
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1.5 text-[11px]"
+              placeholder="cut every 4 beats"
+            />
+            <button
+              type="button"
+              disabled={aiBusy}
+              onClick={runAiEdit}
+              className="w-full rounded-lg py-1.5 text-[11px] font-bold bg-violet-700 disabled:opacity-50"
+            >
+              {aiBusy ? "…" : "Apply"}
+            </button>
+          </div>
         </aside>
 
-        {/* Center: preview */}
         <main className="flex-1 flex flex-col min-w-0 bg-[#0c0b14]">
           <div className="flex-1 flex items-center justify-center p-4 min-h-[200px]">
             <div
@@ -334,9 +467,8 @@ export default function StudioVideoEditorPage() {
             >
               <video
                 ref={videoPreviewRef}
-                className="absolute inset-0 w-full h-full object-contain"
+                className="absolute inset-0 w-full h-full object-contain transition-opacity"
                 playsInline
-                muted={false}
               />
               {!comp.clips.some((c) => c.sourceUrl) ? (
                 <p className="absolute inset-0 flex items-center justify-center text-xs opacity-40 px-4 text-center">
@@ -345,7 +477,7 @@ export default function StudioVideoEditorPage() {
               ) : null}
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-2 border-t border-white/10">
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-white/10">
             <button
               type="button"
               className="rounded-lg px-3 py-1 text-xs font-bold bg-white/15"
@@ -356,6 +488,24 @@ export default function StudioVideoEditorPage() {
             <span className="text-[11px] font-mono opacity-60">
               {(playheadMs / 1000).toFixed(1)}s / {(totalMs / 1000).toFixed(1)}s
             </span>
+            <label className="flex items-center gap-1 text-[10px] opacity-70">
+              <input
+                type="checkbox"
+                checked={comp.snapToBeats}
+                onChange={(e) => applyComp({ ...comp, snapToBeats: e.target.checked })}
+              />
+              Snap to beats
+            </label>
+            <button
+              type="button"
+              className="rounded-lg px-2 py-1 text-[10px] font-bold bg-white/10"
+              onClick={() => {
+                applyComp(addMarker(comp, playheadMs, "Marker"));
+                setNote(`Marker at ${(playheadMs / 1000).toFixed(1)}s`);
+              }}
+            >
+              + Marker
+            </button>
             <label className="text-[10px] opacity-50 ml-auto flex items-center gap-1">
               Zoom
               <input
@@ -369,14 +519,25 @@ export default function StudioVideoEditorPage() {
           </div>
         </main>
 
-        {/* Right: inspector */}
-        <aside className="w-[220px] shrink-0 border-l border-white/10 bg-[#1a1828] p-3 overflow-y-auto">
+        <aside className="w-[240px] shrink-0 border-l border-white/10 bg-[#1a1828] p-3 overflow-y-auto">
           <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-2">Inspector</p>
           {!selected ? (
-            <p className="text-[11px] opacity-40 leading-relaxed">Select a clip on the timeline.</p>
+            <div className="space-y-2 text-[11px] opacity-50 leading-relaxed">
+              <p>Select a clip. Soundtrack · markers · snaps live on the timeline.</p>
+              {comp.music?.sections?.length ? (
+                <ul className="space-y-1 opacity-80">
+                  {comp.music.sections.slice(0, 8).map((s) => (
+                    <li key={s.id}>
+                      {s.label} · {(s.startMs / 1000).toFixed(1)}–{(s.endMs / 1000).toFixed(1)}s
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           ) : (
             <ClipInspector
               clip={selected}
+              playheadLocalMs={Math.max(0, playheadMs - selected.startMs)}
               onChange={(patch) => {
                 const next = updateClip(comp, selected.id, patch);
                 if (!("error" in next)) applyComp(next);
@@ -390,27 +551,100 @@ export default function StudioVideoEditorPage() {
                 if ("error" in next) setError(next.error);
                 else applyComp(next);
               }}
+              onKeyframe={(property, value) => {
+                const row = upsertKeyframe(comp, {
+                  clipId: selected.id,
+                  property,
+                  timeMs: Math.max(0, playheadMs - selected.startMs),
+                  value,
+                });
+                if ("error" in row) setError(row.error);
+                else {
+                  applyComp(row);
+                  setNote(`Keyframe ${property} @ playhead`);
+                }
+              }}
+              onReactive={(preset) => {
+                const row = applyAudioReactivePreset(comp, selected.id, preset);
+                if ("error" in row) setError(row.error);
+                else {
+                  applyComp(row);
+                  setNote(`Audio Reactive: ${preset.replace(/_/g, " ")}`);
+                }
+              }}
+              onFadeTransition={() => {
+                const sameTrack = comp.clips
+                  .filter((c) => c.trackId === selected.trackId)
+                  .sort((a, b) => a.startMs - b.startMs);
+                const idx = sameTrack.findIndex((c) => c.id === selected.id);
+                const nextClip = sameTrack[idx + 1];
+                if (!nextClip) {
+                  setError("Need a following clip on the same track for a transition.");
+                  return;
+                }
+                const row = addTransition(comp, {
+                  fromClipId: selected.id,
+                  toClipId: nextClip.id,
+                  kind: "fade",
+                  durationMs: 400,
+                });
+                if ("error" in row) setError(row.error);
+                else {
+                  applyComp(row);
+                  setNote("Fade transition to next clip");
+                }
+              }}
             />
           )}
         </aside>
       </div>
 
-      {/* Timeline */}
-      <div className="shrink-0 border-t border-white/10 bg-[#12101c] px-2 py-2 space-y-1 max-h-[280px] overflow-auto">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 px-1">Timeline</p>
+      <div className="shrink-0 border-t border-white/10 bg-[#12101c] px-2 py-2 space-y-1 max-h-[320px] overflow-auto">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 px-1">
+          Timeline · multi-track · music-aware
+        </p>
         <div className="relative" style={{ minWidth: (totalMs / 1000) * pxPerSec + 80 }}>
-          {/* Ruler */}
           <div className="h-5 ml-14 relative border-b border-white/10 mb-1">
             {Array.from({ length: Math.ceil(totalMs / 1000) + 1 }).map((_, i) => (
-              <span
-                key={i}
-                className="absolute text-[9px] opacity-40 font-mono"
-                style={{ left: i * pxPerSec }}
-              >
+              <span key={i} className="absolute text-[9px] opacity-40 font-mono" style={{ left: i * pxPerSec }}>
                 {i}s
               </span>
             ))}
+            {beats.map((b) => (
+              <span
+                key={`b-${b}`}
+                className="absolute top-0 bottom-0 w-px bg-emerald-400/40"
+                style={{ left: (b / 1000) * pxPerSec }}
+              />
+            ))}
+            {comp.markers.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                title={m.label ?? "Marker"}
+                onClick={() => setPlayhead(m.timeMs, false)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  applyComp(deleteMarker(comp, m.id));
+                }}
+                className="absolute top-0 h-full w-0.5 bg-amber-400 z-10"
+                style={{ left: (m.timeMs / 1000) * pxPerSec }}
+              />
+            ))}
           </div>
+
+          {peaks.length ? (
+            <div className="ml-14 h-8 mb-1 flex items-end gap-px opacity-70" style={{ width: (totalMs / 1000) * pxPerSec }}>
+              {peaks.map((p, i) => (
+                <span
+                  key={i}
+                  className="flex-1 bg-emerald-500/50 rounded-t-sm min-w-[1px]"
+                  style={{ height: `${Math.max(8, p * 100)}%` }}
+                />
+              ))}
+            </div>
+          ) : null}
+
           {tracks.map((track) => (
             <div key={track.id} className="flex items-stretch gap-1 mb-1">
               <div className="w-14 shrink-0 text-[10px] font-semibold opacity-60 flex items-center px-1">
@@ -432,12 +666,14 @@ export default function StudioVideoEditorPage() {
                       locked={track.locked}
                       onSelect={() => setSelectedClipId(clip.id)}
                       onMove={(startMs) => {
-                        const next = updateClip(comp, clip.id, { startMs: Math.max(0, startMs) });
+                        const snapped = maybeSnapTime(comp, Math.max(0, startMs));
+                        const next = updateClip(comp, clip.id, { startMs: snapped });
                         if (!("error" in next)) applyComp(next);
                       }}
                       onTrim={(durationMs) => {
+                        const end = maybeSnapTime(comp, clip.startMs + Math.max(200, durationMs));
                         const next = updateClip(comp, clip.id, {
-                          durationMs: Math.max(200, durationMs),
+                          durationMs: Math.max(200, end - clip.startMs),
                         });
                         if (!("error" in next)) applyComp(next);
                       }}
@@ -446,7 +682,7 @@ export default function StudioVideoEditorPage() {
               </div>
             </div>
           ))}
-          {/* Playhead */}
+
           <div
             className="absolute top-0 bottom-0 w-0.5 bg-emerald-400 pointer-events-none z-20"
             style={{ left: 56 + (playheadMs / 1000) * pxPerSec }}
@@ -457,10 +693,7 @@ export default function StudioVideoEditorPage() {
             max={totalMs}
             step={50}
             value={Math.min(playheadMs, totalMs)}
-            onChange={(e) => {
-              setPlaying(false);
-              setPlayheadMs(Number(e.target.value));
-            }}
+            onChange={(e) => setPlayhead(Number(e.target.value))}
             className="w-full mt-1 ml-14 opacity-70"
             aria-label="Scrub playhead"
           />
@@ -516,11 +749,8 @@ function TimelineClipBlock({
         if (!drag.current) return;
         const dx = e.clientX - drag.current.originX;
         const dMs = Math.round((dx / pxPerSec) * 1000);
-        if (drag.current.mode === "move") {
-          onMove(drag.current.startMs + dMs);
-        } else {
-          onTrim(drag.current.durationMs + dMs);
-        }
+        if (drag.current.mode === "move") onMove(drag.current.startMs + dMs);
+        else onTrim(drag.current.durationMs + dMs);
       }}
       onPointerUp={() => {
         drag.current = null;
@@ -535,24 +765,32 @@ function TimelineClipBlock({
       title={clip.name}
     >
       {clip.name}
-      <span
-        data-handle="trim"
-        className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/30"
-      />
+      {(clip.fadeInMs > 0 || clip.fadeOutMs > 0) && (
+        <span className="absolute inset-y-0 left-0 w-1 bg-white/40 rounded-l" />
+      )}
+      <span data-handle="trim" className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/30" />
     </div>
   );
 }
 
 function ClipInspector({
   clip,
+  playheadLocalMs,
   onChange,
   onDelete,
   onSplit,
+  onKeyframe,
+  onReactive,
+  onFadeTransition,
 }: {
   clip: CompositionClip;
+  playheadLocalMs: number;
   onChange: (patch: Partial<CompositionClip>) => void;
   onDelete: () => void;
   onSplit: () => void;
+  onKeyframe: (property: "opacity" | "scale" | "x" | "y" | "rotation" | "volume", value: number) => void;
+  onReactive: (preset: AudioReactivePreset) => void;
+  onFadeTransition: () => void;
 }) {
   return (
     <div className="space-y-2 text-xs">
@@ -584,6 +822,28 @@ function ClipInspector({
           onChange={(e) => onChange({ sourceInMs: Math.max(0, Number(e.target.value) || 0) })}
         />
       </label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block opacity-80">
+          Fade in
+          <input
+            type="number"
+            min={0}
+            className="mt-0.5 w-full rounded bg-black/40 border border-white/10 px-2 py-1"
+            value={clip.fadeInMs}
+            onChange={(e) => onChange({ fadeInMs: Math.max(0, Number(e.target.value) || 0) })}
+          />
+        </label>
+        <label className="block opacity-80">
+          Fade out
+          <input
+            type="number"
+            min={0}
+            className="mt-0.5 w-full rounded bg-black/40 border border-white/10 px-2 py-1"
+            value={clip.fadeOutMs}
+            onChange={(e) => onChange({ fadeOutMs: Math.max(0, Number(e.target.value) || 0) })}
+          />
+        </label>
+      </div>
       <label className="block opacity-80">
         Volume
         <input
@@ -609,6 +869,18 @@ function ClipInspector({
         />
       </label>
       <label className="block opacity-80">
+        Scale
+        <input
+          type="number"
+          min={0.1}
+          max={4}
+          step={0.05}
+          className="mt-0.5 w-full rounded bg-black/40 border border-white/10 px-2 py-1"
+          value={clip.scale}
+          onChange={(e) => onChange({ scale: Math.max(0.1, Number(e.target.value) || 1) })}
+        />
+      </label>
+      <label className="block opacity-80">
         Speed
         <input
           type="number"
@@ -620,11 +892,44 @@ function ClipInspector({
           onChange={(e) => onChange({ speed: Math.max(0.25, Number(e.target.value) || 1) })}
         />
       </label>
+
+      <p className="text-[10px] font-bold uppercase tracking-wider text-violet-300 pt-1">V2 keyframes</p>
       <button
         type="button"
-        onClick={onSplit}
-        className="w-full rounded-lg py-1.5 font-bold bg-white/10"
+        onClick={() => onKeyframe("scale", clip.scale)}
+        className="w-full rounded-lg py-1.5 font-bold bg-violet-800/80"
       >
+        Keyframe scale @ {playheadLocalMs}ms
+      </button>
+      <button
+        type="button"
+        onClick={() => onKeyframe("opacity", clip.opacity)}
+        className="w-full rounded-lg py-1.5 font-bold bg-violet-800/80"
+      >
+        Keyframe opacity @ playhead
+      </button>
+      <button type="button" onClick={onFadeTransition} className="w-full rounded-lg py-1.5 font-bold bg-white/10">
+        Fade → next clip
+      </button>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 pt-1">Audio Reactive</p>
+      {(
+        [
+          ["pulse_scale", "Pulse scale"],
+          ["beat_flash", "Beat flash"],
+          ["energy_opacity", "Energy opacity"],
+        ] as const
+      ).map(([id, label]) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onReactive(id)}
+          className="w-full rounded-lg py-1.5 font-bold bg-emerald-900/80"
+        >
+          {label}
+        </button>
+      ))}
+
+      <button type="button" onClick={onSplit} className="w-full rounded-lg py-1.5 font-bold bg-white/10">
         Split at playhead
       </button>
       <button
