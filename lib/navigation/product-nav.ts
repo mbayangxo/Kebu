@@ -53,6 +53,8 @@ export const PRODUCT_NAV = {
   studio: [
     { label: "Kebu Studio", href: "/studio", exact: true },
     { label: "New design", href: "/studio/new" },
+    { label: "Brand DNA", href: "/studio/brand" },
+    { label: "Campaigns", href: "/studio/campaigns" },
   ] satisfies NavItem[],
 
   /** Continent B2B — not under My KEBU */
@@ -74,6 +76,8 @@ export const PRODUCT_NAV = {
   create: [
     { label: "Kebu Studio", href: "/studio", exact: true },
     { label: "New design", href: "/studio/new" },
+    { label: "Brand DNA", href: "/studio/brand" },
+    { label: "Campaigns", href: "/studio/campaigns" },
   ] satisfies NavItem[],
   account: [{ label: "My Account", href: "/account" }] satisfies NavItem[],
 } as const;

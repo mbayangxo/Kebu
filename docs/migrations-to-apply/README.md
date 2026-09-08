@@ -48,6 +48,9 @@ Includes: **059** gift orders · **060** opportunity metadata · **061** workspa
 | **072** | Reach campaigns + tracked promote events (S10a — not paid ads) |
 | **073** | Studio uploads library (`studio_uploads` — S16) |
 | **075** | Studio video projects (`studio_video_projects` — Phase 1 multi-track) |
+| **076** | Brand DNA columns on `business_brand_kits` + `studio_campaign_projects` (Creative Director) |
+
+**076 alone:** [`076_brand_dna_campaign_projects.sql`](./076_brand_dna_campaign_projects.sql) after **064** brand kits.
 
 **075 alone:** [`075_studio_video_projects.sql`](./075_studio_video_projects.sql) after auth users.
 
