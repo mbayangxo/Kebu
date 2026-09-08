@@ -33,6 +33,9 @@ Any `null` = missing foundation. Do **not** run shop / 056 / 057 until all four 
 
 Includes: **059** gift orders · **060** opportunity metadata · **061** workspace context · **062** entitlements · **063** opportunity cards · **064** variants/collections/brand kit/forms/Studio · **065** site chrome (W13).
 
+**055 → 076 (one paste):** [`APPLY_055_THROUGH_076.sql`](./APPLY_055_THROUGH_076.sql)
+(also at repo root: `/APPLY_055_THROUGH_076.sql`) — team invites through Brand DNA + Creative Director campaigns.
+
 **After 065 (066 → 069):** paste
 [`APPLY_066_THROUGH_069.sql`](./APPLY_066_THROUGH_069.sql)
 (also at repo root: `/APPLY_066_THROUGH_069.sql`) once.
