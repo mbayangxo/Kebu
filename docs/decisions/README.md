@@ -45,4 +45,3 @@ Name files: `NNN-short-title.md`
 | [2026-09-08-studio-create-north-star](./2026-09-08-studio-create-north-star.md) | AI Creative Director · one project → everything · CREATE umbrella |
 | [2026-09-08-owner-portfolio-draft-auto-sync](./2026-09-08-owner-portfolio-draft-auto-sync.md) | Owner May drafts sync seed on open; publish only for live |
 | [2026-09-08-studio-fonts-brand-posters](./2026-09-08-studio-fonts-brand-posters.md) | Fonts catalog · brand/aesthetic apply · posters/banners/cards |
-| [2026-09-08-owner-portfolio-draft-auto-sync](./2026-09-08-owner-portfolio-draft-auto-sync.md) | Owner May drafts sync seed on open; publish only for live |
