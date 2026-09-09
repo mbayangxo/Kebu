@@ -51,6 +51,9 @@ export type SiteAnalyticsSummary = {
   uniquePaths: number;
   byDevice: Record<BuilderDevice, number>;
   byDay: Array<{ day: string; views: number }>;
+  topPaths: Array<{ path: string; views: number }>;
+  topReferrers: Array<{ referrer: string; views: number }>;
+  topCountries: Array<{ country: string; views: number }>;
   vitals: Array<{ name: string; avg: number; samples: number }>;
   perf: {
     avgLoadMs: number | null;
@@ -90,6 +93,9 @@ export function summarizeSiteAnalytics(
   const byDevice: Record<BuilderDevice, number> = { desktop: 0, tablet: 0, mobile: 0 };
   const pathSet = new Set<string>();
   const dayMap = new Map<string, number>();
+  const pathMap = new Map<string, number>();
+  const referrerMap = new Map<string, number>();
+  const countryMap = new Map<string, number>();
   const vitalMap = new Map<string, { sum: number; n: number }>();
   let pageviews = 0;
   let loadSum = 0;
@@ -99,11 +105,35 @@ export function summarizeSiteAnalytics(
   for (const row of rows) {
     if (row.event_type === "pageview") {
       pageviews += 1;
-      pathSet.add(row.path || "/");
+      const path = row.path || "/";
+      pathSet.add(path);
+      pathMap.set(path, (pathMap.get(path) ?? 0) + 1);
       const device = (row.device as BuilderDevice | null) ?? "desktop";
       if (device in byDevice) byDevice[device] += 1;
       const day = row.created_at.slice(0, 10);
       dayMap.set(day, (dayMap.get(day) ?? 0) + 1);
+      const meta = row.meta ?? {};
+      const ref =
+        typeof meta.referrer === "string"
+          ? meta.referrer
+          : typeof meta.referer === "string"
+            ? meta.referer
+            : "";
+      if (ref) {
+        try {
+          const host = new URL(ref).hostname.replace(/^www\./, "") || ref.slice(0, 80);
+          referrerMap.set(host, (referrerMap.get(host) ?? 0) + 1);
+        } catch {
+          referrerMap.set(ref.slice(0, 80), (referrerMap.get(ref.slice(0, 80)) ?? 0) + 1);
+        }
+      }
+      const country =
+        typeof meta.country === "string"
+          ? meta.country
+          : typeof meta.cfCountry === "string"
+            ? meta.cfCountry
+            : "";
+      if (country) countryMap.set(country, (countryMap.get(country) ?? 0) + 1);
     }
     if (row.event_type === "vital" && row.metric_name && typeof row.metric_value === "number") {
       const cur = vitalMap.get(row.metric_name) ?? { sum: 0, n: 0 };
@@ -141,6 +171,18 @@ export function summarizeSiteAnalytics(
     uniquePaths: pathSet.size,
     byDevice,
     byDay,
+    topPaths: [...pathMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([path, views]) => ({ path, views })),
+    topReferrers: [...referrerMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([referrer, views]) => ({ referrer, views })),
+    topCountries: [...countryMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([country, views]) => ({ country, views })),
     vitals,
     perf: {
       avgLoadMs: loadN ? Math.round(loadSum / loadN) : null,

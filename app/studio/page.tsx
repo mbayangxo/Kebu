@@ -18,7 +18,7 @@ export default async function StudioHomePage() {
 
   const { data: designs } = await supabase
     .from("create_designs")
-    .select("id, title, design_type, updated_at")
+    .select("id, title, design_type, updated_at, folder_id")
     .eq("owner_id", user.id)
     .order("updated_at", { ascending: false })
     .limit(48);

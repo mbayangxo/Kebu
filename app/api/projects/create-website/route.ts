@@ -12,6 +12,8 @@ import {
 import { persistWebsiteDefinition } from "@/lib/create/persist-site";
 import { createWebsiteBriefSchema, validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { templateRequiresPurchase, userOwnsTemplate } from "@/lib/billing/subscriptions";
+import { assertOwnerWebsiteLimit } from "@/lib/billing/enforce-limits";
+import { assertAiGenerationAllowance, recordAiGeneration } from "@/lib/billing/ai-metering";
 import { ensureTemplatesSeeded } from "@/lib/create/ensure-templates";
 import { isPublicTemplateSlug } from "@/lib/create/templates-seed";
 
@@ -44,6 +46,14 @@ export async function POST(req: NextRequest) {
     : { ok: true as const };
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status });
+  }
+
+  const websiteGate = await assertOwnerWebsiteLimit(supabase, user.id);
+  if (!websiteGate.ok) {
+    return NextResponse.json(
+      { error: websiteGate.error, upgradeHint: websiteGate.upgradeHint, tier: websiteGate.tier },
+      { status: 402 },
+    );
   }
 
   try {
@@ -109,6 +119,20 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     templateId = tpl?.id ?? null;
   } else {
+    const meter = await assertAiGenerationAllowance(supabase, user.id);
+    if (!meter.ok) {
+      return NextResponse.json(
+        {
+          error: meter.error,
+          upgradeHint: meter.upgradeHint,
+          aiUsage: meter.meter
+            ? { used: meter.meter.used, limit: meter.meter.limit, remaining: meter.meter.remaining }
+            : undefined,
+        },
+        { status: meter.status },
+      );
+    }
+
     const ai = await generateWebsiteWithAi(brief);
     if (!ai.ok) {
       return NextResponse.json({ error: ai.error }, { status: 502 });
@@ -117,6 +141,14 @@ export async function POST(req: NextRequest) {
     usedAi = ai.usedAi;
     repaired = ai.repaired;
     usedFallback = Boolean(ai.fallback);
+
+    if (usedAi && !usedFallback) {
+      await recordAiGeneration(supabase, {
+        ownerId: user.id,
+        action: "website_ai_generate",
+        meta: { mode: "ai" },
+      });
+    }
   }
 
   const validated = validateWebsiteDefinition(definition);

@@ -49,21 +49,50 @@ export async function sendOrderNotification(data: OrderNotificationPayload): Pro
 }
 
 async function sendSMS(to: string, message: string): Promise<void> {
+  await sendAfricaTalkingSms(to, message);
+}
+
+/** Public SMS send for shop fulfillment / buyer updates (Africa's Talking). */
+export async function sendAfricaTalkingSms(
+  to: string,
+  message: string,
+): Promise<{ ok: boolean; reason?: string }> {
   const apiKey = process.env.AT_API_KEY;
   const username = process.env.AT_USERNAME;
-  if (!apiKey || !username) return;
+  if (!apiKey || !username) {
+    return { ok: false, reason: "AT_API_KEY / AT_USERNAME not configured." };
+  }
 
-  const body = new URLSearchParams({ username, to, message, from: "ALKBULAN" });
+  const digits = to.replace(/[^\d+]/g, "");
+  if (digits.replace(/\D/g, "").length < 8) {
+    return { ok: false, reason: "Invalid phone." };
+  }
 
-  await fetch("https://api.africastalking.com/version1/messaging", {
-    method: "POST",
-    headers: {
-      apiKey,
-      Accept: "application/json",
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: body.toString(),
-  }).catch(() => {});
+  const from = process.env.AT_SENDER_ID?.trim() || "KEBU";
+  const body = new URLSearchParams({
+    username,
+    to: digits.startsWith("+") ? digits : digits,
+    message: message.slice(0, 480),
+    from,
+  });
+
+  try {
+    const res = await fetch("https://api.africastalking.com/version1/messaging", {
+      method: "POST",
+      headers: {
+        apiKey,
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    });
+    if (!res.ok) {
+      return { ok: false, reason: `Africa's Talking HTTP ${res.status}` };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "SMS network error." };
+  }
 }
 
 async function sendEmail(to: string, subject: string, text: string): Promise<void> {

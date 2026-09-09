@@ -18,7 +18,7 @@ export async function GET(req: Request, { params }: Params) {
   }
 
   const url = new URL(req.url);
-  const hours = Math.min(168, Math.max(1, Number(url.searchParams.get("hours") ?? 72) || 72));
+  const hours = Math.min(720, Math.max(1, Number(url.searchParams.get("hours") ?? 72) || 72));
   const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
   const { data: project } = await supabase

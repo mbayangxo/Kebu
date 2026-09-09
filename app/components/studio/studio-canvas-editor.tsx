@@ -25,6 +25,11 @@ import {
 } from "@/lib/studio/editor-craft";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
 import { StudioBrandApplyPanel } from "@/app/components/studio/studio-brand-apply-panel";
+import { StudioLiveCursors } from "@/app/components/studio/studio-live-cursors";
+import {
+  STUDIO_ELEMENTS_PACK,
+  type StudioElementDef,
+} from "@/lib/studio/elements-pack";
 import {
   cssStackForStudioFont,
   googleFontsHrefForStudioCatalog,
@@ -103,6 +108,8 @@ export function StudioCanvasEditor({
   readOnly = false,
   previewLocalMs = 0,
   businessId = null,
+  liveCursorsUserId = null,
+  liveCursorsLabel = "You",
 }: {
   designId: string;
   document: CanvasDocument;
@@ -121,8 +128,11 @@ export function StudioCanvasEditor({
   /** Timeline page-local time (ms) — seeks video layers on canvas */
   previewLocalMs?: number;
   businessId?: string | null;
+  liveCursorsUserId?: string | null;
+  liveCursorsLabel?: string;
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
+  const artboardRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState<{
@@ -345,8 +355,30 @@ export function StudioCanvasEditor({
       name: type.charAt(0).toUpperCase() + type.slice(1),
       x: page.width * 0.2,
       y: page.height * 0.3,
-      width: type === "text" ? 320 : type === "image" ? 320 : 180,
-      height: type === "text" ? 56 : type === "image" ? 320 : 140,
+      width:
+        type === "text"
+          ? 320
+          : type === "image"
+            ? 320
+            : type === "line"
+              ? 280
+              : type === "icon"
+                ? 72
+                : type === "frame"
+                  ? 240
+                  : 180,
+      height:
+        type === "text"
+          ? 56
+          : type === "image"
+            ? 320
+            : type === "line"
+              ? 4
+              : type === "icon"
+                ? 72
+                : type === "frame"
+                  ? 240
+                  : 140,
       rotation: 0,
       opacity: 1,
       locked: false,
@@ -356,12 +388,22 @@ export function StudioCanvasEditor({
       fontWeight: "700",
       color: "#FFFFFF",
       textAlign: "left",
-      fill: "#E05A2B",
+      fill: type === "frame" ? "transparent" : "#E05A2B",
       ...extras,
     };
     setPageLayers([...layers, layer]);
     onSelectLayers([layer.id]);
     setLeftTab("layers");
+  }
+
+  function addElement(def: StudioElementDef) {
+    addLayer(def.kind, {
+      ...def.defaults,
+      name: def.label,
+      iconKey: def.kind === "icon" ? def.id.replace(/^icon-/, "") : undefined,
+      frameStyle: def.frameStyle,
+      text: def.glyph ?? def.defaults.text,
+    });
   }
 
   function deleteSelected() {
@@ -728,6 +770,35 @@ export function StudioCanvasEditor({
                     {uploadBusy ? "…" : "Short video"}
                   </button>
                 </div>
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 pt-2">Lines · Frames</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {STUDIO_ELEMENTS_PACK.filter((e) => e.kind === "line" || e.kind === "frame").map((el) => (
+                    <button
+                      key={el.id}
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => addElement(el)}
+                      className="rounded-xl border border-black/10 bg-white px-2 py-2.5 text-[11px] font-bold hover:border-orange-400 disabled:opacity-40"
+                    >
+                      {el.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 pt-2">Icons</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {STUDIO_ELEMENTS_PACK.filter((e) => e.kind === "icon").map((el) => (
+                    <button
+                      key={el.id}
+                      type="button"
+                      disabled={readOnly}
+                      title={el.label}
+                      onClick={() => addElement(el)}
+                      className="rounded-xl border border-black/10 bg-[#FFF8F0] px-1 py-2 text-lg hover:border-orange-400 disabled:opacity-40"
+                    >
+                      {el.glyph}
+                    </button>
+                  ))}
+                </div>
                 <input
                   ref={fileRef}
                   type="file"
@@ -744,8 +815,7 @@ export function StudioCanvasEditor({
                 />
                 {uploadError ? <p className="text-[11px] text-red-700">{uploadError}</p> : null}
                 <p className="text-[10px] leading-relaxed opacity-50">
-                  Image ≤5 MB. Short clip ≤25 MB (MP4/WebM). Motion export turns pages into a slideshow
-                  WebM — not a full film editor yet.
+                  Elements pack: structured icons, lines, and frames — editable layers, not freehand draw.
                 </p>
               </>
             ) : leftTab === "uploads" ? (
@@ -803,6 +873,7 @@ export function StudioCanvasEditor({
           }}
         >
           <div
+            ref={artboardRef}
             className="relative shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
             style={{
               width: page.width * displayScale,
@@ -812,6 +883,13 @@ export function StudioCanvasEditor({
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <StudioLiveCursors
+              designId={designId}
+              userId={liveCursorsUserId}
+              label={liveCursorsLabel}
+              enabled={Boolean(liveCursorsUserId)}
+              containerRef={artboardRef}
+            />
             <div
               className="absolute inset-0"
               style={{
@@ -890,6 +968,50 @@ export function StudioCanvasEditor({
                         className="w-full h-full rounded-full pointer-events-none"
                         style={{ background: layer.fill }}
                       />
+                    ) : layer.type === "line" ? (
+                      <div
+                        className="w-full pointer-events-none absolute left-0"
+                        style={{
+                          background: layer.fill ?? "#FFFFFF",
+                          height: Math.max(2, layer.height),
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                        }}
+                      />
+                    ) : layer.type === "frame" ? (
+                      <div
+                        className="w-full h-full pointer-events-none box-border"
+                        style={
+                          layer.frameStyle === "polaroid"
+                            ? {
+                                background: layer.fill ?? "#FFFFFF",
+                                border: `${Math.max(1, (layer.strokeWidth ?? 2) / 2)}px solid ${layer.stroke ?? "#E8E4DC"}`,
+                                padding: 12,
+                                paddingBottom: 36,
+                              }
+                            : {
+                                background: "transparent",
+                                border: `${layer.strokeWidth ?? 6}px solid ${layer.stroke ?? "#FFFFFF"}`,
+                                borderRadius: layer.frameStyle === "rounded" ? 20 : 0,
+                              }
+                        }
+                      >
+                        {layer.frameStyle === "polaroid" ? (
+                          <div className="w-full h-full" style={{ background: "#E8E4DC" }} />
+                        ) : null}
+                      </div>
+                    ) : layer.type === "icon" ? (
+                      <div
+                        className="w-full h-full flex items-center justify-center pointer-events-none select-none"
+                        style={{
+                          color: layer.color ?? "#FFFFFF",
+                          fontSize: layer.fontSize ?? 48,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {layer.text || "★"}
+                      </div>
                     ) : (
                       <div className="w-full h-full pointer-events-none" style={{ background: layer.fill }} />
                     )}

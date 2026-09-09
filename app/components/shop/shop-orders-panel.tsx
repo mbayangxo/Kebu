@@ -64,7 +64,7 @@ export function ShopOrdersPanel({
   const [draft, setDraft] = useState<
     Record<
       string,
-      { tracking: string; carrier: ShopCarrierId | ""; notify: "email" | "whatsapp" | "both" | "none" }
+      { tracking: string; carrier: ShopCarrierId | ""; notify: "sms" | "whatsapp" | "sms_whatsapp" | "email" | "all" | "none" }
     >
   >({});
 
@@ -116,11 +116,7 @@ export function ShopOrdersPanel({
       draft[order.id] ?? {
         tracking: order.tracking_number ?? "",
         carrier: (order.carrier as ShopCarrierId) || "dhl",
-        notify: (order.customer_email ? "both" : "whatsapp") as
-          | "email"
-          | "whatsapp"
-          | "both"
-          | "none",
+        notify: "whatsapp" as const,
       }
     );
   }
@@ -222,14 +218,14 @@ export function ShopOrdersPanel({
             Orders
           </h2>
           <p className="mt-1 text-xs" style={{ color: KEBU.muted }}>
-            Open orders → fulfill with tracking + carrier, archive, or mark fulfilled. We can email or
-            WhatsApp the customer a track link.
+            Open orders → fulfill with tracking + carrier. Default: WhatsApp the buyer (SMS optional — delivery
+            can be unreliable in some networks).
           </p>
         </>
       ) : (
         <p className="mb-4 text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-          Open vs to-fulfill: add tracking + carrier, then notify by email or WhatsApp. Archive or mark
-          fulfilled. Money status stays separate (paid via webhook).
+          Open vs to-fulfill: add tracking + carrier, then notify by SMS (default), WhatsApp, or email.
+          Money status stays separate (paid via webhook).
         </p>
       )}
 
@@ -445,9 +441,11 @@ export function ShopOrdersPanel({
                             }))
                           }
                         >
-                          <option value="both">Email + WhatsApp</option>
+                          <option value="whatsapp">WhatsApp only</option>
+                          <option value="sms_whatsapp">SMS + WhatsApp</option>
+                          <option value="sms">SMS (text)</option>
                           <option value="email">Email</option>
-                          <option value="whatsapp">WhatsApp</option>
+                          <option value="all">SMS + WhatsApp + email</option>
                           <option value="none">Don&apos;t notify</option>
                         </select>
                       </label>

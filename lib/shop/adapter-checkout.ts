@@ -80,6 +80,7 @@ export async function startShopOrderProviderCheckout(opts: {
       amountXof: opts.amountXof,
       productName: opts.productName,
       customerEmail: opts.customerEmail,
+      customerPhone: opts.customerPhone,
       appUrl: opts.appUrl,
       returnUrl: urls.returnUrl,
       cancelUrl: urls.cancelUrl,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { summarizeAiChanges } from "@/lib/create/ai-change-summary";
 import { improveWebsiteWithAi } from "@/lib/create/ai-improve";
-import { guardAiImproveRequest, logAiImproveFailure } from "@/lib/create/ai-improve-route";
+import { guardAiImproveRequest, logAiImproveFailure, consumeAiImproveCredit } from "@/lib/create/ai-improve-route";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +15,15 @@ export async function POST(req: NextRequest, { params }: Params) {
   const guarded = await guardAiImproveRequest(req, id);
   if (!guarded.ok) return guarded.response;
 
-  const { user, brief, current, project } = guarded;
+  const { user, brief, current, project, supabase } = guarded;
 
   const ai = await improveWebsiteWithAi(current, brief);
   if (!ai.ok) {
     logAiImproveFailure("website.ai_improve_preview_failed", user.id, project.id, ai.error);
     return NextResponse.json({ error: ai.error }, { status: 502 });
   }
+
+  await consumeAiImproveCredit(supabase, user.id, project.id);
 
   const intents = summarizeAiChanges(current, ai.definition);
 

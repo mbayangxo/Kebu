@@ -15,6 +15,8 @@ const patchSchema = z.object({
   canvas: z.union([canvasDocumentSchema, z.record(z.string(), z.unknown())]).optional(),
   businessId: z.string().uuid().nullable().optional(),
   designType: createDesignSchema.shape.designType.optional(),
+  /** Owner-only: move design into a folder, or null to unfile. */
+  folderId: z.string().uuid().nullable().optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
@@ -30,7 +32,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { data: design, error } = await supabase
     .from("create_designs")
-    .select("id, title, design_type, business_id, canvas, owner_id, created_at, updated_at")
+    .select("id, title, design_type, business_id, folder_id, canvas, owner_id, created_at, updated_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -38,7 +40,7 @@ export async function GET(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
   }
 
-  return NextResponse.json({ design, access });
+  return NextResponse.json({ design, access, userId: user.id });
 }
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -83,8 +85,31 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.businessId !== undefined && access.role === "owner") {
     patch.business_id = parsed.data.businessId;
   }
+  if (parsed.data.folderId !== undefined) {
+    if (access.role !== "owner") {
+      return NextResponse.json({ error: "Only the owner can move designs between folders." }, { status: 403 });
+    }
+    if (parsed.data.folderId) {
+      const { data: folder } = await supabase
+        .from("studio_folders")
+        .select("id")
+        .eq("id", parsed.data.folderId)
+        .eq("owner_id", user.id)
+        .maybeSingle();
+      if (!folder) {
+        return NextResponse.json({ error: "Folder not found." }, { status: 404 });
+      }
+    }
+    patch.folder_id = parsed.data.folderId;
+  }
   if (parsed.data.canvas) {
     const { parseCanvasDocument } = await import("@/lib/studio/canvas-document");
+    const { maybeAutoCheckpointPreviousCanvas } = await import("@/lib/studio/design-version-store");
+    await maybeAutoCheckpointPreviousCanvas(supabase, {
+      designId: id,
+      userId: user.id,
+      previousCanvas: existing.canvas,
+    });
     patch.canvas = parseCanvasDocument(
       parsed.data.canvas,
       (parsed.data.designType as import("@/lib/studio/canvas-document").StudioDesignType | undefined) ??
@@ -97,11 +122,19 @@ export async function PATCH(req: Request, { params }: Params) {
     .from("create_designs")
     .update(patch)
     .eq("id", id)
-    .select("id, title, design_type, business_id, canvas, owner_id, created_at, updated_at")
+    .select("id, title, design_type, business_id, folder_id, canvas, owner_id, created_at, updated_at")
     .single();
 
   if (error || !design) {
-    return NextResponse.json({ error: "Could not save design." }, { status: 500 });
+    const missingFolder = error?.message?.includes("folder_id");
+    return NextResponse.json(
+      {
+        error: missingFolder
+          ? "Studio folders not applied yet. Apply migration 077."
+          : "Could not save design.",
+      },
+      { status: missingFolder ? 503 : 500 },
+    );
   }
 
   const businessId = (parsed.data.businessId ?? existing.business_id) as string | null;

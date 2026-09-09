@@ -13,11 +13,39 @@ export async function GET() {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
 
-  const { data: owned, error: ownedErr } = await supabase
-    .from("create_designs")
-    .select("id, title, design_type, business_id, owner_id, created_at, updated_at")
-    .eq("owner_id", user.id)
-    .order("updated_at", { ascending: false });
+  let owned:
+    | {
+        id: string;
+        title: string;
+        design_type: string;
+        business_id: string | null;
+        owner_id: string;
+        folder_id?: string | null;
+        created_at: string;
+        updated_at: string;
+      }[]
+    | null = null;
+  let ownedErr: { message?: string } | null = null;
+
+  {
+    const first = await supabase
+      .from("create_designs")
+      .select("id, title, design_type, business_id, owner_id, folder_id, created_at, updated_at")
+      .eq("owner_id", user.id)
+      .order("updated_at", { ascending: false });
+    if (first.error?.message?.includes("folder_id")) {
+      const fallback = await supabase
+        .from("create_designs")
+        .select("id, title, design_type, business_id, owner_id, created_at, updated_at")
+        .eq("owner_id", user.id)
+        .order("updated_at", { ascending: false });
+      owned = fallback.data;
+      ownedErr = fallback.error;
+    } else {
+      owned = first.data;
+      ownedErr = first.error;
+    }
+  }
 
   if (ownedErr) {
     return NextResponse.json(
@@ -41,7 +69,7 @@ export async function GET() {
   if (sharedIds.length) {
     const { data } = await supabase
       .from("create_designs")
-      .select("id, title, design_type, business_id, owner_id, created_at, updated_at")
+      .select("id, title, design_type, business_id, owner_id, folder_id, created_at, updated_at")
       .in("id", sharedIds)
       .order("updated_at", { ascending: false });
     shared = data ?? [];

@@ -52,6 +52,30 @@ Includes: **059** gift orders · **060** opportunity metadata · **061** workspa
 | **073** | Studio uploads library (`studio_uploads` — S16) |
 | **075** | Studio video projects (`studio_video_projects` — Phase 1 multi-track) |
 | **076** | Brand DNA columns on `business_brand_kits` + `studio_campaign_projects` (Creative Director) |
+| **077** | Studio folders (`studio_folders` + `create_designs.folder_id` — S17) |
+| **078** | Studio design version history (`studio_design_versions` — S18) |
+| **079** | Studio design comments (`studio_design_comments` — S20) |
+| **080** | Studio video `edit_mode` allows `storyboard` (+ quick/smart/full) |
+| **081** | Account AI usage events (`account_ai_usage_events` — monthly metering) |
+| **082** | Shop checkout email OTP (`shop_checkout_email_otps`) |
+| **083** | Help requests + platform cron runs (Kebu Record ops) |
+
+**077 → 079 (one paste):** [`APPLY_077_THROUGH_079.sql`](./APPLY_077_THROUGH_079.sql)
+(also at repo root: `/APPLY_077_THROUGH_079.sql`) after **076**.
+
+**080 → 081 (one paste):** [`APPLY_080_THROUGH_081.sql`](./APPLY_080_THROUGH_081.sql)
+(also at repo root: `/APPLY_080_THROUGH_081.sql`).
+
+**082 alone:** [`APPLY_082_SHOP_CHECKOUT_EMAIL_OTP.sql`](../../APPLY_082_SHOP_CHECKOUT_EMAIL_OTP.sql)
+
+**083 alone:** [`APPLY_083_HELP_AND_CRON.sql`](../../APPLY_083_HELP_AND_CRON.sql)
+(also `083_help_requests_cron_runs.sql` here / in `supabase/migrations/`).
+
+**080 alone:** [`080_studio_video_edit_modes.sql`](./080_studio_video_edit_modes.sql) after **075**.
+
+**081 alone:** [`081_account_ai_usage.sql`](./081_account_ai_usage.sql) after auth users.
+
+**077 alone:** [`077_studio_folders.sql`](./077_studio_folders.sql) after `create_designs`.
 
 **076 alone:** [`076_brand_dna_campaign_projects.sql`](./076_brand_dna_campaign_projects.sql) after **064** brand kits.
 

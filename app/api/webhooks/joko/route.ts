@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
-import {
-  extendPeriodEnd,
-  parseHostingPlan,
-  restoreSuspendedDeploymentsForProject,
-} from "@/lib/billing/subscriptions";
+import { activateSiteSubscriptionPayment } from "@/lib/billing/activate-site-subscription";
+import { parseHostingPlan } from "@/lib/billing/subscriptions";
 import { parseKebuPlanId } from "@/lib/billing/pricing";
 import { verifyJokoWebhookSignature } from "@/lib/joko/payments";
 
@@ -47,14 +44,12 @@ export async function POST(req: NextRequest) {
   const paymentId = payload.payment_id;
 
   if (kind === "site_subscription" && reference) {
-    const now = new Date();
-    const nowIso = now.toISOString();
     const plan = parseHostingPlan(payload.metadata?.plan);
     const tier = parseKebuPlanId(payload.metadata?.tier ?? "shop");
 
     const { data: sub } = await supabase
       .from("site_subscriptions")
-      .select("id, project_id, owner_id, status, period_end, plan, billing_interval, tier, autopay_enabled")
+      .select("id, project_id, owner_id")
       .eq("joko_reference", reference)
       .maybeSingle();
 
@@ -62,60 +57,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Subscription not found." }, { status: 404 });
     }
 
-    const effectivePlan = parseHostingPlan(sub.billing_interval ?? sub.plan ?? plan);
-    const effectiveTier = parseKebuPlanId(sub.tier ?? tier);
-    let baseEnd = sub.period_end as string | null;
+    const activated = await activateSiteSubscriptionPayment(supabase, {
+      subscriptionId: sub.id,
+      paymentId,
+      previousSubscriptionId: payload.metadata?.previous_subscription_id || null,
+      planHint: plan,
+      tierHint: tier,
+    });
 
-    // When renewing, extend from the previous active row if this pending row has no end yet.
-    if (payload.metadata?.previous_subscription_id) {
-      const { data: prev } = await supabase
-        .from("site_subscriptions")
-        .select("period_end, autopay_enabled")
-        .eq("id", payload.metadata.previous_subscription_id)
-        .maybeSingle();
-      if (prev?.period_end) baseEnd = prev.period_end;
-      if (prev?.autopay_enabled) {
-        await supabase
-          .from("site_subscriptions")
-          .update({ autopay_enabled: true, autopay_consent_at: nowIso })
-          .eq("id", sub.id);
-      }
-      await supabase
-        .from("site_subscriptions")
-        .update({ status: "expired", updated_at: nowIso })
-        .eq("id", payload.metadata.previous_subscription_id)
-        .eq("status", "active");
+    if (!activated.ok) {
+      return NextResponse.json({ error: activated.error }, { status: 404 });
     }
-
-    const periodEnd = extendPeriodEnd(baseEnd, effectivePlan, now);
-
-    await supabase
-      .from("site_subscriptions")
-      .update({
-        status: "active",
-        plan: effectivePlan,
-        billing_interval: effectivePlan,
-        tier: effectiveTier,
-        period_start: nowIso,
-        period_end: periodEnd,
-        next_billing_at: periodEnd,
-        joko_payment_id: paymentId ?? sub.id,
-        pending_checkout_url: null,
-        updated_at: nowIso,
-      })
-      .eq("id", sub.id);
-
-    const restored = await restoreSuspendedDeploymentsForProject(supabase, sub.project_id);
 
     console.info(
       JSON.stringify({
         event: "billing.site_subscription_activated",
-        projectId: sub.project_id,
+        projectId: activated.projectId,
         ownerId: sub.owner_id,
         reference,
-        plan: effectivePlan,
-        periodEnd,
-        restoredDeployments: restored,
+        periodEnd: activated.periodEnd,
+        restoredDeployments: activated.restoredDeployments,
       }),
     );
 
@@ -123,8 +84,8 @@ export async function POST(req: NextRequest) {
       ok: true,
       kind: "site_subscription",
       subscriptionId: sub.id,
-      periodEnd,
-      restoredDeployments: restored,
+      periodEnd: activated.periodEnd,
+      restoredDeployments: activated.restoredDeployments,
     });
   }
 

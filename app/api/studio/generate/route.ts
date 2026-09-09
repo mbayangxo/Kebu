@@ -5,6 +5,7 @@ import {
   generateStudioCampaignWithAi,
   studioGenerateBriefSchema,
 } from "@/lib/studio/ai-generate";
+import { assertAiGenerationAllowance, recordAiGeneration } from "@/lib/billing/ai-metering";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Describe your campaign in a short sentence (min 8 characters)." }, { status: 400 });
   }
 
+  const meter = await assertAiGenerationAllowance(supabase, user.id);
+  if (!meter.ok) {
+    return NextResponse.json(
+      {
+        error: meter.error,
+        upgradeHint: meter.upgradeHint,
+        aiUsage: meter.meter
+          ? { used: meter.meter.used, limit: meter.meter.limit, remaining: meter.meter.remaining }
+          : undefined,
+      },
+      { status: meter.status },
+    );
+  }
+
   const generated = await generateStudioCampaignWithAi(parsed.data);
   if (!generated.ok) {
     return NextResponse.json({ error: generated.error }, { status: 400 });
@@ -85,6 +100,15 @@ export async function POST(req: NextRequest) {
   }
 
   const designIds = designs.map((d) => d.id as string);
+
+  if (generated.usedAi && !generated.fallback) {
+    await recordAiGeneration(supabase, {
+      ownerId: user.id,
+      action: "studio_generate",
+      meta: { designCount: designIds.length },
+    });
+  }
+
   const { data: run, error: runError } = await supabase
     .from("studio_generation_runs")
     .insert({

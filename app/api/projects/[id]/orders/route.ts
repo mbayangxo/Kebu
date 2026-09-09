@@ -260,7 +260,7 @@ export async function PATCH(req: Request, { params }: Params) {
     typeof rec.trackingNumber === "string" ? rec.trackingNumber : null;
   const carrier = typeof rec.carrier === "string" ? rec.carrier : null;
   const notifyVia = (
-    typeof rec.notifyVia === "string" ? rec.notifyVia : "both"
+    typeof rec.notifyVia === "string" ? rec.notifyVia : "whatsapp"
   ) as FulfillNotifyVia;
   const emailCustomer = rec.emailCustomer === true;
 
@@ -367,12 +367,14 @@ export async function PATCH(req: Request, { params }: Params) {
     action,
     status: result.order.status,
     emailed: result.emailed,
+    smsSent: result.smsSent,
   });
 
   return NextResponse.json({
     order: result.order,
     whatsappHref: result.whatsappHref,
     emailed: result.emailed,
+    smsSent: result.smsSent,
     carriers: SHOP_CARRIERS,
   });
 }

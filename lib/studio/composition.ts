@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 
-export const STUDIO_EDIT_MODES = ["quick_edit", "smart_edit", "full_timeline"] as const;
+export const STUDIO_EDIT_MODES = ["quick_edit", "smart_edit", "full_timeline", "storyboard"] as const;
 export type StudioEditMode = (typeof STUDIO_EDIT_MODES)[number];
 
 export const COMPOSITION_TRACK_KINDS = [
@@ -65,13 +65,30 @@ export const compositionClipSchema = z.object({
   /** V1 fades (ms) — ramp volume/opacity at clip edges */
   fadeInMs: z.number().int().min(0).max(10_000).default(0),
   fadeOutMs: z.number().int().min(0).max(10_000).default(0),
-  /** Optional transform (V2) — keyframes override when present */
+  /** V2 transform — keyframes override when present */
   x: z.number().min(-4000).max(4000).default(0),
   y: z.number().min(-4000).max(4000).default(0),
   scale: z.number().min(0.05).max(8).default(1),
   rotation: z.number().min(-360).max(360).default(0),
   /** Optional link to storyboard scene */
   sceneId: z.string().trim().max(40).nullable().optional(),
+  /** Caption track text (V7) */
+  captionText: z.string().trim().max(500).nullable().optional(),
+  /** Chroma key (pro color path) */
+  chromaEnabled: z.boolean().optional().default(false),
+  chromaColor: z
+    .string()
+    .trim()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional()
+    .default("#00FF00"),
+  chromaSimilarity: z.number().min(0.05).max(1).optional().default(0.4),
+  /** Basic color grade */
+  brightness: z.number().min(-1).max(1).optional().default(0),
+  contrast: z.number().min(-1).max(1).optional().default(0),
+  saturation: z.number().min(-1).max(1).optional().default(0),
+  /** Nested sequence — another studio_video_projects id */
+  nestedProjectId: z.string().uuid().nullable().optional(),
 });
 
 export type CompositionClip = z.infer<typeof compositionClipSchema>;
@@ -402,6 +419,58 @@ export function compileStoryboardToClips(
     return clip;
   });
   return { ...composition, clips: [...composition.clips.filter((c) => c.trackId !== videoTrackId), ...clips] };
+}
+
+export function addStoryboardScene(
+  c: StudioComposition,
+  opts?: { name?: string; durationMs?: number; intent?: string },
+): StudioComposition {
+  const order = c.storyboard.length;
+  const scene = storyboardSceneSchema.parse({
+    id: newCompositionId("sc"),
+    name: (opts?.name ?? `Scene ${order + 1}`).slice(0, 120),
+    intent: opts?.intent ?? null,
+    durationMs: opts?.durationMs ?? 3000,
+    order,
+  });
+  return {
+    ...c,
+    storyboard: [...c.storyboard, scene].slice(0, 100),
+    editMode: "storyboard",
+  };
+}
+
+export function removeStoryboardScene(c: StudioComposition, sceneId: string): StudioComposition {
+  const next = c.storyboard
+    .filter((s) => s.id !== sceneId)
+    .sort((a, b) => a.order - b.order)
+    .map((s, i) => ({ ...s, order: i }));
+  return { ...c, storyboard: next };
+}
+
+export function updateStoryboardScene(
+  c: StudioComposition,
+  sceneId: string,
+  patch: Partial<Pick<StoryboardScene, "name" | "durationMs" | "intent">>,
+): StudioComposition {
+  return {
+    ...c,
+    storyboard: c.storyboard.map((s) =>
+      s.id === sceneId
+        ? storyboardSceneSchema.parse({
+            ...s,
+            ...patch,
+            name: patch.name !== undefined ? patch.name.slice(0, 120) : s.name,
+            durationMs: patch.durationMs ?? s.durationMs,
+          })
+        : s,
+    ),
+  };
+}
+
+/** Primary video track for storyboard compile (first video track). */
+export function primaryVideoTrackId(c: StudioComposition): string | null {
+  return c.tracks.find((t) => t.kind === "video")?.id ?? null;
 }
 
 /** Snap time to beat grid — shared by Quick Edit + Full Timeline. */

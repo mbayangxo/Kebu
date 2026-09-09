@@ -286,7 +286,7 @@ export function PublicShopOrder({
       <input
         required
         maxLength={24}
-        placeholder="WhatsApp / phone"
+        placeholder="WhatsApp / phone (for delivery texts)"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         className="w-full rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs text-black"
@@ -297,7 +297,7 @@ export function PublicShopOrder({
           required={emailRequired}
           maxLength={254}
           placeholder={
-            emailRequired ? "Email (required for card / PayPal)" : "Email (optional — for updates & sales)"
+            emailRequired ? "Email (required for card / PayPal)" : "Email (optional)"
           }
           value={email}
           onChange={(e) => setEmail(e.target.value)}

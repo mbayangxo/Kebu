@@ -7,18 +7,26 @@ import {
   addAssetToComposition,
   addClipFromAsset,
   addMarker,
+  addStoryboardScene,
   attachSoundtrack,
+  compileStoryboardToClips,
   compositionDurationMs,
   deleteClip,
   deleteMarker,
   maybeSnapTime,
   newCompositionId,
+  primaryVideoTrackId,
+  removeStoryboardScene,
   splitClipAt,
   updateClip,
+  updateStoryboardScene,
   type CompositionAsset,
   type CompositionClip,
   type StudioComposition,
 } from "@/lib/studio/composition";
+import { buildQuickEditMontage, quickEditSummary } from "@/lib/studio/quick-edit";
+import { nestProjectAsClip } from "@/lib/studio/nested-sequence";
+import { cssFilterFromGrade } from "@/lib/studio/clip-color";
 import { analyzeMusicFromUrl } from "@/lib/studio/music-analysis";
 import {
   addTransition,
@@ -50,6 +58,12 @@ export default function StudioVideoEditorPage() {
   const [musicBusy, setMusicBusy] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("cut every 4 beats");
   const [aiBusy, setAiBusy] = useState(false);
+  const [qeSelected, setQeSelected] = useState<string[]>([]);
+  const [qeBeatAligned, setQeBeatAligned] = useState(true);
+  const [qeClipSec, setQeClipSec] = useState(2.5);
+  const [captionText, setCaptionText] = useState("");
+  const [captionBusy, setCaptionBusy] = useState(false);
+  const [otherProjects, setOtherProjects] = useState<{ id: string; title: string }[]>([]);
   const [history, setHistory] = useState<StudioComposition[]>([]);
   const [future, setFuture] = useState<StudioComposition[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -76,6 +90,20 @@ export default function StudioVideoEditorPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void fetch("/api/studio/video", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => {
+        const list = Array.isArray(d.projects) ? d.projects : [];
+        setOtherProjects(
+          list
+            .filter((p: { id: string }) => p.id !== projectId)
+            .map((p: { id: string; title: string }) => ({ id: p.id, title: p.title })),
+        );
+      })
+      .catch(() => undefined);
+  }, [projectId]);
 
   const persist = useCallback(
     async (next: StudioComposition, nextTitle?: string) => {
@@ -157,6 +185,12 @@ export default function StudioVideoEditorPage() {
     el.style.opacity = String(xf.opacity);
     el.style.transform = `translate(${xf.x}px, ${xf.y}px) scale(${xf.scale}) rotate(${xf.rotation}deg)`;
     el.volume = Math.min(1, xf.volume);
+    el.playbackRate = Math.max(0.1, Math.min(8, clip.speed));
+    el.style.filter = cssFilterFromGrade({
+      brightness: clip.brightness ?? 0,
+      contrast: clip.contrast ?? 0,
+      saturation: clip.saturation ?? 0,
+    });
     try {
       if (Math.abs(el.currentTime * 1000 - local) > 200) el.currentTime = local / 1000;
     } catch {
@@ -274,6 +308,98 @@ export default function StudioVideoEditorPage() {
       return;
     }
     applyComp(placed);
+  }
+
+  function addScene() {
+    if (!comp) return;
+    applyComp(addStoryboardScene(comp));
+    setNote("Storyboard scene added. Compile to place clips on the video track.");
+  }
+
+  function compileStoryboard() {
+    if (!comp) return;
+    const trackId = primaryVideoTrackId(comp);
+    if (!trackId) {
+      setError("No video track in this composition.");
+      return;
+    }
+    if (!comp.storyboard.length) {
+      setError("Add at least one storyboard scene first.");
+      return;
+    }
+    applyComp(compileStoryboardToClips(comp, trackId));
+    setNote(`Compiled ${comp.storyboard.length} scene(s) onto the video track.`);
+  }
+
+  function runQuickEdit() {
+    if (!comp) return;
+    const next = buildQuickEditMontage(comp, {
+      assetIds: qeSelected.length ? qeSelected : comp.assets.map((a) => a.id),
+      clipDurationMs: Math.round(qeClipSec * 1000),
+      beatAligned: qeBeatAligned,
+      everyNthBeat: 4,
+      replaceVideoTrack: true,
+    });
+    if ("error" in next) {
+      setError(next.error);
+      return;
+    }
+    applyComp(next);
+    const summary = quickEditSummary(next, qeSelected.length ? qeSelected : next.assets.map((a) => a.id), Math.round(qeClipSec * 1000));
+    setNote(`Quick Edit montage · ${summary.clipCount} clips · ~${summary.estimatedDurationLabel}`);
+  }
+
+  async function applyCaptions(opts: { whisper?: boolean } = {}) {
+    if (!comp) return;
+    setCaptionBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/studio/video/${projectId}/captions`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          opts.whisper
+            ? { useWhisper: true }
+            : { transcript: captionText.trim() },
+        ),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Captions failed.");
+        return;
+      }
+      if (data.project?.composition) {
+        applyComp(data.project.composition);
+      } else {
+        await load();
+      }
+      setNote(`Captions applied · ${data.captionCount ?? "?"} lines (${data.source ?? "transcript"})`);
+    } finally {
+      setCaptionBusy(false);
+    }
+  }
+
+  async function nestOtherProject(nestedId: string) {
+    if (!comp) return;
+    const res = await fetch(`/api/studio/video/${nestedId}`, { credentials: "include" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(typeof data.error === "string" ? data.error : "Could not load nested project.");
+      return;
+    }
+    const next = nestProjectAsClip(comp, {
+      nestedProjectId: nestedId,
+      nestedTitle: data.project.title ?? "Sequence",
+      nestedComposition: data.project.composition,
+      atMs: playheadMs,
+    });
+    if ("error" in next) {
+      setError(next.error);
+      return;
+    }
+    applyComp(next);
+    setNote(`Nested sequence “${data.project.title}” placed on timeline.`);
   }
 
   function undo() {
@@ -438,6 +564,172 @@ export default function StudioVideoEditorPage() {
             )}
           </ul>
           <div className="p-2 border-t border-white/10 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Quick Edit</p>
+            <p className="text-[10px] opacity-50 leading-relaxed">
+              Montage wizard: pick clips → auto-arrange → optional beat cuts.
+            </p>
+            <ul className="max-h-28 overflow-y-auto space-y-1">
+              {comp.assets.filter((a) => a.kind === "video" || a.kind === "image").map((a) => {
+                const on = qeSelected.includes(a.id) || qeSelected.length === 0;
+                return (
+                  <li key={a.id}>
+                    <label className="flex items-center gap-1.5 text-[10px] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={qeSelected.includes(a.id)}
+                        onChange={(e) => {
+                          setQeSelected((prev) =>
+                            e.target.checked ? [...prev, a.id] : prev.filter((id) => id !== a.id),
+                          );
+                        }}
+                      />
+                      <span className={on ? "opacity-90" : "opacity-40"}>{a.fileName || a.kind}</span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+            <label className="flex items-center gap-1 text-[10px] opacity-70">
+              Clip sec
+              <input
+                type="number"
+                min={0.5}
+                max={15}
+                step={0.5}
+                value={qeClipSec}
+                onChange={(e) => setQeClipSec(Number(e.target.value) || 2.5)}
+                className="w-14 rounded bg-black/40 border border-white/10 px-1 py-0.5"
+              />
+            </label>
+            <label className="flex items-center gap-1 text-[10px] opacity-70">
+              <input
+                type="checkbox"
+                checked={qeBeatAligned}
+                onChange={(e) => setQeBeatAligned(e.target.checked)}
+              />
+              Beat-aligned cuts
+            </label>
+            <button
+              type="button"
+              onClick={runQuickEdit}
+              className="w-full rounded-lg py-1.5 text-[11px] font-bold bg-sky-700"
+            >
+              Build montage
+            </button>
+          </div>
+
+          <div className="p-2 border-t border-white/10 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Captions</p>
+            <textarea
+              value={captionText}
+              onChange={(e) => setCaptionText(e.target.value)}
+              rows={3}
+              placeholder="Paste transcript…"
+              className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1.5 text-[11px]"
+            />
+            <button
+              type="button"
+              disabled={captionBusy || !captionText.trim()}
+              onClick={() => void applyCaptions()}
+              className="w-full rounded-lg py-1.5 text-[11px] font-bold bg-white/10 disabled:opacity-40"
+            >
+              {captionBusy ? "…" : "Apply transcript"}
+            </button>
+            <button
+              type="button"
+              disabled={captionBusy}
+              onClick={() => void applyCaptions({ whisper: true })}
+              className="w-full rounded-lg py-1.5 text-[11px] font-bold bg-teal-800 disabled:opacity-40"
+              title="Requires OPENAI_API_KEY on the server"
+            >
+              Auto (Whisper)
+            </button>
+          </div>
+
+          <div className="p-2 border-t border-white/10 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Nested sequence</p>
+            {otherProjects.length === 0 ? (
+              <p className="text-[10px] opacity-40">Create another video project to nest it here.</p>
+            ) : (
+              <select
+                className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1.5 text-[11px]"
+                defaultValue=""
+                onChange={(e) => {
+                  const id = e.target.value;
+                  if (id) void nestOtherProject(id);
+                  e.target.value = "";
+                }}
+              >
+                <option value="">Insert project…</option>
+                {otherProjects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="p-2 border-t border-white/10 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Storyboard</p>
+            <p className="text-[10px] opacity-50 leading-relaxed">
+              CapCut-path V2: outline scenes, then compile to the video track.
+            </p>
+            <button
+              type="button"
+              onClick={addScene}
+              className="w-full rounded-lg py-1.5 text-[11px] font-bold bg-white/10 hover:bg-white/15"
+            >
+              Add scene
+            </button>
+            <ul className="max-h-36 overflow-y-auto space-y-1">
+              {[...comp.storyboard]
+                .sort((a, b) => a.order - b.order)
+                .map((s) => (
+                  <li key={s.id} className="rounded-lg border border-white/10 p-1.5 space-y-1">
+                    <input
+                      value={s.name}
+                      onChange={(e) => applyComp(updateStoryboardScene(comp, s.id, { name: e.target.value }))}
+                      className="w-full rounded bg-black/40 border border-white/10 px-1.5 py-1 text-[11px]"
+                    />
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={0.5}
+                        max={60}
+                        step={0.5}
+                        value={s.durationMs / 1000}
+                        onChange={(e) =>
+                          applyComp(
+                            updateStoryboardScene(comp, s.id, {
+                              durationMs: Math.round((Number(e.target.value) || 3) * 1000),
+                            }),
+                          )
+                        }
+                        className="w-16 rounded bg-black/40 border border-white/10 px-1 py-0.5 text-[10px]"
+                      />
+                      <span className="text-[9px] opacity-40">sec</span>
+                      <button
+                        type="button"
+                        className="ml-auto text-[10px] text-red-400 underline"
+                        onClick={() => applyComp(removeStoryboardScene(comp, s.id))}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                ))}
+            </ul>
+            <button
+              type="button"
+              onClick={compileStoryboard}
+              className="w-full rounded-lg py-1.5 text-[11px] font-bold bg-orange-600 disabled:opacity-50"
+              disabled={!comp.storyboard.length}
+            >
+              Compile to timeline
+            </button>
+          </div>
+          <div className="p-2 border-t border-white/10 space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">AI music edit</p>
             <input
               value={aiPrompt}
@@ -470,6 +762,23 @@ export default function StudioVideoEditorPage() {
                 className="absolute inset-0 w-full h-full object-contain transition-opacity"
                 playsInline
               />
+              {(() => {
+                const capTrack = comp.tracks.find((t) => t.kind === "caption");
+                if (!capTrack) return null;
+                const cap = comp.clips.find(
+                  (c) =>
+                    c.trackId === capTrack.id &&
+                    c.captionText &&
+                    playheadMs >= c.startMs &&
+                    playheadMs < c.startMs + c.durationMs,
+                );
+                if (!cap?.captionText) return null;
+                return (
+                  <p className="absolute bottom-3 left-2 right-2 text-center text-[11px] font-bold px-2 py-1 rounded bg-black/70 text-white leading-snug">
+                    {cap.captionText}
+                  </p>
+                );
+              })()}
               {!comp.clips.some((c) => c.sourceUrl) ? (
                 <p className="absolute inset-0 flex items-center justify-center text-xs opacity-40 px-4 text-center">
                   Upload media and add clips to preview
@@ -882,14 +1191,115 @@ function ClipInspector({
       </label>
       <label className="block opacity-80">
         Speed
+        <div className="flex flex-wrap gap-1 mt-1 mb-1">
+          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange({ speed: s })}
+              className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                Math.abs(clip.speed - s) < 0.01 ? "bg-orange-600" : "bg-white/10"
+              }`}
+            >
+              {s}×
+            </button>
+          ))}
+        </div>
         <input
-          type="number"
+          type="range"
           min={0.25}
           max={4}
-          step={0.25}
-          className="mt-0.5 w-full rounded bg-black/40 border border-white/10 px-2 py-1"
+          step={0.05}
+          className="w-full"
           value={clip.speed}
           onChange={(e) => onChange({ speed: Math.max(0.25, Number(e.target.value) || 1) })}
+        />
+        <span className="text-[10px] opacity-50">{clip.speed.toFixed(2)}× playback</span>
+      </label>
+
+      {clip.nestedProjectId ? (
+        <p className="text-[10px] text-sky-300/90 leading-relaxed">
+          Nested sequence · {clip.nestedProjectId.slice(0, 8)}…
+        </p>
+      ) : null}
+
+      <label className="block opacity-80">
+        Caption text
+        <textarea
+          className="mt-0.5 w-full rounded bg-black/40 border border-white/10 px-2 py-1 text-[11px]"
+          rows={2}
+          value={clip.captionText ?? ""}
+          onChange={(e) => onChange({ captionText: e.target.value.slice(0, 500) || null })}
+          placeholder="On-screen caption for this clip"
+        />
+      </label>
+
+      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300/90 pt-1">Color</p>
+      <label className="block opacity-80">
+        Brightness
+        <input
+          type="range"
+          min={-1}
+          max={1}
+          step={0.05}
+          className="w-full"
+          value={clip.brightness ?? 0}
+          onChange={(e) => onChange({ brightness: Number(e.target.value) })}
+        />
+      </label>
+      <label className="block opacity-80">
+        Contrast
+        <input
+          type="range"
+          min={-1}
+          max={1}
+          step={0.05}
+          className="w-full"
+          value={clip.contrast ?? 0}
+          onChange={(e) => onChange({ contrast: Number(e.target.value) })}
+        />
+      </label>
+      <label className="block opacity-80">
+        Saturation
+        <input
+          type="range"
+          min={-1}
+          max={1}
+          step={0.05}
+          className="w-full"
+          value={clip.saturation ?? 0}
+          onChange={(e) => onChange({ saturation: Number(e.target.value) })}
+        />
+      </label>
+
+      <p className="text-[10px] font-bold uppercase tracking-wider text-lime-300/90 pt-1">Chroma key</p>
+      <label className="flex items-center gap-2 text-[11px] opacity-80">
+        <input
+          type="checkbox"
+          checked={Boolean(clip.chromaEnabled)}
+          onChange={(e) => onChange({ chromaEnabled: e.target.checked })}
+        />
+        Enable (preview uses key color; full canvas keying in export later)
+      </label>
+      <label className="block opacity-80">
+        Key color
+        <input
+          type="color"
+          className="mt-0.5 w-full h-8 rounded border border-white/10 bg-transparent"
+          value={clip.chromaColor ?? "#00FF00"}
+          onChange={(e) => onChange({ chromaColor: e.target.value })}
+        />
+      </label>
+      <label className="block opacity-80">
+        Similarity
+        <input
+          type="range"
+          min={0.05}
+          max={1}
+          step={0.05}
+          className="w-full"
+          value={clip.chromaSimilarity ?? 0.4}
+          onChange={(e) => onChange({ chromaSimilarity: Number(e.target.value) })}
         />
       </label>
 

@@ -32,9 +32,9 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | **Kebu Product Architect Phase** | **IMPLEMENTED** (docs + rules) | `docs/product/KEBU-PRODUCT-ARCHITECT-PHASE.md` · `kebu-product-architect.mdc` — decompose before code; product density; no MVP aesthetics; vertical slices not horizontal shells |
 | **Kebu Product Rules (five specs, quality gate, no fake UI)** | **IMPLEMENTED** (docs + rules) | `docs/product/PRODUCT_RULES.md` · `DEFINITION_OF_DONE.md` · `QUALITY_GATE.md` · `DESIGN_SYSTEM.md` · `kebu-no-fake-functionality.mdc` · Playwright visual regression **NOT STARTED** |
 | **CI gate chain + GitHub Actions** | **IN PROGRESS** | `docs/CI_PIPELINE.md` · `.github/workflows/ci.yml` · `npm run ci` · `kebu-ci-gate.mdc` — typecheck/lint/test failures must be repaired before green deploy |
-| **Engineering Health / Bug Sentinel** | **NOT STARTED** | `docs/ENGINEERING_HEALTH.md` — nightly checks + internal dashboard + controlled AI triage |
+| **Engineering Health / Bug Sentinel** | **IN PROGRESS** | Spec still full Sentinel. Ops slice: Kebu Record shows cron runs + failing site probes (**083**). Full Bug Sentinel later. |
 | **Feature folder structure (`features/`)** | **NOT STARTED** (documented) | `docs/FOLDER_STRUCTURE.md` — adopt incrementally on new slices |
-| **Kebu pricing philosophy** | **IMPLEMENTED** (docs + catalog) | `docs/product/KEBU-PRICING.md` · `kebu-pricing.mdc` · `lib/billing/plans.ts` · `/pricing`. Free→Pro ($0/$2/$5/$10/$20) + Student $1. Limit enforcement + transaction fees + student verification **NOT STARTED**. |
+| **Kebu pricing philosophy** | **IMPLEMENTED** (docs + catalog) | `docs/product/KEBU-PRICING.md` · limits enforced: customDomain · store · maxProducts · **maxWebsites** · **AI monthly metering (081)**. Student verification / transaction fees still later. |
 | Kebu Builder — core editor | **IMPLEMENTED** | On-canvas duplicate/remove/move + inline text; Aesthetics apply CSS vars + `aestheticId` persist |
 | Kebu Builder — merchant site hub | **IMPLEMENTED** | `/my-sites/[id]` — **Kebu Business** IA tree (`lib/navigation/kebu-business-nav.ts`) |
 | Kebu Builder — publish multipage sync | **IMPLEMENTED** | Portfolio design worlds sync pages before go-live (`ensureProjectPagesBeforePublish`). **Owner drafts (May Lecor):** seed sync on every `GET /api/projects/[id]` via `MAYLECOR_SEED_REVISION` — draft preview updates without publish; live still needs Publish. |
@@ -43,10 +43,10 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Kebu Builder — custom domains | **IN PROGRESS** | API + UI + middleware + tests; migration **015**; DNS target `cname.vercel-dns.com` (accepts `*.vercel.app`); repair **030**; **must deploy latest code** for verify to stop expecting `*.kebu.africa` |
 | Kebu Builder — pages CRUD | **IMPLEMENTED** | B2 Pages panel + API; see Creation Stack roadmap for B8 next |
 | Kebu Builder — SEO/settings | **IN PROGRESS** | Advanced SEO: JSON-LD, auto description, sitemap.xml/robots.txt routes, Search Console field; Domain & SEO panel outside editor |
-| Support desk (help with user sites) | **IN PROGRESS** | `/support` + `KEBU_SUPPORT_ADMIN_EMAILS`; audited open/edit via service role on project GET/sections/assets |
+| Support desk (help with user sites) | **IN PROGRESS** | `/support` + `KEBU_SUPPORT_ADMIN_EMAILS`. Help requests: `/contact` → `help_requests` → `/admin/record` mark Helped (**083**). |
 | Kebu Builder — stores/commerce | **IN PROGRESS** | Shop admin: Products · Orders · Customers · Payments · Abandoned · Messages. **JOKO product pay** (K21 renamed) · PayPal · Paystack · Wave. **Fulfillment** + **customer profiles** · **Demo order 1/2** for merchants. Apply `APPLY_SHOP_ORDERS.sql` through **055**. |
-| Kebu Shop (merchant admin) | **IN PROGRESS** | Dashboard · analytics · alerts (**067**) · Joko-default + Cauris + ledger (**068**) · SN→GH shipping (**069**) · **seller trust (Kebu ID + AfriID gate for Joko / product soft-cap)** |
-| Kebu Studio | **IN PROGRESS** | **Brand DNA** (`/studio/brand`, API, migration **076**) + **Creative Director campaigns** (`/studio/campaigns`, generate pack from DNA). Music timeline V1–V3 on `/studio/video`. Fonts/brand apply/posters. **Apply 076.** **Later:** folders/version · elements pack · live cursors · CapCut-complete |
+| Kebu Shop (merchant admin) | **IN PROGRESS** | Dashboard · analytics · alerts (**067**) · Joko-default + Cauris + ledger (**068**) · SN→GH shipping (**069**) · **seller trust (Kebu ID + AfriID gate for Joko / product soft-cap)** · Partner checkout **`amount_xof` + phone** + fulfill via `POST /v1/messages/send` (**code ready**; live pay **ops-gated** on Joko `db:setup` + matching secrets — ADR `2026-09-08-joko-partner-api-align`) |
+| Kebu Studio | **IN PROGRESS** | Design OS S17–S20 + S9b. Video: music V1–V3 · storyboard · **Quick Edit montage** · **clip speed UI** · **captions** (transcript + Whisper when keyed) · **color grade** · **chroma settings** · **nested sequences**. Apply **077–080**. **Not full NLE:** canvas chroma export · multicam · LUTs · proxies · 4K pro export · nested live edit-in-place |
 | Kebu Reach | **IN PROGRESS** | **S10a** tracked `/r/…` · **S10b** paid Reach Board + CPC bidding + viewport impressions + wallet (**074**). **NOT:** Search/Shop/RECT multi-inventory · card charge for ads · fake ROI |
 | Kebu Builder ↔ Kebu ID link | **IMPLEMENTED** | `business_id` on projects; dashboard shows sites; publish syncs website URL |
 | Kebu Business Infrastructure — Kebu ID | **TESTED** | Draft create + dashboard + security tests |
@@ -64,12 +64,12 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Opportunity OS — program listings (DB) | **Opportunity OS** | **IMPLEMENTED** | `/opportunity/listings` · `/api/opportunity/listings` · detail `/opportunity/[id]` · save `/api/opportunity/saved` · seed `POST /api/opportunity/listings/seed` · migration **060** metadata |
 | Sample `/opportunity/[id]` & `/api/opportunities` | **Opportunity OS** | **IMPLEMENTED** | Wired to Supabase `opportunities` — no in-memory sample in API/detail |
 | Kebu Domains (product) | **IN PROGRESS** | Connect domain slice (subset of Builder) |
-| Kebu Analytics | **IN PROGRESS** | Site beacons (`032`) + Shop analytics + **My Space → Analytics** loads real `/api/projects/[id]/analytics` (72h) |
-| Kebu AI — improve/generate | **IN PROGRESS** | Server routes; metering incomplete |
+| Kebu Analytics | **IN PROGRESS** | Site beacons (**032**) + Shop insights + My Space. **Depth:** top pages · referrers · countries · 30-day range on site detail. Beacon → DB → dashboard loop live. |
+| Kebu AI — improve/generate | **IN PROGRESS** | Server routes + **monthly AI metering** (`account_ai_usage_events` **081**) on improve · website AI create · Studio generate. Apply **081**. **B6 section accept/reject** in sidebar + command bar; canvas merges accepted sections only. |
 | Kebu Cloud | **NOT STARTED** | Compatibility only |
 | Kebu Mail | **NOT STARTED** | `docs/product/KEBU-MAIL.md` — real email via provider abstraction; personal `@kebu.africa` free; business on verified domains |
 | Billing / JOKO hosting | **IN PROGRESS** | Monthly renew, autopay toggle, expire/suspend live sites; founder exempt |
-| Site health cron | **IN PROGRESS** | Cron route; needs `CRON_SECRET` + deploy |
+| Site health cron | **IN PROGRESS** | Cron route + Vercel schedule; needs `CRON_SECRET` + deploy |
 
 ---
 
@@ -85,7 +85,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Data Saver + KB budgets + offline queue | **IMPLEMENTED** | Modes across **Builder · Shop · Account** (AppShell dock + Account settings). Queued `place_order` + `save_section` (honest “Not saved yet”). Ultra text-first. App SW `sw-kebu-app.js` network-first for visited shells; sites keep `sw-site.js`. KB: open site/builder/shop/account, save section/profile, place order, upload. |
 | Kebu Builder — product thinking doc | **IMPLEMENTED** (docs) | `docs/product/KEBU-BUILDER-PRODUCT-THINKING.md` — mature product feel vs visual clone; reference evidence required |
 | Reference screenshots (`docs/reference/*.png`) | **NOT STARTED** | Dossiers live; upload annotated screenshots before sophisticated UX slices |
-| AI improve (Yande) | **IN PROGRESS** | `/api/projects/[id]/ai-improve/preview` + `/apply` · command bar + sidebar preview → apply; **B1 IMPLEMENTED** — section-level accept/reject **NOT STARTED** |
+| AI improve (Yande) | **IN PROGRESS** | `/api/projects/[id]/ai-improve/preview` + `/apply` · command bar + sidebar preview → apply; **B6 section accept/reject IMPLEMENTED** (checkboxes + partial canvas merge) |
 | AI generate (words → site) | **IN PROGRESS** | `/create/new?mode=ai` → `create-website`; multi-page structured draft; LLM fallback honest |
 | Undo/redo | **IMPLEMENTED** | Client-only history |
 | Multi-page sites | **IN PROGRESS** | `/api/projects/[id]/pages` |
@@ -106,7 +106,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Middleware subdomain rewrite | **IMPLEMENTED** |
 | Live deployment snapshot | **IN PROGRESS** | `deployments` table |
 | Sync published URL to business profile | **IMPLEMENTED** | On publish when `business_id` set |
-| Hosting billing (JOKO) | **IN PROGRESS** | Tiers Free/$0 · Starter $2 · **Shop $5 (hero)** · Business $10 · Pro $20 (+ Student $1). Catalog + `/pricing` + subscribe by `tier`; Free auto-entitlement for publish (**038 RLS**); autopay + expire cron **035/036**. Limits/store gates not fully enforced yet. Needs JOKO env + cron. |
+| Hosting billing (JOKO) | **IN PROGRESS** | Tiers Free/$0 · Starter $2 · **Shop $5 (hero)** · Business $10 · Pro $20 (+ Student $1). Catalog + `/pricing` + subscribe by `tier`; Free auto-entitlement for publish (**038 RLS**); autopay + expire cron **035/036**. Server limits: customDomain · store · maxProducts · **maxWebsites** · AI metering (**081**). **Vercel cron** for `billing-monthly`; charged autopay activates in-cron. Needs JOKO env + `CRON_SECRET`. |
 
 ### Custom domains & Kebu Domains
 | Slice | Status |
@@ -122,7 +122,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Slice | Status |
 |-------|--------|
 | Store create/publish | **IN PROGRESS** | `/api/store/*` |
-| Products, cart, checkout | **IN PROGRESS** | Catalog + UPC + cart (`046`) + stock (`047`). Apply `APPLY_SHOP_ORDERS.sql`. |
+| Products, cart, checkout | **IN PROGRESS** | Catalog + UPC + cart (`046`) + stock (`047`). **Phone-first** checkout; email optional (required for card/PayPal). **SMS on fulfill** (Africa’s Talking). Email OTP APIs optional (082). Apply `APPLY_SHOP_ORDERS.sql`. |
 | Multi-item cart checkout | **IMPLEMENTED** | Live FAB cart · Add to cart · `shop_order_items` · draft upsert · WhatsApp multi-line · never browser-paid |
 | Abandoned cart recovery | **IMPLEMENTED** | `shop_cart_drafts` · live draft POST · Shop → Abandoned (idle ≥30m) · WhatsApp / Resend recovery · mark recovered · never marks paid |
 | Product stock / inventory | **IMPLEMENTED** | Optional `track_stock` + `stock_qty`; decrement on order/cart; restore on cancel; Shop Products UI |
@@ -351,7 +351,7 @@ RECT Artist OS SQL (tracks/plays/fan club/live rooms) is a **separate product sc
 | — | Fulfillment + customer profiles + demo orders | **IMPLEMENTED** | Apply **054–055** · Shop → Orders/Customers |
 | 7 | Finish publish/hosting gates + Free entitlement in prod | **IN PROGRESS** |
 | 8 | Custom domain verify fully live in prod | **IN PROGRESS** |
-| 9 | AI metering / cost controls | **NOT STARTED** |
+| 9 | AI metering / cost controls | **IMPLEMENTED** | Migration **081** · `GET /api/account/usage` · improve / create / Studio generate |
 | 10 | Opportunity OS industry / resource / trade explorers | **NOT STARTED** |
 | 11 | Build This → Builder handoff | **NOT STARTED** |
 | 12 | Team invites · Kebu ID levels 2–4 | **Team invites IMPLEMENTED (055)** · levels 2–4 still **NOT STARTED** |

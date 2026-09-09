@@ -85,6 +85,19 @@ export async function POST(req: Request, { params }: Params) {
     }
   }
 
+  let customerUserId: string | null = null;
+  try {
+    const browser = await createServerSupabase();
+    const {
+      data: { user: shopper },
+    } = await browser.auth.getUser();
+    if (shopper?.id) customerUserId = shopper.id;
+  } catch {
+    /* guest OK */
+  }
+
+  const customerEmail = parsed.data.customerEmail?.trim().toLowerCase() || null;
+
   const resolved = await resolveCartLines(admin, live.project_id, parsed.data.items);
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: 400 });
@@ -96,19 +109,6 @@ export async function POST(req: Request, { params }: Params) {
   );
   if (!stock.ok) {
     return NextResponse.json({ error: stock.error }, { status: 409 });
-  }
-
-  const customerEmail = parsed.data.customerEmail ?? null;
-
-  let customerUserId: string | null = null;
-  try {
-    const browser = await createServerSupabase();
-    const {
-      data: { user: shopper },
-    } = await browser.auth.getUser();
-    if (shopper?.id) customerUserId = shopper.id;
-  } catch {
-    /* guest OK */
   }
 
   if (parsed.data.sessionKey) {
@@ -150,16 +150,16 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: created.error }, { status: 500 });
   }
 
-  const { data: projectRow } = await admin
+  const { data: bizProject } = await admin
     .from("projects")
     .select("business_id")
     .eq("id", live.project_id)
     .maybeSingle();
 
-  if (customerEmail && projectRow?.business_id) {
+  if (customerEmail && bizProject?.business_id) {
     try {
       await upsertOrderSubscriber(admin, {
-        businessId: projectRow.business_id as string,
+        businessId: bizProject.business_id as string,
         projectId: live.project_id,
         email: customerEmail,
         name: parsed.data.customerName,

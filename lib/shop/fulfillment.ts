@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendCampaignEmail } from "@/lib/email/send-campaign";
 import { normalizeWhatsAppPhone, whatsAppOrderHref } from "@/lib/create/site-commerce";
+import { sendJokoPartnerMessage } from "@/lib/joko/payments";
+import { sendAfricaTalkingSms } from "@/lib/notifications";
 import {
   buildTrackingUrl,
   carrierLabel,
@@ -19,7 +21,15 @@ export const SHOP_ORDER_FULFILL_STATUSES = [
 
 export type ShopFulfillStatus = (typeof SHOP_ORDER_FULFILL_STATUSES)[number];
 
-export type FulfillNotifyVia = "email" | "whatsapp" | "both" | "none";
+/** Phone-first: sms is primary for African buyers. */
+export type FulfillNotifyVia =
+  | "sms"
+  | "whatsapp"
+  | "sms_whatsapp"
+  | "email"
+  | "both"
+  | "all"
+  | "none";
 
 export type FulfillOrderInput = {
   orderId: string;
@@ -43,7 +53,7 @@ export function trackingMessage(opts: {
 }): string {
   const lines = [
     `Hi — update from ${opts.shopName}.`,
-    `Your order ${opts.orderLabel} is on the way.`,
+    `Your order ${opts.orderLabel} was marked delivered / on the way.`,
   ];
   if (opts.carrier && opts.carrier !== "pickup") {
     lines.push(`Carrier: ${carrierLabel(opts.carrier)}`);
@@ -52,7 +62,7 @@ export function trackingMessage(opts: {
     lines.push(`Tracking: ${opts.trackingNumber}`);
   }
   if (opts.trackingUrl) {
-    lines.push(`Track here: ${opts.trackingUrl}`);
+    lines.push(`Track: ${opts.trackingUrl}`);
   }
   if (opts.carrier === "pickup") {
     lines.push("Ready for pickup — reply if you need directions.");
@@ -67,12 +77,52 @@ export async function notifyCustomerOrderUpdate(opts: {
   subject: string;
   text: string;
   shopName: string;
-}): Promise<{ emailed: boolean; whatsappHref: string | null }> {
+}): Promise<{
+  emailed: boolean;
+  smsSent: boolean;
+  whatsappHref: string | null;
+  jokoSent: boolean;
+  jokoChannel: string | null;
+}> {
   let emailed = false;
+  let smsSent = false;
   let whatsappHref: string | null = null;
+  let jokoSent = false;
+  let jokoChannel: string | null = null;
 
-  const wantEmail = opts.notifyVia === "email" || opts.notifyVia === "both";
-  const wantWa = opts.notifyVia === "whatsapp" || opts.notifyVia === "both";
+  const via = opts.notifyVia;
+  const wantSms = via === "sms" || via === "sms_whatsapp" || via === "all";
+  const wantWa =
+    via === "whatsapp" ||
+    via === "sms_whatsapp" ||
+    via === "both" ||
+    via === "all";
+  const wantEmail = via === "email" || via === "both" || via === "all";
+  const wantPhoneMessage = wantSms || wantWa;
+
+  // Prefer Joko Partner send (Mbolo → SMS) when configured — Africa’s Talking is fallback.
+  if (wantPhoneMessage && opts.customerPhone) {
+    const phone = normalizeWhatsAppPhone(opts.customerPhone);
+    if (phone) {
+      const joko = await sendJokoPartnerMessage({
+        toPhone: `+${phone}`,
+        text: opts.text,
+        channel: "mbolo_auto",
+        metadata: { kind: "shop_fulfill_notify" },
+      });
+      if (joko.ok) {
+        jokoSent = true;
+        jokoChannel = joko.channelUsed;
+        if (joko.channelUsed === "sms" || wantSms) smsSent = true;
+      } else if (wantSms && joko.configured === false) {
+        const sms = await sendAfricaTalkingSms(phone, opts.text);
+        smsSent = sms.ok;
+      } else if (wantSms && !joko.ok) {
+        const sms = await sendAfricaTalkingSms(phone, opts.text);
+        smsSent = sms.ok;
+      }
+    }
+  }
 
   if (wantEmail && opts.customerEmail?.includes("@")) {
     const from =
@@ -91,14 +141,15 @@ export async function notifyCustomerOrderUpdate(opts: {
     });
   }
 
-  if (wantWa && opts.customerPhone) {
+  // Manual WhatsApp deep-link when Joko did not deliver and merchant wants WA.
+  if (wantWa && opts.customerPhone && !jokoSent) {
     const phone = normalizeWhatsAppPhone(opts.customerPhone);
     if (phone) {
       whatsappHref = whatsAppOrderHref(phone, opts.text);
     }
   }
 
-  return { emailed, whatsappHref };
+  return { emailed, smsSent, whatsappHref, jokoSent, jokoChannel };
 }
 
 export async function fulfillShopOrder(
@@ -111,6 +162,7 @@ export async function fulfillShopOrder(
       order: Record<string, unknown>;
       whatsappHref: string | null;
       emailed: boolean;
+      smsSent: boolean;
     }
   | { ok: false; error: string; status?: number }
 > {
@@ -170,7 +222,7 @@ export async function fulfillShopOrder(
 
   const notifyVia: FulfillNotifyVia =
     opts.notifyVia ??
-    (opts.emailCustomer ? "email" : opts.action === "fulfill" ? "both" : "none");
+    (opts.emailCustomer ? "email" : opts.action === "fulfill" ? "whatsapp" : "none");
 
   const { data: updated, error } = await supabase
     .from("shop_orders")
@@ -198,7 +250,9 @@ export async function fulfillShopOrder(
     String(updated.id).replace(/-/g, "").slice(0, 8).toUpperCase();
 
   let emailed = false;
+  let smsSent = false;
   let whatsappHref: string | null = null;
+  let jokoSent = false;
 
   const shouldNotify =
     notifyVia !== "none" &&
@@ -223,14 +277,18 @@ export async function fulfillShopOrder(
       shopName,
     });
     emailed = result.emailed;
+    smsSent = result.smsSent;
     whatsappHref = result.whatsappHref;
+    jokoSent = result.jokoSent;
 
-    if (emailed || whatsappHref) {
+    if (emailed || smsSent || whatsappHref || jokoSent) {
       await supabase
         .from("shop_orders")
         .update({
           customer_notified_at: now,
-          customer_notify_via: notifyVia,
+          customer_notify_via: jokoSent
+            ? `joko:${result.jokoChannel ?? "mbolo_auto"}`
+            : notifyVia,
         })
         .eq("id", opts.orderId)
         .eq("project_id", opts.projectId);
@@ -253,5 +311,6 @@ export async function fulfillShopOrder(
     order: updated as Record<string, unknown>,
     whatsappHref,
     emailed,
+    smsSent,
   };
 }

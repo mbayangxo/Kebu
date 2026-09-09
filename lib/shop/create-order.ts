@@ -28,6 +28,12 @@ export const shopOrderInputSchema = z
       (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
       z.string().trim().email().max(254).optional(),
     ),
+    emailVerificationToken: z
+      .preprocess(
+        (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+        z.string().trim().min(16).max(128).optional(),
+      )
+      .optional(),
     quantity: z.coerce.number().int().min(1).max(20).default(1),
     paymentPreference: z.enum(SHOP_PAYMENT_PREFERENCES).optional().default("whatsapp"),
     /** Client hint: share · social · qr · web — where the buyer came from. */

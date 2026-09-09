@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { StudioCanvasEditor } from "@/app/components/studio/studio-canvas-editor";
 import { StudioBrandKitPanel } from "@/app/components/studio/studio-brand-kit-panel";
 import { StudioSharePanel } from "@/app/components/studio/studio-share-panel";
+import { StudioVersionHistoryPanel } from "@/app/components/studio/studio-version-history-panel";
+import { StudioCommentsPanel } from "@/app/components/studio/studio-comments-panel";
 import { StudioReachPromote } from "@/app/components/studio/studio-reach-promote";
 import { StudioResizeDialog } from "@/app/components/studio/studio-resize-dialog";
 import { StudioTimelinePanel } from "@/app/components/studio/studio-timeline-panel";
@@ -46,6 +48,7 @@ export default function StudioEditorPage() {
   const designId = params.id;
   const [design, setDesign] = useState<Design | null>(null);
   const [access, setAccess] = useState<StudioDesignAccess | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [doc, setDoc] = useState<CanvasDocument | null>(null);
   const [activePageId, setActivePageId] = useState<string>("");
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
@@ -56,6 +59,8 @@ export default function StudioEditorPage() {
   const [exportNote, setExportNote] = useState<string | null>(null);
   const [showBrandKit, setShowBrandKit] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const [showResize, setShowResize] = useState(false);
   const [showCoach, setShowCoach] = useState(true);
   const [packBusy, setPackBusy] = useState(false);
@@ -83,6 +88,7 @@ export default function StudioEditorPage() {
     const d = data.design as Design;
     setDesign(d);
     if (data.access) setAccess(data.access as StudioDesignAccess);
+    if (typeof data.userId === "string") setUserId(data.userId);
     const parsed = parseCanvasDocument(d.canvas, d.design_type as StudioDesignType);
     skipHistory.current = true;
     setDoc(parsed);
@@ -487,7 +493,39 @@ export default function StudioEditorPage() {
         </label>
         <button
           type="button"
-          onClick={() => setShowShare((v) => !v)}
+          onClick={() => {
+            setShowVersions((v) => !v);
+            if (!showVersions) {
+              setShowShare(false);
+              setShowComments(false);
+            }
+          }}
+          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 bg-white"
+        >
+          Versions
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setShowComments((v) => !v);
+            if (!showComments) {
+              setShowShare(false);
+              setShowVersions(false);
+            }
+          }}
+          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 bg-white"
+        >
+          Comments
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setShowShare((v) => !v);
+            if (!showShare) {
+              setShowVersions(false);
+              setShowComments(false);
+            }
+          }}
           className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
           style={{ background: "#E05A2B" }}
         >
@@ -529,6 +567,28 @@ export default function StudioEditorPage() {
         >
           Show Teach me lessons
         </button>
+      ) : null}
+
+      {showVersions ? (
+        <div className="px-4 py-3 border-b bg-white shrink-0 max-w-xl">
+          <StudioVersionHistoryPanel
+            designId={designId}
+            canEdit={canEdit}
+            onRestored={() => {
+              void load();
+            }}
+          />
+        </div>
+      ) : null}
+
+      {showComments ? (
+        <div className="px-4 py-3 border-b bg-white shrink-0 max-w-xl">
+          <StudioCommentsPanel
+            designId={designId}
+            userId={userId}
+            isOwner={access?.role === "owner"}
+          />
+        </div>
       ) : null}
 
       {showShare ? (
@@ -587,8 +647,10 @@ export default function StudioEditorPage() {
         canUndo={canEdit && history.length > 0}
         canRedo={canEdit && future.length > 0}
         readOnly={!canEdit}
-        previewLocalMs={pageLocalTimeMs(doc, playheadMs)?.localMs ?? 0}
+        liveCursorsUserId={userId}
+        liveCursorsLabel={access?.role === "owner" ? "Owner" : access?.role === "editor" ? "Editor" : "Viewer"}
         businessId={design.business_id}
+        previewLocalMs={pageLocalTimeMs(doc, playheadMs)?.localMs ?? 0}
       />
       <StudioTimelinePanel
         designId={designId}

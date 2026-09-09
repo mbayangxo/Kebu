@@ -101,15 +101,15 @@ Canvas layers · multi-page · pan · multi-select · align/group · upload imag
 | **S14** | **Resize design** — change artboard / format keep layers | ✅ |
 | **S15** | **Export pack** — PDF · ZIP multi-page PNG | ✅ |
 | **S16** | **Uploads library** — reusable assets across designs | ✅ (apply **073**) |
-| **S17** | **Folders / collections** | Home organization |
-| **S18** | **Version history** | Restore prior canvas |
-| **S19** | **Elements pack** — icons / lines / frames (structured) | Elements tab depth |
-| **S20** | **Comments** (async) | Collab without CRDT |
+| **S17** | **Folders / collections** | ✅ Apply **077** |
+| **S18** | **Version history** | ✅ Apply **078** |
+| **S19** | **Elements pack** — icons / lines / frames (structured) | ✅ |
+| **S20** | **Comments** (async) | ✅ Apply **079** |
 | S8b | **Page timeline** — durations · playhead · video-seek WebM | ✅ First CapCut-class slice |
 | **S8c-lite** | **Music analysis + beat grid** — soundtrack · BPM · markers · snap | ✅ |
 | **Composition** | Multi-track / storyboard **schema** (`lib/studio/composition.ts`) | ✅ Architecture — not CapCut UI |
-| S8c / V2+ | Storyboard · Quick Edit · multi-track UI · keyframes | ❌ Per `KEBU-STUDIO-VIDEO-ARCHITECTURE.md` |
-| S9b | Realtime cursors | Figma class — later |
+| S8c / V2+ | Storyboard UI compile · Quick Edit · … | 🟡 Storyboard panel live; Quick Edit / captions later |
+| S9b | Realtime cursors | ✅ Supabase Presence |
 
 **Framing:** full creative studio (Design · Image · Video · Audio · AI · Brand · Publish) — not Canva+CapCut frankenstein. Same project: Quick Edit → Full Timeline.
 

@@ -6,6 +6,7 @@ import {
   nextBillingDate,
   subscriptionOrderNote,
 } from "@/lib/shop/subscriptions";
+import { recordPlatformCronRun } from "@/lib/platform/cron-runs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
 
   const supabase = createClient(supabaseUrl, serviceKey);
   const nowIso = new Date().toISOString();
+  const startedAt = new Date();
 
   const { data: due, error } = await supabase
     .from("shop_subscriptions")
@@ -107,12 +109,20 @@ export async function GET(req: NextRequest) {
     renewed += 1;
   }
 
-  return NextResponse.json({
+  const summary = {
     ok: true,
     due: due?.length ?? 0,
     renewed,
     failed,
     errors: errors.slice(0, 20),
     checkedAt: nowIso,
+  };
+  await recordPlatformCronRun(supabase, {
+    jobName: "shop-subscriptions",
+    status: failed > 0 ? (renewed === 0 ? "error" : "partial") : "ok",
+    startedAt,
+    summary,
+    errorMessage: failed > 0 ? errors.slice(0, 3).join("; ") : null,
   });
+  return NextResponse.json(summary);
 }

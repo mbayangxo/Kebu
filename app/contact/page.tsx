@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { KebuMarketingPageShell } from "@/app/components/landing/kebu-marketing-chrome";
-import { KEBU_SUPPORT_EMAIL } from "@/lib/navigation/marketing-nav";
+import { ContactHelpForm } from "@/app/components/contact/contact-help-form";
 import { KEBU } from "@/lib/kebu-brand";
 
 export const metadata = {
   title: "Contact us — Kebu",
-  description: "Get in touch with the Kebu team.",
+  description: "Get in touch with the Kebu team — help requests go to the ops portal.",
 };
 
 export default function ContactPage() {
@@ -19,26 +18,10 @@ export default function ContactPage() {
           Talk to Kebu
         </h1>
         <p className="text-base leading-relaxed mb-8" style={{ color: KEBU.muted }}>
-          Questions about your account, building a site, or partnering with Kebu? Email us — we read every message.
+          Questions about your account, building a site, or partnering with Kebu? Send a help request — it
+          lands in the Kebu Record admin portal for the team.
         </p>
-        <a
-          href={`mailto:${KEBU_SUPPORT_EMAIL}`}
-          className="inline-flex rounded-full px-8 py-4 text-sm font-bold uppercase tracking-wider text-white"
-          style={{ background: KEBU.orange }}
-        >
-          {KEBU_SUPPORT_EMAIL}
-        </a>
-        <p className="text-sm mt-8" style={{ color: KEBU.faint }}>
-          For help using the product, see the{" "}
-          <Link href="/help" className="underline" style={{ color: KEBU.orange }}>
-            Help center
-          </Link>{" "}
-          and{" "}
-          <Link href="/faqs" className="underline" style={{ color: KEBU.orange }}>
-            FAQs
-          </Link>
-          .
-        </p>
+        <ContactHelpForm />
       </div>
     </KebuMarketingPageShell>
   );

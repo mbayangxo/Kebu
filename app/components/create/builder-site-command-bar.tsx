@@ -7,12 +7,14 @@ import {
   YANDE_SUGGESTIONS_IMPROVE,
 } from "@/lib/create/builder-ui";
 import type { BuilderDevice } from "@/lib/create/builder-device";
+import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 
 export type YandeImproveMode = "free" | "redesign" | "page" | "rewrite" | "convert";
 
 /**
  * Floating “Ask your site” bar — preview proposed AI edits before persisting.
  * Modes A5–A8 map to redesign · page · rewrite · convert.
+ * Section checkboxes = B6 accept/reject (same as sidebar panel).
  */
 export function BuilderSiteCommandBar({
   value,
@@ -25,6 +27,11 @@ export function BuilderSiteCommandBar({
   busy = false,
   device,
   preview,
+  sectionChanges = [],
+  acceptedSectionIds,
+  onToggleSection,
+  onSelectAllSections,
+  onClearAllSections,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -36,8 +43,14 @@ export function BuilderSiteCommandBar({
   busy?: boolean;
   device: BuilderDevice;
   preview?: { intents: string[]; repaired?: boolean } | null;
+  sectionChanges?: AiSectionChange[];
+  acceptedSectionIds?: Set<string>;
+  onToggleSection?: (sectionId: string) => void;
+  onSelectAllSections?: () => void;
+  onClearAllSections?: () => void;
 }) {
   const reviewing = Boolean(preview);
+  const hasSections = sectionChanges.length > 0 && acceptedSectionIds && onToggleSection;
 
   return (
     <div
@@ -61,7 +74,9 @@ export function BuilderSiteCommandBar({
             </p>
             <p className="text-[10px] leading-snug truncate" style={{ color: BUILDER.muted }}>
               {reviewing
-                ? "Canvas shows the preview — apply to save your draft or discard"
+                ? hasSections
+                  ? "Uncheck sections you do not want — canvas updates · apply saves draft"
+                  : "Canvas shows the preview — apply to save your draft or discard"
                 : `A5–A8 modes · preview before saving · ${device} view`}
             </p>
           </div>
@@ -69,19 +84,78 @@ export function BuilderSiteCommandBar({
 
         {reviewing && preview ? (
           <div className="space-y-3">
-            <ul
-              className="max-h-36 overflow-y-auto space-y-1.5 rounded-xl p-3 text-xs leading-relaxed"
-              style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}
-            >
-              {preview.intents.map((intent) => (
-                <li key={intent} className="flex gap-2" style={{ color: BUILDER.ink }}>
-                  <span aria-hidden style={{ color: BUILDER.orange }}>
-                    •
-                  </span>
-                  <span>{intent}</span>
-                </li>
-              ))}
-            </ul>
+            {hasSections ? (
+              <div className="space-y-2">
+                <div className="flex justify-end gap-2 text-[10px] font-semibold">
+                  <button
+                    type="button"
+                    className="underline"
+                    style={{ color: BUILDER.muted }}
+                    onClick={onSelectAllSections}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className="underline"
+                    style={{ color: BUILDER.muted }}
+                    onClick={onClearAllSections}
+                  >
+                    None
+                  </button>
+                </div>
+                <ul
+                  className="max-h-36 overflow-y-auto space-y-1.5 rounded-xl p-2 text-xs"
+                  style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}
+                >
+                  {sectionChanges.map((change) => {
+                    const on = acceptedSectionIds.has(change.sectionId);
+                    return (
+                      <li key={change.sectionId} className="flex items-start gap-2 px-1 py-1">
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          disabled={busy}
+                          onChange={() => onToggleSection(change.sectionId)}
+                          className="mt-0.5"
+                          aria-label={`Apply ${change.summary}`}
+                        />
+                        <div className="min-w-0">
+                          <p className="font-medium" style={{ color: BUILDER.ink }}>
+                            {change.summary}
+                            {change.isNew ? (
+                              <span
+                                className="ml-1 text-[9px] uppercase tracking-wider"
+                                style={{ color: BUILDER.orange }}
+                              >
+                                New
+                              </span>
+                            ) : null}
+                          </p>
+                          <p className="text-[10px] opacity-60">
+                            {change.pageTitle} · {change.sectionType}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : (
+              <ul
+                className="max-h-36 overflow-y-auto space-y-1.5 rounded-xl p-3 text-xs leading-relaxed"
+                style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}
+              >
+                {preview.intents.map((intent) => (
+                  <li key={intent} className="flex gap-2" style={{ color: BUILDER.ink }}>
+                    <span aria-hidden style={{ color: BUILDER.orange }}>
+                      •
+                    </span>
+                    <span>{intent}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {preview.repaired ? (
               <p className="text-[10px]" style={{ color: BUILDER.muted }}>
                 Yande repaired schema issues in this draft before showing the preview.
@@ -90,7 +164,7 @@ export function BuilderSiteCommandBar({
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || (hasSections && acceptedSectionIds.size === 0)}
                 onClick={onApply}
                 className="rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
                 style={{ background: BUILDER.orange }}

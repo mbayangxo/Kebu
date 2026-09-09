@@ -165,6 +165,19 @@ export async function POST(req: Request, { params }: Params) {
   const sold = product;
   const input = parsed.data;
 
+  let customerUserId: string | null = null;
+  try {
+    const browser = await createServerSupabase();
+    const {
+      data: { user: shopper },
+    } = await browser.auth.getUser();
+    if (shopper?.id) customerUserId = shopper.id;
+  } catch {
+    /* guest checkout OK */
+  }
+
+  const customerEmail = input.customerEmail?.trim().toLowerCase() || null;
+
   const stockCheck = await decrementProductStock(svc, sold.id, input.quantity);
   if (!stockCheck.ok) {
     return NextResponse.json({ error: stockCheck.error }, { status: 409 });
@@ -175,8 +188,6 @@ export async function POST(req: Request, { params }: Params) {
     .select("id, country_code, title, owner_id, business_id")
     .eq("id", dep.project_id)
     .maybeSingle();
-
-  const customerEmail = input.customerEmail ?? null;
 
   const discountResult = await resolveActiveDiscount(
     svc,
@@ -195,17 +206,6 @@ export async function POST(req: Request, { params }: Params) {
   const productSku = soldSku;
 
   const orderNumber = await allocateShopOrderNumber(svc, dep.project_id);
-
-  let customerUserId: string | null = null;
-  try {
-    const browser = await createServerSupabase();
-    const {
-      data: { user: shopper },
-    } = await browser.auth.getUser();
-    if (shopper?.id) customerUserId = shopper.id;
-  } catch {
-    /* guest checkout OK */
-  }
 
   const orderChannel = resolveOrderChannel({
     paymentPreference: input.paymentPreference,

@@ -17,8 +17,8 @@ export function parseXofFromLabel(label: string | null | undefined): number | nu
 }
 
 /**
- * Rough XOF → USD cents for JOKO sessions that expect USD today.
- * Honest: not FX — use product USD later when multi-currency adapters ship.
+ * Rough XOF → USD cents for legacy Joko / hosting paths that still post USD.
+ * Shop Partner checkout uses amount_xof directly — prefer that.
  * ~600 XOF ≈ 1 USD (configurable via JOKO_XOF_PER_USD).
  */
 export function xofToUsdCents(amountXof: number): number {
@@ -34,6 +34,7 @@ export async function startShopOrderJokoCheckout(opts: {
   amountXof: number;
   productName: string;
   customerEmail?: string | null;
+  customerPhone?: string | null;
   appUrl: string;
   returnUrl?: string;
   cancelUrl?: string;
@@ -50,14 +51,15 @@ export async function startShopOrderJokoCheckout(opts: {
   }
 
   const reference = `shop_order_${opts.orderId.replace(/-/g, "").slice(0, 24)}`;
-  const amountUsdCents = xofToUsdCents(opts.amountXof);
   const cauris = xofToCauris(opts.amountXof);
   const base = opts.appUrl.replace(/\/$/, "");
 
+  // Partner API prefers amount_xof + customer.phone (USD cents only as legacy bridge).
   const checkout = await createJokoCheckout({
     reference,
-    amountUsdCents,
+    amountXof: opts.amountXof,
     description: `Shop order: ${opts.productName}`.slice(0, 120),
+    customerPhone: opts.customerPhone ?? undefined,
     customerEmail: opts.customerEmail ?? undefined,
     returnUrl: opts.returnUrl ?? `${base}/sites/order-thanks?order=${opts.orderId}&psp=joko`,
     cancelUrl: opts.cancelUrl ?? `${base}/sites/order-cancel?order=${opts.orderId}&psp=joko`,

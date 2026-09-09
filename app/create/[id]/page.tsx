@@ -34,6 +34,7 @@ import { BuilderSectionListDnd } from "@/app/components/create/builder-section-l
 import { BuilderPagesPanel } from "@/app/components/create/builder-pages-panel";
 import { BuilderAiPreviewPanel } from "@/app/components/create/builder-ai-preview-panel";
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
+import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
 import { NavLinksEditor } from "@/app/components/create/nav-links-editor";
 import { NavSizeEditor } from "@/app/components/create/nav-size-editor";
@@ -940,7 +941,17 @@ export default function ProjectEditorPage() {
     ? buildEditorPreviewDefinition({ ...project, seo: seoSettings }, pages, sections, siteChrome)
     : null;
 
-  const canvasDefinition = aiPreview?.definition ?? previewDefinition;
+  const canvasDefinition = (() => {
+    if (!aiPreview) return previewDefinition;
+    if (aiPreview.sectionChanges.length === 0 || !previewDefinition) {
+      return aiPreview.definition;
+    }
+    return mergePartialAiDefinition(
+      previewDefinition,
+      aiPreview.definition,
+      [...aiPreview.acceptedSectionIds],
+    );
+  })();
 
   const previewSiteBase = project?.subdomain ? `/sites/${project.subdomain}` : "";
   const maylecorRussianLayout = projectUsesMaylecorRussianLayout(
@@ -3324,6 +3335,30 @@ export default function ProjectEditorPage() {
                   busy={improving}
                   device={device}
                   preview={aiPreview ? { intents: aiPreview.intents, repaired: aiPreview.repaired } : null}
+                  sectionChanges={aiPreview?.sectionChanges}
+                  acceptedSectionIds={aiPreview?.acceptedSectionIds}
+                  onToggleSection={(sectionId) => {
+                    setAiPreview((prev) => {
+                      if (!prev) return prev;
+                      const next = new Set(prev.acceptedSectionIds);
+                      if (next.has(sectionId)) next.delete(sectionId);
+                      else next.add(sectionId);
+                      return { ...prev, acceptedSectionIds: next };
+                    });
+                  }}
+                  onSelectAllSections={() => {
+                    setAiPreview((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
+                          }
+                        : prev,
+                    );
+                  }}
+                  onClearAllSections={() => {
+                    setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
+                  }}
                 />
               ) : null}
             </section>

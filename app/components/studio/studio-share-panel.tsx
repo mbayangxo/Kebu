@@ -95,8 +95,8 @@ export function StudioSharePanel({
         <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">Access</p>
         <p className="mt-1 font-semibold">{studioRoleLabel(access.role)}</p>
         <p className="text-xs opacity-60 mt-1">
-          Shared with you — only the owner can invite others. Not live multiplayer cursors yet; you edit the
-          same saved design.
+          Shared with you — only the owner can invite others. Live cursors show when both of you have the
+          design open. You edit the same saved design.
         </p>
       </div>
     );
@@ -107,8 +107,8 @@ export function StudioSharePanel({
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">Share & collaborate</p>
         <p className="text-xs opacity-60 mt-1 leading-relaxed">
-          Invite someone who already has a Kebu account. Editors can save; viewers are read-only. Not
-          realtime cursors (yet) — same canvas, shared save.
+          Invite someone who already has a Kebu account. Editors can save; viewers are read-only. Live
+          cursors appear when collaborators are in the editor at the same time.
         </p>
       </div>
 

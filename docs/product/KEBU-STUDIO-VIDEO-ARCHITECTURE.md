@@ -156,14 +156,14 @@ Code contract: `lib/studio/composition.ts` (schema + helpers). Grow slices again
 | S8b | Page timeline + video seek export | ✅ |
 | S8c-lite | Music BPM + beat grid | ✅ |
 | **V1** | Composition schema + `studio_video_projects` + multi-track editor Phase 1 | ✅ Create · upload · place · trim · move · split · autosave |
-| **V2** | Storyboard scenes → compile to single video track | Entry |
-| **V3** | Quick Edit: multi-clip import · trim · beat-aligned cuts | Beginner path |
-| **V4** | Dual audio track + volume + waveform UI | Essential audio |
-| **V5** | Split/cut · transitions lite · speed | CapCut core |
-| **V6** | Keyframes (opacity/position) · animated text | Motion |
-| **V7** | Auto captions (honest ASR provider) | Accessibility |
-| **V8** | Full Timeline multi-track UI | Pro path |
-| Later | Sections analysis · chroma · grading · proxies · … | Pro layer |
+| **V2** | Storyboard scenes → compile to single video track | ✅ UI + compile |
+| **V3** | Quick Edit: multi-clip import · trim · beat-aligned cuts | ✅ Montage wizard |
+| **V4** | Dual audio track + volume + waveform UI | ✅ (music track + waveform) |
+| **V5** | Split/cut · transitions lite · speed | ✅ Speed presets + prior split/fade |
+| **V6** | Keyframes (opacity/position) · animated text | ✅ Keyframes (text as captions path) |
+| **V7** | Auto captions (honest ASR provider) | ✅ Transcript + Whisper when `OPENAI_API_KEY` |
+| **V8** | Full Timeline multi-track UI | ✅ Phase 1 multi-track |
+| Later | Nested sequences · chroma · grading · proxies · … | 🟡 Nested + grade + chroma **settings** live; canvas chroma export / LUTs / multicam / proxies **not** full NLE parity |
 
 Graphics/fonts/brand editing continues **in parallel only when assigned as separate vertical slices** — do not stall Design for Video or vice versa without priority.
 

@@ -272,7 +272,7 @@ export function PublicShopCart({
                 <input
                   required
                   maxLength={24}
-                  placeholder="WhatsApp / phone"
+                  placeholder="WhatsApp / phone (for delivery texts)"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full rounded-lg border px-2 py-1.5 text-xs"

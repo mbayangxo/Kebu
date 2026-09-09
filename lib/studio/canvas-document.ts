@@ -2,7 +2,16 @@ import { z } from "zod";
 
 export const CANVAS_DOC_VERSION = 2 as const;
 
-export const CANVAS_LAYER_TYPES = ["text", "rect", "ellipse", "image", "video"] as const;
+export const CANVAS_LAYER_TYPES = [
+  "text",
+  "rect",
+  "ellipse",
+  "image",
+  "video",
+  "line",
+  "icon",
+  "frame",
+] as const;
 export type CanvasLayerType = (typeof CANVAS_LAYER_TYPES)[number];
 
 export const canvasLayerSchema = z.object({
@@ -43,6 +52,9 @@ export const canvasLayerSchema = z.object({
   cropY: z.number().min(0).max(1).optional(),
   cropW: z.number().min(0.05).max(1).optional(),
   cropH: z.number().min(0.05).max(1).optional(),
+  /** Elements pack (S19) */
+  iconKey: z.string().trim().max(40).optional(),
+  frameStyle: z.enum(["corner", "rounded", "polaroid"]).optional(),
 });
 
 export type CanvasLayer = z.infer<typeof canvasLayerSchema>;
@@ -734,6 +746,59 @@ export function parseCanvasDocument(
   return defaultCanvasDocument(designType);
 }
 
+function paintLineLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  const h = Math.max(1, layer.height);
+  ctx.fillStyle = layer.fill ?? layer.stroke ?? "#FFFFFF";
+  ctx.fillRect(layer.x, layer.y + (layer.height - h) / 2, layer.width, h);
+}
+
+function paintFrameLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  const sw = layer.strokeWidth ?? 6;
+  const stroke = layer.stroke ?? "#FFFFFF";
+  const style = layer.frameStyle ?? "corner";
+  if (style === "polaroid") {
+    ctx.fillStyle = layer.fill ?? "#FFFFFF";
+    ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+    const inset = Math.max(8, sw);
+    const bottom = Math.max(28, layer.height * 0.18);
+    ctx.fillStyle = "#E8E4DC";
+    ctx.fillRect(layer.x + inset, layer.y + inset, layer.width - inset * 2, layer.height - inset - bottom);
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = Math.max(1, sw / 2);
+    ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
+    return;
+  }
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = sw;
+  if (style === "rounded") {
+    const r = Math.min(24, layer.width / 8, layer.height / 8);
+    const x = layer.x + sw / 2;
+    const y = layer.y + sw / 2;
+    const w = layer.width - sw;
+    const h = layer.height - sw;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.stroke();
+  } else {
+    ctx.strokeRect(layer.x + sw / 2, layer.y + sw / 2, layer.width - sw, layer.height - sw);
+  }
+}
+
+function paintIconLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  const glyph = layer.text || "★";
+  ctx.fillStyle = layer.color ?? "#FFFFFF";
+  const size = layer.fontSize ?? Math.min(layer.width, layer.height) * 0.75;
+  ctx.font = `${layer.fontWeight ?? "700"} ${size}px ${layer.fontFamily ?? "system-ui"}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(glyph, layer.x + layer.width / 2, layer.y + layer.height / 2);
+}
+
 export function exportCanvasToPngDataUrl(
   doc: CanvasDocument,
   scale = 1,
@@ -761,6 +826,12 @@ export function exportCanvasToPngDataUrl(
     if (layer.type === "rect") {
       ctx.fillStyle = layer.fill ?? "#E05A2B";
       ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+    } else if (layer.type === "line") {
+      paintLineLayer(ctx, layer);
+    } else if (layer.type === "frame") {
+      paintFrameLayer(ctx, layer);
+    } else if (layer.type === "icon") {
+      paintIconLayer(ctx, layer);
     } else if (layer.type === "ellipse") {
       ctx.beginPath();
       ctx.ellipse(
@@ -838,6 +909,12 @@ export async function exportCanvasToPngDataUrlAsync(
     if (layer.type === "rect") {
       ctx.fillStyle = layer.fill ?? "#E05A2B";
       ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+    } else if (layer.type === "line") {
+      paintLineLayer(ctx, layer);
+    } else if (layer.type === "frame") {
+      paintFrameLayer(ctx, layer);
+    } else if (layer.type === "icon") {
+      paintIconLayer(ctx, layer);
     } else if (layer.type === "ellipse") {
       ctx.beginPath();
       ctx.ellipse(

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { requireCronSecret } from "@/lib/api-guard";
 import { createClient } from "@supabase/supabase-js";
+import { activateSiteSubscriptionPayment } from "@/lib/billing/activate-site-subscription";
 import {
   defaultHostingAmountCents,
   isWithinAutopayWindow,
@@ -10,8 +11,10 @@ import {
   type SiteSubscriptionRow,
 } from "@/lib/billing/subscriptions";
 import { isBillingExemptEmail } from "@/lib/billing/exempt";
+import { recordPlatformCronRun } from "@/lib/platform/cron-runs";
 import { createJokoAutopayCharge } from "@/lib/joko/payments";
 import { parseKebuPlanId, planLabel } from "@/lib/billing/pricing";
+import { sendCampaignEmail } from "@/lib/email/send-campaign";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -36,6 +39,7 @@ export async function GET(req: NextRequest) {
   const supabase = createClient(supabaseUrl, serviceKey);
   const now = new Date();
   const nowIso = now.toISOString();
+  const startedAt = now;
 
   let expired = 0;
   let suspended = 0;
@@ -175,19 +179,46 @@ export async function GET(req: NextRequest) {
           .update({ status: "past_due", updated_at: nowIso })
           .eq("id", sub.id);
       }
+      const ownerEmail = profile?.email?.trim();
+      const from =
+        process.env.RESEND_FROM_EMAIL?.trim() ||
+        process.env.NOTIFY_FROM_EMAIL?.trim() ||
+        process.env.EMAIL_FROM?.trim();
+      if (ownerEmail && process.env.RESEND_API_KEY && from) {
+        const renewUrl = `${appUrl}/create/${sub.project_id}?billing=renew`;
+        void sendCampaignEmail({
+          to: ownerEmail,
+          from,
+          fromName: "Kebu",
+          subject: `Hosting renew needs attention — ${project.title}`,
+          text: `Autopay could not renew hosting for ${project.title}. Pay here: ${renewUrl}`,
+          html: `<p>Autopay could not renew hosting for <strong>${project.title}</strong>.</p><p><a href="${renewUrl}">Renew hosting</a></p>`,
+        }).catch(() => undefined);
+      }
       continue;
     }
 
     if (charge.mode === "charged") {
       autopayCharged += 1;
-      await supabase
-        .from("site_subscriptions")
-        .update({
-          joko_payment_id: charge.paymentId,
-          pending_checkout_url: null,
-          updated_at: nowIso,
-        })
-        .eq("id", pending.id);
+      // Activate immediately so renew does not stall if webhook is delayed.
+      const activated = await activateSiteSubscriptionPayment(supabase, {
+        subscriptionId: pending.id,
+        paymentId: charge.paymentId,
+        previousSubscriptionId: sub.id,
+        planHint: plan,
+        tierHint: tier,
+        now,
+      });
+      if (!activated.ok) {
+        await supabase
+          .from("site_subscriptions")
+          .update({
+            joko_payment_id: charge.paymentId,
+            pending_checkout_url: null,
+            updated_at: nowIso,
+          })
+          .eq("id", pending.id);
+      }
     } else {
       autopayCheckout += 1;
       await supabase
@@ -209,7 +240,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({
+  const summary = {
     ok: true,
     checkedAt: nowIso,
     expired,
@@ -217,5 +248,12 @@ export async function GET(req: NextRequest) {
     autopayCheckout,
     autopayCharged,
     autopaySkippedExempt,
+  };
+  await recordPlatformCronRun(supabase, {
+    jobName: "billing-monthly",
+    status: "ok",
+    startedAt,
+    summary,
   });
+  return NextResponse.json(summary);
 }

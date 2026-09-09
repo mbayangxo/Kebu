@@ -101,6 +101,14 @@ export async function PATCH(req: Request, { params }: Params) {
         typeof currentSeo.commerce === "object" &&
         Boolean((currentSeo.commerce as { preferJokoCheckout?: boolean }).preferJokoCheckout);
       if (mergedCommerce.preferJokoCheckout && !wasJoko) {
+        const { assertProjectPlanLimit } = await import("@/lib/billing/enforce-limits");
+        const planGate = await assertProjectPlanLimit(supabase, id, user.id, "store");
+        if (!planGate.ok) {
+          return NextResponse.json(
+            { error: planGate.error, upgradeHint: planGate.upgradeHint, tier: planGate.tier },
+            { status: 402 },
+          );
+        }
         const { resolveSellerTrust, sellerTrustDenyJokoMessage } = await import("@/lib/shop/seller-trust");
         const trust = await resolveSellerTrust(supabase, { projectId: id, userId: user.id });
         if (!trust.canEnableJoko) {

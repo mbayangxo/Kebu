@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { BrandDnaRow } from "@/lib/studio/brand-dna";
 import { brandDnaPromptBlock } from "@/lib/studio/brand-dna";
 import {
-  generateStudioDesignPack,
+  generateStudioCampaignWithAi,
   type StudioGeneratedDesign,
 } from "@/lib/studio/ai-generate";
 
@@ -108,7 +108,7 @@ export async function generateCampaignDesignPack(opts: {
 }): Promise<{ designs: StudioGeneratedDesign[]; usedAi: boolean; fallback: boolean }> {
   const mood = opts.campaign.mood;
   const prompt = creativeDirectorPrompt(opts);
-  return generateStudioDesignPack({
+  const result = await generateStudioCampaignWithAi({
     prompt,
     businessName: opts.dna?.name ?? opts.campaign.title,
     primaryColor: mood.primaryColor ?? opts.dna?.primary_color,
@@ -116,6 +116,14 @@ export async function generateCampaignDesignPack(opts: {
     backgroundColor: mood.backgroundColor ?? opts.dna?.background_color,
     creationMode: "create_for_me",
   });
+  if (!result.ok) {
+    return { designs: [], usedAi: false, fallback: true };
+  }
+  return {
+    designs: result.designs,
+    usedAi: result.usedAi,
+    fallback: Boolean(result.fallback),
+  };
 }
 
 /** When mood direction changes, bump meta for clients to refresh linked assets. */

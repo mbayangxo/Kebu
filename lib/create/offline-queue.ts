@@ -16,6 +16,7 @@ export type OfflinePlaceOrderPayload = {
   paymentPreference?: string;
   clientChannel?: string;
   customerEmail?: string;
+  emailVerificationToken?: string;
   discountCode?: string;
 };
 
@@ -178,6 +179,7 @@ async function flushPlaceOrder(item: Extract<OfflineQueueItem, { kind: "place_or
       paymentPreference: item.payload.paymentPreference ?? "whatsapp",
       clientChannel: item.payload.clientChannel,
       customerEmail: item.payload.customerEmail,
+      emailVerificationToken: item.payload.emailVerificationToken,
       discountCode: item.payload.discountCode,
     }),
   });

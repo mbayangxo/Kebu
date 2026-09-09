@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCronSecret } from "@/lib/api-guard";
 import { createClient } from "@supabase/supabase-js";
+import { recordPlatformCronRun } from "@/lib/platform/cron-runs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -30,6 +31,7 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createClient(supabaseUrl, serviceKey);
+  const startedAt = new Date();
 
   const { data: deployments, error } = await supabase
     .from("deployments")
@@ -79,10 +81,19 @@ export async function GET(req: NextRequest) {
   }
 
   const failed = results.filter((r) => !r.ok).length;
-  return NextResponse.json({
+  const summary = {
     checked: results.length,
     failed,
-    results,
     note: "Apply migration 014 before first run.",
+  };
+  await recordPlatformCronRun(supabase, {
+    jobName: "site-health",
+    status: failed > 0 ? (results.length === failed ? "error" : "partial") : "ok",
+    startedAt,
+    summary,
+  });
+  return NextResponse.json({
+    ...summary,
+    results,
   });
 }

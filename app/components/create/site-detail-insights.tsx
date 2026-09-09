@@ -232,6 +232,7 @@ export function SiteDetailInsights({
             <option value={24}>Last 24h</option>
             <option value={72}>Last 3 days</option>
             <option value={168}>Last 7 days</option>
+            <option value={720}>Last 30 days</option>
           </select>
           <button
             type="button"
@@ -345,6 +346,55 @@ export function SiteDetailInsights({
               ))
             )}
           </div>
+          {(summary?.topPaths?.length ?? 0) > 0 ? (
+            <div className="mt-4 border-t pt-3" style={{ borderColor: KEBU.border }}>
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                Top pages
+              </p>
+              <ul className="mt-2 space-y-1">
+                {summary!.topPaths.map((p) => (
+                  <li key={p.path} className="flex justify-between gap-2 text-[11px]">
+                    <span className="truncate font-mono">{p.path}</span>
+                    <span className="font-bold tabular-nums">{p.views}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {(summary?.topReferrers?.length ?? 0) > 0 || (summary?.topCountries?.length ?? 0) > 0 ? (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {(summary?.topReferrers?.length ?? 0) > 0 ? (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                    Referrers
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {summary!.topReferrers.map((r) => (
+                      <li key={r.referrer} className="flex justify-between gap-2 text-[11px]">
+                        <span className="truncate">{r.referrer}</span>
+                        <span className="font-bold tabular-nums">{r.views}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {(summary?.topCountries?.length ?? 0) > 0 ? (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                    Countries
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {summary!.topCountries.map((c) => (
+                      <li key={c.country} className="flex justify-between gap-2 text-[11px]">
+                        <span className="font-mono">{c.country}</span>
+                        <span className="font-bold tabular-nums">{c.views}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </Panel>
 
         <Panel
