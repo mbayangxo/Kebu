@@ -23,17 +23,17 @@ function EditorAccordion({
     <div className="overflow-hidden border-b" style={{ borderColor: BUILDER.border }}>
       <button
         type="button"
-        className="flex w-full items-center justify-between px-1 py-2.5 text-left text-[13px] font-semibold"
-        style={{ background: open ? BUILDER.surfaceMuted : "transparent", color: BUILDER.ink }}
+        className="flex w-full items-center justify-between px-0 py-3.5 text-left text-[13px] font-semibold"
+        style={{ background: "transparent", color: BUILDER.ink }}
         aria-expanded={open}
         onClick={onToggle}
       >
         {title}
-        <span aria-hidden className="text-[11px] font-normal" style={{ color: BUILDER.faint }}>
+        <span aria-hidden className="text-[12px] font-normal" style={{ color: BUILDER.faint }}>
           {open ? "▾" : "▸"}
         </span>
       </button>
-      {open ? <div className="space-y-4 px-1 pb-3 pt-1">{children}</div> : null}
+      {open ? <div className="space-y-5 pb-5 pt-1">{children}</div> : null}
     </div>
   );
 }
@@ -125,12 +125,12 @@ export function BuilderAestheticsPanel({
 
   return (
     <div className="space-y-0">
-      <div className="mb-3 border-b pb-3" style={{ borderColor: BUILDER.border }}>
-        <p className="text-[13px] font-semibold" style={{ color: BUILDER.ink }}>
-          Theme settings
+      <div className="mb-4 border-b pb-4" style={{ borderColor: BUILDER.border }}>
+        <p className="text-[14px] font-semibold" style={{ color: BUILDER.ink }}>
+          Aesthetic Editor
         </p>
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-          Open one category at a time. Looks ($5) are in Themes.
+        <p className="mt-1 text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
+          Customize colors, fonts, and layout for your entire site.
         </p>
       </div>
 

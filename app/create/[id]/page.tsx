@@ -1150,7 +1150,7 @@ export default function ProjectEditorPage() {
           className="border-b px-4 py-2.5 text-center text-xs font-semibold"
           style={{ background: "#FF5500", color: "#fff" }}
         >
-          Support assist mode — you are helping edit someone else’s site. Changes are audited.
+          Support assist mode — you are helping edit someone else's site. Changes are audited.
         </div>
       ) : null}
 
@@ -1299,12 +1299,13 @@ export default function ProjectEditorPage() {
             />
             <aside
               className={`${
-                leftPanelOpen ? "relative w-[280px] max-w-[92vw]" : "hidden"
-              } shrink-0 overflow-y-auto border-r px-2.5 py-3 space-y-2`}
+                leftPanelOpen ? "relative w-[320px] max-w-[92vw]" : "hidden"
+              } shrink-0 overflow-y-auto border-r`}
               style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
             >
 
               {sidebarTab === "pages" && project ? (
+                <div className="px-4 py-4">
                 <BuilderPagesPanel
                   projectId={projectId}
                   pages={pages}
@@ -1317,10 +1318,11 @@ export default function ProjectEditorPage() {
                   onRefresh={load}
                   onError={setError}
                 />
+                </div>
               ) : null}
 
               {sidebarTab === "media" && (
-                <div className="rounded-xl p-3" style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}>
+                <div className="px-4 py-4">
                   <SiteAssetsPanel
                     projectId={projectId}
                     onUseOnSite={(asset) => void applyMediaAsset(asset)}
@@ -1329,13 +1331,16 @@ export default function ProjectEditorPage() {
               )}
 
               {sidebarTab === "shop" && (
-                <div className="space-y-3">
-                  <p className="text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                    Products, orders, and payments live in Kebu Shop — keep the canvas free for the site.
-                  </p>
+                <div className="px-4 py-5 space-y-4">
+                  <div>
+                    <p className="text-[13px] font-semibold mb-1" style={{ color: BUILDER.ink }}>Shop</p>
+                    <p className="text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                      Products, orders, and payments live in Kebu Shop — keep the canvas free for the site.
+                    </p>
+                  </div>
                   <Link
                     href={`/shop/${projectId}`}
-                    className="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-[11px] font-bold"
+                    className="inline-flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-[12px] font-semibold"
                     style={{ background: BUILDER.ink, color: "#fff" }}
                   >
                     Open Shop
@@ -1344,7 +1349,7 @@ export default function ProjectEditorPage() {
               )}
 
               {sidebarTab === "nav" && (
-                <div className="space-y-3">
+                <div className="px-4 py-4 space-y-4">
                   {chromeActive && siteChrome ? (
                     <BuilderSiteChromePanel
                       part="header"
@@ -1393,7 +1398,7 @@ export default function ProjectEditorPage() {
               )}
 
               {sidebarTab === "aesthetic" && (
-                <div className="rounded-2xl p-4" style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}>
+                <div className="px-4 py-4">
                   {(() => {
                     const heroTypes = new Set([
                       "legally-blonde-hero",
@@ -1507,7 +1512,7 @@ export default function ProjectEditorPage() {
               )}
 
               {sidebarTab === "yande" && (
-                <>
+                <div className="px-4 py-4 space-y-4">
                 <YandeAssistant
                   variant="improve"
                   value={improveInstruction}
@@ -1548,58 +1553,51 @@ export default function ProjectEditorPage() {
                     onDiscard={discardAiPreview}
                   />
                 ) : null}
-                </>
+                </div>
               )}
 
               {sidebarTab === "content" && (
               <>
+              {/* Shopify-style drill-down breadcrumb: shown when a section is selected */}
               {selectedSectionId ? (
                 <div
-                  className="sticky top-0 z-10 -mx-3 -mt-3 mb-1 flex items-center justify-between gap-2 border-b px-3 py-2.5"
+                  className="sticky top-0 z-10 flex items-center gap-2 border-b px-4 py-3"
                   style={{ background: BUILDER.surface, borderColor: BUILDER.border }}
                 >
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-medium" style={{ color: BUILDER.faint }}>
-                      Selected
-                    </p>
-                    <p className="truncate text-[13px] font-semibold" style={{ color: BUILDER.ink }}>
-                      {selectedSectionId === CHROME_HEADER_ID
-                        ? "Site header"
-                        : selectedSectionId === CHROME_FOOTER_ID
-                          ? "Site footer"
-                          : labelForSectionType(
-                              sections.find((s) => s.id === selectedSectionId)?.section_type ?? "section",
-                            )}
-                      {device !== "desktop" ? (
-                        <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wider opacity-50">
-                          · {device}
-                        </span>
-                      ) : null}
-                    </p>
-                  </div>
                   <button
                     type="button"
                     onClick={() => setSelectedSectionId(null)}
-                    className="shrink-0 rounded-md px-2 py-1 text-[11px] font-medium"
-                    style={{ background: BUILDER.surfaceMuted, color: BUILDER.muted, border: `1px solid ${BUILDER.border}` }}
+                    className="flex shrink-0 items-center gap-1 text-[12px] font-medium"
+                    style={{ color: BUILDER.muted }}
+                    aria-label="Back to sections list"
                   >
-                    Done
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                      <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Sections
                   </button>
+                  <span aria-hidden style={{ color: BUILDER.border, fontSize: 14 }}>›</span>
+                  <p className="min-w-0 truncate text-[13px] font-semibold" style={{ color: BUILDER.ink }}>
+                    {selectedSectionId === CHROME_HEADER_ID
+                      ? "Site header"
+                      : selectedSectionId === CHROME_FOOTER_ID
+                        ? "Site footer"
+                        : labelForSectionType(
+                            sections.find((s) => s.id === selectedSectionId)?.section_type ?? "section",
+                          )}
+                  </p>
                 </div>
-              ) : null}
-              <div className="space-y-3 border-b pb-3" style={{ borderColor: BUILDER.border }}>
-                <p className="text-[13px] font-semibold" style={{ color: BUILDER.ink }}>
-                  Sections
-                </p>
-                {!selectedSectionId ? (
-                <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-                  Header · Template · Footer. Edit text, reorder, hide. Changes save as you work.
-                </p>
-                ) : (
-                <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-                  Edit this block below, or click another section on the canvas.
-                </p>
-                )}
+              ) : (
+                /* Header shown when no section is selected */
+                <div className="border-b px-4 py-4" style={{ borderColor: BUILDER.border }}>
+                  <p className="text-[14px] font-semibold" style={{ color: BUILDER.ink }}>Sections</p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                    Header · Template · Footer
+                  </p>
+                </div>
+              )}
+              {!selectedSectionId && (
+              <div className="px-4 py-3 space-y-3 border-b" style={{ borderColor: BUILDER.border }}>
                 {pages.length > 1 && (
                   <label className="block text-[10px] uppercase tracking-wider">
                     Editing page
@@ -1669,13 +1667,13 @@ export default function ProjectEditorPage() {
                   ))}
                 </div>
               </div>
+              )}
 
-              <BuilderBlogPanel projectId={projectId} />
+              {!selectedSectionId && <BuilderBlogPanel projectId={projectId} />}
 
-              <div className="space-y-2">
-                <p className="px-1 text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                  Header · Template · Footer — open one at a time (Shopify theme editor).
-                </p>
+              {!selectedSectionId && (
+              <div className="px-2 py-1 space-y-1">
+
                 {chromeActive && siteChrome ? (
                   <>
                     <BuilderSectionZone
@@ -1765,44 +1763,37 @@ export default function ProjectEditorPage() {
                     />
                   </BuilderSectionZone>
                 )}
-                {editPageSections.map((section) => (
+              </div>
+              )}
+
+              {/* Shopify drill-down: section props for the selected section only */}
+              {selectedSectionId && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
                     <div
                       key={section.id}
-                      className="rounded-2xl p-3"
-                      style={{
-                        background: selectedSectionId === section.id ? "#FFF3EB" : "#fff",
-                        border: selectedSectionId === section.id ? "2px solid #FF5500" : "1px solid #DDE0F0",
-                      }}
+                      className="px-4 py-4 space-y-4"
                     >
-                      <div className="flex items-center justify-between mb-2 gap-2">
-                        <button
-                          type="button"
-                          className="text-[10px] font-bold uppercase tracking-wider text-left"
-                          onClick={() => setSelectedSectionId(section.id)}
-                        >
-                          {labelForSectionType(section.section_type)}
-                        </button>
-                        <div className="flex flex-wrap gap-1 justify-end">
-                          <button type="button" className="text-[10px] px-1.5 py-0.5 rounded" style={{ border: "1px solid #DDE0F0" }} onClick={() => void moveSection(section.id, -1)}>
-                            ↑
+                      {/* Section actions */}
+                      <div className="flex flex-wrap gap-1.5 pb-3 border-b" style={{ borderColor: BUILDER.border }}>
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, -1)}>
+                            ↑ Move up
                           </button>
-                          <button type="button" className="text-[10px] px-1.5 py-0.5 rounded" style={{ border: "1px solid #DDE0F0" }} onClick={() => void moveSection(section.id, 1)}>
-                            ↓
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, 1)}>
+                            ↓ Move down
                           </button>
                           <button
                             type="button"
-                            className="text-[10px] px-1.5 py-0.5 rounded font-semibold"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium"
+                            style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }}
                             onClick={() => void duplicateSection(section.id)}
                           >
                             Duplicate
                           </button>
                           <button
                             type="button"
-                            className="text-[10px] px-1.5 py-0.5 rounded font-semibold text-red-600"
-                            style={{ border: "1px solid #FECACA" }}
+                            className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
+                            style={{ border: "1px solid #FECACA", color: "#B91C1C" }}
                             onClick={() => {
-                              if (window.confirm(`Remove “${labelForSectionType(section.section_type)}” from this page?`)) {
+                              if (window.confirm(`Remove "${labelForSectionType(section.section_type)}" from this page?`)) {
                                 void deleteSection(section.id);
                               }
                             }}
@@ -1810,7 +1801,6 @@ export default function ProjectEditorPage() {
                             Remove
                           </button>
                         </div>
-                      </div>
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
@@ -3397,7 +3387,7 @@ export default function ProjectEditorPage() {
                         <div className="space-y-2">
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Overlay on the live site. Emails save to your business list (same as Email list).
-                            Consent is stored in the visitor’s browser — not a full legal cookie platform.
+                            Consent is stored in the visitor's browser — not a full legal cookie platform.
                           </p>
                           <label className="flex items-center gap-2 text-[11px]">
                             <input
@@ -3556,17 +3546,6 @@ export default function ProjectEditorPage() {
                       </label>
                     </div>
                   ))}
-                <AddSectionPicker
-                  pageTitle={
-                    pages.find((p) => p.id === editPageId)?.title ??
-                    pages[0]?.title ??
-                    "Home"
-                  }
-                  onAdd={async (type) => {
-                    await addSection(type);
-                  }}
-                />
-              </div>
               </>
               )}
             </aside>

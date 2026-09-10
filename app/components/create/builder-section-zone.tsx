@@ -35,30 +35,36 @@ export function BuilderSectionZone({
     <section aria-label={label}>
       <button
         type="button"
-        className="flex w-full items-center justify-between py-1.5 text-left"
+        className="flex w-full items-center justify-between px-2 py-2.5 text-left"
         onClick={onToggle}
         disabled={!onToggle}
+        style={{
+          background: open ? "#F0F0F0" : "transparent",
+          borderRadius: 6,
+        }}
       >
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: "#8C8C8C" }}>
-          {label}
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: "#5C5C5C" }}>
+            {label}
+          </span>
           {typeof count === "number" ? (
-            <span className="ml-1.5 font-normal text-[9px] tabular-nums" style={{ color: "#B0B0B0" }}>
-              {count}
+            <span className="ml-2 text-[9px] tabular-nums" style={{ color: "#9C9C9C" }}>
+              {count} section{count !== 1 ? "s" : ""}
             </span>
           ) : null}
-        </span>
+        </div>
         {onToggle ? (
-          <span className="text-[10px]" style={{ color: "#C0C0C0" }} aria-hidden>
+          <span className="text-[11px]" style={{ color: "#9C9C9C" }} aria-hidden>
             {open ? "▾" : "▸"}
           </span>
         ) : null}
       </button>
 
       {open ? (
-        <div className="space-y-0.5">
+        <div className="mt-1 space-y-0.5 px-1">
           {children}
           {emptyHint ? (
-            <p className="pl-1 text-[11px] leading-relaxed" style={{ color: "#B0B0B0" }}>
+            <p className="px-1 pt-1 text-[11px] leading-relaxed" style={{ color: "#9C9C9C" }}>
               {emptyHint}
             </p>
           ) : null}
