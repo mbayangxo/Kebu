@@ -1,34 +1,19 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BUILDER } from "@/lib/create/builder-ui";
 
 export type BuilderSectionZoneId = "top" | "middle" | "lower";
 
-const ZONE_META: Record<
-  BuilderSectionZoneId,
-  { label: string; subtitle: string; accent: string }
-> = {
-  top: {
-    label: "Header",
-    subtitle: "Brand & menu — every page",
-    accent: "#0F0D33",
-  },
-  middle: {
-    label: "Template",
-    subtitle: "Page sections — hero, text, photos…",
-    accent: BUILDER.orange,
-  },
-  lower: {
-    label: "Footer",
-    subtitle: "Bottom bar — every page",
-    accent: "#5C5678",
-  },
+const ZONE_LABEL: Record<BuilderSectionZoneId, { label: string; subtitle: string }> = {
+  top: { label: "Header", subtitle: "Brand & nav — every page" },
+  middle: { label: "Template", subtitle: "Page sections" },
+  lower: { label: "Footer", subtitle: "Bottom — every page" },
 };
 
 /**
- * Shopify theme-editor group: Header / Template / Footer.
- * Collapsible — open one zone at a time from the parent.
+ * Shopify-style flat section group.
+ * Just a plain text group label + list of items, no bordered card.
+ * Matches how Shopify's theme editor shows Header / Template / Footer groups.
  */
 export function BuilderSectionZone({
   zone,
@@ -45,57 +30,35 @@ export function BuilderSectionZone({
   open?: boolean;
   onToggle?: () => void;
 }) {
-  const meta = ZONE_META[zone];
+  const { label, subtitle } = ZONE_LABEL[zone];
   return (
-    <section
-      className="overflow-hidden rounded-xl"
-      style={{
-        border: `1px solid ${BUILDER.border}`,
-        background: BUILDER.surface,
-      }}
-      aria-label={`${meta.label} — ${meta.subtitle}`}
-    >
+    <section aria-label={label}>
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 border-b px-3 py-2.5 text-left"
-        style={{
-          borderColor: BUILDER.border,
-          borderLeft: `3px solid ${meta.accent}`,
-          background: open ? BUILDER.surfaceMuted : "#fff",
-        }}
-        aria-expanded={open}
+        className="flex w-full items-center justify-between py-1.5 text-left"
         onClick={onToggle}
         disabled={!onToggle}
       >
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: meta.accent }}>
-            {meta.label}
-          </p>
-          <p className="truncate text-[11px] leading-snug" style={{ color: BUILDER.muted }}>
-            {meta.subtitle}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: "#8C8C8C" }}>
+          {label}
           {typeof count === "number" ? (
-            <span
-              className="rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
-              style={{ background: "#fff", color: BUILDER.ink, border: `1px solid ${BUILDER.border}` }}
-            >
+            <span className="ml-1.5 font-normal text-[9px] tabular-nums" style={{ color: "#B0B0B0" }}>
               {count}
             </span>
           ) : null}
-          {onToggle ? (
-            <span className="text-[11px]" style={{ color: BUILDER.faint }} aria-hidden>
-              {open ? "▾" : "▸"}
-            </span>
-          ) : null}
-        </div>
+        </span>
+        {onToggle ? (
+          <span className="text-[10px]" style={{ color: "#C0C0C0" }} aria-hidden>
+            {open ? "▾" : "▸"}
+          </span>
+        ) : null}
       </button>
+
       {open ? (
-        <div className="space-y-2 p-3">
+        <div className="space-y-0.5">
           {children}
           {emptyHint ? (
-            <p className="text-[11px] leading-relaxed" style={{ color: BUILDER.faint }}>
+            <p className="pl-1 text-[11px] leading-relaxed" style={{ color: "#B0B0B0" }}>
               {emptyHint}
             </p>
           ) : null}

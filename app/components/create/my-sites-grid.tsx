@@ -493,7 +493,7 @@ export function MySitesGrid({
   }
 
   return (
-    <div className={compact ? "" : "mx-auto max-w-6xl px-4 py-10 sm:px-6"}>
+    <div className={compact ? "" : "w-full px-6 py-8 sm:px-8 lg:px-10"}>
       <div className={`flex flex-wrap items-end justify-between gap-4 ${compact ? "mb-4" : "mb-8"}`}>
         <div>
           {!compact ? (

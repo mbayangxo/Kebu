@@ -120,7 +120,7 @@ export function MySitesWithPortfolio({
 
   return (
     <div>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 space-y-3">
+      <div className="w-full px-6 sm:px-8 lg:px-10 pt-8 space-y-3">
         {busy ? (
           <p className="text-sm" style={{ color: KEBU.muted }}>
             Syncing May Lecor · K-Direction · DkLNS · Ndaoan · RECT · Mayjor Good…

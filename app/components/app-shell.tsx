@@ -91,7 +91,7 @@ export function AppShell({
           </header>
 
           <div
-            className="hidden md:flex items-center justify-between gap-3 px-6 lg:px-8 py-3 sticky top-0 z-30 backdrop-blur-md"
+            className="hidden md:flex items-center justify-between gap-3 px-8 lg:px-10 py-3.5 sticky top-0 z-30 backdrop-blur-md"
             style={{
               background: "rgba(255,251,247,0.92)",
               borderBottom: `1px solid rgba(255,85,0,0.15)`,

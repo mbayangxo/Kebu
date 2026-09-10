@@ -15,7 +15,7 @@ export function businessNavHref(href: string, activeBusinessId: string | null): 
   return href;
 }
 
-export type NavItem = { label: string; href: string; exact?: boolean };
+export type NavItem = { label: string; href: string; exact?: boolean; children?: NavItem[] };
 
 /**
  * Product IA (2026-09-08):
