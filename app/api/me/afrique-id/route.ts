@@ -112,10 +112,34 @@ export async function PATCH(req: Request) {
 }
 
 /** Request eligibility verification review (sets pending — server/admin verifies later). */
-export async function POST() {
+export type HeritageNotes = {
+  type: "continental" | "diaspora";
+  countryOfOrigin: string;
+  region?: string;
+  ethnicGroup?: string;
+  lastName?: string;
+  // Diaspora-specific
+  parentsFrom?: string;
+  grandparentsFrom?: string;
+  connectionNote?: string;
+};
+
+/** Request eligibility verification review with heritage/ancestry data. */
+export async function POST(req: Request) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
+
+  const body = (await req.json().catch(() => ({}))) as { heritageNotes?: HeritageNotes };
+  const heritageNotes: HeritageNotes | null = body.heritageNotes ?? null;
+
+  // Require at minimum a heritage type and country of origin
+  if (!heritageNotes?.type || !heritageNotes?.countryOfOrigin?.trim()) {
+    return NextResponse.json(
+      { error: "Heritage information is required: your African identity type and country of origin." },
+      { status: 400 },
+    );
+  }
 
   const { data: profile } = await supabase
     .from("user_profiles")
@@ -154,7 +178,11 @@ export async function POST() {
 
   const { data: updated, error } = await supabase
     .from("afrique_ids")
-    .update({ eligibility_status: "pending", updated_at: new Date().toISOString() })
+    .update({
+      eligibility_status: "pending",
+      heritage_notes: heritageNotes,
+      updated_at: new Date().toISOString(),
+    })
     .eq("user_id", user.id)
     .in("eligibility_status", ["unverified", "rejected", "expired"])
     .select("public_afrique_id, eligibility_status, identity_type")

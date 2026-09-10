@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
 import type { MeAfriqueIdSummary } from "@/lib/account/user-profile";
+import { AfriqueIdVerificationForm } from "./afrique-id-verification-form";
+import type { HeritageNotes } from "@/app/api/me/afrique-id/route";
 
 type Props = {
   afriqueId: MeAfriqueIdSummary;
@@ -18,13 +20,15 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
   const [identityType, setIdentityType] = useState<"indigenous" | "visitor">(
     afriqueId.identityType ?? "visitor",
   );
+  const [showVerificationForm, setShowVerificationForm] = useState(false);
 
   useEffect(() => {
     setIdentityType(afriqueId.identityType ?? "visitor");
   }, [afriqueId.identityType]);
 
   const verified = afriqueId.eligibilityStatus === "verified";
-  const canRequest = afriqueId.eligibilityStatus === "unverified" || afriqueId.eligibilityStatus === "rejected";
+  const canRequest =
+    afriqueId.eligibilityStatus === "unverified" || afriqueId.eligibilityStatus === "rejected";
 
   async function saveIdentityType(next: "indigenous" | "visitor") {
     setIdentityType(next);
@@ -48,17 +52,23 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
     onRefresh();
   }
 
-  async function requestVerification() {
+  async function requestVerification(heritageNotes: HeritageNotes) {
     setBusy(true);
     setError(null);
     setMessage(null);
-    const res = await fetch("/api/me/afrique-id", { method: "POST", credentials: "include" });
+    const res = await fetch("/api/me/afrique-id", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ heritageNotes }),
+    });
     const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
     setBusy(false);
     if (!res.ok) {
       setError(data.error ?? "Could not submit request.");
       return;
     }
+    setShowVerificationForm(false);
     setMessage(data.message ?? "Submitted for review.");
     onRefresh();
   }
@@ -165,15 +175,35 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
           View your public identity card →
         </Link>
       ) : canRequest ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void requestVerification()}
-          className="rounded-full px-5 py-2 text-xs font-bold text-white disabled:opacity-60"
-          style={{ background: KEBU.orange }}
-        >
-          {busy ? "Submitting…" : "Request verification"}
-        </button>
+        showVerificationForm ? (
+          <div
+            className="rounded-2xl p-4 mt-2"
+            style={{ background: "rgba(255,85,0,0.04)", border: `1px solid rgba(255,85,0,0.15)` }}
+          >
+            <p
+              className="text-xs font-bold uppercase tracking-wider mb-4"
+              style={{ color: KEBU.orange }}
+            >
+              African Identity Verification
+            </p>
+            <AfriqueIdVerificationForm
+              identityType={identityType}
+              onSubmit={(notes) => requestVerification(notes)}
+              onCancel={() => setShowVerificationForm(false)}
+              busy={busy}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setShowVerificationForm(true)}
+            className="rounded-full px-5 py-2 text-xs font-bold text-white disabled:opacity-60"
+            style={{ background: KEBU.orange }}
+          >
+            Request verification
+          </button>
+        )
       ) : (
         <p className="text-xs" style={{ color: KEBU.muted }}>
           Verification status: {afriqueId.eligibilityLabel}. You cannot set verified yourself — Kebu reviews requests.
