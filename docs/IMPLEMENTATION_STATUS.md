@@ -1,6 +1,6 @@
 # Kebu — Implementation Status
 
-**Last updated:** 2026-09-08  
+**Last updated:** 2026-09-10  
 **Owner:** Engineering (lead agent + human review)
 
 Status labels (strict):
@@ -208,7 +208,10 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | ID types: indigenous \| visitor | **IMPLEMENTED** | Migration **037**; PATCH `/api/me/afrique-id` |
 | Public IDs | **IMPLEMENTED** | New: `AID-{CC}-01-…`; legacy `AFRI-…` still valid |
 | Account UI + sidebar | **IMPLEMENTED** | `/account`, dashboard, sidebar; type picker on account |
-| Verification request (pending only) | **IMPLEMENTED** | Users cannot self-set verified |
+| Heritage verification form | **IMPLEMENTED** | `AfriqueIdVerificationForm` component; collects type, country, region, ethnic group, surname, ancestry lineage — migration **084** (`heritage_notes` JSONB column); POST `/api/me/afrique-id` stores notes + sets `pending` |
+| Verification request (unverified \| rejected \| expired) | **IMPLEMENTED** | Users cannot self-set verified; `canRequest` includes expired re-verification — migration **085** (RLS update policy fix) |
+| RLS update policy fix | **IMPLEMENTED** | Migration **085**: identity_type updates no longer silently fail for non-pending users; only admin-controlled statuses (verified/suspended/manual_review) are blocked from self-update |
+| Africa-only signup gate | **IMPLEMENTED** | `app/signup/page.tsx` — 3-state gate (question → continental/diaspora → blocked); `african_origin` stored in auth metadata |
 | Public verified card | **IMPLEMENTED** | `/id/{publicId}` when eligibility = verified |
 
 ### Kebu ID
@@ -305,6 +308,8 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | 017 | Business documents | Document upload slice |
 | 027 | African ID table (`afrique_ids`) | Personal AID on account |
 | 037 | African ID types | `identity_type`: indigenous \| visitor |
+| 084 | African ID heritage notes | `heritage_notes` JSONB column on `afrique_ids` — stores ancestry verification data from form |
+| 085 | African ID RLS update fix | Replaces old update policy (blocked identity_type changes for non-pending users) with one that only blocks admin-controlled statuses |
 
 ---
 
