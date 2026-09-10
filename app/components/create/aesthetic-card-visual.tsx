@@ -3,7 +3,8 @@
 import type { TemplateCardLayout, TemplateCardVisual } from "@/lib/create/template-visuals";
 
 /**
- * Distinct gallery chrome per aesthetic layout — not one gradient + wordmark for every look.
+ * Mini website preview for gallery cards — each layout simulates an actual business type.
+ * No external images. All CSS + inline SVG so works offline (Africa low data).
  */
 export function AestheticCardVisual({
   visual,
@@ -16,281 +17,561 @@ export function AestheticCardVisual({
 }) {
   const layout: TemplateCardLayout = visual.layout ?? "generic";
   const mark = visual.wordmark ?? name;
-  const gradient =
-    visual.previewGradient ?? `linear-gradient(160deg, ${accent}55 0%, #0a0a0a 100%)`;
+  const bg = visual.previewGradient ?? `linear-gradient(160deg, ${accent}55 0%, #0a0a0a 100%)`;
 
-  return (
-    <div className="absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute inset-0" style={{ background: gradient }} />
-
-      {visual.previewImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={visual.previewImage}
-          alt=""
-          className={`absolute object-cover ${
-            layout === "wix-collage" || layout === "dark-artist"
-              ? "bottom-[18%] right-[8%] h-[48%] w-[38%] rotate-[-12deg] shadow-2xl ring-2 ring-white/70"
-              : layout === "russian-cutouts"
-                ? "inset-0 h-full w-full opacity-90"
-                : "inset-0 h-full w-full opacity-40"
-          }`}
-        />
-      ) : null}
-
-      {visual.previewImageSecondary ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={visual.previewImageSecondary}
-          alt=""
-          className="absolute bottom-[8%] right-[6%] z-10 w-[42%] rotate-6 object-cover shadow-2xl ring-2 ring-white/80"
-        />
-      ) : null}
-
-      {layout === "wix-collage" ? (
-        <>
-          <div className="absolute inset-x-[8%] top-[12%] z-10 flex flex-wrap justify-center gap-1">
-            {["HOME", "ARTISTS", "CONTACT"].map((label) => (
-              <span
-                key={label}
-                className="rounded-full px-2 py-0.5 text-[6px] font-bold tracking-wider text-black"
-                style={{ background: "#FFF86B" }}
-              >
-                {label}
-              </span>
+  /* ── DARK ARTIST (music stage) ──────────────────────────────────────────── */
+  if (layout === "dark-artist") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0a0a0a" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <span className="text-[5px] font-black tracking-[0.25em] text-white">{mark}</span>
+          <div className="flex gap-1.5">
+            {["MUSIC", "SHOWS", "BOOK"].map((l) => (
+              <span key={l} className="text-[4px] tracking-wider" style={{ color: "rgba(255,255,255,0.45)" }}>{l}</span>
             ))}
           </div>
-          <p
-            className="absolute inset-x-0 top-[32%] z-10 text-center text-[22px] font-medium leading-none text-white"
-            style={{ fontFamily: "Oswald, Impact, sans-serif" }}
-          >
-            K
-            <span className="mt-0.5 block text-[11px] tracking-[0.28em]">DIRECTION</span>
-          </p>
-        </>
-      ) : null}
-
-      {layout === "russian-cutouts" ? (
-        <div
-          className="absolute left-[8%] top-[12%] z-10 max-w-[70%] text-[11px] font-semibold uppercase leading-none tracking-tight text-white drop-shadow"
-          style={{ fontFamily: "var(--font-jost), system-ui, sans-serif" }}
-        >
-          May Lècor
-          <span className="mt-1 block text-[8px] font-medium tracking-[0.15em] text-[#ffd6ec]">
-            Circle seal · cutouts
-          </span>
         </div>
-      ) : null}
-
-      {layout === "salon" ? (
-        <div className="absolute inset-x-[10%] top-[18%] z-10 text-center">
-          <div className="mx-auto mb-2 flex justify-center gap-1">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="h-8 w-6 rounded-full bg-black/15" />
-            ))}
+        {/* Hero */}
+        <div className="relative flex-1" style={{ background: `radial-gradient(ellipse at 50% 30%, ${accent}55 0%, #0a0a0a 70%)` }}>
+          <div className="absolute inset-x-0 top-[18%] text-center">
+            <div className="text-[9px] font-black uppercase leading-none tracking-tight text-white">{mark}</div>
+            <div className="mt-1 text-[4px] tracking-[0.35em]" style={{ color: `${accent}` }}>NEW SINGLE OUT NOW</div>
+            <div className="mx-auto mt-2 rounded-full px-3 py-0.5 text-[4px] font-black tracking-wider text-black" style={{ background: accent, width: "fit-content" }}>LISTEN →</div>
           </div>
-          <p className="text-[8px] tracking-[0.3em] text-black/65">BOOK · CUT · STYLE</p>
-          <p className="mt-1.5 font-serif text-[17px] text-black">{mark}</p>
-        </div>
-      ) : null}
-
-      {layout === "store" ? (
-        <div className="absolute inset-x-[10%] top-[14%] z-10">
-          <p className="mb-1.5 text-[8px] font-black tracking-[0.2em] text-white/90">{mark}</p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="aspect-square rounded-sm bg-white/85 shadow-sm">
-                <div className="m-1 h-1.5 w-1/2 rounded-full bg-black/15" />
+          {/* Tour dates */}
+          <div className="absolute bottom-0 inset-x-0 px-2 pb-1 space-y-0.5">
+            {["Lagos · Nov 15", "Dakar · Dec 03", "Accra · Dec 20"].map((d) => (
+              <div key={d} className="flex justify-between" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                <span className="text-[3.5px]" style={{ color: "rgba(255,255,255,0.5)" }}>{d}</span>
+                <span className="text-[3.5px]" style={{ color: accent }}>TIX</span>
               </div>
             ))}
           </div>
         </div>
-      ) : null}
+      </div>
+    );
+  }
 
-      {layout === "restaurant" ? (
-        <div className="absolute inset-x-[12%] top-[20%] z-10 border border-white/45 bg-black/25 px-3 py-4 text-center text-white backdrop-blur-[2px]">
-          <p className="text-[7px] tracking-[0.4em]">TONIGHT · MENU</p>
-          <p className="mt-1 font-serif text-[16px]">{mark}</p>
-          <div className="mx-auto mt-3 space-y-1">
-            <div className="h-0.5 w-full bg-white/35" />
-            <div className="h-0.5 w-3/4 mx-auto bg-white/25" />
+  /* ── MUSIC (streaming / listen hub) ────────────────────────────────────── */
+  if (layout === "music") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#191414" }}>
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <span className="text-[5px] font-black text-white">{mark}</span>
+          <span className="text-[4px]" style={{ color: accent }}>▶ PLAY</span>
+        </div>
+        <div className="flex flex-1 gap-1 p-1.5">
+          {/* Album art */}
+          <div className="aspect-square w-[38%] flex-shrink-0 rounded-md flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${accent}88, #0a0a0a)` }}>
+            <span className="text-[14px]" style={{ color: "rgba(255,255,255,0.6)" }}>♪</span>
+          </div>
+          {/* Track list */}
+          <div className="flex-1 space-y-1 py-0.5">
+            {["01  New track", "02  Remix", "03  Acoustic"].map((t) => (
+              <div key={t} className="flex items-center gap-1">
+                <div className="h-0.5 w-full rounded-full" style={{ background: "rgba(255,255,255,0.12)" }} />
+                <span className="text-[3.5px] text-white/40 shrink-0">{t}</span>
+              </div>
+            ))}
+            <div className="mt-1 rounded-full px-2 py-0.5 text-center text-[4px] font-black" style={{ background: accent, color: "#fff" }}>STREAM NOW</div>
           </div>
         </div>
-      ) : null}
+      </div>
+    );
+  }
 
-      {layout === "fashion" ? (
-        <>
-          <div className="absolute inset-y-[12%] left-[10%] z-10 w-[2px] bg-white/50" />
-          <p
-            className="absolute inset-x-0 top-[30%] z-10 text-center text-[12px] tracking-[0.45em] text-white"
-            style={{ fontFamily: "Times New Roman, serif" }}
-          >
-            {mark}
-          </p>
-          <p className="absolute inset-x-0 bottom-[18%] z-10 text-center text-[7px] tracking-[0.35em] text-white/70">
-            LOOKBOOK · SS
-          </p>
-        </>
-      ) : null}
-
-      {layout === "film" ? (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2">
-          <span className="rounded-full border-2 border-white/85 px-3 py-3 text-[8px] font-black tracking-widest text-white">
-            PLAY
-          </span>
-          <p className="text-[9px] font-black tracking-[0.25em] text-white/90">{mark}</p>
+  /* ── AGENCY (creative agency / consulting) ──────────────────────────────── */
+  if (layout === "agency") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAFAF8" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #E8E8E6" }}>
+          <span className="text-[5.5px] font-black uppercase tracking-tight" style={{ color: "#0a0a0a" }}>{mark}</span>
+          <div className="rounded px-1.5 py-0.5 text-[4px] font-bold text-white" style={{ background: accent }}>Brief →</div>
         </div>
-      ) : null}
+        {/* Hero */}
+        <div className="px-2 py-2">
+          <div className="text-[8px] font-black leading-tight tracking-tight" style={{ color: "#0a0a0a" }}>We Build<br />Bold Brands</div>
+          <div className="mt-1 text-[4px]" style={{ color: "#666" }}>Strategy · Design · Growth</div>
+        </div>
+        {/* Case study grid */}
+        <div className="grid grid-cols-3 gap-0.5 px-1.5 pb-1">
+          {["#E8E4E0", "#D4D0CC", "#C8C4C0"].map((c, i) => (
+            <div key={i} className="aspect-[3/4] rounded-sm" style={{ background: `linear-gradient(135deg, ${c}, ${accent}22)` }}>
+              <div className="m-1 h-0.5 w-2/3 rounded-full" style={{ background: "rgba(0,0,0,0.15)" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-      {layout === "tech" ? (
-        <div className="absolute inset-x-[16%] top-[14%] z-10 rounded-[18px] border border-white/25 bg-black/40 px-2.5 py-3 shadow-xl backdrop-blur-sm">
-          <div className="mx-auto mb-2 h-1 w-8 rounded-full bg-white/30" />
-          <p className="text-[9px] font-black tracking-wider text-white">{mark}</p>
-          <div className="mt-2 space-y-1.5">
-            <div className="h-8 rounded-md bg-white/15" />
-            <div className="h-8 rounded-md bg-white/10" />
-            <div className="h-6 rounded-full bg-white/80" />
+  /* ── SALON (beauty / hair / barber) ────────────────────────────────────── */
+  if (layout === "salon") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAF8F5" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #F0EBE3" }}>
+          <span className="text-[5px] font-semibold tracking-[0.2em] uppercase" style={{ color: "#3D2B1F", fontFamily: "Georgia, serif" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[4px] font-bold" style={{ background: accent, color: "#fff" }}>BOOK</div>
+        </div>
+        {/* Hero */}
+        <div className="relative px-2 py-1.5">
+          <div className="text-[8px] font-semibold leading-tight" style={{ color: "#3D2B1F", fontFamily: "Georgia, serif" }}>Expert cuts.<br />Your style.</div>
+        </div>
+        {/* Services */}
+        <div className="flex-1 px-1.5 space-y-0.5">
+          {[["Cut & Style", `${accent}`], ["Colour", accent], ["Treatment", accent]].map(([s, c]) => (
+            <div key={s} className="flex items-center justify-between rounded-sm px-1.5 py-1" style={{ background: "#F5EDE4" }}>
+              <span className="text-[4.5px] font-medium" style={{ color: "#3D2B1F" }}>{s}</span>
+              <span className="text-[4px]" style={{ color: c }}>→</span>
+            </div>
+          ))}
+        </div>
+        <div className="px-1.5 pb-1 mt-0.5">
+          <div className="rounded-full py-1 text-center text-[4px] font-black tracking-wider text-white" style={{ background: "#3D2B1F" }}>WhatsApp to Book</div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── STORE (shop / boutique) ────────────────────────────────────────────── */
+  if (layout === "store") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAFAF8" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #E8E8E6" }}>
+          <span className="text-[5px] font-black uppercase tracking-wider" style={{ color: "#0a0a0a" }}>{mark}</span>
+          <div className="flex gap-1.5 items-center">
+            <span className="text-[4px]" style={{ color: "#666" }}>Search</span>
+            <span className="text-[5px]" style={{ color: accent }}>🛒</span>
           </div>
         </div>
-      ) : null}
-
-      {layout === "event" ? (
-        <div className="absolute inset-x-[8%] top-[16%] z-10 overflow-hidden rounded-md border border-white/30 bg-black/50 text-white">
-          <div className="bg-white px-2 py-1 text-center text-[7px] font-black tracking-[0.3em] text-black">
-            THIS WEEK
-          </div>
-          <p className="px-2 py-3 text-center text-[18px] font-black leading-none">{mark}</p>
-          <p className="pb-2 text-center text-[7px] tracking-widest text-white/70">DOORS · 21:00</p>
+        {/* Banner */}
+        <div className="px-2 py-1" style={{ background: accent }}>
+          <span className="text-[4px] font-bold tracking-wider text-white">FREE DELIVERY OVER $50</span>
         </div>
-      ) : null}
+        {/* Product grid */}
+        <div className="grid grid-cols-2 gap-1 p-1.5 flex-1">
+          {[["#E8E4E0", "25,000 F"], ["#D4CCC4", "18,500 F"], ["#C8C0B8", "32,000 F"], ["#DDD8D0", "14,000 F"]].map(([c, price], i) => (
+            <div key={i} className="flex flex-col overflow-hidden rounded-sm" style={{ background: "#fff", border: "1px solid #F0EDE8" }}>
+              <div className="aspect-square w-full" style={{ background: `linear-gradient(135deg, ${c}, ${c}88)` }} />
+              <div className="px-1 py-0.5">
+                <div className="h-0.5 w-4/5 rounded-full" style={{ background: "#E0DDD8" }} />
+                <div className="mt-0.5 text-[4px] font-bold" style={{ color: accent }}>{price}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-      {layout === "agency" ? (
-        <div className="absolute inset-x-[8%] top-[14%] z-10">
-          <p className="text-[10px] font-black uppercase tracking-tight text-white drop-shadow">{mark}</p>
-          <div className="mt-2 grid grid-cols-3 gap-1">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="aspect-[3/4] rounded-sm bg-white/20 ring-1 ring-white/30" />
+  /* ── RESTAURANT (food / café / bakery) ──────────────────────────────────── */
+  if (layout === "restaurant") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#1A1008" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ background: "#0F0A05", borderBottom: `1px solid ${accent}33` }}>
+          <span className="text-[5px] font-black uppercase tracking-widest" style={{ color: "#fff", fontFamily: "Georgia, serif" }}>{mark}</span>
+          <span className="text-[4px]" style={{ color: accent }}>MENU</span>
+        </div>
+        {/* Hero photo mock */}
+        <div className="relative flex items-center justify-center" style={{ height: "38%", background: `radial-gradient(ellipse at 50% 60%, #4A2810 0%, #1A0F05 75%)` }}>
+          <div className="absolute inset-0 opacity-30" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${accent}22 0px, ${accent}22 1px, transparent 1px, transparent 8px)` }} />
+          <div className="text-center z-10">
+            <div className="text-[9px] font-black leading-none" style={{ color: "#F5E6C8", fontFamily: "Georgia, serif" }}>TASTE THE</div>
+            <div className="text-[12px] font-black italic leading-none" style={{ color: accent }}>CRAFT</div>
+          </div>
+        </div>
+        {/* "OUR FEATURED" section like Cookie theme */}
+        <div className="px-2 py-1.5" style={{ background: "#F5F0E8" }}>
+          <div className="text-[5px] font-black uppercase tracking-widest" style={{ color: accent }}>OUR FEATURED</div>
+        </div>
+        {/* Product grid */}
+        <div className="grid grid-cols-2 gap-0.5 px-1 flex-1">
+          {[["Signature", "24,000 F"], ["Daily Special", "16,000 F"]].map(([n, p]) => (
+            <div key={n} className="rounded-sm p-1" style={{ background: "#F5F0E8" }}>
+              <div className="aspect-square w-full rounded-sm mb-0.5" style={{ background: `linear-gradient(135deg, #4A2810, #8B4513)` }} />
+              <div className="text-[4px] font-black uppercase" style={{ color: "#1A1008" }}>{n}</div>
+              <div className="text-[4px]" style={{ color: accent }}>{p}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── FASHION (atelier / lookbook / editorial) ────────────────────────────── */
+  if (layout === "fashion") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAFAF8" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #E8E4DC" }}>
+          <div className="w-3 h-0.5 bg-black" />
+          <span className="text-[5px] font-medium uppercase tracking-[0.5em]" style={{ color: "#0a0a0a", fontFamily: "Times New Roman, serif" }}>{mark}</span>
+          <span className="text-[4px]" style={{ color: "#999" }}>BAG</span>
+        </div>
+        {/* Full-bleed hero image */}
+        <div className="relative flex-1" style={{ background: "linear-gradient(180deg, #F0EDE8 0%, #E0DAD2 100%)" }}>
+          {/* Portrait placeholder */}
+          <div className="absolute left-1/2 top-0 bottom-0 w-[45%] -translate-x-1/2" style={{ background: "linear-gradient(180deg, #D0C8C0, #A89890)" }} />
+          {/* Text overlay */}
+          <div className="absolute bottom-3 left-2">
+            <div className="text-[6px] font-light tracking-[0.5em] uppercase" style={{ color: "rgba(0,0,0,0.6)", fontFamily: "Times New Roman, serif" }}>SS 2026</div>
+            <div className="text-[10px] font-bold uppercase leading-none tracking-widest" style={{ color: "#0a0a0a", fontFamily: "Times New Roman, serif" }}>LOOK<br/>BOOK</div>
+          </div>
+        </div>
+        {/* Category strip */}
+        <div className="flex" style={{ borderTop: "1px solid #E8E4DC" }}>
+          {["NEW IN", "DRESSES", "BAGS", "SALE"].map((c) => (
+            <div key={c} className="flex-1 py-0.5 text-center" style={{ borderRight: "1px solid #E8E4DC" }}>
+              <span className="text-[3.5px] font-medium tracking-wider" style={{ color: "#666" }}>{c}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── FILM (studio / production / showreel) ───────────────────────────────── */
+  if (layout === "film") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#080808" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <span className="text-[5px] font-black uppercase tracking-wider text-white">{mark}</span>
+          <div className="flex gap-1">
+            {["WORK", "HIRE"].map((l) => (
+              <span key={l} className="text-[4px]" style={{ color: "rgba(255,255,255,0.45)" }}>{l}</span>
             ))}
           </div>
-          <p className="mt-2 text-[7px] font-bold tracking-[0.2em] text-white/75">WORK · BRIEF · HIRE</p>
         </div>
-      ) : null}
-
-      {layout === "portfolio" ? (
-        <div className="absolute inset-x-[8%] top-[12%] z-10">
-          <div className="flex items-end justify-between">
-            <p className="text-[11px] font-black text-white">{mark}</p>
-            <span className="text-[7px] tracking-widest text-white/60">SELECTED</span>
+        {/* Showreel hero */}
+        <div className="relative flex-1 flex items-center justify-center" style={{ background: `linear-gradient(160deg, #111 0%, ${accent}22 100%)` }}>
+          {/* Film grain */}
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='1' height='1' x='0' y='0' fill='%23fff' opacity='0.4'/%3E%3Crect width='1' height='1' x='2' y='2' fill='%23fff' opacity='0.3'/%3E%3C/svg%3E\")" }} />
+          {/* Play button */}
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border" style={{ borderColor: "rgba(255,255,255,0.5)" }}>
+            <span className="text-[7px] text-white ml-0.5">▶</span>
           </div>
-          <div className="mt-2 grid grid-cols-2 gap-1">
-            <div className="aspect-[4/5] rounded-sm bg-white/25" />
-            <div className="space-y-1">
-              <div className="aspect-square rounded-sm bg-white/20" />
-              <div className="aspect-square rounded-sm bg-white/15" />
+        </div>
+        {/* Project thumbnails */}
+        <div className="flex gap-0.5 p-1">
+          {[accent + "44", accent + "66", accent + "33"].map((c, i) => (
+            <div key={i} className="aspect-video flex-1 rounded-sm" style={{ background: `linear-gradient(135deg, #222, ${c})` }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── TECH (app / startup / SaaS) ────────────────────────────────────────── */
+  if (layout === "tech") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0F0F1A" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <span className="text-[5px] font-black text-white">{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[4px] font-bold text-white" style={{ background: accent }}>Get started</div>
+        </div>
+        {/* Hero */}
+        <div className="px-2 py-2">
+          <div className="text-[8px] font-black leading-tight text-white">Built for<br /><span style={{ color: accent }}>Africa.</span></div>
+          <div className="mt-1 text-[4px]" style={{ color: "rgba(255,255,255,0.5)" }}>Fast · Mobile-first · Affordable</div>
+        </div>
+        {/* App UI mockup */}
+        <div className="mx-1.5 flex-1 rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="flex items-center gap-1 px-2 py-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="h-1 w-1 rounded-full" style={{ background: accent }} />
+            <div className="h-0.5 flex-1 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
+          </div>
+          <div className="p-1.5 space-y-1">
+            <div className="h-1.5 w-4/5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
+            <div className="h-1.5 w-3/5 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }} />
+            <div className="mt-1 h-2 w-2/3 rounded-md" style={{ background: accent + "44" }} />
+          </div>
+        </div>
+        <div className="px-2 pb-1 mt-1">
+          <div className="flex gap-0.5">
+            {["Features", "Pricing", "Docs"].map((t) => (
+              <div key={t} className="flex-1 rounded py-0.5 text-center text-[3.5px]" style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)" }}>{t}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── EVENT (nightclub / concert / show) ─────────────────────────────────── */
+  if (layout === "event") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0a0a0a" }}>
+        {/* Poster hero */}
+        <div className="relative flex-1 flex flex-col items-center justify-center" style={{ background: `linear-gradient(160deg, #0a0a0a 0%, ${accent}33 100%)` }}>
+          <div className="text-[4px] tracking-[0.4em] mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>THIS FRIDAY</div>
+          <div className="text-[14px] font-black uppercase leading-none text-center" style={{ color: "#fff" }}>{mark}</div>
+          <div className="mt-0.5 text-[4px] tracking-[0.3em]" style={{ color: accent }}>DOORS 21:00 · 18+</div>
+          <div className="mt-2 rounded-sm px-3 py-0.5 text-[4px] font-black tracking-wider" style={{ background: accent, color: "#000" }}>GET TICKETS</div>
+        </div>
+        {/* Lineup strip */}
+        <div className="flex" style={{ background: "rgba(255,255,255,0.04)", borderTop: `1px solid ${accent}44` }}>
+          {["LINEUP", "VENUE", "GALLERY"].map((t) => (
+            <div key={t} className="flex-1 py-1 text-center text-[3.5px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.45)" }}>{t}</div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── PERFUME (fragrance house / boutique) ────────────────────────────────── */
+  if (layout === "perfume") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAF8F4" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ background: "#fff", borderBottom: "1px solid #F0EBE0" }}>
+          <span className="text-[5px] font-medium tracking-[0.35em] uppercase" style={{ color: "#2A1F14", fontFamily: "Georgia, serif" }}>{mark}</span>
+          <span className="text-[4px]" style={{ color: accent }}>SHOP</span>
+        </div>
+        {/* Bottle + text layout */}
+        <div className="flex-1 flex items-center gap-2 px-2 py-1.5">
+          {/* Bottle shape */}
+          <div className="flex-shrink-0 flex flex-col items-center gap-0.5" style={{ width: "22%" }}>
+            <div className="w-2 h-1 rounded-t-sm" style={{ background: accent + "99" }} />
+            <div className="w-5 flex-1 rounded-b-[6px]" style={{ background: `linear-gradient(180deg, ${accent}66, ${accent}22)`, minHeight: "28px", border: `1px solid ${accent}55` }} />
+          </div>
+          <div className="flex-1">
+            <div className="text-[5px] tracking-[0.3em] uppercase" style={{ color: "#999", fontFamily: "Georgia, serif" }}>EAU DE PARFUM</div>
+            <div className="mt-0.5 text-[9px] font-medium leading-tight" style={{ color: "#2A1F14", fontFamily: "Georgia, serif" }}>{mark}</div>
+            <div className="mt-1 text-[4px] leading-relaxed" style={{ color: "#888" }}>Top notes of oud<br />amber &amp; rose</div>
+          </div>
+        </div>
+        {/* Collection strip */}
+        <div className="flex border-t" style={{ borderColor: "#F0EBE0" }}>
+          {["NOIR", "ROSE", "AMBER"].map((c) => (
+            <div key={c} className="flex-1 py-1 text-center" style={{ borderRight: "1px solid #F0EBE0" }}>
+              <div className="mx-auto h-2 w-2 rounded-full mb-0.5" style={{ background: `${accent}55` }} />
+              <div className="text-[3.5px] tracking-wider" style={{ color: "#888" }}>{c}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── HOTEL (rooms / stay / hospitality) ─────────────────────────────────── */
+  if (layout === "hotel") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAF8F4" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #F0EBE0" }}>
+          <span className="text-[5px] font-medium tracking-[0.25em]" style={{ color: "#2A1F14", fontFamily: "Georgia, serif" }}>{mark}</span>
+          <div className="rounded px-1.5 py-0.5 text-[4px] font-bold" style={{ background: accent, color: "#fff" }}>Reserve</div>
+        </div>
+        {/* Hero room photo */}
+        <div className="relative" style={{ height: "40%", background: `linear-gradient(160deg, #E8DDD0, #C8BDB0)` }}>
+          <div className="absolute inset-0 flex items-end p-1.5">
+            <div>
+              <div className="text-[4px] tracking-[0.3em] uppercase" style={{ color: "rgba(255,255,255,0.8)" }}>SUPERIOR ROOM</div>
+              <div className="text-[7px] font-semibold" style={{ color: "#fff", fontFamily: "Georgia, serif" }}>From 85,000 F/night</div>
             </div>
           </div>
         </div>
-      ) : null}
-
-      {layout === "perfume" ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center gap-4 px-4">
-          <div
-            className="h-[58%] w-[18%] rounded-b-[40%] rounded-t-[8%] border border-white/40 bg-gradient-to-b from-white/30 to-white/5 shadow-lg"
-            style={{ borderColor: `${accent}99` }}
-          />
-          <div className="max-w-[55%]">
-            <p className="text-[7px] tracking-[0.35em] text-white/70">EAU DE PARFUM</p>
-            <p
-              className="mt-1 text-[14px] font-serif leading-tight text-white"
-              style={{ fontFamily: "Times New Roman, serif" }}
-            >
-              {mark}
-            </p>
-          </div>
+        {/* Room categories */}
+        <div className="flex gap-0.5 p-1">
+          {[["Deluxe", "85K F"], ["Suite", "140K F"], ["Garden", "70K F"]].map(([n, p]) => (
+            <div key={n} className="flex-1 rounded-sm p-0.5" style={{ background: "#F0EBE0" }}>
+              <div className="aspect-[4/3] rounded-sm mb-0.5" style={{ background: `linear-gradient(135deg, ${accent}33, ${accent}66)` }} />
+              <div className="text-[3.5px] font-bold" style={{ color: "#2A1F14" }}>{n}</div>
+              <div className="text-[3.5px]" style={{ color: accent }}>{p}</div>
+            </div>
+          ))}
         </div>
-      ) : null}
+      </div>
+    );
+  }
 
-      {layout === "hotel" ? (
-        <div className="absolute inset-x-[8%] top-[16%] z-10 text-white">
-          <p className="text-[8px] tracking-[0.35em] text-white/70">ROOMS · STAY</p>
-          <p className="mt-1 font-serif text-[16px]">{mark}</p>
-          <div className="mt-3 flex gap-1.5">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-14 flex-1 rounded-sm bg-white/25 ring-1 ring-white/30" />
-            ))}
-          </div>
+  /* ── FARM (agriculture / produce) ────────────────────────────────────────── */
+  if (layout === "farm") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#F5F8F0" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #E0E8D8" }}>
+          <span className="text-[5px] font-black uppercase" style={{ color: "#2D4A1E" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[4px] font-bold" style={{ background: "#2D4A1E", color: "#fff" }}>ORDER</div>
         </div>
-      ) : null}
-
-      {layout === "farm" ? (
-        <div className="absolute inset-x-[8%] top-[18%] z-10">
-          <p className="text-[10px] font-black uppercase text-white drop-shadow">{mark}</p>
-          <div className="mt-3 space-y-1.5">
-            {["Harvest", "Order", "Visit"].map((row) => (
-              <div
-                key={row}
-                className="flex items-center justify-between rounded-sm bg-white/85 px-2 py-1.5 text-[8px] font-bold text-black"
-              >
-                <span>{row}</span>
-                <span className="text-black/40">→</span>
+        {/* Season hero */}
+        <div className="px-2 py-1.5" style={{ background: accent }}>
+          <div className="text-[5px] font-black text-white uppercase tracking-wider">🌿 Harvest Season</div>
+          <div className="text-[4px] mt-0.5" style={{ color: "rgba(255,255,255,0.8)" }}>Fresh daily · WhatsApp orders</div>
+        </div>
+        {/* Produce list */}
+        <div className="flex-1 px-1.5 py-1 space-y-0.5">
+          {[["Tomatoes", "1,200 F/kg", "#CC3300"], ["Cassava", "800 F/kg", "#CC8800"], ["Mangoes", "2,500 F/kg", "#FF6600"]].map(([n, p, c]) => (
+            <div key={n} className="flex items-center justify-between rounded-sm px-1.5 py-0.5" style={{ background: "#fff", border: `1px solid #E8EEE0` }}>
+              <div className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full" style={{ background: c as string }} />
+                <span className="text-[4px] font-medium" style={{ color: "#2D4A1E" }}>{n}</span>
               </div>
+              <span className="text-[4px] font-bold" style={{ color: accent }}>{p}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── BUILD (construction / contractor) ───────────────────────────────────── */
+  if (layout === "build") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#1C2230" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ background: "#141B28", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <span className="text-[5px] font-black uppercase tracking-wider text-white">{mark}</span>
+          <div className="rounded px-1.5 py-0.5 text-[4px] font-bold text-black" style={{ background: accent }}>QUOTE</div>
+        </div>
+        {/* Hero */}
+        <div className="px-2 py-1.5">
+          <div className="text-[8px] font-black leading-tight text-white">Built Right.<br /><span style={{ color: accent }}>On Time.</span></div>
+        </div>
+        {/* Project thumbnails */}
+        <div className="grid grid-cols-3 gap-0.5 px-1.5">
+          {[accent + "33", accent + "55", accent + "22"].map((c, i) => (
+            <div key={i} className="aspect-video rounded-sm" style={{ background: `linear-gradient(135deg, #2A3548, ${c})` }}>
+              <div className="m-0.5 h-0.5 w-3/4 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }} />
+            </div>
+          ))}
+        </div>
+        {/* Services */}
+        <div className="px-1.5 pb-1 mt-1 flex gap-0.5">
+          {["Residential", "Commercial", "Renovation"].map((s) => (
+            <div key={s} className="flex-1 py-0.5 rounded text-center text-[3.5px]" style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)" }}>{s}</div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── IMPACT (NGO / nonprofit / foundation) ───────────────────────────────── */
+  if (layout === "impact") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAFAF8" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #E8E8E4" }}>
+          <span className="text-[5px] font-black uppercase" style={{ color: "#0a0a0a" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[4px] font-bold text-white" style={{ background: accent }}>DONATE</div>
+        </div>
+        {/* Mission hero */}
+        <div className="px-2 py-2" style={{ background: accent }}>
+          <div className="text-[7px] font-black leading-tight text-white">Community<br />First.</div>
+          <div className="mt-0.5 text-[4px]" style={{ color: "rgba(255,255,255,0.75)" }}>Empowering Africa · one town at a time</div>
+        </div>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-0.5 px-1.5 py-1">
+          {[["5K+", "Lives"], ["12", "Programs"], ["54", "Nations"]].map(([n, l]) => (
+            <div key={l} className="rounded-sm px-1 py-1 text-center" style={{ background: `${accent}11` }}>
+              <div className="text-[7px] font-black" style={{ color: accent }}>{n}</div>
+              <div className="text-[3.5px]" style={{ color: "#666" }}>{l}</div>
+            </div>
+          ))}
+        </div>
+        {/* Programs */}
+        <div className="px-1.5 pb-1 space-y-0.5">
+          {["Education", "Health", "Enterprise"].map((p) => (
+            <div key={p} className="flex items-center gap-1 rounded-sm px-1 py-0.5" style={{ background: "#F0EEE8" }}>
+              <div className="h-1 w-1 rounded-full" style={{ background: accent }} />
+              <span className="text-[4px] font-medium" style={{ color: "#333" }}>{p}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── PORTFOLIO (work showcase / CV) ─────────────────────────────────────── */
+  if (layout === "portfolio") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0a0a0a" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <span className="text-[5px] font-black text-white">{mark}</span>
+          <div className="flex gap-1">
+            {["WORK", "CV", "HIRE"].map((l) => (
+              <span key={l} className="text-[4px]" style={{ color: "rgba(255,255,255,0.45)" }}>{l}</span>
             ))}
           </div>
         </div>
-      ) : null}
-
-      {layout === "build" ? (
-        <div className="absolute inset-x-[8%] top-[14%] z-10">
-          <div
-            className="rounded-md border border-dashed border-white/50 bg-black/20 p-3"
-            style={{ backgroundImage: "linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)", backgroundSize: "12px 12px" }}
-          >
-            <p className="text-[10px] font-black uppercase tracking-wide text-white">{mark}</p>
-            <p className="mt-2 text-[7px] tracking-[0.2em] text-white/70">PROJECTS · QUOTE</p>
+        {/* Work grid */}
+        <div className="flex-1 grid grid-cols-2 gap-0.5 p-1">
+          <div className="row-span-2 rounded-sm" style={{ background: `linear-gradient(135deg, ${accent}66, ${accent}22)` }}>
+            <div className="m-1 h-0.5 w-3/4 rounded-full" style={{ background: "rgba(255,255,255,0.2)" }} />
+            <div className="m-1 mt-0 h-0.5 w-1/2 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
           </div>
+          <div className="rounded-sm aspect-square" style={{ background: `linear-gradient(135deg, ${accent}33, #1a1a1a)` }} />
+          <div className="rounded-sm aspect-square" style={{ background: "linear-gradient(135deg, #2a2a2a, #111)" }} />
         </div>
-      ) : null}
-
-      {layout === "impact" ? (
-        <div className="absolute inset-x-[8%] top-[18%] z-10 text-center text-white">
-          <p className="text-[7px] font-bold tracking-[0.35em] text-white/75">MISSION</p>
-          <p className="mt-2 text-[15px] font-black leading-tight">{mark}</p>
-          <div className="mx-auto mt-3 flex max-w-[80%] justify-between gap-1">
-            {["01", "02", "03"].map((n) => (
-              <div key={n} className="flex-1 rounded-sm bg-white/20 py-2 text-[8px] font-black">
-                {n}
-              </div>
-            ))}
-          </div>
+        {/* CTA */}
+        <div className="px-2 pb-1">
+          <div className="rounded-full py-0.5 text-center text-[4px] font-black tracking-wider" style={{ background: accent, color: "#000" }}>HIRE ME → WHATSAPP</div>
         </div>
-      ) : null}
+      </div>
+    );
+  }
 
-      {layout === "dark-artist" ? (
-        <div className="absolute inset-0 z-10">
-          <div className="absolute left-1/2 top-[20%] h-24 w-24 -translate-x-1/2 rounded-full bg-white/10 blur-2xl" />
-          <p className="absolute left-[8%] top-[16%] text-[15px] font-black uppercase tracking-tight text-white drop-shadow">
-            {mark}
-          </p>
-          <p className="absolute bottom-[16%] left-[8%] text-[7px] font-bold tracking-[0.3em] text-white/70">
-            MUSIC · SHOWS · BOOK
-          </p>
+  /* ── WIX COLLAGE (K-Direction style) ────────────────────────────────────── */
+  if (layout === "wix-collage") {
+    return (
+      <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>
+        {visual.previewImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={visual.previewImage} alt="" className="absolute bottom-[18%] right-[8%] h-[48%] w-[38%] rotate-[-12deg] object-cover shadow-2xl ring-2 ring-white/70" />
+        ) : null}
+        <div className="absolute inset-x-[8%] top-[12%] z-10 flex flex-wrap justify-center gap-1">
+          {["HOME", "ARTISTS", "CONTACT"].map((label) => (
+            <span key={label} className="rounded-full px-2 py-0.5 text-[6px] font-bold tracking-wider text-black" style={{ background: "#FFF86B" }}>{label}</span>
+          ))}
         </div>
-      ) : null}
-
-      {layout === "generic" ? (
-        <p className="absolute inset-x-0 top-[28%] z-10 text-center text-[14px] font-black uppercase tracking-tight text-white drop-shadow">
-          {mark}
+        <p className="absolute inset-x-0 top-[32%] z-10 text-center text-[22px] font-medium leading-none text-white" style={{ fontFamily: "Oswald, Impact, sans-serif" }}>
+          K<span className="mt-0.5 block text-[11px] tracking-[0.28em]">DIRECTION</span>
         </p>
-      ) : null}
+      </div>
+    );
+  }
 
-      {layout === "music" ? (
-        <div className="absolute inset-x-[10%] top-[20%] z-10 text-center text-white">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/60">
-            <span className="text-[10px]">♪</span>
-          </div>
-          <p className="text-[13px] font-black tracking-wide">{mark}</p>
+  /* ── RUSSIAN CUTOUTS (May Lecor style) ─────────────────────────────────── */
+  if (layout === "russian-cutouts") {
+    return (
+      <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>
+        {visual.previewImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={visual.previewImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-90" />
+        ) : null}
+        <div className="absolute left-[8%] top-[12%] z-10 max-w-[70%] text-[11px] font-semibold uppercase leading-none tracking-tight text-white drop-shadow" style={{ fontFamily: "var(--font-jost), system-ui, sans-serif" }}>
+          May Lècor
+          <span className="mt-1 block text-[8px] font-medium tracking-[0.15em] text-[#ffd6ec]">Circle seal · cutouts</span>
         </div>
+      </div>
+    );
+  }
+
+  /* ── DARK ARTIST secondary (used for label roster etc.) ─── */
+  if (layout === "music") {
+    return (
+      <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>
+        <p className="absolute inset-x-0 top-[28%] z-10 text-center text-[14px] font-black uppercase tracking-tight text-white drop-shadow">{mark}</p>
+      </div>
+    );
+  }
+
+  /* ── GENERIC fallback ──────────────────────────────────────────────────── */
+  return (
+    <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>
+      {visual.previewImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={visual.previewImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />
       ) : null}
+      <p className="absolute inset-x-0 top-[28%] z-10 text-center text-[14px] font-black uppercase tracking-tight text-white drop-shadow">{mark}</p>
     </div>
   );
 }

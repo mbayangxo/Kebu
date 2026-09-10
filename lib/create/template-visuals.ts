@@ -120,7 +120,6 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "ROSTER",
   },
   "carmine-creative": {
-    previewImage: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
     previewGradient: "linear-gradient(160deg, #FAF7F5 0%, #C1121F 50%, #1A0505 100%)",
     badge: "Carmine · Creative agency",
     keywords: ["carmine", "agency", "creative", "brand", "campaign"],
