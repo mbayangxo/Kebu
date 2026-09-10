@@ -5,10 +5,10 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
  * Archetype: boutique hotel / guesthouse · IA = Home · Rooms · Amenities · Stay · FAQ · Contact
  */
 
-const ROOM1 = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80";
-const ROOM2 = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80";
-const ROOM3 = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80";
-const ROOM4 = "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80";
+const ROOM1 = "";
+const ROOM2 = "";
+const ROOM3 = "";
+const ROOM4 = "";
 
 const NAV = [
   { label: "Rooms", href: "/rooms" },

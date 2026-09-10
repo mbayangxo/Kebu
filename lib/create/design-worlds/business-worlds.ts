@@ -1,8 +1,8 @@
 import { buildSenegalWorld } from "./senegal-world-kit";
 
-const B1 = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=70";
-const B2 = "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=640&q=65";
-const B3 = "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=640&q=65";
+const B1 = "";
+const B2 = "";
+const B3 = "";
 
 /** Business A — company clarity site. */
 export function companySiteWorldDefinition() {

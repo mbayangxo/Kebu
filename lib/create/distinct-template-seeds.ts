@@ -117,9 +117,9 @@ export function beautyStudioDistinctDefinition(): WebsiteDefinition {
             props: {
               heading: "Work",
               items: [
-                { src: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80", alt: "Salon chair" },
-                { src: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80", alt: "Hair detail" },
-                { src: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=800&q=80", alt: "Skincare shelf" },
+                { src: "", alt: "Salon chair" },
+                { src: "", alt: "Hair detail" },
+                { src: "", alt: "Skincare shelf" },
               ],
             },
           },
@@ -190,10 +190,10 @@ export function artistGalleryDistinctDefinition(): WebsiteDefinition {
             props: {
               heading: "Selected works",
               items: [
-                { src: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800&q=80", alt: "Work 1" },
-                { src: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800&q=80", alt: "Work 2" },
-                { src: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=80", alt: "Work 3" },
-                { src: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&q=80", alt: "Work 4" },
+                { src: "", alt: "Work 1" },
+                { src: "", alt: "Work 2" },
+                { src: "", alt: "Work 3" },
+                { src: "", alt: "Work 4" },
               ],
             },
           },
@@ -434,8 +434,8 @@ export function hairSalonDistinctDefinition(): WebsiteDefinition {
             props: {
               heading: "Before / after",
               items: [
-                { src: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80", alt: "Salon" },
-                { src: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80", alt: "Finish" },
+                { src: "", alt: "Salon" },
+                { src: "", alt: "Finish" },
               ],
             },
           },
@@ -657,8 +657,8 @@ export function agencyCreativeDistinctDefinition(): WebsiteDefinition {
             props: {
               heading: "Selected frames",
               items: [
-                { src: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&q=80", alt: "Studio" },
-                { src: "https://images.unsplash.com/photo-1558655146-d09347e92766?w=800&q=80", alt: "Board" },
+                { src: "", alt: "Studio" },
+                { src: "", alt: "Board" },
               ],
             },
           },

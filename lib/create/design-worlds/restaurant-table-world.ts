@@ -5,9 +5,9 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
  * Archetype: restaurant / café · IA = Home · Menu · About · Reserve · FAQ
  */
 
-const FOOD1 = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80";
-const FOOD2 = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80";
-const FOOD3 = "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80";
+const FOOD1 = "";
+const FOOD2 = "";
+const FOOD3 = "";
 
 const NAV = [
   { label: "Menu", href: "/menu" },

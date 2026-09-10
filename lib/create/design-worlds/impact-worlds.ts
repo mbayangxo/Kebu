@@ -1,8 +1,8 @@
 import { buildSenegalWorld } from "./senegal-world-kit";
 
-const I1 = "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&q=70";
-const I2 = "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=640&q=65";
-const I3 = "https://images.unsplash.com/photo-1500937386664-56d57812c411?w=640&q=65";
+const I1 = "";
+const I2 = "";
+const I3 = "";
 
 /** Impact A — NGO / community. */
 export function ngoImpactWorldDefinition() {

@@ -7,12 +7,12 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
  */
 
 const IMG = {
-  hero: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=80",
-  work1: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
-  work2: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80",
-  work3: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80",
-  work4: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=800&q=80",
-  team: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80",
+  hero: "",
+  work1: "",
+  work2: "",
+  work3: "",
+  work4: "",
+  team: "",
 } as const;
 
 const NAV = [

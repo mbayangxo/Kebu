@@ -7,8 +7,8 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
  * Light assets — Data Saver friendly (few images, system-readable type).
  */
 
-const C1 = "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=640&q=65";
-const C2 = "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=640&q=65";
+const C1 = "";
+const C2 = "";
 
 const NAV = [
   { label: "Catalog", href: "/catalog" },

@@ -5,11 +5,11 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
  * Archetype: scent brand · IA = Home · Shop · Story · Stockists · FAQ · Contact
  */
 
-const BOTTLE = "https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80";
-const COLLECTION = "https://images.unsplash.com/photo-1592945403244-b3fbafd72529?w=800&q=80";
-const FLAT = "https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=800&q=80";
-const MIST = "https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=800&q=80";
-const GIFT = "https://images.unsplash.com/photo-1595425970377-c9703cf48b6d?w=800&q=80";
+const BOTTLE = "";
+const COLLECTION = "";
+const FLAT = "";
+const MIST = "";
+const GIFT = "";
 
 const NAV = [
   { label: "Shop", href: "/shop" },

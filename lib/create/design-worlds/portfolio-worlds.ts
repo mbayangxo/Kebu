@@ -1,8 +1,8 @@
 import { buildSenegalWorld } from "./senegal-world-kit";
 
-const P1 = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=70";
-const P2 = "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=640&q=65";
-const P3 = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=640&q=65";
+const P1 = "";
+const P2 = "";
+const P3 = "";
 
 /** Portfolio A — freelancer / pro. */
 export function proPortfolioWorldDefinition() {

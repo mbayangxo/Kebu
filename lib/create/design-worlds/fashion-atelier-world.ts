@@ -8,19 +8,19 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
 
 const LOOKS = [
   {
-    src: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
+    src: "",
     alt: "Look 01 — studio frame",
   },
   {
-    src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    src: "",
     alt: "Look 02 — fitting",
   },
   {
-    src: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80",
+    src: "",
     alt: "Look 03 — film still",
   },
   {
-    src: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=800&q=80",
+    src: "",
     alt: "Look 04 — runway light",
   },
 ] as const;

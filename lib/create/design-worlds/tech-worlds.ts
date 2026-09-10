@@ -1,7 +1,7 @@
 import { buildSenegalWorld } from "./senegal-world-kit";
 
-const T1 = "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&q=70";
-const T2 = "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=640&q=65";
+const T1 = "";
+const T2 = "";
 
 /** Tech A — app launch / waitlist. */
 export function appLaunchWorldDefinition() {

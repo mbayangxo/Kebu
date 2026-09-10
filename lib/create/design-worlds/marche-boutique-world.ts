@@ -7,9 +7,9 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
  * Commerce: products + WhatsApp / Wave / Orange Money language — not fake card checkout.
  */
 
-const P1 = "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=70";
-const P2 = "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&q=70";
-const P3 = "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=800&q=70";
+const P1 = "";
+const P2 = "";
+const P3 = "";
 
 const NAV = [
   { label: "Shop", href: "/shop" },

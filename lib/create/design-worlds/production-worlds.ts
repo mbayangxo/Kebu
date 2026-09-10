@@ -1,8 +1,8 @@
 import { buildSenegalWorld } from "./senegal-world-kit";
 
-const W1 = "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=70";
-const W2 = "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=640&q=65";
-const W3 = "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=640&q=65";
+const W1 = "";
+const W2 = "";
+const W3 = "";
 
 /** Production A — commercials, events, brand films. */
 export function productionHouseWorldDefinition() {

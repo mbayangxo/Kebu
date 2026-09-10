@@ -1,8 +1,8 @@
 import { buildSenegalWorld } from "./senegal-world-kit";
 
-const IMG1 = "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=70";
-const IMG2 = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=640&q=65";
-const IMG3 = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=640&q=65";
+const IMG1 = "";
+const IMG2 = "";
+const IMG3 = "";
 
 /** Music A — dark stage for artists (not May Lecor portfolio). */
 export function artistDarkStageWorldDefinition() {

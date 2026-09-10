@@ -8,17 +8,17 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
 
 /** Mock catalog photos — Unsplash IDs already used elsewhere in Kebu seeds (editable in Media). */
 const IMG = {
-  hero: "https://images.unsplash.com/photo-1595425970377-c9703cf48b6d?w=1400&q=80",
-  serum: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=800&q=80",
-  cream: "https://images.unsplash.com/photo-1592945403244-b3fbafd72529?w=800&q=80",
-  oil: "https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=800&q=80",
-  mist: "https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=800&q=80",
-  ritual: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80",
-  botanicals: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80",
-  texture: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&q=80",
-  hands: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
-  shelf: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
-  gift: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80",
+  hero: "",
+  serum: "",
+  cream: "",
+  oil: "",
+  mist: "",
+  ritual: "",
+  botanicals: "",
+  texture: "",
+  hands: "",
+  shelf: "",
+  gift: "",
 } as const;
 
 const NAV = [

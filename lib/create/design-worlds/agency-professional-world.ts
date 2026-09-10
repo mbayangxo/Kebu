@@ -1,7 +1,7 @@
 import { buildSenegalWorld } from "./senegal-world-kit";
 
-const S1 = "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=70";
-const S2 = "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=640&q=65";
+const S1 = "";
+const S2 = "";
 
 /** Agency B — professional services / consulting firm (harden pair with Carmine). */
 export function professionalServicesWorldDefinition() {
