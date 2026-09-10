@@ -77,7 +77,7 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
   const [applyProjectId, setApplyProjectId] = useState(sites[0]?.id ?? "");
   const [devName, setDevName] = useState("");
   const [sellName, setSellName] = useState("");
-  const [sellPrice, setSellPrice] = useState("0");
+  const [sellPrice, setSellPrice] = useState("5");
   const [sellDesc, setSellDesc] = useState("");
 
   const billingNote = useMemo(() => {
@@ -298,13 +298,16 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <header className="mb-8">
         <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: KEBU.orange }}>
-          Aesthetic store
+          Site looks
         </p>
-        <h1 className="text-3xl sm:text-4xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-          Aesthetics
+        <h1
+          className="text-2xl sm:text-3xl font-semibold tracking-tight"
+          style={{ fontFamily: "var(--font-jost), system-ui, sans-serif" }}
+        >
+          Aesthetic Gallery
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-          See finished looks — tap for a demo. Optional inspiration. The main path is still{" "}
+          Each look should feel different — open a demo, try free, or apply to a site. Optional inspiration. The main path is still{" "}
           <Link href="/create/new?mode=ai" className="font-semibold underline">
             describe your business
           </Link>{" "}
@@ -326,7 +329,7 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
         <div className="mt-4 flex flex-wrap gap-2">
           {(
             [
-              ["store", "Gallery"],
+              ["store", "Aesthetic Gallery"],
               ["owned", "Owned"],
               ["sell", "Sell (developers)"],
             ] as const

@@ -520,7 +520,7 @@ export function MaylecorMotionChrome({
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className={`pointer-events-auto mx-auto flex flex-wrap items-center justify-between ${
+        className={`pointer-events-auto mx-auto flex items-center justify-between ${
           overlay ? "drop-shadow-[0_1px_10px_rgba(0,0,0,0.65)]" : ""
         } ${m.size === "fullscreen" ? "w-full max-w-none" : ""}`}
         style={{
@@ -530,22 +530,35 @@ export function MaylecorMotionChrome({
           paddingLeft: m.padX,
           paddingRight: m.padX,
           gap: Math.max(8, m.gap / 2),
+          flexWrap: "nowrap",
         }}
       >
         {brand}
 
         <nav
-          className="order-3 flex w-full flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:order-none sm:w-auto sm:flex-1 sm:justify-center md:gap-x-6"
+          className="hidden min-w-0 flex-1 items-center justify-center gap-x-4 md:flex md:gap-x-6 lg:gap-x-8"
           aria-label="Site"
+          style={{ flexWrap: "nowrap" }}
         >
           {items.map((item) => renderDropdown(item, overlay))}
         </nav>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 flex-nowrap items-center gap-2 sm:gap-3">
           <MaylecorSocialBar links={socialLinks} accentColor={accentColor} variant="pill" />
           <div className="hidden sm:block">{localeRow}</div>
         </div>
       </div>
+      {/* Second row only on small screens — one professional bar on desktop */}
+      <nav
+        className="pointer-events-auto flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-white/10 px-4 py-2 md:hidden"
+        aria-label="Site pages"
+        style={{
+          paddingLeft: m.padX,
+          paddingRight: m.padX,
+        }}
+      >
+        {items.map((item) => renderDropdown(item, overlay))}
+      </nav>
     </header>
   );
 }

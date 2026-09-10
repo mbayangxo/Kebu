@@ -21,7 +21,7 @@ type Business = {
   updated_at: string;
 };
 
-type TabId = "overview" | "businesses" | "sites" | "analytics" | "messages" | "you";
+type TabId = "pulse" | "businesses" | "sites" | "analytics" | "messages" | "you";
 
 type SiteAnalyticsCard = {
   id: string;
@@ -42,9 +42,19 @@ type MessagePreview = {
   last_message_at: string | null;
 };
 
+type PulseItem = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  href: string;
+  businessName: string | null;
+  at: string | null;
+};
+
 const TABS: { id: TabId; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "businesses", label: "Businesses" },
+  { id: "pulse", label: "Pulse" },
+  { id: "businesses", label: "My Businesses" },
   { id: "sites", label: "My Sites" },
   { id: "analytics", label: "Analytics" },
   { id: "messages", label: "Messages" },
@@ -56,10 +66,16 @@ function MySpaceInner() {
   const search = useSearchParams();
   const tabParam = search.get("tab") as TabId | null;
   const [tab, setTab] = useState<TabId>(
-    tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "overview",
+    tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "pulse",
   );
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [summary, setSummary] = useState<HomeSummary | null>(null);
+  const [pulseItems, setPulseItems] = useState<PulseItem[]>([]);
+  const [pulseStats, setPulseStats] = useState<{
+    pendingOrders: number;
+    openMessages: number;
+    shopsOpen: number;
+  } | null>(null);
   const [analyticsCards, setAnalyticsCards] = useState<SiteAnalyticsCard[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [messagePreviews, setMessagePreviews] = useState<MessagePreview[]>([]);
@@ -71,9 +87,10 @@ function MySpaceInner() {
     setLoading(true);
     setError(null);
     try {
-      const [bRes, sRes] = await Promise.all([
+      const [bRes, sRes, pRes] = await Promise.all([
         fetch("/api/businesses", { credentials: "include" }),
         fetch("/api/me/home", { credentials: "include" }),
+        fetch("/api/me/pulse", { credentials: "include" }),
       ]);
       if (bRes.status === 401 || sRes.status === 401) {
         router.replace("/login?next=/business");
@@ -81,12 +98,21 @@ function MySpaceInner() {
       }
       const bData = await bRes.json().catch(() => ({}));
       const sData = await sRes.json().catch(() => ({}));
+      const pData = await pRes.json().catch(() => ({}));
       if (!bRes.ok) {
         setError(typeof bData.error === "string" ? bData.error : "Could not load businesses.");
       } else {
         setBusinesses(Array.isArray(bData.businesses) ? bData.businesses : []);
       }
       if (sRes.ok && sData.summary) setSummary(sData.summary as HomeSummary);
+      if (pRes.ok && pData.pulse) {
+        setPulseStats({
+          pendingOrders: Number(pData.pulse.pendingOrders ?? 0),
+          openMessages: Number(pData.pulse.openMessages ?? 0),
+          shopsOpen: Number(pData.pulse.shopsOpen ?? 0),
+        });
+        setPulseItems(Array.isArray(pData.pulse.items) ? pData.pulse.items : []);
+      }
     } catch {
       setError("Network error. Retry.");
     } finally {
@@ -99,8 +125,13 @@ function MySpaceInner() {
   }, [load]);
 
   useEffect(() => {
+    if (tabParam === "overview") {
+      setTab("pulse");
+      router.replace("/business?tab=pulse", { scroll: false });
+      return;
+    }
     if (tabParam && TABS.some((t) => t.id === tabParam)) setTab(tabParam);
-  }, [tabParam]);
+  }, [tabParam, router]);
 
   useEffect(() => {
     if (tab !== "analytics" || !summary?.sites?.length) {
@@ -209,16 +240,17 @@ function MySpaceInner() {
   }
 
   return (
-    <AppShell title="My Space">
+    <AppShell title="My Businesses">
       <main className="max-w-4xl mx-auto px-5 py-8 lg:py-10">
         <p className="text-[10px] font-bold uppercase tracking-[0.24em] mb-2" style={{ color: KEBU.orange }}>
           My KEBU
         </p>
         <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-          My Space
+          My Businesses
         </h1>
         <p className="text-sm mb-6 max-w-2xl" style={{ color: KEBU.muted }}>
-          Your businesses, sites, analytics, and messages — one dashboard. Register a business lives under Businesses.
+          Each business is its own workspace (May Lecor, K-Direction, DkLNS…). Pulse keeps you updated across all of
+          them — orders, messages, sites. Open a business to run only that brand.
         </p>
 
         <div
@@ -255,14 +287,14 @@ function MySpaceInner() {
           </p>
         ) : null}
 
-        {!loading && tab === "overview" ? (
+        {!loading && tab === "pulse" ? (
           <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { n: summary?.stats.sitesTotal ?? 0, l: "Sites", href: MY_SITES_HREF },
-                { n: summary?.stats.sitesPublished ?? 0, l: "Live", href: MY_SITES_HREF },
+                { n: pulseStats?.pendingOrders ?? 0, l: "Orders to fulfill", href: "/shop" },
+                { n: pulseStats?.openMessages ?? 0, l: "Open messages", href: "/messages" },
                 { n: businesses.length, l: "Businesses", href: "/business?tab=businesses" },
-                { n: summary?.stats.storeProducts ?? 0, l: "Products", href: "/shop" },
+                { n: pulseStats?.shopsOpen ?? 0, l: "Shops open", href: "/shop" },
               ].map((s) => (
                 <Link
                   key={s.l}
@@ -278,16 +310,42 @@ function MySpaceInner() {
               ))}
             </div>
             <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
-              <h2 className="font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>
+              <h2 className="font-bold mb-1" style={{ fontFamily: "var(--font-fraunces)" }}>
                 What’s going on
               </h2>
-              {(summary?.updates ?? []).length === 0 ? (
+              <p className="text-xs mb-4" style={{ color: KEBU.muted }}>
+                Across all your businesses — tap an item to open the right shop or site.
+              </p>
+              {pulseItems.length === 0 ? (
                 <p className="text-sm" style={{ color: KEBU.muted }}>
-                  No recent updates yet. Open a site or register a business to get started.
+                  Nothing urgent. Register a business, build a site, or open a shop when you’re ready to sell.
                 </p>
               ) : (
                 <ul className="space-y-2">
-                  {(summary?.updates ?? []).slice(0, 6).map((u) => (
+                  {pulseItems.slice(0, 16).map((u) => (
+                    <li key={u.id}>
+                      <Link href={u.href} className="block rounded-xl px-3 py-2.5 hover:bg-black/[0.03]">
+                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
+                          {u.kind}
+                          {u.businessName ? ` · ${u.businessName}` : ""}
+                        </span>
+                        <span className="block text-sm font-semibold">{u.title}</span>
+                        <span className="block text-xs mt-0.5" style={{ color: KEBU.muted }}>
+                          {u.body}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            {(summary?.updates ?? []).length > 0 ? (
+              <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <h2 className="font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>
+                  Account updates
+                </h2>
+                <ul className="space-y-2">
+                  {(summary?.updates ?? []).slice(0, 4).map((u) => (
                     <li key={u.id}>
                       <Link href={u.href} className="block text-sm font-semibold hover:underline">
                         {u.title}
@@ -298,8 +356,8 @@ function MySpaceInner() {
                     </li>
                   ))}
                 </ul>
-              )}
-            </section>
+              </section>
+            ) : null}
           </div>
         ) : null}
 

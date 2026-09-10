@@ -14,6 +14,10 @@ import {
   type LayerMotion,
 } from "@/app/components/create/circular-brand-ring";
 import { LEGALLY_BLONDE_ASSETS } from "@/lib/create/legally-blonde-defaults";
+import {
+  MAYLECOR_FIGURE_ASSETS,
+  MAYLECOR_LOCAL_ASSETS,
+} from "@/lib/create/maylecor-defaults";
 import { uploadProjectAsset } from "@/lib/create/upload-project-asset";
 import { MaylecorMotionChrome } from "@/app/components/create/maylecor-motion-chrome";
 import { sanitizeMaylecorNavLinks } from "@/lib/create/maylecor-nav";
@@ -45,6 +49,45 @@ const DEFAULT_SLOTS: Omit<EditableCutoutSlot, "src">[] = [
   { key: "titleLogo", label: "Name circle", topPct: 36, leftPct: 30, widthPct: 38, rotate: 0 },
 ];
 
+/** May Lecor hero — never fall back to Russian / Elle stock cutouts or Cyrillic logo. */
+function looksLikeMaylecorHero(props: Record<string, unknown>): boolean {
+  const blob = [
+    props.chromeLogo,
+    props.titleLogo,
+    props.cutoutLeft,
+    props.cutoutAccent,
+    props.seedRevision,
+    props.brandLabel,
+    props.title,
+  ]
+    .map((v) => String(v ?? ""))
+    .join(" ")
+    .toLowerCase();
+  return (
+    blob.includes("maylecor") ||
+    blob.includes("may lecor") ||
+    blob.includes("may lècor") ||
+    blob.includes("logo-circle-seal") ||
+    blob.includes("may-figure") ||
+    blob.includes("may-cutout") ||
+    Boolean(props.seedRevision)
+  );
+}
+
+function slotFallbackSrc(key: string, props: Record<string, unknown>): string {
+  if (looksLikeMaylecorHero(props)) {
+    if (key === "titleLogo") return MAYLECOR_LOCAL_ASSETS.logoCircleSeal;
+    if (key === "cutoutLeft") return MAYLECOR_FIGURE_ASSETS.cutoutLeft;
+    if (key === "cutoutRight") return MAYLECOR_FIGURE_ASSETS.cutoutRight;
+    if (key === "cutoutAccent") return MAYLECOR_FIGURE_ASSETS.cutoutAccent;
+    if (key === "heroPhoto") return MAYLECOR_FIGURE_ASSETS.heroPhoto;
+    // Russian glitter / MacBook — blank unless the founder uploaded something.
+    if (key === "cutoutSparkle" || key === "macbook" || key === "sparkleGif") return "";
+  }
+  const fallback = LEGALLY_BLONDE_ASSETS[key as keyof typeof LEGALLY_BLONDE_ASSETS];
+  return typeof fallback === "string" ? fallback : "";
+}
+
 type LayerPos = { leftPct: number; topPct: number };
 type ExtraCut = {
   id: string;
@@ -67,6 +110,7 @@ export function LegallyBlondeEditCanvas({
   projectId,
   siteBase = "",
   currentSlug = "home",
+  fillCanvas = true,
   onPatch,
   onSelectSection,
   onNavigatePage,
@@ -75,21 +119,40 @@ export function LegallyBlondeEditCanvas({
   projectId?: string;
   siteBase?: string;
   currentSlug?: string;
+  fillCanvas?: boolean;
   onPatch: (patch: Record<string, unknown>) => void;
   onSelectSection?: () => void;
   onNavigatePage?: (slug: string) => void;
 }) {
-  const bg =
-    String(props.backgroundLayer ?? "").trim() || LEGALLY_BLONDE_ASSETS.backgroundLayer;
+  const hiddenLayers = Array.isArray(props.hiddenLayers)
+    ? (props.hiddenLayers as string[])
+    : [];
+  const bgHidden =
+    props.backgroundHidden === true || hiddenLayers.includes("backgroundLayer");
+  const bgRaw = String(props.backgroundLayer ?? "").trim();
+  const bg = bgHidden ? "" : bgRaw;
   const moves = (props.layerMoves as Record<string, { dx?: number; dy?: number }>) ?? {};
   const positions = (props.layerPositions as Record<string, LayerPos>) ?? {};
   const scales = (props.layerScales as Record<string, number>) ?? {};
   const motions = (props.layerMotions as Record<string, LayerMotion>) ?? {};
   const layerLinks = (props.layerLinks as Record<string, string>) ?? {};
-  const hiddenLayers = Array.isArray(props.hiddenLayers)
-    ? (props.hiddenLayers as string[])
-    : [];
-  const titleAsText = props.titleAsText !== false;
+  const layerZ = (props.layerZIndex as Record<string, number>) ?? {};
+
+  function bumpLayer(key: string, dir: "front" | "back") {
+    const current = typeof layerZ[key] === "number" ? layerZ[key]! : 10;
+    const next = dir === "front" ? Math.min(80, current + 10) : Math.max(1, current - 10);
+    const nextMap = { ...layerZ, [key]: next };
+    const extras = Array.isArray(props.extraCutouts)
+      ? (props.extraCutouts as { id?: string; zIndex?: number }[]).map((c) =>
+          c.id === key ? { ...c, zIndex: Math.min(40, next) } : c,
+        )
+      : props.extraCutouts;
+    onPatch({
+      layerZIndex: nextMap,
+      ...(Array.isArray(extras) ? { extraCutouts: extras } : {}),
+    });
+  }
+  const titleAsText = props.titleAsText === true;
   const title = String(props.title ?? "MAY LECOR");
   const accent = String(props.accentColor ?? "#E9006B");
   const parallax = props.scrollMode !== "viewport";
@@ -114,10 +177,17 @@ export function LegallyBlondeEditCanvas({
       return { ...slot, src: "__title_text__" };
     }
     const raw = String(props[slot.key] ?? "").trim();
-    const fallback = LEGALLY_BLONDE_ASSETS[slot.key as keyof typeof LEGALLY_BLONDE_ASSETS];
+    // Never paint Russian Elle cutouts / Cyrillic seal on a May Lecor hero.
+    const russianStock =
+      raw.includes("/templates/legally-blonde/") ||
+      raw.includes("tildacdn.com") ||
+      raw.includes("Group_557");
+    const useMay = looksLikeMaylecorHero(props);
+    const src =
+      raw && !(useMay && russianStock) ? raw : slotFallbackSrc(slot.key, props);
     return {
       ...slot,
-      src: raw || (typeof fallback === "string" ? fallback : ""),
+      src,
     };
   }).filter((s) => Boolean(s.src));
 
@@ -189,7 +259,11 @@ export function LegallyBlondeEditCanvas({
       return;
     }
     if (target.kind === "background") {
-      onPatch({ backgroundLayer: result.url });
+      onPatch({
+        backgroundLayer: result.url,
+        backgroundHidden: false,
+        hiddenLayers: hiddenLayers.filter((k) => k !== "backgroundLayer"),
+      });
     } else if (target.kind === "slot") {
       onPatch({
         [target.key]: result.url,
@@ -244,10 +318,14 @@ export function LegallyBlondeEditCanvas({
 
   const artboard = (
       <div
-        className="relative h-full min-h-0 w-full flex-1 overflow-hidden"
+        className={
+          fillCanvas
+            ? "relative h-full min-h-0 w-full flex-1 overflow-hidden"
+            : "relative min-h-[72vh] w-full overflow-hidden"
+        }
         style={{
-          backgroundColor: "#E9006B",
-          backgroundImage: `url(${bg})`,
+          backgroundColor: String(props.accentColor ?? "#E9006B"),
+          backgroundImage: bg ? `url(${bg})` : "none",
           backgroundSize: "cover",
           backgroundPosition: "center",
           touchAction: "none",
@@ -328,6 +406,9 @@ export function LegallyBlondeEditCanvas({
               onNavigatePage={onNavigatePage}
               onLinkChange={(href) => saveLayerLink(slot.key, href)}
               onOpenLink={() => openCutoutLink(layerLinks[slot.key] ?? "")}
+              zIndex={typeof layerZ[slot.key] === "number" ? layerZ[slot.key]! : 10}
+              onBringFront={() => bumpLayer(slot.key, "front")}
+              onSendBack={() => bumpLayer(slot.key, "back")}
               onSelect={() => {
                 setSelectedKey(slot.key);
                 setSelectedExtraId(null);
@@ -408,6 +489,9 @@ export function LegallyBlondeEditCanvas({
                   });
                 }}
                 onOpenLink={() => openCutoutLink(cut.href ?? "")}
+                zIndex={typeof layerZ[cut.id] === "number" ? layerZ[cut.id]! : 10}
+                onBringFront={() => bumpLayer(cut.id, "front")}
+                onSendBack={() => bumpLayer(cut.id, "back")}
                 onSelect={() => {
                   setSelectedExtraId(cut.id);
                   setSelectedKey(null);
@@ -452,6 +536,35 @@ export function LegallyBlondeEditCanvas({
           </div>
         ) : null}
 
+        <div className="pointer-events-auto absolute bottom-3 left-3 z-[85] flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            className="rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow"
+            onClick={(e) => {
+              e.stopPropagation();
+              openUpload({ kind: "background" });
+            }}
+          >
+            {bg ? "Change background" : "Add background"}
+          </button>
+          {bg ? (
+            <button
+              type="button"
+              className="rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPatch({
+                  backgroundLayer: "",
+                  backgroundHidden: true,
+                  hiddenLayers: [...new Set([...hiddenLayers, "backgroundLayer"])],
+                });
+              }}
+            >
+              Remove background
+            </button>
+          ) : null}
+        </div>
+
         {toast ? (
           <div className="pointer-events-none absolute left-1/2 top-3 z-[90] -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-lg">
             {toast}
@@ -462,7 +575,13 @@ export function LegallyBlondeEditCanvas({
 
   return (
     /* Fill the builder main pane edge-to-edge (Shopify-style) — no aspect-ratio strip. */
-    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]">
+    <div
+      className={
+        fillCanvas
+          ? "relative flex h-full min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]"
+          : "relative flex min-h-[72vh] w-full flex-col bg-[#FFE4F0]"
+      }
+    >
       <input
         ref={fileRef}
         type="file"
@@ -518,6 +637,9 @@ function CutoutChip({
   onEndTitleEdit,
   onReplaceImage,
   onDelete,
+  zIndex = 10,
+  onBringFront,
+  onSendBack,
 }: {
   slot: EditableCutoutSlot;
   titleText: string | null;
@@ -545,6 +667,9 @@ function CutoutChip({
   onEndTitleEdit?: () => void;
   onReplaceImage?: () => void;
   onDelete?: () => void;
+  zIndex?: number;
+  onBringFront?: () => void;
+  onSendBack?: () => void;
 }) {
   const moved = useRef(false);
   const [pulsing, setPulsing] = useState(false);
@@ -722,7 +847,7 @@ function CutoutChip({
         top: `${topPct}%`,
         width: `${slot.widthPct}%`,
         transform: scrollTransform,
-        zIndex: selected || titleEditing ? 40 : 10,
+        zIndex: selected || titleEditing ? Math.max(zIndex, 40) : zIndex,
         touchAction: "none",
         userSelect: "none",
         WebkitUserSelect: "none",
@@ -731,6 +856,11 @@ function CutoutChip({
         outlineOffset: 3,
       }}
       onPointerDown={onPointerDown}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelect();
+      }}
       onDoubleClick={(e) => {
         e.stopPropagation();
         if (titleText !== null) onStartTitleEdit?.();
@@ -789,18 +919,31 @@ function CutoutChip({
                 Delete
               </button>
             ) : null}
+            {onBringFront ? (
+              <button
+                type="button"
+                className="rounded-md bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#0F0D33] shadow"
+                onClick={() => onBringFront()}
+                title="Bring to front"
+              >
+                Front
+              </button>
+            ) : null}
+            {onSendBack ? (
+              <button
+                type="button"
+                className="rounded-md bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#0F0D33] shadow"
+                onClick={() => onSendBack()}
+                title="Send to back"
+              >
+                Back
+              </button>
+            ) : null}
           </div>
           {onLinkChange ? (
-            <input
-              data-link-field="1"
-              className="w-[min(220px,70vw)] rounded-md border border-white/30 bg-black/85 px-2 py-1 text-[10px] text-white placeholder:text-white/50"
-              placeholder="Link — /about or https://…"
-              value={href}
-              onChange={(e) => onLinkChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onOpenLink?.();
-              }}
-            />
+            <p className="max-w-[220px] text-center text-[8px] font-semibold uppercase tracking-wider text-white/80">
+              Set link in left Sections panel
+            </p>
           ) : null}
         </div>
       ) : null}

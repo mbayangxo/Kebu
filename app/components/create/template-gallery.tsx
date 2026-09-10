@@ -108,7 +108,7 @@ export function TemplateGallery({
 
       {visible.length === 0 ? (
         <p className="text-sm py-12 text-center" style={{ color: KEBU.muted }}>
-          No templates in this filter. Try another business type.
+          No aesthetics in this filter. Try another business type.
         </p>
       ) : null}
     </div>

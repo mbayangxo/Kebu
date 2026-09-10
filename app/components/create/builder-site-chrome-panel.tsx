@@ -1,6 +1,6 @@
 "use client";
 
-import { NavLinksEditor } from "@/app/components/create/nav-links-editor";
+import { NavLinksEditor, mapNavLinksForEditor } from "@/app/components/create/nav-links-editor";
 import { NavSizeEditor } from "@/app/components/create/nav-size-editor";
 import { BUILDER } from "@/lib/create/builder-ui";
 import { clampNavScale, parseNavLayout, parseNavSize } from "@/lib/create/nav-chrome-size";
@@ -19,11 +19,22 @@ export function BuilderSiteChromePanel({
   onSelect: () => void;
   onPatch: (patch: Record<string, unknown>) => void;
 }) {
-  const label = part === "header" ? "Site header (all pages)" : "Site footer (all pages)";
-  const props =
-    part === "header"
-      ? (chrome.header?.props ?? { brand: "", links: [] })
-      : (chrome.footer?.props ?? { text: "" });
+  const label =
+    part === "header" ? "Header — brand & menu (all pages)" : "Footer — bottom bar (all pages)";
+  const headerProps = (chrome.header?.props ?? {
+    brand: "",
+    links: [] as { label: string; href: string }[],
+    navScale: 1,
+    navSize: "comfortable" as const,
+    navLayout: "top" as const,
+  }) as {
+    brand?: string;
+    links?: Parameters<typeof mapNavLinksForEditor>[0];
+    navScale?: number;
+    navSize?: string;
+    navLayout?: string;
+  };
+  const footerProps = (chrome.footer?.props ?? { text: "" }) as { text?: string };
 
   return (
     <div
@@ -47,22 +58,21 @@ export function BuilderSiteChromePanel({
           <input
             className="w-full text-sm rounded-lg px-2 py-1.5"
             style={{ border: "1px solid #DDE0F0" }}
-            value={String(props.brand ?? "")}
+            value={String(headerProps.brand ?? "")}
             onChange={(e) => onPatch({ brand: e.target.value })}
             aria-label="Brand name"
             placeholder="Brand name"
           />
           <NavLinksEditor
-            links={((props.links as { label?: string; href?: string }[]) ?? []).map((l) => ({
-              label: String(l.label ?? ""),
-              href: String(l.href ?? ""),
-            }))}
+            links={mapNavLinksForEditor(
+              (headerProps.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
+            )}
             onChange={(links) => onPatch({ links })}
           />
           <NavSizeEditor
-            scale={clampNavScale(props.navScale, 1)}
-            size={parseNavSize(props.navSize)}
-            layout={parseNavLayout(props.navLayout)}
+            scale={clampNavScale(headerProps.navScale, 1)}
+            size={parseNavSize(headerProps.navSize)}
+            layout={parseNavLayout(headerProps.navLayout)}
             onChange={onPatch}
           />
         </div>
@@ -72,7 +82,7 @@ export function BuilderSiteChromePanel({
         <input
           className="w-full text-sm rounded-lg px-2 py-1.5"
           style={{ border: "1px solid #DDE0F0" }}
-          value={String(props.text ?? "")}
+          value={String(footerProps.text ?? "")}
           onChange={(e) => onPatch({ text: e.target.value })}
           aria-label="Footer text"
           placeholder="© Your business"

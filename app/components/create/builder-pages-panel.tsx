@@ -11,6 +11,7 @@ export type BuilderPageRow = {
   sort_order: number;
 };
 
+/** Slim Shopify-style pages list — no oversized cards. */
 export function BuilderPagesPanel({
   projectId,
   pages,
@@ -31,7 +32,7 @@ export function BuilderPagesPanel({
   onError: (message: string | null) => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
-  const [newSlug, setNewSlug] = useState("");
+  const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editSlug, setEditSlug] = useState("");
@@ -41,14 +42,14 @@ export function BuilderPagesPanel({
   const working = busy || localBusy;
 
   async function addPage() {
-    const slug = normalizePageSlug(newSlug || newTitle);
     const title = newTitle.trim();
+    const slug = normalizePageSlug(title);
     if (!slug || !title) {
-      onError("Page title and slug are required.");
+      onError("Page title is required.");
       return;
     }
     if (!isValidPageSlug(slug)) {
-      onError("Use lowercase letters, numbers, and hyphens only (e.g. shop, about-may).");
+      onError("Use letters, numbers, and hyphens only.");
       return;
     }
     setLocalBusy(true);
@@ -66,11 +67,9 @@ export function BuilderPagesPanel({
         return;
       }
       setNewTitle("");
-      setNewSlug("");
+      setAdding(false);
       await onRefresh();
-      if (data.page?.id) {
-        onSelectPage(data.page as BuilderPageRow);
-      }
+      if (data.page?.id) onSelectPage(data.page as BuilderPageRow);
     } catch {
       onError("Network error while adding page.");
     } finally {
@@ -174,54 +173,51 @@ export function BuilderPagesPanel({
   }
 
   return (
-    <div className="rounded-2xl p-4 space-y-4" style={{ background: BUILDER.surface, border: `1px solid ${BUILDER.border}` }}>
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.orange }}>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: BUILDER.muted }}>
           Pages
         </p>
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-          Add, rename, reorder, and delete pages. Changes save to your draft — publish when the live site should update.
-        </p>
+        <button
+          type="button"
+          disabled={working}
+          onClick={() => setAdding((v) => !v)}
+          className="text-[10px] font-bold"
+          style={{ color: BUILDER.orange }}
+        >
+          {adding ? "Cancel" : "+ Add"}
+        </button>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="space-y-0.5">
         {sorted.map((p, idx) => {
           const active = p.id === editPageId || p.slug === previewPageSlug;
           const editing = editingId === p.id;
           return (
-            <li
-              key={p.id}
-              className="rounded-xl p-3"
-              style={{
-                background: active ? "#FFF4EC" : BUILDER.surfaceMuted,
-                border: `1px solid ${active ? BUILDER.orange : BUILDER.border}`,
-              }}
-            >
+            <li key={p.id}>
               {editing ? (
-                <div className="space-y-2">
+                <div className="space-y-1.5 rounded-md p-2" style={{ background: BUILDER.surfaceMuted }}>
                   <input
-                    className="w-full text-xs rounded-lg px-2 py-1.5"
+                    className="w-full rounded px-2 py-1 text-xs"
                     style={{ border: `1px solid ${BUILDER.border}` }}
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    placeholder="Page title"
                     disabled={working}
                   />
                   <input
-                    className="w-full text-xs rounded-lg px-2 py-1.5 font-mono"
+                    className="w-full rounded px-2 py-1 font-mono text-[10px]"
                     style={{ border: `1px solid ${BUILDER.border}` }}
                     value={editSlug}
                     onChange={(e) => setEditSlug(e.target.value)}
-                    placeholder="slug"
                     disabled={working}
                   />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex gap-2">
                     <button
                       type="button"
                       disabled={working}
                       onClick={() => void savePageEdit(p.id)}
-                      className="rounded-full px-3 py-1 text-[10px] font-bold text-white"
-                      style={{ background: BUILDER.orange }}
+                      className="text-[10px] font-bold"
+                      style={{ color: BUILDER.orange }}
                     >
                       Save
                     </button>
@@ -229,7 +225,7 @@ export function BuilderPagesPanel({
                       type="button"
                       disabled={working}
                       onClick={() => setEditingId(null)}
-                      className="rounded-full px-3 py-1 text-[10px] font-semibold"
+                      className="text-[10px]"
                       style={{ color: BUILDER.muted }}
                     >
                       Cancel
@@ -237,24 +233,36 @@ export function BuilderPagesPanel({
                   </div>
                 </div>
               ) : (
-                <div className="flex items-start justify-between gap-2">
+                <div
+                  className="group flex items-center gap-1 rounded-md px-2 py-1.5"
+                  style={{
+                    background: active ? "#F4F4F5" : "transparent",
+                    outline: active ? `1px solid ${BUILDER.border}` : undefined,
+                  }}
+                >
                   <button
                     type="button"
                     className="min-w-0 flex-1 text-left"
                     onClick={() => onSelectPage(p)}
                   >
-                    <p className="text-xs font-semibold truncate" style={{ color: BUILDER.ink }}>
+                    <p
+                      className="truncate text-[12px] font-medium leading-tight"
+                      style={{ color: BUILDER.ink }}
+                    >
                       {p.title}
                     </p>
-                    <p className="text-[10px] font-mono opacity-60">/{p.slug}</p>
+                    <p className="truncate font-mono text-[9px]" style={{ color: BUILDER.faint }}>
+                      /{p.slug}
+                    </p>
                   </button>
-                  <div className="flex shrink-0 flex-col gap-1">
+                  <div className="flex shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                     <button
                       type="button"
                       title="Move up"
                       disabled={working || idx === 0}
                       onClick={() => void movePage(p.id, "up")}
-                      className="text-[10px] opacity-60 hover:opacity-100 disabled:opacity-30"
+                      className="px-1 text-[10px] disabled:opacity-30"
+                      style={{ color: BUILDER.muted }}
                     >
                       ↑
                     </button>
@@ -263,7 +271,8 @@ export function BuilderPagesPanel({
                       title="Move down"
                       disabled={working || idx === sorted.length - 1}
                       onClick={() => void movePage(p.id, "down")}
-                      className="text-[10px] opacity-60 hover:opacity-100 disabled:opacity-30"
+                      className="px-1 text-[10px] disabled:opacity-30"
+                      style={{ color: BUILDER.muted }}
                     >
                       ↓
                     </button>
@@ -276,7 +285,8 @@ export function BuilderPagesPanel({
                         setEditTitle(p.title);
                         setEditSlug(p.slug);
                       }}
-                      className="text-[10px] opacity-60 hover:opacity-100"
+                      className="px-1 text-[10px]"
+                      style={{ color: BUILDER.muted }}
                     >
                       Edit
                     </button>
@@ -286,9 +296,9 @@ export function BuilderPagesPanel({
                         title="Delete"
                         disabled={working}
                         onClick={() => void removePage(p.id)}
-                        className="text-[10px] text-red-600 opacity-70 hover:opacity-100"
+                        className="px-1 text-[10px] text-red-600"
                       >
-                        Del
+                        ×
                       </button>
                     ) : null}
                   </div>
@@ -299,36 +309,28 @@ export function BuilderPagesPanel({
         })}
       </ul>
 
-      <div className="grid gap-2 pt-2 border-t" style={{ borderColor: BUILDER.border }}>
-        <input
-          className="w-full text-xs rounded-lg px-2 py-1.5"
-          style={{ border: `1px solid ${BUILDER.border}` }}
-          placeholder="Page title (e.g. Shop)"
-          value={newTitle}
-          onChange={(e) => {
-            setNewTitle(e.target.value);
-            if (!newSlug.trim()) setNewSlug(normalizePageSlug(e.target.value));
-          }}
-          disabled={working}
-        />
-        <input
-          className="w-full text-xs rounded-lg px-2 py-1.5 font-mono"
-          style={{ border: `1px solid ${BUILDER.border}` }}
-          placeholder="slug (e.g. shop)"
-          value={newSlug}
-          onChange={(e) => setNewSlug(e.target.value)}
-          disabled={working}
-        />
-        <button
-          type="button"
-          disabled={working || !newTitle.trim()}
-          onClick={() => void addPage()}
-          className="w-full rounded-full py-2 text-xs font-bold text-white disabled:opacity-50"
-          style={{ background: BUILDER.orange }}
-        >
-          {working ? "Saving…" : "Add page"}
-        </button>
-      </div>
+      {adding ? (
+        <div className="space-y-1.5 border-t pt-2" style={{ borderColor: BUILDER.border }}>
+          <input
+            className="w-full rounded-md px-2 py-1.5 text-xs"
+            style={{ border: `1px solid ${BUILDER.border}` }}
+            placeholder="Page title"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            disabled={working}
+            autoFocus
+          />
+          <button
+            type="button"
+            disabled={working || !newTitle.trim()}
+            onClick={() => void addPage()}
+            className="w-full rounded-md py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+            style={{ background: BUILDER.ink }}
+          >
+            {working ? "Saving…" : "Add page"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

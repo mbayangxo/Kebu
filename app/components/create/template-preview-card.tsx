@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { GalleryTemplate } from "@/lib/create/template-gallery";
+import { AestheticCardVisual } from "@/app/components/create/aesthetic-card-visual";
 import { KEBU } from "@/lib/kebu-brand";
 
 function PreviewSkeleton({ accent, gradient }: { accent: string; gradient?: string }) {
@@ -14,146 +15,6 @@ function PreviewSkeleton({ accent, gradient }: { accent: string; gradient?: stri
       }}
     >
       <div className="w-10 h-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-    </div>
-  );
-}
-
-function StaticTemplateVisual({ template }: { template: GalleryTemplate }) {
-  const visual = template.cardVisual;
-  if (!visual) return null;
-  const layout = visual.layout ?? "generic";
-  const mark = visual.wordmark ?? template.name;
-
-  return (
-    <div className="absolute inset-0 overflow-hidden" aria-hidden>
-      <div
-        className="absolute inset-0"
-        style={{
-          background: visual.previewGradient ?? `linear-gradient(160deg, ${template.accent}55, #0a0a0a)`,
-        }}
-      />
-      {visual.previewImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={visual.previewImage}
-          alt=""
-          className={`absolute object-cover ${
-            layout === "wix-collage" || layout === "dark-artist"
-              ? "bottom-[18%] right-[8%] h-[48%] w-[38%] rotate-[-12deg] shadow-2xl ring-2 ring-white/70"
-              : layout === "russian-cutouts"
-                ? "inset-0 h-full w-full opacity-90"
-                : "inset-0 h-full w-full opacity-35"
-          }`}
-        />
-      ) : null}
-      {visual.previewImageSecondary ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={visual.previewImageSecondary}
-          alt=""
-          className="absolute bottom-[8%] right-[6%] z-10 w-[42%] rotate-6 object-cover shadow-2xl ring-2 ring-white/80"
-        />
-      ) : null}
-
-      {layout === "wix-collage" ? (
-        <>
-          <div className="absolute inset-x-[8%] top-[12%] z-10 flex flex-wrap justify-center gap-1">
-            {["HOME", "ARTISTS", "CONTACT"].map((label) => (
-              <span
-                key={label}
-                className="rounded-full px-2 py-0.5 text-[6px] font-bold tracking-wider text-black"
-                style={{ background: "#FFF86B" }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-          <p
-            className="absolute inset-x-0 top-[32%] z-10 text-center text-[22px] font-medium leading-none text-white"
-            style={{ fontFamily: "Oswald, Impact, sans-serif" }}
-          >
-            K
-            <span className="mt-0.5 block text-[11px] tracking-[0.28em]">DIRECTION</span>
-          </p>
-        </>
-      ) : null}
-
-      {layout === "russian-cutouts" ? (
-        <div
-          className="absolute left-[8%] top-[12%] z-10 max-w-[70%] text-[11px] font-black uppercase leading-none tracking-tight text-white drop-shadow"
-          style={{ fontFamily: "Georgia, serif" }}
-        >
-          May Lecor
-          <span className="mt-1 block text-[8px] font-bold tracking-[0.15em] text-[#ffd6ec]">
-            Russian cutouts
-          </span>
-        </div>
-      ) : null}
-
-      {layout === "salon" ? (
-        <div className="absolute inset-x-[10%] top-[22%] z-10 text-center">
-          <p className="text-[9px] tracking-[0.3em] text-black/70">BOOKING · GALLERY</p>
-          <p className="mt-2 font-serif text-[18px] text-black">{mark}</p>
-        </div>
-      ) : null}
-
-      {layout === "store" ? (
-        <div className="absolute inset-x-[12%] top-[20%] z-10 grid grid-cols-2 gap-1.5">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="aspect-square rounded-sm bg-white/80 shadow-sm" />
-          ))}
-        </div>
-      ) : null}
-
-      {layout === "restaurant" ? (
-        <div className="absolute inset-x-[12%] top-[24%] z-10 border border-white/40 px-3 py-4 text-center text-white">
-          <p className="text-[8px] tracking-[0.35em]">MENU</p>
-          <p className="mt-1 font-serif text-[16px]">{mark}</p>
-        </div>
-      ) : null}
-
-      {layout === "fashion" ? (
-        <p
-          className="absolute inset-x-0 top-[28%] z-10 text-center text-[13px] tracking-[0.4em] text-white"
-          style={{ fontFamily: "Times New Roman, serif" }}
-        >
-          {mark}
-        </p>
-      ) : null}
-
-      {layout === "film" ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center">
-          <span className="rounded-full border-2 border-white/80 px-3 py-3 text-[8px] font-black tracking-widest text-white">
-            PLAY
-          </span>
-        </div>
-      ) : null}
-
-      {layout === "tech" ? (
-        <div className="absolute inset-x-[14%] top-[26%] z-10 rounded-xl bg-white/10 px-3 py-4 backdrop-blur-sm">
-          <p className="text-[10px] font-black tracking-wider text-white">{mark}</p>
-          <div className="mt-2 h-1.5 w-2/3 rounded-full bg-white/80" />
-        </div>
-      ) : null}
-
-      {layout === "event" ? (
-        <div className="absolute inset-x-[10%] top-[22%] z-10 text-center text-white">
-          <p className="text-[8px] font-black tracking-[0.4em]">THIS WEEK</p>
-          <p className="mt-1 text-[20px] font-black">{mark}</p>
-        </div>
-      ) : null}
-
-      {layout === "agency" || layout === "portfolio" || layout === "perfume" || layout === "hotel" || layout === "farm" || layout === "build" || layout === "impact" || layout === "dark-artist" || layout === "generic" ? (
-        layout === "wix-collage" || layout === "russian-cutouts" ? null : (
-          <p
-            className={`absolute z-10 font-black uppercase tracking-tight text-white drop-shadow ${
-              layout === "dark-artist" ? "left-[8%] top-[16%] text-[16px]" : "inset-x-0 top-[26%] text-center text-[14px]"
-            }`}
-          >
-            {mark}
-          </p>
-        )
-      ) : null}
     </div>
   );
 }
@@ -233,7 +94,13 @@ export function TemplatePreviewCard({
         className="relative overflow-hidden bg-[#0A0A0A]"
         style={{ aspectRatio: visualOnly ? "9/14" : "10/13" }}
       >
-        {template.cardVisual ? <StaticTemplateVisual template={template} /> : null}
+        {template.cardVisual ? (
+          <AestheticCardVisual
+            visual={template.cardVisual}
+            name={template.name}
+            accent={template.accent}
+          />
+        ) : null}
         {!frameReady && !useStaticHero ? (
           <PreviewSkeleton accent={template.accent} gradient={template.cardVisual?.previewGradient} />
         ) : null}
@@ -364,7 +231,7 @@ export function TemplatePreviewCard({
                 color: KEBU.white,
               }}
             >
-              {selected ? "Selected" : "Use this template"}
+              {selected ? "Selected" : "Use this aesthetic"}
             </button>
           ) : (
             <Link
@@ -372,7 +239,7 @@ export function TemplatePreviewCard({
               className="inline-flex items-center justify-center rounded-full py-2.5 text-[10px] font-bold uppercase tracking-wider"
               style={{ background: KEBU.black, color: KEBU.white }}
             >
-              Start with this template
+              Start with this aesthetic
             </Link>
           )}
         </div>

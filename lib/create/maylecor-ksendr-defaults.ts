@@ -5,8 +5,8 @@ import { LEGALLY_BLONDE_ASSETS, defaultLegallyBlondeHeroProps } from "./legally-
 import { defaultMaylecorNavLinks } from "./maylecor-nav";
 
 /**
- * May Lecor portfolio hero = exact ksendrdesign.ru/legallyblonderu Tilda layout
- * (background, cutouts, Steelfish, spin logo, scroll parallax). Swap photos in the editor.
+ * May Lecor portfolio hero — circle seal + May cutouts (not Russian / Elle stock).
+ * Parallax scene structure kept; people and logo are May Lècor.
  */
 export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
   const russian = defaultLegallyBlondeHeroProps();
@@ -24,9 +24,9 @@ export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
     cutoutLeft: MAYLECOR_FIGURE_ASSETS.cutoutLeft,
     cutoutRight: MAYLECOR_FIGURE_ASSETS.cutoutRight,
     cutoutAccent: MAYLECOR_FIGURE_ASSETS.cutoutAccent,
-    cutoutSparkle: LEGALLY_BLONDE_ASSETS.cutoutSparkle,
-    macbook: LEGALLY_BLONDE_ASSETS.macbook,
-    sparkleGif: LEGALLY_BLONDE_ASSETS.sparkleGif,
+    cutoutSparkle: "",
+    macbook: "",
+    sparkleGif: "",
     heroPhoto: MAYLECOR_FIGURE_ASSETS.heroPhoto,
     accentColor: "#E9006B",
     displayFont: "Steelfish",
@@ -46,7 +46,7 @@ export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
       heroPhoto: 0.34,
     },
     layerMotions: { ...MAYLECOR_DEFAULT_LAYER_MOTIONS, titleLogo: "spin" as const },
-    hiddenLayers: ["macbook"],
+    hiddenLayers: ["macbook", "cutoutSparkle", "sparkleGif"],
     navLinks: defaultMaylecorNavLinks(),
     navDisplay: "text" as const,
     chromeLogo: MAYLECOR_LOCAL_ASSETS.logoStacked,
@@ -60,7 +60,7 @@ export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
     layerMoves: {},
     /**
      * City scrolls behind May (parallaxRole=city).
-     * Correct brand logo sits top-left — not the pink “May” wordmark over the skyline.
+     * Brand logo lives ONLY in MaylecorMotionChrome (chromeLogo) — do not seed a second top-left logo cutout.
      */
     extraCutouts: [
       {
@@ -75,23 +75,11 @@ export function defaultMaylecorKsendrProps(artistName = "MAY LECOR") {
         zIndex: 5,
         parallaxRole: "city" as const,
       },
-      {
-        id: "may-logo-stacked",
-        src: MAYLECOR_LOCAL_ASSETS.logoStacked,
-        alt: "Ma Lècor logo",
-        href: "/",
-        topPct: 4,
-        leftPct: 4,
-        widthPct: 16,
-        rotate: 0,
-        zIndex: 20,
-        parallaxRole: "none" as const,
-      },
     ],
   };
 }
 
-/** True when hero still needs the Russian local cutouts (not a custom upload set). */
+/** True when hero still needs May cutouts restored (not a custom upload set). */
 export function maylecorHeroNeedsRussianRestore(props: Record<string, unknown>): boolean {
   const val = (key: string) => String(props[key] ?? "");
   const cutouts = [val("cutoutLeft"), val("cutoutRight"), val("cutoutAccent"), val("heroPhoto")];
@@ -178,7 +166,7 @@ export const maylecorKsendrPropsSchema = z.object({
   seedRevision: z.string().optional(),
 });
 
-/** Merge May Lecor logo/city cutouts; refresh stock files; drop the old “May” banner over the skyline. */
+/** Merge May Lecor city cutout; never re-inject a duplicate top-left logo (chromeLogo owns brand). */
 export function mergeMaylecorLogoExtras(
   extras: {
     id: string;
@@ -195,7 +183,12 @@ export function mergeMaylecorLogoExtras(
 ): typeof extras {
   const defaults = defaultMaylecorKsendrProps().extraCutouts ?? [];
   const refreshed = extras
-    .filter((e) => e.id !== "may-logo-banner" && e.id !== "may-logo-badge")
+    .filter(
+      (e) =>
+        e.id !== "may-logo-banner" &&
+        e.id !== "may-logo-badge" &&
+        e.id !== "may-logo-stacked",
+    )
     .map((e) => {
       if (e.id === "may-city-skyline") {
         return {
@@ -205,18 +198,9 @@ export function mergeMaylecorLogoExtras(
           zIndex: e.zIndex ?? 5,
         };
       }
-      if (e.id === "may-logo-stacked") {
-        return {
-          ...e,
-          src: MAYLECOR_LOCAL_ASSETS.logoStacked,
-          href: e.href?.trim() ? e.href : "/",
-          parallaxRole: "none" as const,
-          zIndex: e.zIndex ?? 20,
-        };
-      }
       return e;
     });
   const ids = new Set(refreshed.map((e) => e.id));
-  const missing = defaults.filter((d) => !ids.has(d.id));
+  const missing = defaults.filter((d) => !ids.has(d.id) && d.id !== "may-logo-stacked");
   return missing.length ? [...missing, ...refreshed] : refreshed;
 }

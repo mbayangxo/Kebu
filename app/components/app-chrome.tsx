@@ -28,7 +28,9 @@ function shouldHideFloatingActions(pathname: string): boolean {
     pathname.startsWith("/opportunity") ||
     pathname === "/b2b" ||
     pathname.startsWith("/studio") ||
-    pathname === "/welcome"
+    pathname === "/welcome" ||
+    /^\/create\/[^/]+$/.test(pathname) ||
+    /^\/create\/[^/]+\/(preview|themes)/.test(pathname)
   );
 }
 
@@ -60,11 +62,15 @@ export function AppChrome() {
   const hideFloatingActions = shouldHideFloatingActions(pathname);
   const pageSlug = pathname.split("/")[1] || "home";
   const shellLayout = usesAppShellLayout(pathname);
-  const inSiteEditor = /^\/create\/[^/]+$/.test(pathname);
+  const inSiteEditor =
+    /^\/create\/[^/]+$/.test(pathname) || /^\/create\/[^/]+\/(preview|themes)/.test(pathname);
+  /** Merchant OS + editor: no marketing bottom bar competing with admin UI. */
+  const hideMobileNav =
+    inSiteEditor || pathname.startsWith("/my-sites") || pathname.startsWith("/business");
 
   return (
     <>
-      {!shellLayout ? <LanguageBar variant={languageBarVariant(pathname)} /> : null}
+      {!shellLayout && !inSiteEditor ? <LanguageBar variant={languageBarVariant(pathname)} /> : null}
       {!hideFloatingActions ? (
         <FloatingActionStack>
           <FloatingActionItem>
@@ -74,10 +80,8 @@ export function AppChrome() {
             <LearnFab onClick={() => showRandomForPage(pageSlug)} />
           </FloatingActionItem>
         </FloatingActionStack>
-      ) : (
-        <YandeGlobalFab />
-      )}
-      <MobileBottomNav />
+      ) : null}
+      {!hideMobileNav ? <MobileBottomNav /> : null}
     </>
   );
 }

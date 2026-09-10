@@ -22,17 +22,46 @@ const GOOGLE_BODY: Record<string, string> = {
   "system-ui": "",
 };
 
+/** Fonts pickable on moveable text boxes + Aesthetic Editor. */
+export const TEXT_FONT_OPTIONS = [
+  "Fraunces",
+  "Playfair Display",
+  "Oswald",
+  "Bebas Neue",
+  "Syne",
+  "Steelfish",
+  "Georgia",
+  "IBM Plex Sans",
+  "Inter",
+  "system-ui",
+  "Arial",
+  "Helvetica Neue",
+] as const;
+
+function googleFamilySpec(name: string): string | null {
+  const spec = GOOGLE_DISPLAY[name] ?? GOOGLE_BODY[name];
+  return spec || null;
+}
+
 /** True when we ship a local @font-face (May Lecor Russian display). */
 export function isSelfHostedThemeFont(name: string): boolean {
   return name === "Steelfish";
 }
 
-export function googleFontsHrefForTheme(fontDisplay: string, fontBody: string): string | null {
+export function googleFontsHrefForTheme(
+  fontDisplay: string,
+  fontBody: string,
+  extraFamilies: string[] = [],
+): string | null {
   const families = new Set<string>();
-  const d = GOOGLE_DISPLAY[fontDisplay];
+  const d = googleFamilySpec(fontDisplay);
   if (d) families.add(d);
-  const b = GOOGLE_BODY[fontBody] ?? GOOGLE_DISPLAY[fontBody];
+  const b = googleFamilySpec(fontBody);
   if (b) families.add(b);
+  for (const name of extraFamilies) {
+    const spec = googleFamilySpec(name.trim());
+    if (spec) families.add(spec);
+  }
   if (families.size === 0) return null;
   const q = [...families].map((f) => `family=${f}`).join("&");
   return `https://fonts.googleapis.com/css2?${q}&display=swap`;

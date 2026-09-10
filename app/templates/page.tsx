@@ -1,20 +1,11 @@
-import { TemplatesVisualPage } from "@/app/components/create/templates-visual-page";
-import { KebuMarketingPageShell } from "@/app/components/landing/kebu-marketing-chrome";
-import { getFeaturedGalleryTemplates, getGalleryTemplates } from "@/lib/create/template-gallery";
+import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Templates — Kebu",
-  description: "Website template examples with live previews — musician, agency, salon, motion showcase, and more.",
+  title: "Aesthetic Gallery — Kebu",
+  description: "Browse site aesthetics by category — distinct looks, not copy-paste templates.",
 };
 
-/** Public marketing templates gallery — same live previews as the builder. */
+/** Legacy /templates URL → Aesthetic Gallery. */
 export default function MarketingTemplatesPage() {
-  const templates = getGalleryTemplates();
-  const featured = getFeaturedGalleryTemplates();
-
-  return (
-    <KebuMarketingPageShell activeHref="/templates">
-      <TemplatesVisualPage templates={templates} featured={featured} />
-    </KebuMarketingPageShell>
-  );
+  redirect("/create/aesthetics");
 }

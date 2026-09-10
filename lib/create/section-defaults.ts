@@ -103,13 +103,25 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
         blocks: [
           {
             id: "text-1",
-            text: "Click to edit — drag to move",
+            text: "Replace this mock text with yours",
             x: 8,
             y: 12,
             width: 84,
             fontSize: "lg",
             align: "center",
             color: "",
+            fontFamily: "",
+          },
+          {
+            id: "text-2",
+            text: "Add more boxes · pick fonts · drag to place",
+            x: 12,
+            y: 36,
+            width: 76,
+            fontSize: "md",
+            align: "center",
+            color: "",
+            fontFamily: "",
           },
         ],
       };

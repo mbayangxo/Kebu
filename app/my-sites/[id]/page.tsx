@@ -12,6 +12,9 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
+const PANEL =
+  "rounded-lg bg-white p-5 sm:p-6 shadow-[0_1px_0_rgba(0,0,0,0.02)] border border-[#E3E3E3]";
+
 export default async function SiteDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
@@ -34,7 +37,7 @@ export default async function SiteDetailPage({ params }: Props) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, title, owner_id, subdomain, status, business_id")
+    .select("id, title, owner_id, subdomain, status, business_id, seo")
     .eq("id", id)
     .eq("owner_id", user.id)
     .maybeSingle();
@@ -52,52 +55,40 @@ export default async function SiteDetailPage({ params }: Props) {
     );
   }
 
+  const { projectShopOpened } = await import("@/lib/create/site-shop");
+  const shopOpened = projectShopOpened(project.seo);
+
   return (
     <AppShell title={project.title ?? "Site detail"}>
-      <div className="mx-auto max-w-6xl space-y-10 px-4 py-8 sm:px-6 sm:py-10">
-        <p className="text-xs">
-          <Link href={MY_SITES_HREF} className="font-semibold underline" style={{ color: KEBU.orange }}>
-            ← All sites
-          </Link>
-        </p>
-
-        <SiteMerchantHub
-          projectId={project.id}
-          businessId={project.business_id}
-          published={project.status === "published"}
-          siteTitle={project.title ?? "Site"}
-        />
-
-        <div id="traffic">
-        <SiteDetailInsights
-          projectId={project.id}
-          title={project.title ?? "Site"}
-          subdomain={project.subdomain}
-        />
+      <SiteMerchantHub
+        projectId={project.id}
+        businessId={project.business_id}
+        published={project.status === "published"}
+        siteTitle={project.title ?? "Site"}
+        shopOpened={shopOpened}
+      >
+        <div id="traffic" className={PANEL}>
+          <SiteDetailInsights
+            projectId={project.id}
+            title={project.title ?? "Site"}
+            subdomain={project.subdomain}
+          />
         </div>
 
-        <section
-          id="templates"
-          className="rounded-2xl bg-white p-4 sm:p-6"
-          style={{ border: `1px solid ${KEBU.border}` }}
-        >
+        <section id="templates" className={PANEL}>
           <SiteThemesPanel projectId={project.id} />
         </section>
 
-        <section
-          id="domain"
-          className="rounded-2xl bg-white p-4 sm:p-6"
-          style={{ border: `1px solid ${KEBU.border}` }}
-        >
+        <section id="domain" className={PANEL}>
           <h2
-            className="mb-4 text-lg font-bold"
-            style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
+            className="mb-4 text-sm font-semibold"
+            style={{ color: KEBU.black, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
           >
             Domain &amp; SEO
           </h2>
           <SiteDomainSeoPanel projectId={project.id} />
         </section>
-      </div>
+      </SiteMerchantHub>
     </AppShell>
   );
 }

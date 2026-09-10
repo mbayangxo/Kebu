@@ -18,12 +18,11 @@ type ThemeRow = {
 
 type CatalogRow = { slug: string; name: string; category: string };
 
+/** Shopify-style Current theme + library for one Online Store. */
 export function SiteThemesPanel({ projectId }: { projectId: string }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [themes, setThemes] = useState<ThemeRow[]>([]);
-  const [activeThemeId, setActiveThemeId] = useState<string | null>(null);
-  const [liveThemeId, setLiveThemeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -39,14 +38,12 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
       const res = await fetch(`/api/projects/${projectId}/themes`, { credentials: "include" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not load aesthetics.");
+        setError(typeof data.error === "string" ? data.error : "Could not load themes.");
         return;
       }
       setThemes(Array.isArray(data.themes) ? data.themes : []);
-      setActiveThemeId(data.activeThemeId ?? null);
-      setLiveThemeId(data.liveThemeId ?? null);
     } catch {
-      setError("Network error while loading aesthetics.");
+      setError("Network error while loading themes.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +67,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
   async function add(source: "current" | "catalog" | "upload", extra?: { catalogSlug?: string; fileJson?: unknown }) {
     const name = newName.trim();
     if (!name) {
-      setError("Give this aesthetic a name first.");
+      setError("Give this theme a name first.");
       return;
     }
     setBusyId("add");
@@ -90,11 +87,11 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not add aesthetic.");
+        setError(typeof data.error === "string" ? data.error : "Could not add theme.");
         return;
       }
       setNewName("");
-      setNote("Draft saved. Edit it, then publish when you want it live.");
+      setNote("Added to draft themes.");
       await load();
     } catch {
       setError("Network error.");
@@ -133,7 +130,7 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
   }
 
   async function remove(themeId: string) {
-    if (!confirm("Delete this draft aesthetic? This cannot be undone.")) return;
+    if (!confirm("Delete this draft theme? This cannot be undone.")) return;
     setBusyId(themeId);
     setError(null);
     try {
@@ -154,26 +151,10 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
     }
   }
 
-  async function download(theme: ThemeRow) {
-    const res = await fetch(`/api/projects/${projectId}/themes/${theme.id}`, { credentials: "include" });
-    if (!res.ok) {
-      setError("Could not export this aesthetic.");
-      return;
-    }
-    const json = await res.json();
-    const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${theme.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "kebu-aesthetic"}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   function onPickFile(file: File | undefined) {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".json")) {
-      setError("Upload a Kebu .json aesthetic — not a zip, HTML, or WordPress/ThemeForest file.");
+      setError("Upload a Kebu .json theme — not a zip or HTML file.");
       return;
     }
     const reader = new FileReader();
@@ -190,113 +171,168 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
 
   const live = themes.find((t) => t.status === "live");
   const drafts = themes.filter((t) => t.status === "draft");
+  const current = live ?? drafts[0] ?? null;
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
-          Aesthetics for this site
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-          Like Shopify themes: each aesthetic has a name. One is <strong>live</strong> (public if you published the site).
-          The rest are <strong>drafts</strong>. Edit a draft, then publish it — the old live aesthetic becomes a draft.
-          Buy or accept looks from the{" "}
-          <Link href="/create/aesthetics" className="font-semibold underline" style={{ color: KEBU.orange }}>
-            Aesthetics store
-          </Link>{" "}
-          (no re-upload). Or copy this site / upload Kebu JSON. HTML / ThemeForest zips cannot run here.
-        </p>
-      </header>
-
+    <div className="space-y-6">
       {error ? (
-        <p className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FEE2E2", color: "#991B1B" }}>
+        <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "#FEE2E2", color: "#991B1B" }}>
           {error}
         </p>
       ) : null}
       {note ? (
-        <p className="rounded-xl px-4 py-3 text-sm" style={{ background: "#E8F8EE", color: "#1B6B3A" }}>
+        <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "#E8F8EE", color: "#1B6B3A" }}>
           {note}
         </p>
       ) : null}
 
-      {loading ? <p className="text-sm" style={{ color: KEBU.muted }}>Loading aesthetics…</p> : null}
+      {loading ? <p className="text-sm" style={{ color: KEBU.muted }}>Loading themes…</p> : null}
 
-      {live ? (
-        <section>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
-            Live
-          </p>
-          <ThemeCard
-            theme={live}
-            isActive={activeThemeId === live.id}
-            busy={busyId === live.id}
-            onEdit={() => void patch(live.id, { action: "edit" })}
-            onPublish={() => void patch(live.id, { action: "publish" })}
-            onRename={(name) => void patch(live.id, { action: "rename", name })}
-            onDownload={() => void download(live)}
-          />
-        </section>
-      ) : null}
-
-      {drafts.length ? (
-        <section>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-            Drafts
-          </p>
-          <div className="space-y-3">
-            {drafts.map((theme) => (
-              <ThemeCard
-                key={theme.id}
-                theme={theme}
-                isActive={activeThemeId === theme.id}
-                busy={busyId === theme.id}
-                onEdit={() => void patch(theme.id, { action: "edit" })}
-                onPublish={() => void patch(theme.id, { action: "publish" })}
-                onRename={(name) => void patch(theme.id, { action: "rename", name })}
-                onDownload={() => void download(theme)}
-                onDelete={() => void remove(theme.id)}
-              />
-            ))}
+      {current ? (
+        <section className="overflow-hidden rounded-xl border border-[#E3E3E3] bg-[#F6F6F7]">
+          <div className="flex min-h-[160px] items-end bg-gradient-to-br from-[#1a1a1a] via-[#333] to-[#FF5500]/80 p-5 sm:min-h-[200px]">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">Current theme</p>
+              <p className="mt-1 text-lg font-semibold text-white">{current.name}</p>
+              <p className="mt-0.5 text-[11px] text-white/65">
+                {current.status === "live" ? "Live on your site" : "Draft — publish when ready"}
+                {current.catalogSlug ? ` · ${current.catalogSlug}` : null}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3">
+            <p className="text-[11px]" style={{ color: KEBU.muted }}>
+              {current.status === "live" ? "Published theme" : "Open Customize to edit this draft"}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {current.status === "draft" ? (
+                <button
+                  type="button"
+                  disabled={busyId === current.id}
+                  onClick={() => void patch(current.id, { action: "publish" })}
+                  className="rounded-lg px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"
+                  style={{ background: KEBU.black }}
+                >
+                  Publish
+                </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={busyId === current.id}
+                onClick={() => void patch(current.id, { action: "edit" })}
+                className="rounded-lg px-3 py-2 text-[11px] font-bold disabled:opacity-50"
+                style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
+              >
+                Edit theme
+              </button>
+              <Link
+                href={`/create/${projectId}`}
+                className="rounded-lg px-3 py-2 text-[11px] font-bold text-white"
+                style={{ background: KEBU.orange }}
+              >
+                Customize
+              </Link>
+            </div>
           </div>
         </section>
+      ) : !loading ? (
+        <section className="rounded-xl border border-dashed border-[#D4D4D8] bg-[#FAFAFA] px-5 py-10 text-center">
+          <p className="text-sm font-semibold" style={{ color: KEBU.black }}>
+            No themes on this site yet
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed" style={{ color: KEBU.muted }}>
+            Save your current look, add from the gallery ($5), or upload Kebu JSON.
+          </p>
+        </section>
       ) : null}
 
-      <section className="rounded-2xl bg-white p-4 sm:p-6" style={{ border: `1px solid ${KEBU.border}` }}>
-        <h3 className="text-sm font-bold" style={{ color: KEBU.black }}>
-          Add a named aesthetic
-        </h3>
-        <label className="mt-3 block text-[11px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-          Aesthetic name
+      {drafts.length > 0 ? (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[11px] font-semibold" style={{ color: KEBU.black }}>
+              Theme library
+            </p>
+            <Link href="/create/aesthetics" className="text-[11px] font-bold" style={{ color: KEBU.orange }}>
+              Discover →
+            </Link>
+          </div>
+          <ul className="divide-y divide-[#EBEBEB] rounded-xl border border-[#E3E3E3] bg-white">
+            {drafts.map((theme) => (
+              <li key={theme.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-medium">{theme.name}</p>
+                  <p className="text-[10px]" style={{ color: KEBU.faint }}>
+                    Draft · Added {new Date(theme.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-1.5">
+                  <button
+                    type="button"
+                    disabled={busyId === theme.id}
+                    onClick={() => void patch(theme.id, { action: "publish" })}
+                    className="rounded-md px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-50"
+                    style={{ background: KEBU.black }}
+                  >
+                    Publish
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyId === theme.id}
+                    onClick={() => void patch(theme.id, { action: "edit" })}
+                    className="rounded-md px-2.5 py-1.5 text-[10px] font-bold disabled:opacity-50"
+                    style={{ border: `1px solid ${KEBU.border}` }}
+                  >
+                    Edit theme
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyId === theme.id}
+                    onClick={() => void remove(theme.id)}
+                    className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-red-600"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section className="rounded-xl border border-[#E3E3E3] bg-white p-4">
+        <h3 className="text-[12px] font-semibold">Add a theme</h3>
+        <label className="mt-2 block text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+          Name
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             maxLength={80}
-            placeholder="e.g. Summer 2026, Dark look, Gallery import"
-            className="mt-1 w-full rounded-xl border px-3 py-2 text-sm font-normal normal-case tracking-normal"
-            style={{ borderColor: KEBU.border, color: KEBU.black }}
+            placeholder="e.g. Summer look"
+            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm font-normal normal-case tracking-normal"
+            style={{ borderColor: KEBU.border }}
           />
         </label>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <button
             type="button"
             disabled={busyId === "add"}
             onClick={() => void add("current")}
-            className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white disabled:opacity-50"
+            className="rounded-lg px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"
             style={{ background: KEBU.black }}
           >
-            Save current site as draft
+            Save current as draft
           </button>
           <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
             <select
               value={catalogSlug}
               onChange={(e) => setCatalogSlug(e.target.value)}
-              className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm"
+              className="min-w-0 flex-1 rounded-lg border px-2 py-2 text-xs"
               style={{ borderColor: KEBU.border }}
             >
-              <option value="">Kebu gallery aesthetic…</option>
+              <option value="">From gallery…</option>
               {catalog.map((t) => (
                 <option key={t.slug} value={t.slug}>
-                  {t.name} ({t.category})
+                  {t.name}
                 </option>
               ))}
             </select>
@@ -304,8 +340,8 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
               type="button"
               disabled={busyId === "add" || !catalogSlug}
               onClick={() => void add("catalog", { catalogSlug })}
-              className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider disabled:opacity-50"
-              style={{ background: KEBU.orange, color: KEBU.white }}
+              className="rounded-lg px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"
+              style={{ background: KEBU.orange }}
             >
               Add from gallery
             </button>
@@ -314,10 +350,10 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
             type="button"
             disabled={busyId === "add"}
             onClick={() => fileRef.current?.click()}
-            className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider disabled:opacity-50"
-            style={{ border: `2px solid ${KEBU.black}`, color: KEBU.black }}
+            className="rounded-lg px-3 py-2 text-[11px] font-bold disabled:opacity-50"
+            style={{ border: `1px solid ${KEBU.border}` }}
           >
-            Upload Kebu JSON
+            Upload JSON
           </button>
           <input
             ref={fileRef}
@@ -331,142 +367,6 @@ export function SiteThemesPanel({ projectId }: { projectId: string }) {
           />
         </div>
       </section>
-
-      <p className="text-xs" style={{ color: KEBU.muted }}>
-        Live aesthetic id: {liveThemeId ?? "—"}.{" "}
-        <Link href={`/create/${projectId}`} className="font-semibold underline" style={{ color: KEBU.orange }}>
-          Open editor
-        </Link>
-      </p>
     </div>
-  );
-}
-
-function ThemeCard({
-  theme,
-  isActive,
-  busy,
-  onEdit,
-  onPublish,
-  onRename,
-  onDownload,
-  onDelete,
-}: {
-  theme: ThemeRow;
-  isActive: boolean;
-  busy: boolean;
-  onEdit: () => void;
-  onPublish: () => void;
-  onRename: (name: string) => void;
-  onDownload: () => void;
-  onDelete?: () => void;
-}) {
-  const [editingName, setEditingName] = useState(false);
-  const [name, setName] = useState(theme.name);
-
-  useEffect(() => {
-    setName(theme.name);
-  }, [theme.name]);
-
-  return (
-    <article
-      className="rounded-2xl bg-white p-4"
-      style={{ border: `1px solid ${KEBU.border}` }}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          {editingName ? (
-            <form
-              className="flex flex-wrap items-center gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                onRename(name);
-                setEditingName(false);
-              }}
-            >
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={80}
-                className="rounded-lg border px-2 py-1 text-sm"
-                style={{ borderColor: KEBU.border }}
-              />
-              <button type="submit" className="text-xs font-bold uppercase" style={{ color: KEBU.orange }}>
-                Save name
-              </button>
-            </form>
-          ) : (
-            <h3 className="text-base font-bold" style={{ color: KEBU.black }}>
-              {theme.name}
-            </h3>
-          )}
-          <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
-            {theme.status === "live" ? "Live" : "Draft"}
-            {isActive ? " · editing now" : ""}
-            {theme.source === "catalog" ? " · from gallery" : theme.source === "upload" ? " · uploaded" : " · from this site"}
-          </p>
-        </div>
-        <span
-          className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider"
-          style={{
-            background: theme.status === "live" ? "#E8F8EE" : "#F4F1EA",
-            color: theme.status === "live" ? "#1B6B3A" : "#5C5348",
-          }}
-        >
-          {theme.status}
-        </span>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onEdit}
-          className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-          style={{ background: KEBU.black, color: KEBU.white }}
-        >
-          {theme.status === "live" ? "Edit live" : "Edit draft"}
-        </button>
-        {theme.status === "draft" ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onPublish}
-            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-            style={{ background: KEBU.orange, color: KEBU.white }}
-          >
-            Publish (old live → draft)
-          </button>
-        ) : null}
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setEditingName((v) => !v)}
-          className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ border: `1px solid ${KEBU.border}` }}
-        >
-          Rename
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onDownload}
-          className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ border: `1px solid ${KEBU.border}` }}
-        >
-          Download JSON
-        </button>
-        {onDelete ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onDelete}
-            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-700"
-            style={{ border: "1px solid #FECACA" }}
-          >
-            Delete draft
-          </button>
-        ) : null}
-      </div>
-    </article>
   );
 }

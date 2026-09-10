@@ -106,14 +106,14 @@ export async function POST(req: Request, { params }: Params) {
   const heroProps = {
     ...defaultSectionProps("hero"),
     heading: parsed.data.title,
-    subheading: "Add sections below — or remove any you don’t need — to make this page longer or shorter.",
+    subheading: "Use Sections in the left rail to add or remove blocks — the canvas stays a clean preview.",
     buttonLabel: "Contact",
     buttonHref: "/contact",
   };
   const textProps = {
     ...defaultSectionProps("text"),
     heading: parsed.data.title,
-    body: "Write your story here. Use Add section to grow this page (gallery, FAQ, products, form…). Use Remove on any section to shorten the scroll.",
+    body: "Write your story here. Add gallery, FAQ, products, or forms from the left Sections panel.",
   };
   const seedSections =
     parsed.data.seed === "about-may"

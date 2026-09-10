@@ -43,7 +43,10 @@ export function SocialLinksEditor({
   return (
     <div className="space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-        Social icons — on the website (drag on preview)
+        Social icons — edit only in this left panel
+      </p>
+      <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
+        Add, remove, reorder, and set links here. On the canvas you can drag the rail position — not manage icons.
       </p>
       {rail && onRailChange ? (
         <div className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>

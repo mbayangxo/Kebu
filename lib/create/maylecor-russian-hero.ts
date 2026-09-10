@@ -86,8 +86,8 @@ export function normalizeMaylecorRussianHeroProps(
     appearance: "light" as const,
     displayFont: "Steelfish",
     motionEnabled: props.motionEnabled !== false,
-    /** Prefer circle seal image over generated Russian/English text ring. */
-    titleAsText: props.titleAsText === true ? true : false,
+    /** Always prefer circle seal image — never Russian wordmark / text ring by default. */
+    titleAsText: false,
     layerScales: staleSeed
       ? { ...(base.layerScales as Record<string, number>) }
       : {
@@ -101,9 +101,12 @@ export function normalizeMaylecorRussianHeroProps(
     layerLinks: {
       ...((props.layerLinks as Record<string, string> | undefined) ?? {}),
     },
-    hiddenLayers: Array.isArray(props.hiddenLayers)
-      ? (props.hiddenLayers as string[])
-      : [],
+    hiddenLayers: (() => {
+      const fromProps = Array.isArray(props.hiddenLayers) ? (props.hiddenLayers as string[]) : [];
+      const fromBase = Array.isArray(base.hiddenLayers) ? (base.hiddenLayers as string[]) : [];
+      // On seed bump, hide Russian glitter/MacBook; keep any founder-hidden layers.
+      return staleSeed ? [...new Set([...fromBase, ...fromProps])] : fromProps.length ? fromProps : fromBase;
+    })(),
     extraCutouts: mergeMaylecorLogoExtras(
       extrasSource as {
         id: string;
@@ -140,19 +143,49 @@ export function normalizeMaylecorRussianHeroProps(
         remapped.titleAsText = true;
         continue;
       }
-      // Force May Lècor circle seal (not Russian SVG / empty).
+      // Force May Lècor circle seal (not Russian Cyrillic SVG / Elle title-logo).
       if (
         staleSeed ||
         !val ||
         val.includes("logo-banner.svg") ||
         val.includes("logo-small.svg") ||
+        val.includes("title-logo.svg") ||
         val.includes("/templates/legally-blonde/") ||
         val.includes("tildacdn.com") ||
+        val.includes("Group_557") ||
         val.includes("wixstatic.com") ||
         isMaylecorStockTemplateAsset(val)
       ) {
         remapped[key] = MAYLECOR_LOCAL_ASSETS.logoCircleSeal;
         remapped.titleAsText = false;
+      }
+      continue;
+    }
+    if (key === "backgroundLayer") {
+      const hidden =
+        remapped.backgroundHidden === true ||
+        (Array.isArray(remapped.hiddenLayers) &&
+          (remapped.hiddenLayers as string[]).includes("backgroundLayer"));
+      // User cleared or hid background — never restore stock pink scene.
+      if (hidden || props.backgroundLayer === "" || remapped.backgroundLayer === "") {
+        remapped.backgroundLayer = "";
+        remapped.backgroundHidden = true;
+        const hl = Array.isArray(remapped.hiddenLayers)
+          ? [...(remapped.hiddenLayers as string[])]
+          : [];
+        if (!hl.includes("backgroundLayer")) hl.push("backgroundLayer");
+        remapped.hiddenLayers = hl;
+        continue;
+      }
+      if (isUserUploadedSiteAsset(val)) continue;
+      if (
+        staleSeed ||
+        !val ||
+        val.includes("tildacdn.com") ||
+        val.includes("wixstatic.com") ||
+        isMaylecorStockTemplateAsset(val)
+      ) {
+        remapped[key] = localDefault;
       }
       continue;
     }
@@ -177,8 +210,7 @@ export function normalizeMaylecorRussianHeroProps(
         (!val ||
           val.includes("tildacdn.com") ||
           val.includes("wixstatic.com") ||
-          isMaylecorStockTemplateAsset(val) ||
-          (key === "backgroundLayer" && !val.includes("/templates/legally-blonde/") && !val.includes("/templates/maylecor/")));
+          isMaylecorStockTemplateAsset(val));
       if (shouldReplaceFigure) {
         remapped[key] = MAYLECOR_FIGURE_ASSETS[key as keyof typeof MAYLECOR_FIGURE_ASSETS];
       } else if (shouldReplaceDecor) {

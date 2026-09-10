@@ -258,7 +258,10 @@ export function matchSiteAesthetic(theme: Partial<ThemeTokens> | null | undefine
 export function themeToCssVars(theme: ThemeTokens): Record<string, string> {
   const pad =
     theme.spacing === "compact" ? "2.25rem" : theme.spacing === "airy" ? "5rem" : "3.5rem";
-  const radius = theme.spacing === "compact" ? "0.75rem" : theme.spacing === "airy" ? "1.75rem" : "1.25rem";
+  const radiusFromSpacing =
+    theme.spacing === "compact" ? "0.75rem" : theme.spacing === "airy" ? "1.75rem" : "1.25rem";
+  const radius =
+    theme.radius === "sharp" ? "0.25rem" : theme.radius === "round" ? "999px" : radiusFromSpacing;
   const headingScale =
     theme.headingScale === "sm"
       ? "0.9"
@@ -271,18 +274,26 @@ export function themeToCssVars(theme: ThemeTokens): Record<string, string> {
     theme.bodySize === "sm" ? "0.9375rem" : theme.bodySize === "lg" ? "1.125rem" : "1rem";
   const tracking =
     theme.letterSpacing === "tight" ? "-0.02em" : theme.letterSpacing === "wide" ? "0.06em" : "0";
+  const surface = theme.surface?.trim() || "#FFFFFF";
+  const link = theme.link?.trim() || theme.accent;
+  const contentMax =
+    theme.contentWidth === "narrow" ? "42rem" : theme.contentWidth === "wide" ? "80rem" : "64rem";
   return {
     ["--kebu-bg" as string]: theme.background,
     ["--kebu-text" as string]: theme.text,
     ["--kebu-accent" as string]: theme.accent,
     ["--kebu-primary" as string]: theme.primary,
+    ["--kebu-surface" as string]: surface,
+    ["--kebu-link" as string]: link,
     ["--kebu-font-display" as string]: cssFontStack(theme.fontDisplay),
     ["--kebu-font-body" as string]: cssFontStack(theme.fontBody),
     ["--kebu-section-pad" as string]: pad,
+    ["--kebu-content-max" as string]: contentMax,
     ["--kebu-radius" as string]: radius,
     ["--kebu-heading-scale" as string]: headingScale,
     ["--kebu-body-size" as string]: bodySize,
     ["--kebu-tracking" as string]: tracking,
+    ["--kebu-button-style" as string]: theme.buttonStyle ?? "solid",
   };
 }
 

@@ -212,19 +212,22 @@ export function SiteDetailInsights({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: KEBU.orange }}>
-            Site detail · real Kebu analytics
+          <p className="text-[11px] font-medium" style={{ color: KEBU.muted }}>
+            Analytics
           </p>
-          <h1 className="mt-1 text-2xl font-bold sm:text-3xl" style={{ fontFamily: "var(--font-fraunces)" }}>
+          <h2
+            className="mt-1 text-sm font-semibold sm:text-base"
+            style={{ fontFamily: "var(--font-jost), system-ui, sans-serif" }}
+          >
             {title}
-          </h1>
+          </h2>
           <p className="mt-1 text-xs font-mono" style={{ color: KEBU.muted }}>
             {subdomain ? `${subdomain}.kebu.africa` : "No public address yet — publish first to collect visitors"}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <select
-            className="rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider"
+            className="rounded-md px-3 py-1.5 text-xs font-medium"
             style={{ border: `1px solid ${KEBU.border}`, background: KEBU.white }}
             value={hours}
             onChange={(e) => setHours(Number(e.target.value))}
@@ -237,15 +240,15 @@ export function SiteDetailInsights({
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
+            className="rounded-md px-3 py-1.5 text-xs font-medium text-white"
             style={{ background: KEBU.black }}
           >
             Refresh
           </button>
           <Link
             href={`/create/${projectId}`}
-            className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
-            style={{ background: KEBU.orange }}
+            className="rounded-md px-3 py-1.5 text-xs font-medium text-white"
+            style={{ background: KEBU.black }}
           >
             Edit site
           </Link>
@@ -254,7 +257,7 @@ export function SiteDetailInsights({
               href={live}
               target="_blank"
               rel="noreferrer"
-              className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
+              className="rounded-md px-3 py-1.5 text-xs font-medium"
               style={{ border: `1px solid ${KEBU.border}` }}
             >
               Open live
@@ -264,8 +267,7 @@ export function SiteDetailInsights({
       </div>
 
       <div
-        className="flex flex-wrap items-end gap-3 overflow-x-auto rounded-2xl p-4 sm:flex-nowrap sm:gap-4"
-        style={{ background: "linear-gradient(180deg, #EDE9E3 0%, #D9D3C9 100%)" }}
+        className="flex flex-wrap items-end gap-3 overflow-x-auto rounded-lg border border-[#E3E3E3] bg-[#F6F6F7] p-4 sm:flex-nowrap sm:gap-4"
       >
         {DEVICES.map((d) => (
           <DevicePreview

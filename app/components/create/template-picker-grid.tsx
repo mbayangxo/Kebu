@@ -110,7 +110,7 @@ export function TemplatePickerGrid({
                   color: "#fff",
                 }}
               >
-                {selectedSlug === focusTemplate.slug ? "Selected" : "Use this template"}
+                {selectedSlug === focusTemplate.slug ? "Selected" : "Use this aesthetic"}
               </button>
             </div>
           </aside>
@@ -119,7 +119,7 @@ export function TemplatePickerGrid({
 
       {visible.length === 0 ? (
         <p className="text-sm text-center py-12 rounded-2xl" style={{ background: "#FFF8F2", color: "#5C5348" }}>
-          No templates in this category.
+          No aesthetics in this category.
         </p>
       ) : null}
     </div>

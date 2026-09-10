@@ -5,18 +5,18 @@ import { LEGALLY_BLONDE_ASSETS } from "./legally-blonde-defaults";
  * Drafts auto-sync on editor load when this does not match section props.seedRevision.
  * Publish is still required only for the *live* public site.
  */
-export const MAYLECOR_SEED_REVISION = "2026-09-08c";
+export const MAYLECOR_SEED_REVISION = "2026-09-10b";
 
 /** Bump when replacing files under /public/templates/maylecor so CDN/browser caches refresh. */
-const MAY_ASSET_V = "20260908c";
+const MAY_ASSET_V = "20260910b";
 
 function mayAsset(path: string): string {
   return `${path}?v=${MAY_ASSET_V}`;
 }
 
 export const MAYLECOR_LOCAL_ASSETS = {
-  /** Full-body pink-outline cutout — May only (not fused to city). */
-  mayCutoutFull: mayAsset("/templates/maylecor/may-figure.png"),
+  /** Full-body cutout — May only (replaces Elle Woods stock). */
+  mayCutoutFull: mayAsset("/templates/maylecor/may-cutout-full.jpg"),
   mayFigure: mayAsset("/templates/maylecor/may-figure.png"),
   /** NYC skyline cutout — scrolls behind May (no “May” wordmark on top). */
   citySkyline: mayAsset("/templates/maylecor/city-skyline.png"),
@@ -33,19 +33,23 @@ export const MAYLECOR_LOCAL_ASSETS = {
 
 /** Figure layers on the Russian-style May Lecor hero — prefer distinct local files when available. */
 export const MAYLECOR_FIGURE_ASSETS = {
-  cutoutLeft: MAYLECOR_LOCAL_ASSETS.mayFigure,
+  cutoutLeft: MAYLECOR_LOCAL_ASSETS.mayCutoutFull,
   cutoutRight: MAYLECOR_LOCAL_ASSETS.portrait,
   cutoutAccent: MAYLECOR_LOCAL_ASSETS.mayFigure,
   heroPhoto: MAYLECOR_LOCAL_ASSETS.portrait,
 } as const;
 
-/** True when a hero layer still points at Elle / Legally Blonde stock cutouts. */
+/** True when a hero layer still points at Elle / Legally Blonde / Russian stock cutouts. */
 export function isElleStockCutout(url: string | null | undefined): boolean {
   const u = String(url ?? "").trim();
   if (!u) return false;
   return (
-    u.includes("/templates/legally-blonde/cutout-") ||
-    u.includes("/templates/legally-blonde/hero-photo")
+    u.includes("/templates/legally-blonde/") ||
+    u.includes("tildacdn.com") ||
+    u.includes("Group_55") ||
+    u.includes("Group_546") ||
+    u.includes("Group_523") ||
+    u.includes("Group_557")
   );
 }
 

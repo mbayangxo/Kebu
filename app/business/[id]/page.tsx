@@ -73,6 +73,11 @@ type WebsiteProject = {
   previewPath: string | null;
   liveUrl: string | null;
   appPreviewUrl: string | null;
+  shopOpened?: boolean;
+  shopOpenedAt?: string | null;
+  shopUrl?: string;
+  productCount?: number;
+  siteHomeUrl?: string;
 };
 
 export default function BusinessDashboardPage() {
@@ -88,6 +93,7 @@ export default function BusinessDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [recalcBusy, setRecalcBusy] = useState(false);
+  const [shopBusyId, setShopBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -160,6 +166,29 @@ export default function BusinessDashboardPage() {
     }
   }
 
+  async function openShop(projectId: string) {
+    if (shopBusyId) return;
+    setShopBusyId(projectId);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/shop/open`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not open shop.");
+        return;
+      }
+      await load();
+      if (typeof data.shopUrl === "string") router.push(data.shopUrl);
+    } catch {
+      setError("Network error while opening shop.");
+    } finally {
+      setShopBusyId(null);
+    }
+  }
+
   const structureLabel = business?.legal_structure?.replace(/_/g, " ") ?? "—";
   const canEditStructure =
     Boolean(business) &&
@@ -192,17 +221,17 @@ export default function BusinessDashboardPage() {
             >
               Founder portal · Kebu Business
             </p>
-            <Link href="/business" className="text-xs font-bold underline mb-4 inline-block" style={{ color: KEBU.orange }}>
-              ← All businesses
+            <Link href="/business?tab=businesses" className="text-xs font-bold underline mb-4 inline-block" style={{ color: KEBU.orange }}>
+              ← My Businesses
             </Link>
             <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-              {business.legal_name}
+              {business.trading_name || business.legal_name}
             </h1>
-            {business.trading_name && (
+            {business.trading_name && business.trading_name !== business.legal_name ? (
               <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                Trading as {business.trading_name}
+                Legal name {business.legal_name}
               </p>
-            )}
+            ) : null}
 
             <div className="rounded-2xl p-5 mb-6" style={{ background: KEBU.black, color: KEBU.white }}>
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/40 mb-2">Kebu ID</p>
@@ -210,8 +239,8 @@ export default function BusinessDashboardPage() {
                 {business.public_kebu_id}
               </p>
               <p className="text-xs text-white/50 mt-3 leading-relaxed">
-                Your permanent business identifier inside Kebu — similar to an EIN in the United States. Use it across
-                sites, registration, and trade readiness.
+                Everything for this brand lives here — website, optional shop, team, registration. Switch businesses from
+                My Businesses; Pulse shows cross-business orders and messages.
               </p>
               <p className="text-xs text-white/40 mt-2">
                 {business.country_code}
@@ -219,14 +248,113 @@ export default function BusinessDashboardPage() {
                 {business.registration_status.replace(/_/g, " ")}
                 {role ? ` · your role: ${role}` : ""}
               </p>
-              <Link
-                href={`/create/new?businessId=${business.id}`}
-                className="inline-block mt-5 rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
-                style={{ background: KEBU.orange, color: KEBU.black }}
-              >
-                Build Website
-              </Link>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Link
+                  href={`/create/new?businessId=${business.id}`}
+                  className="inline-block rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
+                  style={{ background: KEBU.orange, color: KEBU.black }}
+                >
+                  Build website
+                </Link>
+                <Link
+                  href="/business?tab=pulse"
+                  className="inline-block rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
+                  style={{ border: "1px solid rgba(255,255,255,0.35)", color: KEBU.white }}
+                >
+                  Pulse
+                </Link>
+              </div>
             </div>
+
+            <section
+              className="rounded-2xl p-5 mb-6"
+              style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
+            >
+              <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Website & shop</h2>
+              <p className="text-xs mb-4 leading-relaxed" style={{ color: KEBU.muted }}>
+                Shop is separate from your website. Open a shop when you sell; agencies can skip it. You can still add
+                products to the site later from Shop admin.
+              </p>
+              {websiteProjects.length === 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm" style={{ color: KEBU.muted }}>
+                    No website linked yet.
+                  </p>
+                  <Link
+                    href={`/create/new?businessId=${business.id}`}
+                    className="inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
+                    style={{ background: KEBU.orange }}
+                  >
+                    Create website
+                  </Link>
+                </div>
+              ) : (
+                <ul className="space-y-4">
+                  {websiteProjects.map((site) => (
+                    <li
+                      key={site.id}
+                      className="rounded-xl p-4"
+                      style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                    >
+                      <p className="font-bold">{site.title}</p>
+                      <p className="text-[11px] mt-1" style={{ color: KEBU.muted }}>
+                        {site.status}
+                        {site.subdomain ? ` · ${site.subdomain}` : ""}
+                        {site.shopOpened
+                          ? ` · Shop open${typeof site.productCount === "number" ? ` · ${site.productCount} products` : ""}`
+                          : " · No shop"}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Link
+                          href={site.siteHomeUrl ?? `/my-sites/${site.id}`}
+                          className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+                          style={{ background: KEBU.black, color: KEBU.white }}
+                        >
+                          Business home
+                        </Link>
+                        <Link
+                          href={site.editorUrl}
+                          className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+                          style={{ border: `1px solid ${KEBU.border}` }}
+                        >
+                          Edit site
+                        </Link>
+                        {site.liveUrl ? (
+                          <a
+                            href={site.liveUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+                            style={{ border: `1px solid ${KEBU.border}` }}
+                          >
+                            Live
+                          </a>
+                        ) : null}
+                        {site.shopOpened ? (
+                          <Link
+                            href={site.shopUrl ?? `/shop/${site.id}`}
+                            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white"
+                            style={{ background: KEBU.orange }}
+                          >
+                            Open shop
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={shopBusyId === site.id}
+                            onClick={() => void openShop(site.id)}
+                            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-60"
+                            style={{ background: KEBU.orange }}
+                          >
+                            {shopBusyId === site.id ? "Opening…" : "Open shop"}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
             <div className="grid lg:grid-cols-2 gap-6 mb-6">
               <section

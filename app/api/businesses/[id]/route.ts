@@ -85,7 +85,7 @@ export async function GET(_req: Request, { params }: Params) {
         .limit(10),
       supabase
         .from("projects")
-        .select("id, title, status, subdomain, published_at, updated_at")
+        .select("id, title, status, subdomain, published_at, updated_at, seo")
         .eq("business_id", id)
         .eq("project_type", "website")
         .order("updated_at", { ascending: false }),
@@ -94,17 +94,41 @@ export async function GET(_req: Request, { params }: Params) {
   const latestScore = scores?.[0] ?? null;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
 
-  const websites = (websiteProjects ?? []).map((project) => {
-    const previewPath = project.subdomain ? `/sites/${project.subdomain}` : null;
-    return {
-      ...project,
-      editorUrl: `/create/${project.id}`,
-      previewPath,
-      liveUrl: previewPath ? (appUrl ? `${appUrl}${previewPath}` : previewPath) : null,
-      plannedKebuAfrica: project.subdomain ? `${project.subdomain}.kebu.africa` : null,
-      appPreviewUrl: previewPath && appUrl ? `${appUrl}${previewPath}` : null,
-    };
-  });
+  const { projectShopOpened, readShopOpenedAt } = await import("@/lib/create/site-shop");
+
+  const websites = await Promise.all(
+    (websiteProjects ?? []).map(async (project) => {
+      const previewPath = project.subdomain ? `/sites/${project.subdomain}` : null;
+      const shopOpened = projectShopOpened(project.seo);
+      let productCount = 0;
+      if (shopOpened) {
+        const { count } = await supabase
+          .from("project_products")
+          .select("id", { count: "exact", head: true })
+          .eq("project_id", project.id)
+          .eq("is_active", true);
+        productCount = count ?? 0;
+      }
+      return {
+        id: project.id,
+        title: project.title,
+        status: project.status,
+        subdomain: project.subdomain,
+        published_at: project.published_at,
+        updated_at: project.updated_at,
+        editorUrl: `/create/${project.id}`,
+        previewPath,
+        liveUrl: previewPath ? (appUrl ? `${appUrl}${previewPath}` : previewPath) : null,
+        plannedKebuAfrica: project.subdomain ? `${project.subdomain}.kebu.africa` : null,
+        appPreviewUrl: previewPath && appUrl ? `${appUrl}${previewPath}` : null,
+        shopOpened,
+        shopOpenedAt: readShopOpenedAt(project.seo),
+        shopUrl: `/shop/${project.id}`,
+        productCount,
+        siteHomeUrl: `/my-sites/${project.id}`,
+      };
+    }),
+  );
 
   return NextResponse.json({
     business,
@@ -118,7 +142,7 @@ export async function GET(_req: Request, { params }: Params) {
     websiteProjects: websites,
     placeholders: {
       website: business.website,
-      store: null,
+      store: websites.some((w) => w.shopOpened) ? "open" : null,
       governmentConnector: "mock_placeholder_not_live",
     },
   });

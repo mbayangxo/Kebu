@@ -1,6 +1,5 @@
 "use client";
 
-import { MAYLECOR_SOCIAL_DEFAULTS } from "@/lib/create/maylecor-defaults";
 import { MaylecorSocialBar } from "@/app/components/create/maylecor-social-bar";
 
 type Social = { label: string; iconUrl: string; href: string };
@@ -13,10 +12,10 @@ export function MaylecorSiteFooter({
 }: {
   brandLabel: string;
   accentColor?: string;
+  /** undefined = May defaults; [] = intentionally empty (left-nav cleared). */
   socialLinks?: Social[];
   siteBase?: string;
 }) {
-  const links = socialLinks?.length ? socialLinks : MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s }));
   const year = new Date().getFullYear();
 
   return (
@@ -28,7 +27,7 @@ export function MaylecorSiteFooter({
         {brandLabel}
       </p>
       <div className="mt-6">
-        <MaylecorSocialBar links={links} accentColor={accentColor} variant="footer" />
+        <MaylecorSocialBar links={socialLinks} accentColor={accentColor} variant="footer" />
       </div>
       <p className="mt-6 text-[10px] uppercase tracking-widest opacity-50">
         © {year} {brandLabel}

@@ -4,7 +4,7 @@ export const KEBU_MARKETING_NAV = [
   { label: "Pricing", href: "/pricing" },
   { label: "About us", href: "/about" },
   { label: "Contact us", href: "/contact" },
-  { label: "Aesthetics", href: "/templates" },
+  { label: "Aesthetic Gallery", href: "/create/aesthetics" },
   { label: "Kebu Icon", href: "/kebu-icon" },
 ] as const;
 
@@ -25,6 +25,7 @@ export function isMarketingPath(pathname: string): boolean {
     "/pricing",
     "/about",
     "/contact",
+    "/create/aesthetics",
     "/templates",
     "/kebu-icon",
     "/support",

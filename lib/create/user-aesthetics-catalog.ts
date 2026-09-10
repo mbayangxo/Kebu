@@ -73,7 +73,7 @@ export const USER_AESTHETICS_BY_TYPE = [
     label: "Fashion",
     pair: [
       { slug: "fashion-atelier", name: "Fashion atelier", tagline: "Editorial lookbook", accent: "#1A1A2E" },
-      { slug: "clothing-company", name: "Clothing brand", tagline: "Catalog + brand story", accent: "#111827" },
+      { slug: "clothing-company", name: "Clothing brand", tagline: "Catalog + brand story", accent: "#B91C1C" },
     ],
   },
   {
@@ -90,7 +90,7 @@ export const USER_AESTHETICS_BY_TYPE = [
         slug: "online-store-preview",
         name: "WhatsApp Catalog",
         tagline: "Mobile catalog for chat sellers",
-        accent: "#0F766E",
+        accent: "#0D9488",
       },
     ],
   },
@@ -162,7 +162,7 @@ export function userAestheticSlugs(): string[] {
   return userFeaturedAesthetics().map((a) => a.slug);
 }
 
-/** Owner portfolio aesthetics — real sites, not offered as user templates. */
+/** Owner portfolio aesthetics — real sites, not offered in Aesthetic Gallery. */
 export const OWNER_PORTFOLIO_AESTHETIC_SLUGS = [
   "musician-maylecor-ksendr",
   "agency-kdirection",

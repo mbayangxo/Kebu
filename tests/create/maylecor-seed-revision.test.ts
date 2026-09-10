@@ -17,6 +17,6 @@ describe("May Lecor draft seed sync", () => {
     expect(String(next.chromeLogo)).toContain("logo-stacked");
     const extras = next.extraCutouts as { id: string; src: string }[];
     expect(extras.some((e) => e.id === "may-city-skyline")).toBe(true);
-    expect(extras.some((e) => e.id === "may-logo-stacked")).toBe(true);
+    expect(extras.some((e) => e.id === "may-logo-stacked")).toBe(false);
   });
 });

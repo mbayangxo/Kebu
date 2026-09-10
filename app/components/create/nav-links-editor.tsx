@@ -2,25 +2,64 @@
 
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 
+export type NavChildEdit = {
+  label: string;
+  href: string;
+  iconUrl?: string;
+};
+
 export type NavLinkEdit = {
   label: string;
   href: string;
   iconUrl?: string;
   showLabel?: boolean;
+  /** When true, hover shows child pages (Shopify-style dropdown). */
+  multiNav?: boolean;
+  children?: NavChildEdit[];
 };
 
-/** Reorder / edit site nav links — label, href, optional photo/icon. */
+/** Map stored nav links into editor shape without stripping multi-nav. */
+export function mapNavLinksForEditor(
+  links: Array<{
+    label?: string;
+    href?: string;
+    iconUrl?: string;
+    showLabel?: boolean;
+    multiNav?: boolean;
+    children?: Array<{ label?: string; href?: string; iconUrl?: string }>;
+  }>,
+): NavLinkEdit[] {
+  return links.map((l) => ({
+    label: String(l.label ?? ""),
+    href: String(l.href ?? ""),
+    iconUrl: String(l.iconUrl ?? ""),
+    showLabel: l.showLabel !== false,
+    multiNav: Boolean(l.multiNav),
+    children: Array.isArray(l.children)
+      ? l.children.map((c) => ({
+          label: String(c.label ?? ""),
+          href: String(c.href ?? ""),
+          iconUrl: String(c.iconUrl ?? ""),
+        }))
+      : [],
+  }));
+}
+
+/** Reorder / edit site nav links — label, href, optional photo/icon, multi-nav children. */
 export function NavLinksEditor({
   links,
   onChange,
   projectId,
   allowIcons = false,
+  allowMultiNav = true,
 }: {
   links: NavLinkEdit[];
   onChange: (next: NavLinkEdit[]) => void;
   projectId?: string;
   /** May Lecor / flagship: upload photo or icon per link. */
   allowIcons?: boolean;
+  /** Hover dropdowns under a top-level tab (Shopify-style). */
+  allowMultiNav?: boolean;
 }) {
   function move(idx: number, dir: -1 | 1) {
     const next = [...links];
@@ -32,11 +71,29 @@ export function NavLinksEditor({
     onChange(next);
   }
 
+  function patchLink(idx: number, patch: Partial<NavLinkEdit>) {
+    const next = [...links];
+    next[idx] = { ...next[idx]!, ...patch };
+    onChange(next);
+  }
+
+  function patchChild(idx: number, childIdx: number, patch: Partial<NavChildEdit>) {
+    const link = links[idx]!;
+    const children = [...(link.children ?? [])];
+    children[childIdx] = { ...children[childIdx]!, ...patch };
+    patchLink(idx, { children, multiNav: true });
+  }
+
   return (
     <div className="space-y-2">
       <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
         Nav menu — reorder with ↑ ↓
       </p>
+      {allowMultiNav ? (
+        <p className="text-[9px] leading-relaxed opacity-70">
+          Turn on multi-nav for a tab to nest pages under it. Visitors see those pages on hover.
+        </p>
+      ) : null}
       {allowIcons ? (
         <p className="text-[9px] leading-relaxed opacity-70">
           Optional: add a photo or icon instead of (or with) words. Logo in the upper bar always goes home.
@@ -79,45 +136,100 @@ export function NavLinksEditor({
             style={{ border: "1px solid #DDE0F0" }}
             value={link.label}
             placeholder="Label (Shop, Updates…)"
-            onChange={(e) => {
-              const next = [...links];
-              next[idx] = { ...next[idx]!, label: e.target.value };
-              onChange(next);
-            }}
+            onChange={(e) => patchLink(idx, { label: e.target.value })}
           />
           <input
             className="w-full text-xs rounded px-2 py-1"
             style={{ border: "1px solid #DDE0F0" }}
             value={link.href}
             placeholder="/page or https://…"
-            onChange={(e) => {
-              const next = [...links];
-              next[idx] = { ...next[idx]!, href: e.target.value };
-              onChange(next);
-            }}
+            onChange={(e) => patchLink(idx, { href: e.target.value })}
           />
+          {allowMultiNav ? (
+            <label className="flex items-center gap-2 text-[10px] font-semibold">
+              <input
+                type="checkbox"
+                checked={Boolean(link.multiNav)}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  patchLink(idx, {
+                    multiNav: on,
+                    children: on
+                      ? (link.children?.length
+                          ? link.children
+                          : [{ label: "Subpage", href: link.href || "/page", iconUrl: "" }])
+                      : [],
+                  });
+                }}
+              />
+              Multi-nav (dropdown on hover)
+            </label>
+          ) : null}
+          {allowMultiNav && link.multiNav ? (
+            <div className="ml-1 space-y-1.5 border-l-2 pl-2" style={{ borderColor: "#FF5500" }}>
+              <p className="text-[9px] font-bold uppercase tracking-wider opacity-60">Pages under this tab</p>
+              {(link.children ?? []).map((child, childIdx) => (
+                <div key={childIdx} className="space-y-1 rounded-md p-1.5" style={{ background: "#FAFAF8" }}>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[9px] opacity-50">Child {childIdx + 1}</span>
+                    <button
+                      type="button"
+                      className="text-[9px] font-bold uppercase text-red-600"
+                      onClick={() => {
+                        const children = (link.children ?? []).filter((_, i) => i !== childIdx);
+                        patchLink(idx, { children });
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <input
+                    className="w-full text-xs rounded px-2 py-1"
+                    style={{ border: "1px solid #DDE0F0" }}
+                    value={child.label}
+                    placeholder="Child label"
+                    onChange={(e) => patchChild(idx, childIdx, { label: e.target.value })}
+                  />
+                  <input
+                    className="w-full text-xs rounded px-2 py-1"
+                    style={{ border: "1px solid #DDE0F0" }}
+                    value={child.href}
+                    placeholder="/page"
+                    onChange={(e) => patchChild(idx, childIdx, { href: e.target.value })}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                className="w-full rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wider"
+                style={{ border: "1px solid #DDE0F0" }}
+                onClick={() =>
+                  patchLink(idx, {
+                    children: [
+                      ...(link.children ?? []),
+                      { label: "New page", href: "/about", iconUrl: "" },
+                    ],
+                  })
+                }
+              >
+                + Add page under tab
+              </button>
+            </div>
+          ) : null}
           {allowIcons && projectId ? (
             <>
               <SiteImageUpload
                 projectId={projectId}
                 kind="section"
                 value={link.iconUrl ?? ""}
-                onChange={(url) => {
-                  const next = [...links];
-                  next[idx] = { ...next[idx]!, iconUrl: url };
-                  onChange(next);
-                }}
+                onChange={(url) => patchLink(idx, { iconUrl: url })}
                 label="Nav photo / icon (optional)"
               />
               <label className="flex items-center gap-2 text-[10px] font-semibold">
                 <input
                   type="checkbox"
                   checked={link.showLabel !== false}
-                  onChange={(e) => {
-                    const next = [...links];
-                    next[idx] = { ...next[idx]!, showLabel: e.target.checked };
-                    onChange(next);
-                  }}
+                  onChange={(e) => patchLink(idx, { showLabel: e.target.checked })}
                 />
                 Show word label with icon
               </label>
@@ -130,7 +242,17 @@ export function NavLinksEditor({
         className="w-full rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
         style={{ border: "1px solid #DDE0F0" }}
         onClick={() =>
-          onChange([...links, { label: "New page", href: "/about", iconUrl: "", showLabel: true }])
+          onChange([
+            ...links,
+            {
+              label: "New page",
+              href: "/about",
+              iconUrl: "",
+              showLabel: true,
+              multiNav: false,
+              children: [],
+            },
+          ])
         }
       >
         + Add nav link

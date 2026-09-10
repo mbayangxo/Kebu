@@ -130,13 +130,15 @@ function wrapEditorSection(
   editor: SiteRendererEditor | undefined,
   children: ReactNode,
   sectionType?: string,
+  /** Only fill the viewport when this is the sole section — otherwise the page must grow/scroll. */
+  fillViewport = false,
 ): ReactNode {
   if (!editor || !sectionId) return children;
   const selected = editor.selectedSectionId === sectionId;
   const structural = sectionType ? STRUCTURAL_SECTION_TYPES.has(sectionType) : false;
-  const showToolbar =
-    !structural &&
-    Boolean(editor.onDuplicateSection || editor.onDeleteSection || editor.onMoveSection);
+  const showToolbar = Boolean(
+    editor.onDuplicateSection || editor.onDeleteSection || editor.onMoveSection,
+  ) && (!structural || !fillViewport);
   return (
     <div
       data-section-id={sectionId}
@@ -144,14 +146,17 @@ function wrapEditorSection(
         e.stopPropagation();
         editor.onSelectSection?.(sectionId);
       }}
-      className={`group relative ${structural ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#FF5500] outline-offset-2 z-10" : "hover:outline hover:outline-1 hover:outline-[#FF5500]/40"}`}
+      className={`group relative ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
       style={{ cursor: "pointer" }}
     >
       {selected && sectionType ? (
         <div
-          className="absolute left-2 top-2 z-40 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow"
-          style={{ background: "#FF5500" }}
+          className="absolute -left-px top-0 z-40 flex items-center gap-1 rounded-br-md px-2 py-0.5 text-[10px] font-semibold tracking-tight text-white shadow-sm"
+          style={{ background: "#2C6ECB" }}
         >
+          <span aria-hidden className="opacity-80">
+            ▦
+          </span>
           {labelForSectionType(sectionType)}
         </div>
       ) : null}
@@ -327,6 +332,16 @@ export function SiteRenderer({
   const editingPreview = mode === "preview" && Boolean(editor);
   const motionBuilderPreview = editingPreview && motionSite;
   const themeVars = themeToCssVars(theme);
+  const freeTextExtraFonts: string[] = [];
+  for (const p of definition.pages) {
+    for (const s of p.sections) {
+      if (s.type !== "free-text") continue;
+      const blocks = (s.props as { blocks?: { fontFamily?: string }[] }).blocks ?? [];
+      for (const b of blocks) {
+        if (b.fontFamily?.trim()) freeTextExtraFonts.push(b.fontFamily.trim());
+      }
+    }
+  }
   const shellStyle = maylecorOnly
     ? {
         background: editingPreview ? "#FFE4F0" : "#000",
@@ -449,13 +464,30 @@ export function SiteRenderer({
           return renderDivider(null);
         }
 
+        if (editingPreview && visibleSections.length === 0) {
+          return (
+            <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+              <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+                This page is empty
+              </p>
+              <p className="max-w-sm text-xs leading-relaxed" style={{ color: "#6b6b6b" }}>
+                Open Sections in the left rail and use + Add section to build this page. The canvas stays clean —
+                add and remove only from the nav.
+              </p>
+            </div>
+          );
+        }
+
         return (
           <>
             {visibleSections.map((section, idx) => {
         const key = section.id ?? `${section.type}-${idx}`;
         const sectionId = section.id ?? key;
         const anchor = sectionAnchor(section);
-        const wrap = (node: ReactNode) => wrapEditorSection(sectionId, editor, node, section.type);
+        const fillViewport =
+          STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
+        const wrap = (node: ReactNode) =>
+          wrapEditorSection(sectionId, editor, node, section.type, fillViewport);
         const sectionEl = (() => {
         switch (section.type) {
           case "maylecor-home":
@@ -509,6 +541,7 @@ export function SiteRenderer({
                 key={key}
                 props={resolved as LegallyBlondeHeroProps}
                 contained={mode === "preview"}
+                fillCanvas={fillViewport}
                 sectionId={sectionId}
                 editor={
                   editor
@@ -551,6 +584,44 @@ export function SiteRenderer({
               const base = siteBase.replace(/\/$/, "");
               return base ? `${base}/${h}` : `/${h}`;
             };
+            const slugFromHref = (href: string): string | null => {
+              const h = (href || "").trim();
+              if (!h || h === "#" || h.startsWith("http") || h.startsWith("mailto:") || h.startsWith("#")) {
+                return null;
+              }
+              const path = h.startsWith("/") ? h : `/${h}`;
+              const base = siteBase.replace(/\/$/, "");
+              let rest = path;
+              if (base && path.startsWith(base)) {
+                rest = path.slice(base.length) || "/";
+              }
+              const cleaned = rest.replace(/^\//, "").split(/[?#]/)[0] ?? "";
+              return cleaned || "home";
+            };
+            const renderNavLink = (l: { label: string; href: string }) => {
+              const slug = slugFromHref(l.href);
+              if (editor?.onNavigatePage && slug) {
+                return (
+                  <button
+                    key={`${l.label}-${l.href}`}
+                    type="button"
+                    onClick={() => editor.onNavigatePage!(slug)}
+                    className="opacity-80 hover:opacity-100 text-left"
+                  >
+                    {l.label}
+                  </button>
+                );
+              }
+              return (
+                <a
+                  key={`${l.label}-${l.href}`}
+                  href={resolveNavHref(l.href)}
+                  className="opacity-80 hover:opacity-100"
+                >
+                  {l.label}
+                </a>
+              );
+            };
             const brandEl = (
               <EditableText
                 tag="span"
@@ -579,15 +650,7 @@ export function SiteRenderer({
                 >
                   {brandEl}
                   <nav className="kebu-site-nav__links flex flex-col" style={{ gap: Math.max(10, m.gap * 0.65), fontSize: m.fontPx }}>
-                    {p.links.map((l) => (
-                      <a
-                        key={`${l.label}-${l.href}`}
-                        href={resolveNavHref(l.href)}
-                        className="opacity-80 hover:opacity-100"
-                      >
-                        {l.label}
-                      </a>
-                    ))}
+                    {p.links.map((l) => renderNavLink(l))}
                   </nav>
                 </aside>,
               );
@@ -611,15 +674,7 @@ export function SiteRenderer({
                 >
                   {brandEl}
                   <nav className="kebu-site-nav__links flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
-                    {p.links.map((l) => (
-                      <a
-                        key={`${l.label}-${l.href}`}
-                        href={resolveNavHref(l.href)}
-                        className="opacity-80 hover:opacity-100"
-                      >
-                        {l.label}
-                      </a>
-                    ))}
+                    {p.links.map((l) => renderNavLink(l))}
                   </nav>
                 </div>
               </header>,
@@ -1422,6 +1477,7 @@ export function SiteRenderer({
                 fontSize: "sm" | "md" | "lg" | "xl" | "hero";
                 align: "left" | "center" | "right";
                 color?: string;
+                fontFamily?: string;
               }[];
             };
             const fontSizeMap = { sm: "0.875rem", md: "1rem", lg: "1.25rem", xl: "1.75rem", hero: "2.5rem" };
@@ -1452,6 +1508,9 @@ export function SiteRenderer({
                       width: `${block.width}%`,
                       textAlign: block.align,
                       fontSize: fontSizeMap[block.fontSize] ?? fontSizeMap.md,
+                      fontFamily: block.fontFamily
+                        ? cssFontStack(block.fontFamily)
+                        : cssFontStack(theme.fontDisplay),
                       color: block.color || theme.text,
                       cursor: editor ? "grab" : "default",
                       touchAction: editor ? "none" : undefined,
@@ -1672,6 +1731,7 @@ export function SiteRenderer({
       className={`${rootClass} relative${sideNav ? " md:flex md:flex-row md:items-stretch" : ""}${
         editingPreview && legallyBlondeOnly ? " flex h-full min-h-0 flex-col" : ""
       }`}
+      data-kebu-button={theme.buttonStyle ?? "solid"}
       style={{
         ...themeVars,
         ...shellStyle,
@@ -1683,6 +1743,7 @@ export function SiteRenderer({
       <SiteThemeFonts
         fontDisplay={theme.fontDisplay}
         fontBody={theme.fontBody}
+        extraFamilies={freeTextExtraFonts}
         loadRemote={!preferSystemFonts(dataMode)}
       />
       {chrome}

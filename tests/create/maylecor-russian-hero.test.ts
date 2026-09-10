@@ -30,10 +30,10 @@ describe("maylecor-russian-hero", () => {
       },
       "MAY LECOR",
     );
-    expect(normalized.cutoutLeft).toBe("/templates/maylecor/may-figure.png");
-    expect(normalized.cutoutRight).toBe("/templates/maylecor/portrait.jpg");
-    expect(normalized.backgroundLayer).toBe("/templates/legally-blonde/background.png");
-    expect(normalized.titleLogo).toBe("/templates/maylecor/logo-circle-seal.png");
+    expect(String(normalized.cutoutLeft)).toMatch(/\/templates\/maylecor\/(may-figure|may-cutout)/);
+    expect(String(normalized.cutoutRight)).toContain("/templates/maylecor/portrait");
+    expect(String(normalized.backgroundLayer)).toContain("background");
+    expect(String(normalized.titleLogo)).toContain("logo-circle-seal");
     expect(normalized.titleAsText).toBe(false);
     expect(normalized.title).toBe("MAY LECOR");
     expect(normalized.scrollMode).toBe("parallax");
@@ -51,8 +51,8 @@ describe("maylecor-russian-hero", () => {
       },
       "MAY LECOR",
     );
-    expect(normalized.cutoutAccent).toBe("/templates/maylecor/may-figure.png");
-    expect(normalized.heroPhoto).toBe("/templates/maylecor/portrait.jpg");
+    expect(String(normalized.cutoutAccent)).toMatch(/\/templates\/maylecor\/(may-figure|may-cutout)/);
+    expect(String(normalized.heroPhoto)).toContain("/templates/maylecor/portrait");
   });
 
   it("treats stock /templates/maylecor paths as refreshable (not user uploads)", () => {

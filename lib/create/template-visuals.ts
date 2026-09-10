@@ -15,6 +15,7 @@ export type TemplateCardLayout =
   | "russian-cutouts"
   | "wix-collage"
   | "dark-artist"
+  | "music"
   | "agency"
   | "salon"
   | "store"
@@ -45,13 +46,13 @@ export type TemplateCardVisual = {
 
 export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
   "musician-maylecor-ksendr": {
-    previewImage: "/templates/maylecor/hero-collage.png?v=20260908b",
-    previewImageSecondary: "/templates/maylecor/may-figure.png?v=20260908b",
+    previewImage: "/templates/maylecor/logo-circle-seal.png?v=20260910b",
+    previewImageSecondary: "/templates/maylecor/may-cutout-full.jpg?v=20260910b",
     previewGradient: "linear-gradient(180deg, #ffd6ec 0%, #e9006b 55%, #0a0a0a 100%)",
-    badge: "May Lecor · cutout + city",
-    keywords: ["may lecor", "russian", "ksendr", "cutout", "pink", "music", "city"],
-    layout: "russian-cutouts",
-    wordmark: "MAY LECOR",
+    badge: "May Lecor · circle + cutout",
+    keywords: ["may lecor", "ksendr", "cutout", "pink", "music", "circle"],
+    layout: "portfolio",
+    wordmark: "MAY",
   },
   "agency-kdirection": {
     previewGradient: KDIRECTION_WIX_GRADIENT,
@@ -101,7 +102,7 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     previewGradient: "linear-gradient(135deg, #1DB954 0%, #191414 55%, #000 100%)",
     badge: "Streaming hero",
     keywords: ["streaming", "spotify", "music"],
-    layout: "dark-artist",
+    layout: "music",
     wordmark: "LISTEN",
   },
   "musician-press-kit": {
@@ -144,7 +145,7 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     previewGradient: "linear-gradient(180deg, #000 0%, #FF1493 100%)",
     badge: "Film & video",
     keywords: ["film", "studio", "video"],
-    layout: "film",
+    layout: "event",
     wordmark: "FILM",
   },
   "hair-salon": {
@@ -159,7 +160,7 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     previewGradient: "linear-gradient(160deg, #F7F1EB 0%, #C4786A 45%, #1F1A17 100%)",
     badge: "LAYERS · Skincare shop",
     keywords: ["layers", "beauty", "skincare", "shop", "organic", "ritual"],
-    layout: "salon",
+    layout: "perfume",
     wordmark: "LAYERS",
   },
   "beauty-studio": {
@@ -178,11 +179,11 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "SCENT",
   },
   "scent-boutique": {
-    previewGradient: "linear-gradient(145deg, #F7F2EC 0%, #E8D5C4 40%, #8B5E6B 100%)",
+    previewGradient: "linear-gradient(145deg, #FFFBF7 0%, #E8D5C4 35%, #8B5E6B 100%)",
     badge: "Scent boutique",
     keywords: ["boutique", "fragrance", "atelier", "brume"],
-    layout: "perfume",
-    wordmark: "BRUME",
+    layout: "hotel",
+    wordmark: "BOUTIQUE",
   },
   "fashion-atelier": {
     previewGradient: "linear-gradient(160deg, #FAFAF8 0%, #E8E4DC 40%, #1A1A2E 100%)",
@@ -192,10 +193,10 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "ATELIER",
   },
   "clothing-company": {
-    previewGradient: "linear-gradient(135deg, #FFFFFF 0%, #111111 100%)",
+    previewGradient: "linear-gradient(135deg, #F8FAFC 0%, #DC2626 40%, #0F172A 100%)",
     badge: "Clothing brand",
     keywords: ["clothing", "fashion", "brand"],
-    layout: "fashion",
+    layout: "store",
     wordmark: "APPAREL",
   },
   "shopping-store": {
@@ -206,11 +207,11 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "SHOP",
   },
   "online-store-preview": {
-    previewGradient: "linear-gradient(160deg, #FFF8E7 0%, #BC6C25 100%)",
-    badge: "Online store",
-    keywords: ["ecommerce", "store", "cart"],
-    layout: "store",
-    wordmark: "CART",
+    previewGradient: "linear-gradient(160deg, #ECFDF5 0%, #0F766E 55%, #042F2E 100%)",
+    badge: "WhatsApp catalog",
+    keywords: ["ecommerce", "store", "cart", "whatsapp"],
+    layout: "tech",
+    wordmark: "CHAT SHOP",
   },
   "restaurant-table": {
     previewGradient: "linear-gradient(160deg, #2B2118 0%, #BC6C25 50%, #F4A261 100%)",
@@ -230,7 +231,7 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     previewGradient: "linear-gradient(160deg, #F8F9FA 0%, #457B9D 100%)",
     badge: "Professional services",
     keywords: ["services", "consulting", "business"],
-    layout: "agency",
+    layout: "portfolio",
     wordmark: "SERVICES",
   },
   "tech-startup": {
@@ -255,10 +256,10 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "WORK",
   },
   "student-portfolio": {
-    previewGradient: "linear-gradient(160deg, #E0F7FA 0%, #6D597A 100%)",
+    previewGradient: "linear-gradient(160deg, #E0F7FA 0%, #7C3AED 55%, #1E1B4B 100%)",
     badge: "Student portfolio",
     keywords: ["student", "portfolio", "school"],
-    layout: "portfolio",
+    layout: "tech",
     wordmark: "STUDENT",
   },
   "artist-gallery": {

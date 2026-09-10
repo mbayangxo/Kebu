@@ -230,7 +230,11 @@ export async function uploadMarketplaceAesthetic(
   const name = input.name.trim().slice(0, 80) || parsed.name;
   const baseSlug = slugify(name) || `aesthetic-${randomUUID().slice(0, 8)}`;
   const slug = `${baseSlug}-${randomUUID().slice(0, 6)}`;
-  const priceCents = Math.max(0, Math.min(500_000, Math.floor(input.priceCents ?? 0)));
+  const { AESTHETIC_THEME_PRICE_USD_CENTS } = await import("@/lib/create/aesthetic-pricing");
+  const priceCents = Math.max(
+    0,
+    Math.min(500_000, Math.floor(input.priceCents ?? AESTHETIC_THEME_PRICE_USD_CENTS)),
+  );
   const status = input.publish ? "published" : "draft";
 
   const { data, error } = await supabase

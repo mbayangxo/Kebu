@@ -132,18 +132,6 @@ export function EditableSocialRail({
           Home
         </a>
       ) : null}
-      {editing && onPatch ? (
-        <button
-          type="button"
-          className="mt-2 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-red-300 hover:text-red-200"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPatch({ socialRailVisible: false });
-          }}
-        >
-          Hide rail
-        </button>
-      ) : null}
     </aside>
   );
 }

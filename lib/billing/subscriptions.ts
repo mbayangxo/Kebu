@@ -263,9 +263,26 @@ export async function templateRequiresPurchase(
     .eq("slug", templateSlug)
     .maybeSingle();
 
-  if (!data) return { required: false, priceUsdCents: 0 };
-  const priceUsdCents = data.price_usd_cents ?? 0;
-  const required = Boolean(data.requires_purchase) && priceUsdCents > 0;
+  const { AESTHETIC_THEME_PRICE_USD_CENTS } = await import("@/lib/create/aesthetic-pricing");
+  const { listAestheticGallerySlugs } = await import("@/lib/create/aesthetics-gallery");
+
+  if (!data) {
+    const isGallery = listAestheticGallerySlugs().includes(templateSlug);
+    if (isGallery) {
+      return { required: true, priceUsdCents: AESTHETIC_THEME_PRICE_USD_CENTS };
+    }
+    return { required: false, priceUsdCents: 0 };
+  }
+  let priceUsdCents = data.price_usd_cents ?? 0;
+  let required = Boolean(data.requires_purchase) && priceUsdCents > 0;
+  // Gallery themes default to $5 when DB still has free legacy rows.
+  if (
+    (!required || priceUsdCents <= 0) &&
+    listAestheticGallerySlugs().includes(templateSlug)
+  ) {
+    required = true;
+    priceUsdCents = AESTHETIC_THEME_PRICE_USD_CENTS;
+  }
   return { required, priceUsdCents };
 }
 

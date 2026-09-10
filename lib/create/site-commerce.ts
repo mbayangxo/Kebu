@@ -34,6 +34,13 @@ export const siteCommerceSchema = z.object({
    * Paid only after JOKO webhook — never from the browser.
    */
   preferJokoCheckout: z.boolean().optional().default(false),
+  /**
+   * Merchant explicitly opened Shop for this site (separate from the website).
+   * Agencies can have a site with shopOpened false.
+   */
+  shopOpened: z.boolean().optional().default(false),
+  /** ISO timestamp when shop was opened — set server-side on open. */
+  shopOpenedAt: z.string().trim().max(40).optional().default(""),
   /** Wave business number or Wave.me / payment link merchants share in Senegal. */
   wavePayLink: z.string().trim().max(300).default(""),
   /** Public JOKO pay / checkout page URL when not using in-app JOKO checkout. */

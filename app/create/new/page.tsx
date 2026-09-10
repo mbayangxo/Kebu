@@ -51,7 +51,7 @@ function CreateWebsiteWizardInner() {
   const router = useRouter();
   const search = useSearchParams();
   const businessIdParam = search.get("businessId") ?? "";
-  const templateParam = search.get("template") ?? "";
+  const templateParam = search.get("aesthetic") ?? search.get("template") ?? "";
   const categoryParam = search.get("category") ?? "";
   const modeParam = search.get("mode");
 
@@ -158,11 +158,11 @@ function CreateWebsiteWizardInner() {
     e.preventDefault();
     if (submittingRef.current) return;
     if (!isBuilderCreateModeImplemented(mode)) {
-      setError("This creation mode is not implemented yet. Use AI, template, or blank.");
+      setError("This creation mode is not implemented yet. Use AI, an aesthetic, or blank.");
       return;
     }
     if (mode === "template" && !templateSlug) {
-      setError("Pick a template from the gallery above.");
+      setError("Pick an aesthetic from the gallery above.");
       return;
     }
     if (mode === "ai" && description.trim().length < 20) {
@@ -300,7 +300,7 @@ function CreateWebsiteWizardInner() {
                   : "Developers will extend Kebu projects with code hooks alongside the structured renderer — for when you need more than the visual editor."}
               </p>
               <p className="mt-3 text-xs" style={{ color: BUILDER.faint }}>
-                Use AI, template, or blank to create a site today.
+                Use AI, an aesthetic, or blank to create a site today.
               </p>
             </BuilderSurface>
           )}
@@ -424,7 +424,7 @@ function CreateWebsiteWizardInner() {
             <BuilderSurface className="space-y-4">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-bold">Choose your template</h2>
+                  <h2 className="text-lg font-bold">Choose your aesthetic</h2>
                   <p className="text-xs mt-1 leading-relaxed" style={{ color: "#5C5348" }}>
                     Scroll the gallery — each card is a real live preview. Tap a design to select it, or open full
                     preview before you commit.
@@ -453,7 +453,7 @@ function CreateWebsiteWizardInner() {
                 />
               ) : (
                 <p className="text-sm rounded-xl p-6 text-center" style={{ background: "#FFF8F2", color: "#5C5348" }}>
-                  Loading templates…
+                  Loading aesthetics…
                 </p>
               )}
             </BuilderSurface>
@@ -497,7 +497,7 @@ function CreateWebsiteWizardInner() {
 
           {mode === "template" && selectedTemplate ? (
             <p className="text-sm rounded-xl px-4 py-3" style={{ background: BUILDER.surfaceMuted, color: BUILDER.muted }}>
-              Template: <strong style={{ color: BUILDER.ink }}>{selectedTemplate.name}</strong>
+              Aesthetic: <strong style={{ color: BUILDER.ink }}>{selectedTemplate.name}</strong>
             </p>
           ) : null}
 

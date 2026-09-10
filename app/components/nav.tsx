@@ -14,7 +14,7 @@ import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 const PRIMARY = [
   { label: "Your Kebu", href: "/dashboard" },
   { label: "Opportunity OS", href: "/opportunity" },
-  { label: "Aesthetics", href: "/create/aesthetics" },
+  { label: "Aesthetic Gallery", href: "/create/aesthetics" },
   { label: "Kebu Studio", href: "/studio" },
   { label: "My KEBU", href: "/business" },
 ];

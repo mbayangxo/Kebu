@@ -18,6 +18,7 @@ export function MaylecorSocialBar({
   variant = "pill",
   className = "",
 }: {
+  /** undefined / null = May defaults; [] = intentionally empty (left-nav cleared). */
   links?: MaylecorSocialLink[] | null;
   accentColor?: string;
   /** pill = floating row; rail = vertical; footer = large centered icons */
@@ -25,9 +26,9 @@ export function MaylecorSocialBar({
   className?: string;
 }) {
   const items =
-    links && links.length > 0
-      ? links.filter((l) => String(l.href ?? "").trim() && String(l.href) !== "#")
-      : MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s }));
+    links == null
+      ? MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s }))
+      : links.filter((l) => String(l.href ?? "").trim() && String(l.href) !== "#");
 
   if (!items.length) return null;
 

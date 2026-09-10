@@ -665,6 +665,36 @@ export function KdirectionHomeLayout({
               Hide on {labelBuilderDevice(device)}
             </label>
           ) : null}
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              className="flex-1 rounded-full border border-black/15 px-2 py-1.5 text-[10px] font-bold uppercase"
+              onClick={() => {
+                const next = [...(props.collagePhotos ?? [])];
+                const cur = next[selectedPhoto];
+                if (!cur) return;
+                const z = typeof cur.zIndex === "number" ? cur.zIndex : 3;
+                next[selectedPhoto] = { ...cur, zIndex: Math.min(50, z + 5) };
+                patch({ collagePhotos: next });
+              }}
+            >
+              Front
+            </button>
+            <button
+              type="button"
+              className="flex-1 rounded-full border border-black/15 px-2 py-1.5 text-[10px] font-bold uppercase"
+              onClick={() => {
+                const next = [...(props.collagePhotos ?? [])];
+                const cur = next[selectedPhoto];
+                if (!cur) return;
+                const z = typeof cur.zIndex === "number" ? cur.zIndex : 3;
+                next[selectedPhoto] = { ...cur, zIndex: Math.max(1, z - 5) };
+                patch({ collagePhotos: next });
+              }}
+            >
+              Back
+            </button>
+          </div>
           <button
             type="button"
             className="mt-3 w-full rounded-full border border-black/15 px-3 py-1.5 text-[10px] font-bold uppercase"

@@ -38,14 +38,24 @@ export const themeSchema = z.object({
   accent: z.string().trim().max(40).default("#00C851"),
   background: z.string().trim().max(40).default("#FAFAF8"),
   text: z.string().trim().max(40).default("#0F0D33"),
+  /** Cards / panels surface. */
+  surface: z.string().trim().max(40).optional(),
+  /** Links and secondary accents. */
+  link: z.string().trim().max(40).optional(),
   fontDisplay: z.string().trim().max(80).default("Fraunces"),
   fontBody: z.string().trim().max(80).default("system-ui"),
   spacing: z.enum(["compact", "comfortable", "airy"]).default("comfortable"),
+  /** Max content column width for standard sections. */
+  contentWidth: z.enum(["narrow", "default", "wide"]).optional(),
   /** Relative heading size — Shopify-style typography scale. */
   headingScale: z.enum(["sm", "md", "lg", "xl"]).optional().default("md"),
   /** Body text size. */
   bodySize: z.enum(["sm", "md", "lg"]).optional().default("md"),
   letterSpacing: z.enum(["tight", "normal", "wide"]).optional().default("normal"),
+  /** Corner radius feel for cards and buttons. */
+  radius: z.enum(["sharp", "soft", "round"]).optional(),
+  /** Primary button look. */
+  buttonStyle: z.enum(["solid", "outline", "soft"]).optional(),
   aestheticId: z.string().trim().max(40).optional(),
 });
 
@@ -394,6 +404,8 @@ export const sectionPropsSchemas = {
           fontSize: z.enum(["sm", "md", "lg", "xl", "hero"]).default("md"),
           align: z.enum(["left", "center", "right"]).default("left"),
           color: z.string().trim().max(40).optional().default(""),
+          /** Empty / omitted = site display font from Aesthetic Editor. */
+          fontFamily: z.string().trim().max(80).optional().default(""),
         }),
       )
       .max(24)
@@ -520,8 +532,15 @@ export const sectionPropsSchemas = {
       .record(z.string().trim().min(1).max(40), safeHref)
       .optional()
       .default({}),
+    /** Paint order for built-in cutout slots + extras (1 = back, 80 = front). */
+    layerZIndex: z
+      .record(z.string().trim().min(1).max(40), z.number().int().min(1).max(80))
+      .optional()
+      .default({}),
     /** Built-in cutout keys the founder removed (do not fall back to Russian assets). */
     hiddenLayers: z.array(z.string().trim().min(1).max(40)).max(20).optional().default([]),
+    /** Solid accent color only — no photo background. */
+    backgroundHidden: z.boolean().optional().default(false),
     /** Extra user cutouts on the hero artboard (drag / upload / delete). */
     extraCutouts: z
       .array(

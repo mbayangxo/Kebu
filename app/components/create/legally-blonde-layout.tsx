@@ -98,7 +98,11 @@ export type LegallyBlondeHeroProps = {
   layerScales?: Record<string, number>;
   layerMotions?: Record<string, "spin" | "float" | "bob" | "none">;
   layerLinks?: Record<string, string>;
+  /** Paint order for built-in slots + extras (1 = back, 80 = front). Survives publish. */
+  layerZIndex?: Record<string, number>;
   hiddenLayers?: string[];
+  /** When true, hero shows solid accent color — no photo background. */
+  backgroundHidden?: boolean;
   extraCutouts?: ExtraCutout[];
   ctaLabel?: string;
   ctaHref?: string;
@@ -140,6 +144,12 @@ const CUTOUT_LAYER_IDS = new Set([
 function resolveLayerUrl(layer: TildaLayer, props: LegallyBlondeHeroProps): string | null {
   const key = LB_EDITABLE_LAYER_KEYS[layer.id];
   if (key) {
+    if (
+      key === "backgroundLayer" &&
+      (props.backgroundHidden === true || (props.hiddenLayers ?? []).includes("backgroundLayer"))
+    ) {
+      return null;
+    }
     const val = props[key];
     // Explicit empty string = user removed this asset (do not fall back to Tilda URL).
     if (typeof val === "string") {
@@ -223,7 +233,7 @@ function renderLayer(
   const isTitleLogo = LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo";
   const propKey = LB_EDITABLE_LAYER_KEYS[layer.id];
   if (propKey && (props.hiddenLayers ?? []).includes(propKey)) return null;
-  if (layer.type !== "text" && !url && !(props.titleAsText !== false && isTitleLogo)) return null;
+  if (layer.type !== "text" && !url && !(props.titleAsText === true && isTitleLogo)) return null;
 
   const baseStyle = parseTildaCss(layer.style);
   const atomStyle = parseTildaCss(layer.atomStyle);
@@ -287,7 +297,15 @@ function renderLayer(
     cursor: editable ? "grab" : !opts.editing && layerHref ? "pointer" : undefined,
     outline: opts.selected ? "2px solid #FF5500" : undefined,
     outlineOffset: opts.selected ? 4 : undefined,
-    zIndex: opts.selected ? 50 : baseStyle.zIndex,
+    zIndex: (() => {
+      if (opts.selected) return 50;
+      const fromMap =
+        (scaleKey && typeof props.layerZIndex?.[scaleKey] === "number"
+          ? props.layerZIndex[scaleKey]
+          : undefined) ??
+        (typeof props.layerZIndex?.[layer.id] === "number" ? props.layerZIndex[layer.id] : undefined);
+      return fromMap ?? baseStyle.zIndex;
+    })(),
     touchAction: editable ? "none" : undefined,
   };
 
@@ -331,10 +349,10 @@ function renderLayer(
     );
   }
 
-  if (!url && !(props.titleAsText !== false && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo")) return null;
+  if (!url && !(props.titleAsText === true && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo")) return null;
 
-  /* Middle circle: English name around the ring instead of Russian SVG. */
-  if ((props.titleAsText !== false) && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo") {
+  /* Optional text ring — May Lècor default is the circle seal image (titleAsText false). */
+  if (props.titleAsText === true && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo") {
     const motionKey = propKey || layer.id;
     const customMotion = (props.layerMotions?.[motionKey] ?? "spin") as LayerMotion;
     return (
@@ -526,6 +544,7 @@ function ExtraCutoutItem({
 export function LegallyBlondeHeroLayout({
   props,
   contained = false,
+  fillCanvas = true,
   sectionId,
   editor,
   projectId,
@@ -535,6 +554,8 @@ export function LegallyBlondeHeroLayout({
   props: LegallyBlondeHeroProps;
   siteBase?: string;
   contained?: boolean;
+  /** Sole-section builder fill. When false, hero has a natural height so the page can scroll. */
+  fillCanvas?: boolean;
   sectionId?: string;
   editor?: EditorHooks;
   projectId?: string;
@@ -601,15 +622,23 @@ export function LegallyBlondeHeroLayout({
   const scrollTrackHeight = viewportOnly || editing ? undefined : motion ? "220vh" : `${scroll.artboardHeight}px`;
   const extraCutouts = props.extraCutouts ?? [];
 
-  /* Builder: site fills the preview — no pink padding / tip boxes above the artboard. */
+  /* Builder: sole hero fills the pane; with more sections, use a tall but scrollable hero. */
   if ((editing || builderPreview) && sectionId) {
     return (
-      <div id="top" className="relative flex h-full min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]">
+      <div
+        id="top"
+        className={
+          fillCanvas
+            ? "relative flex h-full min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]"
+            : "relative flex min-h-[72vh] w-full flex-col bg-[#FFE4F0]"
+        }
+      >
         <LegallyBlondeEditCanvas
           props={props as unknown as Record<string, unknown>}
           projectId={projectId}
           siteBase={siteBase}
           currentSlug={pageSlug}
+          fillCanvas={fillCanvas}
           onPatch={patch}
           onSelectSection={() => editor?.onSelectSection?.(sectionId)}
           onNavigatePage={editor?.onNavigatePage}
@@ -652,7 +681,14 @@ export function LegallyBlondeHeroLayout({
           return (
           <ExtraCutoutItem
             key={photo.id}
-            photo={{ ...photo, widthPct: photo.widthPct * scale }}
+            photo={{
+              ...photo,
+              widthPct: photo.widthPct * scale,
+              zIndex:
+                typeof props.layerZIndex?.[photo.id] === "number"
+                  ? Math.min(40, props.layerZIndex[photo.id]!)
+                  : photo.zIndex,
+            }}
             editing={editing}
             selected={selectedExtraId === photo.id}
             siteBase={siteBase}

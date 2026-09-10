@@ -4,7 +4,6 @@ import { defaultMaylecorKsendrProps } from "./maylecor-ksendr-defaults";
 import { defaultLegallyBlondeHeroProps } from "./legally-blonde-defaults";
 import { maylecorMotionSitePages } from "./maylecor-site-pages";
 import { kdirectionWixSitePages } from "./kdirection-site-pages";
-import { buildCompleteSite, templateDefaultTheme } from "./template-builders";
 import { dklnsWebsiteDefinition } from "./dklns-site";
 import { ndaoanWebsiteDefinition } from "./ndaoan-site";
 import { rectWebsiteDefinition } from "./rect-site";
@@ -24,6 +23,14 @@ import { appLaunchWorldDefinition, techStartupWorldDefinition } from "./design-w
 import { proPortfolioWorldDefinition, studentPortfolioWorldDefinition } from "./design-worlds/portfolio-worlds";
 import { ngoImpactWorldDefinition, farmAgriWorldDefinition } from "./design-worlds/impact-worlds";
 import { professionalServicesWorldDefinition } from "./design-worlds/agency-professional-world";
+import {
+  agencyCreativeDistinctDefinition,
+  artistGalleryDistinctDefinition,
+  beautyStudioDistinctDefinition,
+  eventNightDistinctDefinition,
+  hairSalonDistinctDefinition,
+  scentBoutiqueDistinctDefinition,
+} from "./distinct-template-seeds";
 
 /**
  * Template seeds render through SiteRenderer → `.kebu-site` responsive base.
@@ -53,64 +60,9 @@ function baseTheme(primary = "#0F0D33", accent = "#00C851"): WebsiteDefinition["
     fontDisplay: "Fraunces",
     fontBody: "system-ui",
     spacing: "comfortable",
-  };
-}
-
-function simpleSite(
-  title: string,
-  heroHeading: string,
-  heroSub: string,
-  featureTitle: string,
-  features: { title: string; body: string }[]
-): WebsiteDefinition {
-  return {
-    schemaVersion: "website-v1",
-    title,
-    theme: baseTheme(),
-    pages: [
-      {
-        slug: "home",
-        title: "Home",
-        sections: [
-          {
-            id: "nav-1",
-            type: "navigation",
-            props: { brand: title, links: [{ label: "Home", href: "#" }, { label: "Contact", href: "#contact" }] },
-          },
-          {
-            id: "hero-1",
-            type: "hero",
-            props: {
-              heading: heroHeading,
-              subheading: heroSub,
-              buttonLabel: "Get in touch",
-              buttonHref: "#contact",
-              align: "center",
-            },
-          },
-          {
-            id: "feat-1",
-            type: "features",
-            props: { heading: featureTitle, items: features },
-          },
-          {
-            id: "contact-1",
-            type: "contact",
-            props: { heading: "Contact", email: "", phone: "", address: "" },
-          },
-          {
-            id: "wa-1",
-            type: "whatsapp",
-            props: { label: "Chat on WhatsApp", phone: "+221770000000", message: "Hello!" },
-          },
-          {
-            id: "footer-1",
-            type: "footer",
-            props: { text: `© ${title}`, links: [] },
-          },
-        ],
-      },
-    ],
+    headingScale: "md",
+    bodySize: "md",
+    letterSpacing: "normal",
   };
 }
 
@@ -123,6 +75,9 @@ function darkTheme(accent = "#E8D5A3"): WebsiteDefinition["theme"] {
     fontDisplay: "Fraunces",
     fontBody: "system-ui",
     spacing: "comfortable",
+    headingScale: "md",
+    bodySize: "md",
+    letterSpacing: "normal",
   };
 }
 
@@ -147,18 +102,8 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "beauty-studio",
     name: "Beauty Studio",
     category: "beauty",
-    description: "Beauty and wellness studio (legacy simple seed — prefer LAYERS Beauty)",
-    definition: simpleSite(
-      "Beauty Studio",
-      "Glow that starts with care",
-      "Skincare, hair, and beauty services tailored to you.",
-      "Services",
-      [
-        { title: "Consultations", body: "Skin and hair assessments before treatment." },
-        { title: "Clean products", body: "Formulas suited for local climates." },
-        { title: "Bookings", body: "Simple WhatsApp booking for busy days." },
-      ]
-    ),
+    description: "Ritual menu · gallery · WhatsApp book — multi-page studio (not a shop clone)",
+    definition: beautyStudioDistinctDefinition(),
   },
   {
     slug: "restaurant-table",
@@ -187,18 +132,8 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "artist-gallery",
     name: "Artist Gallery",
     category: "artist",
-    description: "Artist showcase",
-    definition: simpleSite(
-      "Artist Gallery",
-      "Colour, story, and place",
-      "Paintings, prints, and commissions rooted in African narratives.",
-      "Studio",
-      [
-        { title: "Collections", body: "Series exploring memory, city, and land." },
-        { title: "Commissions", body: "Custom pieces for homes and spaces." },
-        { title: "Exhibitions", body: "Upcoming shows and past residencies." },
-      ]
-    ),
+    description: "Works-first gallery · about · exhibitions · contact",
+    definition: artistGalleryDistinctDefinition(),
   },
   {
     slug: "musician-streaming",
@@ -397,6 +332,9 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
         fontDisplay: "Steelfish",
         fontBody: "system-ui",
         spacing: "comfortable" as const,
+        headingScale: "md" as const,
+        bodySize: "md" as const,
+        letterSpacing: "normal" as const,
       },
       pages: [
         {
@@ -477,6 +415,9 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
         fontDisplay: "Georgia",
         fontBody: "system-ui",
         spacing: "comfortable" as const,
+        headingScale: "md" as const,
+        bodySize: "md" as const,
+        letterSpacing: "normal" as const,
       },
       pages: [
         {
@@ -712,18 +653,8 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "event-night",
     name: "Event Night",
     category: "event",
-    description: "Event / nightlife promo",
-    definition: simpleSite(
-      "Event Night",
-      "One night. Unforgettable.",
-      "Line-up, venue, and tickets — keep it simple and clear.",
-      "Details",
-      [
-        { title: "Line-up", body: "Artists and hosts confirmed for the night." },
-        { title: "Venue", body: "Location, doors, and dress code." },
-        { title: "Tickets", body: "WhatsApp to reserve your spot." },
-      ]
-    ),
+    description: "Line-up · tickets · venue map — nightlife promo with events section",
+    definition: eventNightDistinctDefinition(),
   },
   {
     slug: "hotel-stay",
@@ -792,142 +723,8 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "agency-creative",
     name: "Creative agency",
     category: "agency",
-    description: "Legacy single-page agency seed — prefer Carmine Creative",
-    definition: buildCompleteSite({
-      title: "Creative Agency",
-      theme: templateDefaultTheme("#0F0D33", "#7C3AED"),
-      navLinks: [
-        { label: "About", href: "#about" },
-        { label: "Services", href: "#services" },
-        { label: "Work", href: "#gallery" },
-        { label: "Contact", href: "#contact" },
-      ],
-      hero: {
-        heading: "We build brands that move Africa forward",
-        subheading: "Strategy, design, and campaigns for startups, labels, and growing businesses.",
-        buttonLabel: "Start a project",
-        buttonHref: "#contact",
-        background: "#0F0D33",
-      },
-      about: {
-        heading: "About the agency",
-        body: "We are a Dakar-based creative team helping African founders tell clearer stories — from visual identity to launch campaigns. Swap this text and add your real case study photos in the editor.",
-      },
-      features: {
-        heading: "Services",
-        items: [
-          { title: "Brand identity", body: "Logo, colours, typography, and brand guidelines." },
-          { title: "Web & social", body: "Sites, landing pages, and content that converts." },
-          { title: "Campaigns", body: "Launch plans, ads, and influencer coordination." },
-        ],
-      },
-      gallery: {
-        items: [
-          {
-            src: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
-            alt: "Agency workspace",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
-            alt: "Team collaboration",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80",
-            alt: "Client workshop",
-          },
-        ],
-      },
-      testimonials: {
-        heading: "Client results",
-        items: [
-          { quote: "They turned our messy idea into a brand we are proud to pitch.", name: "Founder, fashion label" },
-          { quote: "Clear process, fast delivery, and they understood our market.", name: "Marketing lead, fintech" },
-        ],
-      },
-      faq: {
-        heading: "FAQ",
-        items: [
-          { question: "How do we start?", answer: "Send a brief via WhatsApp or email — we reply within 2 business days." },
-          { question: "Do you work remotely?", answer: "Yes — across Africa and diaspora clients." },
-        ],
-      },
-      contact: {
-        email: "hello@agency.com",
-        phone: "+221770000000",
-        address: "Dakar, Senegal",
-      },
-      whatsapp: {
-        label: "Book a discovery call",
-        phone: "+221770000000",
-        message: "Hi, I want to discuss a project with Creative Agency.",
-      },
-    }),
-  },
-  {
-    slug: "agency-kdirection",
-    name: "K-Direction — Wix canvas label",
-    category: "agency",
-    description:
-      "Owner portfolio — Oswald wordmark, soft gradient, yellow pill nav. Not a shared user aesthetic.",
-    visibility: "owner_portfolio",
-    definition: {
-      schemaVersion: "website-v1",
-      title: "K-Direction",
-      theme: {
-        primary: "#0A0A0A",
-        accent: "#FFF86B",
-        background: "#e8e0f0",
-        text: "#0A0A0A",
-        fontDisplay: "Oswald",
-        fontBody: "Arial",
-        spacing: "comfortable",
-      },
-      pages: kdirectionWixSitePages().map((p) => ({
-        slug: p.slug,
-        title: p.title,
-        sections: p.sections.map((s, i) => ({
-          id: `kd-${p.slug}-${i + 1}`,
-          type: s.type as WebsiteDefinition["pages"][0]["sections"][0]["type"],
-          props: s.props,
-        })),
-      })),
-    },
-  },
-  {
-    slug: "agency-dklns",
-    name: "DkLNS — management & creative agency",
-    category: "agency",
-    description:
-      "Owner portfolio — DkLNS lumen. Not a shared user aesthetic.",
-    visibility: "owner_portfolio",
-    definition: dklnsWebsiteDefinition(),
-  },
-  {
-    slug: "production-ndaoan-house",
-    name: "Ndaoan House — production & content studio",
-    category: "production",
-    description:
-      "Owner portfolio — Ndaoan cinema. Not a shared user aesthetic.",
-    visibility: "owner_portfolio",
-    definition: ndaoanWebsiteDefinition(),
-  },
-  {
-    slug: "entertainment-rect",
-    name: "RECT — music streaming & entertainment tech",
-    category: "music",
-    description:
-      "Owner portfolio — RECT signal (lime / black / orange). Music + label now; film, Watch, social as honest roadmap. Not a shared user aesthetic.",
-    visibility: "owner_portfolio",
-    definition: rectWebsiteDefinition(),
-  },
-  {
-    slug: "foundation-mayjor-good",
-    name: "For The Mayjor Good — foundation",
-    category: "nonprofit",
-    description:
-      "Owner portfolio — For The Mayjor Good (art, opportunity, service). Not a shared user aesthetic.",
-    visibility: "owner_portfolio",
-    definition: mayjorGoodWebsiteDefinition(),
+    description: "Case studies · process · WhatsApp brief — multi-page agency (distinct from Carmine)",
+    definition: agencyCreativeDistinctDefinition(),
   },
   {
     slug: "production-company",
@@ -941,76 +738,8 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "hair-salon",
     name: "Hair salon & barber",
     category: "beauty",
-    description: "Salon or barbershop — services, gallery, booking via WhatsApp",
-    definition: buildCompleteSite({
-      title: "Hair Studio",
-      theme: templateDefaultTheme("#2C1810", "#D4A574"),
-      navLinks: [
-        { label: "About", href: "#about" },
-        { label: "Services", href: "#services" },
-        { label: "Gallery", href: "#gallery" },
-        { label: "Book", href: "#contact" },
-      ],
-      hero: {
-        heading: "Your hair, our craft",
-        subheading: "Cuts, colour, braids, and treatments — walk-ins welcome, appointments preferred.",
-        buttonLabel: "Book on WhatsApp",
-        buttonHref: "#whatsapp",
-      },
-      about: {
-        heading: "Welcome",
-        body: "Tell clients about your stylists, hygiene standards, and what makes your salon different. Add your address and hours in Contact.",
-      },
-      features: {
-        heading: "Services & prices",
-        items: [
-          { title: "Cut & style", body: "From 5,000 FCFA — add your menu in the editor." },
-          { title: "Braids & locs", body: "Protective styles by appointment." },
-          { title: "Colour & treatment", body: "Consultation included — patch test when needed." },
-        ],
-      },
-      gallery: {
-        items: [
-          {
-            src: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80",
-            alt: "Salon interior",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80",
-            alt: "Hair styling",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&q=80",
-            alt: "Barber chair",
-          },
-        ],
-      },
-      testimonials: {
-        heading: "Client love",
-        items: [
-          { quote: "Best fade in the city — always on time.", name: "Regular client" },
-          { quote: "They really listen to what you want.", name: "First visit" },
-        ],
-      },
-      faq: {
-        heading: "Salon FAQ",
-        items: [
-          { question: "Do I need an appointment?", answer: "Walk-ins OK for cuts; braids and colour by booking." },
-          { question: "Payment methods?", answer: "Cash, mobile money, and cards — update for your salon." },
-        ],
-      },
-      contact: {
-        heading: "Visit us",
-        email: "",
-        phone: "+221770000000",
-        address: "Your street, city — edit in editor",
-      },
-      whatsapp: {
-        label: "Book appointment",
-        phone: "+221770000000",
-        message: "Hi, I want to book an appointment at Hair Studio.",
-      },
-    }),
+    description: "Menu · looks · book — multi-page salon (distinct from Beauty Studio rituals)",
+    definition: hairSalonDistinctDefinition(),
   },
   {
     slug: "perfume-brand",
@@ -1024,58 +753,8 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     slug: "scent-boutique",
     name: "Scent boutique",
     category: "fragrance",
-    description: "Intimate fragrance boutique — soft cream layout, story, and WhatsApp orders (different from Perfume house)",
-    definition: buildCompleteSite({
-      title: "Atelier Brume",
-      theme: templateDefaultTheme("#F7F2EC", "#8B5E6B"),
-      navLinks: [
-        { label: "Story", href: "#about" },
-        { label: "Scents", href: "#services" },
-        { label: "Visit", href: "#contact" },
-      ],
-      hero: {
-        heading: "Walk in. Smell. Take home.",
-        subheading: "A quiet boutique for discovery sets and signature oils — built for WhatsApp and walk-in sales.",
-        buttonLabel: "See scents",
-        buttonHref: "#services",
-        background: "#F7F2EC",
-      },
-      about: {
-        heading: "The boutique",
-        body: "Tell guests where you are, your hours, and how you source notes. Keep photos light — Data Saver friendly.",
-      },
-      features: {
-        heading: "On the shelf",
-        items: [
-          { title: "Discovery set", body: "5 samples — swap names in the editor." },
-          { title: "House oil", body: "Your bestseller — price in Shop products." },
-          { title: "Refill ritual", body: "Bring the bottle back for a refill discount." },
-        ],
-      },
-      gallery: {
-        items: [
-          {
-            src: "https://images.unsplash.com/photo-1595425970377-c9703cf48b6d?w=800&q=80",
-            alt: "Boutique shelf",
-          },
-          {
-            src: "https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=800&q=80",
-            alt: "Fragrance bottles",
-          },
-        ],
-      },
-      contact: {
-        heading: "Visit or order",
-        email: "hello@atelierbrume.com",
-        phone: "+221770000000",
-        address: "Your street, your city",
-      },
-      whatsapp: {
-        label: "Order on WhatsApp",
-        phone: "+221770000000",
-        message: "Hi, I want to order from Atelier Brume.",
-      },
-    }),
+    description: "Counter scents · story · visit — intimate boutique (distinct from Perfume house)",
+    definition: scentBoutiqueDistinctDefinition(),
   },
 ];
 

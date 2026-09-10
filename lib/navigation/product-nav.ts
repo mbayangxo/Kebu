@@ -21,7 +21,7 @@ export type NavItem = { label: string; href: string; exact?: boolean };
  * Product IA (2026-09-08):
  * - My Account = avatar top-right only (not a sidebar row)
  * - My KEBU = your space / sites / shop (not “Builder” / “Create”)
- * - Aesthetics = theme store (compact gallery)
+ * - Aesthetic Gallery = site looks store
  * - Kebu Studio = graphics/video
  * - Alkebulan = B2B — separate, not under Business
  * - Register business stays on Opportunity / signup — not My KEBU chrome
@@ -34,17 +34,18 @@ export const PRODUCT_NAV = {
     { label: "Personalize", href: "/welcome" },
   ] satisfies NavItem[],
 
-  /** Your operating space — sites dashboard + edit list */
+  /** Your operating space — businesses first, then shared pulse */
   myKebu: [
-    { label: "My Space", href: "/business", exact: true },
+    { label: "My Businesses", href: "/business", exact: true },
+    { label: "Pulse", href: "/business?tab=pulse" },
     { label: "My Sites", href: MY_SITES_HREF },
     { label: "Messages", href: "/messages" },
     { label: "KA Score", href: "/ka-score" },
   ] satisfies NavItem[],
 
-  /** Aesthetic store — looks to try; Build a site is secondary */
+  /** Aesthetic store — $5 themes; Build a site is secondary */
   aesthetics: [
-    { label: "Aesthetics", href: "/create/aesthetics", exact: true },
+    { label: "Aesthetic Gallery", href: "/create/aesthetics", exact: true },
     { label: "Build a site", href: "/create/new" },
   ] satisfies NavItem[],
 
@@ -62,13 +63,13 @@ export const PRODUCT_NAV = {
 
   /** @deprecated use myKebu — kept for any leftover imports */
   businessHome: [
-    { label: "My Space", href: "/business", exact: true },
+    { label: "My Businesses", href: "/business", exact: true },
     { label: "My Sites", href: MY_SITES_HREF },
     { label: "KA Score", href: "/ka-score" },
   ] satisfies NavItem[],
   /** @deprecated use aesthetics */
   builder: [
-    { label: "Aesthetics", href: "/create/aesthetics", exact: true },
+    { label: "Aesthetic Gallery", href: "/create/aesthetics", exact: true },
     { label: "My Sites", href: MY_SITES_HREF },
     { label: "Build a site", href: "/create/new" },
   ] satisfies NavItem[],

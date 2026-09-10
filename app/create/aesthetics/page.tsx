@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Aesthetics gallery — Kebu Builder",
+  title: "Aesthetic Gallery — Kebu Builder",
   description:
     "Browse site aesthetics by category. Open a look for live preview, try free, apply to a site in My Sites.",
 };
@@ -19,7 +19,7 @@ export default async function CreateAestheticsPage() {
 
   if (!user) {
     return (
-      <AppShell title="Aesthetics">
+      <AppShell title="Aesthetic Gallery">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
           <p className="text-muted mb-4">Sign in to browse, buy, and upload aesthetics.</p>
           <a href="/login?next=/create/aesthetics" className="font-bold underline text-orange-600">
@@ -40,8 +40,8 @@ export default async function CreateAestheticsPage() {
   const sites = (projects ?? []).map((p) => ({ id: p.id as string, title: (p.title as string) || "Untitled site" }));
 
   return (
-    <AppShell title="Aesthetics">
-      <Suspense fallback={<p className="p-8 text-sm text-muted">Loading aesthetics…</p>}>
+    <AppShell title="Aesthetic Gallery">
+      <Suspense fallback={<p className="p-8 text-sm text-muted">Loading Aesthetic Gallery…</p>}>
         <AestheticsStoreClient sites={sites} />
       </Suspense>
     </AppShell>
