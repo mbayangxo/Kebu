@@ -236,11 +236,54 @@ export function DataModeControls({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** Fixed dock for builder / live site / app shell. */
+/** Fixed dock for builder / live site / app shell. Collapses to a chip on mobile. */
 export function DataModeDock() {
+  const { mode, online } = useDataMode();
+  const [expanded, setExpanded] = useState(false);
+
+  const modeLabel = labelDataMode(mode);
+  const dot = online ? "#22c55e" : "#f97316";
+
   return (
     <div className="kebu-data-mode-dock" aria-label="Data mode">
-      <DataModeControls compact />
+      {/* Collapsed chip — always visible on mobile, hidden on ≥md when expanded */}
+      {!expanded ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-1.5 text-[10px] font-bold"
+          style={{ color: KEBU.black }}
+          aria-label="Expand data mode settings"
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ background: dot }}
+            aria-hidden
+          />
+          {modeLabel}
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+            <path d="M2 4l3 3 3-3" stroke={KEBU.muted} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.black }}>
+              Data mode
+            </p>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="text-[11px] font-bold"
+              style={{ color: KEBU.muted }}
+              aria-label="Collapse data mode"
+            >
+              ✕
+            </button>
+          </div>
+          <DataModeControls compact />
+        </div>
+      )}
     </div>
   );
 }

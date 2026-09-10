@@ -66,7 +66,7 @@ export function AppShell({
 
         <div className="flex-1 min-w-0 flex flex-col">
           <header
-            className="sticky top-0 z-30 lg:hidden"
+            className="sticky top-0 z-30 md:hidden"
             style={{ background: KEBU.black, borderBottom: `2px solid ${KEBU.orange}` }}
           >
             <div
@@ -91,7 +91,7 @@ export function AppShell({
           </header>
 
           <div
-            className="hidden lg:flex items-center justify-between gap-3 px-8 py-3 sticky top-0 z-30 backdrop-blur-md"
+            className="hidden md:flex items-center justify-between gap-3 px-6 lg:px-8 py-3 sticky top-0 z-30 backdrop-blur-md"
             style={{
               background: "rgba(255,251,247,0.92)",
               borderBottom: `1px solid rgba(255,85,0,0.15)`,
@@ -114,14 +114,15 @@ export function AppShell({
 
           {actions ? (
             <div
-              className="flex lg:hidden items-center justify-end gap-2 px-4 py-2"
+              className="flex md:hidden items-center justify-end gap-2 px-4 py-2"
               style={{ borderBottom: `1px solid rgba(255,85,0,0.12)` }}
             >
               {actions}
             </div>
           ) : null}
 
-          <main className="flex-1 min-h-0">{children}</main>
+          {/* pb-14 ensures content is never hidden behind the collapsed dock chip on small screens */}
+          <main className="flex-1 min-h-0 pb-14 md:pb-8">{children}</main>
         </div>
         <DataModeDock />
       </div>

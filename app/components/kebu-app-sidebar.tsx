@@ -94,7 +94,7 @@ export function KebuAppSidebar({
 
   return (
     <aside
-      className={`hidden lg:flex w-[15rem] shrink-0 flex-col sticky top-0 h-screen overflow-y-auto ${className}`}
+      className={`hidden md:flex w-[13rem] lg:w-[15rem] shrink-0 flex-col sticky top-0 h-screen overflow-y-auto ${className}`}
       style={{ background: KEBU.black, color: KEBU.white }}
     >
       <div
