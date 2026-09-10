@@ -295,7 +295,7 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
   const galleryGroups = useMemo(() => getAestheticGalleryGroups(), []);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <div className="w-full px-6 py-10 sm:px-8 lg:px-10">
       <header className="mb-8">
         <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: KEBU.orange }}>
           Site looks

@@ -195,282 +195,267 @@ export default function BusinessDashboardPage() {
     (role === "founder" || role === "administrator") &&
     ["draft", "preparing", "ready_to_submit"].includes(business?.registration_status ?? "");
 
-  return (
-    <AppShell title={business?.legal_name ?? "Kebu Business"}>
-      <main className="max-w-3xl mx-auto px-5 py-10">
-        {loading ? (
-          <p className="text-sm" style={{ color: KEBU.muted }}>
-            Loading business…
-          </p>
-        ) : error || !business ? (
-          <div
-            role="alert"
-            className="rounded-xl p-4"
-            style={{ background: KEBU.errorBg, color: KEBU.errorText }}
-          >
-            <p className="mb-3">{error ?? "Unavailable"}</p>
-            <button type="button" className="underline font-semibold" onClick={() => void load()}>
-              Retry
-            </button>
-          </div>
-        ) : (
-          <>
-            <p
-              className="text-[10px] font-semibold uppercase tracking-[0.2em] mb-3"
-              style={{ color: KEBU.orange }}
-            >
-              Founder portal · Kebu Business
-            </p>
-            <Link href="/business?tab=businesses" className="text-xs font-bold underline mb-4 inline-block" style={{ color: KEBU.orange }}>
-              ← My Businesses
-            </Link>
-            <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-              {business.trading_name || business.legal_name}
-            </h1>
-            {business.trading_name && business.trading_name !== business.legal_name ? (
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                Legal name {business.legal_name}
-              </p>
-            ) : null}
+  const bizName = business?.trading_name || business?.legal_name ?? "Business";
 
-            <div className="rounded-2xl p-5 mb-6" style={{ background: KEBU.black, color: KEBU.white }}>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-white/40 mb-2">Kebu ID</p>
-              <p className="font-mono text-lg sm:text-xl" style={{ color: KEBU.orange }}>
-                {business.public_kebu_id}
+  return (
+    <AppShell title={bizName}>
+      {loading ? (
+        <div className="px-6 sm:px-8 lg:px-10 pt-10">
+          <p className="text-sm" style={{ color: KEBU.muted }}>Loading business…</p>
+        </div>
+      ) : error || !business ? (
+        <div className="px-6 sm:px-8 lg:px-10 pt-10">
+          <div role="alert" className="rounded-xl p-4 max-w-lg" style={{ background: KEBU.errorBg, color: KEBU.errorText }}>
+            <p className="mb-3">{error ?? "Unavailable"}</p>
+            <button type="button" className="underline font-semibold" onClick={() => void load()}>Retry</button>
+          </div>
+        </div>
+      ) : (
+        <div className="px-6 sm:px-8 lg:px-10 py-8">
+
+          {/* Page header */}
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-1" style={{ color: KEBU.orange }}>
+                {business.country_code}{business.region ? ` · ${business.region}` : ""} · {business.category}
               </p>
-              <p className="text-xs text-white/50 mt-3 leading-relaxed">
-                Everything for this brand lives here — website, optional shop, team, registration. Switch businesses from
-                My Businesses; Pulse shows cross-business orders and messages.
-              </p>
-              <p className="text-xs text-white/40 mt-2">
-                {business.country_code}
-                {business.region ? ` · ${business.region}` : ""} · {structureLabel} ·{" "}
-                {business.registration_status.replace(/_/g, " ")}
-                {role ? ` · your role: ${role}` : ""}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link
-                  href={`/create/new?businessId=${business.id}`}
-                  className="inline-block rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
-                  style={{ background: KEBU.orange, color: KEBU.black }}
-                >
-                  Build website
-                </Link>
-                <Link
-                  href="/business?tab=pulse"
-                  className="inline-block rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
-                  style={{ border: "1px solid rgba(255,255,255,0.35)", color: KEBU.white }}
-                >
-                  Pulse
-                </Link>
-              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold leading-tight" style={{ fontFamily: "var(--font-fraunces)" }}>
+                {bizName}
+              </h1>
+              {business.trading_name && business.trading_name !== business.legal_name ? (
+                <p className="text-sm mt-1" style={{ color: KEBU.muted }}>Legal: {business.legal_name}</p>
+              ) : null}
+              <p className="font-mono text-xs mt-2" style={{ color: KEBU.orange }}>{business.public_kebu_id}</p>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <Link
+                href={`/create/new?businessId=${business.id}`}
+                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
+                style={{ background: KEBU.orange, color: KEBU.black }}
+              >
+                Build website
+              </Link>
+              <Link
+                href="/business?tab=pulse"
+                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
+                style={{ border: `1px solid ${KEBU.border}` }}
+              >
+                Pulse
+              </Link>
+            </div>
+          </div>
+
+          {/* Status strip */}
+          <div className="flex flex-wrap gap-2 mb-8">
+            {[
+              { label: structureLabel },
+              { label: business.registration_status.replace(/_/g, " ") },
+              { label: role ? `Your role: ${role}` : null },
+            ].filter((s) => s.label).map((s) => (
+              <span key={s.label} className="rounded-full px-3 py-1 text-[10px] font-semibold" style={{ background: KEBU.cream, color: KEBU.black }}>
+                {s.label}
+              </span>
+            ))}
+          </div>
+
+          {/* Main 2-column layout */}
+          <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+            {/* Left column — primary content */}
+            <div className="space-y-6">
+
+              {/* Website & shop */}
+              <section className="rounded-2xl p-6" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className="text-sm font-bold uppercase tracking-wider">Website & shop</h2>
+                  {websiteProjects.length > 0 ? (
+                    <Link href={`/create/new?businessId=${business.id}`} className="text-xs font-bold" style={{ color: KEBU.orange }}>
+                      + Add site
+                    </Link>
+                  ) : null}
+                </div>
+                <p className="text-xs mb-5 leading-relaxed" style={{ color: KEBU.muted }}>
+                  Shop is separate — open it when you sell. Agencies can skip it.
+                </p>
+                {websiteProjects.length === 0 ? (
+                  <div className="rounded-xl p-5 text-center" style={{ border: `2px dashed ${KEBU.border}` }}>
+                    <p className="text-sm mb-3" style={{ color: KEBU.muted }}>No website yet</p>
+                    <Link href={`/create/new?businessId=${business.id}`} className="inline-flex rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider text-white" style={{ background: KEBU.orange }}>
+                      Create website
+                    </Link>
+                  </div>
+                ) : (
+                  <ul className="space-y-3">
+                    {websiteProjects.map((site) => (
+                      <li key={site.id} className="rounded-xl p-4" style={{ background: KEBU.bright, border: `1px solid ${KEBU.border}` }}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-bold">{site.title}</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: KEBU.muted }}>
+                              {site.status}{site.subdomain ? ` · /sites/${site.subdomain}` : ""}
+                              {site.shopOpened ? ` · Shop open${typeof site.productCount === "number" ? ` · ${site.productCount} products` : ""}` : " · No shop"}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase" style={{ background: site.status === "published" ? "#DCFCE7" : KEBU.cream, color: site.status === "published" ? "#166534" : KEBU.muted }}>
+                            {site.status}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Link href={site.siteHomeUrl ?? `/my-sites/${site.id}`} className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ background: KEBU.black, color: KEBU.white }}>
+                            Overview
+                          </Link>
+                          <Link href={site.editorUrl} className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ border: `1px solid ${KEBU.border}` }}>
+                            Edit site
+                          </Link>
+                          {site.liveUrl ? (
+                            <a href={site.liveUrl} target="_blank" rel="noreferrer" className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ border: `1px solid ${KEBU.border}` }}>
+                              Live ↗
+                            </a>
+                          ) : null}
+                          {site.shopOpened ? (
+                            <Link href={site.shopUrl ?? `/shop/${site.id}`} className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white" style={{ background: KEBU.orange }}>
+                              Shop admin
+                            </Link>
+                          ) : (
+                            <button type="button" disabled={shopBusyId === site.id} onClick={() => void openShop(site.id)} className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-60" style={{ background: KEBU.orange }}>
+                              {shopBusyId === site.id ? "Opening…" : "Open shop"}
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {/* Operations panels */}
+              {(role === "founder" || role === "administrator" || role === "store_manager") ? (
+                <>
+                  <section className="rounded-2xl p-6" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-3" style={{ color: KEBU.muted }}>
+                      {business.category} modules
+                    </p>
+                    <ul className="flex flex-wrap gap-2 mb-5">
+                      {portalModulesForCategory(business.category).map((m) => (
+                        <li key={m.id} className="rounded-full px-3 py-1 text-[10px] font-semibold" style={{ background: KEBU.cream, color: KEBU.black }} title={m.why}>{m.label}</li>
+                      ))}
+                    </ul>
+                    <BusinessEventsPanel businessId={business.id} />
+                  </section>
+
+                  <section className="rounded-2xl p-6" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                    <BusinessOpsPanel businessId={business.id} />
+                  </section>
+
+                  <section className="rounded-2xl p-6" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                    <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Email & campaigns</h2>
+                    <EmailMarketingPanel businessId={business.id} />
+                  </section>
+
+                  <section className="rounded-2xl p-6" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                    <B2bProfileEditor businessId={business.id} />
+                  </section>
+                </>
+              ) : null}
+
+              {/* Team, Press, Artist panels */}
+              <BusinessTeamPanel businessId={id} />
+              <BusinessPressPanel businessId={id} />
+              <BusinessArtistCampaignsPanel businessId={id} />
+              <BusinessArtistMediaPanel businessId={id} />
+
+              {/* Owners */}
+              <section className="rounded-2xl p-6" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Owners</h2>
+                {owners.length === 0 ? (
+                  <p className="text-sm" style={{ color: KEBU.muted }}>No ownership rows yet.</p>
+                ) : (
+                  <ul className="text-sm space-y-2">
+                    {owners.map((o) => (
+                      <li key={o.email} style={{ color: KEBU.muted }}>
+                        {o.full_name} · {Number(o.ownership_percent)}%{o.is_primary_founder ? " · founder" : ""}
+                        <span className="block text-[11px]">{o.email}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {/* Status history */}
+              <section className="rounded-2xl p-6" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Activity</h2>
+                {statusHistory.length === 0 ? (
+                  <p className="text-sm" style={{ color: KEBU.muted }}>No status history yet.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {statusHistory.map((h) => (
+                      <li key={h.id} style={{ color: KEBU.muted }}>
+                        <span className="font-semibold" style={{ color: KEBU.black }}>{h.from_status ?? "—"} → {h.to_status}</span>
+                        {h.note ? ` · ${h.note}` : ""}
+                        <span className="block text-[11px]" style={{ color: KEBU.faint }}>{new Date(h.created_at).toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
             </div>
 
-            <section
-              className="rounded-2xl p-5 mb-6"
-              style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-            >
-              <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Website & shop</h2>
-              <p className="text-xs mb-4 leading-relaxed" style={{ color: KEBU.muted }}>
-                Shop is separate from your website. Open a shop when you sell; agencies can skip it. You can still add
-                products to the site later from Shop admin.
-              </p>
-              {websiteProjects.length === 0 ? (
-                <div className="space-y-3">
-                  <p className="text-sm" style={{ color: KEBU.muted }}>
-                    No website linked yet.
-                  </p>
-                  <Link
-                    href={`/create/new?businessId=${business.id}`}
-                    className="inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
-                    style={{ background: KEBU.orange }}
-                  >
-                    Create website
-                  </Link>
-                </div>
-              ) : (
-                <ul className="space-y-4">
-                  {websiteProjects.map((site) => (
-                    <li
-                      key={site.id}
-                      className="rounded-xl p-4"
-                      style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
-                    >
-                      <p className="font-bold">{site.title}</p>
-                      <p className="text-[11px] mt-1" style={{ color: KEBU.muted }}>
-                        {site.status}
-                        {site.subdomain ? ` · ${site.subdomain}` : ""}
-                        {site.shopOpened
-                          ? ` · Shop open${typeof site.productCount === "number" ? ` · ${site.productCount} products` : ""}`
-                          : " · No shop"}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Link
-                          href={site.siteHomeUrl ?? `/my-sites/${site.id}`}
-                          className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
-                          style={{ background: KEBU.black, color: KEBU.white }}
-                        >
-                          Business home
-                        </Link>
-                        <Link
-                          href={site.editorUrl}
-                          className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
-                          style={{ border: `1px solid ${KEBU.border}` }}
-                        >
-                          Edit site
-                        </Link>
-                        {site.liveUrl ? (
-                          <a
-                            href={site.liveUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
-                            style={{ border: `1px solid ${KEBU.border}` }}
-                          >
-                            Live
-                          </a>
-                        ) : null}
-                        {site.shopOpened ? (
-                          <Link
-                            href={site.shopUrl ?? `/shop/${site.id}`}
-                            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white"
-                            style={{ background: KEBU.orange }}
-                          >
-                            Open shop
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={shopBusyId === site.id}
-                            onClick={() => void openShop(site.id)}
-                            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-60"
-                            style={{ background: KEBU.orange }}
-                          >
-                            {shopBusyId === site.id ? "Opening…" : "Open shop"}
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            {/* Right sidebar */}
+            <div className="space-y-5">
 
-            <div className="grid lg:grid-cols-2 gap-6 mb-6">
-              <section
-                className="rounded-2xl p-5"
-                style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-              >
-                <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Business Readiness</h2>
-                <p className="text-[10px] mb-4 leading-relaxed" style={{ color: KEBU.faint }}>
-                  Honest prep score — profile alone cannot reach 100. Upload gov documents, publish your site, and
-                  generate your Kebu record to raise it. Not the full Kebu Score (operations data comes later).
-                </p>
+              {/* Readiness score */}
+              <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <h2 className="text-xs font-bold uppercase tracking-wider mb-3">Business Readiness</h2>
                 {readiness ? (
                   <>
-                    <p className="text-4xl font-bold mb-1" style={{ fontFamily: "var(--font-fraunces)" }}>
+                    <p className="text-4xl font-bold mb-0.5" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.orange }}>
                       {readiness.score_value}
                     </p>
-                    <p className="text-xs uppercase tracking-wider mb-3" style={{ color: KEBU.orange }}>
-                      {readiness.score_band.replace(/_/g, " ")} · {readiness.confidence_level} confidence
+                    <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: KEBU.muted }}>
+                      {readiness.score_band.replace(/_/g, " ")} · {readiness.confidence_level}
                     </p>
-                    <p className="text-sm mb-3" style={{ color: KEBU.muted }}>
-                      {readiness.explanation?.summary}
-                    </p>
-                    <p className="text-[11px] mb-4" style={{ color: KEBU.faint }}>
-                      {readiness.explanation?.note}
-                    </p>
-                    {readiness.helping_factors?.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1">Helping</p>
-                        <ul className="text-xs space-y-1" style={{ color: KEBU.muted }}>
-                          {readiness.helping_factors.slice(0, 5).map((f) => (
-                            <li key={f}>• {f}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {readiness.limiting_factors?.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1">Holding you back</p>
-                        <ul className="text-xs space-y-1" style={{ color: KEBU.muted }}>
-                          {readiness.limiting_factors.slice(0, 5).map((f) => (
-                            <li key={f}>• {f}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <p className="text-xs leading-relaxed mb-3" style={{ color: KEBU.muted }}>{readiness.explanation?.summary}</p>
                     {readiness.missing_items?.length > 0 && (
                       <div className="mb-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1">Next actions</p>
+                        <p className="text-[9px] font-bold uppercase tracking-wider mb-1.5">Next actions</p>
                         <ul className="text-xs space-y-1" style={{ color: KEBU.muted }}>
-                          {readiness.missing_items.slice(0, 8).map((f) => (
-                            <li key={f}>• {f}</li>
-                          ))}
+                          {readiness.missing_items.slice(0, 5).map((f) => <li key={f}>· {f}</li>)}
                         </ul>
                       </div>
                     )}
-                    <p className="text-[10px]" style={{ color: KEBU.faint }}>
-                      Model {readiness.model_version} · calculated{" "}
-                      {new Date(readiness.calculated_at).toLocaleString()}
-                    </p>
                     {(role === "founder" || role === "administrator") && (
-                      <button
-                        type="button"
-                        onClick={() => void recalculate()}
-                        disabled={recalcBusy}
-                        className="mt-4 text-xs font-semibold underline disabled:opacity-50"
-                        style={{ color: KEBU.orange }}
-                      >
-                        {recalcBusy ? "Recalculating…" : "Recalculate readiness"}
+                      <button type="button" onClick={() => void recalculate()} disabled={recalcBusy} className="mt-2 text-xs font-semibold underline disabled:opacity-50" style={{ color: KEBU.orange }}>
+                        {recalcBusy ? "Recalculating…" : "Recalculate"}
                       </button>
                     )}
                   </>
                 ) : (
-                  <p className="text-sm" style={{ color: KEBU.muted }}>
-                    No readiness score yet.
-                  </p>
+                  <p className="text-xs" style={{ color: KEBU.muted }}>No score yet.</p>
                 )}
               </section>
 
-              <section
-                className="rounded-2xl p-5"
-                style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-              >
-                <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Business Registration</h2>
-                <p className="text-[10px] mb-4 leading-relaxed" style={{ color: KEBU.faint }}>
-                  Track your path from application to active business. Steps advance when verified on the server — not from the browser.
-                </p>
+              {/* Registration progress */}
+              <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <h2 className="text-xs font-bold uppercase tracking-wider mb-3">Registration</h2>
                 <RegistrationProgressTimeline steps={progress} />
               </section>
-            </div>
 
-            <section
-              className="rounded-2xl p-5 mb-6"
-              style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-            >
-              <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Registration documents</h2>
-              <p className="text-[10px] mb-4 leading-relaxed" style={{ color: KEBU.faint }}>
-                Upload required files to complete the Documents Uploaded step. Stored securely in Supabase.
-              </p>
-              <BusinessDocumentsPanel
-                businessId={business.id}
-                publicKebuId={business.public_kebu_id}
-                canEdit={role === "founder" || role === "administrator"}
-                onProgressChange={() => void load()}
-              />
-            </section>
+              {/* Documents */}
+              <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <h2 className="text-xs font-bold uppercase tracking-wider mb-3">Documents</h2>
+                <BusinessDocumentsPanel
+                  businessId={business.id}
+                  publicKebuId={business.public_kebu_id}
+                  canEdit={role === "founder" || role === "administrator"}
+                  onProgressChange={() => void load()}
+                />
+              </section>
 
-            <section
-              className="rounded-2xl p-5 mb-6"
-              style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-            >
-              <h2 className="text-sm font-bold uppercase tracking-wider mb-1">Legal structure</h2>
-              <p className="text-[10px] mb-4 leading-relaxed" style={{ color: KEBU.faint }}>
-                Current: <strong>{structureLabel}</strong>. Pick the structure that matches how you work — you can
-                update it on your Kebu ID before government submission.
-              </p>
-              {business ? (
+              {/* Legal structure */}
+              <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <h2 className="text-xs font-bold uppercase tracking-wider mb-1">Legal structure</h2>
+                <p className="text-[10px] mb-3 leading-relaxed" style={{ color: KEBU.faint }}>
+                  Current: <strong>{structureLabel}</strong>
+                </p>
                 <BusinessStructureEditor
                   businessId={business.id}
                   countryCode={business.country_code}
@@ -481,220 +466,29 @@ export default function BusinessDashboardPage() {
                     void load();
                   }}
                 />
+              </section>
+
+              {/* Logo */}
+              {(role === "founder" || role === "administrator") ? (
+                <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                  <BusinessLogoEditor
+                    businessId={business.id}
+                    logoUrl={business.logo_url ?? null}
+                    businessName={business.trading_name || business.legal_name}
+                    onUpdated={(url) => setBusiness((prev) => (prev ? { ...prev, logo_url: url } : prev))}
+                  />
+                </section>
               ) : null}
-            </section>
 
-            {(role === "founder" || role === "administrator") && (
-              <section className="mb-6">
-                <BusinessLogoEditor
-                  businessId={business.id}
-                  logoUrl={business.logo_url ?? null}
-                  businessName={business.trading_name || business.legal_name}
-                  onUpdated={(url) => setBusiness((prev) => (prev ? { ...prev, logo_url: url } : prev))}
-                />
+              {/* Description */}
+              <section className="rounded-2xl p-5" style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}>
+                <p className="text-[9px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.muted }}>About</p>
+                <p className="text-xs leading-relaxed" style={{ color: KEBU.black }}>{business.description}</p>
               </section>
-            )}
-
-            {(role === "founder" || role === "administrator" || role === "store_manager") && (
-              <section
-                className="rounded-2xl p-5 mb-6"
-                style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.muted }}>
-                  Portal for this business type ({business.category})
-                </p>
-                <ul className="flex flex-wrap gap-2 mb-4">
-                  {portalModulesForCategory(business.category).map((m) => (
-                    <li
-                      key={m.id}
-                      className="rounded-full px-3 py-1 text-[10px] font-semibold"
-                      style={{ background: KEBU.cream, color: KEBU.black }}
-                      title={m.why}
-                    >
-                      {m.label}
-                    </li>
-                  ))}
-                </ul>
-                <BusinessEventsPanel businessId={business.id} />
-              </section>
-            )}
-
-            {(role === "founder" || role === "administrator" || role === "store_manager") && (
-              <section
-                className="rounded-2xl p-5 mb-6"
-                style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-              >
-                <BusinessOpsPanel businessId={business.id} />
-              </section>
-            )}
-
-            {(role === "founder" || role === "administrator" || role === "store_manager") && (
-              <section
-                className="rounded-2xl p-5 mb-6"
-                style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-              >
-                <h2 className="text-sm font-bold uppercase tracking-wider mb-4">Email & campaigns</h2>
-                <EmailMarketingPanel businessId={business.id} />
-              </section>
-            )}
-
-            {(role === "founder" || role === "administrator" || role === "store_manager") && (
-              <section className="mb-6">
-                <B2bProfileEditor businessId={business.id} />
-              </section>
-            )}
-
-            <dl
-              className="grid sm:grid-cols-2 gap-4 rounded-2xl p-5 mb-6"
-              style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-            >
-              <div>
-                <dt className="text-[10px] uppercase tracking-wider" style={{ color: KEBU.faint }}>
-                  Category
-                </dt>
-                <dd className="font-semibold mt-1">{business.category}</dd>
-              </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-wider" style={{ color: KEBU.faint }}>
-                  Registration status
-                </dt>
-                <dd className="font-semibold mt-1">{business.registration_status.replace(/_/g, " ")}</dd>
-              </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-wider" style={{ color: KEBU.faint }}>
-                  Website
-                </dt>
-                <dd className="mt-1 text-sm" style={{ color: KEBU.muted }}>
-                  {websiteProjects.length > 0 ? (
-                    <ul className="space-y-2">
-                      {websiteProjects.map((site) => (
-                        <li key={site.id}>
-                          <Link
-                            href={site.editorUrl}
-                            className="font-semibold underline"
-                            style={{ color: KEBU.black }}
-                          >
-                            {site.title}
-                          </Link>
-                          <span className="block text-[11px] mt-0.5">
-                            {site.status.replace(/_/g, " ")}
-                            {site.subdomain ? ` · /sites/${site.subdomain}` : ""}
-                          </span>
-                          <span className="flex flex-wrap gap-3 mt-1 text-[11px]">
-                            {site.previewPath ? (
-                              <Link href={site.previewPath} className="underline" style={{ color: KEBU.orange }}>
-                                Preview
-                              </Link>
-                            ) : null}
-                            {site.liveUrl ? (
-                              <a
-                                href={site.liveUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline"
-                                style={{ color: KEBU.orange }}
-                              >
-                                Live URL
-                              </a>
-                            ) : null}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : business.website ? (
-                    <a href={business.website} target="_blank" rel="noopener noreferrer" className="underline">
-                      {business.website}
-                    </a>
-                  ) : (
-                    <>
-                      No website yet.{" "}
-                      <Link
-                        href={`/create/new?businessId=${business.id}`}
-                        className="underline font-semibold"
-                        style={{ color: KEBU.orange }}
-                      >
-                        Build one
-                      </Link>
-                    </>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-wider" style={{ color: KEBU.faint }}>
-                  Store
-                </dt>
-                <dd className="mt-1 text-sm" style={{ color: KEBU.muted }}>
-                  B2C: add products in{" "}
-                  <Link href={MY_SITES_HREF} className="underline font-semibold" style={{ color: KEBU.orange }}>
-                    Kebu Builder
-                  </Link>
-                  . Checkout & payouts coming next.
-                </dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-[10px] uppercase tracking-wider" style={{ color: KEBU.faint }}>
-                  Description
-                </dt>
-                <dd className="mt-1 text-sm" style={{ color: KEBU.muted, lineHeight: 1.6 }}>
-                  {business.description}
-                </dd>
-              </div>
-            </dl>
-
-            <BusinessTeamPanel businessId={id} />
-            <BusinessPressPanel businessId={id} />
-            <BusinessArtistCampaignsPanel businessId={id} />
-            <BusinessArtistMediaPanel businessId={id} />
-
-            <section
-              className="rounded-2xl p-5 mb-6"
-              style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-            >
-              <h2 className="text-sm font-bold uppercase tracking-wider mb-3">Owners</h2>
-              {owners.length === 0 ? (
-                <p className="text-sm" style={{ color: KEBU.muted }}>
-                  No ownership rows yet.
-                </p>
-              ) : (
-                <ul className="text-sm space-y-2">
-                  {owners.map((o) => (
-                    <li key={o.email} style={{ color: KEBU.muted }}>
-                      {o.full_name} · {Number(o.ownership_percent)}% · {o.email}
-                      {o.is_primary_founder ? " · founder" : ""}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section
-              className="rounded-2xl p-5"
-              style={{ background: KEBU.card, border: `1px solid ${KEBU.border}` }}
-            >
-              <h2 className="text-sm font-bold uppercase tracking-wider mb-3">Recent activity</h2>
-              {statusHistory.length === 0 ? (
-                <p className="text-sm" style={{ color: KEBU.muted }}>
-                  No status history yet.
-                </p>
-              ) : (
-                <ul className="space-y-2 text-sm">
-                  {statusHistory.map((h) => (
-                    <li key={h.id} style={{ color: KEBU.muted }}>
-                      <span className="font-semibold" style={{ color: KEBU.black }}>
-                        {h.from_status ?? "—"} → {h.to_status}
-                      </span>
-                      {h.note ? ` · ${h.note}` : ""}
-                      <span className="block text-[11px]" style={{ color: KEBU.faint }}>
-                        {new Date(h.created_at).toLocaleString()}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </>
-        )}
-      </main>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

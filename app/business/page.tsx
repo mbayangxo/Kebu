@@ -241,7 +241,7 @@ function MySpaceInner() {
 
   return (
     <AppShell title="My Businesses">
-      <main className="max-w-4xl mx-auto px-5 py-8 lg:py-10">
+      <main className="px-6 sm:px-8 lg:px-10 py-8 lg:py-10">
         <p className="text-[10px] font-bold uppercase tracking-[0.24em] mb-2" style={{ color: KEBU.orange }}>
           My KEBU
         </p>
