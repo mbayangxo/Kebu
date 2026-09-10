@@ -1504,6 +1504,10 @@ export default function ProjectEditorPage() {
                             const current = sections.find((s) => s.section_type === "email-popup");
                             if (current) updateProps(current.id, patch);
                           },
+                          faviconUrl: seoSettings.faviconUrl,
+                          metaTitle: seoSettings.metaTitle,
+                          metaDescription: seoSettings.metaDescription,
+                          onSeoChange: (patch) => queueSiteSettingsSave({ seo: patch }),
                         }}
                       />
                     );

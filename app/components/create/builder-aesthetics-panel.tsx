@@ -89,6 +89,11 @@ export type AestheticEditorExtras = {
   popupSection?: { id: string; props: Record<string, unknown> } | null;
   onEnsurePopup?: () => void | Promise<void>;
   onPatchPopup?: (patch: Record<string, unknown>) => void;
+  /** SEO fields for Favicon / meta accordion */
+  faviconUrl?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  onSeoChange?: (patch: { faviconUrl?: string; metaTitle?: string; metaDescription?: string }) => void;
 };
 
 /**
@@ -116,6 +121,10 @@ export function BuilderAestheticsPanel({
     popupSection,
     onEnsurePopup,
     onPatchPopup,
+    faviconUrl,
+    metaTitle,
+    metaDescription,
+    onSeoChange,
   } = extras ?? {};
 
   const [openId, setOpenId] = useState<string | null>("colors");
@@ -308,6 +317,166 @@ export function BuilderAestheticsPanel({
           />
         </EditorAccordion>
       ) : null}
+
+      <EditorAccordion title="Theme presets" open={openId === "presets"} onToggle={() => toggle("presets")}>
+        <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+          One-click style — you can still tweak colors and fonts after applying.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {THEME_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => onThemeChange(preset.tokens)}
+              className="rounded-xl border p-3 text-left transition-opacity hover:opacity-80"
+              style={{ background: preset.tokens.background, borderColor: BUILDER.border }}
+            >
+              <div className="mb-2 flex gap-1">
+                <span className="h-3 w-3 rounded-full" style={{ background: preset.tokens.primary }} />
+                <span className="h-3 w-3 rounded-full" style={{ background: preset.tokens.accent }} />
+              </div>
+              <p className="text-[10px] font-bold" style={{ color: preset.tokens.text }}>{preset.label}</p>
+              <p className="text-[9px]" style={{ color: preset.tokens.text, opacity: 0.55 }}>{preset.hint}</p>
+            </button>
+          ))}
+        </div>
+      </EditorAccordion>
+
+      <EditorAccordion title="Currency & prices" open={openId === "currency"} onToggle={() => toggle("currency")}>
+        <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+          Currency shown on product prices across your site.
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {CURRENCY_OPTIONS.map((c) => {
+            const on = (theme.currency ?? "XOF") === c.code;
+            return (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => onThemeChange({ currency: c.code })}
+                className="rounded-lg px-2 py-1.5 text-[10px] font-semibold"
+                style={{
+                  background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                  color: on ? "#fff" : BUILDER.ink,
+                  border: `1px solid ${BUILDER.border}`,
+                }}
+                aria-pressed={on}
+                title={c.name}
+              >
+                {c.code}
+              </button>
+            );
+          })}
+        </div>
+      </EditorAccordion>
+
+      {onSeoChange ? (
+        <EditorAccordion title="SEO & meta" open={openId === "seo"} onToggle={() => toggle("seo")}>
+          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+            How search engines and social media see your site.
+          </p>
+          {projectId ? (
+            <SiteImageUpload
+              projectId={projectId}
+              kind="logo"
+              value={faviconUrl ?? ""}
+              onChange={(url) => onSeoChange({ faviconUrl: url })}
+              label="Favicon / site icon"
+            />
+          ) : null}
+          <label className="block">
+            <p className="mb-1 text-[10px] uppercase tracking-wider">Meta title</p>
+            <input
+              className="w-full rounded-lg px-2 py-1.5 text-[11px]"
+              style={{ border: `1px solid ${BUILDER.border}` }}
+              value={metaTitle ?? ""}
+              maxLength={120}
+              placeholder="Your site name — short & clear"
+              onChange={(e) => onSeoChange({ metaTitle: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <p className="mb-1 text-[10px] uppercase tracking-wider">Meta description</p>
+            <textarea
+              className="w-full rounded-lg px-2 py-1.5 text-[11px]"
+              style={{ border: `1px solid ${BUILDER.border}`, resize: "vertical", minHeight: "72px" }}
+              value={metaDescription ?? ""}
+              maxLength={320}
+              placeholder="One or two sentences about your site"
+              onChange={(e) => onSeoChange({ metaDescription: e.target.value })}
+            />
+          </label>
+        </EditorAccordion>
+      ) : null}
+
+      <EditorAccordion title="Custom CSS" open={openId === "css"} onToggle={() => toggle("css")}>
+        <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+          Advanced: paste CSS overrides applied to your published site.
+        </p>
+        <textarea
+          className="w-full rounded-lg px-2 py-1.5 font-mono text-[11px]"
+          style={{ border: `1px solid ${BUILDER.border}`, resize: "vertical", minHeight: "100px" }}
+          value={theme.customCss ?? ""}
+          maxLength={10000}
+          placeholder=".kebu-site h1 { letter-spacing: -0.02em; }"
+          onChange={(e) => onThemeChange({ customCss: e.target.value })}
+          spellCheck={false}
+        />
+      </EditorAccordion>
     </div>
   );
 }
+
+const THEME_PRESETS: { id: string; label: string; hint: string; tokens: Partial<import("@/lib/create/website-schema").ThemeTokens> }[] = [
+  {
+    id: "clean",
+    label: "Clean",
+    hint: "White, minimal",
+    tokens: { primary: "#0A0A0A", accent: "#FF5500", background: "#FFFFFF", text: "#0A0A0A", surface: "#F6F6F7", fontDisplay: "Inter", fontBody: "Inter", radius: "soft", buttonStyle: "solid", spacing: "comfortable" },
+  },
+  {
+    id: "dark",
+    label: "Dark",
+    hint: "Black editorial",
+    tokens: { primary: "#FFFFFF", accent: "#FF5500", background: "#0A0A0A", text: "#FFFBF7", surface: "#1A1A1A", fontDisplay: "Playfair Display", fontBody: "system-ui", radius: "sharp", buttonStyle: "outline", spacing: "comfortable" },
+  },
+  {
+    id: "luxe",
+    label: "Luxe",
+    hint: "Gold & cream",
+    tokens: { primary: "#C8A96E", accent: "#C8A96E", background: "#F9F4EC", text: "#1A1A1A", surface: "#FFFFFF", fontDisplay: "Cormorant Garamond", fontBody: "system-ui", radius: "sharp", buttonStyle: "outline", spacing: "airy" },
+  },
+  {
+    id: "bold",
+    label: "Bold",
+    hint: "High contrast",
+    tokens: { primary: "#FF5500", accent: "#0A0A0A", background: "#FFFBF7", text: "#0A0A0A", surface: "#FFF0E8", fontDisplay: "Montserrat", fontBody: "system-ui", radius: "round", buttonStyle: "solid", spacing: "compact" },
+  },
+  {
+    id: "playful",
+    label: "Playful",
+    hint: "Soft & fun",
+    tokens: { primary: "#7C3AED", accent: "#EC4899", background: "#FAFAFA", text: "#111827", surface: "#F3F0FF", fontDisplay: "Nunito", fontBody: "system-ui", radius: "round", buttonStyle: "soft", spacing: "comfortable" },
+  },
+  {
+    id: "african",
+    label: "African",
+    hint: "Earth tones",
+    tokens: { primary: "#8B4513", accent: "#DAA520", background: "#FDF6EC", text: "#2C1810", surface: "#F5E6D0", fontDisplay: "Playfair Display", fontBody: "system-ui", radius: "soft", buttonStyle: "solid", spacing: "comfortable" },
+  },
+];
+
+const CURRENCY_OPTIONS: { code: string; name: string }[] = [
+  { code: "XOF", name: "West African CFA franc" },
+  { code: "NGN", name: "Nigerian naira" },
+  { code: "KES", name: "Kenyan shilling" },
+  { code: "GHS", name: "Ghanaian cedi" },
+  { code: "ZAR", name: "South African rand" },
+  { code: "MAD", name: "Moroccan dirham" },
+  { code: "EGP", name: "Egyptian pound" },
+  { code: "ETB", name: "Ethiopian birr" },
+  { code: "TZS", name: "Tanzanian shilling" },
+  { code: "USD", name: "US dollar" },
+  { code: "EUR", name: "Euro" },
+  { code: "GBP", name: "British pound" },
+];

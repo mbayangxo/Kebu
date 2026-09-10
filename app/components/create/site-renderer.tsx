@@ -1698,6 +1698,238 @@ export function SiteRenderer({
               </footer>
             );
           }
+          case "announcement-bar": {
+            const p = section.props as {
+              text?: string;
+              background?: string;
+              color?: string;
+              link?: string;
+              paddingTop?: number;
+              paddingBottom?: number;
+            };
+            const padY = `${p.paddingTop ?? 10}px`;
+            const padYB = `${p.paddingBottom ?? 10}px`;
+            const inner = (
+              <p className="text-xs font-medium tracking-wide text-center leading-tight">
+                {p.text || "Welcome — free shipping on orders over 10,000 XOF"}
+              </p>
+            );
+            return wrap(
+              <div
+                key={key}
+                style={{
+                  background: p.background || theme.primary,
+                  color: p.color || "#fff",
+                  paddingTop: padY,
+                  paddingBottom: padYB,
+                  paddingLeft: "1rem",
+                  paddingRight: "1rem",
+                }}
+              >
+                {p.link ? (
+                  <a href={p.link} className="block hover:opacity-90">
+                    {inner}
+                  </a>
+                ) : (
+                  inner
+                )}
+              </div>,
+            );
+          }
+          case "marquee": {
+            const p = section.props as {
+              items?: string[];
+              speed?: number;
+              background?: string;
+              color?: string;
+              separator?: string;
+            };
+            const items = p.items?.length
+              ? p.items
+              : ["New arrivals", "Shop now", "Free delivery", "Made in Africa"];
+            const sep = p.separator ?? " · ";
+            const text = items.join(sep) + sep;
+            const duration = `${p.speed ?? 28}s`;
+            return wrap(
+              <div
+                key={key}
+                className="overflow-hidden py-3"
+                style={{ background: p.background || theme.primary, color: p.color || "#fff" }}
+              >
+                <style>{`@keyframes kebu-marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
+                <div
+                  style={{
+                    display: "flex",
+                    whiteSpace: "nowrap",
+                    animation: `kebu-marquee ${duration} linear infinite`,
+                    width: "max-content",
+                  }}
+                >
+                  <span className="pr-8 text-sm font-semibold tracking-wide">{text}</span>
+                  <span aria-hidden className="pr-8 text-sm font-semibold tracking-wide">{text}</span>
+                  <span aria-hidden className="pr-8 text-sm font-semibold tracking-wide">{text}</span>
+                  <span aria-hidden className="pr-8 text-sm font-semibold tracking-wide">{text}</span>
+                </div>
+              </div>,
+            );
+          }
+          case "editorial-hero": {
+            const raw = section.props as Record<string, unknown>;
+            const device = editor?.editDevice ?? "desktop";
+            const p = {
+              heading: String(readDeviceOverride(raw, device, "heading") ?? "Your headline here"),
+              subheading: String(readDeviceOverride(raw, device, "subheading") ?? ""),
+              buttonLabel: String(readDeviceOverride(raw, device, "buttonLabel") ?? ""),
+              buttonHref: String(raw.buttonHref ?? "#"),
+              image: String(raw.image ?? ""),
+              overlayOpacity: (raw.overlayOpacity as number | undefined) ?? 0.35,
+              align: (raw.align as "left" | "center" | undefined) ?? "left",
+              minHeight: (raw.minHeight as string | undefined) ?? "70vh",
+            };
+            const patchHero = (patch: Record<string, unknown>) =>
+              applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
+            const overlayBg = `rgba(0,0,0,${p.overlayOpacity})`;
+            const contentMaxW = p.align === "center" ? "max-w-2xl mx-auto text-center" : "max-w-2xl";
+            return wrap(
+              <section
+                key={key}
+                className="relative flex items-end overflow-hidden"
+                style={{ minHeight: p.minHeight, background: "#111" }}
+              >
+                {p.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.image}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{ opacity: 1 - p.overlayOpacity * 0.3 }}
+                  />
+                ) : (
+                  <div className="absolute inset-0" style={{ background: theme.primary }} />
+                )}
+                <div className="absolute inset-0" style={{ background: overlayBg }} />
+                <div className={`relative z-10 w-full px-8 pb-16 pt-32 ${p.align === "center" ? "text-center" : ""}`}>
+                  <div className={contentMaxW}>
+                    {device !== "desktop" && editor?.inlineEdit ? (
+                      <p className="mb-2 text-[10px] uppercase tracking-wider text-white/60">
+                        Editing {device} copy
+                      </p>
+                    ) : null}
+                    <EditableText
+                      tag="h1"
+                      className="text-4xl font-bold leading-tight text-white sm:text-6xl"
+                      style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                      value={p.heading}
+                      editor={editor}
+                      onChange={(heading) => patchHero({ heading })}
+                    />
+                    {p.subheading ? (
+                      <EditableText
+                        tag="p"
+                        className="mt-5 text-base text-white/80 sm:text-lg"
+                        value={p.subheading}
+                        editor={editor}
+                        onChange={(subheading) => patchHero({ subheading })}
+                      />
+                    ) : null}
+                    {p.buttonLabel ? (
+                      <a
+                        href={p.buttonHref || "#"}
+                        className="mt-8 inline-block rounded-full px-7 py-3 text-sm font-bold transition-opacity hover:opacity-90"
+                        style={{ background: "#fff", color: "#000" }}
+                      >
+                        {p.buttonLabel}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              </section>,
+            );
+          }
+          case "split": {
+            const raw = section.props as Record<string, unknown>;
+            const device = editor?.editDevice ?? "desktop";
+            const p = {
+              heading: String(readDeviceOverride(raw, device, "heading") ?? "Your heading"),
+              body: String(readDeviceOverride(raw, device, "body") ?? ""),
+              buttonLabel: String(readDeviceOverride(raw, device, "buttonLabel") ?? ""),
+              buttonHref: String(raw.buttonHref ?? "#"),
+              image: String(raw.image ?? ""),
+              imagePosition: (raw.imagePosition as "left" | "right" | undefined) ?? "left",
+              background: (raw.background as string | undefined) ?? "",
+            };
+            const patchSplit = (patch: Record<string, unknown>) =>
+              applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
+            const imgEl = p.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.image}
+                alt=""
+                className="h-full w-full object-cover"
+                style={{ minHeight: 320, maxHeight: 560 }}
+              />
+            ) : (
+              <div
+                className="flex items-center justify-center text-center text-xs opacity-40"
+                style={{ minHeight: 320, background: theme.primary + "22" }}
+              >
+                {editor ? "No image — set in section props" : null}
+              </div>
+            );
+            const textEl = (
+              <div className="flex flex-col justify-center px-8 py-14">
+                {device !== "desktop" && editor?.inlineEdit ? (
+                  <p className="mb-2 text-[10px] uppercase tracking-wider opacity-50">Editing {device}</p>
+                ) : null}
+                <EditableText
+                  tag="h2"
+                  className="text-3xl font-bold leading-tight"
+                  style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                  value={p.heading}
+                  editor={editor}
+                  onChange={(heading) => patchSplit({ heading })}
+                />
+                {p.body ? (
+                  <EditableText
+                    tag="p"
+                    className="mt-4 text-base leading-relaxed opacity-70"
+                    value={p.body}
+                    editor={editor}
+                    onChange={(body) => patchSplit({ body })}
+                  />
+                ) : null}
+                {p.buttonLabel ? (
+                  <a
+                    href={p.buttonHref || "#"}
+                    className="kebu-cta mt-8 self-start inline-block rounded-full px-6 py-2.5 text-sm font-bold"
+                  >
+                    {p.buttonLabel}
+                  </a>
+                ) : null}
+              </div>
+            );
+            return wrap(
+              <section
+                key={key}
+                className="overflow-hidden"
+                style={{ background: p.background || "transparent" }}
+              >
+                <div className="grid md:grid-cols-2">
+                  {p.imagePosition === "right" ? (
+                    <>
+                      {textEl}
+                      {imgEl}
+                    </>
+                  ) : (
+                    <>
+                      {imgEl}
+                      {textEl}
+                    </>
+                  )}
+                </div>
+              </section>,
+            );
+          }
           default:
             return null;
         }
@@ -1746,6 +1978,7 @@ export function SiteRenderer({
         extraFamilies={freeTextExtraFonts}
         loadRemote={!preferSystemFonts(dataMode)}
       />
+      {theme.customCss ? <style>{theme.customCss}</style> : null}
       {chrome}
       {sideNav ? <div className="min-w-0 flex-1">{body}</div> : body}
       {emailPopup && emailPopup.props.enabled !== false ? (

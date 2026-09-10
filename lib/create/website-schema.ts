@@ -5,6 +5,10 @@ import { navLinksArraySchema } from "./maylecor-nav";
 export const SECTION_TYPES = [
   "navigation",
   "hero",
+  "editorial-hero",
+  "announcement-bar",
+  "marquee",
+  "split",
   "text",
   "image",
   "gallery",
@@ -57,6 +61,10 @@ export const themeSchema = z.object({
   /** Primary button look. */
   buttonStyle: z.enum(["solid", "outline", "soft"]).optional(),
   aestheticId: z.string().trim().max(40).optional(),
+  /** Custom CSS injected at root of every page (max 10 KB). */
+  customCss: z.string().trim().max(10000).optional(),
+  /** ISO 4217 currency code (XOF, NGN, KES, GHS, ZAR, USD, EUR…). */
+  currency: z.string().trim().max(8).optional(),
 });
 
 const safeHref = z

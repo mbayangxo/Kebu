@@ -19,9 +19,21 @@ export const BUILDER_SECTION_CATEGORIES: { id: BuilderSectionCategory; label: st
 /** Curated section types founders can add (like Shopify theme sections). */
 export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
   {
+    type: "announcement-bar",
+    label: "Announcement bar",
+    description: "Thin top bar with a message — promotions, shipping notice",
+    category: "layout",
+  },
+  {
     type: "navigation",
     label: "Navigation menu",
     description: "Top menu links for this page (Home, Videos, Shop…)",
+    category: "layout",
+  },
+  {
+    type: "editorial-hero",
+    label: "Editorial hero",
+    description: "Full-bleed image with headline overlay — editorial magazine feel",
     category: "layout",
   },
   {
@@ -29,6 +41,18 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
     label: "Hero banner",
     description: "Big headline, short text, and a button",
     category: "layout",
+  },
+  {
+    type: "split",
+    label: "Split section",
+    description: "Image beside text — product story, founder bio, feature callout",
+    category: "layout",
+  },
+  {
+    type: "marquee",
+    label: "Marquee ticker",
+    description: "Scrolling text strip — brands, offers, slogans",
+    category: "engage",
   },
   {
     type: "footer",
