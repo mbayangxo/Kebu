@@ -111,14 +111,12 @@ export async function PATCH(req: Request) {
   });
 }
 
-/** Request eligibility verification review (sets pending — server/admin verifies later). */
 export type HeritageNotes = {
   type: "continental" | "diaspora";
   countryOfOrigin: string;
   region?: string;
   ethnicGroup?: string;
   lastName?: string;
-  // Diaspora-specific
   parentsFrom?: string;
   grandparentsFrom?: string;
   connectionNote?: string;
@@ -133,7 +131,6 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { heritageNotes?: HeritageNotes };
   const heritageNotes: HeritageNotes | null = body.heritageNotes ?? null;
 
-  // Require at minimum a heritage type and country of origin
   if (!heritageNotes?.type || !heritageNotes?.countryOfOrigin?.trim()) {
     return NextResponse.json(
       { error: "Heritage information is required: your African identity type and country of origin." },
