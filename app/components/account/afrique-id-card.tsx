@@ -28,7 +28,9 @@ export function AfriqueIdCard({ afriqueId, displayName, onRefresh }: Props) {
 
   const verified = afriqueId.eligibilityStatus === "verified";
   const canRequest =
-    afriqueId.eligibilityStatus === "unverified" || afriqueId.eligibilityStatus === "rejected";
+    afriqueId.eligibilityStatus === "unverified" ||
+    afriqueId.eligibilityStatus === "rejected" ||
+    afriqueId.eligibilityStatus === "expired";
 
   async function saveIdentityType(next: "indigenous" | "visitor") {
     setIdentityType(next);

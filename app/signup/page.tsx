@@ -14,7 +14,7 @@ type AfricanOrigin = "continental" | "diaspora";
 
 export default function SignupPage() {
   const [gate, setGate] = useState<Gate>("question");
-  const [africanOrigin, setAfrcanOrigin] = useState<AfricanOrigin | null>(null);
+  const [africanOrigin, setAfricanOrigin] = useState<AfricanOrigin | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -124,7 +124,7 @@ export default function SignupPage() {
             <button
               key={opt.value}
               type="button"
-              onClick={() => setAfrcanOrigin(opt.value)}
+              onClick={() => setAfricanOrigin(opt.value)}
               className="w-full text-left rounded-xl px-4 py-4 transition-all"
               style={{
                 background: africanOrigin === opt.value ? "rgba(255,85,0,0.07)" : "rgba(0,0,0,0.02)",
@@ -183,7 +183,7 @@ export default function SignupPage() {
         </p>
         <button
           type="button"
-          onClick={() => { setGate("question"); setAfrcanOrigin(null); }}
+          onClick={() => { setGate("question"); setAfricanOrigin(null); }}
           className="inline-flex items-center gap-2 font-semibold text-sm"
           style={{ color: KEBU.orange }}
         >
@@ -193,31 +193,7 @@ export default function SignupPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: KEBU.bright }}>
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background: `radial-gradient(ellipse 70% 50% at 80% 0%, rgba(255,85,0,0.18), transparent 55%), radial-gradient(ellipse 50% 40% at 0% 100%, rgba(225,6,0,0.1), transparent 50%)`,
-        }}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-md">
-        <div className="text-center mb-10">
-          <Link href="/" className="inline-flex flex-col items-center gap-3">
-            <KebuMark size={64} />
-            <span
-              className="text-3xl font-bold uppercase tracking-[0.16em]"
-              style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
-            >
-              Kebu
-            </span>
-          </Link>
-          <p className="mt-3 text-sm" style={{ color: KEBU.muted }}>
-            Africa is the opportunity
-          </p>
-        </div>
-
+  return pageChrome(
         <div className="rounded-2xl p-8 bg-white" style={{ border: `1px solid ${KEBU.border}`, boxShadow: "0 16px 40px rgba(255,85,0,0.08)" }}>
           {success ? (
             <div className="text-center">
@@ -358,7 +334,5 @@ export default function SignupPage() {
             </>
           )}
         </div>
-      </div>
-    </div>
   );
 }
