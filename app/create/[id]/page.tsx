@@ -115,7 +115,7 @@ export default function ProjectEditorPage() {
     tier?: string;
     plans?: Array<{ id: string; name: string; monthlyUsd: number; hero?: boolean }>;
   } | null>(null);
-  const [checkoutTier, setCheckoutTier] = useState("shop");
+  const [checkoutTier, setCheckoutTier] = useState("starter");
   const [improving, setImproving] = useState(false);
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
@@ -268,7 +268,7 @@ export default function ProjectEditorPage() {
           plans: Array.isArray(billingData.plans) ? billingData.plans : undefined,
         });
         if (tier && tier !== "free") setCheckoutTier(tier);
-        else setCheckoutTier("shop");
+        else setCheckoutTier("starter");
       }
     } catch {
       setError("Network error. Retry.");
