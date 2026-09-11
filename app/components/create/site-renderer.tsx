@@ -974,49 +974,49 @@ export function SiteRenderer({
               </section>,
             );
           }
-          case “testimonials”: {
+          case "testimonials": {
             const p = section.props as { heading?: string; items?: { quote: string; name: string; role?: string }[] };
             const items = p.items ?? [];
             const accentColor = theme.accent || theme.primary;
             return wrap(
-              <section key={key} id={anchor} className=”kebu-section px-5 max-w-5xl mx-auto scroll-mt-20”>
+              <section key={key} id={anchor} className="kebu-section px-5 max-w-5xl mx-auto scroll-mt-20">
                 <h2
-                  className=”text-2xl font-bold mb-10 tracking-tight”
+                  className="text-2xl font-bold mb-10 tracking-tight"
                   style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
                 >
-                  {p.heading || “What clients say”}
+                  {p.heading || "What clients say"}
                 </h2>
-                <div className={`grid gap-5 ${items.length > 2 ? “sm:grid-cols-2 lg:grid-cols-3” : items.length === 2 ? “sm:grid-cols-2” : “”}`}>
+                <div className={`grid gap-5 ${items.length > 2 ? "sm:grid-cols-2 lg:grid-cols-3" : items.length === 2 ? "sm:grid-cols-2" : ""}`}>
                   {items.map((item, i) => (
                     <blockquote
                       key={`${item.name}-${i}`}
-                      className=”relative rounded-2xl p-7 overflow-hidden”
+                      className="relative rounded-2xl p-7 overflow-hidden"
                       style={{
-                        background: theme.surface || (theme.background === “#0A0A0A” ? “#1A1A1A” : “#fff”),
+                        background: theme.surface || (theme.background === "#0A0A0A" ? "#1A1A1A" : "#fff"),
                         border: `1px solid ${accentColor}1A`,
-                        boxShadow: “0 1px 3px rgba(0,0,0,0.06)”,
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                       }}
                     >
                       <span
-                        className=”absolute top-2 left-4 text-8xl font-black leading-none select-none pointer-events-none”
+                        className="absolute top-2 left-4 text-8xl font-black leading-none select-none pointer-events-none"
                         style={{ color: accentColor, opacity: 0.12 }}
                         aria-hidden
                       >
-                        “
+                        "
                       </span>
-                      <p className=”relative text-[15px] leading-relaxed” style={{ opacity: 0.82 }}>
+                      <p className="relative text-[15px] leading-relaxed" style={{ opacity: 0.82 }}>
                         {item.quote}
                       </p>
-                      <footer className=”mt-5 flex items-center gap-3”>
+                      <footer className="mt-5 flex items-center gap-3">
                         <div
-                          className=”h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold”
+                          className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold"
                           style={{ background: `${accentColor}22`, color: accentColor }}
                         >
                           {item.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <cite className=”not-italic text-sm font-semibold block”>{item.name}</cite>
-                          {item.role ? <span className=”text-xs opacity-55”>{item.role}</span> : null}
+                          <cite className="not-italic text-sm font-semibold block">{item.name}</cite>
+                          {item.role ? <span className="text-xs opacity-55">{item.role}</span> : null}
                         </div>
                       </footer>
                     </blockquote>

@@ -296,37 +296,85 @@ export async function generateWebsiteWithAi(brief: CreateWebsiteBrief): Promise<
   }
 
   const anthropic = new Anthropic({ apiKey });
-  const system = `You are Yande — Kebu's website DESIGNER (not a theme picker assistant). Generate Kebu website structures. Return ONLY JSON matching schemaVersion "website-v1".
-Allowed section types: navigation, hero, text, image, gallery, features, testimonials, faq, contact, whatsapp, footer.
-Do not include HTML, scripts, or markdown.
-You design the entire storefront from the user's description: IA, theme tokens, hierarchy, copy, commerce CTAs (WhatsApp/Wave when Africa-relevant).
-Avoid generic Shopify / Wix starter layouts (hero + three equal cards + footer). Prefer editorial / magazine / cultural direction when asked (fashion, beauty, luxury, Senegal, heritage).
-Honor color direction, founder story placement, product card scale, and page list from the brief.
-Build a FULL multi-page site. Include every desired page with its own slug, navigation, hero, content, and footer.
-FAQ items use { "question", "answer" }. Output must be editable structured JSON — never an HTML blob.
-Keep copy plain for African youth — concrete next actions, mobile-first.`;
+  const system = `You are Yande — Kebu's expert African website DESIGNER. Generate premium website structures. Return ONLY valid JSON matching schemaVersion "website-v1".
 
-  const userPrompt = `Design a complete website for:
+ALLOWED SECTION TYPES (use ALL of these, not just basic ones):
+- navigation: {brand, links:[{label,href}], background, navSize}
+- announcement-bar: {text, background, color, link} — thin top strip for offers
+- editorial-hero: {heading, subheading, buttonLabel, buttonHref, image, overlayOpacity, align, minHeight} — full-bleed photo hero
+- hero: {heading, subheading, buttonLabel, buttonHref, background, align, minHeight, image, overlayOpacity}
+- marquee: {items:string[], separator, background, color, speed} — scrolling text strip
+- split: {heading, body, buttonLabel, buttonHref, image, imagePosition:"left"|"right", background}
+- text: {heading, body}
+- gallery: {heading, layout:"grid"|"masonry"|"film", items:[{src,alt,href}]}
+- features: {heading, items:[{title,body,image,href}]}
+- testimonials: {heading, items:[{quote,name,role,avatar}]}
+- faq: {heading, items:[{question,answer}]}
+- contact: {heading, email, phone, address}
+- whatsapp: {phone, label}
+- newsletter: {heading, subheading, buttonLabel}
+- products: linked from Kebu Shop — keep simple
+- footer: {text, links:[{label,href}]}
+
+DESIGN RULES:
+- NEVER build boring hero + 3 equal cards + footer. Build magazine/editorial layouts.
+- For fashion/beauty/luxury/music: use editorial-hero (90vh+), announcement-bar, marquee for energy, split for founder story, then premium testimonials.
+- Use announcement-bar for sale/offer banners at top.
+- Use marquee for energy between sections (thin strips with brand phrases).
+- Use split sections for founder story, about, process — image one side, text other.
+- Theme tokens must be STRONG and specific — never default/generic colors.
+- For African-heritage brands: use earth tones, ochre, clay, kente golds, deep indigos, forest greens.
+- All copy: specific and energetic, never placeholder lorem ipsum.
+- Build EVERY desired page fully (home has the most sections, other pages are focused).
+- FAQ items: { "question": "...", "answer": "..." }
+- Footer links: [{label, href}] for policy, social, contact links.
+- whatsapp section for ANY business with a phone number (Africa = WhatsApp-first).
+
+Do not output HTML, scripts, or markdown. Only JSON.`;
+
+  const userPrompt = `Design a complete, premium multi-page website for:
 Business: ${brief.businessName}
 Category: ${brief.category}
 Country: ${brief.countryCode}
 Language: ${brief.locale}
 Description / creative brief: ${brief.description}
-Desired pages (create all of these): ${expanded.desiredPages.join(", ")}
-Visual direction: ${brief.visualDirection ?? "follow the description; if fashion/beauty/luxury → editorial magazine feel"}
+Desired pages (build ALL of these fully): ${expanded.desiredPages.join(", ")}
+Visual direction: ${brief.visualDirection ?? "editorial magazine feel — not a generic Shopify starter"}
 
-JSON shape:
+JSON structure:
 {
   "schemaVersion": "website-v1",
-  "title": "...",
-  "theme": { "primary": "#0F0D33", "accent": "#00C851", "background": "#FAFAF8", "text": "#0F0D33", "fontDisplay": "Fraunces", "fontBody": "system-ui", "spacing": "comfortable" },
-  "pages": [{ "slug": "home", "title": "Home", "sections": [{ "id": "hero-1", "type": "hero", "props": { ... } }] }]
-}`;
+  "title": "Business Name",
+  "theme": {
+    "primary": "#hex — main brand color",
+    "accent": "#hex — CTA / highlight color",
+    "background": "#hex — page background",
+    "text": "#hex — body text",
+    "fontDisplay": "Fraunces|Syne|Bebas Neue|Playfair Display|Oswald",
+    "fontBody": "system-ui",
+    "spacing": "comfortable|compact|spacious",
+    "surface": "#hex — card backgrounds"
+  },
+  "pages": [{
+    "slug": "home",
+    "title": "Home",
+    "sections": [
+      {"id": "unique-id", "type": "announcement-bar", "props": {...}},
+      {"id": "unique-id", "type": "editorial-hero", "props": {...}},
+      {"id": "unique-id", "type": "marquee", "props": {...}},
+      ...more premium sections...
+      {"id": "unique-id", "type": "footer", "props": {"text": "© Brand 2026", "links": []}}
+    ]
+  }]
+}
+
+Remember: NEVER use generic placeholder colors or text. Every section must be designed with intention for this specific business.`;
 
   async function call(prompt: string) {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      model: "claude-opus-4-8",
+      max_tokens: 8000,
+      thinking: { type: "adaptive" },
       messages: [
         { role: "user", content: system },
         { role: "user", content: prompt },

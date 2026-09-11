@@ -2621,34 +2621,99 @@ export default function ProjectEditorPage() {
                       )}
                       {section.section_type === "hero" && (
                         <div className="space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Copy</p>
                           <input
                             className="w-full text-sm rounded-lg px-2 py-1.5"
                             style={{ border: "1px solid #DDE0F0" }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            placeholder="Heading"
                             aria-label="Hero heading"
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
                             style={{ border: "1px solid #DDE0F0" }}
                             value={String(section.props.subheading ?? "")}
                             onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
+                            placeholder="Subheading"
                             aria-label="Hero subheading"
                           />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.buttonLabel ?? "")}
-                            onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
-                            aria-label="Button label"
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              className="w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.buttonLabel ?? "")}
+                              onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                              placeholder="Button label"
+                              aria-label="Button label"
+                            />
+                            <input
+                              className="w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.buttonHref ?? "")}
+                              onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
+                              placeholder="Button link"
+                              aria-label="Button link"
+                            />
+                          </div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Design</p>
+                          <SectionPhotoField
+                            projectId={projectId}
+                            label="Background image (optional)"
+                            value={String(section.props.image ?? "")}
+                            onChange={(url) => updateProps(section.id, { image: url })}
                           />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.buttonHref ?? "")}
-                            onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
-                            aria-label="Button link"
-                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Background color
+                              <input
+                                type="color"
+                                className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
+                                value={String(section.props.background ?? "#0A0A0A")}
+                                onChange={(e) => updateProps(section.id, { background: e.target.value })}
+                              />
+                            </label>
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Text align
+                              <select
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.align ?? "center")}
+                                onChange={(e) => updateProps(section.id, { align: e.target.value })}
+                              >
+                                <option value="center">Center</option>
+                                <option value="left">Left</option>
+                              </select>
+                            </label>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Height
+                              <select
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.minHeight ?? "80vh")}
+                                onChange={(e) => updateProps(section.id, { minHeight: e.target.value })}
+                              >
+                                <option value="50vh">Half screen</option>
+                                <option value="70vh">Tall</option>
+                                <option value="80vh">Hero (80vh)</option>
+                                <option value="100vh">Full screen</option>
+                              </select>
+                            </label>
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Overlay
+                              <input
+                                type="range"
+                                min={0}
+                                max={0.9}
+                                step={0.05}
+                                className="mt-2 w-full"
+                                value={Number(section.props.overlayOpacity ?? 0.42)}
+                                onChange={(e) => updateProps(section.id, { overlayOpacity: Number(e.target.value) })}
+                              />
+                            </label>
+                          </div>
                         </div>
                       )}
                       {section.section_type === "text" && (
@@ -2692,12 +2757,20 @@ export default function ProjectEditorPage() {
                         </div>
                       )}
                       {section.section_type === "footer" && (
-                        <input
-                          className="w-full text-sm rounded-lg px-2 py-1.5"
-                          style={{ border: "1px solid #DDE0F0" }}
-                          value={String(section.props.text ?? "")}
-                          onChange={(e) => updateProps(section.id, { text: e.target.value })}
-                        />
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            placeholder="© Your Brand · 2026"
+                            value={String(section.props.text ?? "")}
+                            onChange={(e) => updateProps(section.id, { text: e.target.value })}
+                          />
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Footer links</p>
+                          <NavLinksEditor
+                            links={mapNavLinksForEditor((section.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [])}
+                            onChange={(links) => updateProps(section.id, { links })}
+                          />
+                        </div>
                       )}
                       {section.section_type === "whatsapp" && (
                         <div className="space-y-2">
@@ -2762,10 +2835,26 @@ export default function ProjectEditorPage() {
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             aria-label="Features heading"
+                            placeholder="Section heading"
                           />
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
-                            (item: { title?: string; body?: string }, idx: number) => (
-                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
+                            (item: { title?: string; body?: string; image?: string; href?: string }, idx: number) => (
+                              <div key={idx} className="space-y-1.5 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Item {idx + 1}</span>
+                                  <button
+                                    type="button"
+                                    className="text-[10px] font-semibold"
+                                    style={{ color: "#B91C1C" }}
+                                    onClick={() => {
+                                      const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                      items.splice(idx, 1);
+                                      updateProps(section.id, { items });
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
                                 <input
                                   className="w-full text-sm rounded-lg px-2 py-1"
                                   style={{ border: "1px solid #DDE0F0" }}
@@ -2775,11 +2864,10 @@ export default function ProjectEditorPage() {
                                     items[idx] = { ...items[idx], title: e.target.value };
                                     updateProps(section.id, { items });
                                   }}
-                                  aria-label={`Feature ${idx + 1} title`}
                                   placeholder="Title"
                                 />
                                 <textarea
-                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  className="w-full text-sm rounded-lg px-2 py-1 min-h-[60px]"
                                   style={{ border: "1px solid #DDE0F0" }}
                                   value={String(item?.body ?? "")}
                                   onChange={(e) => {
@@ -2787,8 +2875,28 @@ export default function ProjectEditorPage() {
                                     items[idx] = { ...items[idx], body: e.target.value };
                                     updateProps(section.id, { items });
                                   }}
-                                  aria-label={`Feature ${idx + 1} body`}
-                                  placeholder="Short description"
+                                  placeholder="Description"
+                                />
+                                <SectionPhotoField
+                                  projectId={projectId}
+                                  label="Image (optional)"
+                                  value={String(item?.image ?? "")}
+                                  onChange={(url) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], image: url };
+                                    updateProps(section.id, { items });
+                                  }}
+                                />
+                                <input
+                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  style={{ border: "1px solid #DDE0F0" }}
+                                  value={String(item?.href ?? "")}
+                                  placeholder="Link (optional)"
+                                  onChange={(e) => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items[idx] = { ...items[idx], href: e.target.value };
+                                    updateProps(section.id, { items });
+                                  }}
                                 />
                               </div>
                             )
@@ -2804,7 +2912,7 @@ export default function ProjectEditorPage() {
                               updateProps(section.id, { items });
                             }}
                           >
-                            + Add offer
+                            + Add item
                           </button>
                         </div>
                       )}
@@ -2869,13 +2977,29 @@ export default function ProjectEditorPage() {
                             style={{ border: "1px solid #DDE0F0" }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            placeholder="What our customers say"
                             aria-label="Testimonials heading"
                           />
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
-                            (item: { quote?: string; name?: string }, idx: number) => (
-                              <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
+                            (item: { quote?: string; name?: string; role?: string; avatar?: string }, idx: number) => (
+                              <div key={idx} className="space-y-1.5 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Quote {idx + 1}</span>
+                                  <button
+                                    type="button"
+                                    className="text-[10px] font-semibold"
+                                    style={{ color: "#B91C1C" }}
+                                    onClick={() => {
+                                      const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                      items.splice(idx, 1);
+                                      updateProps(section.id, { items });
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
                                 <textarea
-                                  className="w-full text-sm rounded-lg px-2 py-1"
+                                  className="w-full text-sm rounded-lg px-2 py-1 min-h-[70px]"
                                   style={{ border: "1px solid #DDE0F0" }}
                                   value={String(item?.quote ?? "")}
                                   onChange={(e) => {
@@ -2883,20 +3007,41 @@ export default function ProjectEditorPage() {
                                     items[idx] = { ...items[idx], quote: e.target.value };
                                     updateProps(section.id, { items });
                                   }}
-                                  aria-label={`Testimonial ${idx + 1} quote`}
-                                  placeholder="Customer quote"
+                                  placeholder="Their words..."
                                 />
-                                <input
-                                  className="w-full text-sm rounded-lg px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
-                                  value={String(item?.name ?? "")}
-                                  onChange={(e) => {
+                                <div className="grid grid-cols-2 gap-1">
+                                  <input
+                                    className="w-full text-sm rounded-lg px-2 py-1"
+                                    style={{ border: "1px solid #DDE0F0" }}
+                                    value={String(item?.name ?? "")}
+                                    onChange={(e) => {
+                                      const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                      items[idx] = { ...items[idx], name: e.target.value };
+                                      updateProps(section.id, { items });
+                                    }}
+                                    placeholder="Name"
+                                  />
+                                  <input
+                                    className="w-full text-sm rounded-lg px-2 py-1"
+                                    style={{ border: "1px solid #DDE0F0" }}
+                                    value={String(item?.role ?? "")}
+                                    onChange={(e) => {
+                                      const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                      items[idx] = { ...items[idx], role: e.target.value };
+                                      updateProps(section.id, { items });
+                                    }}
+                                    placeholder="Role / location"
+                                  />
+                                </div>
+                                <SectionPhotoField
+                                  projectId={projectId}
+                                  label="Photo (optional)"
+                                  value={String(item?.avatar ?? "")}
+                                  onChange={(url) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                    items[idx] = { ...items[idx], name: e.target.value };
+                                    items[idx] = { ...items[idx], avatar: url };
                                     updateProps(section.id, { items });
                                   }}
-                                  aria-label={`Testimonial ${idx + 1} name`}
-                                  placeholder="Name"
                                 />
                               </div>
                             )
@@ -2907,7 +3052,7 @@ export default function ProjectEditorPage() {
                             onClick={() => {
                               const items = [
                                 ...(Array.isArray(section.props.items) ? section.props.items : []),
-                                { quote: "Great experience.", name: "Customer" },
+                                { quote: "Amazing experience.", name: "Customer", role: "" },
                               ];
                               updateProps(section.id, { items });
                             }}
@@ -3481,7 +3626,225 @@ export default function ProjectEditorPage() {
                           </button>
                         </div>
                       )}
-                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "email-popup", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page"].includes(
+                      {section.section_type === "editorial-hero" && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Copy</p>
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            placeholder="Headline"
+                          />
+                          <textarea
+                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.subheading ?? "")}
+                            onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
+                            placeholder="Subheading"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              className="text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.buttonLabel ?? "")}
+                              onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                              placeholder="Button label"
+                            />
+                            <input
+                              className="text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.buttonHref ?? "")}
+                              onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
+                              placeholder="Button link"
+                            />
+                          </div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Design</p>
+                          <SectionPhotoField
+                            projectId={projectId}
+                            label="Background image"
+                            value={String(section.props.image ?? "")}
+                            onChange={(url) => updateProps(section.id, { image: url })}
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Height
+                              <select
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.minHeight ?? "70vh")}
+                                onChange={(e) => updateProps(section.id, { minHeight: e.target.value })}
+                              >
+                                <option value="50vh">Half screen</option>
+                                <option value="70vh">Tall</option>
+                                <option value="88vh">Very tall</option>
+                                <option value="100vh">Full screen</option>
+                              </select>
+                            </label>
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Align
+                              <select
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.align ?? "left")}
+                                onChange={(e) => updateProps(section.id, { align: e.target.value })}
+                              >
+                                <option value="left">Left</option>
+                                <option value="center">Center</option>
+                              </select>
+                            </label>
+                          </div>
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Overlay darkness
+                            <input
+                              type="range"
+                              min={0}
+                              max={0.9}
+                              step={0.05}
+                              className="mt-2 w-full"
+                              value={Number(section.props.overlayOpacity ?? 0.35)}
+                              onChange={(e) => updateProps(section.id, { overlayOpacity: Number(e.target.value) })}
+                            />
+                          </label>
+                        </div>
+                      )}
+                      {section.section_type === "announcement-bar" && (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.text ?? "")}
+                            onChange={(e) => updateProps(section.id, { text: e.target.value })}
+                            placeholder="Free shipping on orders over 10,000 XOF"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.link ?? "")}
+                            onChange={(e) => updateProps(section.id, { link: e.target.value })}
+                            placeholder="Link (optional)"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Background
+                              <input
+                                type="color"
+                                className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
+                                value={String(section.props.background ?? "#0A0A0A")}
+                                onChange={(e) => updateProps(section.id, { background: e.target.value })}
+                              />
+                            </label>
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Text color
+                              <input
+                                type="color"
+                                className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
+                                value={String(section.props.color ?? "#ffffff")}
+                                onChange={(e) => updateProps(section.id, { color: e.target.value })}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                      {section.section_type === "marquee" && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                            Scrolling text strip. One item per line.
+                          </p>
+                          <textarea
+                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[80px]"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={(Array.isArray(section.props.items) ? section.props.items : []).join("\n")}
+                            onChange={(e) => {
+                              const items = e.target.value.split("\n").map((s) => s.trim()).filter(Boolean);
+                              updateProps(section.id, { items });
+                            }}
+                            placeholder={"New arrivals\nShop now\nFree delivery\nMade in Africa"}
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.separator ?? " · ")}
+                            onChange={(e) => updateProps(section.id, { separator: e.target.value })}
+                            placeholder="Separator ( · )"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Background
+                              <input
+                                type="color"
+                                className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
+                                value={String(section.props.background ?? "#0A0A0A")}
+                                onChange={(e) => updateProps(section.id, { background: e.target.value })}
+                              />
+                            </label>
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Text color
+                              <input
+                                type="color"
+                                className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
+                                value={String(section.props.color ?? "#ffffff")}
+                                onChange={(e) => updateProps(section.id, { color: e.target.value })}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                      {section.section_type === "split" && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Copy</p>
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            placeholder="Heading"
+                          />
+                          <textarea
+                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[80px]"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.body ?? "")}
+                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                            placeholder="Body text"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              className="text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.buttonLabel ?? "")}
+                              onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                              placeholder="Button"
+                            />
+                            <input
+                              className="text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.buttonHref ?? "")}
+                              onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
+                              placeholder="Link"
+                            />
+                          </div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Image</p>
+                          <SectionPhotoField
+                            projectId={projectId}
+                            label="Photo"
+                            value={String(section.props.image ?? "")}
+                            onChange={(url) => updateProps(section.id, { image: url })}
+                          />
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Image side
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.imagePosition ?? "left")}
+                              onChange={(e) => updateProps(section.id, { imagePosition: e.target.value })}
+                            >
+                              <option value="left">Left</option>
+                              <option value="right">Right</option>
+                            </select>
+                          </label>
+                        </div>
+                      )}
+                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "email-popup", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page", "editorial-hero", "announcement-bar", "marquee", "split"].includes(
                         section.section_type
                       ) && (
                         <p className="text-[11px]" style={{ color: "#8A8578" }}>
