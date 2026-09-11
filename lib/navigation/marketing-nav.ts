@@ -34,6 +34,9 @@ export function isMarketingPath(pathname: string): boolean {
     "/privacy",
     "/faqs",
     "/terms",
+    "/for-schools",
+    "/for-organizations",
+    "/for-enterprise",
   ];
   return marketing.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
