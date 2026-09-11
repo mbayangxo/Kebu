@@ -655,17 +655,31 @@ export function SiteRenderer({
                 </aside>,
               );
             }
+            const navBg = theme.primary;
+            const navIsLight = (() => {
+              const hex = String(navBg || "").replace(/\s/g, "");
+              if (hex.startsWith("#") && hex.length >= 7) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                if ([r, g, b].every((n) => !Number.isNaN(n))) {
+                  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55;
+                }
+              }
+              return false;
+            })();
             return wrap(
               <header
                 key={key}
                 className="kebu-site-nav"
                 style={{
-                  background: theme.primary,
-                  color: "#fff",
+                  background: navBg,
+                  color: navIsLight ? (theme.text || "#0A0A0A") : "#fff",
                   paddingTop: m.padY,
                   paddingBottom: m.padY,
                   paddingLeft: m.padX,
                   paddingRight: m.padX,
+                  borderBottom: navIsLight ? "1px solid rgba(0,0,0,0.08)" : "none",
                 }}
               >
                 <div
@@ -690,63 +704,92 @@ export function SiteRenderer({
               buttonHref: String(raw.buttonHref ?? "#"),
               align: String(raw.align ?? "center"),
               background: raw.background as string | undefined,
+              image: raw.image as string | undefined,
+              overlayOpacity: (raw.overlayOpacity as number | undefined) ?? 0.42,
+              minHeight: (raw.minHeight as string | undefined) ?? "80vh",
             };
             const patchHero = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
+            const hasImage = Boolean(p.image?.trim());
+            const bg = p.background || theme.primary;
+            const textColor = (() => {
+              if (hasImage) return "#fff";
+              const hex = String(bg || "").replace(/\s/g, "");
+              if (hex.startsWith("#") && hex.length >= 7) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                if ([r, g, b].every((n) => !Number.isNaN(n))) {
+                  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                  return luminance > 0.55 ? (theme.text || "#1F1A17") : "#fff";
+                }
+              }
+              return "#fff";
+            })();
+            const heroIsLight = textColor !== "#fff";
+            const isCenter = p.align === "center";
             return wrap(
               <section
                 key={key}
-                className="kebu-section px-5"
-                style={{
-                  background: p.background || theme.primary,
-                  color: (() => {
-                    const bg = String(p.background || theme.primary || "#000").toLowerCase();
-                    // Light hero backgrounds (LAYERS cream, etc.) need dark type — not forced white.
-                    const hex = bg.replace(/\s/g, "");
-                    if (hex.startsWith("#") && hex.length >= 7) {
-                      const r = parseInt(hex.slice(1, 3), 16);
-                      const g = parseInt(hex.slice(3, 5), 16);
-                      const b = parseInt(hex.slice(5, 7), 16);
-                      if ([r, g, b].every((n) => !Number.isNaN(n))) {
-                        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                        return luminance > 0.55 ? theme.text || "#1F1A17" : "#fff";
-                      }
-                    }
-                    return "#fff";
-                  })(),
-                  textAlign: p.align === "left" ? "left" : "center",
-                }}
+                className="relative flex items-end overflow-hidden"
+                style={{ minHeight: p.minHeight, background: hasImage ? "#111" : bg, color: textColor }}
               >
-                {device !== "desktop" ? (
-                  <p className="text-[10px] uppercase tracking-wider opacity-60 mb-2">
-                    Editing {device} copy
-                  </p>
-                ) : null}
-                <EditableText
-                  tag="h1"
-                  className="text-3xl sm:text-5xl font-bold max-w-3xl mx-auto"
-                  style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
-                  value={p.heading}
-                  editor={editor}
-                  onChange={(heading) => patchHero({ heading })}
-                />
-                {p.subheading && (
-                  <EditableText
-                    tag="p"
-                    className="mt-4 text-base sm:text-lg opacity-80 max-w-2xl mx-auto"
-                    value={p.subheading}
-                    editor={editor}
-                    onChange={(subheading) => patchHero({ subheading })}
+                {hasImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.image}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    style={{ opacity: 0.88 }}
                   />
-                )}
-                {p.buttonLabel && (
-                  <a
-                    href={p.buttonHref || "#"}
-                    className="kebu-cta inline-block mt-8 rounded-full px-6 py-3 text-sm font-bold"
-                  >
-                    {p.buttonLabel}
-                  </a>
-                )}
+                ) : null}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: hasImage
+                      ? `linear-gradient(to top, rgba(0,0,0,${(p.overlayOpacity + 0.28).toFixed(2)}) 0%, rgba(0,0,0,${(p.overlayOpacity * 0.2).toFixed(2)}) 60%, transparent 100%)`
+                      : `linear-gradient(150deg, transparent 50%, rgba(0,0,0,0.1) 100%)`,
+                  }}
+                />
+                <div className={`relative z-10 w-full px-6 pb-16 pt-32 sm:px-12 ${isCenter ? "text-center" : ""}`}>
+                  <div className={isCenter ? "mx-auto max-w-2xl" : "max-w-2xl"}>
+                    {device !== "desktop" && editor?.inlineEdit ? (
+                      <p className="mb-2 text-[10px] uppercase tracking-wider opacity-60">
+                        Editing {device} copy
+                      </p>
+                    ) : null}
+                    <EditableText
+                      tag="h1"
+                      className="text-5xl font-bold leading-[1.04] tracking-tight sm:text-7xl"
+                      style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                      value={p.heading}
+                      editor={editor}
+                      onChange={(heading) => patchHero({ heading })}
+                    />
+                    {p.subheading ? (
+                      <EditableText
+                        tag="p"
+                        className="mt-5 text-base leading-relaxed sm:text-lg"
+                        style={{ opacity: hasImage ? 0.85 : 0.72 }}
+                        value={p.subheading}
+                        editor={editor}
+                        onChange={(subheading) => patchHero({ subheading })}
+                      />
+                    ) : null}
+                    {p.buttonLabel ? (
+                      <a
+                        href={p.buttonHref || "#"}
+                        className="mt-8 inline-block rounded-full px-8 py-3.5 text-sm font-bold tracking-wide transition-opacity hover:opacity-90"
+                        style={{
+                          background: heroIsLight ? theme.primary : "#fff",
+                          color: heroIsLight ? "#fff" : "#0A0A0A",
+                        }}
+                      >
+                        {p.buttonLabel}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
               </section>,
             );
           }
@@ -822,15 +865,16 @@ export function SiteRenderer({
                 >
                   {items.map((item, itemIdx) => {
                     const img = String(item.image ?? "").trim();
-                    const card = (
+                    const accentColor = theme.accent || theme.primary;
+                    const card = moodboard ? (
                       <>
-                        {moodboard && img ? (
+                        {img ? (
                           <div className="mays-world-moodboard__media" aria-hidden>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={img} alt="" />
                           </div>
                         ) : null}
-                        <div className={moodboard ? "mays-world-moodboard__copy" : undefined}>
+                        <div className="mays-world-moodboard__copy">
                           <EditableText
                             tag="h2"
                             className="font-semibold mb-2 text-base"
@@ -853,23 +897,75 @@ export function SiteRenderer({
                           />
                         </div>
                       </>
+                    ) : (
+                      <>
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={img}
+                            alt={item.title}
+                            className="w-full rounded-xl object-cover mb-5"
+                            style={{ height: 200 }}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div
+                            className="mb-5 flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold"
+                            style={{ background: `${accentColor}18`, color: accentColor }}
+                          >
+                            {String(itemIdx + 1).padStart(2, "0")}
+                          </div>
+                        )}
+                        <EditableText
+                          tag="h2"
+                          className="font-semibold mb-2 text-lg leading-snug"
+                          style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                          value={item.title}
+                          editor={editor}
+                          onChange={(title) => {
+                            const next = items.map((it, i) => (i === itemIdx ? { ...it, title } : it));
+                            patchFeatures({ items: next });
+                          }}
+                        />
+                        <EditableText
+                          tag="p"
+                          className="text-sm leading-relaxed opacity-68"
+                          value={item.body}
+                          editor={editor}
+                          onChange={(body) => {
+                            const next = items.map((it, i) => (i === itemIdx ? { ...it, body } : it));
+                            patchFeatures({ items: next });
+                          }}
+                        />
+                        {item.href?.trim() && !editor?.inlineEdit ? (
+                          <p className="mt-4 text-sm font-semibold" style={{ color: accentColor }}>
+                            Learn more →
+                          </p>
+                        ) : null}
+                      </>
                     );
                     const tileClass = moodboard
                       ? `mays-world-moodboard__tile mays-world-moodboard__tile--${(itemIdx % 6) + 1}`
-                      : "kebu-card p-5";
-                    if (item.href?.trim() && !editor?.inlineEdit) {
+                      : "rounded-2xl p-6";
+                    const tileStyle = moodboard ? undefined : {
+                      background: theme.surface || (theme.background === "#0A0A0A" || theme.background === "#0D0D0D" ? "#161616" : "#fff"),
+                      border: "1px solid rgba(0,0,0,0.07)",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                    };
+                    if (!moodboard && item.href?.trim() && !editor?.inlineEdit) {
                       return (
                         <a
                           key={`${item.title}-${itemIdx}`}
                           href={item.href.trim()}
-                          className={`${tileClass} block transition-opacity hover:opacity-90`}
+                          className={`${tileClass} block transition-all hover:shadow-md`}
+                          style={tileStyle}
                         >
                           {card}
                         </a>
                       );
                     }
                     return (
-                      <div key={`${item.title}-${itemIdx}`} className={tileClass}>
+                      <div key={`${item.title}-${itemIdx}`} className={tileClass} style={tileStyle}>
                         {card}
                       </div>
                     );
@@ -878,16 +974,51 @@ export function SiteRenderer({
               </section>,
             );
           }
-          case "testimonials": {
-            const p = section.props as { heading?: string; items?: { quote: string; name: string }[] };
+          case “testimonials”: {
+            const p = section.props as { heading?: string; items?: { quote: string; name: string; role?: string }[] };
+            const items = p.items ?? [];
+            const accentColor = theme.accent || theme.primary;
             return wrap(
-              <section key={key} id={anchor} className="kebu-section px-5 max-w-4xl mx-auto scroll-mt-20">
-                <h2 className="text-2xl font-bold mb-6">{p.heading || "Testimonials"}</h2>
-                <div className="space-y-4">
-                  {(p.items ?? []).map((item) => (
-                    <blockquote key={item.name} className="kebu-card p-5">
-                      <p className="text-sm italic opacity-80">“{item.quote}”</p>
-                      <cite className="text-xs not-italic mt-2 block font-semibold">{item.name}</cite>
+              <section key={key} id={anchor} className=”kebu-section px-5 max-w-5xl mx-auto scroll-mt-20”>
+                <h2
+                  className=”text-2xl font-bold mb-10 tracking-tight”
+                  style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                >
+                  {p.heading || “What clients say”}
+                </h2>
+                <div className={`grid gap-5 ${items.length > 2 ? “sm:grid-cols-2 lg:grid-cols-3” : items.length === 2 ? “sm:grid-cols-2” : “”}`}>
+                  {items.map((item, i) => (
+                    <blockquote
+                      key={`${item.name}-${i}`}
+                      className=”relative rounded-2xl p-7 overflow-hidden”
+                      style={{
+                        background: theme.surface || (theme.background === “#0A0A0A” ? “#1A1A1A” : “#fff”),
+                        border: `1px solid ${accentColor}1A`,
+                        boxShadow: “0 1px 3px rgba(0,0,0,0.06)”,
+                      }}
+                    >
+                      <span
+                        className=”absolute top-2 left-4 text-8xl font-black leading-none select-none pointer-events-none”
+                        style={{ color: accentColor, opacity: 0.12 }}
+                        aria-hidden
+                      >
+                        “
+                      </span>
+                      <p className=”relative text-[15px] leading-relaxed” style={{ opacity: 0.82 }}>
+                        {item.quote}
+                      </p>
+                      <footer className=”mt-5 flex items-center gap-3”>
+                        <div
+                          className=”h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold”
+                          style={{ background: `${accentColor}22`, color: accentColor }}
+                        >
+                          {item.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <cite className=”not-italic text-sm font-semibold block”>{item.name}</cite>
+                          {item.role ? <span className=”text-xs opacity-55”>{item.role}</span> : null}
+                        </div>
+                      </footer>
                     </blockquote>
                   ))}
                 </div>

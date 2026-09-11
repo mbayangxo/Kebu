@@ -28,6 +28,8 @@ export function beautyStudioDistinctDefinition(): WebsiteDefinition {
       primary: "#3D2C2E",
       accent: "#C4786A",
       background: "#FBF7F4",
+      text: "#1A0E0F",
+      surface: "#fff",
       fontDisplay: "Cormorant Garamond",
       spacing: "airy",
     }),
@@ -36,6 +38,15 @@ export function beautyStudioDistinctDefinition(): WebsiteDefinition {
         slug: "home",
         title: "Home",
         sections: [
+          {
+            id: "bar",
+            type: "announcement-bar",
+            props: {
+              text: "New: Ritual skin assessment — 5,000 FCFA · Book on WhatsApp",
+              background: "#3D2C2E",
+              color: "#F7E4D8",
+            },
+          },
           {
             id: "nav",
             type: "navigation",
@@ -50,13 +61,39 @@ export function beautyStudioDistinctDefinition(): WebsiteDefinition {
           },
           {
             id: "hero",
-            type: "hero",
+            type: "editorial-hero",
             props: {
-              heading: "Glow that starts with care",
-              subheading: "Skin and hair rituals for Dakar weather — consult first, then treat.",
+              heading: "Glow that starts\nwith care.",
+              subheading: "Skin and hair rituals formulated for West African climate — consult first, then treat.",
+              buttonLabel: "Book a ritual",
+              buttonHref: "/book",
+              align: "left",
+              minHeight: "90vh",
+              overlayOpacity: 0.55,
+            },
+          },
+          {
+            id: "intro-split",
+            type: "split",
+            props: {
+              heading: "Beauty that belongs to you",
+              body: "We study your skin tone, climate, and lifestyle before touching a brush. Every ritual is personalised — no shelf products, no guesswork.",
               buttonLabel: "See rituals",
               buttonHref: "/rituals",
-              align: "left",
+              imagePosition: "right",
+              background: "#FBF7F4",
+            },
+          },
+          {
+            id: "services",
+            type: "features",
+            props: {
+              heading: "Rituals",
+              items: [
+                { title: "Skin assessment", body: "30 min deep-dive — every first visit starts here. FCFA 5,000 credited to your treatment." },
+                { title: "Glow facial", body: "Cleanse, steam, massage + broad-spectrum SPF for coastal sun." },
+                { title: "Protective styles", body: "Braids and locs by appointment — patch test required for colour." },
+              ],
             },
           },
           {
@@ -65,8 +102,9 @@ export function beautyStudioDistinctDefinition(): WebsiteDefinition {
             props: {
               heading: "Clients say",
               items: [
-                { quote: "My skin finally stopped reacting to the heat.", name: "Awa, Plateau" },
-                { quote: "Braids that lasted through rainy season.", name: "Fatou, Almadies" },
+                { quote: "My skin finally stopped reacting to the heat. I've tried everything else.", name: "Awa", role: "Plateau, Dakar" },
+                { quote: "Braids that lasted through the whole rainy season — not one strand out of place.", name: "Fatou", role: "Almadies" },
+                { quote: "The assessment changed how I think about my skincare. Worth every franc.", name: "Mariama", role: "Sacré-Cœur" },
               ],
             },
           },
@@ -75,7 +113,16 @@ export function beautyStudioDistinctDefinition(): WebsiteDefinition {
             type: "whatsapp",
             props: { label: "Ask about your skin", phone: "+221770000000", message: "Hi — I want a consultation." },
           },
-          { id: "footer", type: "footer", props: { text: "© Beauty Studio", links: [] } },
+          {
+            id: "newsletter",
+            type: "newsletter",
+            props: {
+              heading: "Rituals, recipes, reminders",
+              subheading: "Seasonal skin tips for Dakar weather, straight to your inbox.",
+              buttonLabel: "Stay in touch",
+            },
+          },
+          { id: "footer", type: "footer", props: { text: "© Beauty Studio · Dakar", links: [{ label: "Rituals", href: "/rituals" }, { label: "Gallery", href: "/gallery" }, { label: "Book", href: "/book" }] } },
         ],
       },
       {
@@ -163,6 +210,7 @@ export function artistGalleryDistinctDefinition(): WebsiteDefinition {
       accent: "#E8D5A3",
       background: "#0a0a0a",
       text: "#F5F5F0",
+      surface: "#161616",
       fontDisplay: "Oswald",
       spacing: "compact",
     }),
@@ -185,6 +233,30 @@ export function artistGalleryDistinctDefinition(): WebsiteDefinition {
             },
           },
           {
+            id: "hero",
+            type: "editorial-hero",
+            props: {
+              heading: "Art that refuses\nto disappear.",
+              subheading: "Selected works, open commissions, and upcoming exhibitions.",
+              buttonLabel: "View works",
+              buttonHref: "#gallery",
+              align: "left",
+              minHeight: "88vh",
+              overlayOpacity: 0.6,
+            },
+          },
+          {
+            id: "marquee",
+            type: "marquee",
+            props: {
+              items: ["Original works", "Limited editions", "Private commissions", "Studio visits by appointment"],
+              background: "#E8D5A3",
+              color: "#0a0a0a",
+              separator: " ✦ ",
+              speed: 35,
+            },
+          },
+          {
             id: "gal",
             type: "gallery",
             props: {
@@ -194,10 +266,35 @@ export function artistGalleryDistinctDefinition(): WebsiteDefinition {
                 { src: "", alt: "Work 2" },
                 { src: "", alt: "Work 3" },
                 { src: "", alt: "Work 4" },
+                { src: "", alt: "Work 5" },
+                { src: "", alt: "Work 6" },
               ],
             },
           },
-          { id: "footer", type: "footer", props: { text: "© Artist", links: [] } },
+          {
+            id: "about-split",
+            type: "split",
+            props: {
+              heading: "About the practice",
+              body: "Describe your medium, influences, and where you work. Collectors and curators read this section first — make it honest, not a résumé.",
+              buttonLabel: "Full story",
+              buttonHref: "/about",
+              imagePosition: "left",
+              background: "#111",
+            },
+          },
+          {
+            id: "proof",
+            type: "testimonials",
+            props: {
+              heading: "Collectors say",
+              items: [
+                { quote: "One of the most original voices coming out of West Africa right now. I bought three pieces.", name: "M. Diallo", role: "Collector, Dakar" },
+                { quote: "The commission process was clear and the work arrived immaculate.", name: "A. Camara", role: "Lagos" },
+              ],
+            },
+          },
+          { id: "footer", type: "footer", props: { text: "© Studio", links: [{ label: "Works", href: "/" }, { label: "Shows", href: "/shows" }, { label: "Contact", href: "/contact" }] } },
         ],
       },
       {
@@ -266,6 +363,7 @@ export function eventNightDistinctDefinition(): WebsiteDefinition {
       accent: "#A78BFA",
       background: "#0B0B0F",
       text: "#F8F7FF",
+      surface: "#14141A",
       fontDisplay: "Bebas Neue",
       spacing: "compact",
     }),
@@ -274,6 +372,15 @@ export function eventNightDistinctDefinition(): WebsiteDefinition {
         slug: "home",
         title: "Tonight",
         sections: [
+          {
+            id: "bar",
+            type: "announcement-bar",
+            props: {
+              text: "Early bird tickets available — limited spots · Reserve on WhatsApp now",
+              background: "#A78BFA",
+              color: "#0B0B0F",
+            },
+          },
           {
             id: "nav",
             type: "navigation",
@@ -288,13 +395,26 @@ export function eventNightDistinctDefinition(): WebsiteDefinition {
           },
           {
             id: "hero",
-            type: "hero",
+            type: "editorial-hero",
             props: {
-              heading: "One night. Unforgettable.",
-              subheading: "Doors 22:00 · 18+ · dress code smart casual",
+              heading: "One night.\nUnforgettable.",
+              subheading: "Doors 22:00 · 18+ · dress code: bold",
               buttonLabel: "Get tickets",
               buttonHref: "#tickets",
               align: "center",
+              minHeight: "95vh",
+              overlayOpacity: 0.5,
+            },
+          },
+          {
+            id: "marquee",
+            type: "marquee",
+            props: {
+              items: ["Live music", "DJ set", "Afrobeats · Afro-house · Amapiano", "Rooftop venue", "Limited capacity"],
+              background: "#A78BFA",
+              color: "#0B0B0F",
+              separator: " · ",
+              speed: 22,
             },
           },
           {
@@ -305,16 +425,23 @@ export function eventNightDistinctDefinition(): WebsiteDefinition {
               items: [
                 {
                   title: "Headliner",
-                  date: "2026-09-20",
+                  date: "Sep 20, 2026 — 23:30",
                   location: "Main stage",
-                  description: "Replace with your artist name and set time.",
+                  description: "Replace with your headliner name and set time.",
                   ticketUrl: "#tickets",
                 },
                 {
-                  title: "Support",
-                  date: "2026-09-20",
+                  title: "Support act",
+                  date: "Sep 20, 2026 — 22:00",
                   location: "Warm-up",
                   description: "Local openers — edit in the builder.",
+                  ticketUrl: "#tickets",
+                },
+                {
+                  title: "DJ closing set",
+                  date: "Sep 21, 2026 — 01:00",
+                  location: "After party",
+                  description: "Till late.",
                   ticketUrl: "#tickets",
                 },
               ],
@@ -340,7 +467,7 @@ export function eventNightDistinctDefinition(): WebsiteDefinition {
               zoom: 14,
             },
           },
-          { id: "footer", type: "footer", props: { text: "© Event Night", links: [] } },
+          { id: "footer", type: "footer", props: { text: "© Event Night", links: [{ label: "Line-up", href: "#lineup" }, { label: "Tickets", href: "#tickets" }] } },
         ],
       },
     ],
