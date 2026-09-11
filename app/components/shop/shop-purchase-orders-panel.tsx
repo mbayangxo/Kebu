@@ -302,7 +302,7 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
             </button>
           </div>
 
-          {saveError ? <p className="text-xs text-red-700">{saveError}</p> : null}
+          {saveError ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{saveError}</p> : null}
           <button
             type="submit"
             disabled={saving || !supplierName.trim()}

@@ -98,7 +98,7 @@ export function StudioVersionHistoryPanel({
         </p>
       </div>
 
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {missingMigration ? null : (
         <>
           {canEdit ? (

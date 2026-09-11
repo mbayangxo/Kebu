@@ -144,7 +144,7 @@ function PublicEventForm({ publicId }: { publicId: string }) {
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <h1 className="text-2xl font-bold">Event</h1>
-        <p className="mt-3 text-sm text-red-700">{error}</p>
+        <p className="mt-3 text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
       </main>
     );
   }
@@ -242,7 +242,7 @@ function PublicEventForm({ publicId }: { publicId: string }) {
             onChange={(e) => setQty(Number(e.target.value) || 1)}
             className="w-full rounded-xl border px-3 py-2.5 text-sm"
           />
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
           <button
             type="submit"
             disabled={busy}

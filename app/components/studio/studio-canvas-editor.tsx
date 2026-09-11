@@ -631,7 +631,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !selectedLayerIds.length}
           onClick={deleteSelected}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 text-red-700 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30" style={{ color: "#8B1E1E" }}
         >
           Delete
         </button>
@@ -813,7 +813,7 @@ export function StudioCanvasEditor({
                   className="hidden"
                   onChange={(e) => void onFilePicked(e.target.files?.[0] ?? null, "video")}
                 />
-                {uploadError ? <p className="text-[11px] text-red-700">{uploadError}</p> : null}
+                {uploadError ? <p className="text-[11px]" style={{ color: "#8B1E1E" }}>{uploadError}</p> : null}
                 <p className="text-[10px] leading-relaxed opacity-50">
                   Elements pack: structured icons, lines, and frames — editable layers, not freehand draw.
                 </p>
@@ -1403,7 +1403,7 @@ export function StudioCanvasEditor({
           type="button"
           onClick={() => removePage(activePageId)}
           disabled={readOnly || doc.pages.length <= 1}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 text-red-700 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30" style={{ color: "#8B1E1E" }}
         >
           Delete page
         </button>

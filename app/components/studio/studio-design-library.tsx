@@ -416,7 +416,7 @@ export function StudioDesignLibrary({
           {canDelete ? (
             <button
               type="button"
-              className="text-[11px] font-bold underline text-red-700"
+              className="text-[11px] font-bold underline" style={{ color: "#8B1E1E" }}
               disabled={busyId === d.id}
               onClick={() => void remove(d.id)}
             >
@@ -493,7 +493,7 @@ export function StudioDesignLibrary({
                   <button
                     type="button"
                     title="Delete folder"
-                    className="opacity-0 group-hover:opacity-100 text-[10px] px-1 text-red-700"
+                    className="opacity-0 group-hover:opacity-100 text-[10px] px-1" style={{ color: "#8B1E1E" }}
                     disabled={busyId === f.id}
                     onClick={() => void deleteFolder(f.id)}
                   >
@@ -549,7 +549,7 @@ export function StudioDesignLibrary({
           </Link>
         </div>
 
-        {error ? <p className="text-xs text-red-700">{error}</p> : null}
+        {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
 
         <section className="space-y-3">
           <h2 className="text-sm font-bold uppercase tracking-wider opacity-60">

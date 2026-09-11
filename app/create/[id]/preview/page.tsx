@@ -51,7 +51,7 @@ function ProjectPreviewInner() {
   if (embed) {
     return (
       <div className="min-h-screen bg-white">
-        {error ? <p className="p-6 text-sm text-red-700">{error}</p> : null}
+        {error ? <p className="p-6 text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
         {definition ? (
           <SiteRenderer
             definition={definition}

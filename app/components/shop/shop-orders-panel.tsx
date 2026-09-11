@@ -275,7 +275,7 @@ export function ShopOrdersPanel({
           Loading orders…
         </p>
       ) : error ? (
-        <p className="mt-3 text-sm text-red-700">{error}</p>
+        <p className="mt-3 text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
       ) : filtered.length === 0 ? (
         <p className="mt-3 text-sm" style={{ color: KEBU.muted }}>
           No orders in this view.
@@ -523,7 +523,7 @@ export function ShopOrdersPanel({
                         onClick={() =>
                           void patchOrder(order.id, { action: "status", status: "cancelled" })
                         }
-                        className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-700 disabled:opacity-50"
+                        className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50" style={{ color: "#8B1E1E" }}
                         style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
                       >
                         Cancel

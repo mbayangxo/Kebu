@@ -65,7 +65,7 @@ export function StudioUploadsLibrary({
           Refresh
         </button>
       </div>
-      {error ? <p className="text-[11px] text-red-700">{error}</p> : null}
+      {error ? <p className="text-[11px]" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {uploads.length === 0 ? (
         <p className="text-[10px] opacity-50 leading-relaxed">
           Images and videos you upload appear here for reuse. Apply migration 073 if this stays empty after

@@ -168,7 +168,7 @@ export function ShopAbandonedCartsPanel({
           Loading abandoned carts…
         </p>
       ) : error ? (
-        <p className="mt-3 text-sm text-red-700">{error}</p>
+        <p className="mt-3 text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
       ) : drafts.length === 0 ? (
         <p className="mt-3 text-sm" style={{ color: KEBU.muted }}>
           No abandoned carts yet. Publish a site with a Products section, add products, then have someone

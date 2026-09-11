@@ -107,7 +107,7 @@ export function ShopCustomersPanel({
           Loading customers…
         </p>
       ) : error ? (
-        <p className="text-sm text-red-700">{error}</p>
+        <p className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
       ) : customers.length === 0 ? (
         <p className="text-sm" style={{ color: KEBU.muted }}>
           No customers yet. Publish and take an order (email optional but helps profiles).

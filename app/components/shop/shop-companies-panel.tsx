@@ -161,7 +161,7 @@ export function ShopCompaniesPanel({ projectId }: { projectId: string }) {
             </div>
           </div>
           {saveError ? (
-            <p className="text-xs text-red-700">{saveError}</p>
+            <p className="text-xs" style={{ color: "#8B1E1E" }}>{saveError}</p>
           ) : null}
           <button
             type="submit"
