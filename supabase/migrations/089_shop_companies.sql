@@ -34,7 +34,7 @@ create policy "shop_companies_select" on shop_companies
     exists (
       select 1 from projects p
       where p.id = shop_companies.project_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -45,7 +45,7 @@ create policy "shop_companies_insert" on shop_companies
     exists (
       select 1 from projects p
       where p.id = shop_companies.project_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -56,7 +56,7 @@ create policy "shop_companies_update" on shop_companies
     exists (
       select 1 from projects p
       where p.id = shop_companies.project_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -67,7 +67,7 @@ create policy "shop_companies_delete" on shop_companies
     exists (
       select 1 from projects p
       where p.id = shop_companies.project_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )

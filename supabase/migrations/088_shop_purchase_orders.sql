@@ -46,7 +46,7 @@ create policy "shop_po_select" on shop_purchase_orders
     exists (
       select 1 from projects p
       where p.id = shop_purchase_orders.project_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -57,7 +57,7 @@ create policy "shop_po_insert" on shop_purchase_orders
     exists (
       select 1 from projects p
       where p.id = shop_purchase_orders.project_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -68,7 +68,7 @@ create policy "shop_po_update" on shop_purchase_orders
     exists (
       select 1 from projects p
       where p.id = shop_purchase_orders.project_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -79,7 +79,7 @@ create policy "shop_po_delete" on shop_purchase_orders
     exists (
       select 1 from projects p
       where p.id = shop_purchase_orders.project_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -92,7 +92,7 @@ create policy "shop_po_items_select" on shop_purchase_order_items
       select 1 from shop_purchase_orders po
       join projects p on p.id = po.project_id
       where po.id = shop_purchase_order_items.purchase_order_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -104,7 +104,7 @@ create policy "shop_po_items_insert" on shop_purchase_order_items
       select 1 from shop_purchase_orders po
       join projects p on p.id = po.project_id
       where po.id = shop_purchase_order_items.purchase_order_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -116,7 +116,7 @@ create policy "shop_po_items_update" on shop_purchase_order_items
       select 1 from shop_purchase_orders po
       join projects p on p.id = po.project_id
       where po.id = shop_purchase_order_items.purchase_order_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
@@ -128,7 +128,7 @@ create policy "shop_po_items_delete" on shop_purchase_order_items
       select 1 from shop_purchase_orders po
       join projects p on p.id = po.project_id
       where po.id = shop_purchase_order_items.purchase_order_id
-        and (p.user_id = auth.uid() or exists (
+        and (p.owner_id = auth.uid() or exists (
           select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
         ))
     )
