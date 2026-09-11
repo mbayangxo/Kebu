@@ -5,6 +5,50 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { designsInFolderView, type StudioFolder } from "@/lib/studio/folders";
 
+const FORMAT_ACCENTS: Record<string, string> = {
+  instagram_post: "#E1306C",
+  instagram_story: "#FF5500",
+  poster: "#9333EA",
+  flyer: "#0EA5E9",
+  business_card: "#10B981",
+  banner: "#F59E0B",
+  whatsapp_status: "#25D366",
+  social_square: "#6366F1",
+};
+
+const FORMAT_ASPECT: Record<string, number> = {
+  instagram_story: 9 / 16,
+  whatsapp_status: 9 / 16,
+  instagram_post: 1,
+  social_square: 1,
+  facebook_post: 1,
+  poster: 900 / 1200,
+  flyer: 816 / 1056,
+  banner: 1500 / 500,
+  business_card: 1050 / 600,
+};
+
+function MiniThumb({ type }: { type: string }) {
+  const accent = FORMAT_ACCENTS[type] ?? "#FF5500";
+  const aspect = FORMAT_ASPECT[type] ?? 1;
+  const w = 80;
+  const h = Math.min(Math.round(w / aspect), 100);
+  const id = accent.replace("#", "") + type.slice(0, 4);
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: "block", borderRadius: 4, flexShrink: 0 }}>
+      <defs>
+        <linearGradient id={`mt${id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={accent} stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#050505" stopOpacity="0.96" />
+        </linearGradient>
+      </defs>
+      <rect width={w} height={h} fill={`url(#mt${id})`} />
+      <rect x="8" y={h * 0.25} width={w * 0.5} height="4" rx="2" fill="white" fillOpacity="0.7" />
+      <rect x="8" y={h * 0.4} width={w * 0.33} height="3" rx="1.5" fill="white" fillOpacity="0.4" />
+    </svg>
+  );
+}
+
 type DesignRow = {
   id: string;
   title: string;
@@ -263,8 +307,28 @@ export function StudioDesignLibrary({
 
   function DesignCard({ d, canDelete }: { d: DesignRow; canDelete: boolean }) {
     const renaming = renamingId === d.id;
+    const accent = FORMAT_ACCENTS[d.design_type] ?? "#FF5500";
     return (
-      <div className="rounded-2xl border border-black/10 bg-white p-4 hover:shadow-md transition-shadow flex flex-col gap-2">
+      <div
+        className="rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5 flex flex-col"
+        style={{
+          background: "#fff",
+          border: `2px solid #0A0A0A`,
+          boxShadow: "2px 2px 0 rgba(10,10,10,1)",
+        }}
+      >
+        {/* Thumbnail area */}
+        {!renaming ? (
+          <Link
+            href={`/studio/${d.id}`}
+            className="flex items-center justify-center py-4"
+            style={{ background: `${accent}0A` }}
+          >
+            <MiniThumb type={d.design_type} />
+          </Link>
+        ) : null}
+
+        <div className="p-3 flex flex-col gap-2 flex-1">
         {renaming ? (
           <form
             className="space-y-2"
@@ -291,15 +355,15 @@ export function StudioDesignLibrary({
           </form>
         ) : (
           <Link href={`/studio/${d.id}`} className="block min-w-0">
-            <p className="font-semibold truncate">{d.title}</p>
-            <p className="text-xs text-muted mt-1 capitalize">{d.design_type.replace(/_/g, " ")}</p>
+            <p className="font-bold text-sm truncate" style={{ color: "#0A0A0A" }}>{d.title}</p>
+            <p className="text-[10px] mt-0.5 capitalize" style={{ color: "#5C5348" }}>{d.design_type.replace(/_/g, " ")}</p>
             {d.accessRole !== "owner" ? (
-              <p className="text-[10px] font-semibold text-orange-700 mt-1">
+              <p className="text-[9px] font-black uppercase tracking-wide mt-1" style={{ color: "#FF5500" }}>
                 {d.accessRole === "editor" ? "Can edit" : "View only"}
               </p>
             ) : null}
-            <p className="text-[10px] text-muted mt-2">
-              Updated {new Date(d.updated_at).toLocaleDateString()}
+            <p className="text-[10px] mt-1" style={{ color: "#8A8074" }}>
+              {new Date(d.updated_at).toLocaleDateString()}
             </p>
           </Link>
         )}
@@ -359,6 +423,7 @@ export function StudioDesignLibrary({
               Delete
             </button>
           ) : null}
+        </div>
         </div>
       </div>
     );
@@ -495,29 +560,35 @@ export function StudioDesignLibrary({
                 : folders.find((f) => f.id === folderView)?.name ?? "Folder"}
           </h2>
           {ownedFiltered.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-black/15 p-10 text-center bg-white">
-              <p className="text-lg font-semibold mb-2">{query ? "No matches" : "No designs here yet"}</p>
-              <p className="text-sm text-muted mb-6">
-                Start blank, from a template, or with an AI campaign pack.
+            <div
+              className="rounded-2xl border border-dashed p-10 text-center"
+              style={{ borderColor: "rgba(10,10,10,0.15)", background: "#fff" }}
+            >
+              <p className="font-black text-base mb-2" style={{ color: "#0A0A0A" }}>
+                {query ? "No matches" : "No designs here yet"}
+              </p>
+              <p className="text-sm mb-6" style={{ color: "#5C5348" }}>
+                Start blank, from a template, or let AI generate a campaign pack.
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 <Link
                   href="/studio/new"
-                  className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold text-white"
-                  style={{ background: "#0F0D33" }}
+                  className="inline-flex rounded-full px-5 py-2.5 text-sm font-black text-white uppercase tracking-wide"
+                  style={{ background: "#FF5500" }}
                 >
-                  Create blank / AI
+                  + New design
                 </Link>
                 <Link
                   href="/studio/templates"
-                  className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold border border-black/10 bg-white"
+                  className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold border"
+                  style={{ borderColor: "rgba(10,10,10,0.15)", background: "#fff", color: "#0A0A0A" }}
                 >
                   Templates
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {ownedFiltered.map((d) => (
                 <DesignCard key={d.id} d={d} canDelete />
               ))}
