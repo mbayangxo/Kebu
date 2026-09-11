@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
+import { Skeleton } from "@/app/components/kebu-skeleton";
 import { KEBU } from "@/lib/kebu-brand";
 
 type Listing = {
@@ -56,7 +57,27 @@ export default function B2bDirectoryPage() {
           live in Kebu Builder with your own domain.
         </p>
 
-        {loading ? <p className="text-muted">Loading…</p> : null}
+        {loading ? (
+          <div className="grid sm:grid-cols-2 gap-4 mb-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${KEBU.border}`, background: KEBU.white }}>
+                <Skeleton height={112} radius={0} />
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton width={40} height={40} radius={8} style={{ flexShrink: 0 }} />
+                    <div className="flex-1">
+                      <Skeleton height={14} width="60%" style={{ marginBottom: 6 }} />
+                      <Skeleton height={10} width="40%" />
+                    </div>
+                  </div>
+                  <Skeleton height={13} width="80%" />
+                  <Skeleton height={11} width="100%" />
+                  <Skeleton height={11} width="70%" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {error ? (
           <div className="rounded-xl p-4 text-sm" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
             {error}

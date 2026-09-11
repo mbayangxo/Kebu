@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { OpportunityOsShell } from "@/app/components/opportunity/opportunity-os-shell";
 import { OpportunityCard } from "@/app/components/opportunity-card";
+import { Skeleton } from "@/app/components/kebu-skeleton";
 import { KEBU } from "@/lib/kebu-brand";
 import type { FundingType, Opportunity, Sector } from "@/lib/types";
 
@@ -107,9 +108,21 @@ export default function OpportunityListingsPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm" style={{ color: KEBU.muted }}>
-          Loading listings…
-        </p>
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+              <div className="flex gap-3 mb-3">
+                <Skeleton width={48} height={48} radius={10} style={{ flexShrink: 0 }} />
+                <div className="flex-1">
+                  <Skeleton height={14} width="55%" style={{ marginBottom: 8 }} />
+                  <Skeleton height={11} width="35%" />
+                </div>
+              </div>
+              <Skeleton height={12} width="90%" style={{ marginBottom: 6 }} />
+              <Skeleton height={12} width="70%" />
+            </div>
+          ))}
+        </div>
       ) : error ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">
           <p className="font-semibold mb-2">{error}</p>

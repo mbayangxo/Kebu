@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { OpportunityOsShell } from "@/app/components/opportunity/opportunity-os-shell";
 import { CountryExplorerMosaic, type CountryCardData } from "@/app/components/opportunity/country-explorer-card";
 import { HopeStoryCard, PersonalizedPlanCard } from "@/app/components/opportunity/hope-story-card";
+import { Skeleton } from "@/app/components/kebu-skeleton";
 import { KEBU } from "@/lib/kebu-brand";
 import type { OpportunityProfile } from "@/lib/opportunity/intake-schema";
 
@@ -57,10 +58,29 @@ export default function OpportunityOsHubPage() {
 
   if (loading) {
     return (
-      <OpportunityOsShell title="Opportunity OS" headline="Loading your Africa…" subhead="">
-        <p className="text-sm" style={{ color: KEBU.muted }}>
-          Preparing personalized opportunities…
-        </p>
+      <OpportunityOsShell title="Opportunity OS" headline="Opportunity OS" subhead="">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="rounded-2xl p-4" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <Skeleton height={11} width="50%" style={{ marginBottom: 8 }} />
+                <Skeleton height={32} width="65%" style={{ marginBottom: 6 }} />
+                <Skeleton height={10} width="40%" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl p-4 flex gap-4" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                <Skeleton width={40} height={40} radius={20} style={{ flexShrink: 0 }} />
+                <div className="flex-1">
+                  <Skeleton height={13} width="60%" style={{ marginBottom: 8 }} />
+                  <Skeleton height={11} width="80%" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </OpportunityOsShell>
     );
   }
