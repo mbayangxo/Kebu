@@ -46,6 +46,7 @@ const VALID_TABS = new Set([
   "subscriptions","markets","apps","team",
 ]);
 
+
 function parseTab(raw: string | null): string {
   return raw && VALID_TABS.has(raw) ? raw : "overview";
 }
@@ -53,11 +54,11 @@ function parseTab(raw: string | null): string {
 function parseSub(tab: string, raw: string | null): string {
   if (!raw) return "";
   const VALID_SUBS: Record<string, Set<string>> = {
-    orders:    new Set(["all","drafts","shipping"]),
+    orders:    new Set(["all","customer","company","drafts","shipping"]),
     customers: new Set(["all","segments","companies"]),
-    analytics: new Set(["overview","payouts","expenses"]),
+    analytics: new Set(["overview","analytics","payouts","expenses"]),
     products:  new Set(["all","purchase-orders"]),
-    reviews:   new Set(["all","requests"]),
+    reviews:   new Set(["all"]),
   };
   return VALID_SUBS[tab]?.has(raw) ? raw : "";
 }
