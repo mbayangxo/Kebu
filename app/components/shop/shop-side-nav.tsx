@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { NavCounts } from "@/app/api/projects/[id]/nav-counts/route";
 
 /* ─── icons ─────────────────────────────────────────────────────────────── */
 function Icon({ d, size = 18 }: { d: string; size?: number }) {
@@ -22,6 +23,7 @@ const ICONS = {
   collapse:  "M15 18l-6-6 6-6",
   expand:    "M9 18l6-6-6-6",
   chevron:   "M9 18l6-6-6-6",
+  alert:     "M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z",
 } as const;
 
 /* ─── nav structure ──────────────────────────────────────────────────────── */
@@ -37,7 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "home",
     icon: "home",
-    label: "Home",
+    label: "Today",
     items: [{ tab: "overview", label: "Overview" }],
   },
   {
@@ -47,7 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { tab: "orders",       sub: "all",    label: "All orders" },
       { tab: "orders",       sub: "drafts", label: "Drafts" },
-      { tab: "abandoned",                   label: "Abandoned" },
+      { tab: "abandoned",                   label: "Abandoned carts" },
       { tab: "subscriptions",               label: "Subscriptions" },
     ],
   },
@@ -71,8 +73,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { tab: "customers", sub: "segments",  label: "Segments" },
       { tab: "customers", sub: "companies", label: "Companies" },
       { tab: "messages",                    label: "Messages" },
-      { tab: "reviews",   sub: "all",       label: "Reviews" },
-      { tab: "reviews",   sub: "requests",  label: "Review requests" },
     ],
   },
   {
@@ -80,11 +80,11 @@ export const NAV_GROUPS: NavGroup[] = [
     icon: "money",
     label: "Money",
     items: [
-      { tab: "analytics", sub: "overview",       label: "Overview" },
-      { tab: "payments",                          label: "Payments" },
-      { tab: "analytics", sub: "payouts",         label: "Payouts" },
-      { tab: "analytics", sub: "expenses",        label: "Expenses" },
-      { tab: "products",  sub: "purchase-orders", label: "Purchase orders" },
+      { tab: "analytics", sub: "overview",        label: "Analytics" },
+      { tab: "payments",                           label: "Payments" },
+      { tab: "analytics", sub: "payouts",          label: "Payouts" },
+      { tab: "analytics", sub: "expenses",         label: "Expenses" },
+      { tab: "products",  sub: "purchase-orders",  label: "Purchase orders" },
     ],
   },
   {
@@ -102,6 +102,101 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+/* ─── badge counts per group/item ────────────────────────────────────────── */
+function groupBadge(groupId: string, counts: NavCounts): number {
+  switch (groupId) {
+    case "orders":   return counts.pendingOrders;
+    case "products": return counts.lowStockItems;
+    case "people":   return counts.unreadMessages;
+    case "money":    return counts.paymentIssues;
+    default:         return 0;
+  }
+}
+
+function itemBadge(item: NavItem, counts: NavCounts): number {
+  if (item.tab === "orders" && !item.sub)          return counts.pendingOrders;
+  if (item.tab === "orders" && item.sub === "all") return counts.pendingOrders;
+  if (item.tab === "orders" && item.sub === "drafts") return counts.draftOrders;
+  if (item.tab === "abandoned")                    return counts.abandonedCarts;
+  if (item.tab === "messages")                     return counts.unreadMessages;
+  if (item.tab === "payments")                     return counts.paymentIssues;
+  return 0;
+}
+
+function isWarning(groupId: string, counts: NavCounts): boolean {
+  if (groupId === "products" && counts.lowStockItems > 0) return true;
+  if (groupId === "money" && counts.paymentIssues > 0) return true;
+  return false;
+}
+
+/* ─── small badge pill ───────────────────────────────────────────────────── */
+function Badge({ count, warn }: { count: number; warn?: boolean }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className="shop-sidenav-badge"
+      style={{
+        background: warn ? "#FF5500" : "#FF5500",
+        color: "#fff",
+        fontSize: "0.65rem",
+        fontWeight: 700,
+        lineHeight: 1,
+        padding: "2px 5px",
+        borderRadius: 999,
+        minWidth: 18,
+        textAlign: "center",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+/* ─── today stats strip ──────────────────────────────────────────────────── */
+function TodayStrip({ counts }: { counts: NavCounts }) {
+  if (counts.todayOrders === 0 && counts.todayRevenue === 0) return null;
+  const fmt = new Intl.NumberFormat("fr-SN", { maximumFractionDigits: 0 });
+  return (
+    <div className="shop-sidenav-today">
+      <div className="shop-sidenav-today-row">
+        <span className="shop-sidenav-today-label">Today&apos;s orders</span>
+        <span className="shop-sidenav-today-value">{counts.todayOrders}</span>
+      </div>
+      <div className="shop-sidenav-today-row">
+        <span className="shop-sidenav-today-label">Revenue</span>
+        <span className="shop-sidenav-today-value">
+          {fmt.format(counts.todayRevenue)} {counts.currency}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── alert bar ──────────────────────────────────────────────────────────── */
+function AlertBar({ counts }: { counts: NavCounts }) {
+  const alerts: string[] = [];
+  if (counts.pendingOrders > 0)
+    alerts.push(`${counts.pendingOrders} order${counts.pendingOrders > 1 ? "s" : ""} to fulfil`);
+  if (counts.lowStockItems > 0)
+    alerts.push(`${counts.lowStockItems} low stock`);
+  if (counts.paymentIssues > 0)
+    alerts.push(`${counts.paymentIssues} payment issue${counts.paymentIssues > 1 ? "s" : ""}`);
+  if (alerts.length === 0) return null;
+  return (
+    <div className="shop-sidenav-alerts">
+      {alerts.map((a) => (
+        <div key={a} className="shop-sidenav-alert-item">
+          <Icon d={ICONS.alert} size={11} />
+          <span>{a}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ─── helpers ────────────────────────────────────────────────────────────── */
 function itemActive(item: NavItem, tab: string, sub: string): boolean {
   if (item.tab !== tab) return false;
@@ -117,11 +212,17 @@ function findActiveGroupId(tab: string, sub: string): string | null {
   return NAV_GROUPS.find((g) => groupActive(g, tab, sub))?.id ?? null;
 }
 
+const EMPTY_COUNTS: NavCounts = {
+  pendingOrders: 0, draftOrders: 0, abandonedCarts: 0,
+  unreadMessages: 0, lowStockItems: 0, paymentIssues: 0,
+  todayRevenue: 0, todayOrders: 0, currency: "XOF",
+};
+
 /* ─── component ──────────────────────────────────────────────────────────── */
 export function ShopSideNav({
   tab,
   sub,
-  projectId: _projectId,
+  projectId,
   title,
   onNavigate,
 }: {
@@ -132,14 +233,24 @@ export function ShopSideNav({
   onNavigate: (tab: string, sub?: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  // Only one group open at a time — starts with whichever is active
   const [openGroup, setOpenGroup] = useState<string | null>(() => findActiveGroupId(tab, sub));
+  const [counts, setCounts] = useState<NavCounts>(EMPTY_COUNTS);
 
-  // When URL navigation changes (e.g. breadcrumb click), open the right group
+  // Auto-open correct group on external navigation
   useEffect(() => {
     const id = findActiveGroupId(tab, sub);
     if (id) setOpenGroup(id);
   }, [tab, sub]);
+
+  // Fetch badge counts
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/projects/${projectId}/nav-counts`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (!cancelled && data) setCounts(data as NavCounts); })
+      .catch(() => {/* non-critical — badges just stay empty */});
+    return () => { cancelled = true; };
+  }, [projectId]);
 
   function handleGroupClick(group: NavGroup) {
     if (collapsed) {
@@ -147,14 +258,12 @@ export function ShopSideNav({
       setOpenGroup(group.id);
       return;
     }
-    // Single-item groups navigate directly
     if (group.items.length === 1) {
       const item = group.items[0]!;
       onNavigate(item.tab, item.sub);
       setOpenGroup(group.id);
       return;
     }
-    // Toggle: open if closed, close if already open
     setOpenGroup((prev) => (prev === group.id ? null : group.id));
   }
 
@@ -177,11 +286,19 @@ export function ShopSideNav({
         </div>
       )}
 
+      {/* today stats */}
+      {!collapsed && <TodayStrip counts={counts} />}
+
+      {/* alert bar */}
+      {!collapsed && <AlertBar counts={counts} />}
+
       {/* nav groups */}
       <nav className="shop-sidenav-nav">
         {NAV_GROUPS.map((group) => {
           const active = groupActive(group, tab, sub);
           const open = !collapsed && openGroup === group.id;
+          const badge = groupBadge(group.id, counts);
+          const warn = isWarning(group.id, counts);
 
           return (
             <div key={group.id} className="shop-sidenav-group">
@@ -198,16 +315,30 @@ export function ShopSideNav({
                 {!collapsed && (
                   <>
                     <span className="shop-sidenav-group-label">{group.label}</span>
-                    {group.items.length > 1 && (
-                      <span
-                        className="shop-sidenav-chevron"
-                        data-open={open ? "" : undefined}
-                        style={{ transition: "transform 0.18s ease" }}
-                      >
-                        <Icon d={ICONS.chevron} size={13} />
-                      </span>
-                    )}
+                    <span className="shop-sidenav-group-right">
+                      <Badge count={badge} warn={warn} />
+                      {group.items.length > 1 && (
+                        <span
+                          className="shop-sidenav-chevron"
+                          data-open={open ? "" : undefined}
+                          style={{ transition: "transform 0.18s ease" }}
+                        >
+                          <Icon d={ICONS.chevron} size={13} />
+                        </span>
+                      )}
+                    </span>
                   </>
+                )}
+                {/* collapsed badge dot */}
+                {collapsed && badge > 0 && (
+                  <span
+                    style={{
+                      position: "absolute", top: 6, right: 6,
+                      width: 7, height: 7, borderRadius: "50%",
+                      background: "#FF5500",
+                    }}
+                    aria-hidden
+                  />
                 )}
               </button>
 
@@ -215,6 +346,7 @@ export function ShopSideNav({
                 <ul className="shop-sidenav-children">
                   {group.items.map((item) => {
                     const itemOn = itemActive(item, tab, sub);
+                    const itemCount = itemBadge(item, counts);
                     return (
                       <li key={`${item.tab}-${item.sub ?? ""}`}>
                         <button
@@ -223,7 +355,8 @@ export function ShopSideNav({
                           data-active={itemOn ? "" : undefined}
                           onClick={() => handleItemClick(item)}
                         >
-                          {item.label}
+                          <span style={{ flex: 1 }}>{item.label}</span>
+                          <Badge count={itemCount} />
                         </button>
                       </li>
                     );

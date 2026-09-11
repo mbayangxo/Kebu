@@ -593,6 +593,51 @@ input:focus, select:focus, textarea:focus {
 .shop-sidenav-collapse-btn:hover { color: var(--ink); }
 .shop-sidenav[data-collapsed] .shop-sidenav-collapse-btn { justify-content: center; }
 
+/* Today stats strip */
+.shop-sidenav-today {
+  margin: 0 10px 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #FFF0E8;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.shop-sidenav-today-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.shop-sidenav-today-label { font-size: 0.72rem; color: #8A6050; letter-spacing: 0.01em; }
+.shop-sidenav-today-value { font-size: 0.78rem; font-weight: 700; color: #FF5500; white-space: nowrap; }
+
+/* Alert bar */
+.shop-sidenav-alerts { margin: 0 10px 6px; display: flex; flex-direction: column; gap: 3px; }
+.shop-sidenav-alert-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #C04000;
+  background: #FFF0E8;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border-left: 3px solid #FF5500;
+}
+
+/* Group right slot (badge + chevron) */
+.shop-sidenav-group-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Child button flex layout (label + badge) */
+.shop-sidenav-child-btn { display: flex; align-items: center; width: 100%; }
+
 /* ── Main content area ────────────────────────────────────────────────────── */
 .shop-main {
   flex: 1;
