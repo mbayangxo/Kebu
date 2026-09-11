@@ -30,7 +30,6 @@ import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
-import { BuilderSiteCommandBar } from "@/app/components/create/builder-site-command-bar";
 import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
@@ -1307,12 +1306,12 @@ export default function ProjectEditorPage() {
             <aside
               className={`${
                 leftPanelOpen ? "relative w-[280px] max-w-[92vw]" : "hidden"
-              } shrink-0 overflow-y-auto border-r`}
+              } shrink-0 min-h-0 overflow-y-auto border-r`}
               style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
             >
 
               {sidebarTab === "pages" && project ? (
-                <div className="px-4 py-4">
+                <div className="px-3 py-3">
                 <BuilderPagesPanel
                   projectId={projectId}
                   pages={pages}
@@ -1556,9 +1555,9 @@ export default function ProjectEditorPage() {
                 </div>
               ) : (
                 /* Header shown when no section is selected */
-                <div className="border-b px-4 py-4" style={{ borderColor: BUILDER.border }}>
-                  <p className="text-[14px] font-semibold" style={{ color: BUILDER.ink }}>Sections</p>
-                  <p className="mt-0.5 text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                <div className="border-b px-3 py-2.5" style={{ borderColor: BUILDER.border }}>
+                  <p className="text-[13px] font-semibold" style={{ color: BUILDER.ink }}>Sections</p>
+                  <p className="text-[11px] leading-tight" style={{ color: BUILDER.muted }}>
                     Header · Template · Footer
                   </p>
                 </div>
@@ -3896,44 +3895,6 @@ export default function ProjectEditorPage() {
                 )}
                 </div>
               </div>
-              {canvasDefinition ? (
-                <BuilderSiteCommandBar
-                  value={improveInstruction}
-                  onChange={setImproveInstruction}
-                  mode={improveMode}
-                  onModeChange={setImproveMode}
-                  onPreview={() => void previewWithAi()}
-                  onApply={() => void applyAiPreview()}
-                  onDiscard={discardAiPreview}
-                  busy={improving}
-                  device={device}
-                  preview={aiPreview ? { intents: aiPreview.intents, repaired: aiPreview.repaired } : null}
-                  sectionChanges={aiPreview?.sectionChanges}
-                  acceptedSectionIds={aiPreview?.acceptedSectionIds}
-                  onToggleSection={(sectionId) => {
-                    setAiPreview((prev) => {
-                      if (!prev) return prev;
-                      const next = new Set(prev.acceptedSectionIds);
-                      if (next.has(sectionId)) next.delete(sectionId);
-                      else next.add(sectionId);
-                      return { ...prev, acceptedSectionIds: next };
-                    });
-                  }}
-                  onSelectAllSections={() => {
-                    setAiPreview((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
-                          }
-                        : prev,
-                    );
-                  }}
-                  onClearAllSections={() => {
-                    setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
-                  }}
-                />
-              ) : null}
             </section>
           </>
         )}
@@ -3996,6 +3957,37 @@ export default function ProjectEditorPage() {
                   </svg>
                 </button>
               </div>
+
+              {/* Mode selector */}
+              {!aiPreview ? (
+                <div
+                  className="flex shrink-0 flex-wrap gap-1 border-b px-3 py-2"
+                  style={{ borderColor: "#E5E5E5" }}
+                >
+                  {(
+                    [
+                      ["free", "Improve"],
+                      ["redesign", "Redesign"],
+                      ["page", "Page"],
+                      ["rewrite", "Rewrite"],
+                      ["convert", "Convert"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setImproveMode(id)}
+                      className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+                      style={{
+                        background: improveMode === id ? BUILDER.ink : "#F0F0F0",
+                        color: improveMode === id ? "#fff" : BUILDER.muted,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
               {/* AI preview panel when active */}
               {aiPreview ? (
