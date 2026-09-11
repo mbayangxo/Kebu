@@ -10,10 +10,16 @@ import { ShopOrdersPanel } from "@/app/components/shop/shop-orders-panel";
 import { ShopPaymentsPanel } from "@/app/components/shop/shop-payments-panel";
 import { ShopPagesPanel } from "@/app/components/shop/shop-pages-panel";
 import { ShopCustomersPanel } from "@/app/components/shop/shop-customers-panel";
+import { ShopSegmentsPanel } from "@/app/components/shop/shop-segments-panel";
+import { ShopCompaniesPanel } from "@/app/components/shop/shop-companies-panel";
+import { ShopDraftOrdersPanel } from "@/app/components/shop/shop-draft-orders-panel";
+import { ShopShippingPanel } from "@/app/components/shop/shop-shipping-panel";
 import { ShopDiscountsPanel } from "@/app/components/shop/shop-discounts-panel";
 import { ShopAbandonedCartsPanel } from "@/app/components/shop/shop-abandoned-carts-panel";
 import { ShopMessagesPanel } from "@/app/components/shop/shop-messages-panel";
 import { ShopAnalyticsPanel } from "@/app/components/shop/shop-analytics-panel";
+import { ShopPayoutsPanel } from "@/app/components/shop/shop-payouts-panel";
+import { ShopExpensesPanel } from "@/app/components/shop/shop-expenses-panel";
 import { ShopSellAnywherePanel } from "@/app/components/shop/shop-sell-anywhere-panel";
 import { ShopGiftCardsPanel } from "@/app/components/shop/shop-gift-cards-panel";
 import { ShopReviewsPanel } from "@/app/components/shop/shop-reviews-panel";
@@ -21,6 +27,9 @@ import { ShopSubscriptionsPanel } from "@/app/components/shop/shop-subscriptions
 import { ShopOverviewPanel } from "@/app/components/shop/shop-overview-panel";
 import { ShopStoreSwitcher } from "@/app/components/shop/shop-store-switcher";
 import { ShopNotificationsBell } from "@/app/components/shop/shop-notifications-bell";
+import { ShopMarketsPanel } from "@/app/components/shop/shop-markets-panel";
+import { ShopAppsPanel } from "@/app/components/shop/shop-apps-panel";
+import { ShopPurchaseOrdersPanel } from "@/app/components/shop/shop-purchase-orders-panel";
 import { BusinessTeamPanel } from "@/app/components/business/business-team-panel";
 import { mergeSiteCommerce, type SiteCommerce } from "@/lib/create/site-commerce";
 import { liveSiteUrl } from "@/lib/create/site-urls";
@@ -45,6 +54,8 @@ type ShopTab =
   | "gift-cards"
   | "reviews"
   | "subscriptions"
+  | "markets"
+  | "apps"
   | "team";
 
 const TABS: { id: ShopTab; label: string }[] = [
@@ -54,17 +65,43 @@ const TABS: { id: ShopTab; label: string }[] = [
   { id: "pages", label: "Pages" },
   { id: "orders", label: "Orders" },
   { id: "analytics", label: "Analytics" },
+  { id: "customers", label: "Customers" },
+  { id: "markets", label: "Markets" },
   { id: "gift-cards", label: "Gift cards" },
   { id: "reviews", label: "Reviews" },
   { id: "subscriptions", label: "Subscriptions" },
+  { id: "discounts", label: "Discounts" },
   { id: "sell", label: "Sell anywhere" },
+  { id: "apps", label: "Apps" },
   { id: "messages", label: "Messages" },
   { id: "abandoned", label: "Abandoned" },
-  { id: "customers", label: "Customers" },
-  { id: "discounts", label: "Discounts" },
   { id: "payments", label: "Payments" },
   { id: "team", label: "Team" },
 ];
+
+// Sub-tab configs per main tab
+type SubTab = { id: string; label: string };
+const SUB_TABS: Partial<Record<ShopTab, SubTab[]>> = {
+  customers: [
+    { id: "all", label: "All customers" },
+    { id: "segments", label: "Segments" },
+    { id: "companies", label: "Companies" },
+  ],
+  orders: [
+    { id: "all", label: "All orders" },
+    { id: "drafts", label: "Drafts" },
+    { id: "shipping", label: "Shipping" },
+  ],
+  analytics: [
+    { id: "overview", label: "Overview" },
+    { id: "payouts", label: "Payouts" },
+    { id: "expenses", label: "Expenses" },
+  ],
+  products: [
+    { id: "all", label: "Products" },
+    { id: "purchase-orders", label: "Purchase orders" },
+  ],
+};
 
 function parseTab(raw: string | null): ShopTab {
   if (
@@ -83,6 +120,8 @@ function parseTab(raw: string | null): ShopTab {
     raw === "gift-cards" ||
     raw === "reviews" ||
     raw === "subscriptions" ||
+    raw === "markets" ||
+    raw === "apps" ||
     raw === "team"
   ) {
     return raw;
@@ -90,15 +129,22 @@ function parseTab(raw: string | null): ShopTab {
   return "overview";
 }
 
+function parseSub(tab: ShopTab, raw: string | null): string {
+  const subs = SUB_TABS[tab];
+  if (!subs) return "";
+  const found = subs.find((s) => s.id === raw);
+  return found ? found.id : subs[0]?.id ?? "";
+}
+
 /**
- * Per-storefront shop admin — Shopify-style tabs: Products · Orders · Payments.
- * Catalog lives here; website builder only chooses shop page layout.
+ * Per-storefront shop admin — Shopify-style tabs: Products · Orders · Analytics · Customers · Markets · Apps.
  */
 export default function ShopAdminPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = parseTab(searchParams.get("tab"));
+  const sub = parseSub(tab, searchParams.get("sub"));
 
   const [title, setTitle] = useState("Shop");
   const [subdomain, setSubdomain] = useState<string | null>(null);
@@ -158,6 +204,10 @@ export default function ShopAdminPage() {
     router.replace(`/shop/${projectId}?tab=${next}`);
   }
 
+  function setSubTab(nextSub: string) {
+    router.replace(`/shop/${projectId}?tab=${tab}&sub=${nextSub}`);
+  }
+
   async function ensureProductsOnSite() {
     setAddingSection(true);
     setNote(null);
@@ -178,6 +228,8 @@ export default function ShopAdminPage() {
       setAddingSection(false);
     }
   }
+
+  const subTabs = SUB_TABS[tab] ?? [];
 
   return (
     <AppShell title={title}>
@@ -252,6 +304,31 @@ export default function ShopAdminPage() {
           })}
         </nav>
 
+        {/* Sub-tabs row */}
+        {subTabs.length > 0 ? (
+          <div className="mt-3 flex gap-1 overflow-x-auto">
+            {subTabs.map((s) => {
+              const on = sub === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSubTab(s.id)}
+                  className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+                  style={{
+                    background: on ? KEBU.orange : "transparent",
+                    color: on ? "#fff" : KEBU.muted,
+                    border: on ? "none" : `1px solid ${KEBU.border}`,
+                  }}
+                  aria-current={on ? "page" : undefined}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         {note ? (
           <p className="mt-4 rounded-xl px-3 py-2 text-xs" style={{ background: KEBU.cream, color: KEBU.black }}>
             {note}
@@ -270,14 +347,59 @@ export default function ShopAdminPage() {
             style={{ border: `1px solid ${KEBU.border}` }}
           >
             {tab === "overview" ? <ShopOverviewPanel projectId={projectId} /> : null}
-            {tab === "products" ? <SiteProductsPanel projectId={projectId} /> : null}
+
+            {/* Products with sub-tabs */}
+            {tab === "products" && sub !== "purchase-orders" ? (
+              <SiteProductsPanel projectId={projectId} />
+            ) : null}
+            {tab === "products" && sub === "purchase-orders" ? (
+              <ShopPurchaseOrdersPanel projectId={projectId} />
+            ) : null}
+
             {tab === "collections" ? <ShopCollectionsPanel projectId={projectId} /> : null}
             {tab === "pages" ? <ShopPagesPanel projectId={projectId} /> : null}
-            {tab === "orders" ? <ShopOrdersPanel projectId={projectId} embedded /> : null}
-            {tab === "analytics" ? <ShopAnalyticsPanel projectId={projectId} embedded /> : null}
+
+            {/* Orders with sub-tabs */}
+            {tab === "orders" && sub !== "drafts" && sub !== "shipping" ? (
+              <ShopOrdersPanel projectId={projectId} embedded />
+            ) : null}
+            {tab === "orders" && sub === "drafts" ? (
+              <ShopDraftOrdersPanel projectId={projectId} />
+            ) : null}
+            {tab === "orders" && sub === "shipping" ? (
+              <ShopShippingPanel projectId={projectId} />
+            ) : null}
+
+            {/* Analytics with sub-tabs */}
+            {tab === "analytics" && sub !== "payouts" && sub !== "expenses" ? (
+              <ShopAnalyticsPanel projectId={projectId} embedded />
+            ) : null}
+            {tab === "analytics" && sub === "payouts" ? (
+              <ShopPayoutsPanel projectId={projectId} />
+            ) : null}
+            {tab === "analytics" && sub === "expenses" ? (
+              <ShopExpensesPanel projectId={projectId} />
+            ) : null}
+
+            {/* Customers with sub-tabs */}
+            {tab === "customers" && sub !== "segments" && sub !== "companies" ? (
+              <ShopCustomersPanel projectId={projectId} businessId={businessId} />
+            ) : null}
+            {tab === "customers" && sub === "segments" ? (
+              <ShopSegmentsPanel projectId={projectId} />
+            ) : null}
+            {tab === "customers" && sub === "companies" ? (
+              <ShopCompaniesPanel projectId={projectId} />
+            ) : null}
+
+            {tab === "markets" ? <ShopMarketsPanel projectId={projectId} /> : null}
+
             {tab === "gift-cards" ? <ShopGiftCardsPanel projectId={projectId} /> : null}
             {tab === "reviews" ? <ShopReviewsPanel projectId={projectId} /> : null}
             {tab === "subscriptions" ? <ShopSubscriptionsPanel projectId={projectId} /> : null}
+            {tab === "discounts" ? (
+              <ShopDiscountsPanel projectId={projectId} businessId={businessId} />
+            ) : null}
             {tab === "sell" ? (
               <ShopSellAnywherePanel
                 projectId={projectId}
@@ -286,15 +408,10 @@ export default function ShopAdminPage() {
                 businessName={title}
               />
             ) : null}
+            {tab === "apps" ? <ShopAppsPanel projectId={projectId} /> : null}
             {tab === "messages" ? <ShopMessagesPanel projectId={projectId} embedded /> : null}
             {tab === "abandoned" ? (
               <ShopAbandonedCartsPanel projectId={projectId} embedded />
-            ) : null}
-            {tab === "customers" ? (
-              <ShopCustomersPanel projectId={projectId} businessId={businessId} />
-            ) : null}
-            {tab === "discounts" ? (
-              <ShopDiscountsPanel projectId={projectId} businessId={businessId} />
             ) : null}
             {tab === "payments" ? (
               <ShopPaymentsPanel
