@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { OpportunityOsShell } from "@/app/components/opportunity/opportunity-os-shell";
 import { OpportunityCardTile } from "@/app/components/opportunity/opportunity-card-view";
@@ -98,9 +99,24 @@ export default function OpportunityCardsPage() {
           </button>
         </div>
       ) : cards.length === 0 ? (
-        <p className="text-sm" style={{ color: KEBU.muted }}>
-          No published cards yet. Apply migration 063 and seed curated cards.
-        </p>
+        <div
+          className="rounded-2xl p-8 text-center"
+          style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}
+        >
+          <p className="text-4xl mb-4">🌍</p>
+          <p className="font-bold mb-1" style={{ color: KEBU.black }}>No cards published yet</p>
+          <p className="text-sm max-w-sm mx-auto" style={{ color: KEBU.muted }}>
+            Opportunity cards are curated by Kebu researchers. Check back soon — or explore the listings for
+            grants, tenders, and programs available now.
+          </p>
+          <Link
+            href="/opportunity/listings"
+            className="inline-flex mt-4 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider"
+            style={{ background: KEBU.orange, color: KEBU.white }}
+          >
+            Browse listings →
+          </Link>
+        </div>
       ) : (
         <ul className="grid md:grid-cols-2 gap-5">
           {cards.map((card) => (

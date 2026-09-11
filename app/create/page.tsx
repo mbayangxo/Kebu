@@ -379,7 +379,7 @@ export default function CreateHubPage() {
             My businesses
           </Link>
           {" · "}
-          Start free — Shop is $5/month for store + hosting via JOKO
+          Start free — 4 sites + shop included. Custom domain from $2/site/month.
         </p>
       </main>
     </AppShell>

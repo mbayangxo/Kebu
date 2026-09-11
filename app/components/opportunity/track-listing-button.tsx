@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { KEBU } from "@/lib/kebu-brand";
 
 export function TrackListingButton({
   opportunityId,
@@ -64,11 +65,20 @@ export function TrackListingButton({
         type="button"
         onClick={() => void toggle()}
         disabled={busy}
-        className="flex-1 border border-deep-green text-deep-green font-bold py-4 rounded-xl hover:bg-deep-green hover:text-ivory transition-colors text-center disabled:opacity-60"
+        className="rounded-xl py-4 text-sm font-bold text-center transition-colors disabled:opacity-60"
+        style={
+          saved
+            ? { background: "#E8F5E9", color: "#2E7D32", border: "1.5px solid #4CAF50" }
+            : { background: KEBU.cream, color: KEBU.black, border: `1.5px solid ${KEBU.border}` }
+        }
       >
-        {busy ? "Saving…" : saved ? "Saved ✓ — click to untrack" : "Track this listing"}
+        {busy ? "Saving…" : saved ? "✓ Saved — click to untrack" : "Track this listing"}
       </button>
-      {error ? <p className="text-xs text-red-earth text-center">{error}</p> : null}
+      {error && (
+        <p className="text-xs text-center" style={{ color: KEBU.red }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
