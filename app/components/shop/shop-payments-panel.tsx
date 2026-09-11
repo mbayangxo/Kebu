@@ -133,8 +133,8 @@ export function ShopPaymentsPanel({
           autoComplete="tel"
         />
         <span className="block text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
-          New-order alerts arrive here via Mbolo (if you&apos;re on Joko) or SMS. Also shown to
-          buyers for WhatsApp orders. No Joko account needed — Kebu sends on your behalf.
+          Your phone number is your Joko/Mbolo identity — new-order alerts arrive directly in
+          Mbolo. Also used for WhatsApp orders and SMS fallback.
         </span>
       </label>
 
