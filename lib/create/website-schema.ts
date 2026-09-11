@@ -129,7 +129,11 @@ export const sectionPropsSchemas = {
   navigation: z.object({
     brand: z.string().trim().min(1).max(80),
     links: z
-      .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
+      .array(z.object({
+        label: z.string().trim().max(40),
+        href: safeHref,
+        children: z.array(z.object({ label: z.string().trim().max(40), href: safeHref })).max(8).optional(),
+      }))
       .max(8)
       .default([]),
     /** compact → fullscreen width; combined with navScale. */
@@ -137,6 +141,10 @@ export const sectionPropsSchemas = {
     navScale: z.number().min(0.7).max(2.2).optional().default(1),
     /** Top bar (regular) or left side rail. */
     navLayout: z.enum(["top", "side"]).optional().default("top"),
+    /** Logo / brand alignment inside the nav bar. */
+    logoAlign: z.enum(["left", "center", "right"]).optional().default("left"),
+    /** Whether the nav bar sticks to the top on scroll. */
+    navSticky: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
@@ -427,6 +435,8 @@ export const sectionPropsSchemas = {
       .array(z.object({ label: z.string().trim().max(40), href: safeHref }))
       .max(6)
       .default([]),
+    bgColor: z.string().trim().max(32).optional(),
+    textColor: z.string().trim().max(32).optional(),
     hidden: z.boolean().optional(),
   }),
   "maylecor-home": z.object({

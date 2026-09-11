@@ -1053,6 +1053,12 @@ export default function ProjectEditorPage() {
         publishing={publishing || improving}
         publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Publish"}
         onPublish={() => void publish()}
+        onSaveDraft={() => {
+          if (saveState === "idle" || saveState === "saved") {
+            setSaveState("saved");
+          }
+        }}
+        savingDraft={saveState === "saving"}
         previewHost={project?.subdomain ? `${project.subdomain}.kebu.africa` : undefined}
         pages={pages
           .slice()
@@ -3877,12 +3883,12 @@ export default function ProjectEditorPage() {
             >
               <div
                 className={`mx-auto flex min-h-0 flex-1 w-full ${
-                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto p-5 sm:p-8"
+                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:p-8"
                 }`}
               >
                 <div
                   className={`mx-auto bg-white ${
-                    wideCanvas ? "flex min-h-full w-full flex-1 flex-col" : "overflow-hidden"
+                    wideCanvas ? "flex min-h-full w-full flex-1 flex-col" : "overflow-x-hidden"
                   }`}
                   style={
                     wideCanvas

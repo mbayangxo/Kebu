@@ -154,6 +154,8 @@ export function BuilderStudioChrome({
   publishing,
   publishLabel,
   onPublish,
+  onSaveDraft,
+  savingDraft,
   previewHost,
   pages,
   activePageId,
@@ -174,6 +176,8 @@ export function BuilderStudioChrome({
   publishing: boolean;
   publishLabel: string;
   onPublish: () => void;
+  onSaveDraft?: () => void;
+  savingDraft?: boolean;
   previewHost?: string;
   pages?: { id: string; title: string; slug: string }[];
   activePageId?: string;
@@ -308,6 +312,17 @@ export function BuilderStudioChrome({
         >
           Preview
         </Link>
+        {onSaveDraft ? (
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            disabled={savingDraft || publishing}
+            className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-40"
+            style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+          >
+            {savingDraft ? "…" : "Save draft"}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onPublish}
