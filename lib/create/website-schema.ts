@@ -9,6 +9,7 @@ export const SECTION_TYPES = [
   "announcement-bar",
   "marquee",
   "split",
+  "category-tiles",
   "text",
   "image",
   "gallery",

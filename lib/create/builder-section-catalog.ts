@@ -61,6 +61,12 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
     category: "layout",
   },
   {
+    type: "category-tiles",
+    label: "Category tiles",
+    description: "Grid of image + label tiles — shop categories, service types",
+    category: "layout",
+  },
+  {
     type: "text",
     label: "Text",
     description: "Heading + paragraph — tell your story",

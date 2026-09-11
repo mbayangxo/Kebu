@@ -710,3 +710,362 @@ export function agencyCreativeDistinctDefinition(): WebsiteDefinition {
     ],
   };
 }
+
+/** Street food / fast casual — announcement bar, category tiles, product grid. Vibrant urban feel. */
+export function streetFoodDistinctDefinition(): WebsiteDefinition {
+  return {
+    schemaVersion: "website-v1",
+    title: "Yaye Fatou Grill",
+    theme: theme({
+      primary: "#1A0A00",
+      accent: "#FF6B00",
+      background: "#FFF8F2",
+      text: "#1A0A00",
+      surface: "#FFEDE0",
+      fontDisplay: "Montserrat",
+      fontBody: "system-ui",
+      spacing: "compact",
+      radius: "round",
+      buttonStyle: "solid",
+    }),
+    pages: [
+      {
+        slug: "home",
+        title: "Home",
+        sections: [
+          {
+            id: "bar",
+            type: "announcement-bar",
+            props: {
+              text: "Livraison Dakar Plateau & Medina  ·  Commandez sur WhatsApp",
+              background: "#FF6B00",
+              color: "#fff",
+            },
+          },
+          {
+            id: "nav",
+            type: "navigation",
+            props: {
+              brand: "Yaye Fatou Grill",
+              links: [
+                { label: "Menu", href: "#menu" },
+                { label: "Commander", href: "#order" },
+                { label: "A propos", href: "#about" },
+              ],
+            },
+          },
+          {
+            id: "hero",
+            type: "hero",
+            props: {
+              heading: "Grillades & thiebou dieune — livrés chauds",
+              subheading: "Plats du jour, brochettes maison, jus frais. Payez avec Wave ou à la livraison.",
+              buttonLabel: "Voir le menu",
+              buttonHref: "#menu",
+              align: "left",
+            },
+          },
+          {
+            id: "ticker",
+            type: "marquee",
+            props: {
+              items: ["Thiebou Yapp", "Mafé Boulettes", "Brochettes Agneau", "Dibi", "Jus de Ditax", "Attaya offert"],
+              separator: " · ",
+              background: "#1A0A00",
+              color: "#FF6B00",
+              speed: 22,
+            },
+          },
+          {
+            id: "cats",
+            type: "category-tiles",
+            props: {
+              title: "Notre carte",
+              columns: 3,
+              items: [
+                { label: "Riz & plats", href: "#riz" },
+                { label: "Grillades", href: "#grillades" },
+                { label: "Boissons", href: "#boissons" },
+              ],
+            },
+          },
+          {
+            id: "products",
+            type: "products",
+            props: {
+              heading: "Commandez maintenant",
+              currency: "XOF",
+              whatsappPhone: "+221770000000",
+              items: [
+                { name: "Thiebou Dieune complet", price: "3500", description: "Riz au poisson, légumes, sauce tamarin" },
+                { name: "Brochettes agneau x5", price: "4000", description: "Marinées, grillées, avec pain & sauce" },
+                { name: "Mafé boulettes", price: "3000", description: "Sauce arachide maison, riz blanc" },
+                { name: "Dibi", price: "3500", description: "Côtes grillées, oignons, moutarde" },
+                { name: "Jus de bissap 50cl", price: "800", description: "Frais du jour" },
+                { name: "Jus de ditax 50cl", price: "1000", description: "Spécialité maison" },
+              ],
+            },
+          },
+          {
+            id: "split",
+            type: "split",
+            props: {
+              heading: "Notre histoire",
+              body: "Yaye Fatou cuisine depuis 1997. Ce qui a commencé comme un taller dans le Plateau est devenu l'adresse préférée des bureaux du centre-ville.",
+              imagePosition: "right",
+              buttonLabel: "Commander sur WhatsApp",
+              buttonHref: "#order",
+            },
+          },
+          {
+            id: "contact",
+            type: "contact",
+            props: { heading: "Nous trouver", email: "yayefatou@example.com", address: "Rue 12 × Rue 14, Plateau, Dakar", phone: "+221770000000" },
+          },
+          {
+            id: "footer",
+            type: "footer",
+            props: { brand: "Yaye Fatou Grill", tagline: "Cuisine maison depuis 1997" },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/** Digital art collective — editorial dark, gallery-first. Distinct from artistGallery (which is light). */
+export function digitalArtCollectiveDistinctDefinition(): WebsiteDefinition {
+  return {
+    schemaVersion: "website-v1",
+    title: "Collectif Ndank Ndank",
+    theme: theme({
+      primary: "#FFFBF7",
+      accent: "#7CFC00",
+      background: "#0A0A0A",
+      text: "#FFFBF7",
+      surface: "#161616",
+      fontDisplay: "Space Grotesk",
+      fontBody: "system-ui",
+      spacing: "airy",
+      radius: "sharp",
+      buttonStyle: "outline",
+    }),
+    pages: [
+      {
+        slug: "home",
+        title: "Home",
+        sections: [
+          {
+            id: "nav",
+            type: "navigation",
+            props: {
+              brand: "Ndank Ndank",
+              links: [
+                { label: "Works", href: "/works" },
+                { label: "Members", href: "/members" },
+                { label: "Exhibitions", href: "/exhibitions" },
+                { label: "Contact", href: "/contact" },
+              ],
+            },
+          },
+          {
+            id: "hero",
+            type: "editorial-hero",
+            props: {
+              heading: "Art from the continent — unfiltered",
+              subheading: "A collective of digital artists from Dakar, Abidjan, Lagos, and Nairobi",
+              buttonLabel: "See the works",
+              buttonHref: "/works",
+              overlayOpacity: 0.5,
+              align: "left",
+              minHeight: "80vh",
+            },
+          },
+          {
+            id: "marquee",
+            type: "marquee",
+            props: {
+              items: ["Digital", "3D", "Print", "Motion", "Identity", "Illustration", "Photography"],
+              separator: " — ",
+              background: "#7CFC00",
+              color: "#0A0A0A",
+              speed: 20,
+            },
+          },
+          {
+            id: "gallery",
+            type: "gallery",
+            props: {
+              heading: "Selected works",
+              layout: "grid",
+              items: [],
+            },
+          },
+          {
+            id: "split-about",
+            type: "split",
+            props: {
+              heading: "About the collective",
+              body: "We are 12 artists across 4 cities. We share tools, clients, and exhibitions. No middlemen — direct commissions through WhatsApp.",
+              imagePosition: "left",
+              buttonLabel: "Meet the members",
+              buttonHref: "/members",
+            },
+          },
+          {
+            id: "features",
+            type: "features",
+            props: {
+              heading: "What we do",
+              items: [
+                { title: "Brand identity", description: "Logos, systems, campaigns for African brands" },
+                { title: "Digital illustration", description: "Editorial, covers, NFTs, prints" },
+                { title: "Motion & 3D", description: "Short films, title sequences, product renders" },
+                { title: "Exhibitions", description: "Physical + virtual shows in Dakar and online" },
+              ],
+            },
+          },
+          {
+            id: "whatsapp",
+            type: "whatsapp",
+            props: { label: "Commission a work on WhatsApp", phone: "+221770000000", message: "Hello, I'd like to commission: " },
+          },
+          {
+            id: "footer",
+            type: "footer",
+            props: { brand: "Ndank Ndank", tagline: "Digital art from Africa" },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/** Streetwear shop — dark urban, announcement bar, category tiles, product grid. Distinct from fashion-atelier (editorial light). */
+export function streetwearShopDistinctDefinition(): WebsiteDefinition {
+  return {
+    schemaVersion: "website-v1",
+    title: "WAKH Streetwear",
+    theme: theme({
+      primary: "#FFFBF7",
+      accent: "#FF3B3B",
+      background: "#0D0D0D",
+      text: "#FFFBF7",
+      surface: "#1A1A1A",
+      fontDisplay: "Montserrat",
+      fontBody: "system-ui",
+      spacing: "compact",
+      radius: "sharp",
+      buttonStyle: "solid",
+    }),
+    pages: [
+      {
+        slug: "home",
+        title: "Home",
+        sections: [
+          {
+            id: "bar",
+            type: "announcement-bar",
+            props: {
+              text: "SOLDES — 20% sur tout avec le code WAKH20  ·  Livraison gratuite Dakar",
+              background: "#FF3B3B",
+              color: "#fff",
+            },
+          },
+          {
+            id: "nav",
+            type: "navigation",
+            props: {
+              brand: "WAKH",
+              links: [
+                { label: "Shop", href: "#shop" },
+                { label: "Lookbook", href: "#lookbook" },
+                { label: "About", href: "#about" },
+              ],
+            },
+          },
+          {
+            id: "hero",
+            type: "editorial-hero",
+            props: {
+              heading: "Wear the street",
+              subheading: "Dakar-born. Africa-wide.",
+              buttonLabel: "Shop now",
+              buttonHref: "#shop",
+              overlayOpacity: 0.45,
+              align: "left",
+              minHeight: "90vh",
+            },
+          },
+          {
+            id: "cats",
+            type: "category-tiles",
+            props: {
+              title: "Shop by category",
+              columns: 4,
+              items: [
+                { label: "Tees", href: "#tees" },
+                { label: "Hoodies", href: "#hoodies" },
+                { label: "Caps", href: "#caps" },
+                { label: "Accessories", href: "#acc" },
+              ],
+            },
+          },
+          {
+            id: "ticker",
+            type: "marquee",
+            props: {
+              items: ["New drop every Friday", "Limited runs", "Made in Senegal", "No restock", "Order on WhatsApp"],
+              separator: " / ",
+              background: "#FFFBF7",
+              color: "#0D0D0D",
+              speed: 18,
+            },
+          },
+          {
+            id: "products",
+            type: "products",
+            props: {
+              heading: "Latest drops",
+              currency: "XOF",
+              whatsappPhone: "+221770000000",
+              items: [
+                { name: "WAKH Classic Tee", price: "15000", description: "100% cotton, oversized cut" },
+                { name: "WAKH Hoodie", price: "28000", description: "Heavyweight fleece" },
+                { name: "5-panel cap", price: "8000", description: "Embroidered logo" },
+                { name: "Crossbody bag", price: "18000", description: "Canvas, adjustable strap" },
+              ],
+            },
+          },
+          {
+            id: "split",
+            type: "split",
+            props: {
+              heading: "Built in Dakar",
+              body: "WAKH started as a screen-printing operation in Medina in 2020. Every piece is designed and printed locally. No fast fashion, no middlemen.",
+              imagePosition: "right",
+              buttonLabel: "Order on WhatsApp",
+              buttonHref: "#order",
+            },
+          },
+          {
+            id: "testimonials",
+            type: "testimonials",
+            props: {
+              heading: "The street speaks",
+              items: [
+                { quote: "WAKH is the only brand I wear when I want to represent Dakar.", name: "Ibrahima D.", title: "Customer" },
+                { quote: "La qualite est incroyable pour le prix. Je recommande.", name: "Aminata F.", title: "Customer" },
+              ],
+            },
+          },
+          {
+            id: "footer",
+            type: "footer",
+            props: { brand: "WAKH", tagline: "Streetwear. Dakar-born." },
+          },
+        ],
+      },
+    ],
+  };
+}

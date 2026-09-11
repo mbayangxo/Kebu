@@ -30,6 +30,9 @@ import {
   eventNightDistinctDefinition,
   hairSalonDistinctDefinition,
   scentBoutiqueDistinctDefinition,
+  streetFoodDistinctDefinition,
+  digitalArtCollectiveDistinctDefinition,
+  streetwearShopDistinctDefinition,
 } from "./distinct-template-seeds";
 
 /**
@@ -755,6 +758,27 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     category: "fragrance",
     description: "Counter scents · story · visit — intimate boutique (distinct from Perfume house)",
     definition: scentBoutiqueDistinctDefinition(),
+  },
+  {
+    slug: "street-food",
+    name: "Street food & grill",
+    category: "restaurant",
+    description: "Fast-casual African grill — announcement bar, menu by category, WhatsApp orders (distinct from sit-down Restaurant Table)",
+    definition: streetFoodDistinctDefinition(),
+  },
+  {
+    slug: "digital-art-collective",
+    name: "Digital art collective",
+    category: "artist",
+    description: "Dark editorial — gallery, works, commissions via WhatsApp (distinct from light Artist Gallery)",
+    definition: digitalArtCollectiveDistinctDefinition(),
+  },
+  {
+    slug: "streetwear-shop",
+    name: "Streetwear shop",
+    category: "fashion",
+    description: "Dark urban streetwear — announcement bar, category tiles, product drops (distinct from editorial Fashion Atelier)",
+    definition: streetwearShopDistinctDefinition(),
   },
 ];
 

@@ -1930,6 +1930,76 @@ export function SiteRenderer({
               </section>,
             );
           }
+          case "category-tiles": {
+            const p = section.props as {
+              title?: string;
+              items?: { label: string; image?: string; href?: string }[];
+              columns?: 2 | 3 | 4;
+              background?: string;
+              tileBackground?: string;
+              tileColor?: string;
+            };
+            const items = p.items?.length
+              ? p.items
+              : [
+                  { label: "Women", href: "#" },
+                  { label: "Men", href: "#" },
+                  { label: "Kids", href: "#" },
+                ];
+            const cols = p.columns ?? 3;
+            const colClass = cols === 2 ? "grid-cols-2" : cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-3";
+            return wrap(
+              <section
+                key={key}
+                className="py-10 px-4"
+                style={{ background: p.background || "transparent" }}
+              >
+                {p.title ? (
+                  <h2
+                    className="mb-6 text-center text-xl font-bold tracking-tight"
+                    style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                  >
+                    {p.title}
+                  </h2>
+                ) : null}
+                <div className={`grid gap-3 max-w-5xl mx-auto ${colClass}`}>
+                  {items.map((item, i) => (
+                    <a
+                      key={i}
+                      href={item.href || "#"}
+                      className="group relative overflow-hidden rounded-xl"
+                      style={{ aspectRatio: "4/5" }}
+                    >
+                      {item.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.image}
+                          alt={item.label}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div
+                          className="h-full w-full"
+                          style={{ background: p.tileBackground || theme.primary + "18" }}
+                        />
+                      )}
+                      <div
+                        className="absolute inset-x-0 bottom-0 p-4"
+                        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }}
+                      >
+                        <p
+                          className="text-sm font-bold tracking-wide"
+                          style={{ color: p.tileColor || "#fff" }}
+                        >
+                          {item.label}
+                        </p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </section>,
+            );
+          }
           default:
             return null;
         }
