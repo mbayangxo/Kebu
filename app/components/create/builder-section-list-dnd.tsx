@@ -28,6 +28,58 @@ type SectionRow = {
   props?: Record<string, unknown>;
 };
 
+/** Small colored pill thumbnail showing section category. */
+function SectionIcon({ type }: { type: string }) {
+  const { bg, letter } = iconForType(type);
+  return (
+    <span
+      aria-hidden
+      className="inline-flex shrink-0 items-center justify-center rounded text-[8px] font-black uppercase"
+      style={{
+        width: 20,
+        height: 20,
+        background: bg,
+        color: "#fff",
+        letterSpacing: "0.01em",
+      }}
+    >
+      {letter}
+    </span>
+  );
+}
+
+function iconForType(type: string): { bg: string; letter: string } {
+  switch (type) {
+    case "navigation": return { bg: "#3B82F6", letter: "≡" };
+    case "hero": return { bg: "#6366F1", letter: "H" };
+    case "editorial-hero": return { bg: "#6366F1", letter: "EH" };
+    case "announcement-bar": return { bg: "#F59E0B", letter: "!" };
+    case "marquee": return { bg: "#F97316", letter: "~" };
+    case "split": return { bg: "#3B82F6", letter: "S" };
+    case "category-tiles": return { bg: "#3B82F6", letter: "CT" };
+    case "text": return { bg: "#6B7280", letter: "T" };
+    case "free-text": return { bg: "#6B7280", letter: "FT" };
+    case "features": return { bg: "#6B7280", letter: "F" };
+    case "image": return { bg: "#8B5CF6", letter: "I" };
+    case "gallery": return { bg: "#8B5CF6", letter: "G" };
+    case "video": return { bg: "#8B5CF6", letter: "V" };
+    case "audio": return { bg: "#8B5CF6", letter: "A" };
+    case "products": return { bg: "#10B981", letter: "P" };
+    case "contact": return { bg: "#10B981", letter: "C" };
+    case "whatsapp": return { bg: "#25D366", letter: "W" };
+    case "map": return { bg: "#10B981", letter: "M" };
+    case "form": return { bg: "#F97316", letter: "FM" };
+    case "newsletter": return { bg: "#F97316", letter: "N" };
+    case "blog-list": return { bg: "#6B7280", letter: "B" };
+    case "email-popup": return { bg: "#F97316", letter: "EP" };
+    case "testimonials": return { bg: "#F97316", letter: "Q" };
+    case "faq": return { bg: "#F97316", letter: "?" };
+    case "events": return { bg: "#F97316", letter: "E" };
+    case "footer": return { bg: "#3B82F6", letter: "F" };
+    default: return { bg: "#9CA3AF", letter: type.slice(0, 2).toUpperCase() };
+  }
+}
+
 function SortableSectionRow({
   section,
   selected,
@@ -58,82 +110,133 @@ function SortableSectionRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: section.id,
   });
+  const [showActions, setShowActions] = useState(false);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.85 : section.hidden ? 0.55 : 1,
+    opacity: isDragging ? 0.85 : section.hidden ? 0.45 : 1,
   };
 
   return (
     <div ref={setNodeRef} style={style} className="space-y-0.5">
       <div
-        className="group flex items-center gap-0.5 rounded-md px-1 py-1"
+        className="group flex items-center gap-1.5 rounded-lg px-1.5 py-1.5"
         style={{
-          background: selected ? "#EDEEEF" : "transparent",
-          outline: selected ? "1px solid #D4D4D8" : undefined,
+          background: selected ? "#EEF2FF" : "transparent",
+          outline: selected ? "1.5px solid #C7D2FE" : undefined,
         }}
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => setShowActions(false)}
       >
+        {/* Drag handle */}
         <button
           type="button"
-          className="cursor-grab active:cursor-grabbing px-0.5 text-[10px] text-[#8C8C8C]"
+          className="shrink-0 cursor-grab active:cursor-grabbing px-0.5 text-[12px] leading-none"
+          style={{ color: "#C0C0C0", touchAction: "none" }}
           aria-label="Drag to reorder"
           {...attributes}
           {...listeners}
         >
-          ⋮⋮
+          ⠿
         </button>
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          className="w-4 shrink-0 text-[9px] text-[#8C8C8C]"
-          aria-label={expanded ? "Collapse blocks" : "Expand blocks"}
-          aria-expanded={expanded}
-        >
-          {blocks.length > 0 ? (expanded ? "▾" : "▸") : "·"}
-        </button>
+
+        {/* Type icon thumbnail */}
+        <SectionIcon type={section.section_type} />
+
+        {/* Section label — clicking selects */}
         <button
           type="button"
           onClick={onSelect}
-          className="min-w-0 flex-1 truncate text-left text-[12px] font-medium tracking-tight"
-          style={{ color: "#1A1A1A", fontFamily: "var(--font-jost), system-ui, sans-serif" }}
+          className="min-w-0 flex-1 truncate text-left text-[12px] font-medium"
+          style={{ color: section.hidden ? "#9CA3AF" : "#1A1A1A" }}
         >
           {labelForSectionType(section.section_type)}
           {section.hidden ? (
-            <span className="ml-1 text-[9px] font-bold uppercase tracking-wider text-[#8C8C8C]">Hidden</span>
+            <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: "#9CA3AF" }}>
+              Hidden
+            </span>
           ) : null}
         </button>
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-          <button type="button" disabled={isFirst} onClick={onMoveUp} className="rounded px-1 text-[10px] disabled:opacity-20" aria-label="Move up">
-            ↑
+
+        {/* Expand toggle for blocks */}
+        {blocks.length > 0 ? (
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="shrink-0 text-[10px]"
+            style={{ color: "#9CA3AF" }}
+            aria-label={expanded ? "Collapse blocks" : "Expand blocks"}
+            aria-expanded={expanded}
+          >
+            {expanded ? "▾" : "▸"}
           </button>
-          <button type="button" disabled={isLast} onClick={onMoveDown} className="rounded px-1 text-[10px] disabled:opacity-20" aria-label="Move down">
-            ↓
-          </button>
-          {onToggleHidden ? (
+        ) : null}
+
+        {/* Hover actions */}
+        {showActions || selected ? (
+          <div className="flex shrink-0 items-center gap-0.5">
+            {onToggleHidden ? (
+              <button
+                type="button"
+                onClick={onToggleHidden}
+                className="rounded px-1 py-0.5 text-[9px] font-semibold"
+                style={{ color: "#5C5C5C" }}
+                aria-label={section.hidden ? "Show" : "Hide"}
+              >
+                {section.hidden ? "Show" : "Hide"}
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={onToggleHidden}
-              className="rounded px-1 text-[10px] font-semibold"
+              disabled={isFirst}
+              onClick={onMoveUp}
+              className="rounded px-0.5 py-0.5 text-[11px] disabled:opacity-20"
               style={{ color: "#5C5C5C" }}
-              aria-label={section.hidden ? "Show section" : "Hide section"}
+              aria-label="Move up"
             >
-              {section.hidden ? "Show" : "Hide"}
+              ↑
             </button>
-          ) : null}
-          {onRemove ? (
             <button
               type="button"
-              onClick={onRemove}
-              className="rounded px-1 text-[10px] font-semibold text-[#B91C1C]"
-              aria-label={`Remove ${labelForSectionType(section.section_type)}`}
+              disabled={isLast}
+              onClick={onMoveDown}
+              className="rounded px-0.5 py-0.5 text-[11px] disabled:opacity-20"
+              style={{ color: "#5C5C5C" }}
+              aria-label="Move down"
             >
-              ⌫
+              ↓
             </button>
-          ) : null}
-        </div>
+            {onRemove ? (
+              <button
+                type="button"
+                onClick={onRemove}
+                className="rounded px-0.5 py-0.5 text-[11px] font-semibold"
+                style={{ color: "#DC2626" }}
+                aria-label={`Remove ${labelForSectionType(section.section_type)}`}
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* Chevron — always visible, indicates "click to edit" */}
+        <button
+          type="button"
+          onClick={onSelect}
+          className="shrink-0 text-[11px] ml-0.5"
+          style={{ color: selected ? "#6366F1" : "#C0C0C0" }}
+          aria-label="Edit section"
+          tabIndex={-1}
+        >
+          ›
+        </button>
       </div>
+
+      {/* Nested blocks */}
       {expanded && blocks.length > 0 ? (
-        <ul className="ml-6 space-y-0.5 border-l border-[#E5E5E5] pl-2">
+        <ul className="ml-7 space-y-0.5 border-l border-[#E5E7EB] pl-2">
           {blocks.map((b) => (
             <li key={b.id}>
               <button
@@ -152,7 +255,7 @@ function SortableSectionRow({
   );
 }
 
-/** Shopify-style section list — expandable rows with nested blocks. */
+/** Shopify-style section list — icon thumbnail + chevron + expandable blocks. */
 export function BuilderSectionListDnd({
   sections,
   selectedSectionId,
@@ -193,8 +296,8 @@ export function BuilderSectionListDnd({
 
   if (sections.length === 0) {
     return (
-      <p className="px-1 py-3 text-[11px] leading-relaxed" style={{ color: "#8C8C8C" }}>
-        No sections yet. Use + Add section below — like Shopify’s template list.
+      <p className="px-2 py-3 text-[11px] leading-relaxed" style={{ color: "#9CA3AF" }}>
+        No sections yet — use + Add section below.
       </p>
     );
   }

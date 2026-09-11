@@ -20,35 +20,53 @@ const NAV = {
   faint: "#8C8C8C",
 } as const;
 
-const STATUS: Record<KebuBusinessNavStatus, { short: string; color: string }> = {
-  live: { short: "", color: "#009E40" },
-  partial: { short: "", color: KEBU.orange },
-  not_implemented: { short: "Soon", color: NAV.muted },
+const STATUS: Record<KebuBusinessNavStatus, { color: string }> = {
+  live: { color: "#009E40" },
+  partial: { color: KEBU.orange },
+  not_implemented: { color: NAV.muted },
 };
 
 function NavRow({
   item,
   homePath,
   depth = 0,
+  onOpenShop,
+  openShopBusy,
 }: {
   item: KebuBusinessNavItem;
   homePath: string;
   depth?: number;
+  onOpenShop?: () => void;
+  openShopBusy?: boolean;
 }) {
   const href = resolveKebuBusinessNavHref(item, homePath);
-  const s = STATUS[item.status];
   const pad = depth > 0 ? { paddingLeft: `${12 + depth * 12}px` } : undefined;
+  const isNotImpl = item.status === "not_implemented";
+
+  if (item.action === "open-shop") {
+    return (
+      <button
+        type="button"
+        disabled={openShopBusy}
+        onClick={onOpenShop}
+        className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left text-[13px] transition-colors hover:bg-black/[0.05] disabled:opacity-50"
+        style={{ color: KEBU.orange, ...pad }}
+      >
+        {openShopBusy ? "Opening…" : item.label}
+      </button>
+    );
+  }
 
   const inner = (
     <>
       <span
         className="truncate text-[13px]"
-        style={{ color: item.status === "not_implemented" ? NAV.muted : KEBU.black }}
+        style={{ color: isNotImpl ? NAV.muted : KEBU.black }}
       >
         {item.label}
       </span>
-      {item.status === "not_implemented" ? (
-        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider" style={{ color: s.color }}>
+      {isNotImpl ? (
+        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider" style={{ color: STATUS.not_implemented.color }}>
           Soon
         </span>
       ) : null}
@@ -58,7 +76,7 @@ function NavRow({
   const className =
     "flex items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left transition-colors hover:bg-black/[0.05]";
 
-  if (href && item.status !== "not_implemented") {
+  if (href && !isNotImpl) {
     if (href.startsWith("#") || (href.includes("#") && !href.startsWith("http"))) {
       return (
         <a href={href} className={className} style={pad}>
@@ -74,7 +92,11 @@ function NavRow({
   }
 
   return (
-    <div className={`${className} cursor-default opacity-55`} style={pad} aria-disabled title="Not implemented yet">
+    <div
+      className={`${className} ${isNotImpl ? "cursor-default opacity-55" : ""}`}
+      style={pad}
+      aria-disabled={isNotImpl || undefined}
+    >
       {inner}
     </div>
   );
@@ -85,13 +107,31 @@ function SectionBlock({
   homePath,
   open,
   onToggle,
+  onOpenShop,
+  openShopBusy,
 }: {
   section: KebuBusinessNavSection;
   homePath: string;
   open: boolean;
   onToggle: () => void;
+  onOpenShop?: () => void;
+  openShopBusy?: boolean;
 }) {
   if (section.solo) {
+    if (section.action === "open-shop") {
+      return (
+        <button
+          type="button"
+          disabled={openShopBusy}
+          onClick={onOpenShop}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-[13px] font-semibold transition-colors hover:bg-black/[0.05] disabled:opacity-50"
+          style={{ color: KEBU.orange }}
+        >
+          {openShopBusy ? "Opening…" : section.label}
+        </button>
+      );
+    }
+
     const item: KebuBusinessNavItem = {
       id: section.id,
       label: section.label,
@@ -119,7 +159,14 @@ function SectionBlock({
       {open ? (
         <div className="mb-1 space-y-0.5 border-l ml-3 pl-1" style={{ borderColor: NAV.border }}>
           {(section.items ?? []).map((item) => (
-            <NavRow key={item.id} item={item} homePath={homePath} depth={1} />
+            <NavRow
+              key={item.id}
+              item={item}
+              homePath={homePath}
+              depth={1}
+              onOpenShop={onOpenShop}
+              openShopBusy={openShopBusy}
+            />
           ))}
         </div>
       ) : null}
@@ -128,8 +175,8 @@ function SectionBlock({
 }
 
 /**
- * Shopify-style merchant OS tree — children only show when their accordion is open.
- * Opening one group closes the others (neat / one focus).
+ * Shopify-style merchant OS tree — accordion groups with sub-items.
+ * Opening one group closes the others. Shop items only shown when shopOpened.
  */
 export function KebuBusinessNavTree({
   projectId,
@@ -137,12 +184,16 @@ export function KebuBusinessNavTree({
   published,
   siteTitle,
   shopOpened = false,
+  openShopBusy = false,
+  onOpenShop,
 }: {
   projectId: string;
   businessId: string | null;
   published: boolean;
   siteTitle?: string;
   shopOpened?: boolean;
+  openShopBusy?: boolean;
+  onOpenShop?: () => void;
 }) {
   const homePath = `/my-sites/${projectId}`;
   const sections = useMemo(
@@ -176,8 +227,7 @@ export function KebuBusinessNavTree({
           </p>
         ) : null}
         <p className="mt-1 text-[10px] leading-snug" style={{ color: NAV.faint }}>
-          Tap a section to open · tap again to close
-          {!published ? " · Publish for traffic" : null}
+          {!published ? "Publish for traffic · " : ""}Tap a section to expand
         </p>
       </div>
 
@@ -200,6 +250,8 @@ export function KebuBusinessNavTree({
                 homePath={homePath}
                 open={section.solo ? true : openId === section.id}
                 onToggle={() => toggle(section.id)}
+                onOpenShop={onOpenShop}
+                openShopBusy={openShopBusy}
               />
             </div>
           );

@@ -137,7 +137,6 @@ export default function ProjectEditorPage() {
   const [siteChrome, setSiteChrome] = useState<SiteChrome | null>(null);
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
   const [editPageId, setEditPageId] = useState("");
-  const [sectionZoneOpen, setSectionZoneOpen] = useState<"top" | "middle" | "lower">("middle");
   const [publishState, setPublishState] = useState<PublishState | null>(null);
   const [appOrigin, setAppOrigin] = useState("");
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -1600,10 +1599,9 @@ export default function ProjectEditorPage() {
                   </p>
                 </div>
               )}
-              {!selectedSectionId && (
-              <div className="px-4 py-3 space-y-3 border-b" style={{ borderColor: BUILDER.border }}>
-                {pages.length > 1 && (
-                  <label className="block text-[10px] uppercase tracking-wider">
+              {!selectedSectionId && pages.length > 1 && (
+                <div className="px-4 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
+                  <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
                     Editing page
                     <select
                       value={editPageId}
@@ -1612,8 +1610,8 @@ export default function ProjectEditorPage() {
                         const match = pages.find((p) => p.id === e.target.value);
                         if (match) setPreviewPageSlug(match.slug);
                       }}
-                      className="mt-1 w-full rounded-lg px-2 py-1 text-xs"
-                      style={{ border: "1px solid #DDE0F0" }}
+                      className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
+                      style={{ border: `1px solid ${BUILDER.border}`, background: "#fff" }}
                     >
                       {pages
                         .slice()
@@ -1625,68 +1623,17 @@ export default function ProjectEditorPage() {
                         ))}
                     </select>
                   </label>
-                )}
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => void addSection("text")}
-                    className="rounded-lg px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ background: BUILDER.ink, color: "#fff" }}
-                  >
-                    + Text section
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void addSection("free-text")}
-                    className="rounded-lg px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ background: BUILDER.orange, color: "#fff" }}
-                  >
-                    + Moveable text
-                  </button>
                 </div>
-                <AddSectionPicker
-                  pageTitle={
-                    pages.find((p) => p.id === editPageId)?.title ??
-                    pages[0]?.title ??
-                    "Home"
-                  }
-                  onAdd={async (type) => {
-                    await addSection(type);
-                  }}
-                />
-                <p className="text-[10px] font-semibold uppercase tracking-wider pt-1" style={{ color: BUILDER.faint }}>
-                  Quick add
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {BUILDER_QUICK_SECTIONS.slice(0, 8).map(({ type, label }) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => void addSection(type)}
-                      className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1.5 rounded-full transition-opacity hover:opacity-80"
-                      style={{ background: BUILDER.surfaceMuted, color: BUILDER.ink, border: `1px solid ${BUILDER.border}` }}
-                    >
-                      + {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
               )}
 
               {!selectedSectionId && <BuilderBlogPanel projectId={projectId} />}
 
               {!selectedSectionId && (
-              <div className="px-2 py-1 space-y-1">
+              <div className="px-2 py-1 space-y-1" style={{ background: "#ffffff" }}>
 
                 {chromeActive && siteChrome ? (
                   <>
-                    <BuilderSectionZone
-                      zone="top"
-                      open={sectionZoneOpen === "top"}
-                      onToggle={() =>
-                        setSectionZoneOpen((z) => (z === "top" ? "middle" : "top"))
-                      }
-                    >
+                    <BuilderSectionZone zone="top">
                       <BuilderSiteChromePanel
                         part="header"
                         chrome={siteChrome}
@@ -1698,9 +1645,11 @@ export default function ProjectEditorPage() {
                     <BuilderSectionZone
                       zone="middle"
                       count={editPageSections.length}
-                      open={sectionZoneOpen === "middle"}
-                      onToggle={() =>
-                        setSectionZoneOpen((z) => (z === "middle" ? "top" : "middle"))
+                      footer={
+                        <AddSectionPicker
+                          pageTitle={pages.find((p) => p.id === editPageId)?.title ?? "Page"}
+                          onAdd={async (type) => { await addSection(type); }}
+                        />
                       }
                     >
                       <BuilderSectionListDnd
@@ -1723,13 +1672,7 @@ export default function ProjectEditorPage() {
                         }}
                       />
                     </BuilderSectionZone>
-                    <BuilderSectionZone
-                      zone="lower"
-                      open={sectionZoneOpen === "lower"}
-                      onToggle={() =>
-                        setSectionZoneOpen((z) => (z === "lower" ? "middle" : "lower"))
-                      }
-                    >
+                    <BuilderSectionZone zone="lower">
                       <BuilderSiteChromePanel
                         part="footer"
                         chrome={siteChrome}
@@ -1743,8 +1686,13 @@ export default function ProjectEditorPage() {
                   <BuilderSectionZone
                     zone="middle"
                     count={editPageSections.length}
-                    open
                     emptyHint="This design embeds its own header/footer in the page. Edit words on the canvas or in the selected section below."
+                    footer={
+                      <AddSectionPicker
+                        pageTitle={pages.find((p) => p.id === editPageId)?.title ?? "Page"}
+                        onAdd={async (type) => { await addSection(type); }}
+                      />
+                    }
                   >
                     <BuilderSectionListDnd
                       sections={editPageSections.map((s) => ({

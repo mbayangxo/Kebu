@@ -1,9 +1,8 @@
 /**
  * Kebu Business — merchant OS navigation.
- * Modeled on Shopify admin: flat primary items + accordion groups
- * (Sales channels / Online Store). Children only visible when the parent is open.
- *
- * Only items with `href` should be linked; others stay honest with status.
+ * Mirrors Shopify admin depth: Orders, Products, Customers each have sub-items;
+ * Growth, Discounts, Content, Markets, Finance, Analytics, Settings as shown in the admin.
+ * Shop-conditional items are only included when shopOpened = true.
  */
 
 export type KebuBusinessNavStatus = "live" | "partial" | "not_implemented";
@@ -15,29 +14,27 @@ export type KebuBusinessNavItem = {
   label: string;
   status: KebuBusinessNavStatus;
   href?: string;
-  /** Same-page anchor on /my-sites/[id] */
   anchor?: string;
-  /** Client action instead of navigation (e.g. POST open shop). */
   action?: KebuBusinessNavAction;
 };
 
 export type KebuBusinessNavSection = {
   id: string;
   label: string;
-  /** Top-level row without children (Home, Settings) */
+  /** Top-level row without children (Home, Growth, Discounts…) */
   solo?: boolean;
   status?: KebuBusinessNavStatus;
   href?: string;
   anchor?: string;
+  action?: KebuBusinessNavAction;
   items?: KebuBusinessNavItem[];
-  /** Visual group label above this block (e.g. Sales channels) */
+  /** Visual group label above this block (e.g. "Sales channels") */
   groupLabel?: string;
 };
 
 export type KebuBusinessNavContext = {
   projectId: string;
   businessId: string | null;
-  /** Shop is opt-in — hide commerce solos when false. */
   shopOpened?: boolean;
 };
 
@@ -47,7 +44,6 @@ export function buildKebuBusinessNav(ctx: KebuBusinessNavContext): KebuBusinessN
   const editor = `/create/${projectId}`;
   const home = `/my-sites/${projectId}`;
   const biz = businessId ? `/business/${businessId}` : "/business?tab=businesses";
-  const aesthetics = "/create/aesthetics";
   const themes = `/create/${projectId}/themes`;
 
   const sections: KebuBusinessNavSection[] = [
@@ -65,23 +61,110 @@ export function buildKebuBusinessNav(ctx: KebuBusinessNavContext): KebuBusinessN
       {
         id: "orders",
         label: "Orders",
-        solo: true,
-        status: "live",
-        href: `${shop}?tab=orders`,
+        items: [
+          { id: "orders-all", label: "All orders", status: "live", href: `${shop}?tab=orders` },
+          { id: "orders-drafts", label: "Drafts", status: "partial", href: `${shop}?tab=orders&sub=drafts` },
+          { id: "orders-shipping", label: "Shipping labels", status: "partial", href: `${shop}?tab=orders&sub=shipping` },
+          { id: "orders-abandoned", label: "Abandoned checkouts", status: "partial", href: `${shop}?tab=orders&sub=abandoned` },
+        ],
       },
       {
         id: "products",
         label: "Products",
-        solo: true,
-        status: "live",
-        href: `${shop}?tab=products`,
+        items: [
+          { id: "prod-all", label: "All products", status: "live", href: `${shop}?tab=products` },
+          { id: "prod-collections", label: "Collections", status: "live", href: `${shop}?tab=collections` },
+          { id: "prod-inventory", label: "Inventory", status: "live", href: `${shop}?tab=products&sub=inventory` },
+          { id: "prod-purchase-orders", label: "Purchase orders", status: "partial", href: `${shop}?tab=products&sub=purchase-orders` },
+          { id: "prod-transfers", label: "Transfers", status: "not_implemented" },
+          { id: "prod-gift-cards", label: "Gift cards", status: "partial", href: `${shop}?tab=gift-cards` },
+        ],
       },
       {
         id: "customers",
         label: "Customers",
+        items: [
+          { id: "cust-all", label: "All customers", status: "live", href: `${shop}?tab=customers` },
+          { id: "cust-segments", label: "Segments", status: "partial", href: `${shop}?tab=customers&sub=segments` },
+          { id: "cust-companies", label: "Companies", status: "not_implemented" },
+        ],
+      },
+      {
+        id: "growth",
+        label: "Growth",
+        solo: true,
+        status: "partial",
+        href: biz,
+      },
+      {
+        id: "discounts",
+        label: "Discounts",
         solo: true,
         status: "live",
-        href: `${shop}?tab=customers`,
+        href: `${shop}?tab=discounts`,
+      },
+    );
+  } else {
+    sections.push(
+      {
+        id: "growth",
+        label: "Growth",
+        solo: true,
+        status: "partial",
+        href: biz,
+      },
+    );
+  }
+
+  sections.push(
+    {
+      id: "content",
+      label: "Content",
+      items: [
+        { id: "content-blog", label: "Blog posts", status: "live", href: editor },
+        { id: "content-files", label: "Files & media", status: "live", href: editor },
+        { id: "content-menus", label: "Navigation menus", status: "partial", href: editor },
+        { id: "content-forms", label: "Forms", status: "live", href: editor },
+      ],
+    },
+  );
+
+  if (shopOpened) {
+    sections.push(
+      {
+        id: "markets",
+        label: "Markets",
+        solo: true,
+        status: "not_implemented",
+      },
+      {
+        id: "finance",
+        label: "Finance",
+        items: [
+          { id: "fin-overview", label: "Overview", status: "partial", href: `${shop}?tab=analytics` },
+          { id: "fin-payouts", label: "Payouts", status: "partial", href: `${shop}?tab=analytics&sub=payouts` },
+          { id: "fin-expenses", label: "Expenses", status: "not_implemented" },
+        ],
+      },
+      {
+        id: "analytics",
+        label: "Analytics",
+        items: [
+          { id: "an-overview", label: "Overview", status: "partial", href: `${shop}?tab=analytics` },
+          { id: "an-reports", label: "Reports", status: "partial", href: `${shop}?tab=analytics&sub=reports` },
+          { id: "an-live", label: "Live view", status: "partial", href: home, anchor: "traffic" },
+        ],
+      },
+    );
+  } else {
+    sections.push(
+      {
+        id: "analytics",
+        label: "Analytics",
+        items: [
+          { id: "an-overview", label: "Overview", status: "partial", href: home, anchor: "traffic" },
+          { id: "an-live", label: "Live view", status: "partial", href: home, anchor: "traffic" },
+        ],
       },
     );
   }
@@ -98,7 +181,6 @@ export function buildKebuBusinessNav(ctx: KebuBusinessNavContext): KebuBusinessN
         { id: "os-navigation", label: "Navigation", status: "partial", href: editor },
         { id: "os-preferences", label: "Preferences", status: "partial", anchor: "domain" },
         { id: "os-blog", label: "Blog posts", status: "live", href: editor },
-        { id: "os-discover", label: "Discover themes", status: "live", href: aesthetics },
       ],
     },
   );
@@ -109,11 +191,8 @@ export function buildKebuBusinessNav(ctx: KebuBusinessNavContext): KebuBusinessN
       label: "Shop",
       items: [
         { id: "shop-overview", label: "Overview", status: "live", href: shop },
-        { id: "shop-collections", label: "Collections", status: "live", href: `${shop}?tab=collections` },
-        { id: "shop-inventory", label: "Inventory", status: "live", href: `${shop}?tab=products` },
-        { id: "shop-discounts", label: "Discounts", status: "live", href: `${shop}?tab=discounts` },
-        { id: "shop-gift-cards", label: "Gift cards", status: "live", href: `${shop}?tab=gift-cards` },
         { id: "shop-checkout", label: "Payments", status: "partial", href: `${shop}?tab=payments` },
+        { id: "shop-discounts-ch", label: "Discounts", status: "live", href: `${shop}?tab=discounts` },
       ],
     });
   } else {
@@ -133,37 +212,10 @@ export function buildKebuBusinessNav(ctx: KebuBusinessNavContext): KebuBusinessN
 
   sections.push(
     {
-      id: "analytics",
-      label: "Analytics",
-      items: [
-        {
-          id: "an-reports",
-          label: "Reports",
-          status: "partial",
-          href: shopOpened ? `${shop}?tab=analytics` : home,
-          anchor: shopOpened ? undefined : "traffic",
-        },
-        { id: "an-live", label: "Live view", status: "partial", href: home, anchor: "traffic" },
-      ],
-    },
-    {
-      id: "marketing",
-      label: "Marketing",
-      items: [
-        { id: "mkt-campaigns", label: "Campaigns", status: "partial", href: biz },
-        { id: "mkt-email", label: "Email", status: "partial", href: biz },
-        { id: "mkt-reach", label: "Kebu Reach", status: "live", href: "/reach" },
-        { id: "mkt-discounts", label: "Discounts", status: shopOpened ? "live" : "partial", href: shopOpened ? `${shop}?tab=discounts` : home },
-      ],
-    },
-    {
-      id: "content",
-      label: "Content",
-      items: [
-        { id: "content-media", label: "Files & photos", status: "live", href: editor },
-        { id: "content-forms", label: "Forms", status: "live", href: editor },
-        { id: "content-blog", label: "Blog", status: "live", href: editor },
-      ],
+      id: "apps",
+      label: "Apps",
+      solo: true,
+      status: "not_implemented",
     },
     {
       id: "business",
@@ -201,7 +253,6 @@ export function resolveKebuBusinessNavHref(
   return undefined;
 }
 
-/** Count live + partial vs not_implemented for header stats */
 export function kebuBusinessNavStats(sections: KebuBusinessNavSection[]) {
   let live = 0;
   let partial = 0;
