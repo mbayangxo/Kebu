@@ -78,7 +78,7 @@ export default function NewStudioVideoPage() {
             ))}
           </div>
         </div>
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {error ? <p className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
         <button
           type="button"
           disabled={busy}

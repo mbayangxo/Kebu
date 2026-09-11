@@ -443,7 +443,7 @@ export default function StudioVideoEditorPage() {
   if (error && !comp) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-4">
-        <p className="text-red-700">{error}</p>
+        <p className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
         <Link href="/studio" className="underline text-sm">
           Back to Studio
         </Link>
