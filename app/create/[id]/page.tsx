@@ -62,6 +62,23 @@ import {
   isBrowserOnline,
 } from "@/lib/create/offline-queue";
 
+function SidebarDetails({ title, children, defaultOpen = true }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean }) {
+  return (
+    <details open={defaultOpen} className="group border-b" style={{ borderColor: "#E5E5E5" }}>
+      <summary
+        className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 select-none"
+        style={{ background: "#F7F7F7" }}
+      >
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#5C5C5C" }}>{title}</span>
+        <span className="text-[10px] text-[#ABABAB] transition-transform group-open:rotate-90" aria-hidden>▶</span>
+      </summary>
+      <div className="px-4 py-3 space-y-3">
+        {children}
+      </div>
+    </details>
+  );
+}
+
 type Section = {
   id: string;
   page_id: string;
@@ -1684,12 +1701,9 @@ export default function ProjectEditorPage() {
 
               {/* Shopify drill-down: section props for the selected section only */}
               {selectedSectionId && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
-                    <div
-                      key={section.id}
-                      className="px-4 py-4 space-y-4"
-                    >
-                      {/* Section actions */}
-                      <div className="flex flex-wrap gap-1.5 pb-3 border-b" style={{ borderColor: BUILDER.border }}>
+                    <div key={section.id} className="pb-2">
+                      {/* Section actions — always visible */}
+                      <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
                           <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, -1)}>
                             ↑ Move up
                           </button>
@@ -1717,6 +1731,7 @@ export default function ProjectEditorPage() {
                             Remove
                           </button>
                         </div>
+                      <SidebarDetails title="Content">
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
@@ -3815,44 +3830,43 @@ export default function ProjectEditorPage() {
                           You can reorder or hide this section. Use Yande to rewrite copy.
                         </p>
                       )}
-                      {/* Section vertical spacing control */}
-                      <div className="mt-3 space-y-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
-                          Section height
-                        </p>
-                        <div className="flex gap-1">
-                          {(["tight", "normal", "spacious", "open"] as const).map((id) => {
-                            const on = (section.props.sectionPaddingY ?? "normal") === id;
-                            return (
-                              <button
-                                key={id}
-                                type="button"
-                                onClick={() => updateProps(section.id, { sectionPaddingY: id })}
-                                className="flex-1 rounded py-1 text-[9px] font-bold uppercase"
-                                style={{
-                                  background: on ? BUILDER.ink : BUILDER.surfaceMuted,
-                                  color: on ? "#fff" : BUILDER.muted,
-                                  border: `1px solid ${BUILDER.border}`,
-                                }}
-                              >
-                                {id}
-                              </button>
-                            );
-                          })}
+                      </SidebarDetails>
+                      <SidebarDetails title="Layout & Visibility" defaultOpen={false}>
+                        {/* Section vertical spacing control */}
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                            Section height
+                          </p>
+                          <div className="flex gap-1">
+                            {(["tight", "normal", "spacious", "open"] as const).map((id) => {
+                              const on = (section.props.sectionPaddingY ?? "normal") === id;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => updateProps(section.id, { sectionPaddingY: id })}
+                                  className="flex-1 rounded py-1 text-[9px] font-bold uppercase"
+                                  style={{
+                                    background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                                    color: on ? "#fff" : BUILDER.muted,
+                                    border: `1px solid ${BUILDER.border}`,
+                                  }}
+                                >
+                                  {id}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <p className="text-[9px] leading-relaxed" style={{ color: BUILDER.faint }}>
-                          Controls top/bottom padding of this section.
-                        </p>
-                      </div>
-
-                      <label className="flex items-center gap-2 mt-3 text-[11px]">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(section.props.hidden)}
-                          onChange={(e) => updateProps(section.id, { hidden: e.target.checked })}
-                        />
-                        Hide section
-                      </label>
+                        <label className="flex items-center gap-2 text-[11px]">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(section.props.hidden)}
+                            onChange={(e) => updateProps(section.id, { hidden: e.target.checked })}
+                          />
+                          Hide section
+                        </label>
+                      </SidebarDetails>
                     </div>
                   ))}
               </>
