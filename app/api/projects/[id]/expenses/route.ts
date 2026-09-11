@@ -99,7 +99,7 @@ export async function POST(req: Request, { params }: Params) {
 
   if (error) {
     if (/relation.*does not exist/i.test(error.message) || error.code === "42P01") {
-      return NextResponse.json({ error: "Expenses table not set up yet. Ask Kebu support to run migration 060_shop_expenses." }, { status: 503 });
+      return NextResponse.json({ error: "Expenses table not set up yet. Ask Kebu support to run migration 087_shop_expenses." }, { status: 503 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

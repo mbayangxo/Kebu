@@ -125,7 +125,7 @@ export async function POST(req: Request, { params }: Params) {
 
   if (error) {
     if (/relation.*does not exist/i.test(error.message) || error.code === "42P01") {
-      return NextResponse.json({ error: "Companies table not set up yet. Ask Kebu support to run migration 062_shop_companies." }, { status: 503 });
+      return NextResponse.json({ error: "Companies table not set up yet. Ask Kebu support to run migration 089_shop_companies." }, { status: 503 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

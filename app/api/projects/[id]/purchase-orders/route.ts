@@ -116,7 +116,7 @@ export async function POST(req: Request, { params }: Params) {
 
   if (error) {
     if (/relation.*does not exist/i.test(error.message) || error.code === "42P01") {
-      return NextResponse.json({ error: "Purchase orders table not ready. Ask Kebu support to run migration 061_shop_purchase_orders." }, { status: 503 });
+      return NextResponse.json({ error: "Purchase orders table not ready. Ask Kebu support to run migration 088_shop_purchase_orders." }, { status: 503 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

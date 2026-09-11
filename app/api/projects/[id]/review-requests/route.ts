@@ -210,7 +210,7 @@ export async function POST(req: Request, { params }: Params) {
   if (error) {
     if (/relation.*does not exist/i.test(error.message) || error.code === "42P01") {
       return NextResponse.json({
-        error: "Review requests table not ready. Ask Kebu support to run migration 063_shop_review_requests.",
+        error: "Review requests table not ready. Ask Kebu support to run migration 090_shop_review_requests.",
       }, { status: 503 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
