@@ -295,43 +295,68 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
   const galleryGroups = useMemo(() => getAestheticGalleryGroups(), []);
 
   return (
-    <div className="w-full px-6 py-10 sm:px-8 lg:px-10">
-      <header className="mb-8">
-        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: KEBU.orange }}>
-          Site looks
-        </p>
-        <h1
-          className="text-2xl sm:text-3xl font-semibold tracking-tight"
-          style={{ fontFamily: "var(--font-jost), system-ui, sans-serif" }}
-        >
-          Aesthetic Gallery
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-          Each look should feel different — open a demo, try free, or apply to a site. Optional inspiration. The main path is still{" "}
-          <Link href="/create/new?mode=ai" className="font-semibold underline">
-            describe your business
-          </Link>{" "}
-          and let Yande design the site. Your websites stay in{" "}
-          <Link href={MY_SITES_HREF} className="font-semibold underline">
-            My Sites
-          </Link>
-          .
-        </p>
-        <div className="mt-4">
-          <Link
-            href="/create/new?mode=ai"
-            className="inline-flex rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white"
-            style={{ background: KEBU.orange }}
-          >
-            Describe a store — Yande designs →
-          </Link>
+    <div className="w-full">
+      {/* ── Editorial gallery hero ── */}
+      <div
+        className="relative overflow-hidden"
+        style={{ background: "#0A0A0A", minHeight: 220 }}
+      >
+        {/* Background gradient strips representing different template aesthetics */}
+        <div className="absolute inset-0 flex pointer-events-none" aria-hidden>
+          {[
+            "linear-gradient(180deg,#1B4332 0%,#2D6A4F 100%)",
+            "linear-gradient(180deg,#C1121F 0%,#1A0505 100%)",
+            "linear-gradient(180deg,#1A1A2E 0%,#E8D5A3 100%)",
+            "linear-gradient(180deg,#457B9D 0%,#0F0D33 100%)",
+            "linear-gradient(180deg,#BC6C25 0%,#F4A261 100%)",
+            "linear-gradient(180deg,#D4A574 0%,#FAF8F5 100%)",
+          ].map((g, i) => (
+            <div key={i} className="flex-1 opacity-30" style={{ background: g }} />
+          ))}
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to right, #0A0A0A 0%, transparent 15%, transparent 85%, #0A0A0A 100%)" }} />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 40%, #0A0A0A 100%)" }} />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="relative z-10 px-6 py-10 sm:px-8 lg:px-10">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] mb-3" style={{ color: KEBU.orange }}>
+            Template Gallery
+          </p>
+          <h1
+            className="text-3xl sm:text-4xl font-black leading-tight tracking-tight text-white"
+            style={{ fontFamily: "var(--font-fraunces)", maxWidth: 520 }}
+          >
+            Your site should look like your business
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed max-w-lg" style={{ color: "rgba(255,255,255,0.6)" }}>
+            2 distinct looks per business type — each one designed from scratch for that industry. Try any for free,
+            apply to your site, edit everything in the builder.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link
+              href="/create/new?mode=ai"
+              className="inline-flex rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white"
+              style={{ background: KEBU.orange }}
+            >
+              Let Yande design mine →
+            </Link>
+            <Link
+              href={MY_SITES_HREF}
+              className="inline-flex rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider border"
+              style={{ borderColor: "rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.8)" }}
+            >
+              My sites
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-6 sm:px-8 lg:px-10 py-6">
+        {/* Tab nav */}
+        <div className="flex flex-wrap items-center gap-2 mb-6 pb-4" style={{ borderBottom: `1px solid ${KEBU.border}` }}>
           {(
             [
-              ["store", "Aesthetic Gallery"],
+              ["store", "Browse templates"],
               ["owned", "Owned"],
-              ["sell", "Sell (developers)"],
+              ["sell", "Sell (dev)"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -340,23 +365,15 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
               onClick={() => setTab(id)}
               className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
               style={{
-                background: tab === id ? KEBU.black : KEBU.cream,
-                color: tab === id ? "#fff" : KEBU.black,
-                border: `1px solid ${KEBU.border}`,
+                background: tab === id ? KEBU.black : "transparent",
+                color: tab === id ? "#fff" : KEBU.muted,
+                border: tab === id ? `1px solid ${KEBU.black}` : `1px solid transparent`,
               }}
             >
               {label}
             </button>
           ))}
-          <Link
-            href={MY_SITES_HREF}
-            className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-            style={{ border: `1px solid ${KEBU.border}` }}
-          >
-            My sites →
-          </Link>
         </div>
-      </header>
 
       {error ? (
         <p className="mb-4 rounded-xl px-4 py-3 text-sm" style={{ background: "#FEE2E2", color: "#991B1B" }}>
@@ -376,13 +393,16 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
 
       {tab === "store" && !loading ? (
         <div className="space-y-8">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 pb-2" style={{ borderBottom: `1px solid ${KEBU.border}` }}>
+            <span className="self-center text-[10px] font-bold uppercase tracking-wider mr-2" style={{ color: KEBU.muted }}>
+              Jump to:
+            </span>
             {galleryGroups.map((group) => (
               <a
                 key={group.type}
                 href={`#aes-${group.type}`}
-                className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-                style={{ border: `1px solid ${KEBU.border}`, color: KEBU.muted }}
+                className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors hover:text-orange-600"
+                style={{ border: `1px solid ${KEBU.border}`, color: KEBU.black }}
               >
                 {group.label}
               </a>
@@ -391,10 +411,16 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
 
           {galleryGroups.map((group) => (
             <section key={group.type} id={`aes-${group.type}`}>
-              <h2 className="mb-3 text-sm font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-                {group.label}
-              </h2>
-              <ul className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-5 w-0.5 rounded-full" style={{ background: KEBU.orange }} />
+                <h2 className="text-base font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
+                  {group.label}
+                </h2>
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                  {group.items.length} looks
+                </span>
+              </div>
+              <ul className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {group.items.map((item) => (
                   <li key={item.slug}>
                     <AestheticGalleryCard item={item} />
@@ -630,6 +656,7 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
           )}
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

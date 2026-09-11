@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AestheticGalleryItem } from "@/lib/create/aesthetics-gallery";
+import { getAestheticGalleryGroups } from "@/lib/create/aesthetics-gallery";
+import { AestheticCardVisual } from "@/app/components/create/aesthetic-card-visual";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 
@@ -26,6 +28,13 @@ export function AestheticDetailClient({
   const [ownedId, setOwnedId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState(sites[0]?.id ?? "");
   const [previewMode, setPreviewMode] = useState<"visual" | "live">("visual");
+  const [openSection, setOpenSection] = useState<string | null>(null);
+
+  const siblings = useMemo(() => {
+    const groups = getAestheticGalleryGroups();
+    const group = groups.find((g) => g.items.some((i) => i.slug === item.slug));
+    return (group?.items ?? []).filter((i) => i.slug !== item.slug);
+  }, [item.slug]);
 
   const findOwned = useCallback(async () => {
     const res = await fetch("/api/aesthetics/library", { credentials: "include" });
@@ -323,6 +332,89 @@ export function AestheticDetailClient({
           </div>
         </aside>
       </div>
+
+      {/* ── Expandable "What's included" sections ── */}
+      <div className="mt-10 border-t" style={{ borderColor: KEBU.border }}>
+        {[
+          {
+            id: "sections",
+            label: "What's in this template",
+            body: "Hero banner, product/services grid, about section, gallery, testimonials, contact with WhatsApp CTA, newsletter sign-up, FAQ — all fully editable in the Kebu builder. No code required.",
+          },
+          {
+            id: "mobile",
+            label: "Mobile-first, offline-ready",
+            body: "Every template renders pixel-perfect on phone. Critical sections (hero, products, contact) load without images in low-data mode — essential for customers in Dakar, Abidjan, and Lagos on 3G.",
+          },
+          {
+            id: "payments",
+            label: "WhatsApp + mobile money ready",
+            body: "Pre-wired for WhatsApp order messages, Wave, Orange Money, and Joko checkout. Customers order with one tap — no card, no app install, no friction.",
+          },
+          {
+            id: "publishing",
+            label: "One-click publishing",
+            body: "Apply this look to any site in My Sites, edit in the visual builder, then publish to your kebu.co subdomain in seconds. Custom domains available.",
+          },
+        ].map(({ id, label, body }) => (
+          <div key={id} style={{ borderBottom: `1px solid ${KEBU.border}` }}>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between px-1 py-4 text-sm font-semibold text-left"
+              onClick={() => setOpenSection(openSection === id ? null : id)}
+            >
+              <span>{label}</span>
+              <span className="text-lg leading-none" style={{ color: KEBU.muted }}>
+                {openSection === id ? "−" : "+"}
+              </span>
+            </button>
+            {openSection === id ? (
+              <p className="pb-4 px-1 text-sm leading-relaxed" style={{ color: KEBU.muted }}>
+                {body}
+              </p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Pair well with / You might also like ── */}
+      {siblings.length > 0 ? (
+        <div className="mt-12">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.22em]" style={{ color: KEBU.muted }}>
+              ≡ For the same business type, explore:
+            </span>
+          </div>
+          <div className={`grid gap-4 ${siblings.length === 1 ? "sm:grid-cols-1 max-w-xs" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
+            {siblings.map((sib) => (
+              <Link
+                key={sib.slug}
+                href={sib.detailPath}
+                className="group flex items-center gap-3 rounded-2xl p-3 transition-shadow hover:shadow-md"
+                style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
+              >
+                <div
+                  className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl"
+                  style={{ background: sib.previewGradient }}
+                >
+                  {sib.cardVisual ? (
+                    <AestheticCardVisual visual={sib.cardVisual} name={sib.name} accent={sib.accent} />
+                  ) : null}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold truncate">{sib.name}</p>
+                  <p className="text-[11px] mt-0.5 line-clamp-2 leading-snug" style={{ color: KEBU.muted }}>
+                    {sib.tagline}
+                  </p>
+                  <p className="mt-1.5 text-[10px] font-bold" style={{ color: KEBU.orange }}>
+                    Free to try →
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
