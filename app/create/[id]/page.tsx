@@ -120,6 +120,7 @@ export default function ProjectEditorPage() {
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
   const [yandeOpen, setYandeOpen] = useState(false);
+  const [yandeDialOpen, setYandeDialOpen] = useState(true);
   const [improveMode, setImproveMode] = useState<"free" | "redesign" | "page" | "rewrite" | "convert">(
     "free",
   );
@@ -3814,7 +3815,37 @@ export default function ProjectEditorPage() {
                           You can reorder or hide this section. Use Yande to rewrite copy.
                         </p>
                       )}
-                      <label className="flex items-center gap-2 mt-2 text-[11px]">
+                      {/* Section vertical spacing control */}
+                      <div className="mt-3 space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                          Section height
+                        </p>
+                        <div className="flex gap-1">
+                          {(["tight", "normal", "spacious", "open"] as const).map((id) => {
+                            const on = (section.props.sectionPaddingY ?? "normal") === id;
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                onClick={() => updateProps(section.id, { sectionPaddingY: id })}
+                                className="flex-1 rounded py-1 text-[9px] font-bold uppercase"
+                                style={{
+                                  background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                                  color: on ? "#fff" : BUILDER.muted,
+                                  border: `1px solid ${BUILDER.border}`,
+                                }}
+                              >
+                                {id}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[9px] leading-relaxed" style={{ color: BUILDER.faint }}>
+                          Controls top/bottom padding of this section.
+                        </p>
+                      </div>
+
+                      <label className="flex items-center gap-2 mt-3 text-[11px]">
                         <input
                           type="checkbox"
                           checked={Boolean(section.props.hidden)}
@@ -3899,18 +3930,82 @@ export default function ProjectEditorPage() {
           </>
         )}
 
-        {/* Yande FAB — bottom-right floating button */}
-        <button
-          type="button"
-          aria-label="Open Yande AI"
-          onClick={() => setYandeOpen((o) => !o)}
-          className="absolute bottom-5 right-5 z-30 rounded-full transition-transform hover:scale-105 active:scale-95"
-          style={{
-            boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
-          }}
-        >
-          <YandeMark size={48} />
-        </button>
+        {/* Dial backdrop — captures click-outside to dismiss speed-dial */}
+        {yandeDialOpen && !yandeOpen ? (
+          <div
+            className="absolute inset-0 z-20"
+            onClick={() => setYandeDialOpen(false)}
+            aria-hidden="true"
+          />
+        ) : null}
+
+        {/* Yande FAB + speed-dial — bottom-right */}
+        <div className="absolute bottom-5 right-5 z-30 flex flex-col items-end gap-2">
+
+          {/* Speed-dial mini-buttons — open by default on builder load */}
+          {yandeDialOpen && !yandeOpen ? (
+            <>
+              {(
+                [
+                  { label: "Redesign page", mode: "redesign" as const, color: "#7C3AED" },
+                  { label: "Improve content", mode: "free" as const, color: "#FF5500" },
+                  { label: "Ask Yande", mode: "free" as const, color: "#0F0D33" },
+                ] as const
+              ).map(({ label, mode, color }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span
+                    className="rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg whitespace-nowrap"
+                    style={{ background: "#fff", color: BUILDER.ink, boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}
+                  >
+                    {label}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImproveMode(mode);
+                      setYandeOpen(true);
+                      setYandeDialOpen(false);
+                    }}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-105 active:scale-95"
+                    style={{ background: color }}
+                    aria-label={label}
+                  >
+                    {mode === "redesign" ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.7L12 14.5l-5 3.6 1.9-5.7L4 8.8h6.1z" strokeLinejoin="round" />
+                      </svg>
+                    ) : mode === "free" && label === "Ask Yande" ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinejoin="round" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {/* Main FAB button */}
+          <button
+            type="button"
+            aria-label={yandeOpen ? "Close Yande" : yandeDialOpen ? "Close menu" : "Open Yande"}
+            onClick={() => {
+              if (yandeOpen) {
+                setYandeOpen(false);
+              } else {
+                setYandeDialOpen((o) => !o);
+              }
+            }}
+            className="rounded-full transition-transform hover:scale-105 active:scale-95"
+            style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.18)" }}
+          >
+            <YandeMark size={48} />
+          </button>
+        </div>
 
         {/* Yande right-side sliding panel */}
         {yandeOpen ? (

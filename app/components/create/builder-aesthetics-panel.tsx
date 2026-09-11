@@ -320,23 +320,31 @@ export function BuilderAestheticsPanel({
 
       <EditorAccordion title="Theme presets" open={openId === "presets"} onToggle={() => toggle("presets")}>
         <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-          One-click style — you can still tweak colors and fonts after applying.
+          One-click style — tweak colors and fonts after applying.
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
           {THEME_PRESETS.map((preset) => (
             <button
               key={preset.id}
               type="button"
+              title={preset.label}
               onClick={() => onThemeChange(preset.tokens)}
-              className="rounded-xl border p-3 text-left transition-opacity hover:opacity-80"
-              style={{ background: preset.tokens.background, borderColor: BUILDER.border }}
+              className="group rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-offset-1 focus-visible:ring-2 focus-visible:ring-offset-1"
+              style={{ ringColor: preset.tokens.accent } as React.CSSProperties}
             >
-              <div className="mb-2 flex gap-1">
-                <span className="h-3 w-3 rounded-full" style={{ background: preset.tokens.primary }} />
-                <span className="h-3 w-3 rounded-full" style={{ background: preset.tokens.accent }} />
+              {/* Color bar */}
+              <div className="flex h-7 w-full">
+                <span className="flex-1" style={{ background: preset.tokens.background }} />
+                <span className="w-4" style={{ background: preset.tokens.primary }} />
+                <span className="w-4" style={{ background: preset.tokens.accent }} />
               </div>
-              <p className="text-[10px] font-bold" style={{ color: preset.tokens.text }}>{preset.label}</p>
-              <p className="text-[9px]" style={{ color: preset.tokens.text, opacity: 0.55 }}>{preset.hint}</p>
+              {/* Name */}
+              <p
+                className="truncate px-1.5 py-1 text-[9px] font-semibold leading-none"
+                style={{ background: preset.tokens.background, color: preset.tokens.text }}
+              >
+                {preset.label}
+              </p>
             </button>
           ))}
         </div>

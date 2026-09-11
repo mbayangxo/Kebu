@@ -125,6 +125,13 @@ export type SiteRendererEditor = {
   onAddSectionAfter?: (type: string, afterSectionId: string | null) => void | Promise<void>;
 };
 
+const SECTION_PAD_MAP: Record<string, string> = {
+  tight: "1rem",
+  normal: "3.5rem",
+  spacious: "6rem",
+  open: "10rem",
+};
+
 function wrapEditorSection(
   sectionId: string | undefined,
   editor: SiteRendererEditor | undefined,
@@ -132,13 +139,24 @@ function wrapEditorSection(
   sectionType?: string,
   /** Only fill the viewport when this is the sole section — otherwise the page must grow/scroll. */
   fillViewport = false,
+  sectionPaddingY?: string,
 ): ReactNode {
-  if (!editor || !sectionId) return children;
+  if (!editor || !sectionId) {
+    if (sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]) {
+      return (
+        <div style={{ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties}>
+          {children}
+        </div>
+      );
+    }
+    return children;
+  }
   const selected = editor.selectedSectionId === sectionId;
   const structural = sectionType ? STRUCTURAL_SECTION_TYPES.has(sectionType) : false;
   const showToolbar = Boolean(
     editor.onDuplicateSection || editor.onDeleteSection || editor.onMoveSection,
   ) && (!structural || !fillViewport);
+  const padVar = sectionPaddingY ? SECTION_PAD_MAP[sectionPaddingY] : undefined;
   return (
     <div
       data-section-id={sectionId}
@@ -147,7 +165,7 @@ function wrapEditorSection(
         editor.onSelectSection?.(sectionId);
       }}
       className={`group relative ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
-      style={{ cursor: "pointer" }}
+      style={{ cursor: "pointer", ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
     >
       {selected && sectionType ? (
         <div
@@ -731,8 +749,9 @@ export function SiteRenderer({
         const anchor = sectionAnchor(section);
         const fillViewport =
           STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
+        const sectionPaddingY = String((section.props as Record<string, unknown>)?.sectionPaddingY ?? "normal");
         const wrap = (node: ReactNode) =>
-          wrapEditorSection(sectionId, editor, node, section.type, fillViewport);
+          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY);
         const sectionEl = (() => {
         switch (section.type) {
           case "maylecor-home":
