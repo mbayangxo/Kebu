@@ -302,7 +302,36 @@ function findMotionHeroProps(definition: WebsiteDefinition): LegallyBlondeHeroPr
   return null;
 }
 
-/** Mobile-first site navigation — hamburger drawer on small screens, horizontal bar on desktop. */
+/** Drag handle for resizing the nav bar height in editor mode. */
+function NavResizeHandle({ currentScale, onPatch }: { currentScale: number; onPatch: (s: number) => void }) {
+  return (
+    <div
+      className="absolute bottom-0 left-0 right-0 z-50 flex cursor-ns-resize items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+      style={{ height: 10, background: "rgba(44,110,203,0.3)" }}
+      title="Drag to resize nav bar height"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startY = e.clientY;
+        const base = currentScale;
+        function onMove(ev: MouseEvent) {
+          const delta = ev.clientY - startY;
+          onPatch(Math.min(2.2, Math.max(0.7, base + delta / 80)));
+        }
+        function onUp() {
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseup", onUp);
+        }
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+      }}
+    >
+      <div className="h-0.5 w-10 rounded-full" style={{ background: "#2C6ECB" }} />
+    </div>
+  );
+}
+
+/** Site navigation — hamburger drawer on mobile, top bar or side nav on desktop, or always-hamburger mode. */
 function SiteNav({
   brand,
   brandEl,
@@ -316,8 +345,10 @@ function SiteNav({
   gap,
   maxWidth,
   logoAlign,
+  layout,
   resolveHref,
   onNavigate,
+  onNavResize,
 }: {
   brand: string;
   brandEl: ReactNode;
@@ -331,8 +362,13 @@ function SiteNav({
   gap: number;
   maxWidth: number;
   logoAlign: "left" | "center" | "right";
+  layout?: "top" | "side" | "hamburger";
+  /** Current scale value, passed so the drag handle can compute correctly. */
+  navScale?: number;
   resolveHref: (h: string) => string;
   onNavigate?: (slug: string) => void;
+  /** Editor-only: callback for nav drag-resize handle at bottom of bar. */
+  onNavResize?: (newScale: number) => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -489,9 +525,11 @@ function SiteNav({
     );
   }
 
+  const alwaysHamburger = layout === "hamburger";
+
   return (
     <header
-      className={`kebu-site-nav ${stickyClass}`}
+      className={`kebu-site-nav relative ${stickyClass}`}
       style={{
         background: navBg,
         color: navColor,
@@ -510,21 +548,23 @@ function SiteNav({
           {brandEl}
         </div>
 
-        {/* Desktop links — hidden on mobile */}
-        <nav
-          className="kebu-site-nav__links hidden items-center sm:flex"
-          style={{ gap, fontSize: fontPx, marginLeft: logoAlign === "left" ? "auto" : undefined }}
-          aria-label="Site navigation"
-        >
-          {links.map((l) => renderDesktopLink(l))}
-        </nav>
+        {/* Desktop links — hidden on mobile, also hidden in hamburger-only layout */}
+        {!alwaysHamburger && (
+          <nav
+            className="kebu-site-nav__links hidden items-center sm:flex"
+            style={{ gap, fontSize: fontPx, marginLeft: logoAlign === "left" ? "auto" : undefined }}
+            aria-label="Site navigation"
+          >
+            {links.map((l) => renderDesktopLink(l))}
+          </nav>
+        )}
 
-        {/* Hamburger — mobile only */}
+        {/* Hamburger — mobile only by default; all sizes in hamburger layout */}
         {links.length > 0 && (
           <button
             type="button"
             onClick={() => { setDrawerOpen((v) => !v); setOpenGroup(null); }}
-            className="kebu-nav-hamburger sm:hidden"
+            className={`kebu-nav-hamburger ${alwaysHamburger ? "" : "sm:hidden"}`}
             aria-label={drawerOpen ? "Close menu" : "Open menu"}
             aria-expanded={drawerOpen}
             style={{ color: navColor }}
@@ -538,18 +578,28 @@ function SiteNav({
         )}
       </div>
 
-      {/* Mobile drawer */}
+      {/* Drawer — mobile only by default; all sizes in hamburger layout */}
       {drawerOpen && (
         <>
-          <div className="fixed inset-0 z-40 sm:hidden" style={{ background: "rgba(0,0,0,0.35)" }} onClick={() => setDrawerOpen(false)} aria-hidden />
           <div
-            className="kebu-nav-drawer sm:hidden"
+            className={`fixed inset-0 z-40 ${alwaysHamburger ? "" : "sm:hidden"}`}
+            style={{ background: "rgba(0,0,0,0.35)" }}
+            onClick={() => setDrawerOpen(false)}
+            aria-hidden
+          />
+          <div
+            className={`kebu-nav-drawer ${alwaysHamburger ? "" : "sm:hidden"}`}
             style={{ background: navBg || "#000", color: navColor, borderTop: "1px solid rgba(255,255,255,0.1)" }}
           >
             {links.map((l) => renderDrawerLink(l))}
           </div>
         </>
       )}
+
+      {/* Editor-only drag-to-resize handle at the bottom edge */}
+      {onNavResize ? (
+        <NavResizeHandle currentScale={navScale ?? 1} onPatch={onNavResize} />
+      ) : null}
     </header>
   );
 }
@@ -931,8 +981,15 @@ export function SiteRenderer({
                 gap={m.gap}
                 maxWidth={m.maxWidth}
                 logoAlign={p.logoAlign}
+                layout={p.navLayout}
+                navScale={m.scale}
                 resolveHref={resolveNavHref}
                 onNavigate={editor?.onNavigatePage}
+                onNavResize={
+                  editor?.onPatchSection
+                    ? (newScale) => patchNav({ navScale: newScale })
+                    : undefined
+                }
               />,
             );
           }
