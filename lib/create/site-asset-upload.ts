@@ -115,5 +115,7 @@ export function isDirectAudioUrl(src: string): boolean {
 }
 
 export function isDirectVideoUrl(src: string): boolean {
+  // Image files are never video, even when hosted on site-assets
+  if (/\.(png|jpg|jpeg|webp|gif|svg|heic|heif|avif)(\?|$)/i.test(src)) return false;
   return /\.(mp4|webm|mov)(\?|$)/i.test(src) || (isHostedMediaUrl(src) && !isDirectAudioUrl(src));
 }

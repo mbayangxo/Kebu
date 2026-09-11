@@ -137,13 +137,13 @@ function ProductModal({
           {/* Body */}
           <div className="grid sm:grid-cols-2 gap-0">
             {/* Image */}
-            <div className="bg-black/[0.03] flex items-center justify-center" style={{ minHeight: 280 }}>
+            <div className="bg-white flex items-center justify-center" style={{ minHeight: 280 }}>
               {product.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={product.imageUrl}
                   alt={product.name}
-                  className="w-full h-72 sm:h-96 object-cover"
+                  className="w-full h-72 sm:h-96 object-contain"
                   loading="eager"
                 />
               ) : (
@@ -371,13 +371,13 @@ export function ProductsSection({
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setOpenProduct(item); }}
         aria-label={`View ${item.name}`}
       >
-        <div className={`overflow-hidden relative ${isList ? "shrink-0 w-full sm:w-44" : "w-full"}`}>
+        <div className={`overflow-hidden relative bg-white ${isList ? "shrink-0 w-full sm:w-44" : "w-full"}`}>
           {item.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={item.imageUrl}
               alt={item.name}
-              className={`object-cover transition-transform duration-500 ${hoverZoom ? "group-hover:scale-110" : ""} ${
+              className={`object-contain transition-transform duration-500 ${hoverZoom ? "group-hover:scale-110" : ""} ${
                 isList
                   ? "w-full h-40 sm:h-full"
                   : isFeatured
