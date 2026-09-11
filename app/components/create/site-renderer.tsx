@@ -915,7 +915,8 @@ export function SiteRenderer({
             const patchText = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
             return wrap(
-              <section key={key} id={anchor} className="kebu-section px-5 max-w-3xl mx-auto scroll-mt-20">
+              <section key={key} id={anchor} className="kebu-section px-5 sm:px-8 lg:px-16 scroll-mt-20">
+                <div className="max-w-3xl">
                 {device !== "desktop" && editor?.inlineEdit ? (
                   <p className="text-[10px] uppercase tracking-wider opacity-50 mb-2">Editing {device} copy</p>
                 ) : null}
@@ -936,6 +937,7 @@ export function SiteRenderer({
                   editor={editor}
                   onChange={(body) => patchText({ body })}
                 />
+                </div>
               </section>,
             );
           }
@@ -955,7 +957,7 @@ export function SiteRenderer({
               <section
                 key={key}
                 id={anchor}
-                className={`kebu-section px-5 scroll-mt-20 ${moodboard ? "max-w-6xl mx-auto" : "max-w-5xl mx-auto"}`}
+                className="kebu-section px-5 sm:px-8 lg:px-16 scroll-mt-20"
               >
                 {device !== "desktop" && editor?.inlineEdit ? (
                   <p className="text-[10px] uppercase tracking-wider opacity-50 mb-2">Editing {device} copy</p>
@@ -1091,7 +1093,7 @@ export function SiteRenderer({
             const items = p.items ?? [];
             const accentColor = theme.accent || theme.primary;
             return wrap(
-              <section key={key} id={anchor} className="kebu-section px-5 max-w-5xl mx-auto scroll-mt-20">
+              <section key={key} id={anchor} className="kebu-section px-5 sm:px-8 lg:px-16 scroll-mt-20">
                 <h2
                   className="text-2xl font-bold mb-10 tracking-tight"
                   style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
@@ -1148,7 +1150,8 @@ export function SiteRenderer({
             const patchFaq = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
             return wrap(
-              <section key={key} id={anchor} className="kebu-section px-5 max-w-3xl mx-auto scroll-mt-20">
+              <section key={key} id={anchor} className="kebu-section px-5 sm:px-8 lg:px-16 scroll-mt-20">
+                <div className="max-w-3xl">
                 {device !== "desktop" && editor?.inlineEdit ? (
                   <p className="text-[10px] uppercase tracking-wider opacity-50 mb-2">Editing {device} copy</p>
                 ) : null}
@@ -1185,6 +1188,7 @@ export function SiteRenderer({
                       />
                     </div>
                   ))}
+                </div>
                 </div>
               </section>,
             );
@@ -1230,7 +1234,8 @@ export function SiteRenderer({
           case "contact": {
             const p = section.props as { heading?: string; email?: string; phone?: string; address?: string };
             return wrap(
-              <section key={key} id={anchor} className="kebu-section px-5 max-w-3xl mx-auto scroll-mt-20">
+              <section key={key} id={anchor} className="kebu-section px-5 sm:px-8 lg:px-16 scroll-mt-20">
+                <div className="max-w-3xl">
                 <EditableText
                   tag="h2"
                   className="text-2xl font-bold mb-4"
@@ -1244,6 +1249,7 @@ export function SiteRenderer({
                   {p.address && <li>{p.address}</li>}
                   {!p.email && !p.phone && !p.address && <li>Contact details coming soon.</li>}
                 </ul>
+                </div>
               </section>,
             );
           }
@@ -1252,7 +1258,8 @@ export function SiteRenderer({
             const liveSubForm =
               mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase)) : undefined;
             return wrap(
-              <section key={key} id={anchor} className="kebu-section px-5 max-w-3xl mx-auto scroll-mt-20">
+              <section key={key} id={anchor} className="kebu-section px-5 sm:px-8 lg:px-16 scroll-mt-20">
+                <div className="max-w-3xl">
                 <EditableText
                   tag="h2"
                   className="text-2xl font-bold mb-2"
@@ -1273,6 +1280,7 @@ export function SiteRenderer({
                   props={p}
                   preview={mode !== "live"}
                 />
+                </div>
               </section>,
             );
           }
@@ -1350,7 +1358,7 @@ export function SiteRenderer({
             const p = section.props as { src?: string; alt?: string; caption?: string };
             if (!p.src) return null;
             return wrap(
-              <figure key={key} className="kebu-section px-5 max-w-4xl mx-auto">
+              <figure key={key} className="kebu-section px-5 sm:px-8 lg:px-16">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.src} alt={p.alt || ""} className="w-full rounded-2xl" />
                 {p.caption && <figcaption className="text-xs mt-2 opacity-60">{p.caption}</figcaption>}
@@ -1372,7 +1380,7 @@ export function SiteRenderer({
             const columns = p.columns ?? 3;
             if (editingGallery && rawItems.some((i) => !i.src)) {
               return wrap(
-                <section key={key} id={anchor} className="px-5 py-8 max-w-5xl mx-auto scroll-mt-20 space-y-4">
+                <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-8 scroll-mt-20 space-y-4">
                   {p.heading ? (
                     <h2 className="text-2xl font-bold" style={{ fontFamily: cssFontStack(theme.fontDisplay) }}>
                       {p.heading}
@@ -1409,7 +1417,7 @@ export function SiteRenderer({
             if (layout === "single") {
               const first = items[0]!;
               return wrap(
-                <section key={key} id={anchor} className="px-5 py-8 max-w-4xl mx-auto scroll-mt-20 space-y-4">
+                <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-8 scroll-mt-20 space-y-4">
                   {p.heading ? (
                     <h2 className="text-2xl font-bold" style={{ fontFamily: cssFontStack(theme.fontDisplay) }}>
                       {p.heading}
@@ -1429,7 +1437,7 @@ export function SiteRenderer({
                   ? "sm:grid-cols-2"
                   : "sm:grid-cols-2 lg:grid-cols-3";
             return wrap(
-              <section key={key} id={anchor} className="px-5 py-8 max-w-5xl mx-auto scroll-mt-20 space-y-4">
+              <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-8 scroll-mt-20 space-y-4">
                 {p.heading ? (
                   <h2 className="text-2xl font-bold" style={{ fontFamily: cssFontStack(theme.fontDisplay) }}>
                     {p.heading}
@@ -1488,7 +1496,7 @@ export function SiteRenderer({
               <section
                 key={key}
                 id={anchor}
-                className={`kebu-heavy-media py-12 scroll-mt-20${videoFullWidth ? "" : " px-5 max-w-5xl mx-auto"}${dataMode === "ultra" || dataMode === "offline" ? " kebu-mode-hide-video" : ""}`}
+                className={`kebu-heavy-media py-12 scroll-mt-20${videoFullWidth ? "" : " px-5 sm:px-8 lg:px-16"}${dataMode === "ultra" || dataMode === "offline" ? " kebu-mode-hide-video" : ""}`}
               >
                 {p.heading && (
                   <h2 className={`text-2xl font-bold mb-6 ${videoFullWidth ? "px-5" : ""}`} style={{ fontFamily: cssFontStack(theme.fontDisplay) }}>
@@ -1520,7 +1528,7 @@ export function SiteRenderer({
               ? src.replace("open.spotify.com/", "open.spotify.com/embed/")
               : null;
             return wrap(
-              <section key={key} id={anchor} className="px-5 py-12 max-w-2xl mx-auto scroll-mt-20">
+              <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-12 scroll-mt-20"><div className="max-w-2xl">
                 {p.heading && <h2 className="text-2xl font-bold mb-4">{p.heading}</h2>}
                 {(p.title || p.artist) && (
                   <p className="text-sm opacity-70 mb-3">
@@ -1550,7 +1558,7 @@ export function SiteRenderer({
                     loading="lazy"
                   />
                 )}
-              </section>,
+              </div></section>,
             );
           }
           case "free-text": {
@@ -1718,7 +1726,7 @@ export function SiteRenderer({
             const bbox = `${p.longitude - 0.02},${p.latitude - 0.02},${p.longitude + 0.02},${p.latitude + 0.02}`;
             const embed = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${p.latitude}%2C${p.longitude}`;
             return (
-              <section key={key} id={anchor} className="px-5 py-12 max-w-4xl mx-auto scroll-mt-20">
+              <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-12 scroll-mt-20">
                 <h2 className="text-2xl font-bold mb-2">{p.heading || "Find us"}</h2>
                 {p.address && <p className="text-sm opacity-70 mb-4">{p.address}</p>}
                 <iframe
@@ -1745,7 +1753,7 @@ export function SiteRenderer({
             const items = p.items ?? [];
             if (!items.length) return null;
             return (
-              <section key={key} id={anchor} className="px-5 py-12 max-w-3xl mx-auto scroll-mt-20">
+              <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-12 scroll-mt-20">
                 <h2 className="text-2xl font-bold mb-6">{p.heading || "Events"}</h2>
                 <ul className="space-y-4">
                   {items.map((ev) => (
@@ -2050,7 +2058,7 @@ export function SiteRenderer({
             return wrap(
               <section
                 key={key}
-                className="py-10 px-4"
+                className="py-10 px-5 sm:px-8 lg:px-16"
                 style={{ background: p.background || "transparent" }}
               >
                 {p.title ? (
@@ -2061,7 +2069,7 @@ export function SiteRenderer({
                     {p.title}
                   </h2>
                 ) : null}
-                <div className={`grid gap-3 max-w-5xl mx-auto ${colClass}`}>
+                <div className={`grid gap-3 ${colClass}`}>
                   {items.map((item, i) => (
                     <a
                       key={i}
