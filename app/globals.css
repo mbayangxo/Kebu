@@ -420,3 +420,290 @@ input:focus, select:focus, textarea:focus {
 }
 .kb-table tr:last-child td { border-bottom: none; }
 .kb-table tr:hover td { background: rgba(10,10,10,0.02); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SHOP ADMIN LAYOUT
+   Full-width sidebar + content — no clipped max-w center column.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.shop-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--warm-ivory);
+}
+
+/* ── Sidebar nav ──────────────────────────────────────────────────────────── */
+.shop-sidenav {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.18s ease;
+  scrollbar-width: none;
+}
+.shop-sidenav::-webkit-scrollbar { display: none; }
+.shop-sidenav[data-collapsed] { width: 56px; }
+
+.shop-sidenav-header {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.shop-sidenav-store-name {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shop-sidenav-nav {
+  flex: 1;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Group button — expanded state */
+.shop-sidenav-group-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--muted);
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.shop-sidenav-group-btn:hover {
+  background: rgba(10,10,10,0.04);
+  color: var(--ink);
+}
+.shop-sidenav-group-btn[data-active] {
+  background: rgba(255, 85, 0, 0.08);
+  color: var(--gold);
+}
+/* collapsed: center the icon */
+.shop-sidenav[data-collapsed] .shop-sidenav-group-btn {
+  justify-content: center;
+  padding: 10px;
+}
+
+.shop-sidenav-group-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.shop-sidenav-group-label {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.shop-sidenav-chevron {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0.45;
+  transform: rotate(0deg);
+  transition: transform 0.15s;
+}
+.shop-sidenav-chevron[data-open] { transform: rotate(90deg); }
+
+/* Children list */
+.shop-sidenav-children {
+  list-style: none;
+  margin: 2px 0 4px 0;
+  padding: 0 0 0 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.shop-sidenav-child-btn {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.shop-sidenav-child-btn:hover {
+  background: rgba(10,10,10,0.04);
+  color: var(--ink);
+}
+.shop-sidenav-child-btn[data-active] {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* Collapse toggle at bottom */
+.shop-sidenav-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--warm-brown);
+  transition: color 0.12s;
+  white-space: nowrap;
+}
+.shop-sidenav-collapse-btn:hover { color: var(--ink); }
+.shop-sidenav[data-collapsed] .shop-sidenav-collapse-btn { justify-content: center; }
+
+/* ── Main content area ────────────────────────────────────────────────────── */
+.shop-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shop-topbar {
+  padding: 20px 32px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+.shop-topbar-left { flex: 1; min-width: 0; }
+.shop-topbar-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.shop-topbar-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font-fraunces), serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+.shop-topbar-subtitle {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: monospace;
+  margin-top: 2px;
+}
+.shop-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ── Panel area ───────────────────────────────────────────────────────────── */
+.shop-panel-area {
+  flex: 1;
+  padding: 28px 32px 48px;
+}
+
+/* Breadcrumb above panel (current section label) */
+.shop-panel-breadcrumb {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--warm-brown);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.shop-panel-breadcrumb-sep { opacity: 0.4; }
+
+/* White content card — floats on the cream background */
+.shop-panel-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px 28px;
+  box-shadow: 0 1px 4px rgba(10,10,10,0.05);
+}
+
+/* Inner section dividers inside a panel card */
+.shop-panel-section {
+  padding-top: 24px;
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.shop-panel-section:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+/* Section label above a group of fields or data */
+.shop-panel-section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--warm-brown);
+  margin-bottom: 14px;
+}
+
+/* ── Note banner ──────────────────────────────────────────────────────────── */
+.shop-note {
+  padding: 10px 14px;
+  background: var(--warm-ivory);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .shop-sidenav {
+    position: fixed;
+    z-index: 50;
+    height: 100%;
+    transform: translateX(0);
+  }
+  .shop-sidenav[data-collapsed] {
+    width: 0;
+    overflow: hidden;
+    border: none;
+  }
+  .shop-panel-area { padding: 20px 16px 40px; }
+  .shop-topbar { padding: 14px 16px 12px; }
+  .shop-topbar-title { font-size: 1.125rem; }
+  .shop-panel-card { padding: 18px 16px; }
+}
