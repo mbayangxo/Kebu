@@ -260,7 +260,7 @@ export default function ProjectEditorPage() {
             : "free";
         setBilling({
           canPublish: Boolean(billingData.canPublish),
-          label: typeof billingData.label === "string" ? billingData.label : "$5/month",
+          label: typeof billingData.label === "string" ? billingData.label : "$2/site/month",
           periodEnd: billingData.subscription?.periodEnd ?? null,
           billingExempt: Boolean(billingData.billingExempt),
           autopayEnabled: Boolean(billingData.subscription?.autopayEnabled),
@@ -780,7 +780,7 @@ export default function ProjectEditorPage() {
       }
       if (res.status === 402 && data.billingRequired) {
         setError(
-          `Publish needs hosting. Free works on a Kebu subdomain — or pay ${data.monthlyLabel ?? "$5/month"} (Shop) via JOKO.`,
+          `Publish needs a paid plan for a custom domain. Free sites publish on your Kebu subdomain — or upgrade to Starter ($2/site/month) via JOKO.`,
         );
         setBilling((b) => (b ? { ...b, canPublish: false } : b));
         return;

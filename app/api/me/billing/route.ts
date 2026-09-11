@@ -87,7 +87,7 @@ export async function GET() {
     },
     message: exempt
       ? "Your account does not pay for site hosting."
-      : "Start free. Upgrade when you need a custom domain or store — Kebu Shop ($5/month) is the plan we recommend. Autopay keeps paid sites live.",
+      : "Start free — 4 sites + shop included. Add a custom domain for $2/site/month (Starter) or $5/site/month (Business). Autopay keeps paid sites live.",
     sites,
   });
 }

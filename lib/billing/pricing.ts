@@ -49,7 +49,7 @@ export const SITE_HOSTING_BILLING_LABEL = planLabel("shop");
 export const SITE_HOSTING_YEARLY_BILLING_LABEL = `$${getKebuPlan("shop").yearlyUsd}/year`;
 
 export const SITE_HOSTING_DESCRIPTION =
-  "Everything you need to build your business — start free, then Kebu Shop at $5/month for website + store + hosting + AI (vs ~$29 on Shopify/Wix). Pay with JOKO mobile money.";
+  "Start free — 4 sites + shop included. Add a custom domain for $2/site/month (Starter) or $5/site/month (Business). Pay with JOKO, Wave, or Orange Money. Far less than Shopify/Wix at ~$29+/month.";
 
 export const SITE_HOSTING_AUTOPAY_DESCRIPTION =
   "Turn on autopay and Kebu bills your plan every month before it ends. " +
