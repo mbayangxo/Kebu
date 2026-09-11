@@ -11,6 +11,8 @@ import { PublicProductActions } from "@/app/components/create/public-product-act
 import { PublicShopCart } from "@/app/components/create/public-shop-cart";
 import { SiteFormSection } from "@/app/components/create/site-form-section";
 import { SiteBlogSection } from "@/app/components/create/site-blog-section";
+import { ProductsSection } from "@/app/components/create/products-section";
+import type { ProductCollection } from "@/app/components/create/products-section";
 import { readDeviceOverride, applyDeviceAwarePatch, mergeDeviceAwareSectionProps } from "@/lib/create/device-overrides";
 import {
   isDirectAudioUrl,
@@ -1190,258 +1192,39 @@ export function SiteRenderer({
           case "products": {
             const raw = section.props as Record<string, unknown>;
             const device = editor?.editDevice ?? "desktop";
-            const p = {
-              heading: String(readDeviceOverride(raw, device, "heading") ?? "Products"),
-              layout: raw.layout as "grid" | "grid-dense" | "list" | "featured" | undefined,
-              columns: raw.columns as 2 | 3 | 4 | undefined,
-              orderStyle: raw.orderStyle as "inline" | "sheet" | "card" | "minimal" | undefined,
-              orderCtaLabel: raw.orderCtaLabel as string | undefined,
-              fullWidth: raw.fullWidth as boolean | undefined,
-              filterMode: raw.filterMode as "none" | "sidebar" | "horizontal" | undefined,
-              filterFields: raw.filterFields as string[] | undefined,
-              bannerImageUrl: raw.bannerImageUrl as string | undefined,
-              bannerText: raw.bannerText as string | undefined,
-              hoverZoom: raw.hoverZoom as boolean | undefined,
-              items: raw.items as {
-                name: string;
-                description?: string;
-                priceLabel?: string;
-                imageUrl?: string;
-                whatsappMessage?: string;
-                productId?: string;
-                isSubscription?: boolean;
-                subscriptionInterval?: "weekly" | "monthly" | "quarterly" | "yearly";
-                hasVariants?: boolean;
-                variants?: {
-                  id: string;
-                  name: string;
-                  option1: string;
-                  option2: string;
-                  option3: string;
-                  priceLabel?: string;
-                  imageUrl?: string;
-                }[];
-              }[] | undefined,
-            };
+            const heading = String(readDeviceOverride(raw, device, "heading") ?? "Products");
             const patchProducts = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
             const liveSub =
               mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase)) : null;
-            const layout = p.layout ?? "grid";
-            const columns = p.columns ?? 3;
-            const items = p.items ?? [];
-            const prodFullWidth = Boolean(p.fullWidth);
-            const filterMode = p.filterMode ?? "none";
-            const hoverZoom = Boolean(p.hoverZoom);
-            const gridClass =
-              layout === "list"
-                ? "flex flex-col gap-4"
-                : layout === "grid-dense"
-                  ? columns === 2
-                    ? "grid gap-4 sm:grid-cols-2"
-                    : columns === 4
-                      ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-                      : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
-                  : columns === 2
-                    ? "grid gap-6 sm:grid-cols-2"
-                    : columns === 4
-                      ? "grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
-                      : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3";
-            const featuredFirst = layout === "featured" && items.length > 0;
-            const renderItem = (
-              item: (typeof items)[number],
-              opts?: { featured?: boolean },
-            ) => {
-              const message = item.whatsappMessage || `Hi — I want to order: ${item.name}`;
-              const waHref = whatsAppOrderHref(merchantPhone, message);
-              const isList = layout === "list";
-              const isFeatured = Boolean(opts?.featured);
-              return (
-                <article
-                  key={`${item.productId ?? item.name}`}
-                  className={`kebu-card overflow-hidden group ${
-                    isList ? "flex flex-col sm:flex-row gap-0" : ""
-                  } ${isFeatured ? "sm:col-span-2 lg:col-span-2" : ""}`}
-                >
-                  <div className={`overflow-hidden ${isList ? "shrink-0 w-full sm:w-44" : "w-full"}`}>
-                    {item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className={`object-cover transition-transform duration-500 ${hoverZoom ? "group-hover:scale-110" : ""} ${
-                          isList
-                            ? "w-full h-40 sm:h-full"
-                            : isFeatured
-                              ? "w-full h-56 sm:h-72"
-                              : layout === "grid-dense"
-                                ? "w-full h-36"
-                                : "w-full h-40"
-                        }`}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div
-                        className={`flex items-center justify-center text-sm opacity-40 bg-black/5 ${
-                          isList ? "w-full h-40" : "w-full h-40"
-                        }`}
-                      >
-                        No image
-                      </div>
-                    )}
-                  </div>
-                  <div className={`p-4 ${isList ? "flex-1" : ""}`}>
-                    <h3 className={`font-semibold ${isFeatured ? "text-xl" : ""}`}>{item.name}</h3>
-                    {item.priceLabel ? (
-                      <p className="text-sm font-bold mt-1" style={{ color: theme.accent }}>
-                        {item.priceLabel}
-                      </p>
-                    ) : null}
-                    {item.description ? (
-                      <p className={`text-sm opacity-70 mt-2 ${isFeatured ? "" : "line-clamp-3"}`}>
-                        {item.description}
-                      </p>
-                    ) : null}
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {liveSub && item.productId && !editor ? (
-                        <PublicProductActions
-                          subdomain={liveSub}
-                          productId={item.productId}
-                          productName={item.name}
-                          priceLabel={item.priceLabel ?? ""}
-                          variants={item.variants}
-                          commerce={shopCommerce}
-                          orderStyle={p.orderStyle ?? "inline"}
-                          ctaLabel={p.orderCtaLabel ?? "Place order"}
-                          isSubscription={Boolean(item.isSubscription)}
-                          subscriptionInterval={item.subscriptionInterval}
-                        />
-                      ) : null}
-                      <a
-                        href={waHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block rounded-full px-4 py-2 text-xs font-bold"
-                        style={{ background: "#25D366", color: "#fff" }}
-                      >
-                        WhatsApp
-                      </a>
-                    </div>
-                    {!merchantPhone ? (
-                      <p className="text-[10px] mt-2 opacity-50">
-                        Add your WhatsApp number in Shop → Payments so orders reach you.
-                      </p>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            };
-
-            /* filter tags (sidebar or horizontal) */
-            const filterTags = (p.filterFields ?? []).filter(Boolean);
-            const FilterBar = filterMode !== "none" && filterTags.length > 0 ? (
-              <div className={`flex flex-wrap gap-2 ${filterMode === "horizontal" ? "mb-6" : "mb-4"}`}>
-                <button className="rounded-full px-3 py-1 text-xs font-bold border-2" style={{ borderColor: theme.accent, color: theme.accent }}>All</button>
-                {filterTags.map((tag) => (
-                  <button key={tag} className="rounded-full px-3 py-1 text-xs font-semibold opacity-70 hover:opacity-100 transition-opacity" style={{ border: "1px solid currentColor" }}>
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            ) : null;
-
-            const sectionInnerPx = prodFullWidth ? "px-5 lg:px-10" : "px-5";
-            const sectionMaxW = prodFullWidth ? "" : " max-w-5xl mx-auto";
 
             return wrap(
-              <section key={key} id={anchor} className={`kebu-section scroll-mt-20${sectionMaxW}`}>
-                {/* Banner */}
-                {p.bannerImageUrl?.trim() ? (
-                  <div className="relative mb-8 overflow-hidden" style={{ minHeight: 180 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.bannerImageUrl} alt="" className="w-full h-48 sm:h-64 object-cover" loading="lazy" decoding="async" />
-                    {p.bannerText?.trim() ? (
-                      <div className="absolute inset-0 flex items-end px-6 py-5" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)" }}>
-                        <p className="text-lg font-bold text-white">{p.bannerText}</p>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className={sectionInnerPx}>
-                  {device !== "desktop" && editor?.inlineEdit ? (
-                    <p className="text-[10px] uppercase tracking-wider opacity-50 mb-2">Editing {device} copy</p>
-                  ) : null}
-                  <EditableText
-                    tag="h2"
-                    className="text-2xl font-bold mb-2"
-                    style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
-                    value={p.heading || "Products"}
-                    editor={editor}
-                    onChange={(heading) => patchProducts({ heading })}
-                  />
-                  <div className="mb-4 flex flex-wrap gap-1.5">
-                    {paymentLabels.map((label) => (
-                      <span
-                        key={label}
-                        className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                        style={{ background: `${theme.accent}18`, color: theme.accent }}
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                  {shopCommerce.paymentInstructions?.trim() && shopCommerce.acceptMobileMoney ? (
-                    <p className="mb-3 rounded-xl px-3 py-2 text-xs leading-relaxed opacity-80" style={{ background: "rgba(0,0,0,0.04)" }}>
-                      <strong>Mobile money:</strong> {shopCommerce.paymentInstructions.trim()}
-                    </p>
-                  ) : null}
-                  {shopCommerce.acceptCard && shopCommerce.cardInstructions?.trim() ? (
-                    <p className="mb-3 rounded-xl px-3 py-2 text-xs leading-relaxed opacity-80" style={{ background: "rgba(0,0,0,0.04)" }}>
-                      <strong>Card:</strong> {shopCommerce.cardInstructions.trim()}
-                    </p>
-                  ) : null}
-                  {shopCommerce.acceptPaypal && shopCommerce.paypalHandle?.trim() ? (
-                    <p className="mb-5 rounded-xl px-3 py-2 text-xs leading-relaxed opacity-80" style={{ background: "rgba(0,0,0,0.04)" }}>
-                      <strong>PayPal:</strong> {shopCommerce.paypalHandle.trim()}
-                    </p>
-                  ) : null}
-
-                  {/* horizontal filter bar */}
-                  {filterMode === "horizontal" ? FilterBar : null}
-
-                  <div className={filterMode === "sidebar" ? "flex gap-6 items-start" : ""}>
-                    {/* sidebar filters */}
-                    {filterMode === "sidebar" && filterTags.length > 0 ? (
-                      <div className="w-36 shrink-0 hidden sm:block space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-wider mb-2 opacity-60">Filter</p>
-                        <button className="block w-full text-left rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: `${theme.accent}15`, color: theme.accent }}>All</button>
-                        {filterTags.map((tag) => (
-                          <button key={tag} className="block w-full text-left rounded-lg px-3 py-1.5 text-xs hover:bg-black/5 transition-colors">
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                    <div className={`${filterMode === "sidebar" ? "flex-1 min-w-0" : ""}`}>
-                      <div className={gridClass}>
-                        {featuredFirst
-                          ? [
-                              renderItem(items[0]!, { featured: true }),
-                              ...items.slice(1).map((item) => renderItem(item)),
-                            ]
-                          : items.map((item) => renderItem(item))}
-                      </div>
-                      {items.length === 0 ? (
-                        <p className="text-sm opacity-60">
-                          Add products in Kebu Shop (Products tab), then publish this site.
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </section>,
+              <ProductsSection
+                key={key}
+                sectionId={sectionId}
+                anchor={anchor}
+                heading={heading}
+                layout={raw.layout as "grid" | "grid-dense" | "list" | "featured" | undefined}
+                columns={raw.columns as 2 | 3 | 4 | undefined}
+                orderStyle={raw.orderStyle as "inline" | "sheet" | "card" | "minimal" | undefined}
+                orderCtaLabel={raw.orderCtaLabel as string | undefined}
+                fullWidth={raw.fullWidth as boolean | undefined}
+                filterMode={raw.filterMode as "none" | "sidebar" | "horizontal" | undefined}
+                filterFields={raw.filterFields as string[] | undefined}
+                collections={raw.collections as ProductCollection[] | undefined}
+                bannerImageUrl={raw.bannerImageUrl as string | undefined}
+                bannerText={raw.bannerText as string | undefined}
+                hoverZoom={raw.hoverZoom as boolean | undefined}
+                items={(raw.items as import("@/app/components/create/products-section").ProductItem[] | undefined) ?? []}
+                theme={theme}
+                merchantPhone={merchantPhone}
+                shopCommerce={shopCommerce}
+                paymentLabels={paymentLabels}
+                liveSubdomain={liveSub}
+                projectId={projectId}
+                patchSection={patchProducts}
+                deviceLabel={device !== "desktop" && editor?.inlineEdit ? device : undefined}
+              />,
             );
           }
           case "contact": {

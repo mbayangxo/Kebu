@@ -3539,6 +3539,62 @@ export default function ProjectEditorPage() {
                             placeholder="Banner text overlay (optional)"
                           />
 
+                          {/* Related products per item */}
+                          {(() => {
+                            const items = (section.props.items as { name: string; productId?: string; relatedProductIds?: string[] }[] | undefined) ?? [];
+                            if (items.length < 2) return null;
+                            return (
+                              <div className="space-y-2">
+                                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
+                                  "You might also like" per product
+                                </p>
+                                {items.map((item, idx) => {
+                                  const others = items.filter((_, i) => i !== idx);
+                                  const currentRelated = item.relatedProductIds ?? [];
+                                  return (
+                                    <details key={item.productId ?? item.name ?? idx} className="rounded-lg overflow-hidden" style={{ border: `1px solid ${BUILDER.border}` }}>
+                                      <summary className="cursor-pointer px-2.5 py-1.5 text-[10px] font-semibold" style={{ background: BUILDER.surfaceMuted, listStyle: "none" }}>
+                                        {item.name}
+                                        {currentRelated.length > 0 ? (
+                                          <span className="ml-1.5 opacity-50">({currentRelated.length} related)</span>
+                                        ) : null}
+                                      </summary>
+                                      <div className="px-2.5 py-2 space-y-1">
+                                        {others.map((other) => {
+                                          const isChecked = other.productId
+                                            ? currentRelated.includes(other.productId)
+                                            : false;
+                                          return (
+                                            <label key={other.productId ?? other.name} className="flex items-center gap-1.5 text-[10px] cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                  const newItems = items.map((it, i) => {
+                                                    if (i !== idx) return it;
+                                                    const prev = it.relatedProductIds ?? [];
+                                                    const pid = other.productId;
+                                                    if (!pid) return it;
+                                                    const next = e.target.checked
+                                                      ? [...prev, pid]
+                                                      : prev.filter((id) => id !== pid);
+                                                    return { ...it, relatedProductIds: next };
+                                                  });
+                                                  updateProps(section.id, { items: newItems });
+                                                }}
+                                              />
+                                              {other.name}
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    </details>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Catalog lives in{" "}
                             <Link href={`/shop/${projectId}?tab=products`} className="font-bold underline" style={{ color: "#FF5500" }}>

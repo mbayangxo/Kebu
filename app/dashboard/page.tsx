@@ -332,7 +332,7 @@ export default function KebuHomePage() {
                     src={summary.profile.avatarUrl}
                     alt=""
                     className="w-14 h-14 rounded-full object-cover ring-2"
-                    style={{ ringColor: G.sage }}
+                    style={{ outlineColor: G.sage, outlineOffset: 2 }}
                   />
                 ) : (
                   <span
