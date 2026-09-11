@@ -284,89 +284,248 @@ function findMotionHeroProps(definition: WebsiteDefinition): LegallyBlondeHeroPr
   return null;
 }
 
-/** Click-based dropdown for nav links with sub-items. Works on touch screens. */
-function NavDropdown({
-  label,
-  href,
-  items,
-  bg,
+/** Mobile-first site navigation — hamburger drawer on small screens, horizontal bar on desktop. */
+function SiteNav({
+  brand,
+  brandEl,
+  links,
+  navBg,
+  navColor,
+  stickyClass,
+  padY,
+  padX,
+  fontPx,
+  gap,
+  maxWidth,
+  logoAlign,
   resolveHref,
   onNavigate,
 }: {
-  label: string;
-  href: string;
-  items: { label: string; href: string }[];
-  bg: string;
+  brand: string;
+  brandEl: ReactNode;
+  links: { label: string; href: string; children?: { label: string; href: string }[] }[];
+  navBg: string | undefined;
+  navColor: string;
+  stickyClass: string;
+  padY: number;
+  padX: number;
+  fontPx: number;
+  gap: number;
+  maxWidth: number;
+  logoAlign: "left" | "center" | "right";
   resolveHref: (h: string) => string;
   onNavigate?: (slug: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const slug = href ? href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="opacity-80 hover:opacity-100 text-left flex items-center gap-1"
-      >
-        {label}
-        <span aria-hidden style={{ fontSize: "0.7em", opacity: 0.7, display: "inline-block", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▾</span>
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
-          <div
-            className="absolute left-0 top-full z-50 flex min-w-[160px] flex-col overflow-hidden rounded-lg shadow-lg"
-            style={{ background: bg, paddingBlock: 4 }}
-          >
-            {href && href !== "#" && (
-              onNavigate && slug ? (
+  function slugFromHref(href: string): string | null {
+    const h = (href || "").trim();
+    if (!h || h === "#" || h.startsWith("http") || h.startsWith("mailto:")) return null;
+    const cleaned = h.replace(/^\//, "").split(/[?#]/)[0] ?? "";
+    return cleaned || "home";
+  }
+
+  function handleNav(href: string) {
+    const slug = slugFromHref(href);
+    if (onNavigate && slug) {
+      onNavigate(slug);
+    }
+    setDrawerOpen(false);
+    setOpenGroup(null);
+  }
+
+  const logoJustify = logoAlign === "center" ? "justify-center" : logoAlign === "right" ? "justify-end" : "justify-start";
+
+  /* Desktop link renderer */
+  function renderDesktopLink(l: { label: string; href: string; children?: { label: string; href: string }[] }) {
+    const hasChildren = l.children && l.children.length > 0;
+    if (!hasChildren) {
+      const slug = slugFromHref(l.href);
+      return onNavigate && slug ? (
+        <button
+          key={l.label}
+          type="button"
+          onClick={() => handleNav(l.href)}
+          className="kebu-nav-link"
+          style={{ fontSize: fontPx }}
+        >
+          {l.label}
+        </button>
+      ) : (
+        <a key={l.label} href={resolveHref(l.href)} className="kebu-nav-link" style={{ fontSize: fontPx }}>
+          {l.label}
+        </a>
+      );
+    }
+    const groupOpen = openGroup === l.label;
+    return (
+      <div key={l.label} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpenGroup(groupOpen ? null : l.label)}
+          className="kebu-nav-link flex items-center gap-1"
+          style={{ fontSize: fontPx }}
+        >
+          {l.label}
+          <span aria-hidden style={{ fontSize: "0.65em", opacity: 0.6, transform: groupOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s", display: "inline-block" }}>▾</span>
+        </button>
+        {groupOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpenGroup(null)} aria-hidden />
+            <div
+              className="absolute left-0 top-full z-50 mt-1 flex min-w-[160px] flex-col overflow-hidden rounded-xl shadow-xl"
+              style={{ background: navBg || "#000", border: "1px solid rgba(255,255,255,0.12)" }}
+            >
+              {l.children!.map((child) => {
+                const cslug = slugFromHref(child.href);
+                return onNavigate && cslug ? (
+                  <button
+                    key={child.label}
+                    type="button"
+                    onClick={() => { handleNav(child.href); }}
+                    className="kebu-nav-dropdown-item text-left"
+                    style={{ color: navColor }}
+                  >
+                    {child.label}
+                  </button>
+                ) : (
+                  <a
+                    key={child.label}
+                    href={resolveHref(child.href)}
+                    onClick={() => setOpenGroup(null)}
+                    className="kebu-nav-dropdown-item"
+                    style={{ color: navColor }}
+                  >
+                    {child.label}
+                  </a>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  /* Mobile drawer link renderer */
+  function renderDrawerLink(l: { label: string; href: string; children?: { label: string; href: string }[] }) {
+    const hasChildren = l.children && l.children.length > 0;
+    if (!hasChildren) {
+      const slug = slugFromHref(l.href);
+      return onNavigate && slug ? (
+        <button
+          key={l.label}
+          type="button"
+          onClick={() => handleNav(l.href)}
+          className="kebu-nav-drawer-link"
+        >
+          {l.label}
+        </button>
+      ) : (
+        <a key={l.label} href={resolveHref(l.href)} onClick={() => setDrawerOpen(false)} className="kebu-nav-drawer-link">
+          {l.label}
+        </a>
+      );
+    }
+    const groupOpen = openGroup === l.label;
+    return (
+      <div key={l.label}>
+        <button
+          type="button"
+          onClick={() => setOpenGroup(groupOpen ? null : l.label)}
+          className="kebu-nav-drawer-link flex w-full items-center justify-between"
+        >
+          {l.label}
+          <span aria-hidden style={{ fontSize: "0.75em", opacity: 0.6, transform: groupOpen ? "rotate(180deg)" : "none", transition: "transform 0.18s", display: "inline-block" }}>▾</span>
+        </button>
+        {groupOpen && (
+          <div className="kebu-nav-drawer-children">
+            {l.children!.map((child) => {
+              const cslug = slugFromHref(child.href);
+              return onNavigate && cslug ? (
                 <button
+                  key={child.label}
                   type="button"
-                  onClick={() => { onNavigate(slug); setOpen(false); }}
-                  className="text-left px-4 py-2 opacity-80 hover:opacity-100 text-sm border-b"
-                  style={{ borderColor: "rgba(255,255,255,0.15)" }}
-                >
-                  {label} (overview)
-                </button>
-              ) : (
-                <a
-                  href={resolveHref(href)}
-                  onClick={() => setOpen(false)}
-                  className="px-4 py-2 opacity-80 hover:opacity-100 text-sm block border-b"
-                  style={{ borderColor: "rgba(255,255,255,0.15)" }}
-                >
-                  {label} (overview)
-                </a>
-              )
-            )}
-            {items.map((child) => {
-              const childSlug = child.href ? child.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
-              return onNavigate && childSlug ? (
-                <button
-                  key={child.href}
-                  type="button"
-                  onClick={() => { onNavigate(childSlug); setOpen(false); }}
-                  className="text-left px-4 py-2 opacity-80 hover:opacity-100 text-sm"
+                  onClick={() => handleNav(child.href)}
+                  className="kebu-nav-drawer-child"
                 >
                   {child.label}
                 </button>
               ) : (
-                <a
-                  key={child.href}
-                  href={resolveHref(child.href)}
-                  onClick={() => setOpen(false)}
-                  className="px-4 py-2 opacity-80 hover:opacity-100 text-sm block"
-                >
+                <a key={child.label} href={resolveHref(child.href)} onClick={() => setDrawerOpen(false)} className="kebu-nav-drawer-child">
                   {child.label}
                 </a>
               );
             })}
           </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <header
+      className={`kebu-site-nav ${stickyClass}`}
+      style={{
+        background: navBg,
+        color: navColor,
+        paddingTop: padY,
+        paddingBottom: padY,
+        paddingLeft: padX,
+        paddingRight: padX,
+      }}
+    >
+      <div
+        className="mx-auto flex w-full items-center justify-between"
+        style={{ maxWidth }}
+      >
+        {/* Brand */}
+        <div className={`flex shrink-0 ${logoAlign === "center" ? "absolute left-1/2 -translate-x-1/2" : ""}`}>
+          {brandEl}
+        </div>
+
+        {/* Desktop links — hidden on mobile */}
+        <nav
+          className="kebu-site-nav__links hidden items-center sm:flex"
+          style={{ gap, fontSize: fontPx, marginLeft: logoAlign === "left" ? "auto" : undefined }}
+          aria-label="Site navigation"
+        >
+          {links.map((l) => renderDesktopLink(l))}
+        </nav>
+
+        {/* Hamburger — mobile only */}
+        {links.length > 0 && (
+          <button
+            type="button"
+            onClick={() => { setDrawerOpen((v) => !v); setOpenGroup(null); }}
+            className="kebu-nav-hamburger sm:hidden"
+            aria-label={drawerOpen ? "Close menu" : "Open menu"}
+            aria-expanded={drawerOpen}
+            style={{ color: navColor }}
+          >
+            {drawerOpen ? (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h12"/></svg>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Mobile drawer */}
+      {drawerOpen && (
+        <>
+          <div className="fixed inset-0 z-40 sm:hidden" style={{ background: "rgba(0,0,0,0.35)" }} onClick={() => setDrawerOpen(false)} aria-hidden />
+          <div
+            className="kebu-nav-drawer sm:hidden"
+            style={{ background: navBg || "#000", color: navColor, borderTop: "1px solid rgba(255,255,255,0.1)" }}
+          >
+            {links.map((l) => renderDrawerLink(l))}
+          </div>
         </>
       )}
-    </div>
+    </header>
   );
 }
 
@@ -673,55 +832,6 @@ export function SiteRenderer({
               const base = siteBase.replace(/\/$/, "");
               return base ? `${base}/${h}` : `/${h}`;
             };
-            const slugFromHref = (href: string): string | null => {
-              const h = (href || "").trim();
-              if (!h || h === "#" || h.startsWith("http") || h.startsWith("mailto:") || h.startsWith("#")) {
-                return null;
-              }
-              const path = h.startsWith("/") ? h : `/${h}`;
-              const base = siteBase.replace(/\/$/, "");
-              let rest = path;
-              if (base && path.startsWith(base)) {
-                rest = path.slice(base.length) || "/";
-              }
-              const cleaned = rest.replace(/^\//, "").split(/[?#]/)[0] ?? "";
-              return cleaned || "home";
-            };
-            const renderNavLink = (l: { label: string; href: string; children?: { label: string; href: string }[] }) => {
-              const slug = slugFromHref(l.href);
-              const hasChildren = l.children && l.children.length > 0;
-              if (hasChildren) {
-                return (
-                  <NavDropdown
-                    key={`${l.label}-${l.href}-group`}
-                    label={l.label}
-                    href={l.href}
-                    items={l.children!}
-                    bg={String(theme.primary ?? "#000")}
-                    resolveHref={resolveNavHref}
-                    onNavigate={editor?.onNavigatePage}
-                  />
-                );
-              }
-              return editor?.onNavigatePage && slug ? (
-                <button
-                  key={`${l.label}-${l.href}`}
-                  type="button"
-                  onClick={() => editor.onNavigatePage!(slug)}
-                  className="opacity-80 hover:opacity-100 text-left"
-                >
-                  {l.label}
-                </button>
-              ) : (
-                <a
-                  key={`${l.label}-${l.href}`}
-                  href={resolveNavHref(l.href)}
-                  className="opacity-80 hover:opacity-100"
-                >
-                  {l.label}
-                </a>
-              );
-            };
             const brandEl = (
               <EditableText
                 tag="span"
@@ -732,32 +842,9 @@ export function SiteRenderer({
                 onChange={(brand) => patchNav({ brand })}
               />
             );
-            if (side) {
-              return wrap(
-                <aside
-                  key={key}
-                  className={`kebu-site-nav kebu-site-nav--side flex flex-col shrink-0 self-stretch ${stickyClass}`}
-                  style={{
-                    background: theme.primary,
-                    color: "#fff",
-                    width: m.sideWidth,
-                    paddingTop: m.padY + 8,
-                    paddingBottom: m.padY + 8,
-                    paddingLeft: m.padX,
-                    paddingRight: m.padX,
-                    gap: Math.max(10, m.gap * 0.65),
-                  }}
-                >
-                  {brandEl}
-                  <nav className="kebu-site-nav__links flex flex-col" style={{ gap: Math.max(10, m.gap * 0.65), fontSize: m.fontPx }}>
-                    {p.links.map((l) => renderNavLink(l))}
-                  </nav>
-                </aside>,
-              );
-            }
-            const navBg = theme.primary;
+            const navBg = String(theme.primary ?? "#000");
             const navIsLight = (() => {
-              const hex = String(navBg || "").replace(/\s/g, "");
+              const hex = navBg.replace(/\s/g, "");
               if (hex.startsWith("#") && hex.length >= 7) {
                 const r = parseInt(hex.slice(1, 3), 16);
                 const g = parseInt(hex.slice(3, 5), 16);
@@ -768,40 +855,59 @@ export function SiteRenderer({
               }
               return false;
             })();
-            const logoJustify = p.logoAlign === "center" ? "justify-center" : p.logoAlign === "right" ? "justify-end" : "justify-start";
-            return wrap(
-              <header
-                key={key}
-                className={`kebu-site-nav ${stickyClass}`}
-                style={{
-                  background: navBg,
-                  color: navIsLight ? (theme.text || "#0A0A0A") : "#fff",
-                  paddingTop: m.padY,
-                  paddingBottom: m.padY,
-                  paddingLeft: m.padX,
-                  paddingRight: m.padX,
-                  borderBottom: navIsLight ? "1px solid rgba(0,0,0,0.08)" : "none",
-                }}
-              >
-                <div
-                  className={`mx-auto flex w-full flex-wrap items-center gap-3 ${p.logoAlign === "center" ? "justify-center" : "justify-between"}`}
-                  style={{ maxWidth: m.maxWidth }}
+            const navColor = navIsLight ? String(theme.text ?? "#0A0A0A") : "#fff";
+
+            if (side) {
+              return wrap(
+                <aside
+                  key={key}
+                  className={`kebu-site-nav kebu-site-nav--side flex flex-col shrink-0 self-stretch ${stickyClass}`}
+                  style={{
+                    background: navBg,
+                    color: navColor,
+                    width: m.sideWidth,
+                    paddingTop: m.padY + 8,
+                    paddingBottom: m.padY + 8,
+                    paddingLeft: m.padX,
+                    paddingRight: m.padX,
+                    gap: Math.max(10, m.gap * 0.65),
+                  }}
                 >
-                  {p.logoAlign === "right" && (
-                    <nav className="kebu-site-nav__links flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
-                      {p.links.map((l) => renderNavLink(l))}
-                    </nav>
-                  )}
-                  <div className={`flex ${logoJustify} ${p.logoAlign === "center" ? "w-full" : ""}`}>
-                    {brandEl}
-                  </div>
-                  {p.logoAlign !== "right" && (
-                    <nav className="kebu-site-nav__links flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
-                      {p.links.map((l) => renderNavLink(l))}
-                    </nav>
-                  )}
-                </div>
-              </header>,
+                  {brandEl}
+                  <nav className="kebu-site-nav__links flex flex-col" style={{ gap: Math.max(10, m.gap * 0.65), fontSize: m.fontPx }}>
+                    {p.links.map((l) => {
+                      const slug = l.href ? l.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
+                      return editor?.onNavigatePage && slug ? (
+                        <button key={l.label} type="button" onClick={() => editor.onNavigatePage!(slug)} className="kebu-nav-link text-left">
+                          {l.label}
+                        </button>
+                      ) : (
+                        <a key={l.label} href={resolveNavHref(l.href)} className="kebu-nav-link">{l.label}</a>
+                      );
+                    })}
+                  </nav>
+                </aside>,
+              );
+            }
+
+            return wrap(
+              <SiteNav
+                key={key}
+                brand={p.brand}
+                brandEl={brandEl}
+                links={p.links}
+                navBg={navBg}
+                navColor={navColor}
+                stickyClass={stickyClass}
+                padY={m.padY}
+                padX={m.padX}
+                fontPx={m.fontPx}
+                gap={m.gap}
+                maxWidth={m.maxWidth}
+                logoAlign={p.logoAlign}
+                resolveHref={resolveNavHref}
+                onNavigate={editor?.onNavigatePage}
+              />,
             );
           }
           case "hero": {
