@@ -182,7 +182,7 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
             />
           </label>
 
-          {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="mt-2 text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
           {hint ? (
             <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>
               {hint}
@@ -233,7 +233,8 @@ export function BusinessTeamPanel({ businessId }: { businessId: string }) {
                         <button
                           type="button"
                           disabled={busy}
-                          className="text-[10px] font-bold uppercase tracking-wider text-red-700"
+                          className="text-[10px] font-bold uppercase tracking-wider"
+                          style={{ color: "#8B1E1E" }}
                           onClick={() => void revoke(i.id)}
                         >
                           Revoke

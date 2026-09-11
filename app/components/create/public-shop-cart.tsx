@@ -389,7 +389,7 @@ export function PublicShopCart({
                     />
                   </div>
                 ) : null}
-                {error ? <p className="text-[11px] text-red-700">{error}</p> : null}
+                {error ? <p className="text-[11px]" style={{ color: "#8B1E1E" }}>{error}</p> : null}
                 <button
                   type="submit"
                   disabled={busy || !online}

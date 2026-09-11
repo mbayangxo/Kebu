@@ -247,9 +247,23 @@ export default function OpportunityOsHubPage() {
         {countries.length > 0 ? (
           <CountryExplorerMosaic countries={countries} />
         ) : (
-          <p className="text-sm" style={{ color: KEBU.muted }}>
-            No published country profiles yet — apply migration 009.
-          </p>
+          <div
+            className="rounded-2xl p-8 text-center"
+            style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+          >
+            <p className="text-3xl mb-3">🌍</p>
+            <p className="font-bold mb-1" style={{ color: KEBU.black }}>Country profiles coming soon</p>
+            <p className="text-sm" style={{ color: KEBU.muted }}>
+              Kebu researchers are adding grants, programs, and opportunities country by country.
+            </p>
+            <Link
+              href="/opportunity/listings"
+              className="inline-block mt-4 text-sm font-bold underline"
+              style={{ color: KEBU.orange }}
+            >
+              Browse all listings →
+            </Link>
+          </div>
         )}
       </section>
 

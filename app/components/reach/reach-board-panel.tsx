@@ -118,7 +118,7 @@ export function ReachBoardPanel() {
 
   return (
     <div className="space-y-4">
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {note ? <p className="text-[11px] opacity-60 leading-relaxed">{note}</p> : null}
       <ul className="grid sm:grid-cols-2 gap-3">
         {creatives.map((c) => (

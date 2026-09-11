@@ -275,7 +275,7 @@ export function PublicShopAccount({
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-lg border px-3 py-2 text-sm"
           />
-          {error ? <p className="text-xs text-red-700">{error}</p> : null}
+          {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
           {confirmPending ? (
             <p className="text-xs opacity-70">Open the confirmation link we emailed you.</p>
           ) : null}
@@ -319,7 +319,7 @@ export function PublicShopAccount({
                 Save profile
               </button>
             </form>
-            {error ? <p className="mt-2 text-xs text-red-700">{error}</p> : null}
+            {error ? <p className="mt-2 text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
             {note ? <p className="mt-2 text-xs opacity-70">{note}</p> : null}
           </div>
 

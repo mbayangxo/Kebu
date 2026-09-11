@@ -107,7 +107,7 @@ export function ReachCampaignsPanel() {
 
   return (
     <div className="space-y-3">
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       <ul className="space-y-3">
         {campaigns.map((c) => (
           <li key={c.id} className="rounded-2xl border border-black/10 bg-white p-4 space-y-3">

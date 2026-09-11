@@ -209,8 +209,8 @@ export default function RegisterBusinessWizardPage() {
           Register a business
         </h1>
         <p className="text-sm mb-6" style={{ color: KEBU.muted, lineHeight: 1.7 }}>
-          Creates a draft business with a permanent Kebu ID. Government filing is not submitted in this slice —
-          country modules prepare for future connectors.
+          Get your permanent Kebu Business ID — your identity on the B2B directory, Opportunity OS, and
+          Kebu Commerce. Takes about 3 minutes.
         </p>
 
         <nav aria-label="Wizard steps" className="flex gap-2 mb-8 flex-wrap">
@@ -248,7 +248,7 @@ export default function RegisterBusinessWizardPage() {
                   style={{ border: "1px solid #DDE0F0" }}
                   disabled={submitting}
                 />
-                {fieldErrors.legalName && <span className="text-red-700 text-[11px]">{fieldErrors.legalName[0]}</span>}
+                {fieldErrors.legalName && <span className="text-[11px]" style={{ color: KEBU.red }}>{fieldErrors.legalName[0]}</span>}
               </label>
               <label className="block text-xs font-semibold uppercase tracking-wider">
                 Trading name (optional)
@@ -320,7 +320,7 @@ export default function RegisterBusinessWizardPage() {
                   style={{ border: "1px solid #DDE0F0" }}
                   disabled={submitting}
                 />
-                {fieldErrors.description && <span className="text-red-700 text-[11px]">{fieldErrors.description[0]}</span>}
+                {fieldErrors.description && <span className="text-[11px]" style={{ color: KEBU.red }}>{fieldErrors.description[0]}</span>}
               </label>
               <label className="block text-xs font-semibold uppercase tracking-wider">
                 Business email
@@ -335,15 +335,20 @@ export default function RegisterBusinessWizardPage() {
                 />
               </label>
               <label className="block text-xs font-semibold uppercase tracking-wider">
-                Business phone
+                Business phone (WhatsApp)
                 <input
+                  type="tel"
                   required
+                  placeholder="+221 77 000 0000"
                   value={businessPhone}
                   onChange={(e) => setBusinessPhone(e.target.value)}
                   className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm"
                   style={{ border: "1px solid #DDE0F0" }}
                   disabled={submitting}
                 />
+                <span className="block text-[10px] mt-1" style={{ color: KEBU.muted }}>
+                  Used for B2B WhatsApp contact and order notifications
+                </span>
               </label>
               <label className="block text-xs font-semibold uppercase tracking-wider">
                 Website (optional)
@@ -377,7 +382,7 @@ export default function RegisterBusinessWizardPage() {
                 countryName={module?.countryName ?? countryCode}
               />
               {fieldErrors.legalStructure && (
-                <p className="text-red-700 text-[11px] mt-2">{fieldErrors.legalStructure[0]}</p>
+                <p className="text-[11px] mt-2" style={{ color: KEBU.red }}>{fieldErrors.legalStructure[0]}</p>
               )}
             </fieldset>
           )}
@@ -385,7 +390,7 @@ export default function RegisterBusinessWizardPage() {
           {step === 2 && (
             <>
               <p className="text-xs" style={{ color: "#6B5B45" }}>
-                This slice supports one primary founder. Multiple owners can be added in a later slice.
+                Enter the primary founder. Additional co-founders can be added from your business profile after registration.
               </p>
               <label className="block text-xs font-semibold uppercase tracking-wider">
                 Founder name
@@ -443,7 +448,7 @@ export default function RegisterBusinessWizardPage() {
               </p>
               <p>{businessEmail} · {businessPhone}</p>
               <p className="text-xs pt-2">
-                On submit you receive a draft Kebu ID. No government filing is sent.
+                On submit you get a permanent Kebu Business ID. This is not a government filing — it is your identity on Kebu.
               </p>
             </div>
           )}
