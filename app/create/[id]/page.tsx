@@ -3108,6 +3108,14 @@ export default function ProjectEditorPage() {
                               <option value={3}>3</option>
                             </select>
                           </label>
+                          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(section.props.fullWidth)}
+                              onChange={(e) => updateProps(section.id, { fullWidth: e.target.checked })}
+                            />
+                            Full page width (edge-to-edge)
+                          </label>
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
                             Videos — YouTube / Vimeo link, upload, or custom thumbnail
                           </p>
@@ -3445,6 +3453,92 @@ export default function ProjectEditorPage() {
                             onChange={(e) => updateProps(section.id, { orderCtaLabel: e.target.value })}
                             placeholder="Order button label"
                           />
+                          {/* Full width toggle */}
+                          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(section.props.fullWidth)}
+                              onChange={(e) => updateProps(section.id, { fullWidth: e.target.checked })}
+                            />
+                            Full page width (edge-to-edge)
+                          </label>
+
+                          {/* Hover zoom toggle */}
+                          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(section.props.hoverZoom)}
+                              onChange={(e) => updateProps(section.id, { hoverZoom: e.target.checked })}
+                            />
+                            Hover zoom on product images
+                          </label>
+
+                          {/* Filter mode */}
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
+                            Filter nav
+                          </p>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {(
+                              [
+                                ["none", "None"],
+                                ["horizontal", "Horizontal"],
+                                ["sidebar", "Sidebar"],
+                              ] as const
+                            ).map(([id, label]) => {
+                              const on = String(section.props.filterMode ?? "none") === id;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => updateProps(section.id, { filterMode: id })}
+                                  className="rounded-lg px-1.5 py-2 text-[9px] font-bold uppercase tracking-wider"
+                                  style={{
+                                    background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                                    color: on ? "#fff" : BUILDER.ink,
+                                    border: `1px solid ${BUILDER.border}`,
+                                  }}
+                                  aria-pressed={on}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {String(section.props.filterMode ?? "none") !== "none" ? (
+                            <div className="space-y-1">
+                              <p className="text-[10px] opacity-60">Filter tags — one per line (e.g. Size S, Color Red)</p>
+                              <textarea
+                                className="w-full text-xs rounded-lg px-2 py-1.5 min-h-[64px]"
+                                style={{ border: "1px solid #DDE0F0", resize: "vertical" }}
+                                value={((section.props.filterFields as string[]) ?? []).join("\n")}
+                                placeholder={"Size S\nSize M\nColor Red\nColor Black"}
+                                onChange={(e) =>
+                                  updateProps(section.id, {
+                                    filterFields: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+                                  })
+                                }
+                              />
+                            </div>
+                          ) : null}
+
+                          {/* Banner section */}
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
+                            Banner (optional)
+                          </p>
+                          <SectionPhotoField
+                            projectId={projectId}
+                            label="Banner image"
+                            value={String(section.props.bannerImageUrl ?? "")}
+                            onChange={(url) => updateProps(section.id, { bannerImageUrl: url })}
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.bannerText ?? "")}
+                            onChange={(e) => updateProps(section.id, { bannerText: e.target.value })}
+                            placeholder="Banner text overlay (optional)"
+                          />
+
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Catalog lives in{" "}
                             <Link href={`/shop/${projectId}?tab=products`} className="font-bold underline" style={{ color: "#FF5500" }}>

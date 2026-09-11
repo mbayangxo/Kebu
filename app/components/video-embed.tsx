@@ -159,20 +159,32 @@ export function VideoGrid({
   videos,
   layout = "grid",
   columns = 2,
+  fullWidth = false,
   className = "",
 }: {
   videos: VideoCard[];
-  layout?: "grid" | "single" | "featured";
+  layout?: "grid" | "single" | "featured" | "fullscreen";
   columns?: 1 | 2 | 3;
+  fullWidth?: boolean;
   className?: string;
 }) {
   const list = videos.filter((v) => v.src?.trim() || v.thumbnail?.trim() || v.title?.trim());
   if (list.length === 0) return null;
 
+  if (layout === "fullscreen") {
+    return (
+      <div className={`flex flex-col gap-6 ${className}`}>
+        {list.map((v, i) => (
+          <VideoEmbed key={`${v.src}-${v.title}-${i}`} src={v.src} title={v.title} caption={v.caption} thumbnail={v.thumbnail} />
+        ))}
+      </div>
+    );
+  }
+
   if (layout === "single") {
     const first = list[0]!;
     return (
-      <div className={`mx-auto max-w-4xl ${className}`}>
+      <div className={`${fullWidth ? "" : "mx-auto max-w-4xl"} ${className}`}>
         <VideoEmbed src={first.src} title={first.title} caption={first.caption} thumbnail={first.thumbnail} />
       </div>
     );
@@ -204,7 +216,7 @@ export function VideoGrid({
 
   const colClass =
     columns === 1 || list.length === 1
-      ? "max-w-4xl mx-auto"
+      ? fullWidth ? "" : "max-w-4xl mx-auto"
       : columns === 3
         ? "sm:grid-cols-2 lg:grid-cols-3"
         : "sm:grid-cols-2";
