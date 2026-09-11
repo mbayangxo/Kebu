@@ -232,6 +232,23 @@ input:focus, select:focus, textarea:focus {
   transition-duration: 150ms;
 }
 
+/* ── Skeleton shimmer ─────────────────────────────────────────────────────── */
+.kebu-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(10, 10, 10, 0.06) 25%,
+    rgba(10, 10, 10, 0.12) 50%,
+    rgba(10, 10, 10, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: kebu-shimmer 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes kebu-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* ── Shop admin panel primitives ─────────────────────────────────────────── */
 
 /* PanelShell states */

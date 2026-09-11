@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
+import { Skeleton, SkeletonText } from "@/app/components/kebu-skeleton";
 import { KEBU } from "@/lib/kebu-brand";
 import { displayFirstName } from "@/lib/account/user-profile";
 import type { HomeSummary, HomeUpdate } from "@/lib/account/home-summary";
@@ -153,7 +154,14 @@ export default function KebuHomePage() {
           />
           <div className="relative max-w-5xl mx-auto px-5 lg:px-10 py-10 lg:py-14">
             {loading ? (
-              <p className="text-sm text-white/70">Loading your Kebu…</p>
+              <div className="flex items-center gap-5">
+                <Skeleton width={64} height={64} radius={32} style={{ background: "rgba(255,255,255,0.12)", flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <Skeleton height={10} width={80} style={{ background: "rgba(255,255,255,0.1)", marginBottom: 10 }} />
+                  <Skeleton height={32} width="55%" style={{ background: "rgba(255,255,255,0.15)", marginBottom: 10 }} />
+                  <Skeleton height={13} width="70%" style={{ background: "rgba(255,255,255,0.08)" }} />
+                </div>
+              </div>
             ) : error ? (
               <div className="rounded-xl p-4 text-sm" style={{ background: KEBU.red, color: KEBU.white }}>
                 {error}{" "}
@@ -206,6 +214,16 @@ export default function KebuHomePage() {
         </div>
 
         <div className="max-w-5xl mx-auto px-5 lg:px-10 py-8 lg:py-12">
+          {loading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} style={{ background: KEBU.white, border: `2px solid ${KEBU.black}`, borderRadius: 16, padding: "1.25rem" }}>
+                  <Skeleton height={32} width="50%" style={{ marginBottom: 8 }} />
+                  <Skeleton height={11} width="65%" />
+                </div>
+              ))}
+            </div>
+          ) : null}
           {summary ? (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">

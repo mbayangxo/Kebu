@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { BackLink } from "@/app/components/back-link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuNavShell } from "@/app/components/kebu-nav-shell";
+import { KebuOfflineBanner } from "@/app/components/kebu-offline-banner";
 import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
 import { KebuMobileNav } from "@/app/components/kebu-mobile-nav";
@@ -59,6 +60,7 @@ export function AppShell({
 
   return (
     <DataModeProvider>
+      <KebuOfflineBanner />
       <div
         className="kebu-app min-h-screen flex"
         style={{ background: KEBU.bright, color: KEBU.black }}
