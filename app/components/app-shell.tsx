@@ -6,6 +6,7 @@ import { BackLink } from "@/app/components/back-link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuNavShell } from "@/app/components/kebu-nav-shell";
 import { KebuOfflineBanner } from "@/app/components/kebu-offline-banner";
+import { KebuCommandPalette, CommandPaletteTrigger } from "@/app/components/kebu-command-palette";
 import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
 import { KebuMobileNav } from "@/app/components/kebu-mobile-nav";
@@ -61,6 +62,7 @@ export function AppShell({
   return (
     <DataModeProvider>
       <KebuOfflineBanner />
+      <KebuCommandPalette />
       <div
         className="kebu-app min-h-screen flex"
         style={{ background: KEBU.bright, color: KEBU.black }}
@@ -109,6 +111,7 @@ export function AppShell({
               </h1>
             </div>
             <div className="flex items-center gap-3 shrink-0">
+              <CommandPaletteTrigger />
               {actions}
               <KebuAccountCorner />
             </div>
