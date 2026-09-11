@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { VideoGrid } from "@/app/components/video-embed";
 import { NewsletterSignup } from "@/app/components/create/newsletter-signup";
@@ -284,6 +284,92 @@ function findMotionHeroProps(definition: WebsiteDefinition): LegallyBlondeHeroPr
   return null;
 }
 
+/** Click-based dropdown for nav links with sub-items. Works on touch screens. */
+function NavDropdown({
+  label,
+  href,
+  items,
+  bg,
+  resolveHref,
+  onNavigate,
+}: {
+  label: string;
+  href: string;
+  items: { label: string; href: string }[];
+  bg: string;
+  resolveHref: (h: string) => string;
+  onNavigate?: (slug: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const slug = href ? href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="opacity-80 hover:opacity-100 text-left flex items-center gap-1"
+      >
+        {label}
+        <span aria-hidden style={{ fontSize: "0.7em", opacity: 0.7, display: "inline-block", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
+          <div
+            className="absolute left-0 top-full z-50 flex min-w-[160px] flex-col overflow-hidden rounded-lg shadow-lg"
+            style={{ background: bg, paddingBlock: 4 }}
+          >
+            {href && href !== "#" && (
+              onNavigate && slug ? (
+                <button
+                  type="button"
+                  onClick={() => { onNavigate(slug); setOpen(false); }}
+                  className="text-left px-4 py-2 opacity-80 hover:opacity-100 text-sm border-b"
+                  style={{ borderColor: "rgba(255,255,255,0.15)" }}
+                >
+                  {label} (overview)
+                </button>
+              ) : (
+                <a
+                  href={resolveHref(href)}
+                  onClick={() => setOpen(false)}
+                  className="px-4 py-2 opacity-80 hover:opacity-100 text-sm block border-b"
+                  style={{ borderColor: "rgba(255,255,255,0.15)" }}
+                >
+                  {label} (overview)
+                </a>
+              )
+            )}
+            {items.map((child) => {
+              const childSlug = child.href ? child.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
+              return onNavigate && childSlug ? (
+                <button
+                  key={child.href}
+                  type="button"
+                  onClick={() => { onNavigate(childSlug); setOpen(false); }}
+                  className="text-left px-4 py-2 opacity-80 hover:opacity-100 text-sm"
+                >
+                  {child.label}
+                </button>
+              ) : (
+                <a
+                  key={child.href}
+                  href={resolveHref(child.href)}
+                  onClick={() => setOpen(false)}
+                  className="px-4 py-2 opacity-80 hover:opacity-100 text-sm block"
+                >
+                  {child.label}
+                </a>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /** Public/preview renderer — approved section types only. */
 export function SiteRenderer({
   definition,
@@ -564,15 +650,18 @@ export function SiteRenderer({
             const device = editor?.editDevice ?? "desktop";
             const p = {
               brand: String(readDeviceOverride(raw, device, "brand") ?? ""),
-              links: (raw.links as { label: string; href: string }[] | undefined) ?? [],
+              links: (raw.links as { label: string; href: string; children?: { label: string; href: string }[] }[] | undefined) ?? [],
               navScale: raw.navScale as number | undefined,
               navSize: raw.navSize as "compact" | "comfortable" | "large" | "fullscreen" | undefined,
               navLayout: raw.navLayout as "top" | "side" | undefined,
+              logoAlign: (raw.logoAlign as "left" | "center" | "right" | undefined) ?? "left",
+              navSticky: raw.navSticky !== false,
             };
             const patchNav = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
             const m = navChromeMetrics({ scale: p.navScale, size: p.navSize });
             const side = parseNavLayout(p.navLayout) === "side";
+            const stickyClass = p.navSticky ? "sticky top-0 z-30" : "relative z-20";
             const resolveNavHref = (href: string) => {
               const h = (href || "").trim();
               if (!h || h === "#") return siteBase || "/";
@@ -598,21 +687,32 @@ export function SiteRenderer({
               const cleaned = rest.replace(/^\//, "").split(/[?#]/)[0] ?? "";
               return cleaned || "home";
             };
-            const renderNavLink = (l: { label: string; href: string }) => {
+            const renderNavLink = (l: { label: string; href: string; children?: { label: string; href: string }[] }) => {
               const slug = slugFromHref(l.href);
-              if (editor?.onNavigatePage && slug) {
+              const hasChildren = l.children && l.children.length > 0;
+              if (hasChildren) {
                 return (
-                  <button
-                    key={`${l.label}-${l.href}`}
-                    type="button"
-                    onClick={() => editor.onNavigatePage!(slug)}
-                    className="opacity-80 hover:opacity-100 text-left"
-                  >
-                    {l.label}
-                  </button>
+                  <NavDropdown
+                    key={`${l.label}-${l.href}-group`}
+                    label={l.label}
+                    href={l.href}
+                    items={l.children!}
+                    bg={String(theme.primary ?? "#000")}
+                    resolveHref={resolveNavHref}
+                    onNavigate={editor?.onNavigatePage}
+                  />
                 );
               }
-              return (
+              return editor?.onNavigatePage && slug ? (
+                <button
+                  key={`${l.label}-${l.href}`}
+                  type="button"
+                  onClick={() => editor.onNavigatePage!(slug)}
+                  className="opacity-80 hover:opacity-100 text-left"
+                >
+                  {l.label}
+                </button>
+              ) : (
                 <a
                   key={`${l.label}-${l.href}`}
                   href={resolveNavHref(l.href)}
@@ -636,7 +736,7 @@ export function SiteRenderer({
               return wrap(
                 <aside
                   key={key}
-                  className="kebu-site-nav kebu-site-nav--side flex flex-col shrink-0 self-stretch"
+                  className={`kebu-site-nav kebu-site-nav--side flex flex-col shrink-0 self-stretch ${stickyClass}`}
                   style={{
                     background: theme.primary,
                     color: "#fff",
@@ -668,10 +768,11 @@ export function SiteRenderer({
               }
               return false;
             })();
+            const logoJustify = p.logoAlign === "center" ? "justify-center" : p.logoAlign === "right" ? "justify-end" : "justify-start";
             return wrap(
               <header
                 key={key}
-                className="kebu-site-nav"
+                className={`kebu-site-nav ${stickyClass}`}
                 style={{
                   background: navBg,
                   color: navIsLight ? (theme.text || "#0A0A0A") : "#fff",
@@ -683,13 +784,22 @@ export function SiteRenderer({
                 }}
               >
                 <div
-                  className="mx-auto flex w-full flex-wrap items-center justify-between gap-3"
+                  className={`mx-auto flex w-full flex-wrap items-center gap-3 ${p.logoAlign === "center" ? "justify-center" : "justify-between"}`}
                   style={{ maxWidth: m.maxWidth }}
                 >
-                  {brandEl}
-                  <nav className="kebu-site-nav__links flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
-                    {p.links.map((l) => renderNavLink(l))}
-                  </nav>
+                  {p.logoAlign === "right" && (
+                    <nav className="kebu-site-nav__links flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
+                      {p.links.map((l) => renderNavLink(l))}
+                    </nav>
+                  )}
+                  <div className={`flex ${logoJustify} ${p.logoAlign === "center" ? "w-full" : ""}`}>
+                    {brandEl}
+                  </div>
+                  {p.logoAlign !== "right" && (
+                    <nav className="kebu-site-nav__links flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
+                      {p.links.map((l) => renderNavLink(l))}
+                    </nav>
+                  )}
                 </div>
               </header>,
             );
@@ -1815,13 +1925,22 @@ export function SiteRenderer({
             );
           }
           case "footer": {
-            const p = section.props as { text?: string; links?: { label: string; href: string }[] };
+            const p = section.props as { text?: string; links?: { label: string; href: string }[]; bgColor?: string; textColor?: string };
+            const hasCustomBg = Boolean(p.bgColor);
             return (
-              <footer key={key} className="px-4 sm:px-5 py-8 mt-8 text-center text-sm opacity-60" style={{ borderTop: "1px solid #E8E6DF" }}>
+              <footer
+                key={key}
+                className={`px-4 sm:px-5 py-8 mt-8 text-center text-sm${hasCustomBg ? "" : " opacity-60"}`}
+                style={{
+                  borderTop: "1px solid #E8E6DF",
+                  background: p.bgColor || undefined,
+                  color: p.textColor || undefined,
+                }}
+              >
                 <p>{p.text}</p>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
                   {(p.links ?? []).map((l) => (
-                    <a key={l.label} href={l.href}>
+                    <a key={l.label} href={l.href} style={{ color: p.textColor ? "inherit" : undefined }}>
                       {l.label}
                     </a>
                   ))}

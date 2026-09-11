@@ -82,7 +82,7 @@ export function BuilderSiteCommandBar({
       <button
         type="button"
         onClick={() => setOpenPersist(true)}
-        className="absolute bottom-4 right-4 z-30 flex items-center gap-2 rounded-full border bg-white px-3 py-2 shadow-lg"
+        className="fixed bottom-5 right-5 z-[60] flex items-center gap-2 rounded-full border bg-white px-3 py-2 shadow-lg"
         style={{ borderColor: BUILDER.border }}
         aria-label="Open Ask your site"
         title="Ask your site"
@@ -97,7 +97,7 @@ export function BuilderSiteCommandBar({
 
   return (
     <aside
-      className="absolute inset-y-0 right-0 z-30 flex w-[min(100%,320px)] flex-col border-l bg-white shadow-xl"
+      className="fixed inset-y-0 right-0 z-[60] flex w-[min(100%,360px)] flex-col border-l bg-white shadow-xl"
       style={{ borderColor: BUILDER.border }}
       aria-label="Ask Yande to change your site"
     >
