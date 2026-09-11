@@ -18,6 +18,8 @@ export type TemplateCardLayout =
   | "music"
   | "agency"
   | "salon"
+  | "bold-salon"
+  | "dark-fashion"
   | "store"
   | "restaurant"
   | "film"
@@ -148,11 +150,11 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "FILM",
   },
   "hair-salon": {
-    previewGradient: "linear-gradient(160deg, #F5E6D3 0%, #D4A574 50%, #5C4033 100%)",
-    badge: "Salon & barber",
-    keywords: ["salon", "hair", "beauty"],
-    layout: "salon",
-    wordmark: "SALON",
+    previewGradient: "linear-gradient(160deg, #1A0F0A 0%, #2C1810 50%, #D4A574 100%)",
+    badge: "Salon premium · tresses & couleur",
+    keywords: ["salon", "hair", "braids", "colour", "balayage", "locs"],
+    layout: "bold-salon",
+    wordmark: "CHEZ AMARA",
   },
   "layers-beauty": {
     previewImage: "/templates/gallery/luxe-beauty-ref.png",
@@ -192,11 +194,11 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "ATELIER",
   },
   "clothing-company": {
-    previewGradient: "linear-gradient(135deg, #F8FAFC 0%, #DC2626 40%, #0F172A 100%)",
-    badge: "Clothing brand",
-    keywords: ["clothing", "fashion", "brand"],
-    layout: "store",
-    wordmark: "APPAREL",
+    previewGradient: "linear-gradient(160deg, #0D0D0D 0%, #1A0000 55%, #B91C1C 100%)",
+    badge: "VOLTA · Marque mode Dakar",
+    keywords: ["clothing", "fashion", "brand", "dakar", "urban"],
+    layout: "dark-fashion",
+    wordmark: "VOLTA",
   },
   "shopping-store": {
     previewGradient: "linear-gradient(160deg, #E8F5E9 0%, #2D6A4F 100%)",

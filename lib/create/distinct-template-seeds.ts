@@ -474,17 +474,35 @@ export function eventNightDistinctDefinition(): WebsiteDefinition {
   };
 }
 
-/** Hair salon — service menu page + before/after gallery + book (distinct from beauty-studio). */
+/** Hair salon — premium Dakar salon: tresses, balayage, soins. Multi-page with rich section mix. */
 export function hairSalonDistinctDefinition(): WebsiteDefinition {
+  const BRAND = "CHEZ AMARA";
+  const NAV_LINKS = [
+    { label: "Services", href: "/services" },
+    { label: "Gallery", href: "/gallery" },
+    { label: "Book", href: "/book" },
+  ] as const;
+
+  function nav(id: string) {
+    return { id, type: "navigation" as const, props: { brand: BRAND, links: [...NAV_LINKS] } };
+  }
+  function footer(id: string) {
+    return { id, type: "footer" as const, props: { text: `© ${BRAND} · Dakar`, links: [...NAV_LINKS] } };
+  }
+
   return {
     schemaVersion: "website-v1",
-    title: "Hair Studio",
+    title: BRAND,
     theme: theme({
-      primary: "#2C1810",
+      primary: "#1A0F0A",
       accent: "#D4A574",
       background: "#FFF9F3",
+      text: "#1A0F0A",
+      surface: "#FFF3E8",
       fontDisplay: "Playfair Display",
+      fontBody: "IBM Plex Sans",
       spacing: "comfortable",
+      headingScale: "xl",
     }),
     pages: [
       {
@@ -492,99 +510,331 @@ export function hairSalonDistinctDefinition(): WebsiteDefinition {
         title: "Home",
         sections: [
           {
-            id: "nav",
-            type: "navigation",
+            id: "cs-bar",
+            type: "announcement-bar",
             props: {
-              brand: "Hair Studio",
-              links: [
-                { label: "Menu", href: "/menu" },
-                { label: "Looks", href: "/looks" },
-                { label: "Book", href: "/book" },
+              text: "✦ Nouveau : Balayage & soins locs naturels — consultation gratuite ce mois · Réservez sur WhatsApp",
+              background: "#1A0F0A",
+              color: "#D4A574",
+            },
+          },
+          nav("cs-nav-home"),
+          {
+            id: "cs-hero",
+            type: "editorial-hero",
+            props: {
+              heading: "Votre look.\nNotre art.",
+              subheading: "Coupes, couleurs, tresses — pensés pour vos textures, au cœur de Dakar.",
+              buttonLabel: "Réserver une séance",
+              buttonHref: "/book",
+              align: "left",
+              minHeight: "88vh",
+              overlayOpacity: 0.45,
+            },
+          },
+          {
+            id: "cs-cats",
+            type: "category-tiles",
+            props: {
+              title: "Nos services",
+              columns: 4,
+              items: [
+                { label: "Coupes", href: "/services" },
+                { label: "Tresses & Locs", href: "/services" },
+                { label: "Couleur", href: "/services" },
+                { label: "Soins", href: "/services" },
               ],
             },
           },
           {
-            id: "hero",
+            id: "cs-marquee",
+            type: "marquee",
+            props: {
+              items: [
+                "Coupes naturelles",
+                "Balayage & ombré",
+                "Box braids",
+                "Locs dreadlocks",
+                "Kératin",
+                "Tresses sénégalaises",
+                "Consultation gratuite",
+              ],
+              separator: " · ",
+              background: "#D4A574",
+              color: "#1A0F0A",
+              speed: 25,
+            },
+          },
+          {
+            id: "cs-services-home",
+            type: "products",
+            props: {
+              heading: "Réservez votre service",
+              currency: "XOF",
+              whatsappPhone: "+221770000000",
+              items: [
+                { name: "Coupe & Brushing naturel", price: "12000", description: "Toutes textures — cheveux naturels, défrisés, bouclés" },
+                { name: "Box braids (moyen)", price: "40000", description: "Extension incluse · durée 4–6h" },
+                { name: "Balayage / ombré", price: "60000", description: "Test patch inclus · rendez-vous requis" },
+                { name: "Tresses sénégalaises", price: "45000", description: "Longueur au choix · extension au choix" },
+                { name: "Soin kératin (lissage)", price: "55000", description: "Semi-permanent · 3 mois de tenue" },
+                { name: "Soin profond + vapeur", price: "10000", description: "Masque nourrissant maison · 45 min" },
+              ],
+            },
+          },
+          {
+            id: "cs-split-story",
+            type: "split",
+            props: {
+              heading: "Un salon pensé pour vos cheveux",
+              body: "Chez Amara est né d'une frustration simple : les salons de Dakar traitaient les cheveux naturels comme une exception. Chaque styliste ici est spécialisé dans les textures africaines — que vous portiez naturel, tressé, coloré ou lissé, votre look est notre priorité.",
+              imagePosition: "right",
+              buttonLabel: "Réserver sur WhatsApp",
+              buttonHref: "/book",
+            },
+          },
+          {
+            id: "cs-testimonials",
+            type: "testimonials",
+            props: {
+              heading: "Ce que nos clientes disent",
+              items: [
+                {
+                  quote: "Les meilleures tresses que j'ai eu à Dakar — elle a compris ma texture dès le premier regard.",
+                  name: "Aissatou B.",
+                  role: "Plateau",
+                },
+                {
+                  quote: "J'ai demandé un balayage sur cheveux naturels et j'ai eu exactement ce que je voulais. Rare.",
+                  name: "Mariama D.",
+                  role: "Almadies",
+                },
+                {
+                  quote: "Je suis arrivée avec une photo, je suis repartie mieux que la photo.",
+                  name: "Khady N.",
+                  role: "Point E",
+                },
+              ],
+            },
+          },
+          {
+            id: "cs-wa",
+            type: "whatsapp",
+            props: {
+              label: "Réserver sur WhatsApp",
+              phone: "+221770000000",
+              message: "Bonjour Chez Amara — je voudrais réserver une séance.",
+            },
+          },
+          {
+            id: "cs-newsletter",
+            type: "newsletter",
+            props: {
+              heading: "Tendances & promos",
+              subheading: "Nouvelles techniques, offres membres, rappels de rdv — rien de superflu.",
+              buttonLabel: "S'abonner",
+              successMessage: "Bienvenue chez Chez Amara.",
+            },
+          },
+          footer("cs-footer-home"),
+        ],
+      },
+      {
+        slug: "services",
+        title: "Services",
+        sections: [
+          nav("cs-nav-services"),
+          {
+            id: "cs-svc-hero",
             type: "hero",
             props: {
-              heading: "Your hair, our craft",
-              subheading: "Cuts, colour, braids — walk-ins welcome when the board is open.",
-              buttonLabel: "Price menu",
-              buttonHref: "/menu",
+              heading: "Menu & Tarifs",
+              subheading:
+                "Tous nos prix incluent consultation et finition. Payez avec Wave, Orange Money ou Joko — aucun terminal carte nécessaire.",
+              buttonLabel: "Réserver",
+              buttonHref: "/book",
+              align: "left",
+            },
+          },
+          {
+            id: "cs-svc-cuts",
+            type: "features",
+            props: {
+              heading: "Coupes & Brushing",
+              items: [
+                { title: "Coupe naturelle + brushing", body: "12 000 – 18 000 FCFA selon épaisseur" },
+                { title: "Coupe + défrisage + mise en plis", body: "22 000 – 32 000 FCFA" },
+                { title: "Barber (coupe homme + contour)", body: "6 000 – 10 000 FCFA" },
+                { title: "Coupe enfant (moins de 10 ans)", body: "5 000 FCFA" },
+              ],
+            },
+          },
+          {
+            id: "cs-svc-braids",
+            type: "features",
+            props: {
+              heading: "Tresses & Styles Protecteurs",
+              items: [
+                { title: "Box braids (moyen)", body: "40 000 – 60 000 FCFA selon longueur" },
+                { title: "Tresses sénégalaises", body: "45 000 – 65 000 FCFA" },
+                { title: "Cornrows", body: "10 000 – 22 000 FCFA" },
+                { title: "Locs démarrantes (freeform)", body: "28 000 FCFA" },
+                { title: "Crochet braids", body: "30 000 – 45 000 FCFA" },
+              ],
+            },
+          },
+          {
+            id: "cs-svc-colour",
+            type: "features",
+            props: {
+              heading: "Couleur",
+              items: [
+                { title: "Balayage / ombré", body: "À partir de 60 000 FCFA — consultation requise, patch test inclus" },
+                { title: "Couleur complète", body: "À partir de 45 000 FCFA + toner" },
+                { title: "Mèches & highlights", body: "35 000 – 55 000 FCFA" },
+                { title: "Correction couleur", body: "Devis sur consultation" },
+              ],
+            },
+          },
+          {
+            id: "cs-svc-treatments",
+            type: "features",
+            props: {
+              heading: "Soins & Traitements",
+              items: [
+                { title: "Soin kératin (lissage semi-permanent)", body: "55 000 FCFA · 3 mois de tenue" },
+                { title: "Soin protéiné anti-casse", body: "14 000 FCFA · 50 min" },
+                { title: "Masque profond + vapeur", body: "10 000 FCFA · 45 min" },
+                { title: "Huile chaude + massage cuir chevelu", body: "7 000 FCFA · recommandé avant lavage" },
+              ],
+            },
+          },
+          {
+            id: "cs-svc-faq",
+            type: "faq",
+            props: {
+              heading: "Questions fréquentes",
+              items: [
+                {
+                  question: "Faut-il un acompte pour réserver ?",
+                  answer:
+                    "Oui — les prestations de 30 000 FCFA et plus nécessitent un acompte de 50 % via Wave ou Orange Money pour confirmer le rdv.",
+                },
+                {
+                  question: "Puis-je apporter ma propre extension ?",
+                  answer:
+                    "Oui — précisez la marque et la quantité dans votre message WhatsApp. Nous travaillons avec kanekalon, marley et cheveux naturels.",
+                },
+                {
+                  question: "Comment payer ?",
+                  answer: "Espèces, Wave, Orange Money et Joko acceptés. Aucun terminal carte nécessaire.",
+                },
+                {
+                  question: "Acceptez-vous les walk-ins ?",
+                  answer: "Préférez les rdv. WhatsApp-nous le matin si une plage s'ouvre dans la journée.",
+                },
+              ],
+            },
+          },
+          footer("cs-footer-services"),
+        ],
+      },
+      {
+        slug: "gallery",
+        title: "Gallery",
+        sections: [
+          nav("cs-nav-gallery"),
+          {
+            id: "cs-gal-hero",
+            type: "hero",
+            props: {
+              heading: "Nos réalisations",
+              subheading:
+                "Avant / après de nos fauteuils — ajoutez vos propres photos depuis votre téléphone dans Médias.",
+              buttonLabel: "Réserver votre look",
+              buttonHref: "/book",
               align: "center",
             },
           },
           {
-            id: "hours",
-            type: "features",
-            props: {
-              heading: "Today",
-              items: [
-                { title: "Open", body: "Tue–Sat 09:00–19:00 · Sun by appointment" },
-                { title: "Team", body: "Name your stylists here so clients can request them." },
-              ],
-            },
-          },
-          {
-            id: "wa",
-            type: "whatsapp",
-            props: { label: "WhatsApp the chair", phone: "+221770000000", message: "Book a cut / braids." },
-          },
-          { id: "footer", type: "footer", props: { text: "© Hair Studio", links: [] } },
-        ],
-      },
-      {
-        slug: "menu",
-        title: "Menu",
-        sections: [
-          {
-            id: "prices",
-            type: "features",
-            props: {
-              heading: "Services & prices",
-              items: [
-                { title: "Cut & style", body: "From 5,000 FCFA — edit your real menu." },
-                { title: "Braids & locs", body: "Protective styles by appointment." },
-                { title: "Colour", body: "Consultation + patch test when needed." },
-              ],
-            },
-          },
-        ],
-      },
-      {
-        slug: "looks",
-        title: "Looks",
-        sections: [
-          {
-            id: "gal",
+            id: "cs-gal-grid",
             type: "gallery",
             props: {
-              heading: "Before / after",
+              heading: "",
+              layout: "grid",
+              columns: 3,
               items: [
-                { src: "", alt: "Salon" },
-                { src: "", alt: "Finish" },
+                { src: "", alt: "Coupe naturelle" },
+                { src: "", alt: "Box braids" },
+                { src: "", alt: "Balayage" },
+                { src: "", alt: "Cornrows" },
+                { src: "", alt: "Locs" },
+                { src: "", alt: "Brushing final" },
+                { src: "", alt: "Mèches" },
+                { src: "", alt: "Style protecteur" },
+                { src: "", alt: "Après séance" },
               ],
             },
           },
+          footer("cs-footer-gallery"),
         ],
       },
       {
         slug: "book",
         title: "Book",
         sections: [
+          nav("cs-nav-book"),
           {
-            id: "book",
-            type: "text",
+            id: "cs-book-hero",
+            type: "hero",
             props: {
-              heading: "Book",
-              body: "Send name · service · preferred time. We confirm on WhatsApp.",
+              heading: "Réservez une séance",
+              subheading:
+                "Envoyez-nous votre nom, le service souhaité et votre disponibilité. Nous confirmons et collectons l'acompte le cas échéant.",
+              buttonLabel: "WhatsApp",
+              buttonHref: "#cs-wa",
+              align: "center",
             },
           },
           {
-            id: "wa",
+            id: "cs-book-wa",
             type: "whatsapp",
-            props: { label: "Book now", phone: "+221770000000", message: "I want to book." },
+            props: {
+              label: "Réserver sur WhatsApp",
+              phone: "+221770000000",
+              message: "Bonjour Chez Amara — je voudrais réserver : [service] pour [date/heure].",
+            },
           },
+          {
+            id: "cs-book-hours",
+            type: "text",
+            props: {
+              heading: "Horaires",
+              body: "Mardi – Samedi 09h00–19h00 · Dimanche sur rendez-vous · Lundi fermé. Mettez à jour vos horaires dans le builder après publication.",
+            },
+          },
+          {
+            id: "cs-book-contact",
+            type: "contact",
+            props: {
+              heading: "Nous trouver",
+              email: "contact@chezamara.sn",
+              phone: "+221770000000",
+              address: "Dakar — éditez votre adresse dans le builder",
+            },
+          },
+          {
+            id: "cs-book-map",
+            type: "map",
+            props: {
+              heading: "Localisation",
+              address: "Dakar, Sénégal",
+              latitude: 14.6928,
+              longitude: -17.4467,
+              zoom: 14,
+            },
+          },
+          footer("cs-footer-book"),
         ],
       },
     ],

@@ -136,6 +136,49 @@ export function AestheticCardVisual({
     );
   }
 
+  /* ── BOLD SALON (Chez Amara premium hair studio) ────────────────────────── */
+  if (layout === "bold-salon") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#1A0F0A" }}>
+        {/* Announcement bar */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#D4A574" }}>
+          <span className="text-[3.5px] font-bold tracking-widest" style={{ color: "#1A0F0A" }}>✦ BALAYAGE · TRESSES · LOCS NATURELS</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(212,165,116,0.2)" }}>
+          <span className="text-[4.5px] font-semibold tracking-[0.18em] uppercase" style={{ color: "#D4A574", fontFamily: "Georgia, serif" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[3.5px] font-bold" style={{ background: "#D4A574", color: "#1A0F0A" }}>BOOK</div>
+        </div>
+        {/* Hero */}
+        <div className="px-2 py-1.5">
+          <div className="text-[8px] font-bold leading-tight" style={{ color: "#FFF9F3", fontFamily: "Georgia, serif" }}>Votre look.<br />Notre art.</div>
+          <div className="mt-0.5 text-[3.5px] tracking-wide" style={{ color: "#D4A574" }}>Coupes · Tresses · Couleur · Dakar</div>
+        </div>
+        {/* Category tiles */}
+        <div className="grid grid-cols-4 gap-0.5 px-1.5">
+          {["Coupes", "Tresses", "Couleur", "Soins"].map((c) => (
+            <div key={c} className="flex items-center justify-center rounded-sm py-1" style={{ background: "rgba(212,165,116,0.12)", border: "1px solid rgba(212,165,116,0.25)" }}>
+              <span className="text-[3px] font-bold text-center" style={{ color: "#D4A574" }}>{c}</span>
+            </div>
+          ))}
+        </div>
+        {/* Price list */}
+        <div className="px-1.5 mt-1 flex-1 space-y-0.5">
+          {[["Coupe naturelle", "12 000 F"], ["Box braids", "40 000 F"], ["Balayage", "60 000 F"]].map(([s, p]) => (
+            <div key={s} className="flex items-center justify-between" style={{ borderBottom: "1px solid rgba(212,165,116,0.1)" }}>
+              <span className="text-[3.5px]" style={{ color: "rgba(255,249,243,0.65)" }}>{s}</span>
+              <span className="text-[3.5px] font-bold" style={{ color: "#D4A574" }}>{p}</span>
+            </div>
+          ))}
+        </div>
+        {/* CTA */}
+        <div className="px-1.5 pb-1.5 mt-0.5">
+          <div className="rounded-full py-1 text-center text-[4px] font-black tracking-wider" style={{ background: "#D4A574", color: "#1A0F0A" }}>Réserver sur WhatsApp</div>
+        </div>
+      </div>
+    );
+  }
+
   /* ── STORE (shop / boutique) ────────────────────────────────────────────── */
   if (layout === "store") {
     return (
@@ -204,6 +247,50 @@ export function AestheticCardVisual({
   }
 
   /* ── FASHION (atelier / lookbook / editorial) ────────────────────────────── */
+  /* ── DARK FASHION (VOLTA urban clothing brand) ─────────────────────────── */
+  if (layout === "dark-fashion") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0D0D0D" }}>
+        {/* Announcement bar */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#B91C1C" }}>
+          <span className="text-[3px] font-bold tracking-widest text-white">LIVRAISON DAKAR · PAIEMENT WAVE · ORANGE MONEY</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(185,28,28,0.3)" }}>
+          <span className="text-[6px] font-black tracking-[0.15em] uppercase text-white">{mark}</span>
+          <div className="rounded px-1.5 py-0.5 text-[3.5px] font-bold text-white" style={{ background: "#B91C1C" }}>SHOP</div>
+        </div>
+        {/* Hero */}
+        <div className="relative px-2 py-2 flex-1 flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-black uppercase leading-none tracking-tight text-white">WEAR<br />THE<br />BOLD</div>
+            <div className="mt-1 text-[3.5px] tracking-widest uppercase" style={{ color: "#B91C1C" }}>Collection 2026 · Dakar-born</div>
+          </div>
+          {/* Product tiles */}
+          <div className="grid grid-cols-3 gap-0.5 mt-1">
+            {[["#1A0000", "Tee"], ["#0D0D0D", "Hoodie"], ["#1A0000", "Accessoires"]].map(([c, l], i) => (
+              <div key={i} className="flex flex-col overflow-hidden rounded-sm" style={{ background: c, border: "1px solid rgba(185,28,28,0.3)" }}>
+                <div className="aspect-square w-full" style={{ background: `linear-gradient(135deg, ${c}, rgba(185,28,28,0.4))` }} />
+                <div className="px-0.5 py-0.5">
+                  <span className="text-[3px] font-bold uppercase text-white">{l}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Category strip */}
+        <div className="flex" style={{ borderTop: "1px solid rgba(185,28,28,0.3)" }}>
+          {["HOMME", "FEMME", "ACCÈS", "SOLDES"].map((c) => (
+            <div key={c} className="flex-1 py-0.5 text-center" style={{ borderRight: "1px solid rgba(185,28,28,0.2)" }}>
+              <span className="text-[3px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.6)" }}>{c}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── FASHION (editorial light / fashion-atelier) ────────────────────────── */
   if (layout === "fashion") {
     return (
       <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAFAF8" }}>

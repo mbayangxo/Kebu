@@ -23,6 +23,7 @@ import { appLaunchWorldDefinition, techStartupWorldDefinition } from "./design-w
 import { proPortfolioWorldDefinition, studentPortfolioWorldDefinition } from "./design-worlds/portfolio-worlds";
 import { ngoImpactWorldDefinition, farmAgriWorldDefinition } from "./design-worlds/impact-worlds";
 import { professionalServicesWorldDefinition } from "./design-worlds/agency-professional-world";
+import { voltaClothingWorldDefinition } from "./design-worlds/clothing-brand-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -455,90 +456,10 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "clothing-company",
-    name: "Clothing company",
+    name: "VOLTA — Marque mode",
     category: "fashion",
-    description: "Fashion brand / clothing line — collections, lookbook, wholesale & retail",
-    definition: {
-      schemaVersion: "website-v1",
-      title: "Clothing Co",
-      theme: baseTheme("#2C1810", "#D4A574"),
-      pages: [
-        {
-          slug: "home",
-          title: "Home",
-          sections: [
-            {
-              id: "nav-1",
-              type: "navigation",
-              props: {
-                brand: "Clothing Co",
-                links: [
-                  { label: "Collections", href: "#collections" },
-                  { label: "About", href: "#about" },
-                  { label: "Shop", href: "#shop" },
-                ],
-              },
-            },
-            {
-              id: "hero-1",
-              type: "hero",
-              props: {
-                heading: "Wear the story",
-                subheading: "Contemporary African fashion — limited drops and made-to-order pieces.",
-                buttonLabel: "See collections",
-                buttonHref: "#collections",
-                align: "center",
-              },
-            },
-            {
-              id: "gallery-1",
-              type: "gallery",
-              props: {
-                items: [
-                  { src: "", alt: "Collection look 1" },
-                  { src: "", alt: "Collection look 2" },
-                  { src: "", alt: "Collection look 3" },
-                ],
-              },
-            },
-            {
-              id: "collections-1",
-              type: "features",
-              props: {
-                heading: "Collections",
-                items: [
-                  { title: "New season", body: "Latest pieces — sizes, colours, and prices." },
-                  { title: "Basics", body: "Everyday essentials that last." },
-                  { title: "Wholesale", body: "Boutiques and retailers — request a line sheet." },
-                ],
-              },
-            },
-            {
-              id: "about-1",
-              type: "text",
-              props: {
-                heading: "About the brand",
-                body: "Who makes it, where materials come from, and what you stand for.",
-              },
-            },
-            {
-              id: "wa-1",
-              type: "whatsapp",
-              props: {
-                label: "Order on WhatsApp",
-                phone: "+221770000000",
-                message: "Hi, I want to order from Clothing Co.",
-              },
-            },
-            {
-              id: "footer-1",
-              type: "footer",
-              props: { text: "© Clothing Co", links: [] },
-            },
-          ],
-        },
-      ],
-    },
+    description: "Marque streetwear urbaine — collections, lookbook, commande WhatsApp & mobile money",
+    definition: voltaClothingWorldDefinition(),
   },
   {
     slug: "shopping-store",
