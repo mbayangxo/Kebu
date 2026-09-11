@@ -1,9 +1,13 @@
 /**
  * Kebu subscription tiers — priced for African youth affordability.
- * Shop ($5) is the hero plan: website + store + hosting vs Shopify/Wix ~$29+.
  *
- * Capability grows with tier (not punishment for success).
- * Extra revenue later: transaction fees, domains, email, AI overage, templates.
+ * Model: per-site pricing for paid tiers (not a flat account fee).
+ * Free includes shop + 4 sites on kebu subdomain — monetised via transaction fees.
+ * Upgrading adds custom domain + more features at $2/site/mo (up to 5 sites).
+ * Business tier is $5/site/mo (up to 10 sites).
+ * Student is a $1 flat-rate that unlocks all Kebu products.
+ *
+ * Revenue: transaction fees on all tiers, custom domain upsell, AI overage.
  */
 
 export const KEBU_PLAN_IDS = ["free", "starter", "shop", "business", "pro", "student"] as const;
@@ -29,6 +33,11 @@ export type KebuPlan = {
   monthlyUsd: number;
   /** Annual billed monthly-equivalent discount (full year price). */
   yearlyUsd: number;
+  /**
+   * For per-site tiers (starter, shop/legacy, business): price is charged per active
+   * site, not as a flat account fee. monthlyUsd is the per-site rate.
+   */
+  perSite?: boolean;
   hero?: boolean;
   whoFor: string;
   highlights: string[];
@@ -41,27 +50,27 @@ export const KEBU_PLANS: Record<KebuPlanId, KebuPlan> = {
   free: {
     id: "free",
     name: "Kebu Free",
-    tagline: "Build before you pay.",
+    tagline: "Build, sell, grow — before you pay anything.",
     monthlyUsd: 0,
     yearlyUsd: 0,
-    whoFor: "Students, beginners, trying Kebu",
+    whoFor: "Anyone starting out in Africa",
     highlights: [
-      "1 website on a Kebu subdomain",
-      "Visual editor + basic templates",
-      "Limited AI website help",
-      "Basic hosting + basic analytics",
-      "Limited storage",
-      "Kebu branding on your site",
+      "Up to 4 sites on your Kebu subdomain",
+      "Online shop included — sell from day one",
+      "Visual editor, templates, Studio, Opportunity OS",
+      "Kebu hosting + basic analytics",
+      "Small transaction fee on shop sales",
+      "Kebu branding on your sites",
     ],
     limits: {
-      maxWebsites: 1,
-      maxProducts: 0,
+      maxWebsites: 4,
+      maxProducts: 50,
       maxStaff: 1,
-      storageMb: 200,
-      aiGenerationsPerMonth: 5,
+      storageMb: 500,
+      aiGenerationsPerMonth: 10,
       customDomain: false,
       kebuBranding: true,
-      store: false,
+      store: true,
       advancedAnalytics: false,
       prioritySupport: false,
     },
@@ -69,74 +78,78 @@ export const KEBU_PLANS: Record<KebuPlanId, KebuPlan> = {
   student: {
     id: "student",
     name: "Kebu Student",
-    tagline: "$1/month to learn by building.",
+    tagline: "$1/month — every Kebu product, student price.",
     monthlyUsd: 1,
     yearlyUsd: 10,
-    whoFor: "Verified students",
+    whoFor: "Verified students & school cohorts",
     highlights: [
-      "Everything in Starter, student price",
-      "More AI + learning-by-building",
-      "Custom domain connection",
+      "3 sites on custom domain",
+      "Shop + Studio + Opportunity OS",
+      "Yande Code (AI coding environment)",
       "No Kebu branding",
-      "Basic forms + analytics",
+      "All upcoming products at no extra cost",
+      "Account stays after graduation",
     ],
     limits: {
-      maxWebsites: 1,
-      maxProducts: 0,
+      maxWebsites: 3,
+      maxProducts: 100,
       maxStaff: 1,
-      storageMb: 1000,
-      aiGenerationsPerMonth: 40,
+      storageMb: 2000,
+      aiGenerationsPerMonth: 60,
       customDomain: true,
       kebuBranding: false,
-      store: false,
+      store: true,
       advancedAnalytics: false,
       prioritySupport: false,
     },
-    comingSoonExtras: ["Student ID verification required before this price applies"],
+    comingSoonExtras: [
+      "Yande Code access (in development)",
+      "Student ID verification required for this price",
+    ],
   },
   starter: {
     id: "starter",
     name: "Kebu Starter",
-    tagline: "Personal sites & creators.",
+    tagline: "$2/site/month — your own domain, no Kebu branding.",
     monthlyUsd: 2,
     yearlyUsd: 20,
-    whoFor: "Personal sites, creators, students",
+    perSite: true,
+    hero: true,
+    whoFor: "Creators, freelancers, small hustlers upgrading a site",
     highlights: [
-      "Custom domain connection",
+      "Custom domain on each upgraded site",
       "No Kebu branding",
       "More AI generations",
-      "Better templates + more storage",
-      "1 website, basic forms",
-      "Basic analytics + Kebu hosting",
+      "More storage + better templates",
+      "Shop included on every site",
+      "Up to 5 upgraded sites total",
     ],
     limits: {
-      maxWebsites: 1,
-      maxProducts: 0,
-      maxStaff: 1,
-      storageMb: 2000,
-      aiGenerationsPerMonth: 30,
+      maxWebsites: 5,
+      maxProducts: 200,
+      maxStaff: 2,
+      storageMb: 3000,
+      aiGenerationsPerMonth: 50,
       customDomain: true,
       kebuBranding: false,
-      store: false,
+      store: true,
       advancedAnalytics: false,
       prioritySupport: false,
     },
   },
+  // Legacy plan — users who signed up before per-site model. Kept for backwards compat.
   shop: {
     id: "shop",
-    name: "Kebu Shop",
-    tagline: "Website + store + hosting + AI for $5.",
+    name: "Kebu Shop (Legacy)",
+    tagline: "Legacy plan — see Starter or Business.",
     monthlyUsd: 5,
     yearlyUsd: 50,
-    hero: true,
-    whoFor: "Small businesses actually selling",
+    whoFor: "Existing Kebu Shop subscribers",
     highlights: [
-      "Everything in Starter, plus:",
-      "Online store, products, inventory, orders",
-      "Customers, coupons, sales analytics",
-      "Payment integrations",
+      "1 site + shop on a custom domain",
+      "No Kebu branding",
       "AI business assistant",
-      "1–2 staff accounts",
+      "Sales analytics + payment integrations",
     ],
     limits: {
       maxWebsites: 1,
@@ -150,30 +163,25 @@ export const KEBU_PLANS: Record<KebuPlanId, KebuPlan> = {
       advancedAnalytics: true,
       prioritySupport: false,
     },
-    comingSoonExtras: [
-      "Abandoned-cart + conversion analytics rolling out",
-      "At maturity: Search presence · Reach · Opportunity OS · Cloud · Kebu ID bundle",
-      "Small transparent transaction fee on sales (separate from subscription)",
-    ],
   },
   business: {
     id: "business",
     name: "Kebu Business",
-    tagline: "Growing businesses — more sites & team.",
-    monthlyUsd: 10,
-    yearlyUsd: 100,
-    whoFor: "Growing businesses",
+    tagline: "$5/site/month — more features, up to 10 sites.",
+    monthlyUsd: 5,
+    yearlyUsd: 50,
+    perSite: true,
+    whoFor: "Growing businesses managing multiple sites or brands",
     highlights: [
-      "Multiple websites",
-      "Larger store + more products",
-      "More staff seats",
+      "Up to 10 custom-domain sites",
       "Advanced analytics + marketing tools",
-      "Advanced AI",
-      "Domain management + better storage",
-      "Priority support",
+      "More staff seats + team management",
+      "Brand DNA auto-apply across all sites",
+      "Advanced AI + priority support",
+      "B2B directory featured listing",
     ],
     limits: {
-      maxWebsites: 5,
+      maxWebsites: 10,
       maxProducts: 1000,
       maxStaff: 10,
       storageMb: 20000,
@@ -184,44 +192,44 @@ export const KEBU_PLANS: Record<KebuPlanId, KebuPlan> = {
       advancedAnalytics: true,
       prioritySupport: true,
     },
-    comingSoonExtras: ["Business email integration", "Customer segmentation"],
+    comingSoonExtras: ["Business email integration", "Customer segmentation", "API access"],
   },
   pro: {
     id: "pro",
     name: "Kebu Pro",
-    tagline: "For businesses that are making money.",
-    monthlyUsd: 20,
-    yearlyUsd: 200,
-    whoFor: "Serious businesses / teams",
+    tagline: "Enterprise — contact us for volume pricing.",
+    monthlyUsd: 0,
+    yearlyUsd: 0,
+    whoFor: "Large businesses, agencies, schools, organizations",
     highlights: [
-      "Teams + multiple stores",
-      "Advanced analytics + automation",
-      "Highest AI limits",
-      "API access",
-      "Advanced commerce",
-      "Highest storage + limits",
+      "Unlimited sites — volume pricing",
+      "White-label option",
+      "Dedicated account manager",
+      "SLA-backed support + onboarding",
+      "API access + custom integrations",
+      "For Schools & Organizations pricing available",
     ],
     limits: {
-      maxWebsites: 20,
+      maxWebsites: 999,
       maxProducts: 10000,
-      maxStaff: 50,
+      maxStaff: 999,
       storageMb: 100000,
-      aiGenerationsPerMonth: 1000,
+      aiGenerationsPerMonth: 2000,
       customDomain: true,
       kebuBranding: false,
       store: true,
       advancedAnalytics: true,
       prioritySupport: true,
     },
-    comingSoonExtras: ["API access", "Advanced Cloud integration", "Automation"],
+    comingSoonExtras: ["API access", "White-label", "Custom integrations"],
   },
 };
 
 /** Competitor e-commerce entry (marketing reference — Shopify/Wix ~$29+/mo). */
 export const KEBU_COMPETITOR_ECOMMERCE_USD_MONTHLY = 29;
 
-/** Marketing headline — not “cheaper than Shopify” alone. */
-export const KEBU_PRICING_HEADLINE = "Everything you need to build your business.";
+/** Marketing headline. */
+export const KEBU_PRICING_HEADLINE = “Build free. Pay per site when you're ready.”;
 
 /** Additional revenue beyond subscription (document targets; enforce per slice). */
 export const KEBU_ADDITIONAL_REVENUE_STREAMS = [
@@ -238,8 +246,8 @@ export const KEBU_PAID_PLAN_IDS = ["student", "starter", "shop", "business", "pr
 
 export const KEBU_PLAN_ORDER: KebuPlanId[] = ["free", "student", "starter", "shop", "business", "pro"];
 
-/** Marketing order on /pricing (student called out separately). */
-export const KEBU_PRICING_PAGE_ORDER: KebuPlanId[] = ["free", "starter", "shop", "business", "pro"];
+/** Marketing order on /pricing — show student in context of free to explain value. */
+export const KEBU_PRICING_PAGE_ORDER: KebuPlanId[] = ["free", "student", "starter", "business", "pro"];
 
 export function parseKebuPlanId(raw: unknown): KebuPlanId {
   if (typeof raw === "string" && (KEBU_PLAN_IDS as readonly string[]).includes(raw)) {
