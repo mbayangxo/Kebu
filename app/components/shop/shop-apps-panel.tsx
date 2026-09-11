@@ -4,6 +4,151 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
 
+type AiUsage = {
+  tier: string;
+  planName: string;
+  ai: { used: number; limit: number; remaining: number; periodStart: string } | null;
+};
+
+function YandeCreditsCard({ projectId }: { projectId: string }) {
+  const [usage, setUsage] = useState<AiUsage | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/account/usage", { credentials: "include" })
+      .then((r) => r.json().catch(() => ({})))
+      .then((d: AiUsage) => setUsage(d))
+      .catch(() => null);
+  }, []);
+
+  const ai = usage?.ai;
+  const limit = ai?.limit ?? 0;
+  const used = ai?.used ?? 0;
+  const remaining = ai?.remaining ?? 0;
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
+  const PLAN_UPGRADE_NAMES: Record<string, string> = {
+    free: "Kebu Starter",
+    starter: "Kebu Shop",
+    shop: "Kebu Business",
+    business: "Kebu Pro",
+  };
+  const nextPlan = PLAN_UPGRADE_NAMES[usage?.tier ?? "free"] ?? "Kebu Shop";
+
+  return (
+    <div
+      className="col-span-full rounded-2xl border-2 p-4 space-y-3"
+      style={{ borderColor: KEBU.orange, background: "linear-gradient(135deg, #fff8f3 0%, #fff 100%)" }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-bold" style={{ color: KEBU.black }}>Yande AI</p>
+            <span className="rounded-full px-2 py-0.5 text-[9px] font-bold text-white" style={{ background: KEBU.orange }}>
+              Built-in
+            </span>
+          </div>
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+            AI website builder
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded((p) => !p)}
+          className="text-[11px] font-bold underline shrink-0"
+          style={{ color: KEBU.orange }}
+        >
+          {expanded ? "Close" : "View credits"}
+        </button>
+      </div>
+
+      <p className="text-xs leading-relaxed" style={{ color: KEBU.muted }}>
+        Yande designs complete storefronts from a description — sections, content, colours — and refines on your instruction.
+        Each AI generation uses one credit from your monthly plan allowance.
+      </p>
+
+      <ul className="space-y-1">
+        {["Describe your shop, Yande builds it", "Iterate: say what to change, Yande updates", "No design skills needed"].map((f) => (
+          <li key={f} className="flex items-start gap-2 text-[11px]" style={{ color: KEBU.black }}>
+            <span style={{ color: KEBU.orange }}>✓</span>{f}
+          </li>
+        ))}
+      </ul>
+
+      {expanded ? (
+        <div className="rounded-xl p-3 space-y-3" style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}>
+          {usage === null ? (
+            <p className="text-xs" style={{ color: KEBU.muted }}>Loading usage…</p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-xs">
+                <span style={{ color: KEBU.black }}>
+                  <strong>{used}</strong> of <strong>{limit > 0 ? limit : "∞"}</strong> AI generations used this month
+                </span>
+                <span className="font-bold" style={{ color: remaining === 0 && limit > 0 ? "#dc2626" : KEBU.orange }}>
+                  {limit > 0 ? `${remaining} left` : "Unlimited"}
+                </span>
+              </div>
+              {limit > 0 ? (
+                <div className="h-2 w-full rounded-full" style={{ background: KEBU.border }}>
+                  <div
+                    className="h-2 rounded-full transition-all"
+                    style={{ width: `${pct}%`, background: pct >= 90 ? "#dc2626" : KEBU.orange }}
+                  />
+                </div>
+              ) : null}
+              <p className="text-[10px]" style={{ color: KEBU.muted }}>
+                Plan: <strong>{usage.planName}</strong>
+                {" · "}
+                Resets 1st of each month
+              </p>
+              {remaining === 0 && limit > 0 ? (
+                <div className="rounded-xl p-3" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
+                  <p className="text-xs font-semibold text-red-800">You&apos;ve used all your AI credits this month.</p>
+                  <p className="mt-1 text-[11px] text-red-700">
+                    Upgrade to {nextPlan} for more AI generations, or wait until next month.
+                  </p>
+                  <Link
+                    href={`/create/${projectId}?tab=billing`}
+                    className="mt-2 inline-block rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
+                    style={{ background: "#dc2626" }}
+                  >
+                    Upgrade plan →
+                  </Link>
+                </div>
+              ) : remaining <= 2 && limit > 0 ? (
+                <div className="rounded-xl p-2" style={{ background: "#fffbeb", border: "1px solid #fde68a" }}>
+                  <p className="text-[11px] font-semibold" style={{ color: "#92400e" }}>
+                    Only {remaining} credit{remaining !== 1 ? "s" : ""} left. Upgrade to {nextPlan} for more.
+                  </p>
+                  <Link
+                    href={`/create/${projectId}?tab=billing`}
+                    className="mt-1 inline-block text-[10px] font-bold underline"
+                    style={{ color: "#d97706" }}
+                  >
+                    Upgrade →
+                  </Link>
+                </div>
+              ) : null}
+              <p className="text-[10px]" style={{ color: KEBU.faint }}>
+                Credits are per Kebu account, shared across all your sites. Yande is in the builder — open any site to use it.
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      <Link
+        href={`/create/${projectId}`}
+        className="inline-block rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
+        style={{ background: KEBU.black }}
+      >
+        Open builder → use Yande
+      </Link>
+    </div>
+  );
+}
+
 type App = {
   id: string;
   name: string;
@@ -222,6 +367,7 @@ export function ShopAppsPanel({ projectId }: { projectId: string }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
+        {filter === "all" ? <YandeCreditsCard projectId={projectId} /> : null}
         {visible.map((app) => {
           const isConnected = connectedIds.has(app.id);
           return (

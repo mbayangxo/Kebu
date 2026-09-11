@@ -23,6 +23,7 @@ import { ShopExpensesPanel } from "@/app/components/shop/shop-expenses-panel";
 import { ShopSellAnywherePanel } from "@/app/components/shop/shop-sell-anywhere-panel";
 import { ShopGiftCardsPanel } from "@/app/components/shop/shop-gift-cards-panel";
 import { ShopReviewsPanel } from "@/app/components/shop/shop-reviews-panel";
+import { ShopReviewRequestsPanel } from "@/app/components/shop/shop-review-requests-panel";
 import { ShopSubscriptionsPanel } from "@/app/components/shop/shop-subscriptions-panel";
 import { ShopOverviewPanel } from "@/app/components/shop/shop-overview-panel";
 import { ShopStoreSwitcher } from "@/app/components/shop/shop-store-switcher";
@@ -100,6 +101,10 @@ const SUB_TABS: Partial<Record<ShopTab, SubTab[]>> = {
   products: [
     { id: "all", label: "Products" },
     { id: "purchase-orders", label: "Purchase orders" },
+  ],
+  reviews: [
+    { id: "all", label: "Reviews" },
+    { id: "requests", label: "Review requests" },
   ],
 };
 
@@ -395,7 +400,10 @@ export default function ShopAdminPage() {
             {tab === "markets" ? <ShopMarketsPanel projectId={projectId} /> : null}
 
             {tab === "gift-cards" ? <ShopGiftCardsPanel projectId={projectId} /> : null}
-            {tab === "reviews" ? <ShopReviewsPanel projectId={projectId} /> : null}
+            {tab === "reviews" && sub !== "requests" ? <ShopReviewsPanel projectId={projectId} /> : null}
+            {tab === "reviews" && sub === "requests" ? (
+              <ShopReviewRequestsPanel projectId={projectId} storeName={title} />
+            ) : null}
             {tab === "subscriptions" ? <ShopSubscriptionsPanel projectId={projectId} /> : null}
             {tab === "discounts" ? (
               <ShopDiscountsPanel projectId={projectId} businessId={businessId} />
