@@ -1782,8 +1782,22 @@ export function SiteRenderer({
             );
           }
           case "footer": {
-            const p = section.props as { text?: string; links?: { label: string; href: string }[]; bgColor?: string; textColor?: string };
+            const p = section.props as {
+              text?: string;
+              legalName?: string;
+              copyrightYear?: number;
+              fontFamily?: string;
+              links?: { label: string; href: string }[];
+              bgColor?: string;
+              textColor?: string;
+            };
             const hasCustomBg = Boolean(p.bgColor);
+            const copyrightLine = p.text ||
+              (p.legalName
+                ? `© ${p.copyrightYear ?? new Date().getFullYear()} ${p.legalName}`
+                : p.copyrightYear
+                ? `© ${p.copyrightYear}`
+                : "");
             return (
               <footer
                 key={key}
@@ -1792,9 +1806,10 @@ export function SiteRenderer({
                   borderTop: "1px solid #E8E6DF",
                   background: p.bgColor || undefined,
                   color: p.textColor || undefined,
+                  fontFamily: p.fontFamily || undefined,
                 }}
               >
-                <p>{p.text}</p>
+                {copyrightLine ? <p>{copyrightLine}</p> : null}
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
                   {(p.links ?? []).map((l) => (
                     <a key={l.label} href={l.href} style={{ color: p.textColor ? "inherit" : undefined }}>

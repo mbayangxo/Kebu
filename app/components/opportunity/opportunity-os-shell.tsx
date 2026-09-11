@@ -44,7 +44,7 @@ export function OpportunityOsShell({
           }}
         />
 
-        <div className="relative max-w-6xl mx-auto px-5 pt-8 pb-4 lg:pt-12">
+        <div className="relative px-5 sm:px-8 lg:px-16 pt-8 pb-4 lg:pt-12">
           <nav className="flex gap-2 mb-8 overflow-x-auto pb-1">
             {TABS.map((tab) => {
               const active = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
@@ -90,7 +90,7 @@ export function OpportunityOsShell({
           </div>
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-5 pb-16">{children}</div>
+        <div className="relative px-5 sm:px-8 lg:px-16 pb-16">{children}</div>
       </div>
     </AppShell>
   );

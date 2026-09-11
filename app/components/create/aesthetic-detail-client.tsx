@@ -151,7 +151,7 @@ export function AestheticDetailClient({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="px-5 sm:px-8 lg:px-16 py-8 sm:py-12">
       <nav className="mb-6 text-xs font-semibold" style={{ color: KEBU.muted }}>
         <Link href="/create/aesthetics" className="hover:underline">
           Aesthetics gallery

@@ -42,10 +42,15 @@ export function BuilderSiteChromePanel({
 
   const footerProps = (chrome.footer?.props ?? { text: "", links: [], bgColor: "", textColor: "" }) as {
     text?: string;
+    legalName?: string;
+    copyrightYear?: number;
+    fontFamily?: string;
     links?: { label: string; href: string }[];
     bgColor?: string;
     textColor?: string;
   };
+
+  const currentYear = new Date().getFullYear();
 
   return (
     <div
@@ -143,15 +148,63 @@ export function BuilderSiteChromePanel({
 
       {selected && part === "footer" ? (
         <div className="space-y-2">
-          {/* Copyright text */}
+          {/* Legal name + year → auto-builds copyright line */}
+          <div className="rounded-lg p-2 space-y-1.5" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>
+            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+              Copyright
+            </p>
+            <div className="flex gap-1">
+              <input
+                className="w-16 text-xs rounded px-2 py-1 shrink-0"
+                style={{ border: "1px solid #DDE0F0" }}
+                type="number"
+                value={footerProps.copyrightYear ?? currentYear}
+                onChange={(e) => onPatch({ copyrightYear: parseInt(e.target.value) || currentYear })}
+                aria-label="Copyright year"
+                placeholder="2026"
+              />
+              <input
+                className="flex-1 text-xs rounded px-2 py-1"
+                style={{ border: "1px solid #DDE0F0" }}
+                value={footerProps.legalName ?? ""}
+                onChange={(e) => onPatch({ legalName: e.target.value })}
+                aria-label="Legal name"
+                placeholder="Your Business LLC"
+              />
+            </div>
+          </div>
+
+          {/* Custom footer text (overrides auto copyright if filled) */}
           <input
             className="w-full text-sm rounded-lg px-2 py-1.5"
             style={{ border: "1px solid #DDE0F0" }}
             value={String(footerProps.text ?? "")}
             onChange={(e) => onPatch({ text: e.target.value })}
-            aria-label="Footer text"
-            placeholder="© Your business"
+            aria-label="Footer text (overrides copyright line)"
+            placeholder="Custom text — leave blank to auto-generate from above"
           />
+
+          {/* Footer font */}
+          <div className="rounded-lg p-2 space-y-1.5" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>
+            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+              Footer font
+            </p>
+            <select
+              className="w-full text-xs rounded px-2 py-1"
+              style={{ border: "1px solid #DDE0F0", background: "#fff" }}
+              value={footerProps.fontFamily ?? ""}
+              onChange={(e) => onPatch({ fontFamily: e.target.value || undefined })}
+              aria-label="Footer font"
+            >
+              <option value="">Same as site</option>
+              <option value="system-ui, sans-serif">System (clean)</option>
+              <option value="Georgia, serif">Georgia (classic)</option>
+              <option value="'Courier New', monospace">Courier (mono)</option>
+              <option value="'Playfair Display', serif">Playfair (elegant)</option>
+              <option value="'Oswald', sans-serif">Oswald (bold)</option>
+              <option value="'IBM Plex Sans', sans-serif">IBM Plex (modern)</option>
+            </select>
+          </div>
 
           {/* Footer colors */}
           <div className="rounded-lg p-2 space-y-2" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>

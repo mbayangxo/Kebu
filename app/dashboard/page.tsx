@@ -309,7 +309,7 @@ export default function KebuHomePage() {
               `,
             }}
           />
-          <div className="relative max-w-6xl mx-auto px-6 lg:px-12 py-10 lg:py-14">
+          <div className="relative px-5 sm:px-8 lg:px-16 py-10 lg:py-14">
             {loading ? (
               <div className="flex items-center gap-5">
                 <Skeleton width={60} height={60} radius={30} style={{ background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
@@ -386,7 +386,7 @@ export default function KebuHomePage() {
         </div>
 
         {/* ── Body ───────────────────────────────────────── */}
-        <div className="max-w-6xl mx-auto px-6 lg:px-12 py-8 lg:py-12">
+        <div className="px-5 sm:px-8 lg:px-16 py-8 lg:py-12">
 
           {/* Quick actions — always first */}
           <div className="mb-10">
