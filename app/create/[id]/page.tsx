@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
 import { BuilderAestheticsPanel } from "@/app/components/create/builder-aesthetics-panel";
 import { YandeAssistant } from "@/app/components/create/yande-assistant";
+import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
 import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
@@ -119,6 +120,7 @@ export default function ProjectEditorPage() {
   const [improving, setImproving] = useState(false);
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
+  const [yandeOpen, setYandeOpen] = useState(false);
   const [improveMode, setImproveMode] = useState<"free" | "redesign" | "page" | "rewrite" | "convert">(
     "free",
   );
@@ -1304,7 +1306,7 @@ export default function ProjectEditorPage() {
             />
             <aside
               className={`${
-                leftPanelOpen ? "relative w-[320px] max-w-[92vw]" : "hidden"
+                leftPanelOpen ? "relative w-[280px] max-w-[92vw]" : "hidden"
               } shrink-0 overflow-y-auto border-r`}
               style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
             >
@@ -1520,50 +1522,6 @@ export default function ProjectEditorPage() {
                 </div>
               )}
 
-              {sidebarTab === "yande" && (
-                <div className="px-4 py-4 space-y-4">
-                <YandeAssistant
-                  variant="improve"
-                  value={improveInstruction}
-                  onChange={setImproveInstruction}
-                  onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
-                  busy={improving}
-                  submitLabel={aiPreview ? "Apply changes" : "Preview changes"}
-                />
-                {aiPreview ? (
-                  <BuilderAiPreviewPanel
-                    intents={aiPreview.intents}
-                    sectionChanges={aiPreview.sectionChanges}
-                    acceptedSectionIds={aiPreview.acceptedSectionIds}
-                    busy={improving}
-                    onToggleSection={(sectionId) => {
-                      setAiPreview((prev) => {
-                        if (!prev) return prev;
-                        const next = new Set(prev.acceptedSectionIds);
-                        if (next.has(sectionId)) next.delete(sectionId);
-                        else next.add(sectionId);
-                        return { ...prev, acceptedSectionIds: next };
-                      });
-                    }}
-                    onSelectAll={() => {
-                      setAiPreview((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
-                            }
-                          : prev,
-                      );
-                    }}
-                    onClearAll={() => {
-                      setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
-                    }}
-                    onApply={() => void applyAiPreview()}
-                    onDiscard={discardAiPreview}
-                  />
-                ) : null}
-                </div>
-              )}
 
               {sidebarTab === "content" && (
               <>
@@ -3979,6 +3937,124 @@ export default function ProjectEditorPage() {
             </section>
           </>
         )}
+
+        {/* Yande FAB — bottom-right floating button */}
+        <button
+          type="button"
+          aria-label="Open Yande AI"
+          onClick={() => setYandeOpen((o) => !o)}
+          className="absolute bottom-5 right-5 z-30 rounded-full transition-transform hover:scale-105 active:scale-95"
+          style={{
+            boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+          }}
+        >
+          <YandeMark size={48} />
+        </button>
+
+        {/* Yande right-side sliding panel */}
+        {yandeOpen ? (
+          <>
+            {/* click-outside backdrop (transparent) */}
+            <div
+              className="absolute inset-0 z-30"
+              onClick={() => setYandeOpen(false)}
+              aria-hidden="true"
+            />
+            <div
+              className="absolute bottom-0 right-0 top-0 z-40 flex flex-col overflow-hidden border-l"
+              style={{
+                width: 300,
+                background: "#FAFAFA",
+                borderColor: "#E5E5E5",
+                boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* panel header */}
+              <div
+                className="flex shrink-0 items-center justify-between border-b px-3 py-2.5"
+                style={{ borderColor: "#E5E5E5" }}
+              >
+                <div className="flex items-center gap-2">
+                  <YandeMark size={28} />
+                  <span
+                    className="text-[11px] font-bold uppercase tracking-wider"
+                    style={{ color: BUILDER.ink }}
+                  >
+                    Yande AI
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close Yande"
+                  onClick={() => setYandeOpen(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-md"
+                  style={{ color: BUILDER.muted }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* AI preview panel when active */}
+              {aiPreview ? (
+                <div className="shrink-0 border-b px-3 py-3" style={{ borderColor: "#E5E5E5" }}>
+                  <BuilderAiPreviewPanel
+                    intents={aiPreview.intents}
+                    sectionChanges={aiPreview.sectionChanges}
+                    acceptedSectionIds={aiPreview.acceptedSectionIds}
+                    onApply={() => void applyAiPreview()}
+                    onDiscard={discardAiPreview}
+                    onToggleSection={(sectionId) => {
+                      setAiPreview((prev) => {
+                        if (!prev) return prev;
+                        const next = new Set(prev.acceptedSectionIds);
+                        if (next.has(sectionId)) next.delete(sectionId);
+                        else next.add(sectionId);
+                        return { ...prev, acceptedSectionIds: next };
+                      });
+                    }}
+                    onSelectAll={() => {
+                      setAiPreview((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
+                            }
+                          : prev,
+                      );
+                    }}
+                    onClearAll={() => {
+                      setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
+                    }}
+                    busy={improving}
+                  />
+                </div>
+              ) : null}
+
+              {/* Yande assistant input */}
+              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+                <YandeAssistant
+                  variant="improve"
+                  value={improveInstruction}
+                  onChange={setImproveInstruction}
+                  onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
+                  busy={improving}
+                  submitLabel={aiPreview ? "Apply" : "Preview"}
+                />
+                {improveNote ? (
+                  <p
+                    className="mt-3 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
+                    style={{ background: "#F4F4F5", color: BUILDER.muted }}
+                  >
+                    {improveNote}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </>
+        ) : null}
       </main>
 
       {previewFullscreen && canvasDefinition ? (
