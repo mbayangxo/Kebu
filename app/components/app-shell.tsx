@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BackLink } from "@/app/components/back-link";
 import { KebuMark } from "@/app/components/kebu-mark";
-import { KebuAppSidebar, type PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
+import { KebuNavShell } from "@/app/components/kebu-nav-shell";
+import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
 import { KebuMobileNav } from "@/app/components/kebu-mobile-nav";
 import { DataModeDock, DataModeProvider } from "@/app/components/create/data-mode-provider";
@@ -62,7 +63,7 @@ export function AppShell({
         className="kebu-app min-h-screen flex"
         style={{ background: KEBU.bright, color: KEBU.black }}
       >
-        <KebuAppSidebar portfolioSites={portfolioSites} />
+        <KebuNavShell />
 
         <div className="flex-1 min-w-0 flex flex-col">
           <header
@@ -121,8 +122,8 @@ export function AppShell({
             </div>
           ) : null}
 
-          {/* pb-14 ensures content is never hidden behind the collapsed dock chip on small screens */}
-          <main className="flex-1 min-h-0 pb-14 md:pb-8">{children}</main>
+          {/* pb-20 ensures content clears the bottom tab bar on mobile */}
+          <main className="flex-1 min-h-0 pb-20 md:pb-8">{children}</main>
         </div>
         <DataModeDock />
       </div>

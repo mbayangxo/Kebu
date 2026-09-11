@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuSidebarAuthFooter } from "@/app/components/kebu-sidebar-auth-footer";
 import { KebuAccountContextSwitcher } from "@/app/components/kebu-account-context-switcher";
@@ -25,36 +25,90 @@ function isActive(pathname: string, href: string, exact?: boolean): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Plain nav link — Shopify-style: subtle active bg, no colored dot. */
-function NavItem({
+/* ─── Badge ──────────────────────────────────────────────────────────────── */
+function Badge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      style={{
+        background: KEBU.orange,
+        color: "#fff",
+        fontSize: "0.65rem",
+        fontWeight: 700,
+        lineHeight: 1,
+        padding: "2px 6px",
+        borderRadius: 999,
+        minWidth: 18,
+        textAlign: "center",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        marginLeft: "auto",
+      }}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+/* ─── Section label ──────────────────────────────────────────────────────── */
+function SectionLabel({ title }: { title: string }) {
+  return (
+    <p
+      style={{
+        color: "rgba(255,255,255,0.28)",
+        fontSize: "0.65rem",
+        fontWeight: 700,
+        letterSpacing: "0.18em",
+        textTransform: "uppercase",
+        padding: "16px 16px 6px",
+        userSelect: "none",
+      }}
+    >
+      {title}
+    </p>
+  );
+}
+
+/* ─── Plain nav link ─────────────────────────────────────────────────────── */
+function NavLink({
   href,
   label,
   active,
+  badge = 0,
   indent = false,
 }: {
   href: string;
   label: string;
   active: boolean;
+  badge?: number;
   indent?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="flex items-center rounded-md py-1.5 text-[13px] transition-colors"
       style={{
-        paddingLeft: indent ? "1.75rem" : "0.75rem",
-        paddingRight: "0.75rem",
-        background: active ? "rgba(255,255,255,0.13)" : "transparent",
-        color: active ? "#fff" : "rgba(255,255,255,0.68)",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: indent ? "9px 16px 9px 28px" : "9px 16px",
+        borderRadius: 8,
+        fontSize: "0.8375rem",
         fontWeight: active ? 600 : 400,
+        color: active ? "#fff" : "rgba(255,255,255,0.62)",
+        background: active ? "rgba(255,255,255,0.1)" : "transparent",
+        borderLeft: active ? `3px solid ${KEBU.orange}` : "3px solid transparent",
+        transition: "background 0.12s, color 0.12s",
+        textDecoration: "none",
       }}
     >
-      {label}
+      <span style={{ flex: 1 }}>{label}</span>
+      <Badge count={badge} />
     </Link>
   );
 }
 
-/** Parent item that expands/collapses to reveal children — like Shopify's Products → Collections. */
+/* ─── Accordion nav item ─────────────────────────────────────────────────── */
 function NavAccordion({
   href,
   label,
@@ -65,7 +119,7 @@ function NavAccordion({
   href: string;
   label: string;
   active: boolean;
-  childItems: { label: string; href: string; exact?: boolean }[];
+  childItems: { label: string; href: string; exact?: boolean; badge?: number }[];
   pathname: string;
 }) {
   const anyChildActive = childItems.some((c) => isActive(pathname, c.href, c.exact));
@@ -74,17 +128,24 @@ function NavAccordion({
   return (
     <div>
       <div
-        className="flex items-center rounded-md transition-colors"
         style={{
-          background: (active && !open) ? "rgba(255,255,255,0.13)" : "transparent",
+          display: "flex",
+          alignItems: "center",
+          borderRadius: 8,
+          borderLeft: (active || anyChildActive) ? `3px solid ${KEBU.orange}` : "3px solid transparent",
+          background: (active || anyChildActive) ? "rgba(255,255,255,0.08)" : "transparent",
         }}
       >
         <Link
           href={href}
-          className="flex-1 py-1.5 pl-3 text-[13px] transition-colors"
           style={{
-            color: active || anyChildActive ? "#fff" : "rgba(255,255,255,0.68)",
-            fontWeight: active || anyChildActive ? 600 : 400,
+            flex: 1,
+            padding: "9px 0 9px 13px",
+            fontSize: "0.8375rem",
+            fontWeight: (active || anyChildActive) ? 600 : 400,
+            color: (active || anyChildActive) ? "#fff" : "rgba(255,255,255,0.62)",
+            textDecoration: "none",
+            transition: "color 0.12s",
           }}
         >
           {label}
@@ -92,21 +153,29 @@ function NavAccordion({
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="px-2 py-1.5 text-[10px] shrink-0"
-          style={{ color: "rgba(255,255,255,0.35)" }}
+          style={{
+            padding: "9px 14px",
+            color: "rgba(255,255,255,0.3)",
+            fontSize: "0.6rem",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
           aria-label={open ? "Collapse" : "Expand"}
         >
           {open ? "▾" : "▸"}
         </button>
       </div>
-      {open && (
-        <div className="mt-0.5 space-y-0.5">
+      {open && childItems.length > 0 && (
+        <div style={{ marginTop: 2, display: "flex", flexDirection: "column", gap: 1 }}>
           {childItems.map((c) => (
-            <NavItem
+            <NavLink
               key={c.href}
               href={c.href}
               label={c.label}
               active={isActive(pathname, c.href, c.exact)}
+              badge={c.badge ?? 0}
               indent
             />
           ))}
@@ -116,19 +185,7 @@ function NavAccordion({
   );
 }
 
-/** Section group label — small, muted, uppercase. Like Shopify's "Sales channels". */
-function NavGroup({ title }: { title: string }) {
-  return (
-    <p
-      className="px-3 pb-1 pt-4 text-[9px] font-bold uppercase tracking-[0.22em] select-none first:pt-2"
-      style={{ color: "rgba(255,255,255,0.32)" }}
-    >
-      {title}
-    </p>
-  );
-}
-
-/** Contextual nav that replaces the global nav when you're inside a specific site. */
+/* ─── Contextual site nav ────────────────────────────────────────────────── */
 function SiteContextNav({
   siteId,
   siteName,
@@ -144,54 +201,53 @@ function SiteContextNav({
   const editHref = editorUrl ?? `/create/${siteId}`;
 
   return (
-    <nav className="flex-1 overflow-y-auto px-2 py-3">
+    <nav style={{ flex: 1, overflowY: "auto", padding: "8px 8px 16px" }}>
       <Link
         href="/my-sites"
-        className="mb-3 flex items-center gap-1 rounded-md px-3 py-1.5 text-[12px] transition-colors hover:text-white"
-        style={{ color: "rgba(255,255,255,0.42)" }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "8px 12px",
+          marginBottom: 8,
+          fontSize: "0.775rem",
+          color: "rgba(255,255,255,0.38)",
+          textDecoration: "none",
+          borderRadius: 8,
+          transition: "color 0.12s",
+        }}
       >
-        ← My Sites
+        ← All Sites
       </Link>
 
       <div
-        className="mx-2 mb-3 rounded-lg px-3 py-2.5"
-        style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}
+        style={{
+          margin: "0 4px 12px",
+          padding: "10px 14px",
+          borderRadius: 10,
+          background: "rgba(255,255,255,0.07)",
+          border: "1px solid rgba(255,255,255,0.1)",
+        }}
       >
-        <p className="truncate text-[13px] font-bold text-white">{siteName}</p>
-        <p className="mt-0.5 text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
-          Website
+        <p style={{ fontSize: "0.875rem", fontWeight: 700, color: "#fff", marginBottom: 2 }} className="truncate">
+          {siteName}
         </p>
+        <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.38)" }}>Website</p>
       </div>
 
-      <div className="space-y-0.5">
-        <NavItem href={base} label="Overview" active={pathname === base} />
-        <NavItem href={editHref} label="Edit site" active={pathname.startsWith(`/create/${siteId}`)} />
-        <NavItem
-          href={`${base}?section=analytics`}
-          label="Analytics"
-          active={false}
-        />
-        <NavItem
-          href={`${base}?section=themes`}
-          label="Themes"
-          active={false}
-        />
-        <NavItem
-          href={`${base}?section=seo`}
-          label="SEO & domains"
-          active={false}
-        />
-        <NavItem
-          href={`${base}?section=settings`}
-          label="Settings"
-          active={false}
-        />
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <NavLink href={base} label="Overview" active={pathname === base} />
+        <NavLink href={editHref} label="Edit site" active={pathname.startsWith(`/create/${siteId}`)} />
+        <NavLink href={`${base}?section=analytics`} label="Analytics" active={false} />
+        <NavLink href={`${base}?section=themes`} label="Themes" active={false} />
+        <NavLink href={`${base}?section=seo`} label="SEO & domains" active={false} />
+        <NavLink href={`${base}?section=settings`} label="Settings" active={false} />
       </div>
     </nav>
   );
 }
 
-/** Left sidebar — Shopify-style organization with accordion children + contextual site nav. */
+/* ─── Main sidebar ───────────────────────────────────────────────────────── */
 export function KebuAppSidebar({
   portfolioSites = [],
   className = "",
@@ -205,6 +261,17 @@ export function KebuAppSidebar({
   const ws = workspace ?? "kebu";
   const homeHref = workspaceHome(ws);
   const activeBusinessId = accountContext?.activeBusinessId ?? null;
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  // Fetch unread message count from Supabase
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/messages/unread-count", { credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (!cancelled && typeof data?.count === "number") setUnreadMessages(data.count); })
+      .catch(() => {/* non-critical */});
+    return () => { cancelled = true; };
+  }, []);
 
   if (
     pathname === "/" ||
@@ -215,42 +282,77 @@ export function KebuAppSidebar({
     return null;
   }
 
-  // Detect contextual site context: /my-sites/[id]
   const siteDetailMatch = pathname.match(/^\/my-sites\/([^/?#]+)/);
   const currentSiteId = siteDetailMatch?.[1] ?? null;
-  const currentSite = currentSiteId
-    ? portfolioSites.find((s) => s.key === currentSiteId)
-    : null;
+  const currentSite = currentSiteId ? portfolioSites.find((s) => s.key === currentSiteId) : null;
 
   return (
     <aside
-      className={`hidden md:flex w-[13rem] lg:w-[15rem] shrink-0 flex-col sticky top-0 h-screen overflow-y-auto ${className}`}
-      style={{ background: KEBU.black, color: KEBU.white }}
+      className={`hidden md:flex shrink-0 flex-col sticky top-0 h-screen overflow-y-auto ${className}`}
+      style={{
+        width: "15.5rem",
+        background: KEBU.black,
+        color: KEBU.white,
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+      }}
     >
-      {/* Brand accent bar */}
+      {/* Top accent bar */}
       <div
-        className="h-[3px] w-full shrink-0"
-        style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange}, ${KEBU.orangeLight})` }}
+        style={{
+          height: 3,
+          background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange}, ${KEBU.orangeLight})`,
+          flexShrink: 0,
+        }}
       />
 
-      {/* Logo + workspace switcher */}
-      <div className="px-4 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Link href={homeHref} className="group flex items-center gap-2.5">
-          <KebuMark size={26} />
-          <div className="min-w-0">
-            <span className="block text-xs font-black uppercase tracking-[0.2em] text-white group-hover:text-[#FF5500] transition-colors">
+      {/* Logo */}
+      <div
+        style={{
+          padding: "16px 16px 14px",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
+        }}
+      >
+        <Link href={homeHref} className="group" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <KebuMark size={28} />
+          <div style={{ minWidth: 0 }}>
+            <span
+              style={{
+                display: "block",
+                fontSize: "0.75rem",
+                fontWeight: 900,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "#fff",
+              }}
+            >
               Kebu
             </span>
-            {ready ? (
-              <span className="block text-[9px] font-semibold uppercase tracking-wider text-white/40 truncate">
+            {ready && (
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "0.65rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.38)",
+                }}
+                className="truncate"
+              >
                 {workspaceLabel(ws)}
               </span>
-            ) : null}
+            )}
           </div>
         </Link>
         <Link
           href="/start?pick=1"
-          className="mt-2.5 inline-block text-[10px] text-white/40 hover:text-[#FF5500] transition-colors"
+          style={{
+            marginTop: 10,
+            display: "inline-block",
+            fontSize: "0.7rem",
+            color: "rgba(255,255,255,0.35)",
+            textDecoration: "none",
+          }}
         >
           Switch workspace →
         </Link>
@@ -258,7 +360,7 @@ export function KebuAppSidebar({
 
       <KebuAccountContextSwitcher />
 
-      {/* Contextual site nav OR global nav */}
+      {/* Nav */}
       {currentSiteId ? (
         <SiteContextNav
           siteId={currentSiteId}
@@ -267,28 +369,26 @@ export function KebuAppSidebar({
           editorUrl={currentSite?.editorUrl ?? null}
         />
       ) : (
-        <nav className="flex-1 overflow-y-auto px-2 py-3">
-          {/* Opportunity */}
-          <div className="space-y-0.5">
+        <nav style={{ flex: 1, overflowY: "auto", padding: "8px 8px 16px" }}>
+
+          {/* Opportunity — always visible */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 4 }}>
             {PRODUCT_NAV.opportunity.map((item) => (
-              <NavItem
+              <NavLink
                 key={item.href}
                 href={item.href}
                 label={item.label}
-                active={
-                  isActive(pathname, item.href) ||
-                  (item.href === "/opportunity" && pathname === "/opportunity/intake")
-                }
+                active={isActive(pathname, item.href) || (item.href === "/opportunity" && pathname === "/opportunity/intake")}
               />
             ))}
           </div>
 
-          {ws === "kebu" ? (
+          {ws === "kebu" && (
             <>
-              <NavGroup title="Explore" />
-              <div className="space-y-0.5">
+              <SectionLabel title="Explore" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {PRODUCT_NAV.kebu.map((item) => (
-                  <NavItem
+                  <NavLink
                     key={item.href}
                     href={item.href}
                     label={item.label}
@@ -297,15 +397,15 @@ export function KebuAppSidebar({
                 ))}
               </div>
             </>
-          ) : null}
+          )}
 
-          {ws === "business" ? (
+          {ws === "business" && (
             <>
-              <NavGroup title="My KEBU" />
-              <div className="space-y-0.5">
+              <SectionLabel title="My Space" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <NavAccordion
                   href={businessNavHref("/business", activeBusinessId)}
-                  label="My Businesses"
+                  label="Businesses"
                   active={isActive(pathname, businessNavHref("/business", activeBusinessId), true)}
                   pathname={pathname}
                   childItems={[
@@ -322,46 +422,43 @@ export function KebuAppSidebar({
                     portfolioSites.length > 0
                       ? portfolioSites
                           .filter((s) => s.editorUrl)
-                          .map((s) => ({
-                            label: s.title,
-                            href: `/my-sites/${s.key}`,
-                            exact: true,
-                          }))
+                          .map((s) => ({ label: s.title, href: `/my-sites/${s.key}`, exact: true }))
                       : []
                   }
                 />
-                <NavItem
+                <NavLink
                   href="/messages"
                   label="Messages"
                   active={isActive(pathname, "/messages")}
+                  badge={unreadMessages}
                 />
               </div>
 
-              <NavGroup title="Aesthetic store" />
-              <div className="space-y-0.5">
-                <NavItem
+              <SectionLabel title="Build" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <NavLink
                   href="/create/aesthetics"
                   label="Aesthetic Gallery"
                   active={isActive(pathname, "/create/aesthetics", true)}
                 />
-                <NavItem
+                <NavLink
                   href="/create/new"
                   label="Build a site"
                   active={isActive(pathname, "/create/new", true)}
                 />
               </div>
 
-              <NavGroup title="Shop" />
-              <div className="space-y-0.5">
-                <NavItem
+              <SectionLabel title="Commerce" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <NavLink
                   href="/shop"
-                  label="Kebu Shop"
+                  label="Shop"
                   active={isActive(pathname, "/shop", true)}
                 />
               </div>
 
-              <NavGroup title="Studio" />
-              <div className="space-y-0.5">
+              <SectionLabel title="Studio" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <NavAccordion
                   href="/studio"
                   label="Kebu Studio"
@@ -375,28 +472,29 @@ export function KebuAppSidebar({
                 />
               </div>
 
-              <NavGroup title="Alkebulan" />
-              <div className="space-y-0.5">
-                <NavItem
+              <SectionLabel title="Africa" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <NavLink
                   href="/b2b"
                   label="Alkebulan"
                   active={isActive(pathname, "/b2b")}
                 />
               </div>
             </>
-          ) : null}
+          )}
 
-          {ws === "studio" ? (
+          {ws === "studio" && (
             <>
-              <NavGroup title="Studio" />
-              <div className="space-y-0.5">
-                <NavItem href="/studio" label="Kebu Studio" active={isActive(pathname, "/studio", true)} />
-                <NavItem href="/studio/new" label="New design" active={isActive(pathname, "/studio/new")} />
-                <NavItem href="/studio/brand" label="Brand DNA" active={isActive(pathname, "/studio/brand")} />
-                <NavItem href="/studio/campaigns" label="Campaigns" active={isActive(pathname, "/studio/campaigns")} />
+              <SectionLabel title="Studio" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <NavLink href="/studio" label="Kebu Studio" active={isActive(pathname, "/studio", true)} />
+                <NavLink href="/studio/new" label="New design" active={isActive(pathname, "/studio/new")} />
+                <NavLink href="/studio/brand" label="Brand DNA" active={isActive(pathname, "/studio/brand")} />
+                <NavLink href="/studio/campaigns" label="Campaigns" active={isActive(pathname, "/studio/campaigns")} />
               </div>
             </>
-          ) : null}
+          )}
+
         </nav>
       )}
 

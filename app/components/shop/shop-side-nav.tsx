@@ -89,8 +89,7 @@ export const NAV_GROUPS: NavGroup[] = [
     icon: "money",
     label: "Money",
     items: [
-      { tab: "analytics", sub: "overview",        label: "Overview" },
-      { tab: "analytics", sub: "analytics",       label: "Analytics" },
+      { tab: "analytics",                          label: "Analytics" },
       { tab: "payments",                           label: "Payments" },
       { tab: "analytics", sub: "payouts",          label: "Payouts" },
       { tab: "analytics", sub: "expenses",         label: "Expenses" },
