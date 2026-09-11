@@ -69,9 +69,7 @@ const PRODUCTS: Product[] = [
     prefixes: ["/opportunity", "/ka-score"],
     items: [
       { label: "Browse", href: "/opportunity", exact: true },
-      { label: "Saved", href: "/opportunity/saved" },
-      { label: "Applied", href: "/opportunity/applied" },
-      { label: "My Profile", href: "/opportunity/profile" },
+      { label: "Listings", href: "/opportunity/listings" },
       { label: "KA Score", href: "/ka-score" },
     ],
   },
@@ -437,6 +435,10 @@ export function KebuNavShell({ children }: { children?: React.ReactNode }) {
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [badges, setBadges] = useState<Record<string, number>>({ messages: 0 });
 
+  // Shop detail pages have their own ShopSideNav — hide the product panel to avoid double-sidebar
+  const isShopDetail = /^\/shop\/[^/]+/.test(pathname);
+  const showPanel = !isShopDetail && !panelCollapsed;
+
   useEffect(() => {
     let cancelled = false;
     fetch("/api/messages/unread-count", { credentials: "include" })
@@ -456,16 +458,18 @@ export function KebuNavShell({ children }: { children?: React.ReactNode }) {
         <IconStrip
           currentProductId={currentProduct.id}
           pathname={pathname}
-          isCollapsed={panelCollapsed}
+          isCollapsed={!showPanel}
           onExpand={() => setPanelCollapsed(false)}
         />
-        <ProductPanel
-          product={currentProduct}
-          pathname={pathname}
-          badges={badges}
-          collapsed={panelCollapsed}
-          onToggle={() => setPanelCollapsed(true)}
-        />
+        {!isShopDetail && (
+          <ProductPanel
+            product={currentProduct}
+            pathname={pathname}
+            badges={badges}
+            collapsed={panelCollapsed}
+            onToggle={() => setPanelCollapsed(true)}
+          />
+        )}
       </aside>
 
       {/* Mobile bottom tabs */}

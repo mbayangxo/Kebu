@@ -76,7 +76,6 @@ export function AppShell({
             />
             <div className="flex items-center justify-between gap-2 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <KebuMobileNav />
                 <BackLink fallbackHref={fallback} variant="onDark" />
               </div>
               <p className="text-sm font-bold truncate text-white flex-1 text-center" style={{ fontFamily: "var(--font-fraunces)" }}>
