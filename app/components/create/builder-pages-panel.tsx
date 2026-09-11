@@ -11,7 +11,6 @@ export type BuilderPageRow = {
   sort_order: number;
 };
 
-/** Slim Shopify-style pages list — no oversized cards. */
 export function BuilderPagesPanel({
   projectId,
   pages,
@@ -44,96 +43,60 @@ export function BuilderPagesPanel({
   async function addPage() {
     const title = newTitle.trim();
     const slug = normalizePageSlug(title);
-    if (!slug || !title) {
-      onError("Page title is required.");
-      return;
-    }
-    if (!isValidPageSlug(slug)) {
-      onError("Use letters, numbers, and hyphens only.");
-      return;
-    }
+    if (!slug || !title) { onError("Page title is required."); return; }
+    if (!isValidPageSlug(slug)) { onError("Use letters, numbers, and hyphens only."); return; }
     setLocalBusy(true);
     onError(null);
     try {
       const res = await fetch(`/api/projects/${projectId}/pages`, {
-        method: "POST",
-        credentials: "include",
+        method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug, title }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        onError(typeof data.error === "string" ? data.error : "Could not add page.");
-        return;
-      }
-      setNewTitle("");
-      setAdding(false);
+      if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not add page."); return; }
+      setNewTitle(""); setAdding(false);
       await onRefresh();
       if (data.page?.id) onSelectPage(data.page as BuilderPageRow);
-    } catch {
-      onError("Network error while adding page.");
-    } finally {
-      setLocalBusy(false);
-    }
+    } catch { onError("Network error while adding page."); }
+    finally { setLocalBusy(false); }
   }
 
   async function removePage(pageId: string) {
     if (!confirm("Delete this page and all its sections?")) return;
-    setLocalBusy(true);
-    onError(null);
+    setLocalBusy(true); onError(null);
     try {
       const res = await fetch(`/api/projects/${projectId}/pages`, {
-        method: "DELETE",
-        credentials: "include",
+        method: "DELETE", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pageId }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        onError(typeof data.error === "string" ? data.error : "Could not delete page.");
-        return;
-      }
+      if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not delete page."); return; }
       await onRefresh();
-    } catch {
-      onError("Network error while deleting page.");
-    } finally {
-      setLocalBusy(false);
-    }
+    } catch { onError("Network error while deleting page."); }
+    finally { setLocalBusy(false); }
   }
 
   async function savePageEdit(pageId: string) {
     const title = editTitle.trim();
     const slug = normalizePageSlug(editSlug);
-    if (!title || !slug) {
-      onError("Title and slug are required.");
-      return;
-    }
-    if (!isValidPageSlug(slug)) {
-      onError("Invalid slug format.");
-      return;
-    }
-    setLocalBusy(true);
-    onError(null);
+    if (!title || !slug) { onError("Title and slug are required."); return; }
+    if (!isValidPageSlug(slug)) { onError("Invalid slug format."); return; }
+    setLocalBusy(true); onError(null);
     try {
       const res = await fetch(`/api/projects/${projectId}/pages`, {
-        method: "PATCH",
-        credentials: "include",
+        method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pageId, title, slug }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        onError(typeof data.error === "string" ? data.error : "Could not update page.");
-        return;
-      }
+      if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not update page."); return; }
       setEditingId(null);
       await onRefresh();
       if (data.page) onSelectPage(data.page as BuilderPageRow);
-    } catch {
-      onError("Network error while updating page.");
-    } finally {
-      setLocalBusy(false);
-    }
+    } catch { onError("Network error while updating page."); }
+    finally { setLocalBusy(false); }
   }
 
   async function movePage(pageId: string, direction: "up" | "down") {
@@ -143,75 +106,95 @@ export function BuilderPagesPanel({
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
     const a = sorted[idx]!;
     const b = sorted[swapIdx]!;
-    setLocalBusy(true);
-    onError(null);
+    setLocalBusy(true); onError(null);
     try {
       const [resA, resB] = await Promise.all([
         fetch(`/api/projects/${projectId}/pages`, {
-          method: "PATCH",
-          credentials: "include",
+          method: "PATCH", credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pageId: a.id, sortOrder: b.sort_order }),
         }),
         fetch(`/api/projects/${projectId}/pages`, {
-          method: "PATCH",
-          credentials: "include",
+          method: "PATCH", credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pageId: b.id, sortOrder: a.sort_order }),
         }),
       ]);
-      if (!resA.ok || !resB.ok) {
-        onError("Could not reorder pages.");
-        return;
-      }
+      if (!resA.ok || !resB.ok) { onError("Could not reorder pages."); return; }
       await onRefresh();
-    } catch {
-      onError("Network error while reordering.");
-    } finally {
-      setLocalBusy(false);
-    }
+    } catch { onError("Network error while reordering."); }
+    finally { setLocalBusy(false); }
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2 px-0.5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: BUILDER.muted }}>
-          Pages
-        </p>
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: BUILDER.border }}>
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: BUILDER.muted }}>Pages</p>
         <button
           type="button"
           disabled={working}
-          onClick={() => setAdding((v) => !v)}
+          onClick={() => { setAdding((v) => !v); setEditingId(null); }}
           className="text-[10px] font-bold"
           style={{ color: BUILDER.orange }}
         >
-          {adding ? "Cancel" : "+ Add"}
+          {adding ? "Cancel" : "+ New page"}
         </button>
       </div>
 
-      <ul className="space-y-0.5">
+      {/* Add page form */}
+      {adding ? (
+        <div className="px-3 py-2 border-b space-y-1.5" style={{ borderColor: BUILDER.border, background: BUILDER.surfaceMuted }}>
+          <input
+            className="w-full rounded px-2 py-1 text-xs"
+            style={{ border: `1px solid ${BUILDER.border}` }}
+            placeholder="Page title (e.g. About, Shop…)"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void addPage(); if (e.key === "Escape") setAdding(false); }}
+            disabled={working}
+            autoFocus
+          />
+          <button
+            type="button"
+            disabled={working || !newTitle.trim()}
+            onClick={() => void addPage()}
+            className="w-full rounded py-1 text-[11px] font-bold text-white disabled:opacity-40"
+            style={{ background: BUILDER.ink }}
+          >
+            {working ? "Adding…" : "Add page"}
+          </button>
+        </div>
+      ) : null}
+
+      {/* Page list */}
+      <ul>
         {sorted.map((p, idx) => {
           const active = p.id === editPageId || p.slug === previewPageSlug;
           const editing = editingId === p.id;
           return (
-            <li key={p.id}>
+            <li key={p.id} style={{ borderBottom: `1px solid ${BUILDER.border}` }}>
               {editing ? (
-                <div className="space-y-1.5 rounded-md p-2" style={{ background: BUILDER.surfaceMuted }}>
+                /* Inline edit form */
+                <div className="px-3 py-2 space-y-1.5" style={{ background: BUILDER.surfaceMuted }}>
                   <input
                     className="w-full rounded px-2 py-1 text-xs"
                     style={{ border: `1px solid ${BUILDER.border}` }}
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Title"
                     disabled={working}
+                    autoFocus
                   />
                   <input
                     className="w-full rounded px-2 py-1 font-mono text-[10px]"
                     style={{ border: `1px solid ${BUILDER.border}` }}
                     value={editSlug}
                     onChange={(e) => setEditSlug(e.target.value)}
+                    placeholder="slug"
                     disabled={working}
                   />
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       disabled={working}
@@ -233,35 +216,34 @@ export function BuilderPagesPanel({
                   </div>
                 </div>
               ) : (
+                /* Compact single-line row */
                 <div
-                  className="group flex items-center gap-1 rounded-md px-2 py-1.5"
+                  className="group flex items-center gap-1 px-3"
                   style={{
-                    background: active ? "#F4F4F5" : "transparent",
-                    outline: active ? `1px solid ${BUILDER.border}` : undefined,
+                    background: active ? "#EEF2FF" : "transparent",
+                    borderLeft: active ? `3px solid ${BUILDER.orange}` : "3px solid transparent",
+                    paddingLeft: active ? "9px" : "12px",
                   }}
                 >
+                  {/* Page title — clicking selects the page to edit */}
                   <button
                     type="button"
-                    className="min-w-0 flex-1 text-left"
+                    className="min-w-0 flex-1 truncate py-2 text-left text-[12px] font-medium"
+                    style={{ color: active ? BUILDER.ink : "#3A3A3A" }}
                     onClick={() => onSelectPage(p)}
+                    title={`/${p.slug}`}
                   >
-                    <p
-                      className="truncate text-[12px] font-medium leading-tight"
-                      style={{ color: BUILDER.ink }}
-                    >
-                      {p.title}
-                    </p>
-                    <p className="truncate font-mono text-[9px]" style={{ color: BUILDER.faint }}>
-                      /{p.slug}
-                    </p>
+                    {p.title}
                   </button>
-                  <div className="flex shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+
+                  {/* Hover actions — inline single row */}
+                  <div className="flex shrink-0 items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ minWidth: 0 }}>
                     <button
                       type="button"
                       title="Move up"
                       disabled={working || idx === 0}
-                      onClick={() => void movePage(p.id, "up")}
-                      className="px-1 text-[10px] disabled:opacity-30"
+                      onClick={(e) => { e.stopPropagation(); void movePage(p.id, "up"); }}
+                      className="px-1 py-1.5 text-[11px] disabled:opacity-20 leading-none"
                       style={{ color: BUILDER.muted }}
                     >
                       ↑
@@ -270,33 +252,38 @@ export function BuilderPagesPanel({
                       type="button"
                       title="Move down"
                       disabled={working || idx === sorted.length - 1}
-                      onClick={() => void movePage(p.id, "down")}
-                      className="px-1 text-[10px] disabled:opacity-30"
+                      onClick={(e) => { e.stopPropagation(); void movePage(p.id, "down"); }}
+                      className="px-1 py-1.5 text-[11px] disabled:opacity-20 leading-none"
                       style={{ color: BUILDER.muted }}
                     >
                       ↓
                     </button>
                     <button
                       type="button"
-                      title="Rename"
+                      title="Rename / change slug"
                       disabled={working}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingId(p.id);
                         setEditTitle(p.title);
                         setEditSlug(p.slug);
+                        setAdding(false);
                       }}
-                      className="px-1 text-[10px]"
+                      className="px-1 py-1.5 text-[11px] leading-none"
                       style={{ color: BUILDER.muted }}
+                      aria-label="Rename page"
                     >
-                      Edit
+                      ✎
                     </button>
                     {sorted.length > 1 ? (
                       <button
                         type="button"
-                        title="Delete"
+                        title="Delete page"
                         disabled={working}
-                        onClick={() => void removePage(p.id)}
-                        className="px-1 text-[10px] text-red-600"
+                        onClick={(e) => { e.stopPropagation(); void removePage(p.id); }}
+                        className="px-1 py-1.5 text-[12px] font-bold leading-none"
+                        style={{ color: "#DC2626" }}
+                        aria-label="Delete page"
                       >
                         ×
                       </button>
@@ -308,29 +295,6 @@ export function BuilderPagesPanel({
           );
         })}
       </ul>
-
-      {adding ? (
-        <div className="space-y-1.5 border-t pt-2" style={{ borderColor: BUILDER.border }}>
-          <input
-            className="w-full rounded-md px-2 py-1.5 text-xs"
-            style={{ border: `1px solid ${BUILDER.border}` }}
-            placeholder="Page title"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            disabled={working}
-            autoFocus
-          />
-          <button
-            type="button"
-            disabled={working || !newTitle.trim()}
-            onClick={() => void addPage()}
-            className="w-full rounded-md py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
-            style={{ background: BUILDER.ink }}
-          >
-            {working ? "Saving…" : "Add page"}
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }

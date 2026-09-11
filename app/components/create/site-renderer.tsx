@@ -392,33 +392,40 @@ function SiteNav({
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpenGroup(null)} aria-hidden />
             <div
-              className="absolute left-0 top-full z-50 mt-1 flex min-w-[160px] flex-col overflow-hidden rounded-xl shadow-xl"
-              style={{ background: navBg || "#000", border: "1px solid rgba(255,255,255,0.12)" }}
+              className="absolute left-0 top-full z-50 mt-1 overflow-hidden rounded-xl shadow-xl"
+              style={{
+                background: navBg || "#000",
+                border: "1px solid rgba(255,255,255,0.12)",
+                minWidth: l.children!.length > 4 ? 240 : 180,
+              }}
             >
-              {l.children!.map((child) => {
-                const cslug = slugFromHref(child.href);
-                return onNavigate && cslug ? (
-                  <button
-                    key={child.label}
-                    type="button"
-                    onClick={() => { handleNav(child.href); }}
-                    className="kebu-nav-dropdown-item text-left"
-                    style={{ color: navColor }}
-                  >
-                    {child.label}
-                  </button>
-                ) : (
-                  <a
-                    key={child.label}
-                    href={resolveHref(child.href)}
-                    onClick={() => setOpenGroup(null)}
-                    className="kebu-nav-dropdown-item"
-                    style={{ color: navColor }}
-                  >
-                    {child.label}
-                  </a>
-                );
-              })}
+              {l.children!.length > 4 ? (
+                /* Mega nav grid for 5+ children */
+                <div className="grid grid-cols-2 gap-0">
+                  {l.children!.map((child) => {
+                    const cslug = slugFromHref(child.href);
+                    const cls = "kebu-nav-dropdown-item text-left";
+                    return onNavigate && cslug ? (
+                      <button key={child.label} type="button" onClick={() => handleNav(child.href)} className={cls} style={{ color: navColor }}>{child.label}</button>
+                    ) : (
+                      <a key={child.label} href={resolveHref(child.href)} onClick={() => setOpenGroup(null)} className={cls} style={{ color: navColor }}>{child.label}</a>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Standard dropdown list for 1–4 children */
+                <div className="flex flex-col">
+                  {l.children!.map((child) => {
+                    const cslug = slugFromHref(child.href);
+                    const cls = "kebu-nav-dropdown-item text-left";
+                    return onNavigate && cslug ? (
+                      <button key={child.label} type="button" onClick={() => handleNav(child.href)} className={cls} style={{ color: navColor }}>{child.label}</button>
+                    ) : (
+                      <a key={child.label} href={resolveHref(child.href)} onClick={() => setOpenGroup(null)} className={cls} style={{ color: navColor }}>{child.label}</a>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </>
         )}

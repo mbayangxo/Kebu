@@ -1407,6 +1407,7 @@ export default function ProjectEditorPage() {
                         <NavLinksEditor
                           projectId={projectId}
                           links={mapNavLinksForEditor(links)}
+                          pages={pages}
                           onChange={(navLinks) => {
                             if (hero.section_type === "navigation") {
                               updateProps(hero.id, { links: navLinks });
@@ -1884,6 +1885,7 @@ export default function ProjectEditorPage() {
                           <NavLinksEditor
                             projectId={projectId}
                             allowIcons
+                            pages={pages}
                             links={mapNavLinksForEditor(
                               (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
@@ -2480,6 +2482,7 @@ export default function ProjectEditorPage() {
                             </div>
                           ))}
                           <NavLinksEditor
+                            pages={pages}
                             links={mapNavLinksForEditor(
                               (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
@@ -2549,6 +2552,7 @@ export default function ProjectEditorPage() {
                             Dark overlay
                           </label>
                           <NavLinksEditor
+                            pages={pages}
                             links={mapNavLinksForEditor(
                               (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
@@ -2722,6 +2726,7 @@ export default function ProjectEditorPage() {
                             placeholder="Brand name"
                           />
                           <NavLinksEditor
+                            pages={pages}
                             links={mapNavLinksForEditor(
                               (section.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
@@ -2746,6 +2751,7 @@ export default function ProjectEditorPage() {
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Footer links</p>
                           <NavLinksEditor
+                            pages={pages}
                             links={mapNavLinksForEditor((section.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [])}
                             onChange={(links) => updateProps(section.id, { links })}
                           />
