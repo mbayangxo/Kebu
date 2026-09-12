@@ -59,6 +59,10 @@ import { dentalClinicWorldDefinition } from "./design-worlds/dental-clinic-world
 import { luxuryLipWorldDefinition } from "./design-worlds/luxury-lip-world";
 import { architectureWorldDefinition } from "./design-worlds/architecture-world";
 import { pastryWorldDefinition } from "./design-worlds/pastry-world";
+import { couturiereWorldDefinition } from "./design-worlds/couturiere-world";
+import { agenceVoyageWorldDefinition } from "./design-worlds/agence-voyage-world";
+import { maquilleurWorldDefinition } from "./design-worlds/maquilleur-world";
+import { immobilierLuxeWorldDefinition } from "./design-worlds/immobilier-luxe-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1050,6 +1054,38 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Pâtisserie artisanale africaine — best-sellers FCFA, wedding cakes, commandes sur-mesure, galerie masonry · 4 pages",
     definition: pastryWorldDefinition(),
+  },
+  {
+    slug: "couturiere-atelier",
+    name: "Atelier de couture",
+    category: "fashion",
+    description:
+      "Atelier couture africain contemporain — tenues sur-mesure, mariage, cérémonie, processus 5 étapes, galerie masonry · 4 pages",
+    definition: couturiereWorldDefinition(),
+  },
+  {
+    slug: "agence-voyage",
+    name: "Agence de voyage",
+    category: "travel",
+    description:
+      "Agence voyage africaine premium — circuits Afrique, safaris, Omra tout compris, paiement Wave/Orange Money · 4 pages",
+    definition: agenceVoyageWorldDefinition(),
+  },
+  {
+    slug: "maquilleuse-freelance",
+    name: "Maquilleuse professionnelle",
+    category: "beauty",
+    description:
+      "Maquilleuse freelance Dakar — mariage, shooting, plateau TV, cours particuliers, portfolio masonry · 4 pages",
+    definition: maquilleurWorldDefinition(),
+  },
+  {
+    slug: "immobilier-luxe",
+    name: "Immobilier de prestige",
+    category: "real-estate",
+    description:
+      "Agence immobilier luxe Dakar — villas, penthouses, terrains titrés, gestion locative, formulaire projet · 4 pages",
+    definition: immobilierLuxeWorldDefinition(),
   },
 ];
 
