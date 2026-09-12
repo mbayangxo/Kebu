@@ -95,6 +95,7 @@ import { boulangerieWorldDefinition } from "./design-worlds/boulangerie-world";
 import { modeEditorialeWorldDefinition } from "./design-worlds/mode-editoriale-world";
 import { menswearWorldDefinition } from "./design-worlds/menswear-world";
 import { sportswearWorldDefinition } from "./design-worlds/sportswear-world";
+import { agenceSocialMediaWorldDefinition } from "./design-worlds/agence-social-media-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1374,6 +1375,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "KORA SPORT — noir technique/vert électrique, 9 articles sport FCFA filterTags Running/Gym/Football, équipe · 3 pages",
     definition: sportswearWorldDefinition(),
+  },
+  {
+    slug: "agence-social-media",
+    name: "Agence social media & création de contenu",
+    category: "services",
+    description:
+      "VOLTA STUDIO — noir/jaune éclair bold, 6 offres priceLabel, audit gratuit, 3 packs mensuels, résultats clients · 3 pages",
+    definition: agenceSocialMediaWorldDefinition(),
   },
 ];
 
