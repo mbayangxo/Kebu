@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { kebuSitePreviewPath, liveSiteUrl } from "@/lib/create/site-urls";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF, mySiteDetailHref } from "@/lib/navigation/product-nav";
-import { UploadAestheticButton } from "@/app/components/create/upload-aesthetic-button";
 
 export type MySiteProject = {
   id: string;
@@ -612,17 +611,7 @@ export function MySitesGrid({
                 className="inline-flex rounded-lg border px-3.5 py-2 text-[12px] font-semibold"
                 style={{ borderColor: KEBU.border, color: KEBU.black }}
               >
-                Aesthetics
-              </Link>
-              <UploadAestheticButton
-                sites={visibleProjects.map((p) => ({ id: p.id, title: p.title || "Untitled site" }))}
-              />
-              <Link
-                href="/create/domains"
-                className="inline-flex rounded-lg border px-3.5 py-2 text-[12px] font-semibold"
-                style={{ borderColor: KEBU.border, color: KEBU.muted }}
-              >
-                Domains
+                Templates
               </Link>
             </>
           ) : (

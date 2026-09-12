@@ -97,6 +97,7 @@ export default function ProjectEditorPage() {
   const [publishing, setPublishing] = useState(false);
   const [payingHosting, setPayingHosting] = useState(false);
   const [publishUrl, setPublishUrl] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState<{ url: string; title: string } | null>(null);
   const [subdomainInput, setSubdomainInput] = useState("");
   const [seoSettings, setSeoSettings] = useState<SiteSeo>(() => defaultSiteSeo());
   const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -789,7 +790,14 @@ export default function ProjectEditorPage() {
         setError(typeof data.error === "string" ? data.error : "Publish failed.");
         return;
       }
-      setPublishUrl(data.deployment?.public_path ?? data.liveUrl ?? data.publicPath ?? null);
+      const liveUrl = data.deployment?.public_path ?? data.liveUrl ?? data.publicPath ?? null;
+      setPublishUrl(liveUrl);
+      const fullUrl = liveUrl
+        ? liveUrl.startsWith("http")
+          ? liveUrl
+          : `https://${subdomainInput.trim().toLowerCase()}.kebu.africa`
+        : `https://${subdomainInput.trim().toLowerCase()}.kebu.africa`;
+      setPublishSuccess({ url: fullUrl, title: project?.title ?? "Your site" });
       await load();
     } catch {
       setError("Network error while publishing.");
@@ -1031,6 +1039,85 @@ export default function ProjectEditorPage() {
       className="relative flex h-dvh flex-col overflow-hidden"
       style={{ background: BUILDER.bg, color: BUILDER.ink }}
     >
+      {publishSuccess ? (
+        <div
+          className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Site published"
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl"
+            style={{ background: "#fff", border: "2px solid #0A0A0A" }}
+          >
+            {/* Animated checkmark */}
+            <div
+              className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full"
+              style={{ background: "#00C851" }}
+            >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#00C851" }}>
+              Now live
+            </p>
+            <h2 className="mt-1 text-xl font-black leading-tight" style={{ fontFamily: "var(--font-fraunces)", color: "#0A0A0A" }}>
+              {publishSuccess.title} is live!
+            </h2>
+            <p className="mt-1 text-[11px]" style={{ color: "#6B7280" }}>
+              Your site is live and ready to share.
+            </p>
+            {/* URL box with copy */}
+            <div
+              className="mt-4 flex items-center gap-2 rounded-xl px-3 py-2.5"
+              style={{ background: "#F4F4F5", border: "1px solid #E5E5E5" }}
+            >
+              <a
+                href={publishSuccess.url}
+                target="_blank"
+                rel="noreferrer"
+                className="min-w-0 flex-1 truncate text-left text-[11px] font-mono font-semibold"
+                style={{ color: "#0A0A0A" }}
+              >
+                {publishSuccess.url.replace(/^https?:\/\//, "")}
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  try { await navigator.clipboard.writeText(publishSuccess.url); } catch { /* noop */ }
+                }}
+                className="shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white"
+                style={{ background: "#0A0A0A" }}
+              >
+                Copy
+              </button>
+            </div>
+            {/* Actions */}
+            <div className="mt-4 flex flex-col gap-2">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Mon site est en ligne — visitez-le ici : ${publishSuccess.url}`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 rounded-full py-2.5 text-[12px] font-bold text-white"
+                style={{ background: "#25D366" }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" /></svg>
+                Partager sur WhatsApp
+              </a>
+              <button
+                type="button"
+                onClick={() => setPublishSuccess(null)}
+                className="rounded-full py-2.5 text-[12px] font-semibold"
+                style={{ border: "1px solid #E5E5E5", color: "#6B7280" }}
+              >
+                Continuer à éditer
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <BuilderStudioChrome
         projectId={projectId}
         title={project?.title ?? "Editor"}

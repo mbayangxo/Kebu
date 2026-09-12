@@ -327,10 +327,15 @@ export function BuilderStudioChrome({
           type="button"
           onClick={onPublish}
           disabled={publishing}
-          className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-50"
-          style={{ background: BUILDER.ink, color: "#fff" }}
+          className="relative overflow-hidden rounded-lg px-4 py-1.5 text-[11px] font-bold disabled:opacity-50 transition-all"
+          style={{ background: publishing ? "#4B5563" : "#FF5500", color: "#fff", minWidth: 84 }}
         >
-          {publishing ? "…" : publishLabel}
+          {publishing ? (
+            <span className="flex items-center gap-1.5 justify-center">
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              Publishing…
+            </span>
+          ) : publishLabel}
         </button>
       </div>
     </header>

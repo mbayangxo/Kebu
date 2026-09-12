@@ -303,6 +303,8 @@ export function BuilderSectionListDnd({
     );
   }
 
+  const focusActive = selectedSectionId !== null;
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
@@ -310,27 +312,35 @@ export function BuilderSectionListDnd({
           {sections.map((section, index) => {
             const blocks = blocksForSection(section.section_type, section.props);
             const expanded = expandedId === section.id || selectedSectionId === section.id;
+            const isSelected = selectedSectionId === section.id;
             return (
-              <SortableSectionRow
+              <div
                 key={section.id}
-                section={section}
-                selected={selectedSectionId === section.id}
-                expanded={expanded}
-                blocks={blocks}
-                onSelect={() => {
-                  onSelect(section.id);
-                  setExpandedId(section.id);
+                style={{
+                  opacity: focusActive && !isSelected ? 0.45 : 1,
+                  transition: "opacity 0.15s ease",
                 }}
-                onToggleExpand={() =>
-                  setExpandedId((prev) => (prev === section.id ? null : section.id))
-                }
-                onMoveUp={() => onMoveUp(section.id)}
-                onMoveDown={() => onMoveDown(section.id)}
-                onRemove={onRemove ? () => onRemove(section.id) : undefined}
-                onToggleHidden={onToggleHidden ? () => onToggleHidden(section.id) : undefined}
-                isFirst={index === 0}
-                isLast={index === sections.length - 1}
-              />
+              >
+                <SortableSectionRow
+                  section={section}
+                  selected={isSelected}
+                  expanded={expanded}
+                  blocks={blocks}
+                  onSelect={() => {
+                    onSelect(section.id);
+                    setExpandedId(section.id);
+                  }}
+                  onToggleExpand={() =>
+                    setExpandedId((prev) => (prev === section.id ? null : section.id))
+                  }
+                  onMoveUp={() => onMoveUp(section.id)}
+                  onMoveDown={() => onMoveDown(section.id)}
+                  onRemove={onRemove ? () => onRemove(section.id) : undefined}
+                  onToggleHidden={onToggleHidden ? () => onToggleHidden(section.id) : undefined}
+                  isFirst={index === 0}
+                  isLast={index === sections.length - 1}
+                />
+              </div>
             );
           })}
         </div>

@@ -351,28 +351,37 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
 
       <div className="px-6 sm:px-8 lg:px-10 py-6">
         {/* Tab nav */}
-        <div className="flex flex-wrap items-center gap-2 mb-6 pb-4" style={{ borderBottom: `1px solid ${KEBU.border}` }}>
-          {(
-            [
-              ["store", "Browse templates"],
-              ["owned", "Owned"],
-              ["sell", "Sell (dev)"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-              style={{
-                background: tab === id ? KEBU.black : "transparent",
-                color: tab === id ? "#fff" : KEBU.muted,
-                border: tab === id ? `1px solid ${KEBU.black}` : `1px solid transparent`,
-              }}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-6 pb-4" style={{ borderBottom: `1px solid ${KEBU.border}` }}>
+          <div className="flex flex-wrap items-center gap-2">
+            {(
+              [
+                ["store", "Templates"],
+                ["owned", "Owned"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
+                style={{
+                  background: tab === id ? KEBU.black : "transparent",
+                  color: tab === id ? "#fff" : KEBU.muted,
+                  border: tab === id ? `1px solid ${KEBU.black}` : `1px solid transparent`,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Developer account is a separate program — linked from footer, not shown to all users */}
+          <a
+            href="/create/developers"
+            className="text-[10px] font-semibold underline-offset-2 hover:underline"
+            style={{ color: KEBU.muted }}
+          >
+            Sell templates →
+          </a>
         </div>
 
       {error ? (

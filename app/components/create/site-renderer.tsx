@@ -460,8 +460,8 @@ export function SiteRenderer({
           ? {
               background: "#fff",
               color: "#111",
-              height: mode === "preview" ? "100%" : "100vh",
-              overflow: "hidden",
+              minHeight: mode === "preview" ? "100%" : "100vh",
+              overflowX: "clip" as const,
             }
         : {
           background: theme.background,
