@@ -66,6 +66,10 @@ import { immobilierLuxeWorldDefinition } from "./design-worlds/immobilier-luxe-w
 import { gameStudioWorldDefinition } from "./design-worlds/game-studio-world";
 import { prAgencyWorldDefinition } from "./design-worlds/pr-agency-world";
 import { artisteVisuelWorldDefinition } from "./design-worlds/artiste-visuel-world";
+import { filmPromoWorldDefinition } from "./design-worlds/film-promo-world";
+import { animalerieWorldDefinition } from "./design-worlds/animalerie-world";
+import { designerPortfolioWorldDefinition } from "./design-worlds/designer-portfolio-world";
+import { decoInterieurWorldDefinition } from "./design-worlds/deco-interieur-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1113,6 +1117,38 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Portfolio beaux-arts africain — peintures, photographies, tirages à vendre, biographie, galeries internationales · 5 pages",
     definition: artisteVisuelWorldDefinition(),
+  },
+  {
+    slug: "film-promotionnel",
+    name: "Page promotionnelle film",
+    category: "media",
+    description:
+      "Promo film africain dark cinéma — bande-annonce, synopsis, casting, critique presse, programmation salles · 3 pages",
+    definition: filmPromoWorldDefinition(),
+  },
+  {
+    slug: "animalerie-pets",
+    name: "Animalerie & vétérinaire",
+    category: "ecommerce",
+    description:
+      "Animalerie en ligne Dakar — 6 produits FCFA, conseil vétérinaire WhatsApp, livraison 24h, 4 catégories animaux · 3 pages",
+    definition: animalerieWorldDefinition(),
+  },
+  {
+    slug: "designer-portfolio",
+    name: "Designer UI/UX freelance",
+    category: "portfolio",
+    description:
+      "Portfolio designer freelance — cool minimal, 4 services, case studies, 6 forfaits FCFA, remote-friendly · 4 pages",
+    definition: designerPortfolioWorldDefinition(),
+  },
+  {
+    slug: "deco-interieur",
+    name: "Studio de décoration",
+    category: "architecture",
+    description:
+      "Studio déco d'intérieur Dakar — warm brutalist, 95+ projets masonry, processus 5 étapes, forfaits clé en main · 4 pages",
+    definition: decoInterieurWorldDefinition(),
   },
 ];
 
