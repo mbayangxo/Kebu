@@ -8,7 +8,39 @@ import {
   type BuilderSectionCategory,
 } from "@/lib/create/builder-section-catalog";
 
-/** Shopify-style section picker — add blocks to make the page longer. */
+const SECTION_ICONS: Record<string, string> = {
+  "announcement-bar": "📢",
+  navigation: "☰",
+  "editorial-hero": "🖼",
+  hero: "⬛",
+  split: "◧",
+  marquee: "↔",
+  footer: "▬",
+  "category-tiles": "⊞",
+  text: "T",
+  "free-text": "✥",
+  features: "✦",
+  image: "□",
+  gallery: "⊟",
+  video: "▶",
+  audio: "♫",
+  products: "🛍",
+  contact: "✉",
+  whatsapp: "💬",
+  joko: "💳",
+  map: "📍",
+  form: "📋",
+  newsletter: "✉",
+  "blog-list": "📝",
+  "email-popup": "📩",
+  testimonials: "❝",
+  faq: "?",
+  events: "📅",
+  "before-after": "⇌",
+  "hotspot-image": "⊕",
+};
+
+/** Shopify-style section picker — compact rows, icon + label + hint. */
 export function AddSectionPicker({
   pageTitle,
   busy,
@@ -38,82 +70,120 @@ export function AddSectionPicker({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <button
         type="button"
         disabled={busy || Boolean(adding)}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wider text-white disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-40"
         style={{ background: BUILDER.gradient, boxShadow: BUILDER.shadow }}
       >
-        {open ? "Close section menu" : "+ Add section"}
+        <span style={{ fontSize: 14, lineHeight: 1 }}>{open ? "✕" : "+"}</span>
+        {open ? "Close" : "Add section"}
       </button>
-      <p className="text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>
-        Longer page → add sections. Shorter → remove a section below. Editing:{" "}
-        <strong style={{ color: BUILDER.ink }}>{pageTitle}</strong>
+      <p className="truncate text-[10px] leading-tight" style={{ color: BUILDER.muted }}>
+        Editing: <span style={{ color: BUILDER.ink, fontWeight: 600 }}>{pageTitle}</span>
       </p>
 
-      {open ? (
+      {open && (
         <div
-          className="rounded-2xl p-3 space-y-3"
+          className="rounded-xl overflow-hidden"
           style={{ background: BUILDER.surface, border: `1px solid ${BUILDER.border}`, boxShadow: BUILDER.shadowSoft }}
           role="dialog"
           aria-label="Add a section"
         >
-          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>
-            Choose a section (like Shopify)
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => setCategory("all")}
-              className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase"
-              style={{
-                background: category === "all" ? BUILDER.orange : BUILDER.surfaceMuted,
-                color: category === "all" ? "#fff" : BUILDER.ink,
-                border: `1px solid ${BUILDER.border}`,
-              }}
-            >
-              All
-            </button>
-            {BUILDER_SECTION_CATEGORIES.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setCategory(c.id)}
-                className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase"
-                style={{
-                  background: category === c.id ? BUILDER.orange : BUILDER.surfaceMuted,
-                  color: category === c.id ? "#fff" : BUILDER.ink,
-                  border: `1px solid ${BUILDER.border}`,
-                }}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-          <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
-            {options.map((opt) => (
-              <li key={opt.type}>
+          {/* Category filter tabs */}
+          <div
+            className="flex gap-0 overflow-x-auto"
+            style={{ borderBottom: `1px solid ${BUILDER.border}` }}
+          >
+            {[{ id: "all" as const, label: "All" }, ...BUILDER_SECTION_CATEGORIES].map((c) => {
+              const active = category === c.id;
+              return (
                 <button
+                  key={c.id}
                   type="button"
-                  disabled={Boolean(adding)}
-                  onClick={() => void pick(opt.type)}
-                  className="flex w-full flex-col items-start rounded-xl px-3 py-2.5 text-left transition-opacity hover:opacity-90 disabled:opacity-50"
-                  style={{ background: BUILDER.surfaceMuted, border: `1px solid ${BUILDER.border}` }}
+                  onClick={() => setCategory(c.id as BuilderSectionCategory | "all")}
+                  className="flex-shrink-0 px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                  style={{
+                    borderBottom: active ? `2px solid ${BUILDER.orange}` : "2px solid transparent",
+                    color: active ? BUILDER.orange : BUILDER.muted,
+                    background: "transparent",
+                  }}
                 >
-                  <span className="text-xs font-bold" style={{ color: BUILDER.ink }}>
-                    {adding === opt.type ? "Adding…" : opt.label}
-                  </span>
-                  <span className="text-[10px] leading-snug" style={{ color: BUILDER.muted }}>
-                    {opt.description}
-                  </span>
+                  {c.label}
                 </button>
-              </li>
-            ))}
+              );
+            })}
+          </div>
+
+          {/* Section list — compact rows */}
+          <ul
+            className="overflow-y-auto"
+            style={{ maxHeight: 300 }}
+          >
+            {options.map((opt) => {
+              const isAdding = adding === opt.type;
+              const icon = SECTION_ICONS[opt.type] ?? "□";
+              return (
+                <li key={opt.type} style={{ borderBottom: `1px solid ${BUILDER.border}` }}>
+                  <button
+                    type="button"
+                    disabled={Boolean(adding)}
+                    onClick={() => void pick(opt.type)}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors disabled:opacity-40"
+                    style={{
+                      background: isAdding ? `${BUILDER.orange}12` : "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!adding) (e.currentTarget as HTMLButtonElement).style.background = `${BUILDER.orange}0A`;
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!adding) (e.currentTarget as HTMLButtonElement).style.background = isAdding ? `${BUILDER.orange}12` : "transparent";
+                    }}
+                  >
+                    {/* Icon bubble */}
+                    <span
+                      className="flex-shrink-0 flex items-center justify-center rounded-md text-[10px] font-bold"
+                      style={{
+                        width: 26,
+                        height: 26,
+                        background: BUILDER.surfaceMuted,
+                        border: `1px solid ${BUILDER.border}`,
+                        color: BUILDER.ink,
+                      }}
+                    >
+                      {icon}
+                    </span>
+                    {/* Label + hint */}
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className="block text-[11px] font-semibold leading-tight truncate"
+                        style={{ color: BUILDER.ink }}
+                      >
+                        {isAdding ? "Adding…" : opt.label}
+                      </span>
+                      <span
+                        className="block text-[10px] leading-snug truncate"
+                        style={{ color: BUILDER.muted }}
+                      >
+                        {opt.description}
+                      </span>
+                    </span>
+                    {/* Chevron */}
+                    <span
+                      className="flex-shrink-0 text-[10px] opacity-30"
+                      style={{ color: BUILDER.ink }}
+                    >
+                      ›
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

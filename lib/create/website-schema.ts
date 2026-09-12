@@ -30,6 +30,8 @@ export const SECTION_TYPES = [
   "blog-list",
   "whatsapp",
   "joko",
+  "before-after",
+  "hotspot-image",
   "free-text",
   "footer",
   "maylecor-home",
@@ -679,6 +681,45 @@ export const sectionPropsSchemas = {
     /** Optional direct Joko pay link (overrides phone-based link). */
     jokoPayLink: z.string().trim().max(500).optional(),
     message: z.string().trim().max(200).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Side-by-side drag slider revealing a before/after photo pair.
+   * Great for hair salons, skincare brands, makeup artists, construction before/after.
+   */
+  "before-after": z.object({
+    heading: z.string().trim().max(160).optional(),
+    subheading: z.string().trim().max(240).optional(),
+    beforeImageUrl: imageUrl.default(""),
+    afterImageUrl: imageUrl.default(""),
+    beforeLabel: z.string().trim().max(40).optional().default("Before"),
+    afterLabel: z.string().trim().max(40).optional().default("After"),
+    /** 0–100 — where the divider starts (50 = middle). */
+    initialPosition: z.number().min(0).max(100).optional().default(50),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Image with floating clickable pin circles — product tags, info tooltips.
+   * Great for fashion lookbooks (tag the outfit), room design, equipment guides.
+   */
+  "hotspot-image": z.object({
+    imageUrl: imageUrl.default(""),
+    imageAlt: z.string().trim().max(160).default(""),
+    heading: z.string().trim().max(160).optional(),
+    pins: z
+      .array(z.object({
+        id: z.string().trim().min(1).max(40),
+        /** Horizontal position as % of image width. */
+        xPct: z.number().min(0).max(100),
+        /** Vertical position as % of image height. */
+        yPct: z.number().min(0).max(100),
+        label: z.string().trim().max(80),
+        description: z.string().trim().max(300).optional(),
+        href: safeHref.optional(),
+        priceLabel: z.string().trim().max(60).optional(),
+      }))
+      .max(12)
+      .default([]),
     hidden: z.boolean().optional(),
   }),
   "free-text": z.object({

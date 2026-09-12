@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { VideoGrid } from "@/app/components/video-embed";
 import { NewsletterSignup } from "@/app/components/create/newsletter-signup";
@@ -49,6 +49,8 @@ import { MaylecorSiteFooter } from "@/app/components/create/maylecor-site-footer
 import { sanitizeMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import { navChromeMetrics, parseNavLayout } from "@/lib/create/nav-chrome-size";
 import "./artist-motion.css";
+import "./kebu-scroll-entrance.css";
+import { initScrollEntrances, ENTRANCE_MOTION } from "./kebu-scroll-entrance";
 import { KEBU_SITE_ROOT_CLASS } from "@/lib/create/site-responsive";
 import { themeToCssVars } from "@/lib/create/site-aesthetics";
 import { dataModeSiteClass, preferSystemFonts, type DataMode } from "@/lib/create/data-mode";
@@ -521,6 +523,12 @@ export function SiteRenderer({
   /** Africa low-data mode from DataModeProvider / public site. */
   dataMode?: DataMode;
 }) {
+  const siteRootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!siteRootRef.current) return;
+    return initScrollEntrances(siteRootRef.current);
+  }, [pageSlug]);
+
   const theme = definition.theme;
   const merchantPhone = resolveMerchantWhatsApp(definition, definition.seo as SiteSeo | undefined);
   const shopCommerce = mergeSiteCommerce((definition.seo as SiteSeo | undefined)?.commerce);
@@ -2353,14 +2361,174 @@ export function SiteRenderer({
               </section>,
             );
           }
+          case "before-after": {
+            const p = section.props as {
+              heading?: string;
+              subheading?: string;
+              beforeImageUrl?: string;
+              afterImageUrl?: string;
+              beforeLabel?: string;
+              afterLabel?: string;
+              initialPosition?: number;
+            };
+            if (!p.beforeImageUrl && !p.afterImageUrl) return null;
+            const initPos = p.initialPosition ?? 50;
+            return wrap(
+              <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-12 scroll-mt-20">
+                {p.heading && (
+                  <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: cssFontStack(theme.fontDisplay) }}>
+                    {p.heading}
+                  </h2>
+                )}
+                {p.subheading && <p className="text-sm opacity-70 mb-5">{p.subheading}</p>}
+                <style>{`
+                  .kebu-ba-container{position:relative;overflow:hidden;border-radius:1rem;user-select:none;touch-action:pan-y;aspect-ratio:16/9;max-height:520px;background:#111}
+                  .kebu-ba-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+                  .kebu-ba-after-clip{position:absolute;inset:0;overflow:hidden}
+                  .kebu-ba-divider{position:absolute;top:0;bottom:0;width:3px;background:#fff;cursor:ew-resize;z-index:10;transform:translateX(-50%);box-shadow:0 0 8px rgba(0,0,0,0.5)}
+                  .kebu-ba-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;gap:3px;font-size:11px;color:#0A0A0A;font-weight:700}
+                  .kebu-ba-label{position:absolute;top:12px;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:.05em;pointer-events:none}
+                  .kebu-ba-label-b{left:12px}.kebu-ba-label-a{right:12px}
+                `}</style>
+                <div
+                  className="kebu-ba-container"
+                  ref={(el) => {
+                    if (!el || el.dataset.baInit) return;
+                    el.dataset.baInit = "1";
+                    let pos = initPos;
+                    const divider = el.querySelector(".kebu-ba-divider") as HTMLElement;
+                    const clip = el.querySelector(".kebu-ba-after-clip") as HTMLElement;
+                    function setPos(pct: number) {
+                      pos = Math.max(2, Math.min(98, pct));
+                      divider.style.left = `${pos}%`;
+                      clip.style.clipPath = `inset(0 0 0 ${pos}%)`;
+                    }
+                    setPos(pos);
+                    function fromEvent(e: PointerEvent) {
+                      const rect = el!.getBoundingClientRect();
+                      return ((e.clientX - rect.left) / rect.width) * 100;
+                    }
+                    divider.addEventListener("pointerdown", (e) => {
+                      e.preventDefault();
+                      divider.setPointerCapture(e.pointerId);
+                      const onMove = (ev: PointerEvent) => setPos(fromEvent(ev));
+                      const onUp = () => {
+                        divider.removeEventListener("pointermove", onMove);
+                        divider.removeEventListener("pointerup", onUp);
+                      };
+                      divider.addEventListener("pointermove", onMove);
+                      divider.addEventListener("pointerup", onUp);
+                    });
+                  }}
+                >
+                  {p.beforeImageUrl && (
+                    <img src={p.beforeImageUrl} alt={p.beforeLabel || "Before"} className="kebu-ba-img" />
+                  )}
+                  <div className="kebu-ba-after-clip">
+                    {p.afterImageUrl && (
+                      <img src={p.afterImageUrl} alt={p.afterLabel || "After"} className="kebu-ba-img" />
+                    )}
+                  </div>
+                  <div className="kebu-ba-divider" style={{ left: `${initPos}%` }}>
+                    <div className="kebu-ba-handle">
+                      <span>◂</span>
+                      <span>▸</span>
+                    </div>
+                  </div>
+                  <span className="kebu-ba-label kebu-ba-label-b">{p.beforeLabel || "Before"}</span>
+                  <span className="kebu-ba-label kebu-ba-label-a">{p.afterLabel || "After"}</span>
+                </div>
+              </section>,
+            );
+          }
+          case "hotspot-image": {
+            const p = section.props as {
+              imageUrl?: string;
+              imageAlt?: string;
+              heading?: string;
+              pins?: {
+                id: string;
+                xPct: number;
+                yPct: number;
+                label: string;
+                description?: string;
+                href?: string;
+                priceLabel?: string;
+              }[];
+            };
+            if (!p.imageUrl) return null;
+            return wrap(
+              <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-12 scroll-mt-20">
+                {p.heading && (
+                  <h2 className="text-2xl font-bold mb-5" style={{ fontFamily: cssFontStack(theme.fontDisplay) }}>
+                    {p.heading}
+                  </h2>
+                )}
+                <style>{`
+                  .kebu-hs-wrap{position:relative;display:inline-block;width:100%;border-radius:1rem;overflow:hidden}
+                  .kebu-hs-wrap img{display:block;width:100%;height:auto}
+                  .kebu-hs-pin{position:absolute;transform:translate(-50%,-50%);z-index:10}
+                  .kebu-hs-dot{width:28px;height:28px;border-radius:50%;background:${theme.accent || "#FF5500"};border:2.5px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.35);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;animation:kebu-hs-pulse 2.4s ease-in-out infinite}
+                  @keyframes kebu-hs-pulse{0%,100%{box-shadow:0 0 0 0 ${theme.accent || "#FF5500"}55}50%{box-shadow:0 0 0 8px transparent}}
+                  .kebu-hs-tooltip{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);min-width:160px;max-width:220px;background:#fff;border-radius:10px;padding:10px 12px;box-shadow:0 4px 20px rgba(0,0,0,0.18);pointer-events:none;opacity:0;transition:opacity .18s;z-index:20;border:1px solid #E8E6DF}
+                  .kebu-hs-pin:hover .kebu-hs-tooltip,.kebu-hs-pin:focus-within .kebu-hs-tooltip{opacity:1;pointer-events:auto}
+                  .kebu-hs-tooltip:after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
+                `}</style>
+                <div className="kebu-hs-wrap">
+                  <img src={p.imageUrl} alt={p.imageAlt || ""} />
+                  {(p.pins ?? []).map((pin) => (
+                    <div
+                      key={pin.id}
+                      className="kebu-hs-pin"
+                      style={{ left: `${pin.xPct}%`, top: `${pin.yPct}%` }}
+                      tabIndex={0}
+                    >
+                      <div className="kebu-hs-dot">+</div>
+                      <div className="kebu-hs-tooltip">
+                        <p className="text-xs font-bold leading-tight mb-1" style={{ color: theme.primary || "#0A0A0A" }}>
+                          {pin.label}
+                        </p>
+                        {pin.description && (
+                          <p className="text-[10px] leading-snug opacity-70">{pin.description}</p>
+                        )}
+                        {pin.priceLabel && (
+                          <p className="text-xs font-bold mt-1.5" style={{ color: theme.accent || "#FF5500" }}>
+                            {pin.priceLabel}
+                          </p>
+                        )}
+                        {pin.href && pin.href !== "#" && (
+                          <a
+                            href={pin.href}
+                            className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wide"
+                            style={{ color: theme.accent || "#FF5500" }}
+                          >
+                            Shop →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>,
+            );
+          }
           default:
             return null;
         }
       })();
+      const motionPreset = ENTRANCE_MOTION[section.type];
+      const entranceEl = sectionEl && !editingPreview && motionPreset ? (
+        <div
+          className="kebu-entrance"
+          data-motion={motionPreset}
+        >
+          {sectionEl}
+        </div>
+      ) : sectionEl;
       return (
         <Fragment key={key}>
           {renderDivider(idx === 0 ? null : visibleSections[idx - 1]?.id ?? null)}
-          {sectionEl}
+          {entranceEl}
         </Fragment>
       );
     })}
@@ -2383,6 +2551,7 @@ export function SiteRenderer({
 
   return (
     <div
+      ref={siteRootRef}
       className={`${rootClass} relative${sideNav ? " md:flex md:flex-row md:items-stretch" : ""}${
         editingPreview && legallyBlondeOnly ? " flex h-full min-h-0 flex-col" : ""
       }`}

@@ -139,6 +139,18 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
     category: "commerce",
   },
   {
+    type: "before-after",
+    label: "Before / After slider",
+    description: "Drag to reveal — hair, skin, construction, makeovers",
+    category: "media",
+  },
+  {
+    type: "hotspot-image",
+    label: "Shoppable image",
+    description: "Photo with clickable pin tags — product info on hover",
+    category: "media",
+  },
+  {
     type: "form",
     label: "Contact form",
     description: "Collect messages — saved to your Kebu account",
