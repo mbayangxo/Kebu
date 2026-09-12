@@ -31,6 +31,7 @@ import { ShopNotificationsBell } from "@/app/components/shop/shop-notifications-
 import { ShopMarketsPanel } from "@/app/components/shop/shop-markets-panel";
 import { ShopAppsPanel } from "@/app/components/shop/shop-apps-panel";
 import { ShopPurchaseOrdersPanel } from "@/app/components/shop/shop-purchase-orders-panel";
+import { ShopNewsletterPanel } from "@/app/components/shop/shop-newsletter-panel";
 import { BusinessTeamPanel } from "@/app/components/business/business-team-panel";
 import { ShopSideNav, NAV_GROUPS } from "@/app/components/shop/shop-side-nav";
 import { mergeSiteCommerce, type SiteCommerce } from "@/lib/create/site-commerce";
@@ -43,7 +44,7 @@ import { evaluateKb, measureResponseBytes } from "@/lib/create/kb-budget";
 const VALID_TABS = new Set([
   "overview","products","collections","orders","payments","pages","customers",
   "discounts","abandoned","messages","analytics","sell","gift-cards","reviews",
-  "subscriptions","markets","apps","team",
+  "subscriptions","markets","apps","team","newsletter",
 ]);
 
 function parseTab(raw: string | null): string {
@@ -280,6 +281,9 @@ export default function ShopAdminPage() {
                     commerce={commerce}
                     businessName={title}
                   />
+                )}
+                {tab === "newsletter" && (
+                  <ShopNewsletterPanel projectId={projectId} sub={sub || "subscribers"} />
                 )}
                 {tab === "messages" && <ShopMessagesPanel projectId={projectId} embedded />}
                 {tab === "apps"     && <ShopAppsPanel projectId={projectId} />}

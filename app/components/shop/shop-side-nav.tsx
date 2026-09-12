@@ -18,6 +18,7 @@ const ICONS = {
   catalog:   "M4 6h7m-7 4h4m-4 4h7M13 5l2 2 4-4m0 7l-4 4-2-2",
   customers: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zm8 4a2 2 0 104 0 2 2 0 00-4 0m2 8v-1a2 2 0 00-2-2h-1",
   money:     "M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  marketing: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
   settings:  "M12 15a3 3 0 100-6 3 3 0 000 6zm6.9-3a6.9 6.9 0 01-.1 1.1l2.3 1.8-2.2 3.8-2.7-1.1c-.6.4-1.2.8-1.9 1l-.4 2.8h-4.4l-.4-2.8c-.7-.3-1.3-.6-1.9-1L4.4 18l-2.2-3.8 2.3-1.8A7 7 0 014.5 12a7 7 0 01.1-1.1L2.2 9.1 4.4 5.3l2.7 1.1c.6-.4 1.2-.8 1.9-1L9.4 2.5h4.3l.4 2.8c.7.3 1.3.6 1.9 1l2.7-1.1 2.2 3.8-2.3 1.8c.1.4.1.7.1 1.1z",
   collapse:  "M15 18l-6-6 6-6",
   expand:    "M9 18l6-6-6-6",
@@ -75,6 +76,17 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "marketing",
+    icon: "marketing",
+    label: "Marketing",
+    items: [
+      { tab: "newsletter", sub: "subscribers", label: "Email list" },
+      { tab: "newsletter", sub: "campaigns",   label: "Campaigns" },
+      { tab: "discounts",                       label: "Discounts" },
+      { tab: "gift-cards",                      label: "Gift cards" },
+    ],
+  },
+  {
     id: "money",
     icon: "money",
     label: "Money",
@@ -93,7 +105,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { tab: "orders",    sub: "shipping", label: "Shipping" },
       { tab: "markets",                    label: "Markets" },
-      { tab: "discounts",                  label: "Discounts" },
       { tab: "apps",                       label: "Apps" },
       { tab: "messages",                   label: "Messages" },
       { tab: "sell",                       label: "Sell anywhere" },

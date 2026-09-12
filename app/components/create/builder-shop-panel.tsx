@@ -7,7 +7,27 @@ import type { SiteCommerce } from "@/lib/create/site-commerce";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
 import { AFRICAN_CURRENCIES } from "@/lib/create/african-currencies";
 
-const TOP_CURRENCIES = ["XOF", "XAF", "NGN", "GHS", "KES", "USD", "EUR", "GBP"];
+function countryFlag(cc: string): string {
+  if (cc.length !== 2) return "🌍";
+  const offset = 0x1f1e6 - 0x41;
+  return String.fromCodePoint(cc.charCodeAt(0) + offset) + String.fromCodePoint(cc.charCodeAt(1) + offset);
+}
+
+const FEATURED_CURRENCIES = [
+  { code: "XOF", flag: "🇸🇳", label: "XOF" },
+  { code: "XAF", flag: "🇨🇲", label: "XAF" },
+  { code: "NGN", flag: "🇳🇬", label: "₦" },
+  { code: "GHS", flag: "🇬🇭", label: "GH₵" },
+  { code: "KES", flag: "🇰🇪", label: "KSh" },
+  { code: "MAD", flag: "🇲🇦", label: "DH" },
+  { code: "ZAR", flag: "🇿🇦", label: "R" },
+  { code: "EGP", flag: "🇪🇬", label: "E£" },
+  { code: "USD", flag: "🇺🇸", label: "$" },
+  { code: "EUR", flag: "🇪🇺", label: "€" },
+  { code: "GBP", flag: "🇬🇧", label: "£" },
+  { code: "CAD", flag: "🇨🇦", label: "CA$" },
+];
+const FEATURED_CODES = new Set(FEATURED_CURRENCIES.map((f) => f.code));
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -67,10 +87,7 @@ export function BuilderShopPanel({
     onSaved(next);
   }, [c, onSaved]);
 
-  const selectedCurrencies = TOP_CURRENCIES.filter((code) => {
-    const cur = AFRICAN_CURRENCIES.find((x) => x.code === code);
-    return cur != null;
-  });
+  const [showMoreCurrencies, setShowMoreCurrencies] = useState(false);
 
   return (
     <div className="flex flex-col gap-0">
@@ -149,23 +166,61 @@ export function BuilderShopPanel({
 
       {/* Currency */}
       <div className="px-4 mt-3 mb-3">
-        <label className="block text-[11px] font-semibold uppercase tracking-[0.1em] mb-1" style={{ color: BUILDER.muted }}>
-          Currency
-        </label>
-        <select
-          value={c.shopCurrency || "XOF"}
-          onChange={(e) => patch({ shopCurrency: e.target.value })}
-          className="w-full rounded-lg px-3 py-2 text-[12px] outline-none"
-          style={{ border: `1px solid ${BUILDER.border}`, background: "#fff", color: BUILDER.ink }}
-        >
-          {selectedCurrencies.map((code) => {
-            const cur = AFRICAN_CURRENCIES.find((x) => x.code === code)!;
-            return <option key={code} value={code}>{cur.code} · {cur.symbol} — {cur.name}</option>;
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-2" style={{ color: BUILDER.muted }}>
+          Primary currency
+        </p>
+        <div className="grid grid-cols-4 gap-1.5 mb-2">
+          {FEATURED_CURRENCIES.map(({ code, flag, label }) => {
+            const selected = (c.shopCurrency || "XOF") === code;
+            return (
+              <button
+                key={code}
+                type="button"
+                title={AFRICAN_CURRENCIES.find((x) => x.code === code)?.name ?? code}
+                onClick={() => patch({ shopCurrency: code })}
+                className="flex flex-col items-center rounded-lg py-1.5 px-1 gap-0.5 transition-all"
+                style={{
+                  border: `1.5px solid ${selected ? BUILDER.ink : BUILDER.border}`,
+                  background: selected ? BUILDER.ink : "#fff",
+                  color: selected ? "#fff" : BUILDER.ink,
+                }}
+              >
+                <span className="text-base leading-none">{flag}</span>
+                <span className="text-[9px] font-bold tracking-wide">{label}</span>
+              </button>
+            );
           })}
-          {AFRICAN_CURRENCIES.filter((x) => !TOP_CURRENCIES.includes(x.code)).map((cur) => (
-            <option key={cur.code} value={cur.code}>{cur.code} · {cur.symbol} — {cur.name}</option>
-          ))}
-        </select>
+        </div>
+        {showMoreCurrencies ? (
+          <div className="mt-1 rounded-lg overflow-hidden" style={{ border: `1px solid ${BUILDER.border}` }}>
+            {AFRICAN_CURRENCIES.filter((x) => !FEATURED_CODES.has(x.code)).map((cur) => {
+              const flag = countryFlag(cur.countries[0] ?? "");
+              const selected = c.shopCurrency === cur.code;
+              return (
+                <button
+                  key={cur.code}
+                  type="button"
+                  onClick={() => { patch({ shopCurrency: cur.code }); setShowMoreCurrencies(false); }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-[11px] transition-colors hover:opacity-80"
+                  style={{ background: selected ? BUILDER.ink : "#fff", color: selected ? "#fff" : BUILDER.ink, borderBottom: `1px solid ${BUILDER.border}` }}
+                >
+                  <span>{flag}</span>
+                  <span className="font-bold">{cur.code}</span>
+                  <span style={{ color: selected ? "rgba(255,255,255,0.7)" : BUILDER.muted }}>{cur.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="text-[11px] font-medium mt-1"
+            style={{ color: BUILDER.muted }}
+            onClick={() => setShowMoreCurrencies(true)}
+          >
+            More currencies ↓
+          </button>
+        )}
       </div>
 
       {/* Products quick link */}
