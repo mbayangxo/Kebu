@@ -418,10 +418,18 @@ export const sectionPropsSchemas = {
           subscriptionDiscount: z.number().int().min(1).max(50).optional(),
           /** "You might also like" — product names to surface as cross-sells (display only). */
           crossSells: z.array(z.string().trim().max(120)).max(4).optional().default([]),
+          /** Short badge shown on the product card corner. E.g. "NOUVEAU", "PROMO", "EXCLUSIF EN LIGNE". */
+          badge: z.string().trim().max(40).optional(),
+          /** Comparison/original price shown struck-through beside current price. E.g. "24 000 FCFA". */
+          valuePriceLabel: z.string().trim().max(60).optional(),
+          /** Category tags used by client-side filter chips. E.g. ["visage", "hydratation"]. */
+          filterTags: z.array(z.string().trim().max(40)).max(6).optional().default([]),
         }),
       )
       .max(24)
       .default([]),
+    /** Label above the filter chip bar. E.g. "Filtrer par gamme". Shown only when items have filterTags. */
+    filterLabel: z.string().trim().max(80).optional(),
     /**
      * Optional promotional banner card inserted into the product grid.
      * E.g. "Commandez 3 produits → livraison gratuite" — high contrast, like Sephora's bonus-points card.

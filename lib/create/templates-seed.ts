@@ -46,6 +46,8 @@ import { skincareWorldDefinition } from "./design-worlds/skincare-world";
 import { foodBrandWorldDefinition, juiceBrandWorldDefinition } from "./design-worlds/food-beverage-worlds";
 import { electronicsStoreWorldDefinition, supermarketWorldDefinition } from "./design-worlds/retail-worlds";
 import { schoolWorldDefinition, mediaCompanyWorldDefinition } from "./design-worlds/education-media-worlds";
+import { makeupBrandWorldDefinition } from "./design-worlds/makeup-brand-world";
+import { creativeStudioWorldDefinition } from "./design-worlds/creative-studio-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -933,6 +935,22 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Média digital africain — actualités, émissions, podcast, publicité brand content · 6 pages",
     definition: mediaCompanyWorldDefinition(),
+  },
+  {
+    slug: "makeup-brand",
+    name: "Marque maquillage",
+    category: "beauty",
+    description:
+      "Marque makeup Gen-Z africaine — pigments intenses, quiz promo, filter chips, deals hebdo · 4 pages",
+    definition: makeupBrandWorldDefinition(),
+  },
+  {
+    slug: "creative-studio",
+    name: "Studio créatif",
+    category: "creative",
+    description:
+      "Studio direction artistique & photographie — portfolio éditorial, offres, brief client · 4 pages",
+    definition: creativeStudioWorldDefinition(),
   },
 ];
 
