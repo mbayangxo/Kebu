@@ -51,6 +51,11 @@ export const siteCommerceSchema = z.object({
   acceptMbolo: z.boolean().optional().default(false),
   /** Mbolo / Joko number for orders (digits only or with +). */
   mboloNumber: z.string().trim().max(24).default(""),
+  /**
+   * Merchant-configurable message shown at the top of the checkout form.
+   * Use for: custom instructions, minimum orders, delivery zones, promo codes.
+   */
+  customCheckoutNote: z.string().trim().max(400).default(""),
 });
 
 export type SiteCommerce = z.infer<typeof siteCommerceSchema>;

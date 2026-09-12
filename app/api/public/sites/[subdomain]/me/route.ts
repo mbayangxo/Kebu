@@ -47,7 +47,7 @@ export async function GET(_req: Request, { params }: Params) {
   let ordersQuery = await supabase
     .from("shop_orders")
     .select(
-      "id, order_number, product_name, product_upc, price_label, quantity, status, payment_status, amount_xof, created_at, customer_note",
+      "id, order_number, product_name, product_upc, price_label, quantity, status, payment_status, payment_preference, amount_xof, created_at, customer_note",
     )
     .eq("project_id", projectId)
     .eq("customer_user_id", user.id)

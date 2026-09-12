@@ -279,6 +279,11 @@ export function PublicShopOrder({
   const formInner = (
     <>
       <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Order {productName}</p>
+      {merged.customCheckoutNote?.trim() ? (
+        <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 leading-relaxed whitespace-pre-wrap">
+          {merged.customCheckoutNote.trim()}
+        </p>
+      ) : null}
       <input
         required
         maxLength={80}
