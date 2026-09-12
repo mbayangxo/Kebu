@@ -7,7 +7,7 @@ import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuAppSidebar, type PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
 import { KebuMobileNav } from "@/app/components/kebu-mobile-nav";
-import { DataModeDock, DataModeProvider } from "@/app/components/create/data-mode-provider";
+import { DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
@@ -121,10 +121,8 @@ export function AppShell({
             </div>
           ) : null}
 
-          {/* pb-14 ensures content is never hidden behind the collapsed dock chip on small screens */}
-          <main className="flex-1 min-h-0 pb-14 md:pb-8">{children}</main>
+          <main className="flex-1 min-h-0 pb-6">{children}</main>
         </div>
-        <DataModeDock />
       </div>
     </DataModeProvider>
   );

@@ -246,13 +246,12 @@ export function DataModeDock() {
 
   return (
     <div className="kebu-data-mode-dock" aria-label="Data mode">
-      {/* Collapsed chip — always visible on mobile, hidden on ≥md when expanded */}
       {!expanded ? (
         <button
           type="button"
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 text-[10px] font-bold"
-          style={{ color: KEBU.black }}
+          style={{ color: "#fff" }}
           aria-label="Expand data mode settings"
         >
           <span
@@ -261,8 +260,8 @@ export function DataModeDock() {
             aria-hidden
           />
           {modeLabel}
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-            <path d="M2 4l3 3 3-3" stroke={KEBU.muted} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden>
+            <path d="M2 4l3 3 3-3" stroke="rgba(255,255,255,0.6)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       ) : (

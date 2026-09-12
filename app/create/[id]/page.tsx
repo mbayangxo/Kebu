@@ -1302,12 +1302,41 @@ export default function ProjectEditorPage() {
                 </>
               }
             />
+
+            {/* Mobile backdrop — tap outside panel to close */}
+            {leftPanelOpen && (
+              <div
+                className="md:hidden absolute inset-0 z-20 bg-black/40"
+                onClick={() => setLeftPanelOpen(false)}
+                aria-hidden
+              />
+            )}
+
             <aside
               className={`${
-                leftPanelOpen ? "relative w-[320px] max-w-[92vw]" : "hidden"
+                leftPanelOpen
+                  ? "absolute md:relative inset-y-0 left-11 md:left-auto w-[300px] md:w-[320px] z-30 md:z-auto shadow-2xl md:shadow-none"
+                  : "hidden"
               } shrink-0 overflow-y-auto border-r`}
               style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
             >
+              {/* Mobile close button */}
+              <div className="md:hidden flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#E5E5E5" }}>
+                <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: BUILDER.muted }}>
+                  {sidebarTab === "content" ? "Sections" : sidebarTab === "pages" ? "Pages" : sidebarTab === "aesthetic" ? "Style" : sidebarTab === "media" ? "Photos" : sidebarTab === "nav" ? "Navigation" : sidebarTab === "shop" ? "Shop" : "Yande"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setLeftPanelOpen(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg"
+                  style={{ background: "#F0F0F0", color: BUILDER.ink }}
+                  aria-label="Close panel"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
 
               {sidebarTab === "pages" && project ? (
                 <div className="px-4 py-4">
