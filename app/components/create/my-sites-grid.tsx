@@ -494,28 +494,14 @@ export function MySitesGrid({
 
   return (
     <div className={compact ? "" : "w-full px-5 py-8 sm:px-8 lg:px-16"}>
-      <div className={`flex flex-wrap items-end justify-between gap-4 ${compact ? "mb-4" : "mb-8"}`}>
+      <div className={`flex flex-wrap items-center justify-between gap-4 ${compact ? "mb-4" : "mb-6"}`}>
         <div>
           {!compact ? (
-            <>
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: KEBU.orange }}>
-                Your websites
-              </p>
-              <h1 className="text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-                My sites
-              </h1>
-              <p className="mt-2 max-w-xl text-sm" style={{ color: KEBU.muted }}>
-                Live sites and drafts are separated. Each card has one preview — switch Desktop / Tablet / Phone inside
-                the frame.
-              </p>
-            </>
+            <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
+              My sites
+            </h1>
           ) : (
-            <div>
-              <h2 className="text-lg font-bold">Recent sites</h2>
-              <p className="mt-1 text-xs" style={{ color: KEBU.muted }}>
-                Drafts and live — open My sites for the full list.
-              </p>
-            </div>
+            <h2 className="text-lg font-bold">Recent sites</h2>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">

@@ -120,10 +120,10 @@ export function MySitesWithPortfolio({
 
   return (
     <div>
-      <div className="w-full px-5 sm:px-8 lg:px-16 pt-8 space-y-3">
+      <div className="w-full px-5 sm:px-8 lg:px-16 pt-4 space-y-3">
         {busy ? (
-          <p className="text-sm" style={{ color: KEBU.muted }}>
-            Syncing May Lecor · K-Direction · DkLNS · Ndaoan · RECT · Mayjor Good…
+          <p className="text-xs" style={{ color: KEBU.muted }}>
+            Loading…
           </p>
         ) : null}
 
@@ -144,14 +144,10 @@ export function MySitesWithPortfolio({
           </div>
         ) : null}
 
-        {note ? (
+        {note && portfolioAllowed === false ? (
           <div
-            className="rounded-xl px-4 py-3 text-sm leading-relaxed"
-            style={{
-              background: portfolioAllowed === false ? "#FFF8E8" : KEBU.cream,
-              color: KEBU.black,
-              border: `1px solid ${KEBU.border}`,
-            }}
+            className="rounded-xl px-3 py-2 text-xs"
+            style={{ background: "#FFF8E8", color: KEBU.black, border: `1px solid ${KEBU.border}` }}
             role="status"
           >
             {note}
