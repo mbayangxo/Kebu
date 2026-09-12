@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { kebuSitePreviewPath, liveSiteUrl } from "@/lib/create/site-urls";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF, mySiteDetailHref } from "@/lib/navigation/product-nav";
@@ -237,10 +238,13 @@ function InCardDevicePreview({
 function SiteHealthCard({
   project,
   size,
+  onDeleted,
 }: {
   project: MySiteProject;
   size: "live" | "draft";
+  onDeleted?: (id: string) => void;
 }) {
+  const router = useRouter();
   const published = isSitePublished(project);
   const src = useMemo(() => previewSrc(project), [project]);
   const live = liveSiteUrl(project.subdomain);
@@ -254,6 +258,9 @@ function SiteHealthCard({
     message: src ? "Checking how this site loads…" : "Set a site address to preview.",
   });
   const frameLoads = useRef<number[]>([]);
+  const [publishing, setPublishing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -344,6 +351,40 @@ function SiteHealthCard({
       message: "Preview failed to load.",
     });
   }, []);
+
+  const handlePublish = useCallback(async () => {
+    if (publishing) return;
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/publish`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) router.refresh();
+    } finally {
+      setPublishing(false);
+    }
+  }, [project.id, publishing, router]);
+
+  const handleDelete = useCallback(async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        onDeleted?.(project.id);
+        router.refresh();
+      }
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }, [project.id, deleting, onDeleted, router]);
 
   const tone = healthTone(health.status);
   const isLive = size === "live";
@@ -439,9 +480,51 @@ function SiteHealthCard({
               className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white"
               style={{ background: KEBU.orange }}
             >
-              Open live
+              Open live ↗
             </a>
           ) : null}
+          {!published ? (
+            <button
+              type="button"
+              onClick={() => void handlePublish()}
+              disabled={publishing}
+              className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white disabled:opacity-60"
+              style={{ background: "#009E40" }}
+            >
+              {publishing ? "Publishing…" : "Publish"}
+            </button>
+          ) : null}
+          {confirmDelete ? (
+            <span className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+                className="rounded-full px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-60"
+                style={{ background: "#CC1A1A" }}
+              >
+                {deleting ? "Deleting…" : "Confirm delete"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="rounded-full px-2 py-1.5 text-[10px] font-semibold"
+                style={{ color: KEBU.muted }}
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="rounded-full px-2.5 py-1.5 text-[10px] font-semibold"
+              style={{ color: KEBU.muted, border: `1px solid ${KEBU.border}` }}
+              aria-label="Delete site"
+            >
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -463,17 +546,27 @@ export function MySitesGrid({
   initialFilter?: MySitesFilter;
 }) {
   const [filter, setFilter] = useState<MySitesFilter>(initialFilter);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setFilter(initialFilter);
   }, [initialFilter]);
 
-  const liveSites = useMemo(() => projects.filter(isSitePublished), [projects]);
-  const draftSites = useMemo(() => projects.filter((p) => !isSitePublished(p)), [projects]);
+  const visibleProjects = useMemo(
+    () => projects.filter((p) => !removedIds.has(p.id)),
+    [projects, removedIds],
+  );
+
+  const liveSites = useMemo(() => visibleProjects.filter(isSitePublished), [visibleProjects]);
+  const draftSites = useMemo(() => visibleProjects.filter((p) => !isSitePublished(p)), [visibleProjects]);
   const liveCount = liveSites.length;
   const draftCount = draftSites.length;
 
   const filterHref = (id: MySitesFilter) => (id === "all" ? MY_SITES_HREF : `${MY_SITES_HREF}?filter=${id}`);
+
+  const handleDeleted = useCallback((id: string) => {
+    setRemovedIds((prev) => new Set([...prev, id]));
+  }, []);
 
   function renderGrid(list: MySiteProject[], size: "live" | "draft") {
     if (list.length === 0) return null;
@@ -486,7 +579,7 @@ export function MySitesGrid({
         }
       >
         {list.map((p) => (
-          <SiteHealthCard key={p.id} project={p} size={size} />
+          <SiteHealthCard key={p.id} project={p} size={size} onDeleted={handleDeleted} />
         ))}
       </div>
     );
@@ -522,7 +615,7 @@ export function MySitesGrid({
                 Aesthetics
               </Link>
               <UploadAestheticButton
-                sites={projects.map((p) => ({ id: p.id, title: p.title || "Untitled site" }))}
+                sites={visibleProjects.map((p) => ({ id: p.id, title: p.title || "Untitled site" }))}
               />
               <Link
                 href="/create/domains"
@@ -544,7 +637,7 @@ export function MySitesGrid({
         <div className="mb-6 flex flex-wrap gap-2">
           {(
             [
-              ["all", `All (${projects.length})`],
+              ["all", `All (${visibleProjects.length})`],
               ["live", `Live (${liveCount})`],
               ["draft", `Drafts (${draftCount})`],
             ] as const
@@ -566,7 +659,7 @@ export function MySitesGrid({
         </div>
       ) : null}
 
-      {projects.length === 0 ? (
+      {visibleProjects.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-black/15 bg-white p-12 text-center">
           <p className="mb-2 text-lg font-semibold">No sites yet</p>
           <p className="mb-6 text-sm" style={{ color: KEBU.muted }}>

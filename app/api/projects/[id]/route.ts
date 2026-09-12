@@ -124,3 +124,39 @@ export async function GET(_req: Request, { params }: Params) {
     draftSeedDetail: sync.detail ?? null,
   });
 }
+
+/** Delete a project (and cascade its pages + sections via DB FK). */
+export async function DELETE(_req: Request, { params }: Params) {
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+  const { supabase, user } = auth;
+  const { id } = await params;
+
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+    return NextResponse.json({ error: "Invalid project id." }, { status: 400 });
+  }
+
+  const access = await assertProjectEditorAccess(supabase, {
+    userId: user.id,
+    email: user.email,
+    projectId: id,
+    select: "id, owner_id",
+    action: "get",
+  });
+
+  if (!access) {
+    return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+
+  const db = dbForProjectAccess(supabase, access.via);
+
+  const { error } = await db.from("projects").delete().eq("id", id);
+
+  if (error) {
+    logCreate("projects.delete_failed", { userId: user.id, projectId: id, message: error.message });
+    return NextResponse.json({ error: "Could not delete project.", detail: error.message }, { status: 500 });
+  }
+
+  logCreate("projects.deleted", { userId: user.id, projectId: id });
+  return NextResponse.json({ ok: true });
+}
