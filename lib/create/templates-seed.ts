@@ -49,6 +49,10 @@ import { schoolWorldDefinition, mediaCompanyWorldDefinition } from "./design-wor
 import { makeupBrandWorldDefinition } from "./design-worlds/makeup-brand-world";
 import { creativeStudioWorldDefinition } from "./design-worlds/creative-studio-world";
 import { hairBrandWorldDefinition } from "./design-worlds/hair-brand-world";
+import { gymWorldDefinition } from "./design-worlds/gym-world";
+import { nailStudioWorldDefinition } from "./design-worlds/nail-studio-world";
+import { festivalWorldDefinition } from "./design-worlds/festival-world";
+import { cafeWorldDefinition } from "./design-worlds/cafe-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -960,6 +964,38 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Extensions, perruques & tressage africains — annonce livraison gratuite, bestsellers FCFA, éducation, WhatsApp · 3 pages",
     definition: hairBrandWorldDefinition(),
+  },
+  {
+    slug: "gym-fitness",
+    name: "Salle de sport & fitness",
+    category: "fitness",
+    description:
+      "Salle de sport dark neon — stats membres, disciplines, planning cours, abonnements FCFA, coaching perso · 5 pages",
+    definition: gymWorldDefinition(),
+  },
+  {
+    slug: "nail-studio",
+    name: "Nail studio",
+    category: "beauty",
+    description:
+      "Studio nail art éditorial B&W — masonry gallery, services gel/extensions FCFA, aftercare, réservation WhatsApp · 4 pages",
+    definition: nailStudioWorldDefinition(),
+  },
+  {
+    slug: "festival",
+    name: "Festival de musique",
+    category: "event",
+    description:
+      "Festival musique africaine — lineup, programme jour par jour, billets FCFA (Wave/Orange Money), camping, navettes · 5 pages",
+    definition: festivalWorldDefinition(),
+  },
+  {
+    slug: "cafe-coffee",
+    name: "Café & coffee shop",
+    category: "restaurant",
+    description:
+      "Café specialty africain — menu boissons FCFA, pâtisserie maison, brunch week-end, traiteur entreprise · 5 pages",
+    definition: cafeWorldDefinition(),
   },
 ];
 
