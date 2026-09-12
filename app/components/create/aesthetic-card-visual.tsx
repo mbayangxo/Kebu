@@ -18,6 +18,15 @@ export function AestheticCardVisual({
   const layout: TemplateCardLayout = visual.layout ?? "generic";
   const mark = visual.wordmark ?? name;
   const bg = visual.previewGradient ?? `linear-gradient(160deg, ${accent}55 0%, #0a0a0a 100%)`;
+  const photo = visual.previewImage ?? null;
+  function ImgFallback({ className, style }: { className?: string; style?: React.CSSProperties }) {
+    if (!photo) return null;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={photo} alt="" className={className} style={style}
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+    );
+  }
 
   /* ── DARK ARTIST (music stage) ──────────────────────────────────────────── */
   if (layout === "dark-artist") {
@@ -222,6 +231,7 @@ export function AestheticCardVisual({
         </div>
         {/* Hero photo mock */}
         <div className="relative flex items-center justify-center" style={{ height: "38%", background: `radial-gradient(ellipse at 50% 60%, #4A2810 0%, #1A0F05 75%)` }}>
+          {photo && <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-60" />}
           <div className="absolute inset-0 opacity-30" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${accent}22 0px, ${accent}22 1px, transparent 1px, transparent 8px)` }} />
           <div className="text-center z-10">
             <div className="text-[9px] font-black leading-none" style={{ color: "#F5E6C8", fontFamily: "Georgia, serif" }}>TASTE THE</div>
@@ -262,12 +272,13 @@ export function AestheticCardVisual({
         </div>
         {/* Hero */}
         <div className="relative px-2 py-2 flex-1 flex flex-col justify-between">
-          <div>
+          {photo && <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-30" />}
+          <div className="relative z-10">
             <div className="text-[11px] font-black uppercase leading-none tracking-tight text-white">WEAR<br />THE<br />BOLD</div>
             <div className="mt-1 text-[3.5px] tracking-widest uppercase" style={{ color: "#B91C1C" }}>Collection 2026 · Dakar-born</div>
           </div>
           {/* Product tiles */}
-          <div className="grid grid-cols-3 gap-0.5 mt-1">
+          <div className="relative z-10 grid grid-cols-3 gap-0.5 mt-1">
             {[["#1A0000", "Tee"], ["#0D0D0D", "Hoodie"], ["#1A0000", "Accessoires"]].map(([c, l], i) => (
               <div key={i} className="flex flex-col overflow-hidden rounded-sm" style={{ background: c, border: "1px solid rgba(185,28,28,0.3)" }}>
                 <div className="aspect-square w-full" style={{ background: `linear-gradient(135deg, ${c}, rgba(185,28,28,0.4))` }} />
@@ -302,8 +313,11 @@ export function AestheticCardVisual({
         </div>
         {/* Full-bleed hero image */}
         <div className="relative flex-1" style={{ background: "linear-gradient(180deg, #F0EDE8 0%, #E0DAD2 100%)" }}>
-          {/* Portrait placeholder */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-[45%] -translate-x-1/2" style={{ background: "linear-gradient(180deg, #D0C8C0, #A89890)" }} />
+          {/* Portrait — real photo when available, gradient placeholder otherwise */}
+          {photo
+            ? <ImgFallback className="absolute inset-0 h-full w-full object-cover" />
+            : <div className="absolute left-1/2 top-0 bottom-0 w-[45%] -translate-x-1/2" style={{ background: "linear-gradient(180deg, #D0C8C0, #A89890)" }} />
+          }
           {/* Text overlay */}
           <div className="absolute bottom-3 left-2">
             <div className="text-[6px] font-light tracking-[0.5em] uppercase" style={{ color: "rgba(0,0,0,0.6)", fontFamily: "Times New Roman, serif" }}>SS 2026</div>
@@ -423,10 +437,15 @@ export function AestheticCardVisual({
         </div>
         {/* Bottle + text layout */}
         <div className="flex-1 flex items-center gap-2 px-2 py-1.5">
-          {/* Bottle shape */}
-          <div className="flex-shrink-0 flex flex-col items-center gap-0.5" style={{ width: "22%" }}>
-            <div className="w-2 h-1 rounded-t-sm" style={{ background: accent + "99" }} />
-            <div className="w-5 flex-1 rounded-b-[6px]" style={{ background: `linear-gradient(180deg, ${accent}66, ${accent}22)`, minHeight: "28px", border: `1px solid ${accent}55` }} />
+          {/* Bottle / product image */}
+          <div className="flex-shrink-0 flex flex-col items-center gap-0.5 overflow-hidden rounded" style={{ width: "36%", height: "100%" }}>
+            {photo
+              ? <ImgFallback className="h-full w-full object-cover rounded" />
+              : <>
+                  <div className="w-2 h-1 rounded-t-sm" style={{ background: accent + "99" }} />
+                  <div className="w-5 flex-1 rounded-b-[6px]" style={{ background: `linear-gradient(180deg, ${accent}66, ${accent}22)`, minHeight: "28px", border: `1px solid ${accent}55` }} />
+                </>
+            }
           </div>
           <div className="flex-1">
             <div className="text-[5px] tracking-[0.3em] uppercase" style={{ color: "#999", fontFamily: "Georgia, serif" }}>EAU DE PARFUM</div>
@@ -458,7 +477,8 @@ export function AestheticCardVisual({
         </div>
         {/* Hero room photo */}
         <div className="relative" style={{ height: "40%", background: `linear-gradient(160deg, #E8DDD0, #C8BDB0)` }}>
-          <div className="absolute inset-0 flex items-end p-1.5">
+          {photo && <ImgFallback className="absolute inset-0 h-full w-full object-cover" />}
+          <div className="absolute inset-0 flex items-end p-1.5" style={{ background: photo ? "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)" : undefined }}>
             <div>
               <div className="text-[4px] tracking-[0.3em] uppercase" style={{ color: "rgba(255,255,255,0.8)" }}>SUPERIOR ROOM</div>
               <div className="text-[7px] font-semibold" style={{ color: "#fff", fontFamily: "Georgia, serif" }}>From 85,000 F/night</div>
@@ -638,15 +658,6 @@ export function AestheticCardVisual({
           May Lècor
           <span className="mt-1 block text-[8px] font-medium tracking-[0.15em] text-[#ffd6ec]">Circle seal · cutouts</span>
         </div>
-      </div>
-    );
-  }
-
-  /* ── DARK ARTIST secondary (used for label roster etc.) ─── */
-  if (layout === "music") {
-    return (
-      <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>
-        <p className="absolute inset-x-0 top-[28%] z-10 text-center text-[14px] font-black uppercase tracking-tight text-white drop-shadow">{mark}</p>
       </div>
     );
   }

@@ -160,7 +160,7 @@ export function getAestheticGalleryGroups(): AestheticGalleryGroup[] {
         type: group.type,
         typeLabel: group.label,
         accent: p.accent,
-        previewImage: cardVisual.previewImage,
+        previewImage: cardVisual.previewImage ?? `/aesthetic-photos/${p.slug}/hero.jpg`,
         previewGradient: gradient,
         wordmark: cardVisual.wordmark ?? p.name.split(" ")[0]?.toUpperCase(),
         badge: cardVisual.badge ?? group.label,
