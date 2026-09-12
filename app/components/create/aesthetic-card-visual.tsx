@@ -662,6 +662,140 @@ export function AestheticCardVisual({
     );
   }
 
+  /* ── LUXURY (editorial RTW / minimal luxury fashion) ───────────────────── */
+  if (layout === "luxury") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#F5F2EC" }}>
+        {/* Nav — ultra-thin */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+          <span className="text-[5.5px] font-thin tracking-[0.4em] uppercase" style={{ color: "#1A1814", letterSpacing: "0.35em" }}>{mark}</span>
+          <div className="flex gap-1.5">
+            {["SHOP", "ABOUT"].map((l) => (
+              <span key={l} className="text-[3.5px] tracking-[0.2em]" style={{ color: "rgba(0,0,0,0.4)" }}>{l}</span>
+            ))}
+          </div>
+        </div>
+        {/* Full-bleed hero — photo or gradient */}
+        <div className="relative flex-1">
+          <ImgFallback className="absolute inset-0 h-full w-full object-cover" />
+          {!photo && (
+            <div className="absolute inset-0" style={{ background: "linear-gradient(170deg, #E8E2D6 0%, #C4B89A 60%, #A08060 100%)" }} />
+          )}
+          {/* Text overlay bottom */}
+          <div className="absolute bottom-0 inset-x-0 px-2 pb-1.5" style={{ background: photo ? "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)" : "none" }}>
+            <div className="text-[7px] font-light leading-tight" style={{ color: photo ? "#fff" : "#1A1814", letterSpacing: "0.08em" }}>
+              COLLECTION<br /><span className="font-thin">SS 2026</span>
+            </div>
+          </div>
+        </div>
+        {/* Thin strip — category marquee */}
+        <div className="flex items-center gap-2 px-2 py-0.5 overflow-hidden" style={{ borderTop: "1px solid rgba(0,0,0,0.07)", background: "#FAF8F2" }}>
+          {["READY-TO-WEAR", "·", "MADE-TO-ORDER", "·", "STOCKISTS"].map((t, i) => (
+            <span key={i} className="text-[3px] tracking-[0.2em] shrink-0" style={{ color: "rgba(0,0,0,0.35)" }}>{t}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── ACCESSORIES (jewelry / bags / leather goods) ───────────────────────── */
+  if (layout === "accessories") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAFAF5" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid #EDE7D0" }}>
+          <span className="text-[5px] font-medium tracking-[0.3em] uppercase" style={{ color: "#2C1E08", fontFamily: "Georgia, serif" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[3.5px] font-semibold tracking-widest" style={{ background: "#C9A962", color: "#fff" }}>SHOP</div>
+        </div>
+        {/* Product grid — 2 + 1 layout */}
+        <div className="flex flex-1 gap-0.5 p-1">
+          <div className="flex flex-col gap-0.5 w-[55%]">
+            <div className="relative flex-1 rounded overflow-hidden" style={{ background: "#EDE7D0" }}>
+              <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-80" />
+              {!photo && <div className="absolute inset-0 flex items-center justify-center text-[10px]" style={{ color: "#C9A962" }}>◇</div>}
+            </div>
+            <div className="h-[35%] rounded" style={{ background: "#E0D4B0" }} />
+          </div>
+          <div className="flex flex-col gap-0.5 flex-1">
+            <div className="flex-1 rounded" style={{ background: "#D8CBAA" }} />
+            <div className="h-[40%] rounded flex items-end p-1" style={{ background: "#2C1E08" }}>
+              <div className="text-[3px] font-semibold tracking-widest" style={{ color: "#C9A962" }}>NEW</div>
+            </div>
+          </div>
+        </div>
+        {/* Category tags */}
+        <div className="flex gap-1 px-1 pb-1">
+          {["Jewelry", "Bags", "Belts"].map((c) => (
+            <div key={c} className="rounded-full px-1.5 py-0.5 text-[3.5px]" style={{ background: "#EDE7D0", color: "#2C1E08" }}>{c}</div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── STREETWEAR (drop culture / hype / limited edition) ─────────────────── */
+  if (layout === "streetwear") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0A0A0A" }}>
+        {/* Announcement — countdown */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#FFE600" }}>
+          <span className="text-[3.5px] font-black tracking-widest" style={{ color: "#0A0A0A" }}>DROP 04 · 00:12:47:23</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-0.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <span className="text-[6px] font-black tracking-tight text-white">{mark}</span>
+          <span className="text-[3.5px] font-bold" style={{ color: "#FFE600" }}>WAITLIST</span>
+        </div>
+        {/* Hero — big text + photo */}
+        <div className="relative flex-1">
+          <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-25" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="text-[22px] font-black leading-none tracking-tighter text-white" style={{ lineHeight: 0.9 }}>04</div>
+            <div className="text-[4.5px] font-black tracking-[0.4em] mt-0.5" style={{ color: "#FFE600" }}>LIMITED DROP</div>
+          </div>
+          {/* Product strip */}
+          <div className="absolute bottom-0 inset-x-0 flex gap-0.5 p-1">
+            {["#1A1A1A", "#222", "#1A1A0A"].map((c, i) => (
+              <div key={i} className="flex-1 aspect-square rounded-sm flex items-end p-0.5" style={{ background: c, border: "1px solid rgba(255,230,0,0.2)" }}>
+                <span className="text-[3px] font-bold" style={{ color: "#FFE600" }}>{["TEE", "CAP", "HOODIE"][i]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── ACTIVEWEAR (gym / running / performance) ────────────────────────────── */
+  if (layout === "activewear") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0A0A0F" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(0,255,135,0.12)" }}>
+          <span className="text-[5.5px] font-black tracking-tight text-white">{mark}</span>
+          <div className="rounded px-1.5 py-0.5 text-[3.5px] font-black" style={{ background: "#00FF87", color: "#0A0A0F" }}>SHOP</div>
+        </div>
+        {/* Hero */}
+        <div className="relative flex-1">
+          <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-40" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 40%, #0A0A0F 100%)" }} />
+          <div className="absolute inset-x-0 top-[16%] px-2">
+            <div className="text-[9px] font-black uppercase leading-none text-white tracking-tight">Built<br />for<br />This.</div>
+          </div>
+          {/* Product cards */}
+          <div className="absolute bottom-0 inset-x-0 flex gap-0.5 px-1 pb-1">
+            {[["TIGHTS", "8 900 F"], ["BRAS", "5 900 F"], ["KITS", "14 000 F"]].map(([cat, p]) => (
+              <div key={cat} className="flex-1 rounded-sm px-1 py-0.5" style={{ background: "rgba(0,255,135,0.08)", border: "1px solid rgba(0,255,135,0.15)" }}>
+                <div className="text-[3.5px] font-black text-white">{cat}</div>
+                <div className="text-[3px] mt-0.5" style={{ color: "#00FF87" }}>{p}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /* ── GENERIC fallback ──────────────────────────────────────────────────── */
   return (
     <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>

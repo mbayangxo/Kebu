@@ -32,6 +32,10 @@ export type TemplateCardLayout =
   | "farm"
   | "build"
   | "hotel"
+  | "luxury"
+  | "accessories"
+  | "streetwear"
+  | "activewear"
   | "generic";
 
 export type TemplateCardVisual = {
@@ -199,6 +203,34 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     keywords: ["clothing", "fashion", "brand", "dakar", "urban"],
     layout: "dark-fashion",
     wordmark: "VOLTA",
+  },
+  "luxury-rtw": {
+    previewGradient: "linear-gradient(160deg, #F5F2EC 0%, #E8E2D6 50%, #1A1814 100%)",
+    badge: "Luxury RTW · editorial",
+    keywords: ["luxury", "fashion", "ready-to-wear", "editorial", "minimal"],
+    layout: "luxury",
+    wordmark: "MAISON",
+  },
+  "accessories-maison": {
+    previewGradient: "linear-gradient(160deg, #FAFAF5 0%, #E8D8A8 45%, #3D2C0E 100%)",
+    badge: "Accessories house",
+    keywords: ["jewelry", "accessories", "bags", "leather", "gold"],
+    layout: "accessories",
+    wordmark: "MAISON",
+  },
+  "streetwear-drop": {
+    previewGradient: "linear-gradient(160deg, #0A0A0A 0%, #1A1A0A 55%, #2A2A0A 100%)",
+    badge: "DROP · limited · hype",
+    keywords: ["streetwear", "drop", "hype", "limited", "urban"],
+    layout: "streetwear",
+    wordmark: "DROP",
+  },
+  "activewear-studio": {
+    previewGradient: "linear-gradient(160deg, #0A0A0F 0%, #0D1A2E 55%, #00364A 100%)",
+    badge: "Activewear · performance",
+    keywords: ["activewear", "fitness", "gym", "sport", "performance"],
+    layout: "activewear",
+    wordmark: "ACTIVE",
   },
   "shopping-store": {
     previewGradient: "linear-gradient(160deg, #E8F5E9 0%, #2D6A4F 100%)",

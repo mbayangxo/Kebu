@@ -135,10 +135,26 @@ export const sectionPropsSchemas = {
       .array(z.object({
         label: z.string().trim().max(40),
         href: safeHref,
-        children: z.array(z.object({ label: z.string().trim().max(40), href: safeHref })).max(8).optional(),
+        /** Regular dropdown children (standard nav) or mega-nav columns. */
+        children: z.array(z.object({
+          label: z.string().trim().max(40),
+          href: safeHref,
+          /** Mega-nav only: second-level items shown in a column under this child. */
+          grandchildren: z.array(z.object({ label: z.string().trim().max(40), href: safeHref })).max(8).optional(),
+        })).max(12).optional(),
+        /** Mega-nav only: column label shown above the children group. */
+        columnLabel: z.string().trim().max(60).optional(),
+        /** Mega-nav only: optional featured image or banner in the dropdown panel. */
+        featuredImage: imageUrl.optional(),
+        featuredImageAlt: z.string().trim().max(120).optional(),
       }))
-      .max(8)
+      .max(12)
       .default([]),
+    /**
+     * standard = regular nav with simple dropdown on hover.
+     * mega = full-width dropdown panel with columns per top-level link — like Fashion Nova / Best Buy.
+     */
+    navStyle: z.enum(["standard", "mega"]).optional().default("standard"),
     /** compact → fullscreen width; combined with navScale. */
     navSize: z.enum(["compact", "comfortable", "large", "fullscreen"]).optional().default("comfortable"),
     navScale: z.number().min(0.7).max(2.2).optional().default(1),
@@ -413,7 +429,7 @@ export const sectionPropsSchemas = {
   products: z.object({
     heading: z.string().trim().max(160).default("Products"),
     /** How products appear on the shop page. */
-    layout: z.enum(["grid", "grid-dense", "list", "featured"]).optional().default("grid"),
+    layout: z.enum(["grid", "grid-dense", "list", "featured", "carousel"]).optional().default("grid"),
     /** Columns for grid layouts (ignored for list). */
     columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional().default(3),
     /**

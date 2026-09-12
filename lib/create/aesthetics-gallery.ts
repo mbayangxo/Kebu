@@ -101,6 +101,22 @@ const AESTHETIC_BUSINESS_META: Record<string, { story: string; pages: string[] }
     story: "Ferme Kouyaté grows mango, cashew, and moringa in the Sine-Saloum region. Restaurants and traders order directly via WhatsApp, pay by Wave. Seasonal produce calendar included.",
     pages: ["Home", "Produce", "Order", "About", "Seasons"],
   },
+  "luxury-rtw": {
+    story: "Maison Diallo is a Dakar-based ready-to-wear house — structured tailoring and embroidered wax pieces sold in their Plateau atelier and online. Editorial lookbook, stockist map, and made-to-order enquiries by WhatsApp.",
+    pages: ["Home", "Collection", "Stockists", "About the house", "Contact"],
+  },
+  "accessories-maison": {
+    story: "ÉDITION is a Lagos accessories brand — resin earrings, brass cuffs, and embossed leather bags made by local artisans. Product drops announced on Instagram; orders via WhatsApp, shipped across Africa with Wave.",
+    pages: ["Home", "Shop", "Artisans", "About", "Wholesale"],
+  },
+  "streetwear-drop": {
+    story: "BLOC is an Accra streetwear label doing one drop per quarter — 100 pieces, every time. Countdown timer on the homepage, email waitlist, size guide, and a WhatsApp VIP list for early access.",
+    pages: ["Home", "Current drop", "Archive", "Waitlist", "Size guide"],
+  },
+  "activewear-studio": {
+    story: "STRIDE is a Nairobi activewear brand for runners and gym-goers across East Africa. Performance tights, sports bras, and training kits. Shop online, pay via M-Pesa or Wave, free shipping over KES 5,000.",
+    pages: ["Home", "Shop", "Training", "About", "Size guide"],
+  },
 };
 
 export type AestheticGalleryItem = {

@@ -10,6 +10,8 @@ export const LOCKED_AESTHETIC_TYPES = [
   "beauty",
   "agency",
   "fashion",
+  "fashion-luxury",
+  "fashion-street",
   "fragrance",
   "food",
   "store",
@@ -74,6 +76,22 @@ export const USER_AESTHETICS_BY_TYPE = [
     pair: [
       { slug: "fashion-atelier", name: "Fashion atelier", tagline: "Editorial lookbook", accent: "#1A1A2E" },
       { slug: "clothing-company", name: "Clothing brand", tagline: "Catalog + brand story", accent: "#B91C1C" },
+    ],
+  },
+  {
+    type: "fashion-luxury",
+    label: "Luxury & RTW",
+    pair: [
+      { slug: "luxury-rtw", name: "Maison RTW", tagline: "Ready-to-wear · editorial · stockists", accent: "#A8956A" },
+      { slug: "accessories-maison", name: "Accessories house", tagline: "Jewelry, bags & leather goods", accent: "#C9A962" },
+    ],
+  },
+  {
+    type: "fashion-street",
+    label: "Streetwear & active",
+    pair: [
+      { slug: "streetwear-drop", name: "Drop culture", tagline: "Limited drops · hype · countdown", accent: "#FFE600" },
+      { slug: "activewear-studio", name: "Activewear studio", tagline: "Performance gear · gym · outdoors", accent: "#00FF87" },
     ],
   },
   {
