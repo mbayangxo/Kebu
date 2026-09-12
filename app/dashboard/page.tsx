@@ -11,18 +11,22 @@ import type { HomeSummary, HomeUpdate, HomeSiteRow } from "@/lib/account/home-su
 import { readStoredWorkspace } from "@/lib/navigation/kebu-workspace";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 
-/* ── Design tokens ─────────────────────────────────────── */
+/* ── Design tokens — Kebu brand palette ─────────────────── */
 const G = {
-  forest: "#0D4A2E",      // deep green heading
-  emerald: "#059669",     // active green
-  jade: "#10B981",        // lighter green accent
-  mint: "#D1FAE5",        // green tint on light bg
-  sage: "#6EE7B7",        // mid green
-  bg: "#F0FBF5",          // very light green page bg
+  black: "#0A0A0A",
+  orange: "#FF5500",
+  orangeLight: "#FF8C42",
+  red: "#CC1A1A",
+  bg: "#F9F7F5",
   card: "#FFFFFF",
-  border: "rgba(5,150,105,0.15)",
-  muted: "#4B7A65",
-  faint: "#8EB8A4",
+  border: "rgba(10,10,10,0.09)",
+  muted: "#6B6560",
+  faint: "#B8B2AC",
+  mint: "#FFF0E8",
+  emerald: "#FF5500",
+  jade: "#FF8C42",
+  sage: "#FFB380",
+  forest: "#0A0A0A",
 } as const;
 
 /* ── Stat tile ─────────────────────────────────────────── */
@@ -49,7 +53,7 @@ function StatTile({
       style={{
         background: G.card,
         border: `1.5px solid ${G.border}`,
-        boxShadow: "0 2px 12px rgba(5,150,105,0.07)",
+        boxShadow: "0 2px 12px rgba(10,10,10,0.06)",
       }}
     >
       <div className="flex items-start justify-between">
@@ -108,17 +112,17 @@ function SetupChecklist({ summary }: { summary: HomeSummary }) {
   return (
     <section className="mb-10">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: G.forest }}>
+        <h2 className="text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: G.black }}>
           Get started
         </h2>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: G.mint, color: G.forest }}>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: G.mint, color: G.black }}>
           {done.size}/{CHECKLIST.length}
         </span>
       </div>
-      <div className="h-1.5 rounded-full mb-5 overflow-hidden" style={{ background: "rgba(5,150,105,0.1)" }}>
+      <div className="h-1.5 rounded-full mb-5 overflow-hidden" style={{ background: "rgba(255,85,0,0.1)" }}>
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${G.emerald}, ${G.jade})` }}
+          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${G.red}, ${G.orange}, ${G.jade})` }}
         />
       </div>
       <div className="space-y-2">
@@ -131,15 +135,15 @@ function SetupChecklist({ summary }: { summary: HomeSummary }) {
               className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:-translate-y-px"
               style={{
                 background: completed ? G.mint : G.card,
-                border: `1px solid ${completed ? "rgba(16,185,129,0.25)" : G.border}`,
+                border: `1px solid ${completed ? "rgba(255,85,0,0.2)" : G.border}`,
                 opacity: completed ? 0.75 : 1,
               }}
             >
               <div
                 className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                 style={{
-                  background: completed ? G.jade : "transparent",
-                  border: `2px solid ${completed ? G.jade : G.faint}`,
+                  background: completed ? G.orange : "transparent",
+                  border: `2px solid ${completed ? G.orange : G.faint}`,
                 }}
               >
                 {completed && (
@@ -153,7 +157,7 @@ function SetupChecklist({ summary }: { summary: HomeSummary }) {
                 <p className="text-[11px] mt-0.5" style={{ color: G.faint }}>{sub}</p>
               </div>
               {!completed && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.emerald} strokeWidth="2.5" strokeLinecap="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.orange} strokeWidth="2.5" strokeLinecap="round">
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               )}
@@ -190,7 +194,7 @@ function SiteRow({ site }: { site: HomeSiteRow }) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold truncate" style={{ color: G.forest }}>{site.title}</p>
+        <p className="text-sm font-bold truncate" style={{ color: G.black }}>{site.title}</p>
         <p className="text-[11px] truncate mt-0.5" style={{ color: G.faint }}>
           {site.subdomain ? `${site.subdomain}.kebu.co` : (isStore ? "Store" : "Site")}
           {isStore && site.productCount > 0 ? ` · ${site.productCount} products` : ""}
@@ -231,7 +235,7 @@ function UpdateRow({ item }: { item: HomeUpdate }) {
       }}
     >
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-sm truncate" style={{ color: G.forest }}>{item.title}</p>
+        <p className="font-bold text-sm truncate" style={{ color: G.black }}>{item.title}</p>
         <p className="text-xs mt-0.5 leading-relaxed" style={{ color: G.muted }}>{item.body}</p>
       </div>
       <svg className="shrink-0 self-center" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.emerald} strokeWidth="2.5" strokeLinecap="round">
@@ -245,7 +249,7 @@ function UpdateRow({ item }: { item: HomeUpdate }) {
 function SectionHead({ label, action }: { label: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: G.forest }}>
+      <h2 className="text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: G.black }}>
         {label}
       </h2>
       {action}
@@ -292,31 +296,23 @@ export default function KebuHomePage() {
         {/* ── Header banner ──────────────────────────────── */}
         <div
           className="relative overflow-hidden"
-          style={{ background: G.forest }}
+          style={{ background: G.black }}
         >
-          {/* subtle texture lines */}
+          {/* diagonal texture */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: `
-                repeating-linear-gradient(
-                  135deg,
-                  transparent,
-                  transparent 40px,
-                  rgba(255,255,255,0.025) 40px,
-                  rgba(255,255,255,0.025) 41px
-                )
-              `,
+              background: `repeating-linear-gradient(135deg, transparent, transparent 60px, rgba(255,85,0,0.04) 60px, rgba(255,85,0,0.04) 61px)`,
             }}
           />
-          <div className="relative px-5 sm:px-8 lg:px-16 py-10 lg:py-14">
+          <div className="relative px-5 sm:px-8 lg:px-16 py-8 lg:py-12">
             {loading ? (
               <div className="flex items-center gap-5">
-                <Skeleton width={60} height={60} radius={30} style={{ background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
+                <Skeleton width={52} height={52} radius={26} style={{ background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <Skeleton height={10} width={80} style={{ background: "rgba(255,255,255,0.1)", marginBottom: 10 }} />
-                  <Skeleton height={28} width="45%" style={{ background: "rgba(255,255,255,0.12)", marginBottom: 10 }} />
-                  <Skeleton height={12} width="60%" style={{ background: "rgba(255,255,255,0.07)" }} />
+                  <Skeleton height={9} width={70} style={{ background: "rgba(255,255,255,0.08)", marginBottom: 10 }} />
+                  <Skeleton height={26} width="40%" style={{ background: "rgba(255,255,255,0.12)", marginBottom: 10 }} />
+                  <Skeleton height={11} width="55%" style={{ background: "rgba(255,255,255,0.07)" }} />
                 </div>
               </div>
             ) : error ? (
@@ -325,19 +321,19 @@ export default function KebuHomePage() {
                 <button type="button" className="underline font-bold ml-2" onClick={() => void load()}>Retry</button>
               </div>
             ) : summary ? (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 {summary.profile.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={summary.profile.avatarUrl}
                     alt=""
-                    className="w-14 h-14 rounded-full object-cover ring-2"
-                    style={{ outlineColor: G.sage, outlineOffset: 2 }}
+                    className="w-12 h-12 rounded-full object-cover shrink-0"
+                    style={{ outline: `2px solid ${G.orange}`, outlineOffset: 2 }}
                   />
                 ) : (
                   <span
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-black text-white shrink-0"
-                    style={{ background: G.emerald }}
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-black text-white shrink-0"
+                    style={{ background: G.orange }}
                   >
                     {first.charAt(0).toUpperCase()}
                   </span>
@@ -347,9 +343,9 @@ export default function KebuHomePage() {
                     My Space
                   </p>
                   <h1 className="text-2xl lg:text-3xl font-black text-white">
-                    {isNew ? `Welcome, ${first}` : `Hi, ${first}`}
+                    {isNew ? `Welcome, ${first}` : `${first}`}
                   </h1>
-                  <p className="text-sm mt-1.5 max-w-xl" style={{ color: "rgba(255,255,255,0.65)" }}>
+                  <p className="text-sm mt-1 max-w-xl" style={{ color: "rgba(255,255,255,0.55)" }}>
                     {isNew
                       ? "Let's set up your Kebu. Follow the checklist below — takes 10 minutes."
                       : summary.personalization.exploreOnly
@@ -357,22 +353,22 @@ export default function KebuHomePage() {
                       : "Sites, store, opportunities — everything in one place."}
                   </p>
                   {summary.profile.afriqueId ? (
-                    <p className="text-[11px] font-mono mt-2 font-bold" style={{ color: G.sage }}>
+                    <p className="text-[11px] font-mono mt-1.5 font-bold" style={{ color: G.sage }}>
                       {summary.profile.afriqueId}
                     </p>
                   ) : null}
                 </div>
 
-                {/* quick stats inline in header */}
+                {/* live badges */}
                 {!isNew && (
                   <div className="hidden sm:flex flex-col gap-1.5 shrink-0 items-end">
                     {summary.stats.sitesPublished > 0 && (
-                      <span className="text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: `${G.jade}25`, color: G.sage }}>
-                        {summary.stats.sitesPublished} site{summary.stats.sitesPublished > 1 ? "s" : ""} live
+                      <span className="text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: `${G.orange}22`, color: G.sage }}>
+                        {summary.stats.sitesPublished} live
                       </span>
                     )}
                     {summary.stats.storeProducts > 0 && (
-                      <span className="text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.75)" }}>
+                      <span className="text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
                         {summary.stats.storeProducts} products
                       </span>
                     )}
@@ -381,34 +377,45 @@ export default function KebuHomePage() {
               </div>
             ) : null}
           </div>
-          {/* green accent stripe */}
-          <div className="h-1" style={{ background: `linear-gradient(90deg, ${G.emerald}, ${G.jade}, ${G.sage})` }} />
+          {/* orange brand stripe */}
+          <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${G.red}, ${G.orange}, ${G.orangeLight})` }} />
         </div>
 
         {/* ── Body ───────────────────────────────────────── */}
         <div className="px-5 sm:px-8 lg:px-16 py-8 lg:py-12">
 
-          {/* Quick actions — always first */}
-          <div className="mb-10">
+          {/* Quick actions */}
+          <div className="mb-8">
             <div className="flex flex-wrap gap-2">
               {[
+                { label: "+ New site", href: "/create/new", primary: true },
                 { label: "Builder", href: "/create", color: KEBU.orange },
                 { label: "Studio", href: "/studio", color: "#9333EA" },
-                { label: "Businesses", href: "/business", color: G.emerald },
                 { label: "Opportunity OS", href: "/opportunity", color: KEBU.red },
-                { label: "B2B directory", href: "/b2b", color: G.forest },
-                { label: "Countries", href: "/opportunity/countries", color: G.muted },
+                { label: "Businesses", href: "/business", color: G.black },
+                { label: "B2B", href: "/b2b", color: G.muted },
                 { label: "Account", href: "/account", color: G.muted },
-              ].map((a) => (
-                <Link
-                  key={a.href}
-                  href={a.href}
-                  className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all hover:brightness-110 hover:-translate-y-px"
-                  style={{ background: `${a.color}18`, color: a.color, border: `1px solid ${a.color}30` }}
-                >
-                  {a.label}
-                </Link>
-              ))}
+              ].map((a) =>
+                "primary" in a && a.primary ? (
+                  <Link
+                    key={a.href}
+                    href={a.href}
+                    className="rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition-all hover:brightness-110 hover:-translate-y-px"
+                    style={{ background: KEBU.orange }}
+                  >
+                    {a.label}
+                  </Link>
+                ) : (
+                  <Link
+                    key={a.href}
+                    href={a.href}
+                    className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all hover:-translate-y-px"
+                    style={{ background: `${a.color}12`, color: a.color, border: `1px solid ${a.color}25` }}
+                  >
+                    {a.label}
+                  </Link>
+                )
+              )}
             </div>
           </div>
 
@@ -546,8 +553,8 @@ export default function KebuHomePage() {
                         href={`/business/${b.id}`}
                         className="flex items-center justify-between rounded-2xl px-5 py-4 transition-all hover:-translate-y-px"
                         style={{
-                          background: G.forest,
-                          borderLeft: `4px solid ${G.jade}`,
+                          background: G.black,
+                          borderLeft: `4px solid ${G.orange}`,
                         }}
                       >
                         <div>
@@ -558,7 +565,7 @@ export default function KebuHomePage() {
                         </div>
                         {b.readinessScore != null ? (
                           <div className="text-right">
-                            <p className="text-2xl font-black" style={{ color: G.jade }}>
+                            <p className="text-2xl font-black" style={{ color: G.orange }}>
                               {b.readinessScore}
                             </p>
                             <p className="text-[9px] font-bold uppercase" style={{ color: G.faint }}>

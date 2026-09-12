@@ -494,47 +494,47 @@ export function MySitesGrid({
 
   return (
     <div className={compact ? "" : "w-full px-5 py-8 sm:px-8 lg:px-16"}>
-      <div className={`flex flex-wrap items-center justify-between gap-4 ${compact ? "mb-4" : "mb-6"}`}>
+      <div className={`flex flex-wrap items-center justify-between gap-3 ${compact ? "mb-4" : "mb-6"}`}>
         <div>
           {!compact ? (
-            <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
+            <h1 className="text-xl font-black" style={{ color: KEBU.black }}>
               My sites
             </h1>
           ) : (
-            <h2 className="text-lg font-bold">Recent sites</h2>
+            <h2 className="text-base font-bold" style={{ color: KEBU.black }}>Recent sites</h2>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!compact ? (
             <>
               <Link
-                href="/create/aesthetics"
-                className="inline-flex rounded-full border px-5 py-2.5 text-sm font-bold"
-                style={{ borderColor: KEBU.border }}
+                href="/create/new"
+                className="inline-flex rounded-lg px-4 py-2 text-[13px] font-bold text-white"
+                style={{ background: KEBU.orange }}
               >
-                Aesthetic Gallery
+                + New site
+              </Link>
+              <Link
+                href="/create/aesthetics"
+                className="inline-flex rounded-lg border px-3.5 py-2 text-[12px] font-semibold"
+                style={{ borderColor: KEBU.border, color: KEBU.black }}
+              >
+                Aesthetics
               </Link>
               <UploadAestheticButton
                 sites={projects.map((p) => ({ id: p.id, title: p.title || "Untitled site" }))}
               />
               <Link
                 href="/create/domains"
-                className="inline-flex rounded-full border px-5 py-2.5 text-sm font-bold"
-                style={{ borderColor: KEBU.border }}
+                className="inline-flex rounded-lg border px-3.5 py-2 text-[12px] font-semibold"
+                style={{ borderColor: KEBU.border, color: KEBU.muted }}
               >
                 Domains
               </Link>
-              <Link
-                href="/create/new"
-                className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold text-white"
-                style={{ background: KEBU.orange }}
-              >
-                + New site
-              </Link>
             </>
           ) : (
-            <Link href={MY_SITES_HREF} className="text-sm font-bold underline" style={{ color: KEBU.orange }}>
-              My sites →
+            <Link href={MY_SITES_HREF} className="text-[12px] font-bold" style={{ color: KEBU.orange }}>
+              View all →
             </Link>
           )}
         </div>
@@ -553,10 +553,10 @@ export function MySitesGrid({
               key={id}
               type="button"
               onClick={() => setFilter(id)}
-              className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
+              className="rounded-md px-3.5 py-1.5 text-[11px] font-bold"
               style={{
-                background: filter === id ? KEBU.black : KEBU.white,
-                color: filter === id ? KEBU.white : KEBU.black,
+                background: filter === id ? KEBU.black : "transparent",
+                color: filter === id ? KEBU.white : KEBU.muted,
                 border: filter === id ? "none" : `1px solid ${KEBU.border}`,
               }}
             >
