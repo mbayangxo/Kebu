@@ -79,6 +79,7 @@ import { businessCoachWorldDefinition } from "./design-worlds/business-coach-wor
 import { wellnessCoachWorldDefinition } from "./design-worlds/wellness-coach-world";
 import { mondayStudioWorldDefinition } from "./design-worlds/monday-studio-world";
 import { mobilierWorldDefinition } from "./design-worlds/mobilier-world";
+import { agenceEnfantsWorldDefinition } from "./design-worlds/agence-enfants-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1230,6 +1231,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Showroom mobilier Dakar — warm contemporary sable/bois, 6 pièces FCFA filterTags, atelier sur-mesure 4 étapes · 4 pages",
     definition: mobilierWorldDefinition(),
+  },
+  {
+    slug: "agence-mannequinat-enfants",
+    name: "Agence mannequinat enfants",
+    category: "services",
+    description:
+      "Agence casting enfants Dakar — violet/orange playful, boutique mode 6 pièces FCFA filterTags, processus casting 4 étapes · 3 pages",
+    definition: agenceEnfantsWorldDefinition(),
   },
 ];
 
