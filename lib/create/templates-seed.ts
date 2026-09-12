@@ -89,6 +89,10 @@ import { centreFormationWorldDefinition } from "./design-worlds/centre-formation
 import { sneakerWorldDefinition } from "./design-worlds/sneaker-world";
 import { bijouterieLumiereWorldDefinition } from "./design-worlds/bijouterie-lumiere-world";
 import { beauteBrandWorldDefinition } from "./design-worlds/beaute-brand-world";
+import { restaurantGrillWorldDefinition } from "./design-worlds/restaurant-grill-world";
+import { restaurantSavaneWorldDefinition } from "./design-worlds/restaurant-savane-world";
+import { boulangerieWorldDefinition } from "./design-worlds/boulangerie-world";
+import { modeEditorialeWorldDefinition } from "./design-worlds/mode-editoriale-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1320,6 +1324,38 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "ÉCLAT NATUREL — vert sauge/or naturel, 9 produits clean beauty FCFA filterTags, formulé peau africaine · 3 pages",
     definition: beauteBrandWorldDefinition(),
+  },
+  {
+    slug: "restaurant-grill-braise",
+    name: "Restaurant grill & steakhouse",
+    category: "restaurant",
+    description:
+      "BRAISE DAKAR — dark charbon/rouge braise, 9 grillades FCFA, charbon de bois, Almadies · 3 pages",
+    definition: restaurantGrillWorldDefinition(),
+  },
+  {
+    slug: "restaurant-africain-contemporain",
+    name: "Restaurant africain contemporain",
+    category: "restaurant",
+    description:
+      "SAVANE DAKAR — terracotta/jaune soleil chaud, cuisine africaine réinventée, brunch dimanche · 3 pages",
+    definition: restaurantSavaneWorldDefinition(),
+  },
+  {
+    slug: "boulangerie-patisserie",
+    name: "Boulangerie artisanale & pâtisserie",
+    category: "restaurant",
+    description:
+      "MIETTES & CO — lin doux/brun beurré, pains levain + gâteaux sur commande FCFA, artisanal · 3 pages",
+    definition: boulangerieWorldDefinition(),
+  },
+  {
+    slug: "portfolio-mode-editorial",
+    name: "Portfolio mannequin & mode éditoriale",
+    category: "portfolio",
+    description:
+      "NUANCE — noir/blanc éditorial strict, galerie masonry, booking WhatsApp, Bodoni Moda · 3 pages",
+    definition: modeEditorialeWorldDefinition(),
   },
 ];
 
