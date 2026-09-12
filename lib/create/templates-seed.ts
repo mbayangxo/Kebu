@@ -71,6 +71,12 @@ import { animalerieWorldDefinition } from "./design-worlds/animalerie-world";
 import { designerPortfolioWorldDefinition } from "./design-worlds/designer-portfolio-world";
 import { decoInterieurWorldDefinition } from "./design-worlds/deco-interieur-world";
 import { bijouterieWorldDefinition } from "./design-worlds/bijouterie-world";
+import { videoProductionWorldDefinition } from "./design-worlds/video-production-world";
+import { brasserieWorldDefinition } from "./design-worlds/brasserie-world";
+import { photographeEditorialWorldDefinition } from "./design-worlds/photographe-editorial-world";
+import { surfCampWorldDefinition } from "./design-worlds/surf-camp-world";
+import { businessCoachWorldDefinition } from "./design-worlds/business-coach-world";
+import { wellnessCoachWorldDefinition } from "./design-worlds/wellness-coach-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1158,6 +1164,54 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Joaillerie africaine Dakar — dark opulence or 22 carats, 6 pièces FCFA avec filtres, atelier sur-mesure 5 étapes, gravure offerte · 3 pages",
     definition: bijouterieWorldDefinition(),
+  },
+  {
+    slug: "video-production",
+    name: "Agence de production vidéo",
+    category: "agency",
+    description:
+      "Production vidéo Dakar — dark cinematic, publicité TV, clips, corporate, drone, 6 forfaits FCFA · 4 pages",
+    definition: videoProductionWorldDefinition(),
+  },
+  {
+    slug: "brasserie-artisanale",
+    name: "Brasserie & bar artisanal",
+    category: "food",
+    description:
+      "Brasserie craft Dakar — bold industrial jaune/noir, 6 bières signature FCFA avec filtres, fûts événements, happy hour · 4 pages",
+    definition: brasserieWorldDefinition(),
+  },
+  {
+    slug: "photographe-editorial",
+    name: "Photographe éditorial",
+    category: "portfolio",
+    description:
+      "Studio photo Dakar — monochrome élégant, mode/portrait/corporate/docu, 6 forfaits FCFA, galerie masonry · 4 pages",
+    definition: photographeEditorialWorldDefinition(),
+  },
+  {
+    slug: "surf-camp",
+    name: "École de surf & camp",
+    category: "sport",
+    description:
+      "Surf camp Dakar Ngor — coastal energy bleu/sable, cours débutants avancés, stage 7j, trips Casamance · 3 pages",
+    definition: surfCampWorldDefinition(),
+  },
+  {
+    slug: "business-coach",
+    name: "Coach business & entrepreneur",
+    category: "services",
+    description:
+      "Coach business Dakar — bold rouge/blanc, 6 programmes FCFA, résultats mesurables, session découverte gratuite · 4 pages",
+    definition: businessCoachWorldDefinition(),
+  },
+  {
+    slug: "wellness-coach",
+    name: "Coach bien-être & développement",
+    category: "services",
+    description:
+      "Coaching bien-être féminin Dakar — soft bordeaux/rose, nutrition holiste, retraites groupe, session découverte gratuite · 3 pages",
+    definition: wellnessCoachWorldDefinition(),
   },
 ];
 
