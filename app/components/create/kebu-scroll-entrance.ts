@@ -52,4 +52,6 @@ export const ENTRANCE_MOTION: Record<string, string> = {
   quiz: "fade-up",
   "before-after": "fade-up",
   "hotspot-image": "fade-in",
+  "countdown": "fade-in",
+  "trust-badges": "fade-up",
 };

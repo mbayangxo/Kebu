@@ -30,6 +30,10 @@ export const SECTION_TYPES = [
   "blog-list",
   "whatsapp",
   "joko",
+  "countdown",
+  "trust-badges",
+  "social-proof",
+  "floating-cta",
   "before-after",
   "hotspot-image",
   "free-text",
@@ -618,6 +622,15 @@ export const sectionPropsSchemas = {
     buttonLabel: z.string().trim().max(40).default("Send"),
     successMessage: z.string().trim().max(160).default("Thanks — we received your message."),
     notifyEmail: z.union([z.literal(""), z.string().trim().email().max(254)]).optional(),
+    /**
+     * Visual style for the form container.
+     * standard = clean flat fields (default);
+     * card = bordered card with shadow;
+     * dark = dark background, white fields;
+     * split = accent panel left + white form right;
+     * booking = appointment-booking feel with section labels.
+     */
+    formStyle: z.enum(["standard", "card", "dark", "split", "booking"]).optional().default("standard"),
     fields: z
       .array(
         z.object({
@@ -681,6 +694,97 @@ export const sectionPropsSchemas = {
     /** Optional direct Joko pay link (overrides phone-based link). */
     jokoPayLink: z.string().trim().max(500).optional(),
     message: z.string().trim().max(200).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Hero-sized countdown timer — great for drops, launches, flash sales, events.
+   * Shows DD · HH · MM · SS with live JS countdown.
+   */
+  countdown: z.object({
+    heading: z.string().trim().max(160).optional(),
+    subheading: z.string().trim().max(240).optional(),
+    /** ISO 8601 datetime string — e.g. "2026-01-01T00:00:00Z". */
+    target: z.string().trim().max(40).default(""),
+    expiredMessage: z.string().trim().max(160).optional().default("L'événement a commencé !"),
+    /** Optional redirect when countdown hits zero. */
+    expiredHref: safeHref.optional(),
+    background: z.string().trim().max(40).optional(),
+    color: z.string().trim().max(40).optional(),
+    /** Accent color for the digit numbers. Defaults to site accent. */
+    accentColor: z.string().trim().max(40).optional(),
+    /** hero = full-width section · strip = compact bar (like announcement-bar) · card = centered floating card */
+    layout: z.enum(["hero", "strip", "card"]).optional().default("hero"),
+    showDays: z.boolean().optional().default(true),
+    labelDays: z.string().trim().max(20).optional().default("Jours"),
+    labelHours: z.string().trim().max(20).optional().default("Heures"),
+    labelMinutes: z.string().trim().max(20).optional().default("Minutes"),
+    labelSeconds: z.string().trim().max(20).optional().default("Secondes"),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Trust / reassurance badge strip — conversion booster under hero or cart.
+   * Secure payment · Fast shipping · Returns · WhatsApp support.
+   */
+  "trust-badges": z.object({
+    items: z
+      .array(z.object({
+        icon: z.string().trim().max(8).optional(),
+        label: z.string().trim().min(1).max(80),
+        description: z.string().trim().max(120).optional(),
+      }))
+      .min(1)
+      .max(8)
+      .default([
+        { icon: "🔒", label: "Paiement sécurisé", description: "Wave · Orange Money · Carte" },
+        { icon: "🚚", label: "Livraison rapide", description: "Dakar · Abidjan · Accra" },
+        { icon: "⭐", label: "Satisfait ou remboursé", description: "Échanges sans frais" },
+        { icon: "💬", label: "Support WhatsApp", description: "Réponse en moins d'1h" },
+      ]),
+    background: z.string().trim().max(40).optional(),
+    color: z.string().trim().max(40).optional(),
+    /** strip = icon + label row · grid = 2×2 with descriptions */
+    layout: z.enum(["strip", "grid"]).optional().default("strip"),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Social proof notification popup — cycling corner toasts showing recent orders.
+   * "Fatou de Dakar vient de commander Kit Rituel · il y a 3 min"
+   */
+  "social-proof": z.object({
+    items: z
+      .array(z.object({
+        name: z.string().trim().min(1).max(60),
+        location: z.string().trim().max(80).optional(),
+        product: z.string().trim().max(80).optional(),
+        minutesAgo: z.number().int().min(1).max(120).optional().default(5),
+      }))
+      .min(1)
+      .max(12)
+      .default([
+        { name: "Fatou", location: "Dakar", product: "Sérum Éclat", minutesAgo: 3 },
+        { name: "Aminata", location: "Abidjan", product: "Kit Rituel", minutesAgo: 7 },
+        { name: "Rokhaya", location: "Thiès", product: "Crème Nuit", minutesAgo: 12 },
+      ]),
+    /** Seconds between each notification. */
+    interval: z.number().int().min(3).max(30).optional().default(8),
+    position: z.enum(["bottom-left", "bottom-right"]).optional().default("bottom-left"),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Floating sticky CTA — WhatsApp / call button always visible at viewport corner.
+   * Renders as position:fixed in live mode; inline preview in builder.
+   */
+  "floating-cta": z.object({
+    type: z.enum(["whatsapp", "call", "link"]).optional().default("whatsapp"),
+    phone: z.string().trim().max(40).default(""),
+    message: z.string().trim().max(200).optional(),
+    label: z.string().trim().max(60).optional().default("Commander sur WhatsApp"),
+    /** Custom link (used when type = "link"). */
+    href: safeHref.optional(),
+    color: z.string().trim().max(40).optional(),
+    position: z.enum(["bottom-right", "bottom-left"]).optional().default("bottom-right"),
+    /** Show pulsing ring animation. */
+    pulse: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
   }),
   /**

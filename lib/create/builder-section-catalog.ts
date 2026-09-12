@@ -139,6 +139,30 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
     category: "commerce",
   },
   {
+    type: "countdown",
+    label: "Countdown timer",
+    description: "Live DD:HH:MM:SS timer — drops, sales, events, launches",
+    category: "engage",
+  },
+  {
+    type: "trust-badges",
+    label: "Trust badges",
+    description: "Secure payment · Fast shipping · Returns — converts fence-sitters",
+    category: "engage",
+  },
+  {
+    type: "social-proof",
+    label: "Social proof popup",
+    description: "Corner toast: 'Fatou vient de commander Kit Rituel · il y a 3 min'",
+    category: "engage",
+  },
+  {
+    type: "floating-cta",
+    label: "Floating WhatsApp button",
+    description: "Sticky corner button — always visible, always clickable",
+    category: "commerce",
+  },
+  {
     type: "before-after",
     label: "Before / After slider",
     description: "Drag to reveal — hair, skin, construction, makeovers",

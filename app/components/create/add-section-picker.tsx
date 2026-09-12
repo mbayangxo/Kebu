@@ -38,6 +38,10 @@ const SECTION_ICONS: Record<string, string> = {
   events: "📅",
   "before-after": "⇌",
   "hotspot-image": "⊕",
+  "countdown": "⏱",
+  "trust-badges": "🛡",
+  "social-proof": "🔔",
+  "floating-cta": "💬",
 };
 
 /** Shopify-style section picker — compact rows, icon + label + hint. */
