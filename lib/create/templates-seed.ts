@@ -77,6 +77,8 @@ import { photographeEditorialWorldDefinition } from "./design-worlds/photographe
 import { surfCampWorldDefinition } from "./design-worlds/surf-camp-world";
 import { businessCoachWorldDefinition } from "./design-worlds/business-coach-world";
 import { wellnessCoachWorldDefinition } from "./design-worlds/wellness-coach-world";
+import { mondayStudioWorldDefinition } from "./design-worlds/monday-studio-world";
+import { mobilierWorldDefinition } from "./design-worlds/mobilier-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1212,6 +1214,22 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Coaching bien-être féminin Dakar — soft bordeaux/rose, nutrition holiste, retraites groupe, session découverte gratuite · 3 pages",
     definition: wellnessCoachWorldDefinition(),
+  },
+  {
+    slug: "agence-creative-monday",
+    name: "Agence créative bold",
+    category: "agency",
+    description:
+      "Studio créatif Dakar — bold jaune/noir pop, branding motion digital, 6 services FCFA, portfolio masonry · 4 pages",
+    definition: mondayStudioWorldDefinition(),
+  },
+  {
+    slug: "mobilier-design",
+    name: "Mobilier design & ameublement",
+    category: "ecommerce",
+    description:
+      "Showroom mobilier Dakar — warm contemporary sable/bois, 6 pièces FCFA filterTags, atelier sur-mesure 4 étapes · 4 pages",
+    definition: mobilierWorldDefinition(),
   },
 ];
 
