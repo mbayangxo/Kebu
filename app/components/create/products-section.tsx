@@ -38,7 +38,7 @@ export type ProductCollection = {
 
 export type ProductsSectionProps = {
   heading?: string;
-  layout?: "grid" | "grid-dense" | "list" | "featured";
+  layout?: "grid" | "grid-dense" | "list" | "featured" | "carousel";
   columns?: 2 | 3 | 4;
   orderStyle?: "inline" | "sheet" | "card" | "minimal";
   orderCtaLabel?: string;
@@ -566,6 +566,59 @@ export function ProductsSection({
             ) : null}
 
             <div className="flex-1 min-w-0">
+              {layout === "carousel" ? (
+                <div className="relative">
+                  {/* Horizontal scroll strip — arrow nav, snap-scroll */}
+                  <div
+                    className="flex gap-4 overflow-x-auto scroll-smooth pb-2"
+                    style={{ scrollbarWidth: "none", scrollSnapType: "x mandatory" }}
+                    id={`carousel-${anchor ?? "products"}`}
+                  >
+                    {visibleItems.map((item) => (
+                      <article
+                        key={item.productId ?? item.name}
+                        className="kebu-card overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg flex-shrink-0"
+                        style={{ width: "clamp(180px, 40vw, 240px)", scrollSnapAlign: "start" }}
+                        onClick={() => setOpenProduct(item)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === "Enter" && setOpenProduct(item)}
+                      >
+                        {renderCard(item)}
+                      </article>
+                    ))}
+                  </div>
+                  {/* Arrow buttons */}
+                  {visibleItems.length > 2 && (
+                    <div className="absolute -top-9 right-0 flex gap-1.5">
+                      <button
+                        type="button"
+                        aria-label="Scroll left"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border text-sm transition-opacity hover:opacity-70"
+                        style={{ borderColor: "rgba(0,0,0,0.15)" }}
+                        onClick={() => {
+                          const el = document.getElementById(`carousel-${anchor ?? "products"}`);
+                          if (el) el.scrollBy({ left: -260, behavior: "smooth" });
+                        }}
+                      >
+                        ←
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Scroll right"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border text-sm transition-opacity hover:opacity-70"
+                        style={{ borderColor: "rgba(0,0,0,0.15)" }}
+                        onClick={() => {
+                          const el = document.getElementById(`carousel-${anchor ?? "products"}`);
+                          if (el) el.scrollBy({ left: 260, behavior: "smooth" });
+                        }}
+                      >
+                        →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
               <div className={gridClass}>
                 {featuredFirst
                   ? [
@@ -574,6 +627,7 @@ export function ProductsSection({
                     ]
                   : visibleItems.map((item) => renderCard(item))}
               </div>
+              )}
               {items.length === 0 ? (
                 <p className="text-sm opacity-60">
                   Add products in Kebu Shop (Products tab), then publish this site.

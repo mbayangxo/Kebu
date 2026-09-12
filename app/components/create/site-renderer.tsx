@@ -375,6 +375,128 @@ function NavDropdown({
   );
 }
 
+/** Full-width mega dropdown panel — Fashion Nova / Best Buy pattern. */
+function MegaDropdown({
+  label,
+  href,
+  items,
+  bg,
+  textColor,
+  resolveHref,
+  onNavigate,
+}: {
+  label: string;
+  href: string;
+  items: { label: string; href: string; columnLabel?: string; grandchildren?: { label: string; href: string }[]; featuredImage?: string; featuredImageAlt?: string }[];
+  bg: string;
+  textColor: string;
+  resolveHref: (h: string) => string;
+  onNavigate?: (slug: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const slug = href ? href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
+  const hasCols = items.some((i) => i.grandchildren && i.grandchildren.length > 0);
+  const featuredItem = items.find((i) => i.featuredImage);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onClick={() => setOpen((v) => !v)}
+        className="opacity-80 hover:opacity-100 text-left flex items-center gap-1"
+      >
+        {label}
+        <span aria-hidden style={{ fontSize: "0.7em", opacity: 0.7, display: "inline-block", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▾</span>
+      </button>
+      {open && (
+        <div
+          className="fixed left-0 right-0 z-50 shadow-xl"
+          style={{ top: "var(--nav-height, 56px)", background: bg }}
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+        >
+          <div className="fixed inset-0 -z-10" onClick={() => setOpen(false)} aria-hidden />
+          <div className="mx-auto max-w-7xl px-6 py-8 flex gap-8">
+            {/* Column groups */}
+            <div className="flex flex-1 gap-6">
+              {hasCols ? (
+                items.map((col, ci) => (
+                  <div key={ci} className="flex-1 min-w-0">
+                    {col.columnLabel && (
+                      <div className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3 opacity-50" style={{ color: textColor }}>{col.columnLabel}</div>
+                    )}
+                    {/* Parent link as section header */}
+                    {col.label && (
+                      onNavigate && col.href && col.href !== "#" ? (
+                        <button type="button" onClick={() => { const s = col.href.replace(/^\//, "").split(/[?#]/)[0]; onNavigate(s || "home"); setOpen(false); }}
+                          className="block text-sm font-semibold mb-2 hover:opacity-70" style={{ color: textColor }}>
+                          {col.label}
+                        </button>
+                      ) : col.href && col.href !== "#" ? (
+                        <a href={resolveHref(col.href)} onClick={() => setOpen(false)} className="block text-sm font-semibold mb-2 hover:opacity-70" style={{ color: textColor }}>{col.label}</a>
+                      ) : (
+                        <div className="text-sm font-semibold mb-2 opacity-80" style={{ color: textColor }}>{col.label}</div>
+                      )
+                    )}
+                    <div className="flex flex-col gap-1">
+                      {(col.grandchildren ?? []).map((gc, gi) => {
+                        const gcSlug = gc.href ? gc.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
+                        return onNavigate && gcSlug ? (
+                          <button key={gi} type="button" onClick={() => { onNavigate(gcSlug); setOpen(false); }}
+                            className="text-left text-sm opacity-60 hover:opacity-100 py-0.5" style={{ color: textColor }}>{gc.label}</button>
+                        ) : (
+                          <a key={gi} href={resolveHref(gc.href)} onClick={() => setOpen(false)}
+                            className="text-sm opacity-60 hover:opacity-100 py-0.5 block" style={{ color: textColor }}>{gc.label}</a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                /* Flat list mode — no grandchildren */
+                <div className="flex flex-wrap gap-x-8 gap-y-1">
+                  {href && href !== "#" && (
+                    <div className="w-full mb-1">
+                      {onNavigate && slug ? (
+                        <button type="button" onClick={() => { onNavigate(slug); setOpen(false); }}
+                          className="text-sm font-bold opacity-80 hover:opacity-100" style={{ color: textColor }}>{label} — overview</button>
+                      ) : (
+                        <a href={resolveHref(href)} onClick={() => setOpen(false)} className="text-sm font-bold opacity-80 hover:opacity-100" style={{ color: textColor }}>{label} — overview</a>
+                      )}
+                    </div>
+                  )}
+                  {items.map((child, ci) => {
+                    const cs = child.href ? child.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
+                    return onNavigate && cs ? (
+                      <button key={ci} type="button" onClick={() => { onNavigate(cs); setOpen(false); }}
+                        className="text-sm opacity-60 hover:opacity-100 py-0.5 text-left" style={{ color: textColor }}>{child.label}</button>
+                    ) : (
+                      <a key={ci} href={resolveHref(child.href)} onClick={() => setOpen(false)}
+                        className="text-sm opacity-60 hover:opacity-100 py-0.5 block" style={{ color: textColor }}>{child.label}</a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {/* Featured image panel */}
+            {featuredItem?.featuredImage && (
+              <div className="w-48 flex-shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={featuredItem.featuredImage} alt={featuredItem.featuredImageAlt ?? ""} className="w-full h-36 object-cover rounded-lg" />
+                {featuredItem.columnLabel && (
+                  <div className="text-xs mt-2 font-semibold opacity-70" style={{ color: textColor }}>{featuredItem.columnLabel}</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Public/preview renderer — approved section types only. */
 export function SiteRenderer({
   definition,
@@ -655,12 +777,13 @@ export function SiteRenderer({
             const device = editor?.editDevice ?? "desktop";
             const p = {
               brand: String(readDeviceOverride(raw, device, "brand") ?? ""),
-              links: (raw.links as { label: string; href: string; children?: { label: string; href: string }[] }[] | undefined) ?? [],
+              links: (raw.links as { label: string; href: string; children?: { label: string; href: string; columnLabel?: string; grandchildren?: { label: string; href: string }[]; featuredImage?: string; featuredImageAlt?: string }[] }[] | undefined) ?? [],
               navScale: raw.navScale as number | undefined,
               navSize: raw.navSize as "compact" | "comfortable" | "large" | "fullscreen" | undefined,
               navLayout: raw.navLayout as "top" | "side" | undefined,
               logoAlign: (raw.logoAlign as "left" | "center" | "right" | undefined) ?? "left",
               navSticky: raw.navSticky !== false,
+              navStyle: (raw.navStyle as "standard" | "mega" | undefined) ?? "standard",
             };
             const patchNav = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
@@ -692,10 +815,24 @@ export function SiteRenderer({
               const cleaned = rest.replace(/^\//, "").split(/[?#]/)[0] ?? "";
               return cleaned || "home";
             };
-            const renderNavLink = (l: { label: string; href: string; children?: { label: string; href: string }[] }) => {
+            const renderNavLink = (l: { label: string; href: string; children?: { label: string; href: string; columnLabel?: string; grandchildren?: { label: string; href: string }[]; featuredImage?: string; featuredImageAlt?: string }[] }) => {
               const slug = slugFromHref(l.href);
               const hasChildren = l.children && l.children.length > 0;
               if (hasChildren) {
+                if (p.navStyle === "mega") {
+                  return (
+                    <MegaDropdown
+                      key={`${l.label}-${l.href}-mega`}
+                      label={l.label}
+                      href={l.href}
+                      items={l.children!}
+                      bg={String(theme.primary ?? "#000")}
+                      textColor={String(theme.text ?? "#fff")}
+                      resolveHref={resolveNavHref}
+                      onNavigate={editor?.onNavigatePage}
+                    />
+                  );
+                }
                 return (
                   <NavDropdown
                     key={`${l.label}-${l.href}-group`}
@@ -1214,7 +1351,7 @@ export function SiteRenderer({
                 sectionId={sectionId}
                 anchor={anchor}
                 heading={heading}
-                layout={raw.layout as "grid" | "grid-dense" | "list" | "featured" | undefined}
+                layout={raw.layout as "grid" | "grid-dense" | "list" | "featured" | "carousel" | undefined}
                 columns={raw.columns as 2 | 3 | 4 | undefined}
                 orderStyle={raw.orderStyle as "inline" | "sheet" | "card" | "minimal" | undefined}
                 orderCtaLabel={raw.orderCtaLabel as string | undefined}
@@ -1238,23 +1375,69 @@ export function SiteRenderer({
             );
           }
           case "contact": {
-            const p = section.props as { heading?: string; email?: string; phone?: string; address?: string };
+            const cp = section.props as { heading?: string; subheading?: string; email?: string; phone?: string; address?: string; whatsapp?: string };
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 sm:px-8 lg:px-16 scroll-mt-20">
                 <div className="max-w-3xl">
-                <EditableText
-                  tag="h2"
-                  className="text-2xl font-bold mb-4"
-                  value={p.heading || "Contact"}
-                  editor={editor}
-                  onChange={(heading) => editor?.onPatchSection?.(sectionId, { heading })}
-                />
-                <ul className="text-sm space-y-2 opacity-80">
-                  {p.email && <li>Email: {p.email}</li>}
-                  {p.phone && <li>Phone: {p.phone}</li>}
-                  {p.address && <li>{p.address}</li>}
-                  {!p.email && !p.phone && !p.address && <li>Contact details coming soon.</li>}
-                </ul>
+                  <EditableText
+                    tag="h2"
+                    className="text-2xl sm:text-3xl font-bold mb-2"
+                    value={cp.heading || "Contact"}
+                    editor={editor}
+                    onChange={(heading) => editor?.onPatchSection?.(sectionId, { heading })}
+                  />
+                  {cp.subheading && (
+                    <EditableText
+                      tag="p"
+                      className="text-base opacity-70 mb-6"
+                      value={cp.subheading}
+                      editor={editor}
+                      onChange={(subheading) => editor?.onPatchSection?.(sectionId, { subheading })}
+                    />
+                  )}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {cp.whatsapp && (
+                      <a
+                        href={`https://wa.me/${cp.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-sm transition-opacity hover:opacity-80"
+                        style={{ background: "#25D366", color: "#fff" }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.1.546 4.072 1.5 5.786L.057 23.571l5.93-1.558A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.888 0-3.657-.52-5.163-1.424l-.37-.22-3.52.925.938-3.437-.24-.386A10.001 10.001 0 0112 2c5.514 0 10 4.486 10 10s-4.486 10-10 10z"/></svg>
+                        WhatsApp
+                      </a>
+                    )}
+                    {cp.email && (
+                      <a
+                        href={`mailto:${cp.email}`}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-sm border transition-opacity hover:opacity-80"
+                        style={{ borderColor: "rgba(0,0,0,0.12)", color: "inherit" }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        {cp.email}
+                      </a>
+                    )}
+                    {cp.phone && (
+                      <a
+                        href={`tel:${cp.phone}`}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-sm border transition-opacity hover:opacity-80"
+                        style={{ borderColor: "rgba(0,0,0,0.12)", color: "inherit" }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.18 6.18l1.27-.36a2 2 0 012.11.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                        {cp.phone}
+                      </a>
+                    )}
+                    {cp.address && (
+                      <div className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm border" style={{ borderColor: "rgba(0,0,0,0.12)" }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0" aria-hidden><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span className="opacity-80">{cp.address}</span>
+                      </div>
+                    )}
+                    {!cp.email && !cp.phone && !cp.address && !cp.whatsapp && (
+                      <p className="text-sm opacity-50 col-span-2">Contact details coming soon.</p>
+                    )}
+                  </div>
                 </div>
               </section>,
             );
