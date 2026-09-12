@@ -53,6 +53,9 @@ import { gymWorldDefinition } from "./design-worlds/gym-world";
 import { nailStudioWorldDefinition } from "./design-worlds/nail-studio-world";
 import { festivalWorldDefinition } from "./design-worlds/festival-world";
 import { cafeWorldDefinition } from "./design-worlds/cafe-world";
+import { yogaWorldDefinition } from "./design-worlds/yoga-world";
+import { bridalWorldDefinition } from "./design-worlds/bridal-world";
+import { dentalClinicWorldDefinition } from "./design-worlds/dental-clinic-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -996,6 +999,30 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Café specialty africain — menu boissons FCFA, pâtisserie maison, brunch week-end, traiteur entreprise · 5 pages",
     definition: cafeWorldDefinition(),
+  },
+  {
+    slug: "yoga-studio",
+    name: "Studio yoga & bien-être",
+    category: "fitness",
+    description:
+      "Studio yoga sage/ivoire — cours collectifs, planning hebdo, retraites Sine-Saloum, abonnements FCFA, premiers cours offerts · 5 pages",
+    definition: yogaWorldDefinition(),
+  },
+  {
+    slug: "bridal-styling",
+    name: "Stylisme bridal",
+    category: "wedding",
+    description:
+      "Studio bridal africain — lookbook mariage, packs stylisme FCFA, consultation gratuite, galerie masonry, formulaire RDV · 5 pages",
+    definition: bridalWorldDefinition(),
+  },
+  {
+    slug: "dental-clinic",
+    name: "Clinique dentaire",
+    category: "health",
+    description:
+      "Cabinet dentaire moderne — soins, blanchiment, implants, pédodontie, tarifs FCFA transparents, urgences WhatsApp · 5 pages",
+    definition: dentalClinicWorldDefinition(),
   },
 ];
 
