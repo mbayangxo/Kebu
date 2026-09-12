@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function designerPortfolioWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "Julia Gyut — Designer",
     theme: {
       primary: "#0A0A0A",
       accent: "#2563EB",
       background: "#F9F9F9",
       text: "#0A0A0A",
-      fontHeading: "Space Grotesk",
+      fontDisplay: "Space Grotesk",
       fontBody: "Inter",
-      borderRadius: "sm",
+      radius: "soft",
       spacing: "airy",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "cool-minimal-designer-portfolio",
     },
     pages: [

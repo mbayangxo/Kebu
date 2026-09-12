@@ -70,6 +70,7 @@ import { filmPromoWorldDefinition } from "./design-worlds/film-promo-world";
 import { animalerieWorldDefinition } from "./design-worlds/animalerie-world";
 import { designerPortfolioWorldDefinition } from "./design-worlds/designer-portfolio-world";
 import { decoInterieurWorldDefinition } from "./design-worlds/deco-interieur-world";
+import { bijouterieWorldDefinition } from "./design-worlds/bijouterie-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1149,6 +1150,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Studio déco d'intérieur Dakar — warm brutalist, 95+ projets masonry, processus 5 étapes, forfaits clé en main · 4 pages",
     definition: decoInterieurWorldDefinition(),
+  },
+  {
+    slug: "bijouterie-or",
+    name: "Bijouterie & joaillerie",
+    category: "ecommerce",
+    description:
+      "Joaillerie africaine Dakar — dark opulence or 22 carats, 6 pièces FCFA avec filtres, atelier sur-mesure 5 étapes, gravure offerte · 3 pages",
+    definition: bijouterieWorldDefinition(),
   },
 ];
 

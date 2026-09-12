@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function prAgencyWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "ÉCLAT STUDIO",
     theme: {
       primary: "#111111",
       accent: "#E84545",
       background: "#F8F6F3",
       text: "#111111",
-      fontHeading: "Playfair Display",
+      fontDisplay: "Playfair Display",
       fontBody: "Inter",
-      borderRadius: "none",
+      radius: "sharp",
       spacing: "airy",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "bold-minimal-pr-agency",
     },
     pages: [

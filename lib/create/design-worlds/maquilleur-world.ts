@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function maquilleurWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "NOUR by Mariama",
     theme: {
       primary: "#1A0810",
       accent: "#B85C6E",
       background: "#FDF8F5",
       text: "#1A0810",
-      fontHeading: "Cormorant Garamond",
+      fontDisplay: "Cormorant Garamond",
       fontBody: "DM Sans",
-      borderRadius: "sm",
+      radius: "soft",
       spacing: "comfortable",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "soft-editorial-mua",
     },
     pages: [

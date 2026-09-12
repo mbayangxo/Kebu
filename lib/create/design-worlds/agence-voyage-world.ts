@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function agenceVoyageWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "TERANGA VOYAGES",
     theme: {
       primary: "#3D2314",
       accent: "#C9933A",
       background: "#FDFAF5",
       text: "#1A1008",
-      fontHeading: "Playfair Display",
+      fontDisplay: "Playfair Display",
       fontBody: "Lato",
-      borderRadius: "sm",
+      radius: "soft",
       spacing: "comfortable",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "warm-african-travel",
     },
     pages: [

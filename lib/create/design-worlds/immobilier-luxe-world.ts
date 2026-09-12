@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function immobilierLuxeWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "MAISON SALL Prestige",
     theme: {
       primary: "#111111",
       accent: "#B89E6A",
       background: "#F8F7F4",
       text: "#111111",
-      fontHeading: "Playfair Display",
+      fontDisplay: "Playfair Display",
       fontBody: "Inter",
-      borderRadius: "none",
+      radius: "sharp",
       spacing: "airy",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "luxury-real-estate-prestige",
     },
     pages: [

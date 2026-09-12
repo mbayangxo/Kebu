@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function decoInterieurWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "OBLIQ STUDIO",
     theme: {
       primary: "#1A1614",
       accent: "#C4694B",
       background: "#F2EDE8",
       text: "#1A1614",
-      fontHeading: "DM Serif Display",
+      fontDisplay: "DM Serif Display",
       fontBody: "Inter",
-      borderRadius: "none",
+      radius: "sharp",
       spacing: "airy",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "warm-brutalist-interior-design",
     },
     pages: [

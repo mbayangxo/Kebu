@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function artisteVisuelWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "Ablaye Seck",
     theme: {
       primary: "#0A0A0A",
       accent: "#8B5E3C",
       background: "#F4F2EE",
       text: "#0A0A0A",
-      fontHeading: "Cormorant Garamond",
+      fontDisplay: "Cormorant Garamond",
       fontBody: "Inter",
-      borderRadius: "none",
+      radius: "sharp",
       spacing: "airy",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "monochrome-fine-art-portfolio",
     },
     pages: [

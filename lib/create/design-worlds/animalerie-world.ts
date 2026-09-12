@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function animalerieWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "BAMBA PET",
     theme: {
       primary: "#1D4A2A",
       accent: "#F4752C",
       background: "#FDFAF4",
       text: "#1A2A1D",
-      fontHeading: "Nunito",
+      fontDisplay: "Nunito",
       fontBody: "Inter",
-      borderRadius: "lg",
+      radius: "round",
       spacing: "comfortable",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "playful-pet-store",
     },
     pages: [

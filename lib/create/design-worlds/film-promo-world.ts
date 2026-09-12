@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function filmPromoWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "DËKK BI — Le Film",
     theme: {
       primary: "#080808",
       accent: "#D4A017",
       background: "#080808",
       text: "#F0EDE8",
-      fontHeading: "Cormorant Garamond",
+      fontDisplay: "Cormorant Garamond",
       fontBody: "Inter",
-      borderRadius: "none",
+      radius: "sharp",
       spacing: "comfortable",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "dark-cinematic-film-promo",
     },
     pages: [

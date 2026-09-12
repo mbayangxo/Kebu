@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function couturiereWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "CULT MODUS",
     theme: {
       primary: "#0C0C0C",
       accent: "#C8102E",
       background: "#F5F0EB",
       text: "#0C0C0C",
-      fontHeading: "Cormorant Garamond",
+      fontDisplay: "Cormorant Garamond",
       fontBody: "Inter",
-      borderRadius: "none",
+      radius: "sharp",
       spacing: "comfortable",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "dark-editorial-couture",
     },
     pages: [

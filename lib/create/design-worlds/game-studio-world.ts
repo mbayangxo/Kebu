@@ -8,17 +8,20 @@ import type { WebsiteDefinition } from "../website-schema";
  */
 export function gameStudioWorldDefinition(): WebsiteDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: "website-v1",
     title: "KIWI GAMES",
     theme: {
       primary: "#070B14",
       accent: "#00FF88",
       background: "#070B14",
       text: "#E8F5FF",
-      fontHeading: "Bebas Neue",
+      fontDisplay: "Bebas Neue",
       fontBody: "Inter",
-      borderRadius: "sm",
+      radius: "soft",
       spacing: "comfortable",
+      headingScale: "md",
+      bodySize: "md",
+      letterSpacing: "normal",
       aestheticId: "neon-gaming-dark",
     },
     pages: [
