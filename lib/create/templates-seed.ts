@@ -41,6 +41,11 @@ import { egliseWorldDefinition } from "./design-worlds/eglise-world";
 import { legalWorldDefinition } from "./design-worlds/legal-world";
 import { wholesaleWorldDefinition } from "./design-worlds/wholesale-world";
 import { fashionWorldDefinition } from "./design-worlds/fashion-world";
+import { talentAgencyWorldDefinition, managementCompanyWorldDefinition } from "./design-worlds/talent-management-worlds";
+import { skincareWorldDefinition } from "./design-worlds/skincare-world";
+import { foodBrandWorldDefinition, juiceBrandWorldDefinition } from "./design-worlds/food-beverage-worlds";
+import { electronicsStoreWorldDefinition, supermarketWorldDefinition } from "./design-worlds/retail-worlds";
+import { schoolWorldDefinition, mediaCompanyWorldDefinition } from "./design-worlds/education-media-worlds";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -856,6 +861,78 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Boutique mode West African — scroll éditorial, photo plein écran, WhatsApp «Je le veux» par produit · 5 pages",
     definition: fashionWorldDefinition(),
+  },
+  {
+    slug: "talent-agency",
+    name: "Talent Agency",
+    category: "entertainment",
+    description:
+      "Agence de talent — roster, casting briefs WhatsApp, représentation mannequins/acteurs/influenceurs · 5 pages",
+    definition: talentAgencyWorldDefinition(),
+  },
+  {
+    slug: "management-company",
+    name: "Management Company",
+    category: "entertainment",
+    description:
+      "Management d'artistes & créateurs — roster, brand deals, services, formulaire partenariat · 5 pages",
+    definition: managementCompanyWorldDefinition(),
+  },
+  {
+    slug: "skincare-brand",
+    name: "Marque Skincare",
+    category: "beauty",
+    description:
+      "Marque skincare peaux africaines — éducation, consultation WhatsApp, avis avec type de peau, loyalty · 6 pages",
+    definition: skincareWorldDefinition(),
+  },
+  {
+    slug: "food-brand",
+    name: "Marque alimentaire",
+    category: "food",
+    description:
+      "Marque alimentaire africaine — produits, recettes, stockistes, commande B2C et B2B · 6 pages",
+    definition: foodBrandWorldDefinition(),
+  },
+  {
+    slug: "juice-brand",
+    name: "Marque de jus & boissons",
+    category: "food",
+    description:
+      "Cold-pressed, fruits africains — gamme, ingrédients locaux, abonnement hebdomadaire, livraison matin · 5 pages",
+    definition: juiceBrandWorldDefinition(),
+  },
+  {
+    slug: "electronics-store",
+    name: "Boutique high-tech",
+    category: "retail",
+    description:
+      "Téléphones neuf/reconditionné, accessoires, réparation express — paiement en 3× Wave · 6 pages",
+    definition: electronicsStoreWorldDefinition(),
+  },
+  {
+    slug: "supermarket",
+    name: "Supermarché / épicerie",
+    category: "retail",
+    description:
+      "Courses livrées en 2h — liste WhatsApp, rayons, promotions, abonnement hebdomadaire · 5 pages",
+    definition: supermarketWorldDefinition(),
+  },
+  {
+    slug: "school",
+    name: "École & établissement scolaire",
+    category: "education",
+    description:
+      "Site d'école — programmes, admission, vie scolaire, groupe WhatsApp parents, actualités · 6 pages",
+    definition: schoolWorldDefinition(),
+  },
+  {
+    slug: "media-company",
+    name: "Média & presse",
+    category: "media",
+    description:
+      "Média digital africain — actualités, émissions, podcast, publicité brand content · 6 pages",
+    definition: mediaCompanyWorldDefinition(),
   },
 ];
 
