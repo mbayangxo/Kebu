@@ -22,6 +22,7 @@ export const SECTION_TYPES = [
   "faq",
   "products",
   "quiz",
+  "stats",
   "contact",
   "newsletter",
   "email-popup",
@@ -187,6 +188,13 @@ export const sectionPropsSchemas = {
     /** Alias kept for backward-compat with templates that use textColor. */
     textColor: z.string().trim().max(40).optional(),
     /**
+     * ISO datetime string — when set, the bar shows a live countdown timer.
+     * E.g. "2025-12-31T23:59:59Z" → "VENTE — il reste 2h 14min 08s".
+     * Great for flash sales and limited-time offers (LUXORA "SALE ENDS TODAY" pattern).
+     */
+    countdownTo: z.string().trim().max(30).optional(),
+    countdownLabel: z.string().trim().max(80).optional(),
+    /**
      * When set, the bar shows a free-shipping progress indicator.
      * E.g. freeShippingThreshold: 15000 → "Encore 8 500 FCFA pour la livraison gratuite".
      */
@@ -258,8 +266,12 @@ export const sectionPropsSchemas = {
       )
       .max(24)
       .default([]),
-    /** grid = thumbnails · single = one full-width photo · featured = first large + rest grid */
-    layout: z.enum(["grid", "single", "featured"]).optional().default("grid"),
+    /**
+     * grid = thumbnails · single = one full-width photo · featured = first large + rest grid ·
+     * carousel = horizontal scroll strip (LUXORA "Most-Loved Shades" pattern) ·
+     * masonry = Pinterest-style unequal columns
+     */
+    layout: z.enum(["grid", "single", "featured", "carousel", "masonry"]).optional().default("grid"),
     columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().default(3),
     /**
      * Instagram handle (without @) — renders a "On the Gram" CTA card inside the grid
@@ -529,6 +541,38 @@ export const sectionPropsSchemas = {
         { id: "concern", question: "Votre priorité principale ?", options: ["Éclat & teint unifié", "Hydratation profonde", "Anti-taches", "Anti-âge", "Pores & points noirs"], icon: "✨" },
         { id: "routine", question: "Votre routine actuelle ?", options: ["Je débute", "Routine simple (2–3 soins)", "Routine complète", "Soins naturels uniquement"], icon: "🕐" },
       ]),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Numbers/achievements strip — social proof for agencies, freelancers, coaches.
+   * PORTUM portfolio pattern: "3,460+ Clients · 1,452+ Projects · 15+ Years of Experience".
+   */
+  stats: z.object({
+    heading: z.string().trim().max(160).optional(),
+    subheading: z.string().trim().max(240).optional(),
+    layout: z.enum(["row", "grid"]).optional().default("row"),
+    items: z
+      .array(z.object({
+        value: z.string().trim().min(1).max(40),
+        label: z.string().trim().min(1).max(80),
+        /** Optional suffix appended to value: "+" → "1 452+". */
+        suffix: z.string().trim().max(10).optional(),
+        /** Optional prefix: ">" or "+". */
+        prefix: z.string().trim().max(10).optional(),
+      }))
+      .min(1)
+      .max(8)
+      .default([]),
+    /**
+     * Optional certification/accreditation badge floating beside the stats.
+     * E.g. "Certified UX Professional", "ISO 9001", "Google Partner".
+     */
+    badge: z.object({
+      label: z.string().trim().min(1).max(80),
+      background: z.string().trim().max(40).optional(),
+      color: z.string().trim().max(40).optional(),
+    }).optional(),
+    background: z.string().trim().max(40).optional(),
     hidden: z.boolean().optional(),
   }),
   contact: z.object({

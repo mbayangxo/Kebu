@@ -48,6 +48,7 @@ import { electronicsStoreWorldDefinition, supermarketWorldDefinition } from "./d
 import { schoolWorldDefinition, mediaCompanyWorldDefinition } from "./design-worlds/education-media-worlds";
 import { makeupBrandWorldDefinition } from "./design-worlds/makeup-brand-world";
 import { creativeStudioWorldDefinition } from "./design-worlds/creative-studio-world";
+import { hairBrandWorldDefinition } from "./design-worlds/hair-brand-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -951,6 +952,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Studio direction artistique & photographie — portfolio éditorial, offres, brief client · 4 pages",
     definition: creativeStudioWorldDefinition(),
+  },
+  {
+    slug: "hair-brand",
+    name: "Marque capillaire",
+    category: "beauty",
+    description:
+      "Extensions, perruques & tressage africains — annonce livraison gratuite, bestsellers FCFA, éducation, WhatsApp · 3 pages",
+    definition: hairBrandWorldDefinition(),
   },
 ];
 
