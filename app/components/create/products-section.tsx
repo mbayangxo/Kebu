@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PublicProductActions } from "@/app/components/create/public-product-actions";
 import { whatsAppOrderHref } from "@/lib/create/site-commerce";
+import { addToShopCart } from "@/lib/create/shop-cart-storage";
 import type { SiteCommerce } from "@/lib/create/site-commerce";
 import type { ThemeTokens } from "@/lib/create/website-schema";
 import { cssFontStack } from "@/lib/create/site-theme-fonts";
@@ -300,6 +301,21 @@ export function ProductsSection({
   const [openProduct, setOpenProduct] = useState<ProductItem | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [fetchedCollections, setFetchedCollections] = useState<ProductCollection[]>([]);
+  const [addedId, setAddedId] = useState<string | null>(null);
+
+  const quickAdd = useCallback((e: React.MouseEvent, item: ProductItem) => {
+    e.stopPropagation();
+    if (!liveSubdomain || !item.productId) { setOpenProduct(item); return; }
+    if (item.hasVariants) { setOpenProduct(item); return; }
+    addToShopCart(liveSubdomain, {
+      productId: item.productId,
+      productName: item.name,
+      priceLabel: item.priceLabel ?? "",
+    });
+    window.dispatchEvent(new Event("kebu-cart-changed"));
+    setAddedId(item.productId);
+    setTimeout(() => setAddedId((prev) => (prev === item.productId ? null : prev)), 1600);
+  }, [liveSubdomain]);
 
   /* Auto-fetch collections from API when projectId is set and none are passed as props */
   useEffect(() => {
@@ -398,14 +414,26 @@ export function ProductsSection({
               No image
             </div>
           )}
-          {/* Quick-view badge on hover */}
+          {/* Quick-add button on hover */}
           <div className="absolute inset-x-0 bottom-0 flex justify-center py-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <span
-              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow"
-              style={{ background: "rgba(0,0,0,0.75)" }}
-            >
-              Quick view
-            </span>
+            {liveSubdomain && item.productId ? (
+              <button
+                type="button"
+                onClick={(e) => quickAdd(e, item)}
+                className="rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow transition-transform active:scale-95"
+                style={{ background: addedId === item.productId ? "#10B981" : "rgba(0,0,0,0.82)" }}
+                aria-label={addedId === item.productId ? "Added to cart" : `Add ${item.name} to cart`}
+              >
+                {addedId === item.productId ? "✓ Added" : item.hasVariants ? "Choose options" : "+ Add to cart"}
+              </button>
+            ) : (
+              <span
+                className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow"
+                style={{ background: "rgba(0,0,0,0.75)" }}
+              >
+                Quick view
+              </span>
+            )}
           </div>
         </div>
         <div className={`p-4 flex flex-col gap-1.5 ${isList ? "flex-1" : ""}`}>
@@ -420,17 +448,32 @@ export function ProductsSection({
               {item.description}
             </p>
           ) : null}
-          <button
-            type="button"
-            className="mt-2 self-start rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
-            style={{
-              background: `${theme.accent}15`,
-              color: theme.accent,
-            }}
-            onClick={(e) => { e.stopPropagation(); setOpenProduct(item); }}
-          >
-            View details →
-          </button>
+          <div className="mt-2 flex gap-1.5 flex-wrap">
+            {liveSubdomain && item.productId && !item.hasVariants && (
+              <button
+                type="button"
+                onClick={(e) => quickAdd(e, item)}
+                className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95"
+                style={{
+                  background: addedId === item.productId ? "#10B981" : theme.accent,
+                  color: "#fff",
+                }}
+              >
+                {addedId === item.productId ? "✓ Added" : "+ Add to cart"}
+              </button>
+            )}
+            <button
+              type="button"
+              className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
+              style={{
+                background: `${theme.accent}12`,
+                color: theme.accent,
+              }}
+              onClick={(e) => { e.stopPropagation(); setOpenProduct(item); }}
+            >
+              {item.hasVariants ? "Choose options" : "Details →"}
+            </button>
+          </div>
         </div>
       </article>
     );

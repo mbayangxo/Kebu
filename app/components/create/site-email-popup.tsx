@@ -14,6 +14,10 @@ export type EmailPopupProps = {
   successMessage?: string;
   delaySeconds?: number;
   remindAfterDays?: number;
+  showOnFirstVisitOnly?: boolean;
+  imageUrl?: string;
+  discountCode?: string;
+  discountTeaser?: string;
 };
 
 const STORAGE_PREFIX = "kebu_site_popup_";
@@ -71,7 +75,7 @@ export function SiteEmailPopup({
 }) {
   const mode = props.mode ?? "both";
   const delayMs = Math.max(0, (props.delaySeconds ?? 4) * 1000);
-  const remindDays = props.remindAfterDays ?? 14;
+  const remindDays = props.showOnFirstVisitOnly ? 36500 : (props.remindAfterDays ?? 14);
   const key = storageKey(projectId, sectionId);
 
   const [open, setOpen] = useState(false);
@@ -164,13 +168,32 @@ export function SiteEmailPopup({
     <div className="kebu-email-popup" role="dialog" aria-modal="true" aria-label={props.heading || "Site notice"}>
       <button type="button" className="kebu-email-popup__backdrop" aria-label="Close" onClick={dismiss} />
       <div className="kebu-email-popup__card">
+        {props.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={props.imageUrl}
+            alt=""
+            className="kebu-email-popup__image"
+          />
+        ) : null}
+        {props.discountTeaser ? (
+          <p className="kebu-email-popup__teaser">{props.discountTeaser}</p>
+        ) : null}
         <h2 className="kebu-email-popup__heading">{props.heading || "Stay in the loop"}</h2>
         <p className="kebu-email-popup__body">{props.body || ""}</p>
 
         {done ? (
-          <p className="kebu-email-popup__success">
-            {mode === "consent" ? "Saved." : props.successMessage || "You're on the list."}
-          </p>
+          <div>
+            <p className="kebu-email-popup__success">
+              {mode === "consent" ? "Saved." : props.successMessage || "You're on the list."}
+            </p>
+            {props.discountCode ? (
+              <div className="kebu-email-popup__discount-reveal">
+                <p className="kebu-email-popup__discount-label">Your discount code:</p>
+                <code className="kebu-email-popup__discount-code">{props.discountCode}</code>
+              </div>
+            ) : null}
+          </div>
         ) : (
           <form className="kebu-email-popup__form" onSubmit={(e) => void onPrimary(e)}>
             {(mode === "consent" || mode === "both") && (

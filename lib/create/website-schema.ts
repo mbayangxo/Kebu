@@ -680,6 +680,14 @@ export const sectionPropsSchemas = {
     delaySeconds: z.number().int().min(0).max(60).default(4),
     /** Days before showing again after dismiss (0 = every visit until accept). */
     remindAfterDays: z.number().int().min(0).max(365).default(14),
+    /** If true, never show again after the first dismiss — ignores remindAfterDays. */
+    showOnFirstVisitOnly: z.boolean().optional().default(false),
+    /** Logo or card image shown above the heading. */
+    imageUrl: imageUrl.optional(),
+    /** Discount code revealed to the subscriber after signup. */
+    discountCode: z.string().trim().max(80).optional(),
+    /** Teaser shown instead of plain heading — e.g. "Get 15% off your first order". */
+    discountTeaser: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
   }),
   whatsapp: z.object({

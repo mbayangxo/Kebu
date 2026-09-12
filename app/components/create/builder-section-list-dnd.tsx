@@ -77,6 +77,13 @@ function iconForType(type: string): { bg: string; letter: string } {
     case "faq": return { bg: "#F97316", letter: "?" };
     case "events": return { bg: "#F97316", letter: "E" };
     case "footer": return { bg: "#3B82F6", letter: "F" };
+    case "countdown": return { bg: "#0EA5E9", letter: "⏱" };
+    case "trust-badges": return { bg: "#10B981", letter: "TB" };
+    case "social-proof": return { bg: "#8B5CF6", letter: "SP" };
+    case "floating-cta": return { bg: "#25D366", letter: "FC" };
+    case "before-after": return { bg: "#F97316", letter: "BA" };
+    case "hotspot-image": return { bg: "#8B5CF6", letter: "HI" };
+    case "reviews": return { bg: "#F59E0B", letter: "★" };
     default: return { bg: "#9CA3AF", letter: type.slice(0, 2).toUpperCase() };
   }
 }
