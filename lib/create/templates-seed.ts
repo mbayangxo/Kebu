@@ -86,6 +86,9 @@ import { streetwearWorldDefinition } from "./design-worlds/streetwear-world";
 import { photoCulinaireWorldDefinition } from "./design-worlds/photo-culinaire-world";
 import { bookingArtisteWorldDefinition } from "./design-worlds/booking-artiste-world";
 import { centreFormationWorldDefinition } from "./design-worlds/centre-formation-world";
+import { sneakerWorldDefinition } from "./design-worlds/sneaker-world";
+import { bijouterieLumiereWorldDefinition } from "./design-worlds/bijouterie-lumiere-world";
+import { beauteBrandWorldDefinition } from "./design-worlds/beaute-brand-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1293,6 +1296,30 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "ACADÉMIE FUTUR — bleu marine/or, 9 formations FCFA filterTags, soutien scolaire + certifications · Dakar",
     definition: centreFormationWorldDefinition(),
+  },
+  {
+    slug: "sneaker-boutique",
+    name: "Boutique sneakers & culture sneaker",
+    category: "ecommerce",
+    description:
+      "SOLE DAKAR — noir/orange brûlé, 9 paires Jordan/Nike/Adidas FCFA, drop alerts WhatsApp, authenticité garantie · 3 pages",
+    definition: sneakerWorldDefinition(),
+  },
+  {
+    slug: "bijouterie-fine",
+    name: "Bijouterie fine & joaillerie artisanale",
+    category: "ecommerce",
+    description:
+      "LUMIÈRE FINE — crème ivoire/or editorial, 9 bijoux or 18K FCFA, sur mesure, Cormorant Garamond · 3 pages",
+    definition: bijouterieLumiereWorldDefinition(),
+  },
+  {
+    slug: "marque-beaute-naturelle",
+    name: "Marque beauté & soins peau africaine",
+    category: "ecommerce",
+    description:
+      "ÉCLAT NATUREL — vert sauge/or naturel, 9 produits clean beauty FCFA filterTags, formulé peau africaine · 3 pages",
+    definition: beauteBrandWorldDefinition(),
   },
 ];
 
