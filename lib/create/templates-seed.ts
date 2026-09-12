@@ -80,6 +80,10 @@ import { wellnessCoachWorldDefinition } from "./design-worlds/wellness-coach-wor
 import { mondayStudioWorldDefinition } from "./design-worlds/monday-studio-world";
 import { mobilierWorldDefinition } from "./design-worlds/mobilier-world";
 import { agenceEnfantsWorldDefinition } from "./design-worlds/agence-enfants-world";
+import { soinPeauWorldDefinition } from "./design-worlds/soin-peau-world";
+import { supplementsWorldDefinition } from "./design-worlds/supplements-world";
+import { streetwearWorldDefinition } from "./design-worlds/streetwear-world";
+import { photoCulinaireWorldDefinition } from "./design-worlds/photo-culinaire-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1239,6 +1243,38 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Agence casting enfants Dakar — violet/orange playful, boutique mode 6 pièces FCFA filterTags, processus casting 4 étapes · 3 pages",
     definition: agenceEnfantsWorldDefinition(),
+  },
+  {
+    slug: "institut-soin-peau",
+    name: "Institut de soins & beauté",
+    category: "services",
+    description:
+      "Institut beauté naturelle Dakar — nude/taupe soft luxury, 9 soins FCFA filterTags Visage/Corps/Forfaits, diagnostic peau · 3 pages",
+    definition: soinPeauWorldDefinition(),
+  },
+  {
+    slug: "complements-naturels",
+    name: "Compléments alimentaires naturels",
+    category: "ecommerce",
+    description:
+      "Nutrition sportive & santé Dakar — vert forêt/citron clean health, 9 produits FCFA filterTags, bilan nutritionnel gratuit · 3 pages",
+    definition: supplementsWorldDefinition(),
+  },
+  {
+    slug: "streetwear-drop",
+    name: "Streetwear drops limités",
+    category: "ecommerce",
+    description:
+      "Marque streetwear drop culture Dakar — noir/rouge néon dark, 6 pièces limitées FCFA filterTags, collab artistes · 3 pages",
+    definition: streetwearWorldDefinition(),
+  },
+  {
+    slug: "photographe-culinaire",
+    name: "Photographe culinaire & food styling",
+    category: "portfolio",
+    description:
+      "Studio photo culinaire Dakar — warm brun/or éditorial, portfolio masonry, 4 forfaits food styling FCFA · 3 pages",
+    definition: photoCulinaireWorldDefinition(),
   },
 ];
 
