@@ -1406,50 +1406,54 @@ export default function ProjectEditorPage() {
           </div>
         ) : (
           <>
-            <BuilderStudioRail
-              railTab={sidebarTab}
-              panelOpen={leftPanelOpen}
-              onRail={openStudioTab}
-              extras={
-                <>
-                  <Link
-                    href={mySiteDetailHref(projectId)}
-                    title="Domain & SEO"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase leading-none"
-                    style={{ color: BUILDER.muted }}
-                  >
-                    SEO
-                  </Link>
-                  {maylecorRussianLayout || kdirectionLayout ? (
-                    <button
-                      type="button"
-                      title="Repair layout"
-                      onClick={() => void repairLayout()}
-                      disabled={repairing || loading}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase disabled:opacity-40"
+            {/* Desktop vertical icon rail — hidden on phones */}
+            <div className="hidden sm:contents">
+              <BuilderStudioRail
+                railTab={sidebarTab}
+                panelOpen={leftPanelOpen}
+                onRail={openStudioTab}
+                extras={
+                  <>
+                    <Link
+                      href={mySiteDetailHref(projectId)}
+                      title="Domain & SEO"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase leading-none"
                       style={{ color: BUILDER.muted }}
                     >
-                      Fix
-                    </button>
-                  ) : null}
-                </>
-              }
-            />
+                      SEO
+                    </Link>
+                    {maylecorRussianLayout || kdirectionLayout ? (
+                      <button
+                        type="button"
+                        title="Repair layout"
+                        onClick={() => void repairLayout()}
+                        disabled={repairing || loading}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase disabled:opacity-40"
+                        style={{ color: BUILDER.muted }}
+                      >
+                        Fix
+                      </button>
+                    ) : null}
+                  </>
+                }
+              />
+            </div>
 
-            {/* Mobile backdrop — tap outside panel to close */}
+            {/* Mobile backdrop */}
             {leftPanelOpen && (
               <div
-                className="md:hidden absolute inset-0 z-20 bg-black/40"
+                className="absolute inset-0 z-20 bg-black/40"
                 onClick={() => setLeftPanelOpen(false)}
                 aria-hidden
               />
             )}
 
+            {/* Desktop slide-over panel (sm+) */}
             <aside
               className={`${
                 leftPanelOpen
-                  ? "absolute md:relative inset-y-0 left-11 md:left-auto w-[280px] md:w-[260px] z-30 md:z-auto shadow-2xl md:shadow-none kebu-slide-in-left"
-                  : "hidden"
+                  ? "absolute sm:relative inset-y-0 left-0 sm:left-auto w-[280px] sm:w-[260px] z-30 sm:z-auto shadow-2xl sm:shadow-none kebu-slide-in-left"
+                  : "hidden sm:hidden"
               } shrink-0 overflow-y-auto border-r`}
               style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
             >
@@ -4195,7 +4199,7 @@ export default function ProjectEditorPage() {
             >
               <div
                 className={`mx-auto flex min-h-0 flex-1 w-full ${
-                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:p-8"
+                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:p-8 pb-16 sm:pb-8"
                 }`}
               >
                 <div
@@ -4291,6 +4295,42 @@ export default function ProjectEditorPage() {
             </section>
           </>
         )}
+
+        {/* Mobile bottom tab bar — only on phones (hidden sm:flex makes it appear only < 640px) */}
+        {!loading && project ? (
+          <nav
+            className="sm:hidden absolute bottom-0 inset-x-0 z-40 flex items-center justify-around border-t bg-white"
+            style={{ borderColor: "#E5E5E5", height: 56, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+            aria-label="Builder tools"
+          >
+            {(
+              [
+                ["content", "Sections", <svg key="c" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 6h16M4 12h16M4 18h10" strokeLinecap="round" /></svg>],
+                ["aesthetic", "Style", <svg key="a" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 3a9 9 0 100 18 4 4 0 010-8h2a3 3 0 100-6h-1" strokeLinejoin="round" /><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none" /><circle cx="10.5" cy="7.5" r="1.1" fill="currentColor" stroke="none" /></svg>],
+                ["media", "Photos", <svg key="m" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.4" fill="currentColor" stroke="none" /><path d="M21 16l-5.5-5.5L8 18" strokeLinecap="round" /></svg>],
+                ["shop", "Shop", <svg key="s" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 7h12l-1 12H7L6 7z" strokeLinejoin="round" /><path d="M9 7V5a3 3 0 016 0v2" strokeLinecap="round" /></svg>],
+                ["pages", "Pages", <svg key="p" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 4h8l4 4v12a1 1 0 01-1 1H6a1 1 0 01-1-1V5a1 1 0 011-1z" strokeLinejoin="round" /><path d="M14 4v4h4" strokeLinejoin="round" /></svg>],
+              ] as const
+            ).map(([id, label, icon]) => {
+              const active = leftPanelOpen && sidebarTab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-label={label}
+                  aria-pressed={active}
+                  onClick={() => openStudioTab(id as typeof sidebarTab)}
+                  className="flex flex-col items-center gap-0.5 px-2 py-1"
+                  style={{ color: active ? BUILDER.ink : "#9CA3AF", minWidth: 48 }}
+                >
+                  {icon}
+                  <span className="text-[9px] font-bold uppercase tracking-wider">{label}</span>
+                  {active ? <span className="h-0.5 w-4 rounded-full" style={{ background: BUILDER.ink }} /> : null}
+                </button>
+              );
+            })}
+          </nav>
+        ) : null}
       </main>
 
       {previewFullscreen && canvasDefinition ? (
