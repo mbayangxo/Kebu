@@ -21,6 +21,7 @@ export const SECTION_TYPES = [
   "testimonials",
   "faq",
   "products",
+  "quiz",
   "contact",
   "newsletter",
   "email-popup",
@@ -264,9 +265,25 @@ export const sectionPropsSchemas = {
   }),
   testimonials: z.object({
     heading: z.string().trim().max(160).default("What customers say"),
+    /** Filter pill tags grouping review topics — e.g. "Hydration", "Texture & Feel". */
+    topics: z.array(z.string().trim().max(60)).max(12).optional().default([]),
     items: z
-      .array(z.object({ quote: z.string().trim().max(400), name: z.string().trim().max(80) }))
-      .max(8)
+      .array(z.object({
+        quote: z.string().trim().max(400),
+        name: z.string().trim().max(80),
+        /** Short line shown under name — e.g. "Peau mixte · hyperpigmentation — Dakar". */
+        role: z.string().trim().max(120).optional(),
+        /** Structured: skin type (Normal, Mixte, Grasse, Sèche, Sensible). */
+        skinType: z.string().trim().max(60).optional(),
+        /** Structured: main skin concern. */
+        skinConcern: z.string().trim().max(80).optional(),
+        /** Topics this review covers — must match topics array entries for filtering. */
+        reviewTopics: z.array(z.string().trim().max(60)).max(6).optional().default([]),
+        verified: z.boolean().optional(),
+        rating: z.number().int().min(1).max(5).optional(),
+        imageUrl: imageUrl.optional().default(""),
+      }))
+      .max(24)
       .default([]),
     hidden: z.boolean().optional(),
   }),
@@ -319,12 +336,50 @@ export const sectionPropsSchemas = {
             )
             .max(48)
             .optional(),
+          /** ISO date string YYYY-MM-DD — displayed as freshness indicator on food/pharma product cards. */
+          expiryDate: z.string().trim().max(10).optional(),
+          /** Internal batch/lot reference for traceability. */
+          batchCode: z.string().trim().max(40).optional(),
         }),
       )
       .max(24)
       .default([]),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
+  }),
+  /**
+   * Interactive product-finder / consultation quiz.
+   * Each step asks one question; the final step fires a pre-filled WhatsApp message
+   * containing all answers so the merchant can recommend products personally.
+   */
+  quiz: z.object({
+    heading: z.string().trim().max(160).default("Trouvez votre routine"),
+    subheading: z.string().trim().max(240).default(""),
+    /** Label on the final WhatsApp send button. */
+    ctaLabel: z.string().trim().max(60).default("Voir ma recommandation sur WhatsApp"),
+    /** Merchant WhatsApp number (E.164, digits only). */
+    whatsappPhone: z.string().trim().max(20).default(""),
+    /** Prefix prepended to the WhatsApp message before answers. */
+    whatsappIntro: z.string().trim().max(200).default("Bonjour, voici mes réponses au quiz :"),
+    steps: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(40),
+          question: z.string().trim().min(1).max(200),
+          /** Single-choice option list. */
+          options: z.array(z.string().trim().min(1).max(80)).min(2).max(8),
+          /** Emoji or short icon shown next to this step in the progress rail. */
+          icon: z.string().trim().max(4).optional(),
+        }),
+      )
+      .min(1)
+      .max(6)
+      .default([
+        { id: "skin_type", question: "Quel est votre type de peau ?", options: ["Normale", "Mixte", "Grasse", "Sèche", "Sensible"], icon: "🌿" },
+        { id: "concern", question: "Votre priorité principale ?", options: ["Éclat & teint unifié", "Hydratation profonde", "Anti-taches", "Anti-âge", "Pores & points noirs"], icon: "✨" },
+        { id: "routine", question: "Votre routine actuelle ?", options: ["Je débute", "Routine simple (2–3 soins)", "Routine complète", "Soins naturels uniquement"], icon: "🕐" },
+      ]),
+    hidden: z.boolean().optional(),
   }),
   contact: z.object({
     heading: z.string().trim().max(160).default("Contact"),

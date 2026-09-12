@@ -48,7 +48,7 @@ export function fashionWorldDefinition(): WebsiteDefinition {
       text: "#0A0A0A",
       fontDisplay: "Cormorant Garamond",
       fontBody: "Inter",
-      spacing: "spacious",
+      spacing: "airy",
       headingScale: "xl",
       bodySize: "md",
       letterSpacing: "wide",

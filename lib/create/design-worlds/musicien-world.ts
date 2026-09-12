@@ -47,7 +47,7 @@ export function musicienWorldDefinition(): WebsiteDefinition {
       text: "#F5F5F5",
       fontDisplay: "Bebas Neue",
       fontBody: "Inter",
-      spacing: "spacious",
+      spacing: "airy",
       headingScale: "xl",
       bodySize: "md",
       letterSpacing: "wide",
