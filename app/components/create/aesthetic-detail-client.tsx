@@ -247,10 +247,42 @@ export function AestheticDetailClient({
               {item.name}
             </h1>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-              {item.tagline}. Real Kebu site schema — not a ThemeForest HTML dump. Accept into Owned, apply to a site
-              in My Sites, edit in Builder, then publish.
+              {item.tagline}
             </p>
           </div>
+
+          {item.businessStory ? (
+            <div
+              className="rounded-2xl p-4 space-y-1"
+              style={{ background: "#FFF8F2", border: `1px solid ${KEBU.border}` }}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: KEBU.orange }}>
+                The business behind this aesthetic
+              </p>
+              <p className="text-[13px] leading-relaxed" style={{ color: KEBU.black }}>
+                {item.businessStory}
+              </p>
+            </div>
+          ) : null}
+
+          {item.includedPages && item.includedPages.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: KEBU.muted }}>
+                Pages included
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {item.includedPages.map((page) => (
+                  <span
+                    key={page}
+                    className="rounded-full px-3 py-1 text-[11px] font-semibold"
+                    style={{ background: "#F4F4F5", color: KEBU.black }}
+                  >
+                    {page}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <p className="text-2xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
             Free to try
