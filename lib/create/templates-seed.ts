@@ -56,6 +56,9 @@ import { cafeWorldDefinition } from "./design-worlds/cafe-world";
 import { yogaWorldDefinition } from "./design-worlds/yoga-world";
 import { bridalWorldDefinition } from "./design-worlds/bridal-world";
 import { dentalClinicWorldDefinition } from "./design-worlds/dental-clinic-world";
+import { luxuryLipWorldDefinition } from "./design-worlds/luxury-lip-world";
+import { architectureWorldDefinition } from "./design-worlds/architecture-world";
+import { pastryWorldDefinition } from "./design-worlds/pastry-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1023,6 +1026,30 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Cabinet dentaire moderne — soins, blanchiment, implants, pédodontie, tarifs FCFA transparents, urgences WhatsApp · 5 pages",
     definition: dentalClinicWorldDefinition(),
+  },
+  {
+    slug: "luxury-lip-brand",
+    name: "Marque maquillage luxe",
+    category: "beauty",
+    description:
+      "Marque makeup luxe éditoriale — obsidienne + or, éditions limitées, filterTags produits, WhatsApp concierge · 4 pages",
+    definition: luxuryLipWorldDefinition(),
+  },
+  {
+    slug: "architecture-studio",
+    name: "Cabinet d'architecture",
+    category: "architecture",
+    description:
+      "Atelier architecture & design d'intérieur — portfolio masonry, missions, process, équipe, formulaire projet · 5 pages",
+    definition: architectureWorldDefinition(),
+  },
+  {
+    slug: "pastry-shop",
+    name: "Pâtisserie artisanale",
+    category: "restaurant",
+    description:
+      "Pâtisserie artisanale africaine — best-sellers FCFA, wedding cakes, commandes sur-mesure, galerie masonry · 4 pages",
+    definition: pastryWorldDefinition(),
   },
 ];
 
