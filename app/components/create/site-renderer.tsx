@@ -18,6 +18,7 @@ import {
   isDirectAudioUrl,
   isDirectVideoUrl,
 } from "@/lib/create/site-asset-upload";
+import { supabaseImgUrl } from "@/lib/create/image-transforms";
 import {
   commercePaymentLabels,
   mergeSiteCommerce,
@@ -849,10 +850,12 @@ export function SiteRenderer({
                 {hasImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={p.image}
+                    src={supabaseImgUrl(p.image!, 1400)}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
                     style={{ opacity: 0.88 }}
+                    fetchPriority={idx === 0 ? "high" : "auto"}
+                    decoding="async"
                   />
                 ) : null}
                 <div
@@ -985,7 +988,7 @@ export function SiteRenderer({
                         {img ? (
                           <div className="mays-world-moodboard__media" aria-hidden>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img} alt="" />
+                            <img src={supabaseImgUrl(img, 800)} alt="" loading="lazy" decoding="async" />
                           </div>
                         ) : null}
                         <div className="mays-world-moodboard__copy">
@@ -1016,11 +1019,12 @@ export function SiteRenderer({
                         {img ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={img}
+                            src={supabaseImgUrl(img, 800)}
                             alt={item.title}
                             className="w-full rounded-xl object-cover mb-5"
                             style={{ height: 200 }}
                             loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div
@@ -1360,7 +1364,13 @@ export function SiteRenderer({
             return wrap(
               <figure key={key} className="kebu-section px-5 sm:px-8 lg:px-16">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.src} alt={p.alt || ""} className="w-full rounded-2xl" />
+                <img
+                  src={supabaseImgUrl(p.src, 1200)}
+                  alt={p.alt || ""}
+                  className="w-full rounded-2xl"
+                  loading="lazy"
+                  decoding="async"
+                />
                 {p.caption && <figcaption className="text-xs mt-2 opacity-60">{p.caption}</figcaption>}
               </figure>,
             );
@@ -1424,7 +1434,13 @@ export function SiteRenderer({
                     </h2>
                   ) : null}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={first.src} alt={first.alt || ""} className="w-full rounded-2xl object-cover" />
+                  <img
+                    src={supabaseImgUrl(first.src, 1200)}
+                    alt={first.alt || ""}
+                    className="w-full rounded-2xl object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </section>,
               );
             }
@@ -1446,9 +1462,11 @@ export function SiteRenderer({
                 {featured ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={items[0]!.src}
+                    src={supabaseImgUrl(items[0]!.src, 1400)}
                     alt={items[0]!.alt || ""}
                     className="w-full rounded-2xl object-cover max-h-[28rem]"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : null}
                 <div className={`grid gap-3 ${colClass}`}>
@@ -1456,9 +1474,11 @@ export function SiteRenderer({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       key={`${item.src}-${i}`}
-                      src={item.src}
+                      src={supabaseImgUrl(item.src, 800)}
                       alt={item.alt || ""}
                       className="rounded-xl w-full object-cover aspect-square"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ))}
                 </div>

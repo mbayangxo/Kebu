@@ -56,6 +56,36 @@ const nextConfig: NextConfig = {
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
+      // Published public site pages — shared CDN cache, revalidated every 60 s.
+      {
+        source: "/sites/:subdomain/:path*",
+        headers: [
+          ...SECURITY_HEADERS,
+          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=3600" },
+        ],
+      },
+      {
+        source: "/sites/:subdomain",
+        headers: [
+          ...SECURITY_HEADERS,
+          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=3600" },
+        ],
+      },
+      // Short-link published sites (/e/:id, /id/:id)
+      {
+        source: "/e/:publicId/:path*",
+        headers: [
+          ...SECURITY_HEADERS,
+          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=3600" },
+        ],
+      },
+      {
+        source: "/id/:publicId/:path*",
+        headers: [
+          ...SECURITY_HEADERS,
+          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=3600" },
+        ],
+      },
       // HTML, APIs, and app routes — never serve a stale landing / login / builder shell.
       {
         source: "/:path*",

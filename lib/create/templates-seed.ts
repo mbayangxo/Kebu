@@ -24,6 +24,12 @@ import { proPortfolioWorldDefinition, studentPortfolioWorldDefinition } from "./
 import { ngoImpactWorldDefinition, farmAgriWorldDefinition } from "./design-worlds/impact-worlds";
 import { professionalServicesWorldDefinition } from "./design-worlds/agency-professional-world";
 import { voltaClothingWorldDefinition } from "./design-worlds/clothing-brand-world";
+import { maquisWorldDefinition } from "./design-worlds/maquis-world";
+import { barbershopWorldDefinition } from "./design-worlds/barbershop-world";
+import { traiteurWorldDefinition } from "./design-worlds/traiteur-world";
+import { artisanWorldDefinition } from "./design-worlds/artisan-world";
+import { realEstateWorldDefinition } from "./design-worlds/real-estate-world";
+import { coachingWorldDefinition } from "./design-worlds/coaching-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -115,6 +121,55 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     category: "restaurant",
     description: "Restaurant / café — menu, about, reserve, FAQ (not a one-page flyer)",
     definition: restaurantTableWorldDefinition(),
+  },
+  // Tier 1 — West Africa high-volume
+  {
+    slug: "maquis",
+    name: "Maquis",
+    category: "restaurant",
+    description:
+      "Maquis / open-air eatery — daily specials, WhatsApp reservation, mobile money · 5 pages",
+    definition: maquisWorldDefinition(),
+  },
+  {
+    slug: "barbershop",
+    name: "Barbershop",
+    category: "beauty",
+    description:
+      "Urban barbershop — service tiles, before/after gallery, WhatsApp appointment · 5 pages",
+    definition: barbershopWorldDefinition(),
+  },
+  {
+    slug: "traiteur",
+    name: "Traiteur",
+    category: "food",
+    description:
+      "Event catering — package formulas, gallery, devis form, mobile money payment · 5 pages",
+    definition: traiteurWorldDefinition(),
+  },
+  {
+    slug: "artisan",
+    name: "Artisan",
+    category: "craft",
+    description:
+      "Craftmaker — product catalog, custom-order form, mobile money, WhatsApp · 5 pages",
+    definition: artisanWorldDefinition(),
+  },
+  {
+    slug: "real-estate",
+    name: "Immobilier",
+    category: "real-estate",
+    description:
+      "Property agency — listings, agent WhatsApp per listing, Wave / Orange Money deposit · 5 pages",
+    definition: realEstateWorldDefinition(),
+  },
+  {
+    slug: "coaching",
+    name: "Coach",
+    category: "education",
+    description:
+      "Business / life coach — cohort programs, enrollment form, mobile money payment · 5 pages",
+    definition: coachingWorldDefinition(),
   },
   {
     slug: "portfolio-pro",

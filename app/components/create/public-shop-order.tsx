@@ -97,7 +97,9 @@ export function PublicShopOrder({
           ? jokoCauris.payLabel
           : pay === "joko"
             ? "Pay in Cauris"
-            : "Save order + WhatsApp";
+            : pay === "mbolo"
+              ? "Save order + Mbolo"
+              : "Save order + WhatsApp";
 
   function resolveClientChannel():
     | "whatsapp"
@@ -216,7 +218,9 @@ export function PublicShopOrder({
         window.location.href = data.paymentUrl;
         return;
       }
-      if (typeof data.whatsappHref === "string" && data.whatsappHref.startsWith("https://")) {
+      if (typeof data.mboloHref === "string" && data.mboloHref.startsWith("https://")) {
+        window.open(data.mboloHref, "_blank", "noopener,noreferrer");
+      } else if (typeof data.whatsappHref === "string" && data.whatsappHref.startsWith("https://")) {
         window.open(data.whatsappHref, "_blank", "noopener,noreferrer");
       }
     } catch {

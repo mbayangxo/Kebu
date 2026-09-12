@@ -3,6 +3,8 @@ import { loadPublicDeployment } from "@/lib/create/public-site-loader";
 import { PublicSiteView } from "@/app/components/create/public-site-view";
 import { SiteBillingSuspendedView } from "@/app/components/create/site-billing-suspended";
 
+export const revalidate = 60;
+
 type Params = { params: Promise<{ subdomain: string }> };
 
 export default async function PublicSitePage({ params }: Params) {

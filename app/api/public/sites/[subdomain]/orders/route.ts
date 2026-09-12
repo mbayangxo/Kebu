@@ -7,6 +7,7 @@ import type { SiteSeo } from "@/lib/create/site-seo";
 import { kebuTransferHeaders, parseDataModeHeader } from "@/lib/create/kb-budget";
 import {
   shopOrderInputSchema,
+  shopOrderMboloHref,
   shopOrderWhatsAppHref,
   shopOrderWhatsAppMessage,
 } from "@/lib/shop/create-order";
@@ -333,6 +334,11 @@ export async function POST(req: Request, { params }: Params) {
     const merchantPhone = snapshot
       ? resolveMerchantWhatsApp(snapshot, snapshot.seo as SiteSeo | undefined)
       : "";
+    const snapshotCommerce =
+      snapshot?.seo && typeof snapshot.seo === "object"
+        ? (snapshot.seo as SiteSeo).commerce
+        : null;
+    const merchantMboloNumber = snapshotCommerce?.mboloNumber?.trim() || merchantPhone;
     const message = shopOrderWhatsAppMessage({
       orderId,
       orderNumber: savedOrderNumber,
@@ -474,6 +480,9 @@ export async function POST(req: Request, { params }: Params) {
       productUpc,
       paymentUrl,
       whatsappHref: shopOrderWhatsAppHref(merchantPhone, message),
+      mboloHref: input.paymentPreference === "mbolo"
+        ? shopOrderMboloHref(merchantMboloNumber, message)
+        : undefined,
       giftPublicId,
       giftPath,
       isGift: Boolean(input.isGift),
