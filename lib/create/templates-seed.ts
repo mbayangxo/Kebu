@@ -63,6 +63,9 @@ import { couturiereWorldDefinition } from "./design-worlds/couturiere-world";
 import { agenceVoyageWorldDefinition } from "./design-worlds/agence-voyage-world";
 import { maquilleurWorldDefinition } from "./design-worlds/maquilleur-world";
 import { immobilierLuxeWorldDefinition } from "./design-worlds/immobilier-luxe-world";
+import { gameStudioWorldDefinition } from "./design-worlds/game-studio-world";
+import { prAgencyWorldDefinition } from "./design-worlds/pr-agency-world";
+import { artisteVisuelWorldDefinition } from "./design-worlds/artiste-visuel-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1086,6 +1089,30 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Agence immobilier luxe Dakar — villas, penthouses, terrains titrés, gestion locative, formulaire projet · 4 pages",
     definition: immobilierLuxeWorldDefinition(),
+  },
+  {
+    slug: "game-studio",
+    name: "Studio de jeux vidéo",
+    category: "tech",
+    description:
+      "Studio jeux mobile africain — neon dark, catalogue de 6+ jeux gratuits, stats 2M+ téléchargements, recrutement · 3 pages",
+    definition: gameStudioWorldDefinition(),
+  },
+  {
+    slug: "agence-communication",
+    name: "Agence de communication",
+    category: "agency",
+    description:
+      "Agence RP & communication Dakar — relations presse, influence, événementiel, forfaits FCFA, brief project form · 4 pages",
+    definition: prAgencyWorldDefinition(),
+  },
+  {
+    slug: "artiste-plasticien",
+    name: "Artiste plasticien",
+    category: "portfolio",
+    description:
+      "Portfolio beaux-arts africain — peintures, photographies, tirages à vendre, biographie, galeries internationales · 5 pages",
+    definition: artisteVisuelWorldDefinition(),
   },
 ];
 
