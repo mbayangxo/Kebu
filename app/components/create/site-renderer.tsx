@@ -53,6 +53,7 @@ import "./kebu-scroll-entrance.css";
 import { initScrollEntrances, ENTRANCE_MOTION } from "./kebu-scroll-entrance";
 import { SiteCountdown } from "@/app/components/create/site-countdown";
 import { SiteSocialProof } from "@/app/components/create/site-social-proof";
+import { SiteProductReviews } from "@/app/components/create/site-product-reviews";
 import { KEBU_SITE_ROOT_CLASS } from "@/lib/create/site-responsive";
 import { themeToCssVars } from "@/lib/create/site-aesthetics";
 import { dataModeSiteClass, preferSystemFonts, type DataMode } from "@/lib/create/data-mode";
@@ -2686,6 +2687,31 @@ export function SiteRenderer({
                     </div>
                   ))}
                 </div>
+              </section>,
+            );
+          }
+          case "reviews": {
+            const p = section.props as {
+              heading?: string;
+              productId?: string;
+              showForm?: boolean;
+              maxVisible?: number;
+              layout?: "list" | "grid";
+            };
+            const liveSub =
+              mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase)) : null;
+            return wrap(
+              <section key={key} id={anchor} className="px-5 sm:px-8 lg:px-16 py-12 scroll-mt-20">
+                <SiteProductReviews
+                  productId={p.productId}
+                  subdomain={liveSub ?? undefined}
+                  heading={p.heading}
+                  showForm={p.showForm}
+                  maxVisible={p.maxVisible}
+                  layout={p.layout}
+                  accent={theme.accent}
+                  preview={mode !== "live"}
+                />
               </section>,
             );
           }

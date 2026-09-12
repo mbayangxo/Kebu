@@ -42,6 +42,7 @@ const SECTION_ICONS: Record<string, string> = {
   "trust-badges": "🛡",
   "social-proof": "🔔",
   "floating-cta": "💬",
+  reviews: "★",
 };
 
 /** Shopify-style section picker — compact rows, icon + label + hint. */

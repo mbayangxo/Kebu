@@ -175,6 +175,12 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
     category: "media",
   },
   {
+    type: "reviews",
+    label: "Product reviews",
+    description: "Star ratings, verified reviews + submit form — Yotpo-style",
+    category: "engage",
+  },
+  {
     type: "form",
     label: "Contact form",
     description: "Collect messages — saved to your Kebu account",

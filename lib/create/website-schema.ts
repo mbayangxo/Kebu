@@ -36,6 +36,7 @@ export const SECTION_TYPES = [
   "floating-cta",
   "before-after",
   "hotspot-image",
+  "reviews",
   "free-text",
   "footer",
   "maylecor-home",
@@ -824,6 +825,18 @@ export const sectionPropsSchemas = {
       }))
       .max(12)
       .default([]),
+    hidden: z.boolean().optional(),
+  }),
+  /** Customer product reviews widget — Yotpo-style star ratings, submit form, breakdown. */
+  reviews: z.object({
+    heading: z.string().trim().max(160).optional().default("Avis clients"),
+    /** UUID of the product to show reviews for. If blank, shows a placeholder. */
+    productId: z.string().uuid().optional(),
+    /** Show the review submit form. Default true. */
+    showForm: z.boolean().optional().default(true),
+    /** How many reviews to show before "load more". */
+    maxVisible: z.number().int().min(1).max(50).optional().default(6),
+    layout: z.enum(["list", "grid"]).optional().default("list"),
     hidden: z.boolean().optional(),
   }),
   "free-text": z.object({
