@@ -1315,7 +1315,7 @@ export default function ProjectEditorPage() {
             <aside
               className={`${
                 leftPanelOpen
-                  ? "absolute md:relative inset-y-0 left-11 md:left-auto w-[300px] md:w-[320px] z-30 md:z-auto shadow-2xl md:shadow-none"
+                  ? "absolute md:relative inset-y-0 left-11 md:left-auto w-[280px] md:w-[260px] z-30 md:z-auto shadow-2xl md:shadow-none"
                   : "hidden"
               } shrink-0 overflow-y-auto border-r`}
               style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { KebuMark } from "@/app/components/kebu-mark";
+import { YandeMark } from "@/app/components/yande-mark";
 import { KebuSidebarAuthFooter } from "@/app/components/kebu-sidebar-auth-footer";
 import { KebuAccountContextSwitcher } from "@/app/components/kebu-account-context-switcher";
 import { useKebuWorkspace } from "@/app/hooks/use-kebu-workspace";
@@ -224,7 +225,7 @@ export function KebuAppSidebar({
 
   return (
     <aside
-      className={`hidden md:flex w-[13rem] lg:w-[15rem] shrink-0 flex-col sticky top-0 h-screen overflow-y-auto ${className}`}
+      className={`hidden md:flex w-[11.5rem] lg:w-[12.5rem] shrink-0 flex-col sticky top-0 h-screen overflow-y-auto ${className}`}
       style={{ background: KEBU.black, color: KEBU.white }}
     >
       {/* Brand accent bar */}
@@ -257,6 +258,22 @@ export function KebuAppSidebar({
       </div>
 
       <KebuAccountContextSwitcher />
+
+      {/* Yande AI quick-access button */}
+      <Link
+        href="/yande"
+        className="mx-2 mt-2 mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2 transition-colors"
+        style={{
+          background: isActive(pathname, "/yande") ? "rgba(201,169,110,0.15)" : "rgba(255,255,255,0.05)",
+          border: "1px solid rgba(201,169,110,0.2)",
+        }}
+      >
+        <YandeMark size={22} />
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold text-white leading-tight">Yande AI</p>
+          <p className="text-[9px] leading-tight" style={{ color: "rgba(255,255,255,0.38)" }}>Ask anything</p>
+        </div>
+      </Link>
 
       {/* Contextual site nav OR global nav */}
       {currentSiteId ? (

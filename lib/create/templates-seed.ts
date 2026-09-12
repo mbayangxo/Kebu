@@ -96,6 +96,7 @@ import { modeEditorialeWorldDefinition } from "./design-worlds/mode-editoriale-w
 import { menswearWorldDefinition } from "./design-worlds/menswear-world";
 import { sportswearWorldDefinition } from "./design-worlds/sportswear-world";
 import { agenceSocialMediaWorldDefinition } from "./design-worlds/agence-social-media-world";
+import { fioreBeautyWorldDefinition } from "./design-worlds/fiore-beauty-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1023,6 +1024,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Studio nail art éditorial B&W — masonry gallery, services gel/extensions FCFA, aftercare, réservation WhatsApp · 4 pages",
     definition: nailStudioWorldDefinition(),
+  },
+  {
+    slug: "fiore-beauty-studio",
+    name: "Fiore Beauty Studio",
+    category: "beauty",
+    description:
+      "Studio de beauté haut de gamme — champagne/ivoire, soins visage/corps/mains, galerie, réservation WhatsApp, Wave & Orange Money · 5 pages",
+    definition: fioreBeautyWorldDefinition(),
   },
   {
     slug: "festival",
