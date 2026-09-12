@@ -84,6 +84,8 @@ import { soinPeauWorldDefinition } from "./design-worlds/soin-peau-world";
 import { supplementsWorldDefinition } from "./design-worlds/supplements-world";
 import { streetwearWorldDefinition } from "./design-worlds/streetwear-world";
 import { photoCulinaireWorldDefinition } from "./design-worlds/photo-culinaire-world";
+import { bookingArtisteWorldDefinition } from "./design-worlds/booking-artiste-world";
+import { centreFormationWorldDefinition } from "./design-worlds/centre-formation-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1275,6 +1277,22 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Studio photo culinaire Dakar — warm brun/or éditorial, portfolio masonry, 4 forfaits food styling FCFA · 3 pages",
     definition: photoCulinaireWorldDefinition(),
+  },
+  {
+    slug: "booking-artistes-musique",
+    name: "Agence booking artistes & management",
+    category: "services",
+    description:
+      "RHYTHM AGENCY — dark electric violet, 3 pages (booking, artistes, FAQ), 4 formules sur devis, DJ/live/festival · Dakar",
+    definition: bookingArtisteWorldDefinition(),
+  },
+  {
+    slug: "centre-formation-pro",
+    name: "Centre de formation professionnelle",
+    category: "services",
+    description:
+      "ACADÉMIE FUTUR — bleu marine/or, 9 formations FCFA filterTags, soutien scolaire + certifications · Dakar",
+    definition: centreFormationWorldDefinition(),
   },
 ];
 
