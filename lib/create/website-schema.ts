@@ -159,6 +159,74 @@ export const sectionPropsSchemas = {
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
+  /** Full-bleed image/video hero with text overlay — editorial layouts and fashion templates. */
+  "editorial-hero": z.object({
+    heading: z.string().trim().min(1).max(160),
+    subheading: z.string().trim().max(400).default(""),
+    buttonLabel: z.string().trim().max(60).default(""),
+    buttonHref: safeHref.default("#"),
+    imageUrl: imageUrl.default(""),
+    imageAlt: z.string().trim().max(160).default(""),
+    /** 0–1 dark overlay opacity over the image. */
+    overlayOpacity: z.number().min(0).max(1).default(0.5),
+    align: z.enum(["left", "center", "right"]).default("left"),
+    /** Height of the hero block as a viewport-height percentage. */
+    heightVh: z.number().int().min(40).max(100).default(80),
+    background: z.string().trim().max(40).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  /** Sticky top bar with a short promotional message — high contrast, attention-grabbing. */
+  "announcement-bar": z.object({
+    text: z.string().trim().min(1).max(200),
+    /** Optional link destination when the bar is clicked. */
+    href: safeHref.optional(),
+    /** Background hex (e.g. "#B91C1C" for red — use a bold color per Boie pattern). */
+    background: z.string().trim().max(40).optional(),
+    /** Text/foreground color. */
+    color: z.string().trim().max(40).optional(),
+    /** Alias kept for backward-compat with templates that use textColor. */
+    textColor: z.string().trim().max(40).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  /** Horizontally scrolling text ticker — brand names, product categories, mottos. */
+  marquee: z.object({
+    items: z.array(z.string().trim().min(1).max(80)).min(1).max(24).default(["Kebu"]),
+    /** Scroll speed in pixels per second. */
+    speed: z.number().int().min(5).max(200).default(40),
+    background: z.string().trim().max(40).optional(),
+    color: z.string().trim().max(40).optional(),
+    separator: z.string().trim().max(10).optional().default("·"),
+    hidden: z.boolean().optional(),
+  }),
+  /** Two-column image + text layout — brand story, about, product feature. */
+  split: z.object({
+    heading: z.string().trim().max(160).optional(),
+    body: z.string().trim().max(1200).default(""),
+    imageUrl: imageUrl.default(""),
+    imageAlt: z.string().trim().max(160).default(""),
+    imagePosition: z.enum(["left", "right"]).default("right"),
+    buttonLabel: z.string().trim().max(60).optional(),
+    buttonHref: safeHref.optional(),
+    background: z.string().trim().max(40).optional(),
+    hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
+  }),
+  /** Grid of category / collection tiles — each is a clickable image + label. */
+  "category-tiles": z.object({
+    heading: z.string().trim().max(160).optional(),
+    columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional().default(4),
+    items: z
+      .array(z.object({
+        label: z.string().trim().min(1).max(60),
+        href: safeHref.default("#"),
+        imageUrl: imageUrl.default(""),
+        description: z.string().trim().max(120).optional(),
+      }))
+      .max(12)
+      .default([]),
+    hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
+  }),
   text: z.object({
     heading: z.string().trim().max(160).optional(),
     body: z.string().trim().min(1).max(2000),
@@ -340,10 +408,34 @@ export const sectionPropsSchemas = {
           expiryDate: z.string().trim().max(10).optional(),
           /** Internal batch/lot reference for traceability. */
           batchCode: z.string().trim().max(40).optional(),
+          /** Positive use cases — shown as ✓ checklist on product detail. E.g. "peaux grasses", "KP". */
+          goodFor: z.array(z.string().trim().max(80)).max(8).optional().default([]),
+          /** Contraindications — shown as ✗ list on product detail. */
+          notGoodFor: z.array(z.string().trim().max(80)).max(6).optional().default([]),
+          /** Icon+label attribute badges shown under the product (e.g. "🌿 Sans conservateurs"). */
+          attributes: z.array(z.object({ icon: z.string().trim().max(4).optional(), label: z.string().trim().max(60) })).max(8).optional().default([]),
+          /** Discount % shown when subscription is chosen. E.g. 10 → "Abonnement — économisez 10%". */
+          subscriptionDiscount: z.number().int().min(1).max(50).optional(),
+          /** "You might also like" — product names to surface as cross-sells (display only). */
+          crossSells: z.array(z.string().trim().max(120)).max(4).optional().default([]),
         }),
       )
       .max(24)
       .default([]),
+    /**
+     * Optional promotional banner card inserted into the product grid.
+     * E.g. "Commandez 3 produits → livraison gratuite" — high contrast, like Sephora's bonus-points card.
+     */
+    promoBanner: z
+      .object({
+        text: z.string().trim().min(1).max(200),
+        subtext: z.string().trim().max(120).optional(),
+        background: z.string().trim().max(40).optional(),
+        color: z.string().trim().max(40).optional(),
+        /** Which grid position to insert it (0-indexed). Default: after 2nd product. */
+        insertAfterIndex: z.number().int().min(0).max(23).optional().default(2),
+      })
+      .optional(),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
@@ -361,6 +453,18 @@ export const sectionPropsSchemas = {
     whatsappPhone: z.string().trim().max(20).default(""),
     /** Prefix prepended to the WhatsApp message before answers. */
     whatsappIntro: z.string().trim().max(200).default("Bonjour, voici mes réponses au quiz :"),
+    /**
+     * "discount-gate" = single-question quiz that unlocks a promo code on completion
+     * (Blume "Mystery Discount" pattern — great for capturing engagement before first order).
+     * "recommender" = multi-step quiz showing an inline product recommendation on the page
+     * (Blume "What are you looking for?" pattern).
+     * "whatsapp" = default — all answers go into a pre-filled WhatsApp message.
+     */
+    mode: z.enum(["whatsapp", "recommender", "discount-gate"]).optional().default("whatsapp"),
+    /** discount-gate only: the promo code to reveal after answering (sent via WhatsApp). */
+    discountCode: z.string().trim().max(40).optional(),
+    /** discount-gate only: teaser text before the code is revealed. */
+    discountTeaser: z.string().trim().max(160).optional().default("Répondez pour débloquer votre code promo"),
     steps: z
       .array(
         z.object({
@@ -370,6 +474,11 @@ export const sectionPropsSchemas = {
           options: z.array(z.string().trim().min(1).max(80)).min(2).max(8),
           /** Emoji or short icon shown next to this step in the progress rail. */
           icon: z.string().trim().max(4).optional(),
+          /**
+           * recommender mode only: maps each option (by index) to a product name to recommend.
+           * E.g. { "0": "Sérum Éclat", "1": "Crème Hydratante Légère" }
+           */
+          recommendations: z.record(z.string(), z.string().trim().max(120)).optional(),
         }),
       )
       .min(1)
