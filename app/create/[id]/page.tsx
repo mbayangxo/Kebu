@@ -26,6 +26,7 @@ import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import type { PublishState } from "@/lib/create/publish-state";
 import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
+import { BuilderShopPanel } from "@/app/components/create/builder-shop-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
@@ -1502,21 +1503,11 @@ export default function ProjectEditorPage() {
               )}
 
               {sidebarTab === "shop" && (
-                <div className="px-4 py-5 space-y-4">
-                  <div>
-                    <p className="text-[13px] font-semibold mb-1" style={{ color: BUILDER.ink }}>Shop</p>
-                    <p className="text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                      Products, orders, and payments live in Kebu Shop — keep the canvas free for the site.
-                    </p>
-                  </div>
-                  <Link
-                    href={`/shop/${projectId}`}
-                    className="inline-flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-[12px] font-semibold"
-                    style={{ background: BUILDER.ink, color: "#fff" }}
-                  >
-                    Open Shop
-                  </Link>
-                </div>
+                <BuilderShopPanel
+                  projectId={projectId}
+                  commerce={seoSettings.commerce ?? {}}
+                  onSaved={(next) => queueSiteSettingsSave({ seo: { commerce: next } })}
+                />
               )}
 
               {sidebarTab === "nav" && (
