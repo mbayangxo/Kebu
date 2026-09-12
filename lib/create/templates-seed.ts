@@ -35,6 +35,11 @@ import { btpWorldDefinition } from "./design-worlds/btp-world";
 import { photographeWorldDefinition } from "./design-worlds/photographe-world";
 import { agenceDigitaleWorldDefinition } from "./design-worlds/agence-digitale-world";
 import { musicienWorldDefinition } from "./design-worlds/musicien-world";
+import { agricultureWorldDefinition } from "./design-worlds/agriculture-world";
+import { ongWorldDefinition } from "./design-worlds/ong-world";
+import { egliseWorldDefinition } from "./design-worlds/eglise-world";
+import { legalWorldDefinition } from "./design-worlds/legal-world";
+import { wholesaleWorldDefinition } from "./design-worlds/wholesale-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -216,6 +221,47 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Musician / artist — Boomplay & Audiomack links, events booking, merch shop · 5 pages",
     definition: musicienWorldDefinition(),
+  },
+  // — Tier 3 —
+  {
+    slug: "agriculture",
+    name: "Agriculture",
+    category: "agriculture",
+    description:
+      "Farm / producer — seasonal availability badge, bulk orders, WhatsApp delivery, Wave / Orange Money · 5 pages",
+    definition: agricultureWorldDefinition(),
+  },
+  {
+    slug: "ong",
+    name: "ONG",
+    category: "ngo",
+    description:
+      "Non-profit / NGO — projects, impact stats, donations via mobile money, volunteer signup · 5 pages",
+    definition: ongWorldDefinition(),
+  },
+  {
+    slug: "eglise",
+    name: "Église",
+    category: "community",
+    description:
+      "Church / faith community — service times, announcements, donations via Wave / Orange Money · 5 pages",
+    definition: egliseWorldDefinition(),
+  },
+  {
+    slug: "legal",
+    name: "Cabinet Juridique",
+    category: "legal",
+    description:
+      "Law firm / legal consultant — practice areas, consultation booking, FCFA fees, confidential · 5 pages",
+    definition: legalWorldDefinition(),
+  },
+  {
+    slug: "wholesale",
+    name: "Grossiste",
+    category: "wholesale",
+    description:
+      "B2B wholesale distributor — product catalog, bulk order minimums, WhatsApp price list, mobile money · 5 pages",
+    definition: wholesaleWorldDefinition(),
   },
   {
     slug: "portfolio-pro",
