@@ -30,6 +30,7 @@ import {
   recordPaymentLedgerEvent,
 } from "@/lib/shop/payment-ledger";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
+import { enrollInFlows } from "@/lib/email/automation-flows";
 
 export const dynamic = "force-dynamic";
 
@@ -319,6 +320,17 @@ export async function POST(req: Request, { params }: Params) {
       } catch {
         /* list is best-effort — order already saved */
       }
+      // Enroll in order_placed flows (fire-and-forget)
+      void enrollInFlows(svc, {
+        businessId: projectRow.business_id as string,
+        trigger: "order_placed",
+        email: customerEmail,
+        context: {
+          subscriberName: input.customerName,
+          productName: soldName,
+          orderTotal: soldPriceLabel,
+        },
+      });
     }
     try {
       const { upsertShopCustomerAfterOrder } = await import("@/lib/shop/customer-profiles");

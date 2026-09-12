@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/opportunity/admin";
+import { enrollInFlows } from "@/lib/email/automation-flows";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,14 @@ export async function POST(req: Request, { params }: Params) {
       { status: 500 },
     );
   }
+
+  // Enroll in subscribe flows (fire-and-forget — don't block the response)
+  void enrollInFlows(admin, {
+    businessId: project.business_id as string,
+    trigger: "subscribe",
+    email: parsed.data.email,
+    context: { subscriberName: parsed.data.name },
+  });
 
   return NextResponse.json({ ok: true });
 }
