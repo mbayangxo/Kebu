@@ -66,6 +66,9 @@ export function skincareWorldDefinition(): WebsiteDefinition {
               text: "Nouveau : Sérum Éclat Karité — formule concentrée pour peaux mates et foncées. Découvrir →",
               background: "#1A1A18",
               textColor: "#F5E6D3",
+              freeShippingThreshold: 20000,
+              freeShippingCurrency: "FCFA",
+              freeShippingAchievedText: "Livraison gratuite débloquée 🎉",
             },
           },
           {
@@ -168,26 +171,31 @@ export function skincareWorldDefinition(): WebsiteDefinition {
               ],
             },
           },
-          // Education section — how-to / skincare tutorials
+          // Education section — how-to / skincare tutorials with icon + textured background
           {
             id: "sk-education",
             type: "features",
             props: {
               heading: "La méthode LUMIÈRE",
+              backgroundImageUrl: "",
               items: [
                 {
+                  icon: "💧",
                   title: "Nettoyer sans agresser",
                   body: "Peau africaine = peau qui retient moins l'humidité. On commence par un nettoyant doux, sans savon détergent.",
                 },
                 {
+                  icon: "🌿",
                   title: "Hydrater en profondeur",
                   body: "Le beurre de karité natif pénètre 6× plus vite que la vaseline. On l'applique sur peau légèrement humide.",
                 },
                 {
+                  icon: "☀️",
                   title: "Protéger de l'hyperpigmentation",
                   body: "Teint mat → pas besoin de SPF 50+ en intérieur. Mais en extérieur au Sénégal, SPF 30 minimum. Toujours.",
                 },
                 {
+                  icon: "🌦️",
                   title: "Adapter à la saison",
                   body: "Harmattan = air très sec → routine plus riche. Saison des pluies = air humide → routine légère. On vous guide.",
                 },
@@ -615,6 +623,13 @@ export function skincareWorldDefinition(): WebsiteDefinition {
                 { question: "Les produits sont-ils naturels ?", answer: "Tous nos produits sont formulés à base d'ingrédients naturels africains. Sans sulfates SLS/SLES, sans parabènes, sans parfum de synthèse." },
                 { question: "Y a-t-il un programme de fidélité ?", answer: "Oui — à partir de 3 commandes, vous rejoignez le club VIP : accès anticipé + réductions + consultant beauté dédié." },
               ],
+              contactPanel: {
+                heading: "Vous avez une question particulière ?",
+                body: "Notre consultante beauté répond sur WhatsApp en moins de 2h — en français, en wolof. Diagnostic peau gratuit.",
+                buttonLabel: "Écrire à la consultante",
+                buttonHref: "/contact",
+                imageUrl: "",
+              },
             },
           },
           footer("sk-footer-commander"),

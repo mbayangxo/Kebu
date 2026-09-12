@@ -186,6 +186,13 @@ export const sectionPropsSchemas = {
     color: z.string().trim().max(40).optional(),
     /** Alias kept for backward-compat with templates that use textColor. */
     textColor: z.string().trim().max(40).optional(),
+    /**
+     * When set, the bar shows a free-shipping progress indicator.
+     * E.g. freeShippingThreshold: 15000 → "Encore 8 500 FCFA pour la livraison gratuite".
+     */
+    freeShippingThreshold: z.number().int().min(0).optional(),
+    freeShippingCurrency: z.string().trim().max(6).optional().default("FCFA"),
+    freeShippingAchievedText: z.string().trim().max(120).optional(),
     hidden: z.boolean().optional(),
   }),
   /** Horizontally scrolling text ticker — brand names, product categories, mottos. */
@@ -254,6 +261,12 @@ export const sectionPropsSchemas = {
     /** grid = thumbnails · single = one full-width photo · featured = first large + rest grid */
     layout: z.enum(["grid", "single", "featured"]).optional().default("grid"),
     columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().default(3),
+    /**
+     * Instagram handle (without @) — renders a "On the Gram" CTA card inside the grid
+     * (Layers Beauty / Inspired theme pattern). Offline-first: photos are your own uploaded images.
+     */
+    instagramHandle: z.string().trim().max(60).optional(),
+    followLabel: z.string().trim().max(60).optional().default("Suivez-nous"),
     hidden: z.boolean().optional(),
   }),
   video: z.object({
@@ -315,8 +328,12 @@ export const sectionPropsSchemas = {
   }),
   features: z.object({
     heading: z.string().trim().max(160).default("Features"),
+    subheading: z.string().trim().max(240).optional(),
     /** grid = cards · moodboard = animated mosaic tiles (May's World / artist hubs) */
     layout: z.enum(["grid", "moodboard"]).optional().default("grid"),
+    /** Optional full-bleed background image behind the entire features section (image 1 pattern). */
+    backgroundImageUrl: imageUrl.optional().default(""),
+    background: z.string().trim().max(40).optional(),
     items: z
       .array(
         z.object({
@@ -324,6 +341,10 @@ export const sectionPropsSchemas = {
           body: z.string().trim().max(240),
           href: z.string().trim().max(500).optional(),
           image: imageUrl.optional().default(""),
+          /** Per-item illustration / photo (agency case study pattern — "VELVET THEORY"). */
+          imageUrl: imageUrl.optional().default(""),
+          /** Icon emoji or short label displayed above the title (e.g. "⚡", "🌿", "shield"). */
+          icon: z.string().trim().max(80).optional(),
         }),
       )
       .max(12)
@@ -361,6 +382,18 @@ export const sectionPropsSchemas = {
       .array(z.object({ question: z.string().trim().max(200), answer: z.string().trim().max(800) }))
       .max(12)
       .default([]),
+    /**
+     * Optional "Still need help?" side panel shown next to the FAQ accordion
+     * (Layers Beauty / split-FAQ pattern). Rendered as a right-hand panel with background image.
+     */
+    contactPanel: z.object({
+      heading: z.string().trim().max(120).default("Encore des questions ?"),
+      body: z.string().trim().max(300).default(""),
+      buttonLabel: z.string().trim().max(60).default("Nous contacter"),
+      buttonHref: safeHref.default("/contact"),
+      background: z.string().trim().max(40).optional(),
+      imageUrl: imageUrl.optional().default(""),
+    }).optional(),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),

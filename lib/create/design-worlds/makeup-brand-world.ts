@@ -65,6 +65,9 @@ export function makeupBrandWorldDefinition(): WebsiteDefinition {
               text: "🌟 LIVRAISON GRATUITE dès 15 000 FCFA — paiement Wave & Orange Money",
               background: "#FF3FBF",
               textColor: "#fff",
+              freeShippingThreshold: 15000,
+              freeShippingCurrency: "FCFA",
+              freeShippingAchievedText: "Livraison gratuite débloquée — commandez maintenant 🎉",
             },
           },
           {
@@ -467,6 +470,8 @@ export function makeupBrandWorldDefinition(): WebsiteDefinition {
               heading: "Galerie communautaire",
               layout: "grid",
               columns: 3,
+              instagramHandle: "glowlab.dkr",
+              followLabel: "Partager votre look #GlowLabDakar",
               items: [
                 { src: "", alt: "Look soirée — rouge mat + highlight or" },
                 { src: "", alt: "Look naturel bureau — teint + gloss nude" },
