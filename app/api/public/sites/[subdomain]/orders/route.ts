@@ -31,6 +31,7 @@ import {
 } from "@/lib/shop/payment-ledger";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
 import { enrollInFlows } from "@/lib/email/automation-flows";
+import { createDigitalDownload, emailDownloadLink } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
 
@@ -331,6 +332,41 @@ export async function POST(req: Request, { params }: Params) {
           orderTotal: soldPriceLabel,
         },
       });
+    }
+
+    // Digital product: create download token + send email
+    try {
+      const { data: digitalProduct } = await svc
+        .from("project_products")
+        .select("id, is_digital, digital_file_path, digital_file_name, digital_dl_limit, digital_expires_hours")
+        .eq("id", sold.id)
+        .maybeSingle();
+
+      if (digitalProduct?.is_digital && digitalProduct.digital_file_path && customerEmail) {
+        const dlResult = await createDigitalDownload(svc, {
+          orderId,
+          projectId: dep.project_id,
+          product: digitalProduct as Parameters<typeof createDigitalDownload>[1]["product"],
+        });
+        if (dlResult.ok) {
+          const downloadUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://kebu.app"}/api/dl/${dlResult.token}`;
+          const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
+          if (fromEmail) {
+            void emailDownloadLink({
+              to: customerEmail,
+              shopName: (projectRow as { title?: string | null })?.title ?? "Kebu",
+              productName: soldName,
+              downloadUrl,
+              expiresAt: new Date(Date.now() + digitalProduct.digital_expires_hours * 60 * 60 * 1000).toISOString(),
+              maxDownloads: digitalProduct.digital_dl_limit,
+              from: fromEmail,
+            });
+          }
+          logCreate("shop.digital_download_created", { orderId, productId: sold.id });
+        }
+      }
+    } catch {
+      /* digital delivery is best-effort — physical order still succeeds */
     }
     try {
       const { upsertShopCustomerAfterOrder } = await import("@/lib/shop/customer-profiles");
