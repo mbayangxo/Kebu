@@ -6,6 +6,7 @@ import {
   mergeSiteCommerce,
   type SiteCommerce,
 } from "@/lib/create/site-commerce";
+import { AFRICAN_CURRENCIES } from "@/lib/create/african-currencies";
 import { KEBU } from "@/lib/kebu-brand";
 import { ShopSellerTrustBanner } from "@/app/components/shop/shop-seller-trust-banner";
 
@@ -97,6 +98,49 @@ export function ShopPaymentsPanel({
           when server keys exist and the product has an XOF price — Money: paid only after webhook or
           capture. Without keys, customers still get clear instructions / WhatsApp.
         </p>
+      </div>
+
+      {/* ── Currency ─────────────────────────────────────────────────────── */}
+      <div className="space-y-3 rounded-2xl p-4" style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}>
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+          Shop currency
+        </p>
+        <p className="text-xs leading-relaxed" style={{ color: KEBU.muted }}>
+          Choose which currency prices are displayed in on your shop. Prices are always stored in XOF
+          internally — this controls what your customers see. Set your home market's currency.
+        </p>
+        <label className="block space-y-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+            Primary currency
+          </span>
+          <select
+            className="w-full rounded-xl px-3 py-2.5 text-sm bg-white"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            value={draft.shopCurrency ?? "XOF"}
+            onChange={(e) => patch({ shopCurrency: e.target.value })}
+          >
+            {AFRICAN_CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} — {c.name} ({c.symbol})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+            Also accept / display (optional — comma-separated codes)
+          </span>
+          <input
+            className="w-full rounded-xl px-3 py-2 text-sm bg-white"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            value={draft.acceptedCurrencies ?? ""}
+            onChange={(e) => patch({ acceptedCurrencies: e.target.value.toUpperCase() })}
+            placeholder="NGN, EUR, USD"
+          />
+          <span className="block text-[11px] mt-0.5" style={{ color: KEBU.muted }}>
+            Customers will see a price hint in these currencies on product cards.
+          </span>
+        </label>
       </div>
 
       <ShopSellerTrustBanner projectId={projectId} />

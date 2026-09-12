@@ -56,6 +56,17 @@ export const siteCommerceSchema = z.object({
    * Use for: custom instructions, minimum orders, delivery zones, promo codes.
    */
   customCheckoutNote: z.string().trim().max(400).default(""),
+  /**
+   * Primary display currency for the shop — ISO 4217 code.
+   * Prices are stored and processed in XOF; this controls what the customer sees.
+   * Defaults to "XOF" (West African CFA franc).
+   */
+  shopCurrency: z.string().trim().max(8).default("XOF"),
+  /**
+   * Additional currencies the merchant accepts or displays (comma-separated codes).
+   * Used to show multi-currency price hints on product cards.
+   */
+  acceptedCurrencies: z.string().trim().max(200).default(""),
 });
 
 export type SiteCommerce = z.infer<typeof siteCommerceSchema>;

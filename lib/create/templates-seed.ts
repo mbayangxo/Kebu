@@ -40,6 +40,7 @@ import { ongWorldDefinition } from "./design-worlds/ong-world";
 import { egliseWorldDefinition } from "./design-worlds/eglise-world";
 import { legalWorldDefinition } from "./design-worlds/legal-world";
 import { wholesaleWorldDefinition } from "./design-worlds/wholesale-world";
+import { fashionWorldDefinition } from "./design-worlds/fashion-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -847,6 +848,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     category: "fashion",
     description: "Dark urban streetwear — announcement bar, category tiles, product drops (distinct from editorial Fashion Atelier)",
     definition: streetwearShopDistinctDefinition(),
+  },
+  {
+    slug: "fashion",
+    name: "Mode / Fashion",
+    category: "fashion",
+    description:
+      "Boutique mode West African — scroll éditorial, photo plein écran, WhatsApp «Je le veux» par produit · 5 pages",
+    definition: fashionWorldDefinition(),
   },
 ];
 
