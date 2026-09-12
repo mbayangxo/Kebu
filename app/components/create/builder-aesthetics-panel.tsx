@@ -2,6 +2,7 @@
 
 import { BUILDER } from "@/lib/create/builder-ui";
 import type { ThemeTokens } from "@/lib/create/website-schema";
+import { AFRICAN_CURRENCIES } from "@/lib/create/african-currencies";
 import { BuilderColorPanel, BuilderTypographyPanel } from "@/app/components/create/builder-color-panel";
 import { BuilderPopupPanel } from "@/app/components/create/builder-popup-panel";
 import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
@@ -347,7 +348,7 @@ export function BuilderAestheticsPanel({
           Currency shown on product prices across your site.
         </p>
         <div className="flex flex-wrap gap-1">
-          {CURRENCY_OPTIONS.map((c) => {
+          {AFRICAN_CURRENCIES.map((c) => {
             const on = (theme.currency ?? "XOF") === c.code;
             return (
               <button
@@ -466,17 +467,3 @@ const THEME_PRESETS: { id: string; label: string; hint: string; tokens: Partial<
   },
 ];
 
-const CURRENCY_OPTIONS: { code: string; name: string }[] = [
-  { code: "XOF", name: "West African CFA franc" },
-  { code: "NGN", name: "Nigerian naira" },
-  { code: "KES", name: "Kenyan shilling" },
-  { code: "GHS", name: "Ghanaian cedi" },
-  { code: "ZAR", name: "South African rand" },
-  { code: "MAD", name: "Moroccan dirham" },
-  { code: "EGP", name: "Egyptian pound" },
-  { code: "ETB", name: "Ethiopian birr" },
-  { code: "TZS", name: "Tanzanian shilling" },
-  { code: "USD", name: "US dollar" },
-  { code: "EUR", name: "Euro" },
-  { code: "GBP", name: "British pound" },
-];

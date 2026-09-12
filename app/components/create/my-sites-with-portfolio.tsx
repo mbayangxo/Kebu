@@ -155,40 +155,74 @@ export function MySitesWithPortfolio({
         ) : null}
 
         {portfolioAllowed && portfolioSites.length > 0 ? (
-          <div className="rounded-2xl p-4" style={{ border: `1px solid ${KEBU.border}`, background: KEBU.white }}>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3" style={{ color: KEBU.orange }}>
-              Your brand sites
-            </p>
+          <div className="rounded-2xl p-4" style={{ border: `1px solid ${KEBU.border}`, background: "#FFFFFF" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-1.5 h-4 rounded-full" style={{ background: KEBU.orange }} />
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: KEBU.orange }}>
+                Brand Sites
+              </p>
+            </div>
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {portfolioSites.map((s) => (
-                <li key={s.key} className="flex flex-col gap-1 rounded-xl p-3" style={{ background: KEBU.cream }}>
-                  <span className="font-bold text-sm" style={{ fontFamily: "var(--font-fraunces)" }}>
-                    {s.title}
-                  </span>
-                  <span className="text-[11px] font-mono" style={{ color: KEBU.muted }}>
-                    {s.subdomain ? `/sites/${s.subdomain}` : "no subdomain yet"}
-                    {s.status ? ` · ${s.status}` : ""}
-                  </span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {s.editorUrl ? (
-                      <Link href={s.editorUrl} className="text-xs font-bold underline" style={{ color: KEBU.orange }}>
-                        Edit
-                      </Link>
-                    ) : null}
-                    {s.previewPath ? (
-                      <a
-                        href={s.previewPath}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs font-bold underline"
-                        style={{ color: KEBU.black }}
+              {portfolioSites.map((s) => {
+                const live = s.status === "published";
+                return (
+                  <li
+                    key={s.key}
+                    className="group flex flex-col rounded-xl overflow-hidden"
+                    style={{ border: `1px solid ${KEBU.border}` }}
+                  >
+                    {/* Mini preview strip */}
+                    <div
+                      className="h-14 relative"
+                      style={{ background: `linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 60%, rgba(255,85,0,0.4) 100%)` }}
+                    >
+                      <div className="absolute top-2 left-2 right-2 space-y-1">
+                        <div className="h-[2px] rounded-full bg-white opacity-25 w-3/4" />
+                        <div className="h-[2px] rounded-full bg-white opacity-15 w-1/2" />
+                      </div>
+                      <div
+                        className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wider"
+                        style={{ background: live ? "#DCFCE7" : "rgba(0,0,0,0.35)", color: live ? "#15803D" : "rgba(255,255,255,0.8)" }}
                       >
-                        Open live
-                      </a>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
+                        {live ? "Live" : "Draft"}
+                      </div>
+                    </div>
+                    {/* Info row */}
+                    <div className="px-3 py-2.5 flex-1 flex flex-col gap-1" style={{ background: "#FAFAF8" }}>
+                      <span className="font-bold text-[13px] leading-tight" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
+                        {s.title}
+                      </span>
+                      {s.subdomain ? (
+                        <span className="text-[9px] font-mono" style={{ color: KEBU.muted }}>
+                          /sites/{s.subdomain}
+                        </span>
+                      ) : null}
+                      <div className="flex items-center gap-2 mt-auto pt-1.5">
+                        {s.editorUrl ? (
+                          <Link
+                            href={s.editorUrl}
+                            className="rounded-md px-2.5 py-1 text-[10px] font-bold text-white"
+                            style={{ background: KEBU.orange }}
+                          >
+                            Edit
+                          </Link>
+                        ) : null}
+                        {s.previewPath ? (
+                          <a
+                            href={s.previewPath}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-md px-2.5 py-1 text-[10px] font-semibold border"
+                            style={{ borderColor: KEBU.border, color: KEBU.black }}
+                          >
+                            Live ↗
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : null}

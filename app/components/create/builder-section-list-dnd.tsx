@@ -67,6 +67,7 @@ function iconForType(type: string): { bg: string; letter: string } {
     case "products": return { bg: "#10B981", letter: "P" };
     case "contact": return { bg: "#10B981", letter: "C" };
     case "whatsapp": return { bg: "#25D366", letter: "W" };
+    case "joko": return { bg: "#0070F3", letter: "J" };
     case "map": return { bg: "#10B981", letter: "M" };
     case "form": return { bg: "#F97316", letter: "FM" };
     case "newsletter": return { bg: "#F97316", letter: "N" };

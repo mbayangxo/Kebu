@@ -262,13 +262,13 @@ export function KebuAppSidebar({
       {/* Yande AI quick-access button */}
       <Link
         href="/yande"
-        className="mx-2 mt-2 mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2 transition-colors"
+        className="mx-2 mt-2 mb-1 flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors"
         style={{
           background: isActive(pathname, "/yande") ? "rgba(201,169,110,0.15)" : "rgba(255,255,255,0.05)",
           border: "1px solid rgba(201,169,110,0.2)",
         }}
       >
-        <YandeMark size={22} />
+        <YandeMark size={14} />
         <div className="min-w-0">
           <p className="text-[11px] font-bold text-white leading-tight">Yande AI</p>
           <p className="text-[9px] leading-tight" style={{ color: "rgba(255,255,255,0.38)" }}>Ask anything</p>

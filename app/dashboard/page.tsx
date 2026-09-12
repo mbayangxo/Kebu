@@ -173,38 +173,44 @@ function SetupChecklist({ summary }: { summary: HomeSummary }) {
 function SiteRow({ site }: { site: HomeSiteRow }) {
   const live = site.status === "published";
   const isStore = site.projectType === "store";
+  const previewGradient = isStore
+    ? `linear-gradient(135deg, ${G.jade} 0%, ${G.orange} 100%)`
+    : `linear-gradient(135deg, ${G.black} 0%, #2A2A2A 60%, ${G.orange}55 100%)`;
   return (
     <Link
       href={isStore ? `/shop/${site.id}` : `/my-sites/${site.id}`}
-      className="flex items-center gap-3 rounded-xl px-4 py-3.5 transition-all hover:-translate-y-px"
+      className="group flex items-center gap-3 rounded-xl px-3.5 py-3 transition-all hover:-translate-y-px hover:shadow-sm"
       style={{ background: G.card, border: `1.5px solid ${G.border}` }}
     >
+      {/* Mini site preview thumbnail */}
       <div
-        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: isStore ? `${G.jade}20` : `${KEBU.orange}15` }}
+        className="w-12 h-9 rounded-lg shrink-0 overflow-hidden relative"
+        style={{ background: previewGradient }}
       >
-        {isStore ? (
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={G.emerald} strokeWidth="2.5" strokeLinecap="round">
-            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 01-8 0" />
-          </svg>
-        ) : (
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={KEBU.orange} strokeWidth="2.5" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
-          </svg>
-        )}
+        {/* Faux browser chrome lines */}
+        <div className="absolute top-1.5 left-1.5 right-1.5 space-y-1">
+          <div className="h-[2px] rounded-full opacity-30 bg-white w-3/4" />
+          <div className="h-[2px] rounded-full opacity-20 bg-white w-1/2" />
+          <div className="h-[2px] rounded-full opacity-15 bg-white w-2/3" />
+        </div>
+        {/* Status dot */}
+        <div
+          className="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
+          style={{ background: live ? "#4ADE80" : "rgba(255,255,255,0.35)" }}
+        />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold truncate" style={{ color: G.black }}>{site.title}</p>
-        <p className="text-[11px] truncate mt-0.5" style={{ color: G.faint }}>
-          {site.subdomain ? `${site.subdomain}.kebu.co` : (isStore ? "Store" : "Site")}
-          {isStore && site.productCount > 0 ? ` · ${site.productCount} products` : ""}
+        <p className="text-[10px] truncate mt-0.5" style={{ color: G.faint }}>
+          {site.subdomain ? `${site.subdomain}.kebu.co` : (isStore ? "Boutique" : "Site")}
+          {isStore && site.productCount > 0 ? ` · ${site.productCount} produits` : ""}
         </p>
       </div>
       <span
-        className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full"
+        className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
         style={{
-          background: live ? G.mint : "rgba(0,0,0,0.05)",
-          color: live ? G.forest : G.faint,
+          background: live ? "#DCFCE7" : "rgba(0,0,0,0.05)",
+          color: live ? "#15803D" : G.faint,
         }}
       >
         {live ? "Live" : "Draft"}

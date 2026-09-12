@@ -127,6 +127,12 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
     category: "commerce",
   },
   {
+    type: "joko",
+    label: "Joko button",
+    description: "Payment CTA via Joko (mobile money)",
+    category: "commerce",
+  },
+  {
     type: "map",
     label: "Map",
     description: "Location map",

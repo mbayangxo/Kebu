@@ -29,6 +29,7 @@ export const SECTION_TYPES = [
   "form",
   "blog-list",
   "whatsapp",
+  "joko",
   "free-text",
   "footer",
   "maylecor-home",
@@ -652,6 +653,15 @@ export const sectionPropsSchemas = {
   whatsapp: z.object({
     label: z.string().trim().max(60).default("Chat on WhatsApp"),
     phone: z.string().trim().min(5).max(40),
+    message: z.string().trim().max(200).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  joko: z.object({
+    label: z.string().trim().max(60).default("Payer via Joko"),
+    /** Joko merchant phone or identifier (E.164 digits only). */
+    phone: z.string().trim().max(40).default(""),
+    /** Optional direct Joko pay link (overrides phone-based link). */
+    jokoPayLink: z.string().trim().max(500).optional(),
     message: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
   }),
