@@ -93,6 +93,8 @@ import { restaurantGrillWorldDefinition } from "./design-worlds/restaurant-grill
 import { restaurantSavaneWorldDefinition } from "./design-worlds/restaurant-savane-world";
 import { boulangerieWorldDefinition } from "./design-worlds/boulangerie-world";
 import { modeEditorialeWorldDefinition } from "./design-worlds/mode-editoriale-world";
+import { menswearWorldDefinition } from "./design-worlds/menswear-world";
+import { sportswearWorldDefinition } from "./design-worlds/sportswear-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -1356,6 +1358,22 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "NUANCE — noir/blanc éditorial strict, galerie masonry, booking WhatsApp, Bodoni Moda · 3 pages",
     definition: modeEditorialeWorldDefinition(),
+  },
+  {
+    slug: "menswear-premium",
+    name: "Menswear premium & prêt-à-porter masculin",
+    category: "ecommerce",
+    description:
+      "ESSENTIEL HOM — beige sable/noir quiet luxury, 9 pièces lin/coton FCFA, conseil style inclus · 3 pages",
+    definition: menswearWorldDefinition(),
+  },
+  {
+    slug: "sportswear-performance",
+    name: "Marque sportswear & performance",
+    category: "ecommerce",
+    description:
+      "KORA SPORT — noir technique/vert électrique, 9 articles sport FCFA filterTags Running/Gym/Football, équipe · 3 pages",
+    definition: sportswearWorldDefinition(),
   },
 ];
 
