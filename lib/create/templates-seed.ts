@@ -30,6 +30,11 @@ import { traiteurWorldDefinition } from "./design-worlds/traiteur-world";
 import { artisanWorldDefinition } from "./design-worlds/artisan-world";
 import { realEstateWorldDefinition } from "./design-worlds/real-estate-world";
 import { coachingWorldDefinition } from "./design-worlds/coaching-world";
+import { pharmacieWorldDefinition } from "./design-worlds/pharmacie-world";
+import { btpWorldDefinition } from "./design-worlds/btp-world";
+import { photographeWorldDefinition } from "./design-worlds/photographe-world";
+import { agenceDigitaleWorldDefinition } from "./design-worlds/agence-digitale-world";
+import { musicienWorldDefinition } from "./design-worlds/musicien-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -170,6 +175,47 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Business / life coach — cohort programs, enrollment form, mobile money payment · 5 pages",
     definition: coachingWorldDefinition(),
+  },
+  // — Tier 2 —
+  {
+    slug: "pharmacie",
+    name: "Pharmacie",
+    category: "health",
+    description:
+      "Pharmacy — WhatsApp prescription, home delivery, Wave / Orange Money · 5 pages",
+    definition: pharmacieWorldDefinition(),
+  },
+  {
+    slug: "btp",
+    name: "BTP",
+    category: "construction",
+    description:
+      "Construction & renovation contractor — milestone payments, before/after gallery, devis form · 5 pages",
+    definition: btpWorldDefinition(),
+  },
+  {
+    slug: "photographe",
+    name: "Photographe",
+    category: "creative",
+    description:
+      "Professional photographer — portfolio, FCFA packages, booking form, mobile money · 5 pages",
+    definition: photographeWorldDefinition(),
+  },
+  {
+    slug: "agence-digitale",
+    name: "Agence Digitale",
+    category: "agency",
+    description:
+      "Digital marketing agency — services, case studies, team, WhatsApp lead gen · 5 pages",
+    definition: agenceDigitaleWorldDefinition(),
+  },
+  {
+    slug: "musicien",
+    name: "Musicien",
+    category: "music",
+    description:
+      "Musician / artist — Boomplay & Audiomack links, events booking, merch shop · 5 pages",
+    definition: musicienWorldDefinition(),
   },
   {
     slug: "portfolio-pro",
