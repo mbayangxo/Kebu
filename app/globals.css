@@ -584,12 +584,29 @@ input:focus, select:focus, textarea:focus {
   flex-direction: column;
 }
 
+.shop-nav-backdrop {
+  display: none;
+}
+.shop-topbar-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.shop-topbar-hamburger:hover { background: var(--cream); }
 .shop-topbar {
   padding: 20px 32px 0;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
   padding-bottom: 16px;
@@ -701,6 +718,16 @@ input:focus, select:focus, textarea:focus {
     width: 0;
     overflow: hidden;
     border: none;
+  }
+  .shop-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .shop-topbar-hamburger {
+    display: flex;
   }
   .shop-panel-area { padding: 20px 16px 40px; }
   .shop-topbar { padding: 14px 16px 12px; }

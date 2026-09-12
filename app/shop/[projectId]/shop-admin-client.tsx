@@ -94,7 +94,11 @@ export default function ShopAdminPage() {
   const [error, setError]         = useState<string | null>(null);
   const [loading, setLoading]     = useState(true);
   const [note, setNote]           = useState<string | null>(null);
-  const [addingSection, setAddingSection] = useState(false);
+  // Start collapsed — useEffect opens it on desktop
+  const [navCollapsed, setNavCollapsed] = useState(true);
+  useEffect(() => {
+    if (window.innerWidth > 720) setNavCollapsed(false);
+  }, []);
 
   const commerce: SiteCommerce = mergeSiteCommerce(seo.commerce);
 
@@ -138,24 +142,6 @@ export default function ShopAdminPage() {
     router.replace(`/shop/${projectId}?${params.toString()}`);
   }
 
-  async function ensureProductsOnSite() {
-    setAddingSection(true);
-    setNote(null);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/sections`, {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "products" }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setNote(typeof data.error === "string" ? data.error : "Could not add products block.");
-        return;
-      }
-      setNote("Products block added to your website. Open the builder to pick a grid layout, then publish.");
-    } finally { setAddingSection(false); }
-  }
-
   const bc = breadcrumb(tab, sub);
 
   return (
@@ -168,16 +154,37 @@ export default function ShopAdminPage() {
           sub={sub}
           projectId={projectId}
           title={title}
-          onNavigate={navigate}
+          onNavigate={(t, s) => { navigate(t, s); setNavCollapsed(true); }}
+          collapsed={navCollapsed}
+          onToggleCollapse={() => setNavCollapsed((c) => !c)}
         />
+
+        {/* Mobile backdrop when nav is open */}
+        {!navCollapsed && (
+          <div
+            className="shop-nav-backdrop"
+            onClick={() => setNavCollapsed(true)}
+            aria-hidden
+          />
+        )}
 
         {/* ── Main content ── */}
         <div className="shop-main">
 
           {/* Top bar */}
           <div className="shop-topbar">
+            {/* Hamburger — mobile only, shows when nav is hidden */}
+            <button
+              type="button"
+              className="shop-topbar-hamburger"
+              onClick={() => setNavCollapsed((c) => !c)}
+              aria-label="Open menu"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+                <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            </button>
             <div className="shop-topbar-left">
-              <div className="shop-topbar-eyebrow">Kebu Shop</div>
               <div className="shop-topbar-title">{title}</div>
               {subdomain && (
                 <div className="shop-topbar-subtitle">{subdomain}.kebu.africa</div>
@@ -187,28 +194,12 @@ export default function ShopAdminPage() {
               <ShopStoreSwitcher currentProjectId={projectId} currentTitle={title} />
               <ShopNotificationsBell projectId={projectId} />
               <Link
-                href="/shop"
-                className="kb-btn-ghost"
-                style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
-              >
-                All shops
-              </Link>
-              <Link
                 href={`/create/${projectId}`}
                 className="kb-btn-primary"
                 style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
               >
-                Edit website
+                Edit site
               </Link>
-              <button
-                type="button"
-                disabled={addingSection}
-                onClick={() => void ensureProductsOnSite()}
-                className="kb-btn-ghost"
-                style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
-              >
-                {addingSection ? "Adding…" : "Show products on site"}
-              </button>
             </div>
           </div>
 

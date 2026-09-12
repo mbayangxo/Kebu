@@ -120,14 +120,23 @@ export function ShopSideNav({
   projectId,
   title,
   onNavigate,
+  collapsed,
+  onToggleCollapse,
 }: {
   tab: string;
   sub: string;
   projectId: string;
   title: string;
   onNavigate: (tab: string, sub?: string) => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed_ = collapsed !== undefined ? collapsed : internalCollapsed;
+  const toggleCollapsed = () => {
+    if (onToggleCollapse) { onToggleCollapse(); }
+    else setInternalCollapsed((c) => !c);
+  };
   // which group is manually open (null = let active group be open)
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
@@ -137,9 +146,9 @@ export function ShopSideNav({
   }
 
   function handleGroupClick(group: NavGroup) {
-    if (collapsed) {
+    if (collapsed_) {
       // expand nav and open group
-      setCollapsed(false);
+      toggleCollapsed();
       setOpenGroup(group.id);
       return;
     }
@@ -160,11 +169,11 @@ export function ShopSideNav({
   return (
     <aside
       className="shop-sidenav"
-      data-collapsed={collapsed ? "" : undefined}
+      data-collapsed={collapsed_ ? "" : undefined}
       aria-label="Shop navigation"
     >
       {/* store wordmark */}
-      {!collapsed && (
+      {!collapsed_ && (
         <div className="shop-sidenav-header">
           <span className="shop-sidenav-store-name" title={title}>
             {title}
@@ -176,7 +185,7 @@ export function ShopSideNav({
       <nav className="shop-sidenav-nav">
         {NAV_GROUPS.map((group) => {
           const active = groupActive(group, tab, sub);
-          const open = !collapsed && resolvedOpen(group);
+          const open = !collapsed_ && resolvedOpen(group);
 
           return (
             <div key={group.id} className="shop-sidenav-group">
@@ -185,12 +194,12 @@ export function ShopSideNav({
                 className="shop-sidenav-group-btn"
                 data-active={active ? "" : undefined}
                 onClick={() => handleGroupClick(group)}
-                title={collapsed ? group.label : undefined}
+                title={collapsed_ ? group.label : undefined}
               >
                 <span className="shop-sidenav-group-icon">
                   <Icon d={ICONS[group.icon]} size={17} />
                 </span>
-                {!collapsed && (
+                {!collapsed_ && (
                   <>
                     <span className="shop-sidenav-group-label">{group.label}</span>
                     {group.items.length > 1 && (
@@ -230,11 +239,11 @@ export function ShopSideNav({
       <button
         type="button"
         className="shop-sidenav-collapse-btn"
-        onClick={() => { setCollapsed((c) => !c); setOpenGroup(null); }}
-        title={collapsed ? "Expand menu" : "Collapse menu"}
+        onClick={() => { toggleCollapsed(); setOpenGroup(null); }}
+        title={collapsed_ ? "Expand menu" : "Collapse menu"}
       >
-        <Icon d={collapsed ? ICONS.expand : ICONS.collapse} size={15} />
-        {!collapsed && <span>Collapse</span>}
+        <Icon d={collapsed_ ? ICONS.expand : ICONS.collapse} size={15} />
+        {!collapsed_ && <span>Collapse</span>}
       </button>
     </aside>
   );
