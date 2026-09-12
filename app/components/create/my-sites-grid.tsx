@@ -577,8 +577,10 @@ export function MySitesGrid({
             : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
         }
       >
-        {list.map((p) => (
-          <SiteHealthCard key={p.id} project={p} size={size} onDeleted={handleDeleted} />
+        {list.map((p, i) => (
+          <div key={p.id} className="kebu-slide-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+            <SiteHealthCard project={p} size={size} onDeleted={handleDeleted} />
+          </div>
         ))}
       </div>
     );
@@ -611,7 +613,7 @@ export function MySitesGrid({
                 className="inline-flex rounded-lg border px-3.5 py-2 text-[12px] font-semibold"
                 style={{ borderColor: KEBU.border, color: KEBU.black }}
               >
-                Templates
+                Aesthetics
               </Link>
             </>
           ) : (

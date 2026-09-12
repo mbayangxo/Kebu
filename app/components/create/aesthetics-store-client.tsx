@@ -8,6 +8,7 @@ import { getAestheticGalleryGroups } from "@/lib/create/aesthetics-gallery";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import { formatUsdFromCents } from "@/lib/billing/pricing";
+import { UploadAestheticButton } from "@/app/components/create/upload-aesthetic-button";
 
 type CatalogCard = {
   slug: string;
@@ -355,7 +356,7 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
           <div className="flex flex-wrap items-center gap-2">
             {(
               [
-                ["store", "Templates"],
+                ["store", "Aesthetics"],
                 ["owned", "Owned"],
               ] as const
             ).map(([id, label]) => (
@@ -380,7 +381,7 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
             className="text-[10px] font-semibold underline-offset-2 hover:underline"
             style={{ color: KEBU.muted }}
           >
-            Sell templates →
+            Become a creator →
           </a>
         </div>
 
@@ -430,8 +431,8 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
                 </span>
               </div>
               <ul className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {group.items.map((item) => (
-                  <li key={item.slug}>
+                {group.items.map((item, i) => (
+                  <li key={item.slug} className="kebu-slide-in-up" style={{ animationDelay: `${i * 40}ms` }}>
                     <AestheticGalleryCard item={item} />
                   </li>
                 ))}
@@ -491,6 +492,10 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
 
       {tab === "owned" && !loading ? (
         <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold" style={{ color: KEBU.black }}>Your aesthetics</p>
+            <UploadAestheticButton sites={sites} />
+          </div>
           <label className="block text-[11px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
             Add to site
             <select

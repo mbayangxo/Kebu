@@ -1047,19 +1047,65 @@ export default function ProjectEditorPage() {
           aria-modal="true"
           aria-label="Site published"
         >
+          {/* Confetti canvas */}
+          <canvas
+            ref={(canvas) => {
+              if (!canvas) return;
+              const W = canvas.width = window.innerWidth;
+              const H = canvas.height = window.innerHeight;
+              const ctx = canvas.getContext("2d");
+              if (!ctx) return;
+              const COLORS = ["#FF5500","#00C851","#FFD600","#FF3B8B","#7B5CF6","#00B4FF","#FF9500"];
+              const particles = Array.from({ length: 120 }, () => ({
+                x: W / 2 + (Math.random() - 0.5) * W * 0.4,
+                y: H * 0.4,
+                vx: (Math.random() - 0.5) * 12,
+                vy: -Math.random() * 14 - 4,
+                color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                size: Math.random() * 8 + 4,
+                rot: Math.random() * Math.PI * 2,
+                rotV: (Math.random() - 0.5) * 0.3,
+                alpha: 1,
+              }));
+              let frame = 0;
+              const tick = () => {
+                ctx.clearRect(0, 0, W, H);
+                for (const p of particles) {
+                  p.vy += 0.45;
+                  p.x += p.vx;
+                  p.y += p.vy;
+                  p.rot += p.rotV;
+                  p.alpha = Math.max(0, 1 - frame / 90);
+                  ctx.save();
+                  ctx.globalAlpha = p.alpha;
+                  ctx.translate(p.x, p.y);
+                  ctx.rotate(p.rot);
+                  ctx.fillStyle = p.color;
+                  ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+                  ctx.restore();
+                }
+                frame++;
+                if (frame < 100) requestAnimationFrame(tick);
+              };
+              requestAnimationFrame(tick);
+            }}
+            className="pointer-events-none absolute inset-0"
+            style={{ width: "100%", height: "100%" }}
+          />
           <div
-            className="w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl"
+            className="relative w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl kebu-scale-in"
             style={{ background: "#fff", border: "2px solid #0A0A0A" }}
           >
             {/* Animated checkmark */}
             <div
               className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ background: "#00C851" }}
+              style={{ background: "#00C851", animation: "kebu-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}
             >
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 13l4 4L19 7" />
               </svg>
             </div>
+            <style>{`@keyframes kebu-pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}`}</style>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#00C851" }}>
               Now live
             </p>
@@ -1402,7 +1448,7 @@ export default function ProjectEditorPage() {
             <aside
               className={`${
                 leftPanelOpen
-                  ? "absolute md:relative inset-y-0 left-11 md:left-auto w-[280px] md:w-[260px] z-30 md:z-auto shadow-2xl md:shadow-none"
+                  ? "absolute md:relative inset-y-0 left-11 md:left-auto w-[280px] md:w-[260px] z-30 md:z-auto shadow-2xl md:shadow-none kebu-slide-in-left"
                   : "hidden"
               } shrink-0 overflow-y-auto border-r`}
               style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
