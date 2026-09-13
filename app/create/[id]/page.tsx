@@ -127,11 +127,6 @@ export default function ProjectEditorPage() {
   const [, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
-  const [builderStats, setBuilderStats] = useState<{
-    views: number;
-    referrers: Array<{ referrer: string; count: number; pct: number }>;
-  } | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
@@ -1196,29 +1191,7 @@ export default function ProjectEditorPage() {
     }
   }, [projectId]);
 
-  async function loadBuilderStats() {
-    if (statsLoading || builderStats) return;
-    setStatsLoading(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/shop-analytics?days=7`, { credentials: "include" });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.summary) {
-        const s = data.summary as {
-          pageViews?: { total?: number };
-          visitorSources?: { referrers?: Array<{ referrer: string; count: number; pct: number }> };
-        };
-        setBuilderStats({
-          views: s.pageViews?.total ?? 0,
-          referrers: s.visitorSources?.referrers ?? [],
-        });
-      }
-    } catch { /* ignore */ } finally {
-      setStatsLoading(false);
-    }
-  }
-
   function openStudioTab(tab: BuilderStudioTab) {
-    if (tab === "stats" && !builderStats && !statsLoading) void loadBuilderStats();
     if (leftPanelOpen && sidebarTab === tab) {
       setLeftPanelOpen(false);
       return;
@@ -1651,7 +1624,7 @@ export default function ProjectEditorPage() {
               {/* Mobile close button */}
               <div className="md:hidden flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#E5E5E5" }}>
                 <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: BUILDER.muted }}>
-                  {sidebarTab === "content" ? "Sections" : sidebarTab === "pages" ? "Pages" : sidebarTab === "aesthetic" ? "Style" : sidebarTab === "media" ? "Photos" : sidebarTab === "nav" ? "Navigation" : sidebarTab === "stats" ? "Viewers" : "Yande"}
+                  {sidebarTab === "content" ? "Sections" : sidebarTab === "pages" ? "Pages" : sidebarTab === "aesthetic" ? "Style" : sidebarTab === "media" ? "Photos" : sidebarTab === "nav" ? "Navigation" : "Yande"}
                 </p>
                 <button
                   type="button"
@@ -1856,68 +1829,6 @@ export default function ProjectEditorPage() {
                       />
                     );
                   })()}
-                </div>
-              )}
-
-              {sidebarTab === "stats" && (
-                <div className="px-4 py-4 space-y-4">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
-                      Viewers — last 7 days
-                    </p>
-                    {statsLoading ? (
-                      <p className="mt-3 text-[12px]" style={{ color: BUILDER.muted }}>Loading…</p>
-                    ) : !builderStats || (builderStats.views === 0 && builderStats.referrers.length === 0) ? (
-                      <div className="mt-4 rounded-xl p-4 text-center" style={{ background: "#F7F4EF" }}>
-                        <p className="text-[12px] font-medium" style={{ color: BUILDER.muted }}>No visitors yet</p>
-                        <p className="mt-1 text-[11px]" style={{ color: "#B0A898" }}>
-                          Share your link to start seeing who visits and where they come from.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-3 space-y-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-[28px] font-black tabular-nums" style={{ color: BUILDER.orange }}>
-                            {builderStats.views.toLocaleString()}
-                          </span>
-                          <span className="text-[11px]" style={{ color: BUILDER.muted }}>views this week</span>
-                        </div>
-                        {builderStats.referrers.length > 0 && (
-                          <div>
-                            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
-                              Where they came from
-                            </p>
-                            <ul className="space-y-2">
-                              {builderStats.referrers.slice(0, 8).map((r) => (
-                                <li key={r.referrer} className="flex items-center justify-between gap-2">
-                                  <span className="truncate text-[12px] font-medium" style={{ color: "#1A1A1A" }}>
-                                    {r.referrer || "Direct / unknown"}
-                                  </span>
-                                  <div className="flex shrink-0 items-center gap-1.5">
-                                    <div
-                                      className="h-1.5 rounded-full"
-                                      style={{ width: Math.max(16, r.pct * 0.6), background: BUILDER.orange, opacity: 0.6 }}
-                                    />
-                                    <span className="text-[11px] tabular-nums" style={{ color: BUILDER.muted }}>
-                                      {r.count}
-                                    </span>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setBuilderStats(null)}
-                          className="text-[10px] underline"
-                          style={{ color: BUILDER.muted }}
-                        >
-                          Refresh
-                        </button>
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
 
@@ -3334,18 +3245,46 @@ export default function ProjectEditorPage() {
                               <div key={idx} className="space-y-1.5 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
                                 <div className="flex items-center justify-between">
                                   <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Item {idx + 1}</span>
-                                  <button
-                                    type="button"
-                                    className="text-[10px] font-semibold"
-                                    style={{ color: "#B91C1C" }}
-                                    onClick={() => {
-                                      const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                      items.splice(idx, 1);
-                                      updateProps(section.id, { items });
-                                    }}
-                                  >
-                                    Remove
-                                  </button>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      disabled={idx === 0}
+                                      className="text-[11px] disabled:opacity-20"
+                                      style={{ color: BUILDER.muted }}
+                                      aria-label="Move item up"
+                                      onClick={() => {
+                                        const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                        const [item] = items.splice(idx, 1);
+                                        items.splice(idx - 1, 0, item!);
+                                        updateProps(section.id, { items });
+                                      }}
+                                    >↑</button>
+                                    <button
+                                      type="button"
+                                      disabled={idx === (Array.isArray(section.props.items) ? section.props.items : []).length - 1}
+                                      className="text-[11px] disabled:opacity-20"
+                                      style={{ color: BUILDER.muted }}
+                                      aria-label="Move item down"
+                                      onClick={() => {
+                                        const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                        const [item] = items.splice(idx, 1);
+                                        items.splice(idx + 1, 0, item!);
+                                        updateProps(section.id, { items });
+                                      }}
+                                    >↓</button>
+                                    <button
+                                      type="button"
+                                      className="text-[10px] font-semibold"
+                                      style={{ color: "#B91C1C" }}
+                                      onClick={() => {
+                                        const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                        items.splice(idx, 1);
+                                        updateProps(section.id, { items });
+                                      }}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
                                 </div>
                                 <input
                                   className="w-full text-sm rounded-lg px-2 py-1"
@@ -3420,6 +3359,14 @@ export default function ProjectEditorPage() {
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
                             (item: { question?: string; answer?: string }, idx: number) => (
                               <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Q {idx + 1}</span>
+                                  <div className="flex items-center gap-1">
+                                    <button type="button" disabled={idx === 0} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move up" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx - 1, 0, it!); updateProps(section.id, { items }); }}>↑</button>
+                                    <button type="button" disabled={idx === (Array.isArray(section.props.items) ? section.props.items : []).length - 1} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move down" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx + 1, 0, it!); updateProps(section.id, { items }); }}>↓</button>
+                                    <button type="button" className="text-[10px] font-semibold" style={{ color: "#B91C1C" }} onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; items.splice(idx, 1); updateProps(section.id, { items }); }}>×</button>
+                                  </div>
+                                </div>
                                 <input
                                   className="w-full text-sm rounded-lg px-2 py-1"
                                   style={{ border: "1px solid #DDE0F0" }}
@@ -3477,18 +3424,11 @@ export default function ProjectEditorPage() {
                               <div key={idx} className="space-y-1.5 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
                                 <div className="flex items-center justify-between">
                                   <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Quote {idx + 1}</span>
-                                  <button
-                                    type="button"
-                                    className="text-[10px] font-semibold"
-                                    style={{ color: "#B91C1C" }}
-                                    onClick={() => {
-                                      const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                      items.splice(idx, 1);
-                                      updateProps(section.id, { items });
-                                    }}
-                                  >
-                                    Remove
-                                  </button>
+                                  <div className="flex items-center gap-1">
+                                    <button type="button" disabled={idx === 0} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move up" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx - 1, 0, it!); updateProps(section.id, { items }); }}>↑</button>
+                                    <button type="button" disabled={idx === (Array.isArray(section.props.items) ? section.props.items : []).length - 1} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move down" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx + 1, 0, it!); updateProps(section.id, { items }); }}>↓</button>
+                                    <button type="button" className="text-[10px] font-semibold" style={{ color: "#B91C1C" }} onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; items.splice(idx, 1); updateProps(section.id, { items }); }}>×</button>
+                                  </div>
                                 </div>
                                 <textarea
                                   className="w-full text-sm rounded-lg px-2 py-1 min-h-[70px]"
@@ -3803,17 +3743,11 @@ export default function ProjectEditorPage() {
                                     updateProps(section.id, { items });
                                   }}
                                 />
-                                <button
-                                  type="button"
-                                  className="text-[10px] text-red-600"
-                                  onClick={() => {
-                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                    items.splice(idx, 1);
-                                    updateProps(section.id, { items });
-                                  }}
-                                >
-                                  Remove photo
-                                </button>
+                                <div className="flex items-center gap-1 pt-0.5">
+                                  <button type="button" disabled={idx === 0} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move up" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx - 1, 0, it!); updateProps(section.id, { items }); }}>↑</button>
+                                  <button type="button" disabled={idx === (Array.isArray(section.props.items) ? section.props.items : []).length - 1} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move down" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx + 1, 0, it!); updateProps(section.id, { items }); }}>↓</button>
+                                  <button type="button" className="text-[10px] text-red-600" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; items.splice(idx, 1); updateProps(section.id, { items }); }}>Remove photo</button>
+                                </div>
                               </div>
                             ),
                           )}

@@ -202,79 +202,120 @@ export function ShopOverviewPanel({ projectId }: { projectId: string }) {
             </section>
           )}
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <section
-              className="rounded-2xl p-4"
-              style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
-            >
-              <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-                Where orders came from
-              </h3>
-              {(summary.orderSources ?? []).length === 0 ? (
-                <p className="mt-2 text-xs" style={{ color: KEBU.muted }}>
-                  No orders in this range yet.
+          {/* Visitor block — Shopify-style: big number, channel bar chart */}
+          <section
+            className="rounded-2xl p-5"
+            style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: KEBU.muted }}>
+                  Visitors
                 </p>
-              ) : (
-                <ul className="mt-2 space-y-1.5 text-xs">
-                  {(summary.orderSources ?? []).map((s) => (
-                    <li key={s.source} className="flex justify-between gap-2">
-                      <span className="capitalize">{s.source}</span>
-                      <span className="tabular-nums opacity-80">
-                        {s.count} · {s.pct}%
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mt-0.5 text-[40px] font-black leading-none tabular-nums" style={{ color: KEBU.black }}>
+                  {summary.traffic.pageviews == null ? "—" : summary.traffic.pageviews.toLocaleString()}
+                </p>
+                <p className="mt-1 text-xs" style={{ color: KEBU.muted }}>
+                  {periodLabel}
+                  {summary.traffic.orderPerView != null
+                    ? ` · ${(summary.traffic.orderPerView * 100).toFixed(1)}% order rate`
+                    : ""}
+                </p>
+              </div>
+              {(summary.visitorSources?.countries ?? []).length > 0 && (
+                <div className="hidden sm:block text-right shrink-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>Top country</p>
+                  <p className="mt-0.5 text-base font-bold" style={{ color: KEBU.black }}>
+                    {summary.visitorSources!.countries[0]!.country}
+                  </p>
+                  <p className="text-[10px]" style={{ color: KEBU.muted }}>
+                    {summary.visitorSources!.countries[0]!.pct}%
+                  </p>
+                </div>
               )}
-              <p className="mt-3 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
-                Channels: web store · WhatsApp · share / QR · Wave · JOKO · social.
-              </p>
-            </section>
+            </div>
 
-            <section
-              className="rounded-2xl p-4"
-              style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
-            >
-              <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-                Where visitors are from
-              </h3>
-              {(summary.visitorSources?.countries ?? []).length === 0 ? (
-                <p className="mt-2 text-xs" style={{ color: KEBU.muted }}>
-                  Publish the site and get visits — country comes from edge headers when available; referrer from
-                  the browser.
+            {/* Traffic sources — bar chart rows */}
+            {(summary.visitorSources?.referrers ?? []).length > 0 ? (
+              <div className="mt-5">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                  Where they came from
                 </p>
-              ) : (
-                <ul className="mt-2 space-y-1.5 text-xs">
-                  {(summary.visitorSources?.countries ?? []).slice(0, 6).map((c) => (
-                    <li key={c.country} className="flex justify-between gap-2">
-                      <span>{c.country}</span>
-                      <span className="tabular-nums opacity-80">
-                        {c.count} · {c.pct}%
-                      </span>
+                <ul className="space-y-2.5">
+                  {(summary.visitorSources?.referrers ?? []).slice(0, 8).map((r) => (
+                    <li key={r.referrer}>
+                      <div className="flex items-center justify-between mb-1 text-[12px]">
+                        <span className="truncate font-medium" style={{ color: KEBU.black }}>
+                          {r.referrer || "Direct / unknown"}
+                        </span>
+                        <span className="ml-2 shrink-0 tabular-nums" style={{ color: KEBU.muted }}>
+                          {r.count} · {r.pct}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full" style={{ background: `${KEBU.orange}18` }}>
+                        <div
+                          className="h-1.5 rounded-full"
+                          style={{ width: `${Math.max(2, r.pct)}%`, background: KEBU.orange }}
+                        />
+                      </div>
                     </li>
                   ))}
                 </ul>
-              )}
-              {(summary.visitorSources?.referrers ?? []).length > 0 ? (
-                <>
-                  <h4
-                    className="mt-4 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ color: KEBU.muted }}
-                  >
-                    Referrers
-                  </h4>
-                  <ul className="mt-1 space-y-1 text-xs">
-                    {(summary.visitorSources?.referrers ?? []).slice(0, 5).map((r) => (
-                      <li key={r.referrer} className="flex justify-between gap-2">
-                        <span className="truncate">{r.referrer}</span>
-                        <span className="shrink-0 tabular-nums opacity-80">{r.count}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
-            </section>
-          </div>
+              </div>
+            ) : (summary.visitorSources?.countries ?? []).length === 0 && summary.traffic.pageviews == null ? (
+              <p className="mt-4 text-xs" style={{ color: KEBU.muted }}>
+                Publish your site and start sharing — visit counts and referrers appear here automatically.
+              </p>
+            ) : null}
+
+            {/* Country breakdown */}
+            {(summary.visitorSources?.countries ?? []).length > 0 && (
+              <div className="mt-5 border-t pt-4" style={{ borderColor: `${KEBU.border}` }}>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                  By country
+                </p>
+                <ul className="space-y-1">
+                  {(summary.visitorSources?.countries ?? []).slice(0, 5).map((c) => (
+                    <li key={c.country} className="flex items-center justify-between text-xs">
+                      <span style={{ color: KEBU.black }}>{c.country}</span>
+                      <span className="tabular-nums" style={{ color: KEBU.muted }}>{c.count} · {c.pct}%</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          <section
+            className="rounded-2xl p-4"
+            style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
+          >
+            <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+              Where orders came from
+            </h3>
+            {(summary.orderSources ?? []).length === 0 ? (
+              <p className="mt-2 text-xs" style={{ color: KEBU.muted }}>
+                No orders in this range yet.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-2">
+                {(summary.orderSources ?? []).map((s) => (
+                  <li key={s.source}>
+                    <div className="flex items-center justify-between mb-1 text-xs">
+                      <span className="capitalize font-medium" style={{ color: KEBU.black }}>{s.source}</span>
+                      <span className="tabular-nums" style={{ color: KEBU.muted }}>{s.count} · {s.pct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full" style={{ background: `${KEBU.orange}18` }}>
+                      <div className="h-1.5 rounded-full" style={{ width: `${Math.max(2, s.pct)}%`, background: KEBU.orange }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
+              Channels: web store · WhatsApp · share / QR · Wave · JOKO · social.
+            </p>
+          </section>
 
           <div className="flex flex-wrap gap-2">
             <Link
