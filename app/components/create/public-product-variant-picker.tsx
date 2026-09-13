@@ -52,20 +52,32 @@ export function PublicProductVariantPicker({
   }
 
   return (
-    <div className="mt-2 space-y-1">
-      <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Variant</label>
-      <select
-        value={selectedId}
-        onChange={(e) => pick(e.target.value)}
-        className="w-full rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs"
-      >
-        {variants.map((v) => (
-          <option key={v.id} value={v.id}>
-            {variantLabel(v)}
-            {v.priceLabel ? ` — ${v.priceLabel}` : ""}
-          </option>
-        ))}
-      </select>
+    <div className="mt-2 space-y-1.5">
+      <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Variant</p>
+      <div className="flex flex-wrap gap-1.5">
+        {variants.map((v) => {
+          const label = variantLabel(v);
+          const active = v.id === selectedId;
+          return (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => pick(v.id)}
+              className="rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors"
+              style={{
+                background: active ? "#111" : "#fff",
+                color: active ? "#fff" : "#333",
+                borderColor: active ? "#111" : "rgba(0,0,0,0.15)",
+              }}
+            >
+              {label}
+              {v.priceLabel && !active ? (
+                <span className="ml-1 opacity-60 font-normal">{v.priceLabel}</span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -234,7 +234,25 @@ export function PublicShopOrder({
   }
 
   if (done) {
-    return <p className="text-[11px] mt-2 opacity-80">{done}</p>;
+    const [msg, giftPart] = done.split(" Share with recipient: ");
+    return (
+      <div className="mt-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-left space-y-1.5">
+        <div className="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <circle cx="8" cy="8" r="8" fill="#16A34A"/>
+            <path d="M5 8l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <p className="text-[12px] font-bold text-green-800">Order placed!</p>
+        </div>
+        <p className="text-[11px] text-green-700 leading-relaxed">{msg}</p>
+        {giftPart ? (
+          <p className="text-[10px] text-green-600 break-all">
+            Gift link: <span className="underline">{giftPart}</span>
+          </p>
+        ) : null}
+        <p className="text-[10px] text-green-600">The seller will contact you on WhatsApp to confirm.</p>
+      </div>
+    );
   }
 
   if (syncingNote) {
@@ -323,14 +341,22 @@ export function PublicShopOrder({
           autoCapitalize="characters"
         />
       ) : null}
-      <input
-        type="number"
-        min={1}
-        max={20}
-        value={qty}
-        onChange={(e) => setQty(Number(e.target.value) || 1)}
-        className="w-full rounded-lg border border-black/15 bg-white px-2 py-1.5 text-xs text-black"
-      />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setQty((q) => Math.max(1, q - 1))}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-black/15 bg-white text-sm font-bold leading-none"
+          aria-label="Decrease quantity"
+        >−</button>
+        <span className="w-6 text-center text-xs font-semibold tabular-nums">{qty}</span>
+        <button
+          type="button"
+          onClick={() => setQty((q) => Math.min(20, q + 1))}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-black/15 bg-white text-sm font-bold leading-none"
+          aria-label="Increase quantity"
+        >+</button>
+        <span className="text-[10px] opacity-50">qty</span>
+      </div>
       {orderStyle !== "minimal" ? (
         <PublicShippingQuote
           subdomain={subdomain}
