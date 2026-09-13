@@ -35,7 +35,7 @@ const BuilderAiPreviewPanel = dynamic(
 );
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
-import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
+import { BUILDER, labelForSectionType } from "@/lib/create/builder-ui";
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { PanelSection } from "@/app/components/create/builder-panel-section";
 import {
@@ -123,8 +123,8 @@ export default function ProjectEditorPage() {
   const [publishSuccess, setPublishSuccess] = useState<{ url: string; title: string } | null>(null);
   const [subdomainInput, setSubdomainInput] = useState("");
   const [seoSettings, setSeoSettings] = useState<SiteSeo>(() => defaultSiteSeo());
-  const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [settingsNote, setSettingsNote] = useState<string | null>(null);
+  const [, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
@@ -167,6 +167,7 @@ export default function ProjectEditorPage() {
   const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAppOrigin(window.location.origin);
     const q = new URLSearchParams(window.location.search);
     if (q.get("created") !== "1") return;
@@ -421,6 +422,27 @@ export default function ProjectEditorPage() {
       setSaveState("queued");
       setKbSaveNote("Site header/footer queued until Syncing…");
       setTimeout(() => setKbSaveNote(null), 4000);
+    }
+  }
+
+  function saveAllNow() {
+    sections.forEach((s) => {
+      const timer = saveTimers.current[s.id];
+      if (timer != null) {
+        clearTimeout(timer);
+        delete saveTimers.current[s.id];
+        void persistProps(s.id, s.props as Record<string, unknown>);
+      }
+    });
+    if (chromeSaveTimer.current != null) {
+      clearTimeout(chromeSaveTimer.current);
+      chromeSaveTimer.current = null;
+      if (siteChrome?.header?.props) {
+        void persistChrome("header", siteChrome.header.props as Record<string, unknown>);
+      }
+      if (siteChrome?.footer?.props) {
+        void persistChrome("footer", siteChrome.footer.props as Record<string, unknown>);
+      }
     }
   }
 
@@ -1026,6 +1048,7 @@ export default function ProjectEditorPage() {
   useEffect(() => {
     // Keep Sections panel open by default (Shopify theme editor). Only collapse on tiny screens.
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLeftPanelOpen(false);
     } else {
       setLeftPanelOpen(true);
@@ -1213,13 +1236,9 @@ export default function ProjectEditorPage() {
         onUndo={undo}
         onRedo={redo}
         publishing={publishing || improving}
-        publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Published"}
+        publishLabel="Publish"
         onPublish={() => void publish()}
-        onSaveDraft={() => {
-          if (saveState === "idle" || saveState === "saved") {
-            setSaveState("saved");
-          }
-        }}
+        onSaveDraft={saveAllNow}
         savingDraft={saveState === "saving"}
         previewHost={project?.subdomain ? `${project.subdomain}.kebu.africa` : undefined}
         pages={pages
@@ -1317,7 +1336,7 @@ export default function ProjectEditorPage() {
           className="border-b px-4 py-2.5 text-center text-xs font-semibold"
           style={{ background: "#FF5500", color: "#fff" }}
         >
-          Support assist mode — you are helping edit someone else's site. Changes are audited.
+          Support assist mode — you are helping edit someone else&apos;s site. Changes are audited.
         </div>
       ) : null}
 
@@ -2429,7 +2448,8 @@ export default function ProjectEditorPage() {
                                     onChange={(e) => {
                                       const layerLinks = { ...linkMap, [layer.key]: e.target.value };
                                       if (!e.target.value.trim()) {
-                                        const { [layer.key]: _, ...rest } = linkMap;
+                                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                        const { [layer.key]: _removed, ...rest } = linkMap;
                                         updateProps(section.id, { layerLinks: rest });
                                         return;
                                       }
@@ -3754,7 +3774,7 @@ export default function ProjectEditorPage() {
                             return (
                               <div className="space-y-2">
                                 <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
-                                  "You might also like" per product
+                                  &ldquo;You might also like&rdquo; per product
                                 </p>
                                 {items.map((item, idx) => {
                                   const others = items.filter((_, i) => i !== idx);
@@ -3848,7 +3868,7 @@ export default function ProjectEditorPage() {
                         <div className="space-y-2">
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Overlay on the live site. Emails save to your business list (same as Email list).
-                            Consent is stored in the visitor's browser — not a full legal cookie platform.
+                            Consent is stored in the visitor&apos;s browser — not a full legal cookie platform.
                           </p>
                           <label className="flex items-center gap-2 text-[11px]">
                             <input
