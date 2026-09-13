@@ -144,7 +144,6 @@ export async function GET(_req: Request, { params }: Params) {
     placeholders: {
       website: business.website,
       store: websites.some((w) => w.shopOpened) ? "open" : null,
-      governmentConnector: "mock_placeholder_not_live",
     },
   });
 }
