@@ -12,8 +12,6 @@ import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 
 export type YandeImproveMode = "free" | "redesign" | "page" | "rewrite" | "convert";
 
-const ASK_OPEN_KEY = "kebu_builder_ask_open_v1";
-
 /**
  * Right-side “Ask your site” panel (Shopify Sidekick-style).
  * Minimized = tiny FAB; open = docked panel with X to close.
@@ -55,26 +53,14 @@ export function BuilderSiteCommandBar({
   const hasSections = sectionChanges.length > 0 && acceptedSectionIds && onToggleSection;
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(ASK_OPEN_KEY);
-      if (stored === "1") setOpen(true);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
+  // Open automatically when an AI preview is active (the user triggered it).
+  // Do NOT restore open state from localStorage — command bar open/closed is transient UI state.
   useEffect(() => {
     if (reviewing) setOpen(true);
   }, [reviewing]);
 
   function setOpenPersist(next: boolean) {
     setOpen(next);
-    try {
-      localStorage.setItem(ASK_OPEN_KEY, next ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
   }
 
   if (!open) {

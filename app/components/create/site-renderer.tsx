@@ -182,13 +182,23 @@ function wrapEditorSection(
         e.stopPropagation();
         editor.onSelectSection?.(sectionId);
       }}
-      className={`group relative ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
+      className={`group relative ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#FF5500] outline-offset-[-2px] z-10" : "hover:outline hover:outline-2 hover:outline-dashed hover:outline-[#FF5500]/40 hover:z-10"}`}
       style={{ cursor: "pointer" }}
     >
+      {/* Hover "Edit" pill — visible before selection so intent is obvious */}
+      {!selected && sectionType ? (
+        <div
+          className="pointer-events-none absolute left-1/2 top-2 z-40 -translate-x-1/2 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+          style={{ background: "#FF5500", letterSpacing: "0.03em" }}
+          aria-hidden
+        >
+          Edit {labelForSectionType(sectionType)}
+        </div>
+      ) : null}
       {selected && sectionType ? (
         <div
-          className="absolute -left-px top-0 z-40 flex items-center gap-1 rounded-br-md px-2 py-0.5 text-[10px] font-semibold tracking-tight text-white shadow-sm"
-          style={{ background: "#2C6ECB" }}
+          className="absolute left-1/2 top-0 z-40 -translate-x-1/2 flex items-center gap-1 rounded-b-md px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white shadow-sm"
+          style={{ background: "#FF5500" }}
         >
           <span aria-hidden className="opacity-80">
             ▦

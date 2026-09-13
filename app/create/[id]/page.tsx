@@ -189,6 +189,25 @@ export default function ProjectEditorPage() {
     } catch { /* localStorage unavailable */ }
   }, [params.id]);
 
+  // Track elapsed time since last save so the idle state is never blank.
+  useEffect(() => {
+    if (saveState === "saved") {
+      lastSavedAtRef.current = Date.now();
+      setSavedAgoLabel(null);
+    }
+    if (saveState !== "idle") return;
+    if (!lastSavedAtRef.current) return;
+    const tick = () => {
+      const sec = Math.round((Date.now() - (lastSavedAtRef.current ?? 0)) / 1000);
+      if (sec < 60) setSavedAgoLabel("Saved just now");
+      else if (sec < 3600) setSavedAgoLabel(`Saved ${Math.floor(sec / 60)} min ago`);
+      else setSavedAgoLabel("Saved earlier");
+    };
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [saveState]);
+
   useEffect(() => {
     if (!previewFullscreen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -331,6 +350,8 @@ export default function ProjectEditorPage() {
   }
 
   const [kbSaveNote, setKbSaveNote] = useState<string | null>(null);
+  const lastSavedAtRef = useRef<number | null>(null);
+  const [savedAgoLabel, setSavedAgoLabel] = useState<string | null>(null);
 
   async function persistProps(sectionId: string, props: Record<string, unknown>) {
     const mode = resolveClientDataMode();
@@ -385,6 +406,8 @@ export default function ProjectEditorPage() {
       );
       setSaveState("saved");
       setError(null);
+      // Transition to idle after a brief "Saved ✓" flash so the elapsed timer starts.
+      setTimeout(() => setSaveState("idle"), 2500);
     } catch {
       enqueueSaveSection({ projectId, sectionId, props });
       setSaveState("queued");
@@ -428,6 +451,7 @@ export default function ProjectEditorPage() {
       );
       setSaveState("saved");
       setError(null);
+      setTimeout(() => setSaveState("idle"), 2500);
     } catch {
       setSaveState("queued");
       setKbSaveNote("Site header/footer queued until Syncing…");
@@ -1022,7 +1046,9 @@ export default function ProjectEditorPage() {
       if (isChromeSectionId(id)) return;
       void moveSection(id, dir === "up" ? -1 : 1);
     },
-    // Add/remove sections only from the left Sections rail — not on the canvas.
+    onAddSectionAfter: async (type: string, afterSectionId: string | null) => {
+      await addSection(type, undefined, afterSectionId);
+    },
     onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => {
       const section = sections.find((s) => s.id === sectionId);
       if (!section || section.section_type !== "free-text") return;
@@ -1093,14 +1119,14 @@ export default function ProjectEditorPage() {
 
   const saveStatusLabel =
     saveState === "saving"
-      ? "Saving draft…"
+      ? "Saving…"
       : saveState === "queued"
-        ? "Not saved yet — queued"
+        ? "Queued — offline"
         : saveState === "saved"
-          ? "Draft saved"
+          ? "Saved ✓"
           : saveState === "error"
-            ? "Save failed"
-            : "";
+            ? "Save failed — retry"
+            : savedAgoLabel ?? "All changes saved";
 
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
   /** Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames. */
@@ -1798,6 +1824,67 @@ export default function ProjectEditorPage() {
                   </p>
                 </div>
               )}
+
+              {/* Chrome section inspector — shown when Site header or Site footer is selected */}
+              {selectedSectionId === CHROME_HEADER_ID && siteChrome?.header && (
+                <div className="px-4 py-4 space-y-3">
+                  <input
+                    className="w-full text-sm rounded-lg px-2 py-1.5"
+                    style={{ border: "1px solid #DDE0F0" }}
+                    value={String(siteChrome.header.props.brand ?? "")}
+                    onChange={(e) => updateChromeProps("header", { brand: e.target.value })}
+                    aria-label="Brand name"
+                    placeholder="Brand name"
+                  />
+                  <NavLinksEditor
+                    links={mapNavLinksForEditor(
+                      (siteChrome.header.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
+                    )}
+                    onChange={(links) => updateChromeProps("header", { links })}
+                  />
+                  <NavSizeEditor
+                    scale={clampNavScale(siteChrome.header.props.navScale, 1)}
+                    size={parseNavSize(siteChrome.header.props.navSize)}
+                    layout={parseNavLayout(siteChrome.header.props.navLayout)}
+                    onChange={(patch) => updateChromeProps("header", patch)}
+                  />
+                </div>
+              )}
+              {selectedSectionId === CHROME_FOOTER_ID && siteChrome?.footer && (
+                <div className="px-4 py-4 space-y-3">
+                  <input
+                    className="w-full text-sm rounded-lg px-2 py-1.5"
+                    style={{ border: "1px solid #DDE0F0" }}
+                    placeholder="© Your Brand · 2026"
+                    value={String(siteChrome.footer.props.text ?? "")}
+                    onChange={(e) => updateChromeProps("footer", { text: e.target.value })}
+                  />
+                  <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Footer links</p>
+                  <NavLinksEditor
+                    links={mapNavLinksForEditor(
+                      (siteChrome.footer.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
+                    )}
+                    onChange={(links) => updateChromeProps("footer", { links })}
+                  />
+                </div>
+              )}
+              {selectedSectionId && !editPageSections.find((s) => s.id === selectedSectionId) &&
+                selectedSectionId !== CHROME_HEADER_ID && selectedSectionId !== CHROME_FOOTER_ID && (
+                <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+                  <p className="text-[13px] font-medium" style={{ color: BUILDER.muted }}>
+                    Section not found on this page.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSectionId(null)}
+                    className="text-[11px] underline"
+                    style={{ color: BUILDER.orange }}
+                  >
+                    Back to sections
+                  </button>
+                </div>
+              )}
+
               {!selectedSectionId && pages.length > 1 && (
                 <div className="px-4 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
                   <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
