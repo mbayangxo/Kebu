@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NextRequest } from "next/server";
+
+function mkReq(url: string, init?: RequestInit): NextRequest {
+  return new Request(url, init) as unknown as NextRequest;
+}
 
 const requireUser = vi.fn();
 const createRegisteredBusiness = vi.fn();
@@ -52,7 +57,7 @@ describe("Business registration security contracts", () => {
   it("rejects logged-out create", async () => {
     requireUser.mockResolvedValue(jsonResponse("Sign in required.", 401));
     const res = await postBusiness(
-      new Request("http://localhost/api/businesses", {
+      mkReq("http://localhost/api/businesses", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": "test-key-abcdefgh" },
         body: JSON.stringify(validBody),
@@ -69,7 +74,7 @@ describe("Business registration security contracts", () => {
 
   it("rejects logged-out business dashboard fetch", async () => {
     requireUser.mockResolvedValue(jsonResponse("Sign in required.", 401));
-    const res = await getBusinessById(new Request("http://localhost"), {
+    const res = await getBusinessById(mkReq("http://localhost"), {
       params: Promise.resolve({ id: "11111111-1111-4111-8111-111111111111" }),
     });
     expect(res.status).toBe(401);
@@ -78,7 +83,7 @@ describe("Business registration security contracts", () => {
   it("rejects browser-submitted score values on create", async () => {
     requireUser.mockResolvedValue({ user: { id: "user-a" }, supabase: {} });
     const res = await postBusiness(
-      new Request("http://localhost/api/businesses", {
+      mkReq("http://localhost/api/businesses", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": "test-key-abcdefgh" },
         body: JSON.stringify({ ...validBody, scoreValue: 99 }),
@@ -106,7 +111,7 @@ describe("Business registration security contracts", () => {
       },
     });
     const res = await postReadiness(
-      new Request("http://localhost/api/businesses/x/readiness", {
+      mkReq("http://localhost/api/businesses/x/readiness", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scoreValue: 100 }),
@@ -118,7 +123,7 @@ describe("Business registration security contracts", () => {
   });
 
   it("public Kebu ID never returns private draft records", async () => {
-    const res = await getPublic(new Request("http://localhost"), {
+    const res = await getPublic(mkReq("http://localhost"), {
       params: Promise.resolve({ kebuId: "KEBU-SN-01-A7K92P" }),
     });
     expect(res.status).toBe(404);
@@ -138,7 +143,7 @@ describe("Business registration security contracts", () => {
     createRegisteredBusiness.mockResolvedValue({ ok: true, business, idempotent: false });
 
     const res = await postBusiness(
-      new Request("http://localhost/api/businesses", {
+      mkReq("http://localhost/api/businesses", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": "idem-key-unique-01" },
         body: JSON.stringify(validBody),
@@ -156,7 +161,7 @@ describe("Business registration security contracts", () => {
     createRegisteredBusiness.mockResolvedValue({ ok: true, business, idempotent: true });
 
     const res = await postBusiness(
-      new Request("http://localhost/api/businesses", {
+      mkReq("http://localhost/api/businesses", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": "same-idempotency-key" },
         body: JSON.stringify(validBody),
@@ -190,7 +195,7 @@ describe("Business registration security contracts", () => {
       supabase: { from },
     });
 
-    const res = await getBusinessById(new Request("http://localhost"), {
+    const res = await getBusinessById(mkReq("http://localhost"), {
       params: Promise.resolve({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" }),
     });
     expect(res.status).toBe(404);
@@ -210,7 +215,7 @@ describe("Business registration security contracts", () => {
     }));
     requireUser.mockResolvedValue({ user: { id: "user-a" }, supabase: { from } });
     const res = await patchBusiness(
-      new Request("http://localhost", {
+      mkReq("http://localhost", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: "Updated description that is long enough." }),

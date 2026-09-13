@@ -89,11 +89,12 @@ export async function PATCH(req: Request) {
   }
 
   const businesses = await loadBusinessesForUser(supabase, user.id);
+  const requestedBusinessId = parsed.data.mode === "business" ? parsed.data.businessId : null;
   const activeBusinessId =
     parsed.data.mode === "personal"
       ? null
-      : businesses.some((b) => b.id === parsed.data.businessId)
-        ? parsed.data.businessId
+      : businesses.some((b) => b.id === requestedBusinessId)
+        ? requestedBusinessId
         : null;
 
   if (parsed.data.mode === "business" && !activeBusinessId) {

@@ -50,6 +50,7 @@ import {
 import { defaultMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
+import type { SiteCommerce } from "@/lib/create/site-commerce";
 import type { PublishState } from "@/lib/create/publish-state";
 import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
@@ -898,10 +899,11 @@ export default function ProjectEditorPage() {
       ...seoSettings,
       ...(patch.seo ?? {}),
       commerce: {
+        ...(seoSettings.commerce ?? {}),
         merchantWhatsApp: seoSettings.commerce?.merchantWhatsApp ?? "",
         preferJokoCheckout: seoSettings.commerce?.preferJokoCheckout ?? false,
         ...(patch.seo?.commerce ?? {}),
-      },
+      } as SiteCommerce,
     };
     if (patch.subdomain !== undefined) setSubdomainInput(patch.subdomain);
     if (patch.seo) setSeoSettings(nextSeo);
@@ -4533,10 +4535,7 @@ export default function ProjectEditorPage() {
                                 ? "2px solid #333"
                                 : "1px solid #c8c4bc",
                           borderRadius: device === "mobile" ? 28 : device === "tablet" ? 18 : 12,
-                          boxShadow:
-                            device === "desktop"
-                              ? "0 16px 48px rgba(0,0,0,0.22)"
-                              : "0 12px 40px rgba(0,0,0,0.18)",
+                          boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
                         }
                   }
                 >

@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
     businessId: brief.businessId ?? null,
     definition: validated.data,
     meta: {
-      source: brief.mode,
+      source: brief.mode === "photos" ? "template" : brief.mode,
       category: brief.category,
       description: brief.description,
       countryCode: brief.countryCode,

@@ -36,6 +36,7 @@ describe("Studio S4 AI generate", () => {
     const pack = fallbackStudioCampaignPack({
       prompt: "I need a launch campaign for my Senegalese skincare company",
       businessName: "Baobab Glow",
+      creationMode: "create_for_me",
     });
     expect(pack.usedAi).toBe(false);
     expect(pack.fallback).toBe(true);

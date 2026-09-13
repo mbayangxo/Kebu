@@ -91,6 +91,12 @@ describe("Studio music V1 waveform + energy", () => {
       y: 0,
       scale: 1,
       rotation: 0,
+      chromaEnabled: false,
+      chromaColor: "#00FF00" as string,
+      chromaSimilarity: 0.4,
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
     };
     expect(clipOpacityAtTime(clip, 0)).toBe(0);
     expect(clipOpacityAtTime(clip, 250)).toBeCloseTo(0.5, 1);

@@ -152,11 +152,7 @@ export function ShopOrdersPanel({
       if (filter === "all") return true;
       if (filter === "open") return o.status === "pending" || o.status === "contacted";
       if (filter === "fulfill") {
-        return (
-          (o.status === "pending" || o.status === "contacted") &&
-          o.status !== "archived" &&
-          o.status !== "cancelled"
-        );
+        return o.status === "pending" || o.status === "contacted";
       }
       if (filter === "done") {
         return o.status === "fulfilled" || o.status === "archived" || o.status === "cancelled";

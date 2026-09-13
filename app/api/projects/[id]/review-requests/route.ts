@@ -67,8 +67,8 @@ export async function GET(_req: Request, { params }: Params) {
       channel: String(settings.channel ?? "whatsapp"),
       messageTemplate: String(settings.messageTemplate ?? ""),
     },
-    requests: error || /relation.*does not exist/i.test(error?.message ?? "") ? [] : (rows ?? []),
-    tableReady: !error || (!/relation.*does not exist/i.test(error.message) && error.code !== "42P01"),
+    requests: error ? [] : (rows ?? []),
+    tableReady: !error || (!/relation.*does not exist/i.test(error?.message ?? "") && error?.code !== "42P01"),
     eligibleOrders: ordersError ? [] : eligible,
   });
 }

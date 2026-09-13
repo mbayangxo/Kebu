@@ -23,10 +23,10 @@ export async function guardAiImproveRequest(
     }
 > {
   const limited = aiRateLimit(req);
-  if (limited) return { ok: false, response: limited };
+  if (limited) return { ok: false, response: limited as NextResponse };
 
   const auth = await requireUser();
-  if ("error" in auth) return { ok: false, response: auth.error };
+  if ("error" in auth) return { ok: false, response: auth.error as NextResponse };
   const { supabase, user } = auth;
 
   if (!projectId || !/^[0-9a-f-]{36}$/i.test(projectId)) {
@@ -139,7 +139,7 @@ export async function guardAiImproveProject(projectId: string): Promise<
     }
 > {
   const auth = await requireUser();
-  if ("error" in auth) return { ok: false, response: auth.error };
+  if ("error" in auth) return { ok: false, response: auth.error as NextResponse };
   const { supabase, user } = auth;
 
   if (!projectId || !/^[0-9a-f-]{36}$/i.test(projectId)) {

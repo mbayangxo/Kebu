@@ -1563,7 +1563,7 @@ export function SiteRenderer({
                 )}
                 <SiteFormSection
                   sectionId={sectionId}
-                  subdomain={liveSubForm}
+                  subdomain={liveSubForm ?? undefined}
                   props={p}
                   preview={mode !== "live"}
                   accent={theme.accent}

@@ -115,26 +115,26 @@ export async function POST(req: Request, { params }: Params) {
     heading: parsed.data.title,
     body: "Write your story here. Add gallery, FAQ, products, or forms from the left Sections panel.",
   };
-  const seedSections =
+  const seedSections: Array<{ page_id: string; section_type: string; sort_order: number; props: Record<string, unknown> }> =
     parsed.data.seed === "about-may"
       ? maylecorAboutPageSections().map((section, sort_order) => ({
           page_id: page.id,
-          section_type: section.type,
+          section_type: section.type as string,
           sort_order,
-          props: section.props,
+          props: section.props as Record<string, unknown>,
         }))
       : [
           {
             page_id: page.id,
             section_type: "hero",
             sort_order: 0,
-            props: heroProps,
+            props: heroProps as Record<string, unknown>,
           },
           {
             page_id: page.id,
             section_type: "text",
             sort_order: 1,
-            props: textProps,
+            props: textProps as Record<string, unknown>,
           },
         ];
 

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string; productId: string }> };
 
 async function assertProductOwner(
-  supabase: Awaited<ReturnType<typeof requireUser>> extends { supabase: infer S } ? S : never,
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
   userId: string,
   projectId: string,
   productId: string,

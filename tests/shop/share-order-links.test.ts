@@ -35,6 +35,13 @@ describe("Senegal share-to-order links", () => {
         wavePayLink: "https://pay.wave.com/demo",
         jokoPayLink: "https://joko.example/pay",
         shareTagline: "New drop · Dakar",
+        shopOpened: false,
+        shopOpenedAt: "",
+        acceptMbolo: false,
+        mboloNumber: "",
+        customCheckoutNote: "",
+        shopCurrency: "XOF",
+        acceptedCurrencies: "",
       },
     );
     expect(channels.whatsapp).toContain("wa.me/221771234567");

@@ -12,7 +12,7 @@ const saveSchema = z.object({
 });
 
 async function ensureUserProfile(
-  supabase: { from: (table: string) => unknown },
+  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
   user: { id: string; email?: string | null; user_metadata?: { name?: string } },
 ) {
   const { data: existing } = await supabase.from("user_profiles").select("id").eq("id", user.id).maybeSingle();

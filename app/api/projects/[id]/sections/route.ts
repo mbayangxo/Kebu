@@ -157,7 +157,7 @@ export async function POST(req: Request, { params }: Params) {
     const { data: proj } = await db.from("projects").select("site_chrome, title").eq("id", projectId).maybeSingle();
     let chrome = parseSiteChrome(proj?.site_chrome);
     if (!chrome.header && !chrome.footer) {
-      chrome = { enabled: true, ...chrome };
+      chrome = { ...chrome, enabled: true };
     }
     chrome = patchSiteChromePart(
       { ...chrome, enabled: true },

@@ -161,7 +161,7 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   const snap = live.snapshot as { definition?: WebsiteDefinition } | null;
-  const merchantPhone = resolveMerchantWhatsApp(snap?.definition ?? null);
+  const merchantPhone = snap?.definition ? resolveMerchantWhatsApp(snap.definition) : null;
   const whatsappHref = merchantPhone
     ? shopOrderWhatsAppHref(
         merchantPhone,

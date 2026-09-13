@@ -78,7 +78,7 @@ export function StudioLiveCursors({
       .on("presence", { event: "sync" }, () => {
         syncPeers(channel.presenceState() as Record<string, PresenceMeta[]>);
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: string) => {
         if (status === "SUBSCRIBED") {
           await channel.track({
             userId,

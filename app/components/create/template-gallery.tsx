@@ -101,7 +101,7 @@ export function TemplateGallery({
       >
         {visible.map((t) => (
           <li key={t.slug}>
-            <TemplatePreviewCard template={t} visualOnly={visualOnly} compact={compact || visualOnly} />
+            <TemplatePreviewCard template={t} visualOnly={visualOnly} />
           </li>
         ))}
       </ul>

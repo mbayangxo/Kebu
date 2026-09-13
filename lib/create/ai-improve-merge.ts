@@ -28,7 +28,7 @@ export function buildAiSectionChanges(
 
   for (const page of before.pages) {
     for (const section of page.sections) {
-      beforeIds.add(section.id);
+      if (section.id) beforeIds.add(section.id);
     }
   }
 
@@ -36,12 +36,13 @@ export function buildAiSectionChanges(
     const beforePage = before.pages.find((p) => p.slug === afterPage.slug);
 
     for (const afterSection of afterPage.sections) {
-      const beforeSection = beforePage?.sections.find((s) => s.id === afterSection.id);
-      const isNew = !beforeIds.has(afterSection.id);
+      if (!afterSection.id) continue;
+      const sid = afterSection.id;
+      const beforeSection = beforePage?.sections.find((s) => s.id === sid);
 
       if (!beforeSection) {
         changes.push({
-          sectionId: afterSection.id,
+          sectionId: sid,
           pageSlug: afterPage.slug,
           pageTitle: afterPage.title,
           sectionType: afterSection.type,
@@ -53,7 +54,7 @@ export function buildAiSectionChanges(
 
       if (beforeSection.type !== afterSection.type) {
         changes.push({
-          sectionId: afterSection.id,
+          sectionId: sid,
           pageSlug: afterPage.slug,
           pageTitle: afterPage.title,
           sectionType: afterSection.type,
@@ -67,7 +68,7 @@ export function buildAiSectionChanges(
       const aJson = JSON.stringify(afterSection.props);
       if (bJson !== aJson) {
         changes.push({
-          sectionId: afterSection.id,
+          sectionId: sid,
           pageSlug: afterPage.slug,
           pageTitle: afterPage.title,
           sectionType: afterSection.type,
@@ -77,6 +78,7 @@ export function buildAiSectionChanges(
       }
     }
   }
+
 
   return changes.slice(0, 24);
 }
@@ -94,7 +96,7 @@ export function mergePartialAiDefinition(
     let targetPage = result.pages.find((p) => p.slug === proposedPage.slug);
 
     if (!targetPage) {
-      const acceptedSections = proposedPage.sections.filter((s) => accepted.has(s.id));
+      const acceptedSections = proposedPage.sections.filter((s) => s.id && accepted.has(s.id));
       if (acceptedSections.length === 0) continue;
       result.pages.push({
         slug: proposedPage.slug,
@@ -105,7 +107,7 @@ export function mergePartialAiDefinition(
     }
 
     for (const proposedSection of proposedPage.sections) {
-      if (!accepted.has(proposedSection.id)) continue;
+      if (!proposedSection.id || !accepted.has(proposedSection.id)) continue;
       const idx = targetPage.sections.findIndex((s) => s.id === proposedSection.id);
       const copy = structuredClone(proposedSection);
       if (idx >= 0) {
