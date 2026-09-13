@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration";
 import { SAFE_REGISTRATION_FIELDS } from "@/lib/kebu-id/registration-schema";
 import { z } from "zod";
@@ -149,7 +150,10 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 /** Founder/admin may update allowed profile fields; score recalculated server-side. */
-export async function PATCH(req: Request, { params }: Params) {
+export async function PATCH(req: NextRequest, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

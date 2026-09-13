@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,10 @@ type Params = { params: Promise<{ id: string }> };
  * Recalculate Business Readiness server-side.
  * Rejects any client-supplied score body.
  */
-export async function POST(req: Request, { params }: Params) {
+export async function POST(req: NextRequest, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
