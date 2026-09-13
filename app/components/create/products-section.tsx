@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { PublicProductActions } from "@/app/components/create/public-product-actions";
+import { detectColorSwatch } from "@/app/components/create/public-product-variant-picker";
 import { whatsAppOrderHref } from "@/lib/create/site-commerce";
 import { addToShopCart } from "@/lib/create/shop-cart-storage";
 import type { SiteCommerce } from "@/lib/create/site-commerce";
@@ -117,11 +118,11 @@ function ProductModal({
         className="fixed z-[201] inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-6 pointer-events-none"
       >
         <div
-          className="pointer-events-auto w-full sm:max-w-3xl sm:rounded-2xl overflow-hidden shadow-2xl"
-          style={{ background: "#fff", maxHeight: "90dvh", overflowY: "auto" }}
+          className="pointer-events-auto w-full sm:max-w-3xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+          style={{ background: "#fff", maxHeight: "90dvh" }}
         >
-          {/* Header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "rgba(0,0,0,0.08)", background: "#fff" }}>
+          {/* Sticky header */}
+          <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "rgba(0,0,0,0.08)", background: "#fff" }}>
             <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Product details</span>
             <button
               type="button"
@@ -135,138 +136,183 @@ function ProductModal({
             </button>
           </div>
 
-          {/* Body */}
-          <div className="grid sm:grid-cols-2 gap-0">
-            {/* Image */}
-            <div className="bg-white flex items-center justify-center" style={{ minHeight: 280 }}>
-              {product.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="w-full h-72 sm:h-96 object-contain"
-                  loading="eager"
-                />
-              ) : (
-                <div className="flex h-72 items-center justify-center opacity-25 text-sm">No image</div>
-              )}
-            </div>
-
-            {/* Info */}
-            <div className="p-6 flex flex-col gap-4">
-              <div>
-                <h2
-                  className="text-2xl font-bold leading-snug"
-                  style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
-                >
-                  {product.name}
-                </h2>
-                {product.priceLabel ? (
-                  <p className="mt-2 text-xl font-black" style={{ color: theme.accent }}>
-                    {product.priceLabel}
-                  </p>
-                ) : null}
-                {product.isSubscription ? (
-                  <span
-                    className="mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ background: `${theme.accent}18`, color: theme.accent }}
-                  >
-                    Subscription · {product.subscriptionInterval ?? "monthly"}
-                  </span>
-                ) : null}
-              </div>
-
-              {product.description ? (
-                <p className="text-sm leading-relaxed opacity-75">{product.description}</p>
-              ) : null}
-
-              {/* Variants */}
-              {product.hasVariants && product.variants && product.variants.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Options</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {product.variants.map((v) => (
-                      <span
-                        key={v.id}
-                        className="rounded-full border px-3 py-1 text-xs font-semibold"
-                        style={{ borderColor: "rgba(0,0,0,0.15)" }}
-                      >
-                        {[v.option1, v.option2, v.option3].filter(Boolean).join(" / ")}
-                        {v.priceLabel ? ` — ${v.priceLabel}` : ""}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {/* CTAs */}
-              <div className="flex flex-col gap-2 mt-auto">
-                {liveSubdomain && product.productId ? (
-                  <PublicProductActions
-                    subdomain={liveSubdomain}
-                    productId={product.productId}
-                    productName={product.name}
-                    priceLabel={product.priceLabel ?? ""}
-                    variants={product.variants?.map((v) => ({ ...v, priceLabel: v.priceLabel ?? "" }))}
-                    commerce={shopCommerce}
-                    orderStyle={orderStyle ?? "inline"}
-                    ctaLabel={orderCtaLabel ?? "Place order"}
-                    isSubscription={Boolean(product.isSubscription)}
-                    subscriptionInterval={product.subscriptionInterval}
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid sm:grid-cols-2 gap-0">
+              {/* Image */}
+              <div className="bg-white flex items-center justify-center" style={{ minHeight: 280 }}>
+                {product.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="w-full h-72 sm:h-96 object-contain"
+                    loading="eager"
                   />
+                ) : (
+                  <div className="flex h-72 items-center justify-center opacity-25 text-sm">No image</div>
+                )}
+              </div>
+
+              {/* Info — name, price, description, variants (no CTAs here) */}
+              <div className="p-6 flex flex-col gap-4">
+                <div>
+                  <h2
+                    className="text-2xl font-bold leading-snug"
+                    style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                  >
+                    {product.name}
+                  </h2>
+                  {product.priceLabel ? (
+                    <p className="mt-2 text-xl font-black" style={{ color: theme.accent }}>
+                      {product.priceLabel}
+                    </p>
+                  ) : null}
+                  {product.isSubscription ? (
+                    <span
+                      className="mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                      style={{ background: `${theme.accent}18`, color: theme.accent }}
+                    >
+                      Subscription · {product.subscriptionInterval ?? "monthly"}
+                    </span>
+                  ) : null}
+                </div>
+
+                {product.description ? (
+                  <p className="text-sm leading-relaxed opacity-75">{product.description}</p>
                 ) : null}
-                <a
-                  href={waHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold transition-opacity hover:opacity-90"
-                  style={{ background: "#25D366", color: "#fff" }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                  Order via WhatsApp
-                </a>
+
+                {/* Variant display chips (informational only — interactive picker is in footer) */}
+                {product.hasVariants && product.variants && product.variants.length > 1 ? (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Options</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.variants.map((v) => {
+                        const colorHex = !v.option2.trim() && !v.option3.trim() ? detectColorSwatch(v.option1) : null;
+                        return colorHex ? (
+                          <span
+                            key={v.id}
+                            title={v.option1}
+                            className="inline-block rounded-full shrink-0"
+                            style={{
+                              width: 20,
+                              height: 20,
+                              background: colorHex,
+                              border: "1.5px solid rgba(0,0,0,0.15)",
+                            }}
+                          />
+                        ) : (
+                          <span
+                            key={v.id}
+                            className="rounded-full border px-3 py-1 text-xs font-semibold"
+                            style={{ borderColor: "rgba(0,0,0,0.15)" }}
+                          >
+                            {[v.option1, v.option2, v.option3].filter(Boolean).join(" / ")}
+                            {v.priceLabel ? ` — ${v.priceLabel}` : ""}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
+
+            {/* You might also like */}
+            {related.length > 0 ? (
+              <div className="border-t px-5 py-5" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-3 opacity-60">You might also like</p>
+                <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+                  {related.map((p, i) => (
+                    <div
+                      key={`${p.productId ?? p.name}-${i}`}
+                      className="shrink-0 w-28 cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onSwitch(p)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSwitch(p); }}
+                    >
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.imageUrl}
+                          alt={p.name}
+                          className="w-28 h-28 rounded-xl object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-28 h-28 rounded-xl bg-black/5 flex items-center justify-center text-xs opacity-40">
+                          No image
+                        </div>
+                      )}
+                      <p className="mt-1.5 text-xs font-semibold leading-snug line-clamp-2">{p.name}</p>
+                      {p.priceLabel ? (
+                        <p className="text-[10px] font-bold mt-0.5" style={{ color: theme.accent }}>{p.priceLabel}</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
-          {/* You might also like */}
-          {related.length > 0 ? (
-            <div className="border-t px-5 py-5" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
-              <p className="text-[10px] font-bold uppercase tracking-wider mb-3 opacity-60">You might also like</p>
-              <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-                {related.map((p, i) => (
-                  <div
-                    key={`${p.productId ?? p.name}-${i}`}
-                    className="shrink-0 w-28 cursor-pointer"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => onSwitch(p)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSwitch(p); }}
-                  >
-                    {p.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        className="w-28 h-28 rounded-xl object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-28 h-28 rounded-xl bg-black/5 flex items-center justify-center text-xs opacity-40">
-                        No image
-                      </div>
-                    )}
-                    <p className="mt-1.5 text-xs font-semibold leading-snug line-clamp-2">{p.name}</p>
-                    {p.priceLabel ? (
-                      <p className="text-[10px] font-bold mt-0.5" style={{ color: theme.accent }}>{p.priceLabel}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+          {/* ── Sticky footer: trust badges + CTA ── */}
+          <div className="shrink-0 border-t" style={{ borderColor: "rgba(0,0,0,0.08)", background: "#fff" }}>
+            {/* Trust badges */}
+            <div
+              className="flex items-center justify-center gap-4 px-5 py-2 text-[10px]"
+              style={{ background: "#FAFAFA", borderBottom: "1px solid rgba(0,0,0,0.06)", color: "#6B7280" }}
+            >
+              <span className="flex items-center gap-1">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0110 0v4" />
+                </svg>
+                Secured by Kebu
+              </span>
+              <span className="flex items-center gap-1">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+                Fast delivery
+              </span>
+              <span className="flex items-center gap-1">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                Seller verified
+              </span>
             </div>
-          ) : null}
+            {/* CTAs */}
+            <div className="flex flex-col gap-2 px-5 py-4">
+              {liveSubdomain && product.productId ? (
+                <PublicProductActions
+                  subdomain={liveSubdomain}
+                  productId={product.productId}
+                  productName={product.name}
+                  priceLabel={product.priceLabel ?? ""}
+                  variants={product.variants?.map((v) => ({ ...v, priceLabel: v.priceLabel ?? "" }))}
+                  commerce={shopCommerce}
+                  orderStyle={orderStyle ?? "inline"}
+                  ctaLabel={orderCtaLabel ?? "Order now"}
+                  isSubscription={Boolean(product.isSubscription)}
+                  subscriptionInterval={product.subscriptionInterval}
+                />
+              ) : null}
+              <a
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold transition-opacity hover:opacity-90"
+                style={{ background: "#25D366", color: "#fff" }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Order via WhatsApp
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </>
