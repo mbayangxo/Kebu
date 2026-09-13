@@ -649,29 +649,40 @@ export default function ProjectEditorPage() {
   }
 
   function undo() {
-    setHistory((h) => {
-      if (h.length === 0) return h;
-      const prev = h[h.length - 1]!;
-      setFuture((f) => [sections, ...f]);
-      setSections(prev);
-      // Persist each section props best-effort
-      prev.forEach((s) => {
-        void persistProps(s.id, s.props);
-      });
-      return h.slice(0, -1);
+    if (history.length === 0) return;
+    const prev = history[history.length - 1]!;
+    const changed = prev.filter((s) => {
+      const cur = sections.find((c) => c.id === s.id);
+      return !cur || JSON.stringify(cur.props) !== JSON.stringify(s.props);
+    });
+    setFuture((f) => [sections, ...f]);
+    setSections(prev);
+    setHistory((h) => h.slice(0, -1));
+    changed.forEach((s) => {
+      if (saveTimers.current[s.id] != null) {
+        clearTimeout(saveTimers.current[s.id]);
+        delete saveTimers.current[s.id];
+      }
+      void persistProps(s.id, s.props as Record<string, unknown>);
     });
   }
 
   function redo() {
-    setFuture((f) => {
-      if (f.length === 0) return f;
-      const next = f[0]!;
-      setHistory((h) => [...h, sections]);
-      setSections(next);
-      next.forEach((s) => {
-        void persistProps(s.id, s.props);
-      });
-      return f.slice(1);
+    if (future.length === 0) return;
+    const next = future[0]!;
+    const changed = next.filter((s) => {
+      const cur = sections.find((c) => c.id === s.id);
+      return !cur || JSON.stringify(cur.props) !== JSON.stringify(s.props);
+    });
+    setHistory((h) => [...h, sections]);
+    setSections(next);
+    setFuture((f) => f.slice(1));
+    changed.forEach((s) => {
+      if (saveTimers.current[s.id] != null) {
+        clearTimeout(saveTimers.current[s.id]);
+        delete saveTimers.current[s.id];
+      }
+      void persistProps(s.id, s.props as Record<string, unknown>);
     });
   }
 
