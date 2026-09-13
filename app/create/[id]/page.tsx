@@ -12,6 +12,7 @@ import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/crea
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { BuilderSiteChromePanel } from "@/app/components/create/builder-site-chrome-panel";
 import { BuilderBlogPanel } from "@/app/components/create/builder-blog-panel";
+import { PanelSection } from "@/app/components/create/builder-panel-section";
 import {
   CHROME_FOOTER_ID,
   CHROME_HEADER_ID,
@@ -103,7 +104,7 @@ export default function ProjectEditorPage() {
   const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
@@ -305,6 +306,7 @@ export default function ProjectEditorPage() {
       enqueueSaveSection({ projectId, sectionId, props });
       setSaveState("queued");
       setKbSaveNote("Not saved on server yet — queued until Syncing…");
+      setTimeout(() => setKbSaveNote(null), 4000);
       setError(null);
       return;
     }
@@ -322,6 +324,7 @@ export default function ProjectEditorPage() {
       const bytes = await measureResponseBytes(res);
       const ev = evaluateKb({ action: "save_section", mode, usedBytes: bytes });
       setKbSaveNote(ev.summary);
+      setTimeout(() => setKbSaveNote(null), 4000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSaveState("error");
@@ -353,6 +356,7 @@ export default function ProjectEditorPage() {
       enqueueSaveSection({ projectId, sectionId, props });
       setSaveState("queued");
       setKbSaveNote("Not saved on server yet — queued until Syncing…");
+      setTimeout(() => setKbSaveNote(null), 4000);
       setError(null);
     }
   }
@@ -363,6 +367,7 @@ export default function ProjectEditorPage() {
     if (offline) {
       setSaveState("queued");
       setKbSaveNote("Site header/footer queued until Syncing…");
+      setTimeout(() => setKbSaveNote(null), 4000);
       return;
     }
     setSaveState("saving");
@@ -393,6 +398,7 @@ export default function ProjectEditorPage() {
     } catch {
       setSaveState("queued");
       setKbSaveNote("Site header/footer queued until Syncing…");
+      setTimeout(() => setKbSaveNote(null), 4000);
     }
   }
 
@@ -1185,7 +1191,7 @@ export default function ProjectEditorPage() {
         onUndo={undo}
         onRedo={redo}
         publishing={publishing || improving}
-        publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Publish"}
+        publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Published"}
         onPublish={() => void publish()}
         onSaveDraft={() => {
           if (saveState === "idle" || saveState === "saved") {
@@ -1295,16 +1301,26 @@ export default function ProjectEditorPage() {
 
       {error ? (
         <div
-          className="border-b px-4 py-2.5 text-center text-xs"
+          className="border-b px-4 py-2.5 text-xs flex items-center gap-2"
           style={{ background: "#FFF1F0", color: "#8B1E1E" }}
           role="alert"
         >
-          {error}{" "}
-          {!subdomainInput.trim() ? (
-            <Link href={mySiteDetailHref(projectId)} className="font-bold underline">
-              Open Domain &amp; SEO
-            </Link>
-          ) : null}
+          <span className="flex-1 text-center">
+            {error}{" "}
+            {!subdomainInput.trim() ? (
+              <Link href={mySiteDetailHref(projectId)} className="font-bold underline">
+                Open Domain &amp; SEO
+              </Link>
+            ) : null}
+          </span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="shrink-0 text-base font-bold leading-none"
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
         </div>
       ) : null}
 
@@ -1781,7 +1797,11 @@ export default function ProjectEditorPage() {
                 </div>
               )}
 
-              {!selectedSectionId && <BuilderBlogPanel projectId={projectId} />}
+              {!selectedSectionId && (
+                <PanelSection title="Blog posts">
+                  <BuilderBlogPanel projectId={projectId} />
+                </PanelSection>
+              )}
 
               {!selectedSectionId && (
               <div className="px-2 py-1 space-y-1" style={{ background: "#ffffff" }}>
@@ -1910,196 +1930,192 @@ export default function ProjectEditorPage() {
                         </div>
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-                            Words
-                          </p>
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.artistName ?? "")}
-                            onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
-                            aria-label="Artist name"
-                            placeholder="MAY LECOR"
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.ctaLabel ?? "")}
-                            onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
-                            aria-label="CTA label"
-                          />
-                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            Photos — tap upload
-                          </p>
-                          {(
-                            [
-                              ["backgroundImage", "Background"],
-                              ["portraitMain", "Main portrait"],
-                              ["collageTop", "Collage top"],
-                              ["collageMiddle", "Collage middle"],
-                              ["logoBanner", "Logo banner"],
-                              ["bottomLeft", "Bottom left photo"],
-                              ["bottomRight", "Bottom right photo"],
-                              ["logoSmall", "Small logo"],
-                            ] as const
-                          ).map(([key, label]) => (
-                            <SectionPhotoField
-                              key={key}
-                              projectId={projectId}
-                              label={label}
-                              value={String(section.props[key] ?? "")}
-                              onChange={(url) => updateProps(section.id, { [key]: url })}
-                            />
-                          ))}
-                          <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                          <PanelSection title="Text">
                             <input
-                              type="checkbox"
-                              checked={section.props.motionEnabled !== false}
-                              onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
+                              className="w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.artistName ?? "")}
+                              onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
+                              aria-label="Artist name"
+                              placeholder="MAY LECOR"
                             />
-                            Floating motion (cutouts + parallax)
-                          </label>
-                          <SocialLinksEditor
-                            projectId={projectId}
-                            links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
-                              (l) => ({
-                                label: String(l.label ?? ""),
-                                href: String(l.href ?? ""),
-                                iconUrl: String(l.iconUrl ?? ""),
-                              }),
-                            )}
-                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
-                            rail={{
-                              visible: section.props.socialRailVisible !== false,
-                              bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
-                              leftPct: Number(section.props.socialRailLeftPct ?? 0),
-                              topPct: Number(section.props.socialRailTopPct ?? 12),
-                              iconSize: Number(section.props.socialRailIconSize ?? 40),
-                            }}
-                            onRailChange={(patch) => updateProps(section.id, patch)}
-                          />
+                            <input
+                              className="w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.ctaLabel ?? "")}
+                              onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
+                              aria-label="CTA label"
+                            />
+                          </PanelSection>
+                          <PanelSection title="Photos">
+                            {(
+                              [
+                                ["backgroundImage", "Background"],
+                                ["portraitMain", "Main portrait"],
+                                ["collageTop", "Collage top"],
+                                ["collageMiddle", "Collage middle"],
+                                ["logoBanner", "Logo banner"],
+                                ["bottomLeft", "Bottom left photo"],
+                                ["bottomRight", "Bottom right photo"],
+                                ["logoSmall", "Small logo"],
+                              ] as const
+                            ).map(([key, label]) => (
+                              <SectionPhotoField
+                                key={key}
+                                projectId={projectId}
+                                label={label}
+                                value={String(section.props[key] ?? "")}
+                                onChange={(url) => updateProps(section.id, { [key]: url })}
+                              />
+                            ))}
+                          </PanelSection>
+                          <PanelSection title="Motion & Social">
+                            <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                              <input
+                                type="checkbox"
+                                checked={section.props.motionEnabled !== false}
+                                onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
+                              />
+                              Floating motion (cutouts + parallax)
+                            </label>
+                            <SocialLinksEditor
+                              projectId={projectId}
+                              links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
+                                (l) => ({
+                                  label: String(l.label ?? ""),
+                                  href: String(l.href ?? ""),
+                                  iconUrl: String(l.iconUrl ?? ""),
+                                }),
+                              )}
+                              onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                              rail={{
+                                visible: section.props.socialRailVisible !== false,
+                                bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
+                                leftPct: Number(section.props.socialRailLeftPct ?? 0),
+                                topPct: Number(section.props.socialRailTopPct ?? 12),
+                                iconSize: Number(section.props.socialRailIconSize ?? 40),
+                              }}
+                              onRailChange={(patch) => updateProps(section.id, patch)}
+                            />
+                          </PanelSection>
                         </div>
                       )}
                       {section.section_type === "legally-blonde-hero" && (
                         <div className="space-y-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-                            May Lecor hero
-                          </p>
-                          <button
-                            type="button"
-                            className="w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold"
-                            style={{ border: "1px solid #FF5500", color: "#FF5500" }}
-                            onClick={() =>
-                              updateProps(section.id, {
-                                ...defaultMaylecorKsendrProps(
-                                  String(section.props.title ?? section.props.brandLabel ?? "MAY LECOR"),
-                                ),
-                              })
-                            }
-                          >
-                            Restore May circle + cutouts
-                          </button>
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.title ?? "")}
-                            onChange={(e) =>
-                              updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
-                            }
-                            aria-label="Title"
-                            placeholder="Artist or brand name"
-                          />
-                          <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            rows={3}
-                            value={String(section.props.subtitle ?? "")}
-                            onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
-                            aria-label="Subtitle"
-                            placeholder="Short bio or tagline"
-                          />
-                          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                            Center mark uses the May Lècor circle seal (not Russian text). Swap cutouts in Media or on the canvas.
-                          </p>
-                          <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: "#FF5500" }}>
-                            Top bar logo (clicks → home)
-                          </p>
-                          <label className="flex items-center gap-2 text-[11px] font-semibold">
-                            <input
-                              type="checkbox"
-                              checked={section.props.showChromeLogo !== false}
-                              onChange={(e) => updateProps(section.id, { showChromeLogo: e.target.checked })}
-                            />
-                            Show small May logo in the upper bar
-                          </label>
-                          {section.props.showChromeLogo !== false ? (
-                            <SectionPhotoField
-                              projectId={projectId}
-                              label="Upper logo (optional — leave default or upload)"
-                              value={String(section.props.chromeLogo ?? "")}
-                              onChange={(url) => updateProps(section.id, { chromeLogo: url })}
-                            />
-                          ) : null}
-                          <label className="block text-[10px] uppercase tracking-wider">
-                            Nav look
-                            <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.navDisplay ?? "text")}
-                              onChange={(e) =>
+                          <PanelSection title="Text">
+                            <button
+                              type="button"
+                              className="w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold"
+                              style={{ border: "1px solid #FF5500", color: "#FF5500" }}
+                              onClick={() =>
                                 updateProps(section.id, {
-                                  navDisplay: e.target.value as "text" | "icons" | "photos",
+                                  ...defaultMaylecorKsendrProps(
+                                    String(section.props.title ?? section.props.brandLabel ?? "MAY LECOR"),
+                                  ),
                                 })
                               }
                             >
-                              <option value="text">Words</option>
-                              <option value="icons">Built-in icons</option>
-                              <option value="photos">Photos / custom icons</option>
-                            </select>
-                          </label>
-                          <NavLinksEditor
-                            projectId={projectId}
-                            allowIcons
-                            links={mapNavLinksForEditor(
-                              (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
-                            )}
-                            onChange={(navLinks) => updateProps(section.id, { navLinks })}
-                          />
-                          <NavSizeEditor
-                            scale={clampNavScale(section.props.navScale, 1)}
-                            size={parseNavSize(section.props.navSize)}
-                            layout={parseNavLayout(section.props.navLayout)}
-                            onChange={(patch) => updateProps(section.id, patch)}
-                          />
-                          <label className="block text-[10px] uppercase tracking-wider">
-                            Display font (Steelfish recommended)
-                            <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              Restore May circle + cutouts
+                            </button>
+                            <input
+                              className="w-full text-sm rounded-lg px-2 py-1.5"
                               style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.displayFont ?? "Steelfish")}
-                              onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
-                            >
-                              {(
-                                [
-                                  "Steelfish",
-                                  "Oswald",
-                                  "Bebas Neue",
-                                  "Playfair Display",
-                                  "Fraunces",
-                                  "Syne",
-                                  "Georgia",
-                                  "system-ui",
-                                ] as const
-                              ).map((f) => (
-                                <option key={f} value={f}>
-                                  {f}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            May Lecor layers — drag on canvas or upload here
-                          </p>
+                              value={String(section.props.title ?? "")}
+                              onChange={(e) =>
+                                updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
+                              }
+                              aria-label="Title"
+                              placeholder="Artist or brand name"
+                            />
+                            <textarea
+                              className="w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              rows={3}
+                              value={String(section.props.subtitle ?? "")}
+                              onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
+                              aria-label="Subtitle"
+                              placeholder="Short bio or tagline"
+                            />
+                            <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                              Center mark uses the May Lècor circle seal. Swap cutouts in Media or on the canvas.
+                            </p>
+                          </PanelSection>
+                          <PanelSection title="Navigation">
+                            <label className="flex items-center gap-2 text-[11px] font-semibold">
+                              <input
+                                type="checkbox"
+                                checked={section.props.showChromeLogo !== false}
+                                onChange={(e) => updateProps(section.id, { showChromeLogo: e.target.checked })}
+                              />
+                              Show logo in upper bar
+                            </label>
+                            {section.props.showChromeLogo !== false ? (
+                              <SectionPhotoField
+                                projectId={projectId}
+                                label="Upper logo (optional)"
+                                value={String(section.props.chromeLogo ?? "")}
+                                onChange={(url) => updateProps(section.id, { chromeLogo: url })}
+                              />
+                            ) : null}
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Nav look
+                              <select
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.navDisplay ?? "text")}
+                                onChange={(e) =>
+                                  updateProps(section.id, {
+                                    navDisplay: e.target.value as "text" | "icons" | "photos",
+                                  })
+                                }
+                              >
+                                <option value="text">Words</option>
+                                <option value="icons">Built-in icons</option>
+                                <option value="photos">Photos / custom icons</option>
+                              </select>
+                            </label>
+                            <NavLinksEditor
+                              projectId={projectId}
+                              allowIcons
+                              links={mapNavLinksForEditor(
+                                (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
+                              )}
+                              onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                            />
+                            <NavSizeEditor
+                              scale={clampNavScale(section.props.navScale, 1)}
+                              size={parseNavSize(section.props.navSize)}
+                              layout={parseNavLayout(section.props.navLayout)}
+                              onChange={(patch) => updateProps(section.id, patch)}
+                            />
+                            <label className="block text-[10px] uppercase tracking-wider">
+                              Display font
+                              <select
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.displayFont ?? "Steelfish")}
+                                onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
+                              >
+                                {(
+                                  [
+                                    "Steelfish",
+                                    "Oswald",
+                                    "Bebas Neue",
+                                    "Playfair Display",
+                                    "Fraunces",
+                                    "Syne",
+                                    "Georgia",
+                                    "system-ui",
+                                  ] as const
+                                ).map((f) => (
+                                  <option key={f} value={f}>
+                                    {f}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          </PanelSection>
+                          <PanelSection title="Layers & Photos">
                           <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
                             Remove background = solid accent color. Replace cutouts on the canvas or upload below.
                           </p>
@@ -2262,11 +2278,10 @@ export default function ProjectEditorPage() {
                             />
                             One-screen home (off = full scroll scene)
                           </label>
-                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            Music / social links
-                          </p>
+                          </PanelSection>
+                          <PanelSection title="Social & Layer Order">
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                            Add, remove, reorder, and set links only here. On the canvas you can drag the rail — not edit icons.
+                            Add, remove, reorder links here. Drag the rail on the canvas.
                           </p>
                           <SocialLinksEditor
                             projectId={projectId}
@@ -2382,6 +2397,7 @@ export default function ProjectEditorPage() {
                               );
                             })}
                           </ul>
+                          </PanelSection>
                         </div>
                       )}
                       {section.section_type === "kdirection-home" && (
@@ -4395,7 +4411,7 @@ export default function ProjectEditorPage() {
       ) : null}
       {kbSaveNote ? (
         <p
-          className="pointer-events-none fixed left-3 bottom-3 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
+          className="pointer-events-none fixed right-3 top-14 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
           style={{ background: "rgba(255,251,247,0.95)", color: "#166534", border: "1px solid #E8E6DF" }}
         >
           {kbSaveNote}

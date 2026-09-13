@@ -128,7 +128,7 @@ export function BuilderAestheticsPanel({
     onSeoChange,
   } = extras ?? {};
 
-  const [openId, setOpenId] = useState<string | null>("colors");
+  const [openId, setOpenId] = useState<string | null>(null);
   function toggle(id: string) {
     setOpenId((prev) => (prev === id ? null : id));
   }

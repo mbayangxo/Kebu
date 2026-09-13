@@ -77,6 +77,7 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
         return;
       }
       setDraft({ title: "", slug: "", excerpt: "", body: "", authorName: "" });
+      setShowNewPost(false);
       await load();
     } finally {
       setBusy(false);
@@ -119,9 +120,6 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>
-        Blog posts
-      </p>
       <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
         Add a <strong>Blog</strong> section to your page — published posts appear automatically.
       </p>

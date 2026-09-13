@@ -2,6 +2,7 @@
 
 import { NavLinksEditor, mapNavLinksForEditor } from "@/app/components/create/nav-links-editor";
 import { NavSizeEditor } from "@/app/components/create/nav-size-editor";
+import { PanelSection } from "@/app/components/create/builder-panel-section";
 import { BUILDER } from "@/lib/create/builder-ui";
 import { clampNavScale, parseNavLayout, parseNavSize } from "@/lib/create/nav-chrome-size";
 import type { SiteChrome } from "@/lib/create/site-chrome";
@@ -71,21 +72,15 @@ export function BuilderSiteChromePanel({
 
       {selected && part === "header" ? (
         <div className="space-y-2">
-          {/* Brand name */}
-          <input
-            className="w-full text-sm rounded-lg px-2 py-1.5"
-            style={{ border: "1px solid #DDE0F0" }}
-            value={String(headerProps.brand ?? "")}
-            onChange={(e) => onPatch({ brand: e.target.value })}
-            aria-label="Brand name"
-            placeholder="Brand name"
-          />
-
-          {/* Logo position */}
-          <div className="rounded-lg p-2 space-y-1" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-              Logo position
-            </p>
+          <PanelSection title="Brand & Logo">
+            <input
+              className="w-full text-sm rounded-lg px-2 py-1.5"
+              style={{ border: "1px solid #DDE0F0" }}
+              value={String(headerProps.brand ?? "")}
+              onChange={(e) => onPatch({ brand: e.target.value })}
+              aria-label="Brand name"
+              placeholder="Brand name"
+            />
             <div className="grid grid-cols-3 gap-1">
               {(["left", "center", "right"] as const).map((align) => (
                 <button
@@ -104,11 +99,9 @@ export function BuilderSiteChromePanel({
                 </button>
               ))}
             </div>
-
-            {/* Sticky toggle */}
-            <label className="flex items-center justify-between mt-1 cursor-pointer">
+            <label className="flex items-center justify-between cursor-pointer">
               <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#5C5348" }}>
-                Sticky nav (stays on scroll)
+                Sticky nav
               </span>
               <button
                 type="button"
@@ -116,9 +109,7 @@ export function BuilderSiteChromePanel({
                 aria-checked={headerProps.navSticky !== false}
                 onClick={() => onPatch({ navSticky: !(headerProps.navSticky !== false) })}
                 className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                style={{
-                  background: headerProps.navSticky !== false ? "#FF5500" : "#DDE0F0",
-                }}
+                style={{ background: headerProps.navSticky !== false ? "#FF5500" : "#DDE0F0" }}
               >
                 <span
                   className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform"
@@ -126,33 +117,29 @@ export function BuilderSiteChromePanel({
                 />
               </button>
             </label>
-          </div>
-
-          {/* Nav links (multi-level) */}
-          <NavLinksEditor
-            links={mapNavLinksForEditor(
-              (headerProps.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
-            )}
-            onChange={(links) => onPatch({ links })}
-          />
-
-          {/* Nav size / scale / layout */}
-          <NavSizeEditor
-            scale={clampNavScale(headerProps.navScale, 1)}
-            size={parseNavSize(headerProps.navSize)}
-            layout={parseNavLayout(headerProps.navLayout)}
-            onChange={onPatch}
-          />
+          </PanelSection>
+          <PanelSection title="Nav links">
+            <NavLinksEditor
+              links={mapNavLinksForEditor(
+                (headerProps.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
+              )}
+              onChange={(links) => onPatch({ links })}
+            />
+          </PanelSection>
+          <PanelSection title="Nav size">
+            <NavSizeEditor
+              scale={clampNavScale(headerProps.navScale, 1)}
+              size={parseNavSize(headerProps.navSize)}
+              layout={parseNavLayout(headerProps.navLayout)}
+              onChange={onPatch}
+            />
+          </PanelSection>
         </div>
       ) : null}
 
       {selected && part === "footer" ? (
         <div className="space-y-2">
-          {/* Legal name + year → auto-builds copyright line */}
-          <div className="rounded-lg p-2 space-y-1.5" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-              Copyright
-            </p>
+          <PanelSection title="Copyright">
             <div className="flex gap-1">
               <input
                 className="w-16 text-xs rounded px-2 py-1 shrink-0"
@@ -172,23 +159,16 @@ export function BuilderSiteChromePanel({
                 placeholder="Your Business LLC"
               />
             </div>
-          </div>
-
-          {/* Custom footer text (overrides auto copyright if filled) */}
-          <input
-            className="w-full text-sm rounded-lg px-2 py-1.5"
-            style={{ border: "1px solid #DDE0F0" }}
-            value={String(footerProps.text ?? "")}
-            onChange={(e) => onPatch({ text: e.target.value })}
-            aria-label="Footer text (overrides copyright line)"
-            placeholder="Custom text — leave blank to auto-generate from above"
-          />
-
-          {/* Footer font */}
-          <div className="rounded-lg p-2 space-y-1.5" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-              Footer font
-            </p>
+            <input
+              className="w-full text-sm rounded-lg px-2 py-1.5"
+              style={{ border: "1px solid #DDE0F0" }}
+              value={String(footerProps.text ?? "")}
+              onChange={(e) => onPatch({ text: e.target.value })}
+              aria-label="Footer text (overrides copyright line)"
+              placeholder="Custom text — leave blank to auto-generate"
+            />
+          </PanelSection>
+          <PanelSection title="Font">
             <select
               className="w-full text-xs rounded px-2 py-1"
               style={{ border: "1px solid #DDE0F0", background: "#fff" }}
@@ -204,13 +184,8 @@ export function BuilderSiteChromePanel({
               <option value="'Oswald', sans-serif">Oswald (bold)</option>
               <option value="'IBM Plex Sans', sans-serif">IBM Plex (modern)</option>
             </select>
-          </div>
-
-          {/* Footer colors */}
-          <div className="rounded-lg p-2 space-y-2" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-              Footer colors
-            </p>
+          </PanelSection>
+          <PanelSection title="Colors">
             <label className="flex items-center gap-2">
               <span className="text-[10px] uppercase tracking-wider w-16 shrink-0" style={{ color: "#5C5348" }}>Background</span>
               <input
@@ -245,13 +220,8 @@ export function BuilderSiteChromePanel({
                 placeholder="#ffffff"
               />
             </label>
-          </div>
-
-          {/* Footer page links */}
-          <div className="rounded-lg p-2 space-y-1.5" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-              Footer links
-            </p>
+          </PanelSection>
+          <PanelSection title="Links">
             {(footerProps.links ?? []).map((link, i) => (
               <div key={i} className="flex gap-1">
                 <input
@@ -302,7 +272,7 @@ export function BuilderSiteChromePanel({
                 + Add link
               </button>
             )}
-          </div>
+          </PanelSection>
         </div>
       ) : null}
     </div>
