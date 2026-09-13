@@ -4307,7 +4307,58 @@ export default function ProjectEditorPage() {
                           </label>
                         </div>
                       )}
-                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "email-popup", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page", "editorial-hero", "announcement-bar", "marquee", "split"].includes(
+                      {section.section_type === "countdown" && (
+                        <div className="space-y-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Countdown</p>
+                          <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                            Launch date &amp; time
+                            <input
+                              type="datetime-local"
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={section.props.target ? String(section.props.target).slice(0, 16) : ""}
+                              onChange={(e) =>
+                                updateProps(section.id, { target: e.target.value ? e.target.value + ":00Z" : "" })
+                              }
+                            />
+                          </label>
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.heading ?? "")}
+                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            placeholder="Heading"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.subheading ?? "")}
+                            onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
+                            placeholder="Subheading"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.expiredMessage ?? "")}
+                            onChange={(e) => updateProps(section.id, { expiredMessage: e.target.value })}
+                            placeholder="Message after launch (e.g. We're live!)"
+                          />
+                          <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                            Layout
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.layout ?? "hero")}
+                              onChange={(e) => updateProps(section.id, { layout: e.target.value })}
+                            >
+                              <option value="hero">Hero (full-width)</option>
+                              <option value="strip">Strip (compact bar)</option>
+                              <option value="card">Card</option>
+                            </select>
+                          </label>
+                        </div>
+                      )}
+                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "email-popup", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page", "editorial-hero", "announcement-bar", "marquee", "split", "countdown"].includes(
                         section.section_type
                       ) && (
                         <p className="text-[11px]" style={{ color: "#8A8578" }}>
