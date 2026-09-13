@@ -63,10 +63,10 @@ export const themeSchema = z.object({
   /** Max content column width for standard sections. */
   contentWidth: z.enum(["narrow", "default", "wide"]).optional(),
   /** Relative heading size — Shopify-style typography scale. */
-  headingScale: z.enum(["sm", "md", "lg", "xl"]).optional().default("md"),
+  headingScale: z.enum(["sm", "md", "lg", "xl"]).optional(),
   /** Body text size. */
-  bodySize: z.enum(["sm", "md", "lg"]).optional().default("md"),
-  letterSpacing: z.enum(["tight", "normal", "wide"]).optional().default("normal"),
+  bodySize: z.enum(["sm", "md", "lg"]).optional(),
+  letterSpacing: z.enum(["tight", "normal", "wide"]).optional(),
   /** Corner radius feel for cards and buttons. */
   radius: z.enum(["sharp", "soft", "round"]).optional(),
   /** Primary button look. */
