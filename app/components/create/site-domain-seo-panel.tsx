@@ -31,6 +31,12 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [httpsLiveUrl, setHttpsLiveUrl] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Password protection
+  const [passwordEnabled, setPasswordEnabled] = useState(false);
+  const [passwordSet, setPasswordSet] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [pwState, setPwState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [pwNote, setPwNote] = useState<string | null>(null);
 
   const canonicalDns = customDomainDnsTarget(subdomain || "site");
   const livePath = subdomain.trim() ? kebuSitePreviewPath(subdomain.trim()) : null;
@@ -60,6 +66,8 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
       if (proj.project?.seo && typeof proj.project.seo === "object") {
         setSeo((prev) => ({ ...prev, ...(proj.project.seo as SiteSeo) }));
       }
+      setPasswordEnabled(Boolean(proj.project?.site_password_enabled));
+      setPasswordSet(Boolean(proj.project?.site_password_hash));
 
       if (domRes.ok) {
         const list = Array.isArray(dom.domains) ? dom.domains : [];
@@ -119,6 +127,57 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
       const valid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextSub.trim()) && nextSub.trim().length >= 3;
       void persistSettings(valid ? nextSub.trim().toLowerCase() : subdomain, nextSeo);
     }, 600);
+  }
+
+  async function savePassword() {
+    if (!newPassword.trim() && passwordEnabled) return;
+    setPwState("saving");
+    setPwNote(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/settings`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sitePassword: newPassword.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPwState("error");
+        setPwNote(typeof data.error === "string" ? data.error : "Could not save password.");
+        return;
+      }
+      setPasswordEnabled(Boolean((data as { sitePasswordEnabled?: boolean }).sitePasswordEnabled));
+      setPasswordSet(Boolean((data as { sitePasswordSet?: boolean }).sitePasswordSet));
+      setNewPassword("");
+      setPwState("saved");
+      setPwNote(newPassword.trim() ? "Password set. Visitors will need to enter it." : "Password removed.");
+    } catch {
+      setPwState("error");
+      setPwNote("Network error.");
+    }
+  }
+
+  async function togglePasswordEnabled(enabled: boolean) {
+    setPwState("saving");
+    try {
+      const res = await fetch(`/api/projects/${projectId}/settings`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sitePasswordEnabled: enabled }),
+      });
+      if (res.ok) {
+        setPasswordEnabled(enabled);
+        setPwState("saved");
+        setPwNote(enabled ? "Password gate enabled." : "Password gate disabled — site is public.");
+      } else {
+        setPwState("error");
+        setPwNote("Could not update password gate.");
+      }
+    } catch {
+      setPwState("error");
+      setPwNote("Network error.");
+    }
   }
 
   async function addDomain() {
@@ -482,6 +541,93 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
         <p className="text-[10px]" style={{ color: KEBU.muted }}>
           {settingsState === "saving" ? "Saving…" : settingsState === "saved" ? settingsNote : settingsNote ?? "Autosaves"}
         </p>
+      </section>
+
+      <section className="rounded-2xl p-5 space-y-4 bg-white border" style={{ borderColor: KEBU.border }}>
+        <h3 className="text-sm font-bold uppercase tracking-wider">Password protection</h3>
+        <p className="text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
+          Add a password to your shop so only people with the code can view it. Useful for VIP launches or private catalogues.
+        </p>
+
+        {passwordSet && (
+          <label className="flex items-center gap-2 text-[13px]">
+            <input
+              type="checkbox"
+              checked={passwordEnabled}
+              onChange={(e) => void togglePasswordEnabled(e.target.checked)}
+            />
+            <span style={{ color: KEBU.black }}>
+              {passwordEnabled ? "Password gate is ON" : "Password gate is OFF (site is public)"}
+            </span>
+          </label>
+        )}
+
+        <div className="space-y-2">
+          <label className="block text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+            {passwordSet ? "Change password" : "Set a password"}
+          </label>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder={passwordSet ? "Enter new password" : "Enter password for visitors"}
+            className="w-full rounded-lg px-3 py-2 text-sm"
+            style={{ border: `1px solid ${KEBU.border}` }}
+            autoComplete="new-password"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!newPassword.trim() || pwState === "saving"}
+              onClick={() => void savePassword()}
+              className="rounded-lg px-4 py-2 text-[12px] font-bold text-white disabled:opacity-50"
+              style={{ background: KEBU.orange }}
+            >
+              {pwState === "saving" ? "Saving…" : passwordSet ? "Update password" : "Set password"}
+            </button>
+            {passwordSet && (
+              <button
+                type="button"
+                disabled={pwState === "saving"}
+                onClick={async () => {
+                  setNewPassword("");
+                  setPwState("saving");
+                  setPwNote(null);
+                  try {
+                    const res = await fetch(`/api/projects/${projectId}/settings`, {
+                      method: "PATCH",
+                      credentials: "include",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ sitePassword: "" }),
+                    });
+                    if (res.ok) {
+                      setPasswordEnabled(false);
+                      setPasswordSet(false);
+                      setPwState("saved");
+                      setPwNote("Password removed. Site is now public.");
+                    } else {
+                      setPwState("error");
+                      setPwNote("Could not remove password.");
+                    }
+                  } catch {
+                    setPwState("error");
+                    setPwNote("Network error.");
+                  }
+                }}
+                className="rounded-lg px-4 py-2 text-[12px] font-semibold disabled:opacity-50"
+                style={{ border: `1px solid ${KEBU.border}`, color: KEBU.muted }}
+              >
+                Remove password
+              </button>
+            )}
+          </div>
+        </div>
+
+        {pwNote ? (
+          <p className="text-[11px] font-medium" style={{ color: pwState === "error" ? "#B91C1C" : "#166534" }}>
+            {pwNote}
+          </p>
+        ) : null}
       </section>
     </div>
   );

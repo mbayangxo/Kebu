@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: Params) {
     email: user.email,
     projectId: id,
     select:
-      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo, site_chrome",
+      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo, site_chrome, site_password_enabled, site_password_hash",
     action: "get",
   });
 
@@ -111,10 +111,14 @@ export async function GET(_req: Request, { params }: Params) {
       : null,
   });
 
-  const { owner_id: _, ...safeProject } = project;
+  const { owner_id: _, site_password_hash: __, ...safeProject } = project as typeof project & { site_password_hash?: string | null };
   void _;
+  void __;
   return NextResponse.json({
-    project: safeProject,
+    project: {
+      ...safeProject,
+      site_password_set: Boolean((project as { site_password_hash?: string | null }).site_password_hash),
+    },
     pages: pages ?? [],
     sections,
     siteChrome: parseSiteChrome(siteChrome),

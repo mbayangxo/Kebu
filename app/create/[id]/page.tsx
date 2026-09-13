@@ -1117,16 +1117,19 @@ export default function ProjectEditorPage() {
     .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
     .sort((a, b) => a.sort_order - b.sort_order);
 
+  const hasDraftChanges = Boolean(publishState?.hasUnpublishedChanges);
   const saveStatusLabel =
     saveState === "saving"
-      ? "Saving…"
+      ? "Saving draft…"
       : saveState === "queued"
         ? "Queued — offline"
         : saveState === "saved"
-          ? "Saved ✓"
+          ? hasDraftChanges ? "Draft saved" : "Saved ✓"
           : saveState === "error"
             ? "Save failed — retry"
-            : savedAgoLabel ?? "All changes saved";
+            : hasDraftChanges
+              ? savedAgoLabel ? `Draft · ${savedAgoLabel}` : "Draft saved — click Publish to go live"
+              : savedAgoLabel ?? "All changes saved";
 
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
   /** Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames. */
@@ -1151,10 +1154,12 @@ export default function ProjectEditorPage() {
       if (publishState?.hasUnpublishedChanges) return {
         bg: "#FFF8E8", fg: "#6B5B45", border: "#F0E4C8", content: (
           <>
-            <strong style={{ color: "#0F0D33" }}>Editing a draft.</strong>{" "}
-            Visitors see your last published version until you click <strong>Publish</strong>.
+            <strong style={{ color: "#0F0D33" }}>Changes saved to draft.</strong>{" "}
+            {publishState.isLive
+              ? <>Visitors still see your last published version. Click <strong>Publish</strong> to push these changes live.</>
+              : <>Your site isn't live yet. Click <strong>Publish</strong> when you're ready to launch.</>}
             {publishState.isLive && (publishState.livePublicPath || publishUrl) ? (
-              <> Live: <a href={publishState.livePublicPath?.startsWith("http") ? publishState.livePublicPath : `${appOrigin}${publishState.livePublicPath || publishUrl || ""}`} target="_blank" rel="noreferrer" className="underline font-semibold">{publishState.livePublicPath || publishUrl}</a></>
+              <> <a href={publishState.livePublicPath?.startsWith("http") ? publishState.livePublicPath : `${appOrigin}${publishState.livePublicPath || publishUrl || ""}`} target="_blank" rel="noreferrer" className="underline font-semibold">View live site →</a></>
             ) : null}
           </>
         ),
