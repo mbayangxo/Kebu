@@ -32,7 +32,6 @@ export default function CreateHubPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [dbHealth, setDbHealth] = useState<{ saveReady: boolean; message: string } | null>(null);
   const [portfolioBusy, setPortfolioBusy] = useState(false);
   const [portfolioNote, setPortfolioNote] = useState<string | null>(null);
   const [portfolioAllowed, setPortfolioAllowed] = useState(false);
@@ -63,8 +62,8 @@ export default function CreateHubPage() {
     setPortfolioBusy(true);
     setPortfolioNote(null);
     try {
-      let res = await fetch("/api/projects/ensure-portfolio?ensure=1", { credentials: "include" });
-      let data = await res.json().catch(() => ({}));
+      const res = await fetch("/api/projects/ensure-portfolio?ensure=1", { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
         router.replace("/login?next=/create");
         return;
@@ -154,26 +153,15 @@ export default function CreateHubPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPortfolio();
   }, [loadPortfolio]);
 
-  useEffect(() => {
-    async function checkDb() {
-      const res = await fetch("/api/create/health", { credentials: "include" });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setDbHealth({
-          saveReady: Boolean(data.saveReady),
-          message: typeof data.message === "string" ? data.message : "",
-        });
-      }
-    }
-    void checkDb();
-  }, []);
 
   const galleryFlagship = getFlagshipGalleryTemplates();
 
@@ -214,8 +202,7 @@ export default function CreateHubPage() {
               Pick a look. See the demo. Start your site.
             </h1>
             <p className="text-sm sm:text-base leading-relaxed opacity-90 mb-8">
-              Themes live in Aesthetics. Your websites live in My Sites. Studio is for graphics — separate. Mae / owner
-              brands are not mixed into the store.
+              Build your business page in minutes — no code. Start from a real template, make it yours, and go live at your own web address.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -233,21 +220,6 @@ export default function CreateHubPage() {
             </div>
           </div>
         </section>
-
-        {dbHealth && !dbHealth.saveReady ? (
-          <div
-            className="rounded-2xl p-4 mb-10 text-sm leading-relaxed"
-            style={{ background: "#FFF8E8", border: "1px solid #F0E4C8", color: "#6B5B45" }}
-          >
-            <p className="font-semibold mb-1" style={{ color: "#0A0A0A" }}>
-              Demos work now · saving needs Supabase later
-            </p>
-            <p>
-              You can preview templates below without a database. When you apply migrations, edit → save → publish
-              connects end-to-end. {dbHealth.message}
-            </p>
-          </div>
-        ) : null}
 
         <section className="mb-14">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
