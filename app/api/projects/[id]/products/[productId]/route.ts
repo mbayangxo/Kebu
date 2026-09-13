@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { builderRateLimit } from "@/lib/api-guard";
 import {
   PRODUCT_SELECT,
@@ -8,6 +9,7 @@ import {
   PRODUCT_SELECT_CODES,
   projectProductSchema,
 } from "@/lib/create/project-products";
+import { assertProjectProductAccess } from "@/lib/create/assert-project-access";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +19,10 @@ type Params = { params: Promise<{ id: string; productId: string }> };
 const patchSchema = projectProductSchema.partial();
 
 /** Update or remove a catalog product. */
-export async function PATCH(req: Request, { params }: Params) {
+export async function PATCH(req: NextRequest, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -38,14 +43,8 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (!project) {
+  const access = await assertProjectProductAccess(supabase, projectId, user.id);
+  if (!access.ok) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 
@@ -200,20 +199,17 @@ export async function PATCH(req: Request, { params }: Params) {
   return NextResponse.json({ product });
 }
 
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id: projectId, productId } = await params;
 
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (!project) {
+  const access = await assertProjectProductAccess(supabase, projectId, user.id);
+  if (!access.ok) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 

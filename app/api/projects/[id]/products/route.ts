@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { builderRateLimit } from "@/lib/api-guard";
 import {
   PRODUCT_SELECT,
@@ -8,6 +9,7 @@ import {
   PRODUCT_SELECT_CODES,
   projectProductSchema,
 } from "@/lib/create/project-products";
+import { assertProjectProductAccess } from "@/lib/create/assert-project-access";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
 import { assertProjectPlanLimit } from "@/lib/billing/enforce-limits";
 
@@ -15,21 +17,15 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
-/** List catalog products for an owned project. */
+/** List catalog products — accessible to project owner and business founders/admins. */
 export async function GET(_req: Request, { params }: Params) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id: projectId } = await params;
 
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (!project) {
+  const access = await assertProjectProductAccess(supabase, projectId, user.id);
+  if (!access.ok) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 
@@ -122,7 +118,10 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 /** Add a product to the site catalog. */
-export async function POST(req: Request, { params }: Params) {
+export async function POST(req: NextRequest, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -143,16 +142,11 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id, business_id")
-    .eq("id", projectId)
-    .eq("owner_id", user.id)
-    .maybeSingle();
-
-  if (!project) {
+  const access = await assertProjectProductAccess(supabase, projectId, user.id);
+  if (!access.ok) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
+  const project = access.project;
 
   const planGate = await assertProjectPlanLimit(supabase, projectId, user.id, "maxProducts");
   if (!planGate.ok) {
