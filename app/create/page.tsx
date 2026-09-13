@@ -255,12 +255,22 @@ export default function CreateHubPage() {
           <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.25em] mb-2" style={{ color: "#FF5500" }}>
-                More templates
+                For African merchants
               </p>
               <h2 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-                Salons, stores, agencies, and more
+                Built for how you sell — WhatsApp, Wave, XOF
               </h2>
+              <p className="text-sm mt-2 max-w-xl" style={{ color: "#5C5348" }}>
+                Boutiques, salons, caterers, farms — every template accepts orders via WhatsApp, Wave, or Orange Money out of the box.
+              </p>
             </div>
+            <Link
+              href="/create/aesthetics"
+              className="rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-wider"
+              style={{ background: "#0A0A0A", color: "#fff" }}
+            >
+              All aesthetics →
+            </Link>
           </div>
           <ul className="grid gap-4 sm:grid-cols-3">
             {getFeaturedGalleryTemplates()
