@@ -17,7 +17,8 @@ export type BuilderStudioTab =
   | "aesthetic"
   | "media"
   | "nav"
-  | "yande";
+  | "yande"
+  | "stats";
 
 const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   {
@@ -76,6 +77,16 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8L12 3z" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "stats",
+    label: "Viewers",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" strokeLinejoin="round" />
+        <circle cx="12" cy="12" r="3" />
       </svg>
     ),
   },

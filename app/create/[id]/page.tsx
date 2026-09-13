@@ -127,6 +127,11 @@ export default function ProjectEditorPage() {
   const [, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
+  const [builderStats, setBuilderStats] = useState<{
+    views: number;
+    referrers: Array<{ referrer: string; count: number; pct: number }>;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
@@ -626,6 +631,7 @@ export default function ProjectEditorPage() {
   }
 
   async function deleteSection(sectionId: string) {
+    if (!window.confirm("Delete this section? You can undo with Ctrl+Z.")) return;
     const res = await fetch(`/api/projects/${projectId}/sections`, {
       method: "DELETE",
       credentials: "include",
@@ -640,6 +646,24 @@ export default function ProjectEditorPage() {
       pushHistory(prev);
       return prev.filter((s) => s.id !== sectionId);
     });
+  }
+
+  function reorderBlocksInSection(sectionId: string, fromIndex: number, toIndex: number) {
+    const section = sections.find((s) => s.id === sectionId);
+    if (!section) return;
+    const arrayKey = (() => {
+      if (section.section_type === "free-text" && Array.isArray(section.props.blocks)) return "blocks";
+      if (Array.isArray(section.props.items)) return "items";
+      if (Array.isArray(section.props.links)) return "links";
+      if (Array.isArray(section.props.navLinks)) return "navLinks";
+      return null;
+    })();
+    if (!arrayKey) return;
+    const arr = [...(section.props[arrayKey] as unknown[])];
+    if (fromIndex < 0 || toIndex < 0 || fromIndex >= arr.length || toIndex >= arr.length) return;
+    const [item] = arr.splice(fromIndex, 1);
+    arr.splice(toIndex, 0, item!);
+    updateProps(sectionId, { [arrayKey]: arr });
   }
 
   async function reorderSections(orderedIds: string[]) {
@@ -685,39 +709,108 @@ export default function ProjectEditorPage() {
   function undo() {
     if (history.length === 0) return;
     const prev = history[history.length - 1]!;
-    const changed = prev.filter((s) => {
+
+    // Structural: sections in prev missing from current (were deleted) → recreate in DB
+    const toRecreate = prev.filter((s) => !sections.find((c) => c.id === s.id));
+    // Structural: sections in current missing from prev (were added) → delete from DB
+    const toDeleteIds = sections
+      .filter((s) => !prev.find((p) => p.id === s.id))
+      .map((s) => s.id);
+    // Props: sections present in both with changed props
+    const propsChanged = prev.filter((s) => {
       const cur = sections.find((c) => c.id === s.id);
-      return !cur || JSON.stringify(cur.props) !== JSON.stringify(s.props);
+      return cur && JSON.stringify(cur.props) !== JSON.stringify(s.props);
     });
+
     setFuture((f) => [sections, ...f]);
     setSections(prev);
     setHistory((h) => h.slice(0, -1));
-    changed.forEach((s) => {
+
+    propsChanged.forEach((s) => {
       if (saveTimers.current[s.id] != null) {
         clearTimeout(saveTimers.current[s.id]);
         delete saveTimers.current[s.id];
       }
       void persistProps(s.id, s.props as Record<string, unknown>);
     });
+
+    if (toRecreate.length > 0 || toDeleteIds.length > 0) {
+      void Promise.all([
+        ...toRecreate.map((s) =>
+          fetch(`/api/projects/${projectId}/sections`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: (s as typeof s & { page_id: string }).page_id,
+              sectionType: (s as typeof s & { section_type: string }).section_type,
+              props: s.props,
+              sortOrder: (s as typeof s & { sort_order: number }).sort_order,
+            }),
+          }),
+        ),
+        ...toDeleteIds.map((id) =>
+          fetch(`/api/projects/${projectId}/sections`, {
+            method: "DELETE",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sectionId: id }),
+          }),
+        ),
+      ]).then(() => load());
+    }
   }
 
   function redo() {
     if (future.length === 0) return;
     const next = future[0]!;
-    const changed = next.filter((s) => {
+
+    const toRecreate = next.filter((s) => !sections.find((c) => c.id === s.id));
+    const toDeleteIds = sections
+      .filter((s) => !next.find((p) => p.id === s.id))
+      .map((s) => s.id);
+    const propsChanged = next.filter((s) => {
       const cur = sections.find((c) => c.id === s.id);
-      return !cur || JSON.stringify(cur.props) !== JSON.stringify(s.props);
+      return cur && JSON.stringify(cur.props) !== JSON.stringify(s.props);
     });
+
     setHistory((h) => [...h, sections]);
     setSections(next);
     setFuture((f) => f.slice(1));
-    changed.forEach((s) => {
+
+    propsChanged.forEach((s) => {
       if (saveTimers.current[s.id] != null) {
         clearTimeout(saveTimers.current[s.id]);
         delete saveTimers.current[s.id];
       }
       void persistProps(s.id, s.props as Record<string, unknown>);
     });
+
+    if (toRecreate.length > 0 || toDeleteIds.length > 0) {
+      void Promise.all([
+        ...toRecreate.map((s) =>
+          fetch(`/api/projects/${projectId}/sections`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageId: (s as typeof s & { page_id: string }).page_id,
+              sectionType: (s as typeof s & { section_type: string }).section_type,
+              props: s.props,
+              sortOrder: (s as typeof s & { sort_order: number }).sort_order,
+            }),
+          }),
+        ),
+        ...toDeleteIds.map((id) =>
+          fetch(`/api/projects/${projectId}/sections`, {
+            method: "DELETE",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sectionId: id }),
+          }),
+        ),
+      ]).then(() => load());
+    }
   }
 
   async function payHostingWithJoko(opts?: {
@@ -1103,7 +1196,29 @@ export default function ProjectEditorPage() {
     }
   }, [projectId]);
 
+  async function loadBuilderStats() {
+    if (statsLoading || builderStats) return;
+    setStatsLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/shop-analytics?days=7`, { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.summary) {
+        const s = data.summary as {
+          pageViews?: { total?: number };
+          visitorSources?: { referrers?: Array<{ referrer: string; count: number; pct: number }> };
+        };
+        setBuilderStats({
+          views: s.pageViews?.total ?? 0,
+          referrers: s.visitorSources?.referrers ?? [],
+        });
+      }
+    } catch { /* ignore */ } finally {
+      setStatsLoading(false);
+    }
+  }
+
   function openStudioTab(tab: BuilderStudioTab) {
+    if (tab === "stats" && !builderStats && !statsLoading) void loadBuilderStats();
     if (leftPanelOpen && sidebarTab === tab) {
       setLeftPanelOpen(false);
       return;
@@ -1536,7 +1651,7 @@ export default function ProjectEditorPage() {
               {/* Mobile close button */}
               <div className="md:hidden flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#E5E5E5" }}>
                 <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: BUILDER.muted }}>
-                  {sidebarTab === "content" ? "Sections" : sidebarTab === "pages" ? "Pages" : sidebarTab === "aesthetic" ? "Style" : sidebarTab === "media" ? "Photos" : sidebarTab === "nav" ? "Navigation" : "Yande"}
+                  {sidebarTab === "content" ? "Sections" : sidebarTab === "pages" ? "Pages" : sidebarTab === "aesthetic" ? "Style" : sidebarTab === "media" ? "Photos" : sidebarTab === "nav" ? "Navigation" : sidebarTab === "stats" ? "Viewers" : "Yande"}
                 </p>
                 <button
                   type="button"
@@ -1741,6 +1856,68 @@ export default function ProjectEditorPage() {
                       />
                     );
                   })()}
+                </div>
+              )}
+
+              {sidebarTab === "stats" && (
+                <div className="px-4 py-4 space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                      Viewers — last 7 days
+                    </p>
+                    {statsLoading ? (
+                      <p className="mt-3 text-[12px]" style={{ color: BUILDER.muted }}>Loading…</p>
+                    ) : !builderStats || (builderStats.views === 0 && builderStats.referrers.length === 0) ? (
+                      <div className="mt-4 rounded-xl p-4 text-center" style={{ background: "#F7F4EF" }}>
+                        <p className="text-[12px] font-medium" style={{ color: BUILDER.muted }}>No visitors yet</p>
+                        <p className="mt-1 text-[11px]" style={{ color: "#B0A898" }}>
+                          Share your link to start seeing who visits and where they come from.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-3 space-y-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[28px] font-black tabular-nums" style={{ color: BUILDER.orange }}>
+                            {builderStats.views.toLocaleString()}
+                          </span>
+                          <span className="text-[11px]" style={{ color: BUILDER.muted }}>views this week</span>
+                        </div>
+                        {builderStats.referrers.length > 0 && (
+                          <div>
+                            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                              Where they came from
+                            </p>
+                            <ul className="space-y-2">
+                              {builderStats.referrers.slice(0, 8).map((r) => (
+                                <li key={r.referrer} className="flex items-center justify-between gap-2">
+                                  <span className="truncate text-[12px] font-medium" style={{ color: "#1A1A1A" }}>
+                                    {r.referrer || "Direct / unknown"}
+                                  </span>
+                                  <div className="flex shrink-0 items-center gap-1.5">
+                                    <div
+                                      className="h-1.5 rounded-full"
+                                      style={{ width: Math.max(16, r.pct * 0.6), background: BUILDER.orange, opacity: 0.6 }}
+                                    />
+                                    <span className="text-[11px] tabular-nums" style={{ color: BUILDER.muted }}>
+                                      {r.count}
+                                    </span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setBuilderStats(null)}
+                          className="text-[10px] underline"
+                          style={{ color: BUILDER.muted }}
+                        >
+                          Refresh
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1965,6 +2142,7 @@ export default function ProjectEditorPage() {
                           const s = sections.find((x) => x.id === id);
                           if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
                         }}
+                        onReorderBlocks={(id, from, to) => reorderBlocksInSection(id, from, to)}
                       />
                     </BuilderSectionZone>
                     <BuilderSectionZone zone="lower">
@@ -2007,6 +2185,7 @@ export default function ProjectEditorPage() {
                         const s = sections.find((x) => x.id === id);
                         if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
                       }}
+                      onReorderBlocks={(id, from, to) => reorderBlocksInSection(id, from, to)}
                     />
                   </BuilderSectionZone>
                 )}

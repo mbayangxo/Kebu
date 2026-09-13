@@ -6,6 +6,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -100,6 +101,7 @@ function SortableSectionRow({
   onMoveDown,
   onRemove,
   onToggleHidden,
+  onReorderBlocks,
   isFirst,
   isLast,
 }: {
@@ -113,6 +115,7 @@ function SortableSectionRow({
   onMoveDown: () => void;
   onRemove?: () => void;
   onToggleHidden?: () => void;
+  onReorderBlocks?: (fromIndex: number, toIndex: number) => void;
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -246,16 +249,36 @@ function SortableSectionRow({
       {/* Nested blocks */}
       {expanded && blocks.length > 0 ? (
         <ul className="ml-7 space-y-0.5 border-l border-[#E5E7EB] pl-2">
-          {blocks.map((b) => (
-            <li key={b.id}>
+          {blocks.map((b, idx) => (
+            <li key={b.id} className="group flex items-center gap-1">
               <button
                 type="button"
                 onClick={onSelect}
-                className="w-full truncate rounded px-1.5 py-1 text-left text-[11px] hover:bg-black/[0.04]"
+                className="min-w-0 flex-1 truncate rounded px-1.5 py-1 text-left text-[11px] hover:bg-black/[0.04]"
                 style={{ color: "#5C5C5C" }}
               >
                 {b.label}
               </button>
+              {onReorderBlocks ? (
+                <div className="hidden shrink-0 items-center gap-0 group-hover:flex">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => onReorderBlocks(idx, idx - 1)}
+                    className="rounded px-0.5 py-0.5 text-[10px] disabled:opacity-20"
+                    style={{ color: "#5C5C5C" }}
+                    aria-label="Move item up"
+                  >↑</button>
+                  <button
+                    type="button"
+                    disabled={idx === blocks.length - 1}
+                    onClick={() => onReorderBlocks(idx, idx + 1)}
+                    className="rounded px-0.5 py-0.5 text-[10px] disabled:opacity-20"
+                    style={{ color: "#5C5C5C" }}
+                    aria-label="Move item down"
+                  >↓</button>
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -274,6 +297,7 @@ export function BuilderSectionListDnd({
   onMoveDown,
   onRemove,
   onToggleHidden,
+  onReorderBlocks,
 }: {
   sections: SectionRow[];
   selectedSectionId: string | null;
@@ -283,10 +307,12 @@ export function BuilderSectionListDnd({
   onMoveDown: (id: string) => void;
   onRemove?: (id: string) => void;
   onToggleHidden?: (id: string) => void;
+  onReorderBlocks?: (sectionId: string, fromIndex: number, toIndex: number) => void;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -345,6 +371,7 @@ export function BuilderSectionListDnd({
                   onMoveDown={() => onMoveDown(section.id)}
                   onRemove={onRemove ? () => onRemove(section.id) : undefined}
                   onToggleHidden={onToggleHidden ? () => onToggleHidden(section.id) : undefined}
+                  onReorderBlocks={onReorderBlocks ? (from, to) => onReorderBlocks(section.id, from, to) : undefined}
                   isFirst={index === 0}
                   isLast={index === sections.length - 1}
                 />

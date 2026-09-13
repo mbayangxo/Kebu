@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { paymentPreferenceLabel } from "@/lib/create/site-commerce";
 import { KEBU } from "@/lib/kebu-brand";
 import { SHOP_CARRIERS, type ShopCarrierId } from "@/lib/shop/carriers";
+import { OrderCelebration } from "@/app/components/shop/order-celebration";
 
 type ShopOrder = {
   id: string;
@@ -96,6 +97,7 @@ export function ShopOrdersPanel({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>("open");
+  const [celebrating, setCelebrating] = useState<1 | 2 | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [demoBusy, setDemoBusy] = useState<1 | 2 | null>(null);
   const [demoHint, setDemoHint] = useState<string | null>(null);
@@ -116,10 +118,24 @@ export function ShopOrdersPanel({
         setError(typeof data.error === "string" ? data.error : "Could not load orders.");
         return;
       }
-      setOrders(Array.isArray(data.orders) ? data.orders : []);
+      const ordersArr: ShopOrder[] = Array.isArray(data.orders) ? data.orders : [];
+      setOrders(ordersArr);
       if (Array.isArray(data.carriers) && data.carriers.length) {
         setCarriers(data.carriers);
       }
+      // Celebration milestones — fires once per project per milestone
+      try {
+        const count = ordersArr.length;
+        const key1 = `kebu_celebrated_1st_${projectId}`;
+        const key2 = `kebu_celebrated_2nd_${projectId}`;
+        if (count >= 1 && !localStorage.getItem(key1)) {
+          localStorage.setItem(key1, "1");
+          setCelebrating(1);
+        } else if (count >= 2 && !localStorage.getItem(key2)) {
+          localStorage.setItem(key2, "1");
+          setCelebrating(2);
+        }
+      } catch { /* localStorage blocked */ }
     } catch {
       setError("Network error.");
     } finally {
@@ -250,6 +266,9 @@ export function ShopOrdersPanel({
 
   return (
     <section className={embedded ? "" : "mt-10"}>
+      {celebrating !== null && (
+        <OrderCelebration orderNum={celebrating} onDismiss={() => setCelebrating(null)} />
+      )}
       {!embedded ? (
         <>
           <h2 className="text-lg font-bold" style={{ color: KEBU.black }}>
