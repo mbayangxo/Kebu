@@ -296,6 +296,7 @@ function DraggablePhoto({
         alt={photo.alt || altFallback || "Collage"}
         className="pointer-events-none block aspect-[3/4] w-full object-cover"
         draggable={false}
+        loading="lazy"
         onError={(e) => {
           e.currentTarget.src = KDIRECTION_PORTRAIT;
         }}
@@ -336,13 +337,11 @@ export type KdirectionHomeProps = {
   logoImage?: string;
   showHomeIcon?: boolean;
   showArrows?: boolean;
-  featuredArtistName: string;
-  featuredArtistImage: string;
-  featuredArtistHref: string;
-  newsCardLabel: string;
-  newsCardHref: string;
-  brandCardLabel: string;
-  brandCardHref: string;
+  featuredArtistName?: string;
+  newsCardLabel?: string;
+  newsCardHref?: string;
+  brandCardLabel?: string;
+  brandCardHref?: string;
   collagePhotos?: KdirectionCollagePhoto[];
   navLinks: NavLink[];
   navScale?: number;
@@ -424,12 +423,14 @@ export function KdirectionHomeLayout({
   return (
     <div
       id="top"
-      className="relative min-h-screen overflow-hidden text-black"
+      className="relative flex min-h-screen flex-col overflow-hidden text-black"
       style={{
         background: bg,
         fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link
         rel="stylesheet"
         href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@400;500;600;700&display=swap`}
@@ -438,17 +439,14 @@ export function KdirectionHomeLayout({
       {props.backgroundImage ? (
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${props.backgroundImage})`,
-            opacity: props.showOverlay ? 0.45 : 1,
-          }}
+          style={{ backgroundImage: `url(${props.backgroundImage})` }}
           aria-hidden
         />
       ) : null}
       {props.showOverlay ? (
         <div
           className="pointer-events-none absolute inset-0"
-          style={{ background: `rgba(0,0,0,${Math.min(0.85, Math.max(0, Number(props.overlayOpacity ?? 0)))})` }}
+          style={{ background: `rgba(0,0,0,${Math.min(0.85, Math.max(0, Number(props.overlayOpacity ?? 0.35)))})` }}
           aria-hidden
         />
       ) : null}
@@ -482,7 +480,7 @@ export function KdirectionHomeLayout({
         </p>
       ) : null}
 
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-none flex-col items-center justify-center px-2 pb-16 pt-4 sm:px-4">
+      <main className="relative z-10 mx-auto flex w-full max-w-none flex-1 flex-col items-center justify-center px-2 pb-16 pt-4 sm:px-4">
         <div
           className="relative w-full max-w-6xl py-4 sm:py-8 lg:max-w-[92vw]"
           style={{ minHeight: device === "mobile" ? "22rem" : device === "tablet" ? "26rem" : "28rem" }}
@@ -522,7 +520,7 @@ export function KdirectionHomeLayout({
                 zIndex: layout.zIndex,
               }}
               index={index}
-              altFallback={props.featuredArtistName}
+              altFallback={props.featuredArtistName ?? ""}
               editing={editing}
               selected={selectedPhoto === index}
               onSelect={() => setSelectedPhoto(index)}
@@ -552,6 +550,45 @@ export function KdirectionHomeLayout({
           >
             + Add mission text
           </button>
+        ) : null}
+
+        {/* Quick-link chips — News + Brand cards */}
+        {(props.newsCardLabel || props.brandCardLabel) ? (
+          <div className="relative z-20 mt-6 flex flex-wrap items-center justify-center gap-3">
+            {props.newsCardLabel && props.newsCardHref ? (
+              <a
+                href={props.newsCardHref}
+                className="rounded-full font-bold uppercase text-black"
+                style={{
+                  background: props.navButtonBg || "#FFF86B",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  fontSize: 11,
+                  letterSpacing: "0.08em",
+                  padding: "6px 16px",
+                }}
+                onClick={(e) => editing && e.preventDefault()}
+              >
+                {props.newsCardLabel}
+              </a>
+            ) : null}
+            {props.brandCardLabel && props.brandCardHref ? (
+              <a
+                href={props.brandCardHref}
+                className="rounded-full border font-bold uppercase"
+                style={{
+                  borderColor: props.logoColor || "#fff",
+                  color: props.logoColor || "#fff",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  fontSize: 11,
+                  letterSpacing: "0.08em",
+                  padding: "6px 16px",
+                }}
+                onClick={(e) => editing && e.preventDefault()}
+              >
+                {props.brandCardLabel}
+              </a>
+            ) : null}
+          </div>
         ) : null}
 
         {/* Social icons row (editable links live in sidebar + here for visibility) */}
@@ -588,7 +625,7 @@ export function KdirectionHomeLayout({
 
       {props.footerText ? (
         <p
-          className="absolute bottom-0 left-0 z-20 w-full bg-black/55 px-4 py-2 text-left text-[10px] uppercase tracking-widest text-white"
+          className="relative z-20 mt-auto w-full bg-black/55 px-4 py-2 text-left text-[10px] uppercase tracking-widest text-white"
           contentEditable={editing}
           suppressContentEditableWarning
           onBlur={(e) => patch({ footerText: e.currentTarget.textContent ?? "" })}
@@ -766,7 +803,9 @@ export function KdirectionPageLayout({
   }
 
   return (
-    <div className="relative min-h-screen text-white" style={{ background: bg }}>
+    <div className="relative flex min-h-screen flex-col text-white" style={{ background: bg }}>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link
         rel="stylesheet"
         href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@400;500;600;700&display=swap`}
@@ -815,6 +854,7 @@ export function KdirectionPageLayout({
             src={heroSrc}
             alt=""
             className="mt-8 w-full max-h-[28rem] object-cover shadow-xl"
+            loading="lazy"
             onError={(e) => {
               e.currentTarget.src = KDIRECTION_PORTRAIT;
             }}

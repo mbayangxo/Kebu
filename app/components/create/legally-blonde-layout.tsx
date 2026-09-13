@@ -271,7 +271,16 @@ function renderLayer(
   if (move && (move.dx || move.dy)) {
     transformParts.push(`translate3d(${move.dx}px, ${move.dy}px, 0)`);
   }
-  if (opts.motion && hasScrollMotion && opts.scrollProgress !== undefined && !opts.editing) {
+  // Skip scroll offset for layers with a looping CSS animation — the animation's keyframe
+  // transform would override style.transform, making the scroll offset invisible.
+  const hasLoopAnim = opts.motion && !opts.editing && (() => {
+    const key = propKey || layer.id;
+    const custom = props.layerMotions?.[key] as LayerMotion | undefined;
+    if (custom === "none") return false;
+    if (custom === "spin" || custom === "float" || custom === "bob") return true;
+    return Boolean(HERO_LOOP_ANIM[layer.id]);
+  })();
+  if (opts.motion && hasScrollMotion && opts.scrollProgress !== undefined && !opts.editing && !hasLoopAnim) {
     transformParts.push(`translate3d(${scroll.x}px, ${scroll.y}px, 0)`);
     if (scroll.rotate) transformParts.push(`rotate(${scroll.rotate}deg)`);
   }

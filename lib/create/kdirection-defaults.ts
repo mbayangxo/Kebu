@@ -147,8 +147,6 @@ export function defaultKdirectionHomeProps() {
     showHomeIcon: true,
     showArrows: true,
     featuredArtistName: KDIRECTION_DEFAULTS.featuredArtistName,
-    featuredArtistImage: KDIRECTION_PORTRAIT,
-    featuredArtistHref: "/artists",
     newsCardLabel: "News",
     newsCardHref: "/news",
     brandCardLabel: "K-DIRECTION",
@@ -237,11 +235,6 @@ export function normalizeKdirectionHomeProps(props: Record<string, unknown>): Re
       }))
     : next.socialLinks;
 
-  let featuredArtistImage = localizeKdirectionAssetUrl(String(props.featuredArtistImage ?? ""));
-  if (!featuredArtistImage || isBlockedRemoteMedia(String(props.featuredArtistImage ?? ""))) {
-    featuredArtistImage = next.featuredArtistImage;
-  }
-
   let backgroundImage = String(props.backgroundImage ?? "");
   if (isBlockedRemoteMedia(backgroundImage) && !isUserUploadedSiteAsset(backgroundImage)) {
     backgroundImage = "";
@@ -268,7 +261,6 @@ export function normalizeKdirectionHomeProps(props: Record<string, unknown>): Re
     // Site nav is the only chrome — always edge-to-edge (never a centered 72rem strip).
     navSize: "fullscreen",
     navScale: typeof props.navScale === "number" ? props.navScale : next.navScale,
-    featuredArtistImage,
     socialLinks,
   };
 }
