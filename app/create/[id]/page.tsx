@@ -26,7 +26,6 @@ import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import type { PublishState } from "@/lib/create/publish-state";
 import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
-import { BuilderShopPanel } from "@/app/components/create/builder-shop-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
@@ -928,7 +927,8 @@ export default function ProjectEditorPage() {
     onSelectSection: (id: string) => {
       setSelectedSectionId(id);
       setSidebarTab("content");
-      setLeftPanelOpen(true);
+      // On mobile the panel overlays the whole canvas — only auto-open on desktop
+      if (typeof window !== "undefined" && window.innerWidth >= 640) setLeftPanelOpen(true);
       const match = sections.find((s) => s.id === id);
       if (match) setEditPageId(match.page_id);
     },
@@ -1461,7 +1461,7 @@ export default function ProjectEditorPage() {
               {/* Mobile close button */}
               <div className="md:hidden flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#E5E5E5" }}>
                 <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: BUILDER.muted }}>
-                  {sidebarTab === "content" ? "Sections" : sidebarTab === "pages" ? "Pages" : sidebarTab === "aesthetic" ? "Style" : sidebarTab === "media" ? "Photos" : sidebarTab === "nav" ? "Navigation" : sidebarTab === "shop" ? "Shop" : "Yande"}
+                  {sidebarTab === "content" ? "Sections" : sidebarTab === "pages" ? "Pages" : sidebarTab === "aesthetic" ? "Style" : sidebarTab === "media" ? "Photos" : sidebarTab === "nav" ? "Navigation" : "Yande"}
                 </p>
                 <button
                   type="button"
@@ -1500,14 +1500,6 @@ export default function ProjectEditorPage() {
                     onUseOnSite={(asset) => void applyMediaAsset(asset)}
                   />
                 </div>
-              )}
-
-              {sidebarTab === "shop" && (
-                <BuilderShopPanel
-                  projectId={projectId}
-                  commerce={seoSettings.commerce ?? {}}
-                  onSaved={(next) => queueSiteSettingsSave({ seo: { commerce: next } })}
-                />
               )}
 
               {sidebarTab === "nav" && (
@@ -4299,8 +4291,8 @@ export default function ProjectEditorPage() {
                 ["content", "Sections", <svg key="c" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 6h16M4 12h16M4 18h10" strokeLinecap="round" /></svg>],
                 ["aesthetic", "Style", <svg key="a" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 3a9 9 0 100 18 4 4 0 010-8h2a3 3 0 100-6h-1" strokeLinejoin="round" /><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none" /><circle cx="10.5" cy="7.5" r="1.1" fill="currentColor" stroke="none" /></svg>],
                 ["media", "Photos", <svg key="m" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.4" fill="currentColor" stroke="none" /><path d="M21 16l-5.5-5.5L8 18" strokeLinecap="round" /></svg>],
-                ["shop", "Shop", <svg key="s" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 7h12l-1 12H7L6 7z" strokeLinejoin="round" /><path d="M9 7V5a3 3 0 016 0v2" strokeLinecap="round" /></svg>],
                 ["pages", "Pages", <svg key="p" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 4h8l4 4v12a1 1 0 01-1 1H6a1 1 0 01-1-1V5a1 1 0 011-1z" strokeLinejoin="round" /><path d="M14 4v4h4" strokeLinejoin="round" /></svg>],
+                ["yande", "Yande", <svg key="y" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8L12 3z" strokeLinejoin="round" /></svg>],
               ] as const
             ).map(([id, label, icon]) => {
               const active = leftPanelOpen && sidebarTab === id;
