@@ -557,15 +557,15 @@ export function KdirectionHomeLayout({
         {/* Social icons row (editable links live in sidebar + here for visibility) */}
         {(props.socialLinks ?? []).length > 0 ? (
           <div className="relative z-20 mt-6 flex flex-wrap items-center justify-center gap-3">
-            {(props.socialLinks ?? []).map((link) => (
+            {(props.socialLinks ?? []).filter((link) => link.href || editing).map((link) => (
               <a
                 key={`${link.label}-${link.href}`}
-                href={link.href || "#"}
-                target={link.href.startsWith("http") ? "_blank" : undefined}
-                rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                href={link.href || undefined}
+                target={link.href?.startsWith("http") ? "_blank" : undefined}
+                rel={link.href?.startsWith("http") ? "noopener noreferrer" : undefined}
                 title={link.label}
                 className="opacity-90 hover:opacity-100"
-                onClick={(e) => editing && e.preventDefault()}
+                onClick={(e) => (editing || !link.href) && e.preventDefault()}
               >
                 {link.iconUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element

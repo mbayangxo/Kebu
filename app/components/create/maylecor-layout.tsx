@@ -83,8 +83,9 @@ export function MaylecorHomeLayout({
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-40 blur-md"
           style={{
             backgroundImage: `url(${props.backgroundImage})`,
-            transform: motion ? `translate3d(0, ${bgShift}px, 0) scale(1.08)` : undefined,
-            animation: motion ? "maylecor-kenburns 18s ease-in-out infinite alternate" : undefined,
+            transform: motion ? undefined : `scale(1.08)`,
+            animation: motion ? `maylecor-kenburns 18s ease-in-out infinite alternate` : undefined,
+            top: motion ? undefined : `${bgShift}px`,
           }}
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black" />

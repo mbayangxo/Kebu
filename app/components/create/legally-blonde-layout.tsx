@@ -377,7 +377,7 @@ function renderLayer(
         aria-label={props.title}
       >
         <CircularBrandRing
-          text={props.title || "MAY LECOR"}
+          text={props.title || "YOUR BRAND"}
           color={props.accentColor || "#E9006B"}
           spinning={opts.motion && !opts.editing && customMotion === "spin"}
         />
@@ -759,7 +759,7 @@ export function LegallyBlondeHeroLayout({
         </section>
       ) : null}
 
-      {!viewportOnly && !editing ? (
+      {!viewportOnly && !editing && motion ? (
         <div ref={scrollTrackRef} className="lb-scroll-scene" style={{ height: scrollTrackHeight }}>
           <div className={motion ? "lb-scroll-pin" : undefined}>
             <ScaledArtboard
@@ -775,6 +775,32 @@ export function LegallyBlondeHeroLayout({
                   onNavigatePage: editor?.onNavigatePage,
                 }),
               )}
+              {extraCutouts
+                .filter((c) => c.src)
+                .map((photo) => {
+                  const scale = props.layerScales?.[photo.id] ?? 1;
+                  return (
+                    <ExtraCutoutItem
+                      key={photo.id}
+                      photo={{
+                        ...photo,
+                        widthPct: photo.widthPct * scale,
+                        zIndex:
+                          typeof props.layerZIndex?.[photo.id] === "number"
+                            ? Math.min(40, props.layerZIndex[photo.id]!)
+                            : photo.zIndex,
+                      }}
+                      editing={false}
+                      selected={false}
+                      siteBase={siteBase}
+                      onNavigatePage={editor?.onNavigatePage}
+                      onSelect={() => undefined}
+                      onMoved={() => undefined}
+                      scrollProgress={scrollProgress}
+                      motion={motion}
+                    />
+                  );
+                })}
             </ScaledArtboard>
           </div>
         </div>

@@ -2,7 +2,8 @@
 
 @font-face {
   font-family: "Steelfish";
-  src: url("https://static.tildacdn.com/tild3866-3934-4138-b733-626161376238/SteelfishRg-Bold.woff") format("woff");
+  src: url("/fonts/SteelfishRg-Bold.woff") format("woff"),
+       url("https://static.tildacdn.com/tild3866-3934-4138-b733-626161376238/SteelfishRg-Bold.woff") format("woff");
   font-weight: 600 700;
   font-style: normal;
   font-display: swap;

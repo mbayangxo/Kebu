@@ -68,8 +68,7 @@ export function StudioUploadsLibrary({
       {error ? <p className="text-[11px] text-red-700">{error}</p> : null}
       {uploads.length === 0 ? (
         <p className="text-[10px] opacity-50 leading-relaxed">
-          Images and videos you upload appear here for reuse. Apply migration 073 if this stays empty after
-          upload.
+          Images and videos you upload appear here for reuse across your projects.
         </p>
       ) : (
         <ul className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">

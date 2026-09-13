@@ -170,7 +170,7 @@ export function ShopCustomersPanel({
               </p>
             ) : !profile ? (
               <p className="text-sm" style={{ color: KEBU.muted }}>
-                No profile data yet. Apply migration 054 if orders exist but profiles are empty.
+                No profile data yet for this customer.
               </p>
             ) : (
               <>

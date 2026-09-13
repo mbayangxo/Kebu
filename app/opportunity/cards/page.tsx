@@ -87,7 +87,7 @@ export default function OpportunityCardsPage() {
         </div>
       ) : cards.length === 0 ? (
         <p className="text-sm" style={{ color: KEBU.muted }}>
-          No published cards yet. Apply migration 063 and seed curated cards.
+          Opportunity cards are being curated — check back soon.
         </p>
       ) : (
         <ul className="grid md:grid-cols-2 gap-5">

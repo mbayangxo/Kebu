@@ -79,7 +79,7 @@ export function CountryExplorerMosaic({ countries }: { countries: CountryCardDat
       >
         <p className="font-semibold text-lg mb-2">Countries loading soon</p>
         <p className="text-sm" style={{ color: KEBU.muted }}>
-          Apply migration 009 to publish country profiles.
+          Country profiles are being set up. Check back shortly.
         </p>
       </div>
     );

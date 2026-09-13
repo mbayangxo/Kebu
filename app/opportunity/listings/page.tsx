@@ -114,8 +114,7 @@ export default function OpportunityListingsPage() {
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">
           <p className="font-semibold mb-2">{error}</p>
           <p className="text-xs opacity-80">
-            Apply migration <code className="font-mono">001_alkebulan_schema.sql</code> and seed curated listings:{" "}
-            <code className="font-mono">POST /api/opportunity/listings/seed</code> with admin password.
+            Could not load listings. Please try refreshing or contact support if this persists.
           </p>
         </div>
       ) : listings.length === 0 ? (

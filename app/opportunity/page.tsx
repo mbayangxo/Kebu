@@ -228,7 +228,7 @@ export default function OpportunityOsHubPage() {
           <CountryExplorerMosaic countries={countries} />
         ) : (
           <p className="text-sm" style={{ color: KEBU.muted }}>
-            No published country profiles yet — apply migration 009.
+            Country profiles are being set up — check back soon.
           </p>
         )}
       </section>
