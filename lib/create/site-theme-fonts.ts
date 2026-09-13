@@ -11,6 +11,11 @@ const GOOGLE_DISPLAY: Record<string, string> = {
   "IBM Plex Sans": "IBM+Plex+Sans:wght@300;400;500;600;700",
   Inter: "Inter:wght@400;500;600;700",
   Syne: "Syne:wght@400;600;700;800",
+  Lobster: "Lobster",
+  "Dancing Script": "Dancing+Script:wght@400;500;600;700",
+  "Great Vibes": "Great+Vibes",
+  Pacifico: "Pacifico",
+  "Abril Fatface": "Abril+Fatface",
 };
 
 const GOOGLE_BODY: Record<string, string> = {

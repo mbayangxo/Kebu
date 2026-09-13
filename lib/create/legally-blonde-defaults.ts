@@ -47,9 +47,8 @@ export function localizeLegallyBlondeAssetUrl(url: string | null | undefined): s
 
 export function defaultLegallyBlondeHeroProps() {
   return {
-    title: "блондинка в законе",
-    subtitle:
-      "Как наивная блондинка преобразилась в успешную юристку, разрушив стереотипы",
+    title: "Your Name Here",
+    subtitle: "Your tagline — what you do and who you do it for",
     backgroundLayer: LEGALLY_BLONDE_ASSETS.backgroundLayer,
     titleLogo: LEGALLY_BLONDE_ASSETS.titleLogo,
     cutoutLeft: LEGALLY_BLONDE_ASSETS.cutoutLeft,

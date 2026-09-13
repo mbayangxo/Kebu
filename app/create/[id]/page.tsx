@@ -2098,18 +2098,23 @@ export default function ProjectEditorPage() {
                               >
                                 {(
                                   [
-                                    "Steelfish",
-                                    "Oswald",
-                                    "Bebas Neue",
-                                    "Playfair Display",
-                                    "Fraunces",
-                                    "Syne",
-                                    "Georgia",
-                                    "system-ui",
+                                    ["Steelfish", "Steelfish (bold condensed)"],
+                                    ["Oswald", "Oswald (strong titles)"],
+                                    ["Bebas Neue", "Bebas Neue (all-caps display)"],
+                                    ["Lobster", "Lobster (script)"],
+                                    ["Dancing Script", "Dancing Script (elegant script)"],
+                                    ["Great Vibes", "Great Vibes (formal script)"],
+                                    ["Pacifico", "Pacifico (fun script)"],
+                                    ["Abril Fatface", "Abril Fatface (bold serif)"],
+                                    ["Playfair Display", "Playfair Display (classic serif)"],
+                                    ["Fraunces", "Fraunces (editorial)"],
+                                    ["Syne", "Syne (modern sans)"],
+                                    ["Georgia", "Georgia"],
+                                    ["system-ui", "System default"],
                                   ] as const
-                                ).map((f) => (
+                                ).map(([f, label]) => (
                                   <option key={f} value={f}>
-                                    {f}
+                                    {label}
                                   </option>
                                 ))}
                               </select>
@@ -2207,6 +2212,7 @@ export default function ProjectEditorPage() {
                                     widthPct: 14,
                                     rotate: -6,
                                     zIndex: 14,
+                                    parallaxRole: "figure",
                                   },
                                 ],
                               });
@@ -2226,6 +2232,21 @@ export default function ProjectEditorPage() {
                                   updateProps(section.id, { extraCutouts: next });
                                 }}
                               />
+                              <select
+                                className="w-full text-xs rounded px-2 py-1"
+                                style={{ border: "1px solid #DDE0F0", background: "#fff" }}
+                                value={String((cut as { parallaxRole?: string }).parallaxRole ?? "figure")}
+                                onChange={(e) => {
+                                  const next = [...((section.props.extraCutouts as typeof cut[]) ?? [])];
+                                  next[idx] = { ...next[idx]!, parallaxRole: e.target.value } as typeof cut;
+                                  updateProps(section.id, { extraCutouts: next });
+                                }}
+                                aria-label="Scroll behavior"
+                              >
+                                <option value="figure">Person — scrolls up slowly</option>
+                                <option value="city">Background — scrolls back fast</option>
+                                <option value="none">Static — stays in place</option>
+                              </select>
                               <input
                                 className="w-full text-xs rounded px-2 py-1"
                                 style={{ border: "1px solid #DDE0F0" }}

@@ -38,8 +38,8 @@ export function SiteAssetsPanel({
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [picked, setPicked] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "image" | "video" | "audio">("all");
+  const [uploadExpanded, setUploadExpanded] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,7 +65,6 @@ export function SiteAssetsPanel({
   }, [load]);
 
   function useAsset(url: string, kind: KebuDragAsset["kind"]) {
-    setPicked(url);
     onPickUrl?.(url, kind);
     onUseOnSite?.({ url, kind });
   }
@@ -73,6 +72,7 @@ export function SiteAssetsPanel({
   function onUploaded(url: string, kind: KebuDragAsset["kind"]) {
     void load();
     useAsset(url, kind);
+    setUploadExpanded(false);
   }
 
   const visible = assets.filter((a) => {
@@ -81,50 +81,57 @@ export function SiteAssetsPanel({
   });
 
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-sm font-bold" style={{ color: BUILDER.ink }}>
-          Media library
-        </p>
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
-          Upload photos, videos, or music here. Then <strong>drag</strong> onto the preview, or tap{" "}
-          <strong>Add to site</strong>. Images land on K-Direction as collage cutouts you can place; videos/audio go
-          into media sections on this page.
-        </p>
+    <div className="space-y-3">
+      {/* Upload section — collapsed by default to keep library front-and-center */}
+      <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BUILDER.border}` }}>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-wider"
+          style={{ color: BUILDER.ink, background: "#FAFAF8" }}
+          onClick={() => setUploadExpanded((v) => !v)}
+        >
+          <span>+ Upload new file</span>
+          <span style={{ fontSize: 8 }}>{uploadExpanded ? "▲" : "▼"}</span>
+        </button>
+        {uploadExpanded ? (
+          <div className="px-3 pb-3 pt-2 space-y-2">
+            <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+              Drag onto the preview after uploading, or tap <strong>Use</strong> on any file below.
+            </p>
+            <SiteImageUpload
+              projectId={projectId}
+              kind="section"
+              value=""
+              onChange={(url) => onUploaded(url, "image")}
+              label="Photo / cutout / logo"
+            />
+            <SiteMediaUpload
+              projectId={projectId}
+              kind="video"
+              value=""
+              onChange={(url) => onUploaded(url, "video")}
+              label="Video"
+              showPreview={false}
+            />
+            <SiteMediaUpload
+              projectId={projectId}
+              kind="audio"
+              value=""
+              onChange={(url) => onUploaded(url, "audio")}
+              label="Audio / music"
+              showPreview={false}
+            />
+          </div>
+        ) : null}
       </div>
 
-      <div className="space-y-2">
-        <SiteImageUpload
-          projectId={projectId}
-          kind="section"
-          value=""
-          onChange={(url) => onUploaded(url, "image")}
-          label="Upload photo / cutout / logo"
-        />
-        <SiteMediaUpload
-          projectId={projectId}
-          kind="video"
-          value=""
-          onChange={(url) => onUploaded(url, "video")}
-          label="Upload video"
-          showPreview={false}
-        />
-        <SiteMediaUpload
-          projectId={projectId}
-          kind="audio"
-          value=""
-          onChange={(url) => onUploaded(url, "audio")}
-          label="Upload music / audio"
-          showPreview={false}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-1">
+      {/* Filter tabs */}
+      <div className="flex gap-1">
         {(
           [
             ["all", "All"],
             ["image", "Photos"],
-            ["video", "Videos"],
+            ["video", "Video"],
             ["audio", "Audio"],
           ] as const
         ).map(([id, label]) => (
@@ -144,21 +151,18 @@ export function SiteAssetsPanel({
         ))}
       </div>
 
-      {loading ? <p className="text-[10px] opacity-60">Loading library…</p> : null}
+      {loading ? <p className="text-[10px] opacity-60">Loading…</p> : null}
       {error ? <p className="text-[10px] text-red-600">{error}</p> : null}
 
       {visible.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2">
           {visible.map((a) => {
             const kind = assetMediaKind(a.kind);
             return (
               <div
                 key={a.id}
                 className="overflow-hidden rounded-xl border"
-                style={{
-                  borderColor: picked === a.url ? BUILDER.orange : BUILDER.border,
-                  background: "#fff",
-                }}
+                style={{ borderColor: BUILDER.border, background: "#fff" }}
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData(
@@ -177,36 +181,31 @@ export function SiteAssetsPanel({
                     // eslint-disable-next-line jsx-a11y/media-has-caption
                     <video src={a.url} className="h-full w-full object-cover pointer-events-none" muted />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-[10px] font-bold uppercase tracking-wider opacity-60">
-                      Audio
+                    <div className="flex h-full items-center justify-center">
+                      <span className="text-[10px] font-bold uppercase tracking-wider opacity-40">♪ Audio</span>
                     </div>
                   )}
-                  <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
+                  <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
                     {kind}
                   </span>
                 </div>
-                <div className="space-y-1 p-1.5">
+                <div className="p-1.5">
                   <button
                     type="button"
                     className="w-full rounded-full py-1 text-[9px] font-bold uppercase tracking-wider text-white"
                     style={{ background: BUILDER.ink }}
                     onClick={() => useAsset(a.url, kind)}
                   >
-                    Add to site
+                    Use
                   </button>
-                  <p className="text-center text-[8px] opacity-50">or drag to preview</p>
                 </div>
               </div>
             );
           })}
         </div>
       ) : !loading ? (
-        <p className="text-[10px] opacity-60">No uploads yet — add a photo or video above.</p>
-      ) : null}
-
-      {picked ? (
-        <p className="text-[10px] break-all rounded-lg p-2" style={{ background: BUILDER.surfaceMuted }}>
-          Last used: {picked}
+        <p className="text-[10px] opacity-50 text-center py-4">
+          No files yet — upload one above.
         </p>
       ) : null}
     </div>
