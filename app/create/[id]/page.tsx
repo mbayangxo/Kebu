@@ -166,6 +166,8 @@ export default function ProjectEditorPage() {
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [firstRunStep, setFirstRunStep] = useState(0); // 0=off, 1-3=steps, 4=done
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAppOrigin(window.location.origin);
@@ -177,7 +179,15 @@ export default function ProjectEditorPage() {
         ? "Yande built this draft from your words. Every page is editable Kebu structure — change anything, then publish."
         : "Draft site created from your words. Yande AI was not used this time (no key or generation fell back). You still have a full editable multi-page site.",
     );
-  }, []);
+    // First-run tooltip tour — only once per project
+    try {
+      const key = `kebu-first-run-${params.id}`;
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, "1");
+        setFirstRunStep(1);
+      }
+    } catch { /* localStorage unavailable */ }
+  }, [params.id]);
 
   useEffect(() => {
     if (!previewFullscreen) return;
@@ -4462,6 +4472,82 @@ export default function ProjectEditorPage() {
           {kbSaveNote ?? saveStatusLabel}
         </p>
       ) : null}
+
+      {/* First-run 3-step tour tooltip */}
+      {firstRunStep >= 1 && firstRunStep <= 3 ? (() => {
+        const steps = [
+          {
+            title: "This is your canvas",
+            body: "Everything you see is live — drag photos in, click any section to edit copy, colours, and layout.",
+            position: "center" as const,
+          },
+          {
+            title: "Sections are your building blocks",
+            body: "Click the Sections icon on the left rail to see every block on the page. Drag to reorder, hide, or add new ones.",
+            position: "left" as const,
+          },
+          {
+            title: "Hit Publish when you're ready",
+            body: "Your site goes live at a Kebu address instantly. Connect your own domain from My sites any time.",
+            position: "right" as const,
+          },
+        ];
+        const step = steps[firstRunStep - 1]!;
+        const isLast = firstRunStep === 3;
+        const posStyle: Record<string, string | number> =
+          step.position === "left"
+            ? { left: 56, top: "50%", transform: "translateY(-50%)" }
+            : step.position === "right"
+            ? { right: 12, top: 52 }
+            : { left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
+        return (
+          <>
+            {/* Dim overlay */}
+            <div
+              className="fixed inset-0 z-[70]"
+              style={{ background: "rgba(10,10,10,0.35)" }}
+              onClick={() => setFirstRunStep((s) => s + 1)}
+              aria-hidden
+            />
+            {/* Tooltip card */}
+            <div
+              className="fixed z-[71] w-72 rounded-2xl p-5 shadow-xl"
+              style={{ ...posStyle, background: "#fff" }}
+              role="dialog"
+              aria-modal
+              aria-label={`Step ${firstRunStep} of 3: ${step.title}`}
+            >
+              <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: "#FF5500" }}>
+                {firstRunStep} of 3
+              </p>
+              <p className="text-[15px] font-bold mb-1.5" style={{ color: "#0A0A0A" }}>
+                {step.title}
+              </p>
+              <p className="text-[12px] leading-relaxed mb-4" style={{ color: "#5C5348" }}>
+                {step.body}
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFirstRunStep(4)}
+                  className="text-[11px]"
+                  style={{ color: "#9CA3AF" }}
+                >
+                  Skip
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFirstRunStep((s) => s + 1)}
+                  className="rounded-full px-5 py-2 text-[12px] font-bold"
+                  style={{ background: "#FF5500", color: "#fff" }}
+                >
+                  {isLast ? "Let's go" : "Next →"}
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })() : null}
     </div>
     </DataModeProvider>
     </div>
