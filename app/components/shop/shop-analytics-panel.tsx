@@ -10,10 +10,43 @@ import {
   type CommerceInsight,
 } from "@/lib/shop/commerce-insights";
 
+const PERIOD_OPTIONS: { label: string; days: number }[] = [
+  { label: "Today", days: 1 },
+  { label: "7 days", days: 7 },
+  { label: "30 days", days: 30 },
+  { label: "90 days", days: 90 },
+  { label: "Year", days: 365 },
+];
+
 function severityColor(s: CommerceInsight["severity"]): string {
   if (s === "act") return KEBU.orange;
   if (s === "watch") return "#B45309";
   return KEBU.muted;
+}
+
+function downloadEarningsCsv(summary: CommerceAnalyticsSummary, title: string | null, days: number) {
+  const rows = [
+    ["Date", "Orders", "Paid orders"],
+    ...summary.byDay.map((d) => [d.day, String(d.orders), String(d.paid)]),
+    [],
+    ["Summary"],
+    ["Total orders", String(summary.orders.total)],
+    ["Paid orders", String(summary.orders.paid)],
+    ["Paid revenue (XOF)", String(summary.orders.revenuePaidXof)],
+    ["Revenue at risk (XOF)", String(summary.orders.revenueAtRiskXof)],
+    ["Period (days)", String(days)],
+    ["Generated", summary.generatedAt],
+  ];
+  const csv = rows.map((r) => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(title ?? "shop").replace(/\s+/g, "-").toLowerCase()}-earnings-${days}d.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -74,33 +107,50 @@ export function ShopAnalyticsPanel({
             {title ? `${title} · Analytics` : "Analytics"}
           </h2>
           <p className="mt-1 text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-            Patterns from your real orders, carts, and site visits — what happened, why it matters, what to do
-            next. No fake demo numbers.
+            Real orders, carts, and visits — what happened and what to do next.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <select
-            className="rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider"
-            style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Period pill selector */}
+          <div
+            className="flex rounded-full p-0.5"
+            style={{ background: "#F4F4F4", border: `1px solid ${KEBU.border}` }}
+            role="group"
+            aria-label="Time period"
           >
-            <option value={7}>7 days</option>
-            <option value={30}>30 days</option>
-            <option value={90}>90 days</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
-            style={{ background: KEBU.black }}
-          >
-            Refresh
-          </button>
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.days}
+                type="button"
+                onClick={() => setDays(opt.days)}
+                className="rounded-full px-3 py-1 text-[10px] font-bold transition-colors"
+                style={{
+                  background: days === opt.days ? KEBU.black : "transparent",
+                  color: days === opt.days ? "#fff" : KEBU.muted,
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {summary ? (
+            <button
+              type="button"
+              onClick={() => downloadEarningsCsv(summary, title, days)}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+              style={{ border: `1px solid ${KEBU.border}`, color: KEBU.black, background: "#fff" }}
+              title="Download earnings CSV"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <path d="M12 3v12M8 11l4 4 4-4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" />
+              </svg>
+              Download
+            </button>
+          ) : null}
           <Link
             href={mySiteDetailHref(projectId)}
-            className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
-            style={{ border: `1px solid ${KEBU.border}` }}
+            className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+            style={{ border: `1px solid ${KEBU.border}`, color: KEBU.muted }}
           >
             Site visits
           </Link>

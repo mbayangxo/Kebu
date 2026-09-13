@@ -9,10 +9,18 @@ import {
 } from "@/lib/shop/commerce-insights";
 import { ShopSellerTrustBanner } from "@/app/components/shop/shop-seller-trust-banner";
 
+const OVERVIEW_PERIODS: { label: string; days: number }[] = [
+  { label: "Today", days: 1 },
+  { label: "7 days", days: 7 },
+  { label: "30 days", days: 30 },
+  { label: "Year", days: 365 },
+];
+
 /**
  * Owner dashboard home for one store — how you’re doing, order sources, visitors.
  */
 export function ShopOverviewPanel({ projectId }: { projectId: string }) {
+  const [days, setDays] = useState(30);
   const [summary, setSummary] = useState<CommerceAnalyticsSummary | null>(null);
   const [title, setTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +30,7 @@ export function ShopOverviewPanel({ projectId }: { projectId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/shop-analytics?days=30`, {
+      const res = await fetch(`/api/projects/${projectId}/shop-analytics?days=${days}`, {
         credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
@@ -39,25 +47,49 @@ export function ShopOverviewPanel({ projectId }: { projectId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, days]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  const periodLabel = OVERVIEW_PERIODS.find((p) => p.days === days)?.label ?? `${days} days`;
+
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: KEBU.orange }}>
-          Owner dashboard
-        </p>
-        <h2 className="mt-1 text-lg font-bold" style={{ color: KEBU.black }}>
-          {title ? `How ${title} is doing` : "How this shop is doing"}
-        </h2>
-        <p className="mt-1 text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-          Last 30 days from real orders and site visits — not demo numbers. Switch stores anytime from the
-          header.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: KEBU.orange }}>
+            Overview dashboard
+          </p>
+          <h2 className="mt-1 text-lg font-bold" style={{ color: KEBU.black }}>
+            {title ? `How ${title} is doing` : "How this shop is doing"}
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed" style={{ color: KEBU.muted }}>
+            {periodLabel} · real orders and site visits — not demo numbers.
+          </p>
+        </div>
+        <div
+          className="flex rounded-full p-0.5"
+          style={{ background: "#F4F4F4", border: `1px solid ${KEBU.border}` }}
+          role="group"
+          aria-label="Time period"
+        >
+          {OVERVIEW_PERIODS.map((opt) => (
+            <button
+              key={opt.days}
+              type="button"
+              onClick={() => setDays(opt.days)}
+              className="rounded-full px-3 py-1 text-[10px] font-bold transition-colors"
+              style={{
+                background: days === opt.days ? KEBU.black : "transparent",
+                color: days === opt.days ? "#fff" : KEBU.muted,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <ShopSellerTrustBanner projectId={projectId} />
