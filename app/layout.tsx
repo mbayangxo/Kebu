@@ -90,6 +90,9 @@ export default async function RootLayout({
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
+        {/* Preconnect for Google Fonts used by site templates — cuts DNS + TLS round-trips. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       </head>
       <body className="min-h-full text-ink bg-ivory">
         <PWARegister />

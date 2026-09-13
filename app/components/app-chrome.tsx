@@ -55,6 +55,15 @@ export function AppChrome() {
   const pathname = usePathname();
   const { showRandomForPage } = useEducation();
 
+  // Public site views — no Kebu app chrome at all.
+  if (
+    pathname.startsWith("/sites/") ||
+    pathname.startsWith("/e/") ||
+    (pathname.startsWith("/id/") && !usesAppShellLayout(pathname))
+  ) {
+    return null;
+  }
+
   // Public marketing / landing: no app sidebar, no logged-in bottom nav.
   if (pathname === "/" || isMarketingPath(pathname)) {
     return <YandeGlobalFab />;

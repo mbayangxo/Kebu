@@ -56,19 +56,19 @@ const nextConfig: NextConfig = {
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
-      // Published public site pages — shared CDN cache, revalidated every 60 s.
+      // Published public site pages — CDN serves cached HTML for 10 min, revalidates in background.
       {
         source: "/sites/:subdomain/:path*",
         headers: [
           ...SECURITY_HEADERS,
-          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=3600" },
+          { key: "Cache-Control", value: "public, s-maxage=600, stale-while-revalidate=86400" },
         ],
       },
       {
         source: "/sites/:subdomain",
         headers: [
           ...SECURITY_HEADERS,
-          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=3600" },
+          { key: "Cache-Control", value: "public, s-maxage=600, stale-while-revalidate=86400" },
         ],
       },
       // Short-link published sites (/e/:id, /id/:id)
@@ -76,14 +76,14 @@ const nextConfig: NextConfig = {
         source: "/e/:publicId/:path*",
         headers: [
           ...SECURITY_HEADERS,
-          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=3600" },
+          { key: "Cache-Control", value: "public, s-maxage=600, stale-while-revalidate=86400" },
         ],
       },
       {
         source: "/id/:publicId/:path*",
         headers: [
           ...SECURITY_HEADERS,
-          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=3600" },
+          { key: "Cache-Control", value: "public, s-maxage=600, stale-while-revalidate=86400" },
         ],
       },
       // HTML, APIs, and app routes — never serve a stale landing / login / builder shell.
