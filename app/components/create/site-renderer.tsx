@@ -2,16 +2,12 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { Fragment, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { VideoGrid } from "@/app/components/video-embed";
 import { NewsletterSignup } from "@/app/components/create/newsletter-signup";
 import { SiteEmailPopup, type EmailPopupProps } from "@/app/components/create/site-email-popup";
-import { PublicShopOrder } from "@/app/components/create/public-shop-order";
-import { PublicProductActions } from "@/app/components/create/public-product-actions";
-import { PublicShopCart } from "@/app/components/create/public-shop-cart";
 import { SiteFormSection } from "@/app/components/create/site-form-section";
-import { SiteBlogSection } from "@/app/components/create/site-blog-section";
-import { ProductsSection } from "@/app/components/create/products-section";
 import type { ProductCollection } from "@/app/components/create/products-section";
 import { readDeviceOverride, applyDeviceAwarePatch, mergeDeviceAwareSectionProps } from "@/lib/create/device-overrides";
 import {
@@ -26,26 +22,56 @@ import {
   whatsAppOrderHref,
 } from "@/lib/create/site-commerce";
 import type { SiteSeo } from "@/lib/create/site-seo";
-import {
-  MaylecorHomeLayout,
-  MaylecorMusicLayout,
-  type MaylecorHomeProps,
-  type MaylecorMusicProps,
-} from "@/app/components/create/maylecor-layout";
-import {
-  LegallyBlondeHeroLayout,
-  type LegallyBlondeHeroProps,
-} from "@/app/components/create/legally-blonde-layout";
+import type { MaylecorHomeProps, MaylecorMusicProps } from "@/app/components/create/maylecor-layout";
+import type { LegallyBlondeHeroProps } from "@/app/components/create/legally-blonde-layout";
 import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
 import { cssFontStack } from "@/lib/create/site-theme-fonts";
-import {
-  KdirectionHomeLayout,
-  KdirectionPageLayout,
-  type KdirectionHomeProps,
-  type KdirectionPageProps,
-} from "@/app/components/create/kdirection-layout";
-import { MaylecorMotionChrome } from "@/app/components/create/maylecor-motion-chrome";
-import { MaylecorSiteFooter } from "@/app/components/create/maylecor-site-footer";
+import type { KdirectionHomeProps, KdirectionPageProps } from "@/app/components/create/kdirection-layout";
+
+// --- Code-split template layouts (only the active template loads) ---
+const MaylecorHomeLayout = dynamic(() =>
+  import("@/app/components/create/maylecor-layout").then((m) => ({ default: m.MaylecorHomeLayout }))
+);
+const MaylecorMusicLayout = dynamic(() =>
+  import("@/app/components/create/maylecor-layout").then((m) => ({ default: m.MaylecorMusicLayout }))
+);
+const LegallyBlondeHeroLayout = dynamic(() =>
+  import("@/app/components/create/legally-blonde-layout").then((m) => ({ default: m.LegallyBlondeHeroLayout }))
+);
+const KdirectionHomeLayout = dynamic(() =>
+  import("@/app/components/create/kdirection-layout").then((m) => ({ default: m.KdirectionHomeLayout }))
+);
+const KdirectionPageLayout = dynamic(() =>
+  import("@/app/components/create/kdirection-layout").then((m) => ({ default: m.KdirectionPageLayout }))
+);
+const MaylecorMotionChrome = dynamic(() =>
+  import("@/app/components/create/maylecor-motion-chrome").then((m) => ({ default: m.MaylecorMotionChrome }))
+);
+const MaylecorSiteFooter = dynamic(() =>
+  import("@/app/components/create/maylecor-site-footer").then((m) => ({ default: m.MaylecorSiteFooter }))
+);
+
+// --- Code-split shop / blog (client-interactive, not needed for SEO) ---
+const PublicShopOrder = dynamic(
+  () => import("@/app/components/create/public-shop-order").then((m) => ({ default: m.PublicShopOrder })),
+  { ssr: false }
+);
+const PublicProductActions = dynamic(
+  () => import("@/app/components/create/public-product-actions").then((m) => ({ default: m.PublicProductActions })),
+  { ssr: false }
+);
+const PublicShopCart = dynamic(
+  () => import("@/app/components/create/public-shop-cart").then((m) => ({ default: m.PublicShopCart })),
+  { ssr: false }
+);
+const SiteBlogSection = dynamic(
+  () => import("@/app/components/create/site-blog-section").then((m) => ({ default: m.SiteBlogSection })),
+  { ssr: false }
+);
+const ProductsSection = dynamic(
+  () => import("@/app/components/create/products-section").then((m) => ({ default: m.ProductsSection })),
+  { ssr: false }
+);
 import { sanitizeMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import { navChromeMetrics, parseNavLayout } from "@/lib/create/nav-chrome-size";
 import "./artist-motion.css";

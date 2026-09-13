@@ -4,21 +4,39 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
-import { BuilderAestheticsPanel } from "@/app/components/create/builder-aesthetics-panel";
 import dynamic from "next/dynamic";
 const YandeAssistant = dynamic(
   () => import("@/app/components/create/yande-assistant").then((m) => ({ default: m.YandeAssistant })),
   { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center text-sm" style={{ color: "#9CA3AF" }}>Loading Yande…</div> },
 );
-import type { WebsiteDefinition } from "@/lib/create/website-schema";
-import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
-import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
-import { AddSectionPicker } from "@/app/components/create/add-section-picker";
-import { BuilderSiteChromePanel } from "@/app/components/create/builder-site-chrome-panel";
+const BuilderAestheticsPanel = dynamic(
+  () => import("@/app/components/create/builder-aesthetics-panel").then((m) => ({ default: m.BuilderAestheticsPanel })),
+  { ssr: false },
+);
+const BuilderSiteChromePanel = dynamic(
+  () => import("@/app/components/create/builder-site-chrome-panel").then((m) => ({ default: m.BuilderSiteChromePanel })),
+  { ssr: false },
+);
+const BuilderSectionListDnd = dynamic(
+  () => import("@/app/components/create/builder-section-list-dnd").then((m) => ({ default: m.BuilderSectionListDnd })),
+  { ssr: false },
+);
+const BuilderPagesPanel = dynamic(
+  () => import("@/app/components/create/builder-pages-panel").then((m) => ({ default: m.BuilderPagesPanel })),
+  { ssr: false },
+);
 const BuilderBlogPanel = dynamic(
   () => import("@/app/components/create/builder-blog-panel").then((m) => ({ default: m.BuilderBlogPanel })),
   { ssr: false },
 );
+const BuilderAiPreviewPanel = dynamic(
+  () => import("@/app/components/create/builder-ai-preview-panel").then((m) => ({ default: m.BuilderAiPreviewPanel })),
+  { ssr: false },
+);
+import type { WebsiteDefinition } from "@/lib/create/website-schema";
+import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
+import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
+import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { PanelSection } from "@/app/components/create/builder-panel-section";
 import {
   CHROME_FOOTER_ID,
@@ -38,14 +56,8 @@ import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
 import { BuilderSiteCommandBar } from "@/app/components/create/builder-site-command-bar";
-import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
-import { BuilderPagesPanel } from "@/app/components/create/builder-pages-panel";
-const BuilderAiPreviewPanel = dynamic(
-  () => import("@/app/components/create/builder-ai-preview-panel").then((m) => ({ default: m.BuilderAiPreviewPanel })),
-  { ssr: false },
-);
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
