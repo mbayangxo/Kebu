@@ -9,6 +9,61 @@ import {
 } from "@/lib/shop/commerce-insights";
 import { ShopSellerTrustBanner } from "@/app/components/shop/shop-seller-trust-banner";
 
+function OrdersSparkChart({ data, days }: { data: { day: string; orders: number; paid: number }[]; days: number }) {
+  if (data.length < 2) return null;
+
+  const W = 400;
+  const H = 72;
+  const PAD = { top: 6, right: 2, bottom: 18, left: 2 };
+  const cw = W - PAD.left - PAD.right;
+  const ch = H - PAD.top - PAD.bottom;
+  const maxVal = Math.max(1, ...data.map((d) => d.orders));
+
+  // aggregate to max 60 points to keep SVG light
+  const step = Math.ceil(data.length / 60);
+  const pts = data
+    .filter((_, i) => i % step === 0 || i === data.length - 1)
+    .map((d, i, arr) => ({
+      x: PAD.left + (i / Math.max(arr.length - 1, 1)) * cw,
+      y: PAD.top + ch - (d.orders / maxVal) * ch,
+      label: d.day.slice(5),
+      v: d.orders,
+    }));
+
+  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = [
+    `M${pts[0].x.toFixed(1)},${(PAD.top + ch).toFixed(1)}`,
+    ...pts.map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`),
+    `L${pts[pts.length - 1].x.toFixed(1)},${(PAD.top + ch).toFixed(1)}Z`,
+  ].join(" ");
+
+  const firstLabel = pts[0]?.label ?? "";
+  const lastLabel = pts[pts.length - 1]?.label ?? "";
+  const midLabel = days >= 30 && pts[Math.floor(pts.length / 2)]?.label;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width="100%"
+      aria-label="Orders over time"
+      style={{ display: "block" }}
+    >
+      <path d={area} fill={KEBU.orange} fillOpacity={0.1} />
+      <path d={line} fill="none" stroke={KEBU.orange} strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
+      {/* endpoint dot */}
+      {pts[pts.length - 1] && (
+        <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r={3} fill={KEBU.orange} />
+      )}
+      {/* axis labels */}
+      <text x={PAD.left} y={H - 2} fontSize={9} fill={KEBU.muted} textAnchor="start">{firstLabel}</text>
+      {midLabel && (
+        <text x={W / 2} y={H - 2} fontSize={9} fill={KEBU.muted} textAnchor="middle">{midLabel}</text>
+      )}
+      <text x={W - PAD.right} y={H - 2} fontSize={9} fill={KEBU.muted} textAnchor="end">{lastLabel}</text>
+    </svg>
+  );
+}
+
 const OVERVIEW_PERIODS: { label: string; days: number }[] = [
   { label: "Today", days: 1 },
   { label: "7 days", days: 7 },
@@ -127,6 +182,25 @@ export function ShopOverviewPanel({ projectId }: { projectId: string }) {
               </div>
             ))}
           </div>
+
+          {(summary.byDay ?? []).length >= 2 && (
+            <section
+              className="rounded-2xl px-4 pt-4 pb-2"
+              style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                  Orders over time
+                </h3>
+                <span className="text-[10px] tabular-nums" style={{ color: KEBU.muted }}>
+                  {summary.orders.total} total · {summary.orders.paid} paid
+                </span>
+              </div>
+              <div className="mt-2">
+                <OrdersSparkChart data={summary.byDay} days={days} />
+              </div>
+            </section>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-2">
             <section

@@ -195,7 +195,7 @@ export default function BusinessDashboardPage() {
     (role === "founder" || role === "administrator") &&
     ["draft", "preparing", "ready_to_submit"].includes(business?.registration_status ?? "");
 
-  const bizName = business?.trading_name || business?.legal_name ?? "Business";
+  const bizName = business?.trading_name || business?.legal_name || "Business";
 
   return (
     <AppShell title={bizName}>
