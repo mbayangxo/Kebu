@@ -56,7 +56,7 @@ function parseSub(tab: string, raw: string | null): string {
   const VALID_SUBS: Record<string, Set<string>> = {
     orders:    new Set(["all","drafts","shipping"]),
     customers: new Set(["all","segments","companies"]),
-    analytics: new Set(["overview","payouts","expenses"]),
+    analytics: new Set(["overview","earnings","payouts","expenses"]),
     products:  new Set(["all","purchase-orders"]),
     reviews:   new Set(["all","requests"]),
   };
