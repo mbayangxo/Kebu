@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { aiRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { assertBusinessEditor } from "@/lib/create/business-access";
 import {
   buildStructuredSiteFromBrief,
@@ -21,6 +22,9 @@ export const dynamic = "force-dynamic";
 
 /** Create website from blank, template, or AI (validated structured schema). */
 export async function POST(req: NextRequest) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = aiRateLimit(req);
   if (limited) return limited;
 

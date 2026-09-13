@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { createRegisteredBusiness } from "@/lib/kebu-id/create-registration";
 import { registerBusinessSchema, SAFE_REGISTRATION_FIELDS } from "@/lib/kebu-id/registration-schema";
 
@@ -61,7 +62,10 @@ export async function GET() {
 }
 
 /** Register a draft business (wizard) — UUID, Kebu ID, founder, owners, progress, readiness, audit. */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
