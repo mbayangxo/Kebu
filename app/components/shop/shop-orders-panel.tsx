@@ -46,6 +46,44 @@ type ShopOrder = {
 type CarrierOpt = { id: string; label: string };
 type FilterTab = "open" | "fulfill" | "done" | "all";
 
+function StatusChip({ status }: { status: string }) {
+  const map: Record<string, { bg: string; color: string }> = {
+    pending:   { bg: "#FEF3C7", color: "#92400E" },
+    contacted: { bg: "#DBEAFE", color: "#1E40AF" },
+    fulfilled: { bg: "#D1FAE5", color: "#065F46" },
+    cancelled: { bg: "#FEE2E2", color: "#991B1B" },
+    archived:  { bg: "#F3F4F6", color: "#6B7280" },
+    refunded:  { bg: "#EDE9FE", color: "#5B21B6" },
+  };
+  const s = map[status] ?? { bg: "#F4F4F4", color: "#555" };
+  return (
+    <span
+      className="ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+      style={{ background: s.bg, color: s.color }}
+    >
+      {status}
+    </span>
+  );
+}
+
+function PayChip({ status }: { status: string }) {
+  const map: Record<string, { bg: string; color: string }> = {
+    paid:     { bg: "#D1FAE5", color: "#065F46" },
+    unpaid:   { bg: "#FEF3C7", color: "#92400E" },
+    refunded: { bg: "#EDE9FE", color: "#5B21B6" },
+    partial:  { bg: "#DBEAFE", color: "#1E40AF" },
+  };
+  const s = map[status] ?? { bg: "#F4F4F4", color: "#555" };
+  return (
+    <span
+      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+      style={{ background: s.bg, color: s.color }}
+    >
+      {status}
+    </span>
+  );
+}
+
 export function ShopOrdersPanel({
   projectId,
   embedded = false,
@@ -300,9 +338,7 @@ export function ShopOrdersPanel({
                   ) : null}
                   {order.quantity}× {order.product_name}{" "}
                   {order.price_label ? <span className="opacity-70">· {order.price_label}</span> : null}
-                  <span className="ml-2 text-[10px] font-bold uppercase tracking-wider opacity-60">
-                    {order.status}
-                  </span>
+                  <StatusChip status={order.status} />
                 </p>
                 {order.items && order.items.length > 1 ? (
                   <ul className="mt-1 space-y-0.5 text-[11px] opacity-80">
@@ -324,7 +360,7 @@ export function ShopOrdersPanel({
                     </span>
                   ) : null}
                   {order.payment_status ? (
-                    <span className="opacity-70"> · Money: {order.payment_status}</span>
+                    <> · <PayChip status={order.payment_status} /></>
                   ) : null}
                 </p>
                 {order.is_gift ? (

@@ -196,7 +196,7 @@ export default function ShopAdminPage() {
               <ShopNotificationsBell projectId={projectId} />
               <Link
                 href={`/create/${projectId}`}
-                className="kb-btn-primary"
+                className="kb-btn-primary hidden sm:inline-flex"
                 style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
               >
                 Edit site

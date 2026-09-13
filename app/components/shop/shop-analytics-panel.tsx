@@ -415,27 +415,12 @@ export function ShopAnalyticsPanel({
           Ask · prioritize · act (when assigned)
         </h3>
         <p className="mt-2 text-sm leading-relaxed" style={{ color: KEBU.muted }}>
-          Copilot will read authorized shop + site data — not generic chat. Example: “How is my business doing?” →
-          revenue, margin, traffic by country → prioritized actions → you confirm before Kebu executes campaigns,
-          discounts, or localized pages.
+          Copilot will read authorized shop + site data — not generic chat. Example:{" "}
+          &ldquo;How is my business doing?&rdquo; &rarr; revenue, margin, traffic by country &rarr; prioritized
+          actions &rarr; you confirm before Kebu executes campaigns, discounts, or localized pages.
         </p>
-        <ul className="mt-3 space-y-2 text-xs" style={{ color: KEBU.black }}>
-          <li>
-            <strong>ACT</strong> Create Côte d&apos;Ivoire campaign —{" "}
-            <span style={{ color: KEBU.muted }}>not implemented</span>
-          </li>
-          <li>
-            <strong>ACT</strong> Translate store · localized landing page · shipping option —{" "}
-            <span style={{ color: KEBU.muted }}>not implemented</span>
-          </li>
-          <li>
-            <strong>ACT</strong> Launch Kebu Reach campaign —{" "}
-            <span style={{ color: KEBU.muted }}>not implemented</span>
-          </li>
-        </ul>
         <p className="mt-3 text-[11px]" style={{ color: KEBU.muted }}>
-          Today: use Insights above and open linked tabs. Copilot execution requires a dedicated slice with confirmation
-          for money and destructive ops.
+          Today: use Insights above and open linked tabs. Copilot execution coming soon.
         </p>
       </section>
     </div>

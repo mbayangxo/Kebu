@@ -42,6 +42,19 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ tab: "overview", label: "Overview" }],
   },
   {
+    id: "money",
+    icon: "money",
+    label: "Money",
+    items: [
+      { tab: "analytics", sub: "overview",        label: "Overview" },
+      { tab: "analytics", sub: "earnings",        label: "Earnings" },
+      { tab: "payments",                           label: "Payments" },
+      { tab: "analytics", sub: "payouts",          label: "Payouts" },
+      { tab: "analytics", sub: "expenses",         label: "Expenses" },
+      { tab: "products",  sub: "purchase-orders",  label: "Purchase orders" },
+    ],
+  },
+  {
     id: "orders",
     icon: "orders",
     label: "Orders",
@@ -81,22 +94,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Marketing",
     items: [
       { tab: "newsletter", sub: "subscribers", label: "Email list" },
-      { tab: "newsletter", sub: "campaigns",   label: "Campaigns" },
       { tab: "discounts",                       label: "Discounts" },
       { tab: "gift-cards",                      label: "Gift cards" },
-    ],
-  },
-  {
-    id: "money",
-    icon: "money",
-    label: "Money",
-    items: [
-      { tab: "analytics", sub: "overview",       label: "Overview" },
-      { tab: "analytics", sub: "earnings",       label: "Earnings" },
-      { tab: "payments",                          label: "Payments" },
-      { tab: "analytics", sub: "payouts",         label: "Payouts" },
-      { tab: "analytics", sub: "expenses",        label: "Expenses" },
-      { tab: "products",  sub: "purchase-orders", label: "Purchase orders" },
     ],
   },
   {

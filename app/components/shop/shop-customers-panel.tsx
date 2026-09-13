@@ -6,11 +6,7 @@ import { KEBU } from "@/lib/kebu-brand";
 import type { ShopCustomerRow } from "@/lib/shop/customers";
 import type { ShopCustomerProfile } from "@/lib/shop/customer-profiles";
 import { carrierLabel } from "@/lib/shop/carriers";
-
-function formatXof(n: number): string {
-  if (!n) return "—";
-  return `${Math.round(n).toLocaleString()} XOF`;
-}
+import { formatXof } from "@/lib/shop/commerce-insights";
 
 export function ShopCustomersPanel({
   projectId,
