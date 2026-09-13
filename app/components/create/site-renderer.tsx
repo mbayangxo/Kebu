@@ -553,10 +553,13 @@ export function SiteRenderer({
   dataMode?: DataMode;
 }) {
   const siteRootRef = useRef<HTMLDivElement>(null);
+  const [navMenuOpen, setNavMenuOpen] = useState(false);
   useEffect(() => {
     if (!siteRootRef.current) return;
     return initScrollEntrances(siteRootRef.current);
   }, [pageSlug]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setNavMenuOpen(false); }, [pageSlug]);
 
   const theme = definition.theme;
   const merchantPhone = resolveMerchantWhatsApp(definition, definition.seo as SiteSeo | undefined);
@@ -948,13 +951,14 @@ export function SiteRenderer({
               return false;
             })();
             const logoJustify = p.logoAlign === "center" ? "justify-center" : p.logoAlign === "right" ? "justify-end" : "justify-start";
+            const navColor = navIsLight ? (theme.text || "#0A0A0A") : "#fff";
             return wrap(
               <header
                 key={key}
                 className={`kebu-site-nav ${stickyClass}`}
                 style={{
                   background: navBg,
-                  color: navIsLight ? (theme.text || "#0A0A0A") : "#fff",
+                  color: navColor,
                   paddingTop: m.padY,
                   paddingBottom: m.padY,
                   paddingLeft: m.padX,
@@ -963,23 +967,59 @@ export function SiteRenderer({
                 }}
               >
                 <div
-                  className={`mx-auto flex w-full flex-wrap items-center gap-3 ${p.logoAlign === "center" ? "justify-center" : "justify-between"}`}
+                  className={`mx-auto flex w-full items-center gap-3 ${p.logoAlign === "center" ? "justify-center" : "justify-between"}`}
                   style={{ maxWidth: m.maxWidth }}
                 >
                   {p.logoAlign === "right" && (
-                    <nav className="kebu-site-nav__links flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
+                    <nav className="kebu-site-nav__links hidden sm:flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
                       {p.links.map((l) => renderNavLink(l))}
                     </nav>
                   )}
-                  <div className={`flex ${logoJustify} ${p.logoAlign === "center" ? "w-full" : ""}`}>
+                  <div className={`flex ${logoJustify} ${p.logoAlign === "center" ? "flex-1" : ""}`}>
                     {brandEl}
                   </div>
                   {p.logoAlign !== "right" && (
-                    <nav className="kebu-site-nav__links flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
+                    <nav className="kebu-site-nav__links hidden sm:flex flex-wrap" style={{ gap: m.gap, fontSize: m.fontPx }}>
                       {p.links.map((l) => renderNavLink(l))}
                     </nav>
                   )}
+                  {p.links.length > 0 && !editor && (
+                    <button
+                      type="button"
+                      className="sm:hidden flex flex-col justify-center items-center gap-[5px] w-9 h-9 shrink-0 ml-auto"
+                      aria-label={navMenuOpen ? "Close menu" : "Open menu"}
+                      onClick={() => setNavMenuOpen((o) => !o)}
+                    >
+                      {navMenuOpen ? (
+                        <>
+                          <span style={{ width: 20, height: 2, background: navColor, display: "block", borderRadius: 2, transform: "rotate(45deg) translate(5px, 5px)" }} />
+                          <span style={{ width: 20, height: 2, background: navColor, display: "block", borderRadius: 2, opacity: 0 }} />
+                          <span style={{ width: 20, height: 2, background: navColor, display: "block", borderRadius: 2, transform: "rotate(-45deg) translate(5px, -5px)" }} />
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ width: 20, height: 2, background: navColor, display: "block", borderRadius: 2 }} />
+                          <span style={{ width: 20, height: 2, background: navColor, display: "block", borderRadius: 2 }} />
+                          <span style={{ width: 20, height: 2, background: navColor, display: "block", borderRadius: 2 }} />
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
+                {navMenuOpen && p.links.length > 0 && !editor && (
+                  <nav
+                    className="sm:hidden flex flex-col"
+                    style={{
+                      gap: Math.max(12, m.gap * 0.8),
+                      fontSize: m.fontPx,
+                      paddingTop: m.padY,
+                      paddingBottom: m.padY,
+                      borderTop: navIsLight ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.15)",
+                    }}
+                  >
+                    {p.links.map((l) => renderNavLink(l))}
+                  </nav>
+                )}
               </header>,
             );
           }

@@ -98,7 +98,12 @@ export async function middleware(request: NextRequest) {
   if (rewrite.kind === "kebu-subdomain" || rewrite.kind === "custom-domain") {
     const url = request.nextUrl.clone();
     url.pathname = rewrite.pathname;
-    return withDataModeCookie(request, withSecurityHeaders(NextResponse.rewrite(url)));
+    const reqHeaders = new Headers(request.headers);
+    reqHeaders.set("x-kebu-is-public-site", "1");
+    return withDataModeCookie(
+      request,
+      withSecurityHeaders(NextResponse.rewrite(url, { request: { headers: reqHeaders } })),
+    );
   }
 
   if (rewrite.kind === "legacy-alkebulan-store") {
