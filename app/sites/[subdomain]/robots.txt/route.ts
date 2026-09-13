@@ -14,11 +14,35 @@ export async function GET(_req: Request, { params }: Params) {
     });
   }
 
+  const base = deployment.httpsUrl.replace(/\/$/, "");
+
   const body = [
     "User-agent: *",
     "Allow: /",
     "",
-    `Sitemap: ${deployment.httpsUrl.replace(/\/$/, "")}/sitemap.xml`,
+    // AI crawlers — explicit allow so content appears in AI answers and search summaries
+    "User-agent: GPTBot",
+    "Allow: /",
+    "",
+    "User-agent: ChatGPT-User",
+    "Allow: /",
+    "",
+    "User-agent: ClaudeBot",
+    "Allow: /",
+    "",
+    "User-agent: Claude-Web",
+    "Allow: /",
+    "",
+    "User-agent: anthropic-ai",
+    "Allow: /",
+    "",
+    "User-agent: PerplexityBot",
+    "Allow: /",
+    "",
+    "User-agent: Googlebot",
+    "Allow: /",
+    "",
+    `Sitemap: ${base}/sitemap.xml`,
     "",
   ].join("\n");
 

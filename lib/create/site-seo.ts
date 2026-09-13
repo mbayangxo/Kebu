@@ -210,7 +210,59 @@ export type SiteJsonLdInput = {
   definition?: WebsiteDefinition | null;
 };
 
-/** JSON-LD for Google rich results (Organization / WebSite / WebPage + optional products). */
+/**
+ * Extract a clean numeric price string from a raw price value.
+ * Handles "5 000 FCFA", "12,500", 5000, "15.99" → "5000", "12500", "5000", "15.99"
+ */
+function numericPrice(val: unknown): string | null {
+  if (typeof val === "number" && isFinite(val) && val > 0) return String(Math.round(val));
+  if (typeof val !== "string") return null;
+  // Strip currency words and whitespace, then extract leading number
+  const stripped = val.replace(/[a-zA-Z\s]/g, "").replace(/,(?=\d{3}(?!\d))/g, "");
+  const m = stripped.match(/^(\d+(?:\.\d+)?)/);
+  return m ? m[1] : null;
+}
+
+/** Collect all products from a site definition across all pages. */
+function collectProducts(definition: WebsiteDefinition): Array<Record<string, unknown>> {
+  const products: Array<Record<string, unknown>> = [];
+  for (const page of definition.pages) {
+    for (const section of page.sections) {
+      if (section.type !== "products") continue;
+      const items = (section.props as { items?: Array<Record<string, unknown>> }).items;
+      if (!Array.isArray(items)) continue;
+      for (const item of items.slice(0, 50)) {
+        if (typeof item.name === "string" && item.name.trim()) products.push(item);
+      }
+    }
+  }
+  return products;
+}
+
+/** Collect FAQ pairs from any FAQ-type section. */
+function collectFaqPairs(definition: WebsiteDefinition): Array<{ q: string; a: string }> {
+  const pairs: Array<{ q: string; a: string }> = [];
+  for (const page of definition.pages) {
+    for (const section of page.sections) {
+      if (!["faq", "faq-section", "faqs"].includes(section.type)) continue;
+      const items = (section.props as { items?: Array<Record<string, unknown>> }).items;
+      if (!Array.isArray(items)) continue;
+      for (const item of items) {
+        const q = typeof item.question === "string" ? item.question.trim() : "";
+        const a =
+          typeof item.answer === "string"
+            ? item.answer.trim()
+            : typeof item.body === "string"
+              ? item.body.trim()
+              : "";
+        if (q && a) pairs.push({ q, a });
+      }
+    }
+  }
+  return pairs;
+}
+
+/** JSON-LD for Google rich results + AI crawlers (Organization / WebSite / WebPage / Product / FAQPage). */
 export function buildSiteJsonLd(input: SiteJsonLdInput): Record<string, unknown>[] {
   const seo = mergeSiteSeo(input.seo, input.title);
   const base = input.canonicalBase.replace(/\/$/, "");
@@ -222,6 +274,10 @@ export function buildSiteJsonLd(input: SiteJsonLdInput): Record<string, unknown>
   const sameAs = parseSameAsUrls(seo.sameAs);
   const graphs: Record<string, unknown>[] = [];
 
+  // ── Organization / LocalBusiness ─────────────────────────────────────────
+  const businessTypes = ["Store", "Restaurant", "LocalBusiness", "ProfessionalService"];
+  const isLocalBusiness = businessTypes.includes(seo.businessType);
+
   const org: Record<string, unknown> = {
     "@type": seo.businessType || "Organization",
     "@id": `${base}/#organization`,
@@ -232,6 +288,7 @@ export function buildSiteJsonLd(input: SiteJsonLdInput): Record<string, unknown>
     ...(description ? { description } : {}),
     ...(sameAs.length ? { sameAs } : {}),
   };
+
   if (seo.city || seo.country) {
     org.address = {
       "@type": "PostalAddress",
@@ -239,18 +296,41 @@ export function buildSiteJsonLd(input: SiteJsonLdInput): Record<string, unknown>
       ...(seo.country ? { addressCountry: seo.country } : {}),
     };
   }
+
+  // Commerce-aware fields for Store / LocalBusiness
+  if (isLocalBusiness) {
+    org.currenciesAccepted = "XOF";
+    org.paymentAccepted = "Cash, Mobile Money (Wave, Orange Money), WhatsApp";
+    if (seo.commerce?.merchantWhatsApp) {
+      org.telephone = seo.commerce.merchantWhatsApp;
+      org.contactPoint = {
+        "@type": "ContactPoint",
+        contactType: "customer service",
+        telephone: seo.commerce.merchantWhatsApp,
+        availableLanguage: ["fr", "en"],
+      };
+    }
+  }
+
   graphs.push(org);
 
+  // ── WebSite with SearchAction ─────────────────────────────────────────────
   graphs.push({
     "@type": "WebSite",
     "@id": `${base}/#website`,
     url: base,
     name: seo.siteName || name,
     publisher: { "@id": `${base}/#organization` },
-    inLanguage: seo.locale || "en",
+    inLanguage: seo.locale || "fr",
     ...(description ? { description } : {}),
+    potentialAction: {
+      "@type": "SearchAction",
+      target: { "@type": "EntryPoint", urlTemplate: `${base}/?q={search_term_string}` },
+      "query-input": "required name=search_term_string",
+    },
   });
 
+  // ── WebPage ───────────────────────────────────────────────────────────────
   graphs.push({
     "@type": "WebPage",
     "@id": `${pageUrl}/#webpage`,
@@ -259,14 +339,16 @@ export function buildSiteJsonLd(input: SiteJsonLdInput): Record<string, unknown>
     isPartOf: { "@id": `${base}/#website` },
     about: { "@id": `${base}/#organization` },
     ...(description ? { description } : {}),
-    inLanguage: seo.locale || "en",
+    inLanguage: seo.locale || "fr",
+    dateModified: new Date().toISOString().split("T")[0],
   });
 
+  // ── Breadcrumb ────────────────────────────────────────────────────────────
   if (pagePath) {
     graphs.push({
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: base },
+        { "@type": "ListItem", position: 1, name: "Accueil", item: base },
         {
           "@type": "ListItem",
           position: 2,
@@ -277,36 +359,85 @@ export function buildSiteJsonLd(input: SiteJsonLdInput): Record<string, unknown>
     });
   }
 
+  // ── Products + ItemList ───────────────────────────────────────────────────
   if (input.definition) {
-    for (const page of input.definition.pages) {
-      for (const section of page.sections) {
-        if (section.type !== "products") continue;
-        const items = (section.props as { items?: Array<Record<string, unknown>> }).items;
-        if (!Array.isArray(items)) continue;
-        for (const item of items.slice(0, 24)) {
-          const productName = typeof item.name === "string" ? item.name : null;
-          if (!productName) continue;
-          const price = typeof item.price === "string" || typeof item.price === "number" ? String(item.price) : null;
-          const image = typeof item.imageUrl === "string" ? item.imageUrl : undefined;
-          graphs.push({
-            "@type": "Product",
-            name: productName,
-            ...(typeof item.description === "string" ? { description: item.description } : {}),
-            ...(image ? { image } : {}),
-            ...(price
-              ? {
-                  offers: {
-                    "@type": "Offer",
-                    priceCurrency: typeof item.currency === "string" ? item.currency : "XOF",
-                    price,
-                    availability: "https://schema.org/InStock",
-                    url: pageUrl,
-                  },
-                }
-              : {}),
-          });
+    const allProducts = collectProducts(input.definition);
+
+    if (allProducts.length > 0) {
+      const productGraphs: Record<string, unknown>[] = [];
+
+      for (const item of allProducts.slice(0, 24)) {
+        const productName = String(item.name);
+        const price = numericPrice(item.price ?? item.priceLabel);
+        const image = typeof item.imageUrl === "string" && item.imageUrl ? item.imageUrl : undefined;
+        const currency =
+          typeof item.currency === "string" && item.currency ? item.currency : "XOF";
+        const inStock = item.inStock !== false;
+
+        const product: Record<string, unknown> = {
+          "@type": "Product",
+          name: productName,
+          brand: { "@type": "Brand", name },
+          seller: { "@id": `${base}/#organization` },
+          ...(typeof item.description === "string" && item.description
+            ? { description: item.description }
+            : {}),
+          ...(image ? { image } : {}),
+        };
+
+        if (price) {
+          product.offers = {
+            "@type": "Offer",
+            "@id": `${base}/#product-${productGraphs.length + 1}`,
+            priceCurrency: currency,
+            price,
+            priceSpecification: {
+              "@type": "PriceSpecification",
+              priceCurrency: currency,
+              price,
+            },
+            availability: inStock
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+            itemCondition: "https://schema.org/NewCondition",
+            url: pageUrl,
+            seller: { "@id": `${base}/#organization` },
+          };
         }
+
+        productGraphs.push(product);
       }
+
+      graphs.push(...productGraphs);
+
+      // ItemList — lets Google show a product carousel in search results
+      if (productGraphs.length > 1) {
+        graphs.push({
+          "@type": "ItemList",
+          name: `${name} — Catalogue`,
+          description: `Produits disponibles sur ${name}`,
+          numberOfItems: productGraphs.length,
+          itemListElement: productGraphs.slice(0, 10).map((p, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            name: p.name,
+            url: pageUrl,
+          })),
+        });
+      }
+    }
+
+    // ── FAQPage ───────────────────────────────────────────────────────────
+    const faqs = collectFaqPairs(input.definition);
+    if (faqs.length > 0) {
+      graphs.push({
+        "@type": "FAQPage",
+        mainEntity: faqs.map(({ q, a }) => ({
+          "@type": "Question",
+          name: q,
+          acceptedAnswer: { "@type": "Answer", text: a },
+        })),
+      });
     }
   }
 
