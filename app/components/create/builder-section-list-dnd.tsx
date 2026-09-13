@@ -19,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { labelForSectionType } from "@/lib/create/builder-section-catalog";
 import { blocksForSection, type SectionBlockPreview } from "@/lib/create/section-blocks";
+import { BUILDER } from "@/lib/create/builder-ui";
 
 type SectionRow = {
   id: string;
@@ -137,11 +138,11 @@ function SortableSectionRow({
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
-        {/* Drag handle */}
+        {/* Drag handle — always visible, dims when not focused */}
         <button
           type="button"
-          className="shrink-0 cursor-grab active:cursor-grabbing px-0.5 text-[12px] leading-none"
-          style={{ color: "#C0C0C0", touchAction: "none" }}
+          className="shrink-0 cursor-grab active:cursor-grabbing px-0.5 text-[12px] leading-none opacity-40 hover:opacity-100 transition-opacity"
+          style={{ color: BUILDER.ink, touchAction: "none" }}
           aria-label="Drag to reorder"
           {...attributes}
           {...listeners}

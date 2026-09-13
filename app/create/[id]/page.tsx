@@ -1096,7 +1096,67 @@ export default function ProjectEditorPage() {
   /** Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames. */
   const wideCanvas = flagshipCanvas || device === "desktop";
 
+  type BannerItem = { bg: string; fg: string; border?: string; content: React.ReactNode; dismissable?: boolean };
+  const activeBanner = ((): BannerItem | null => {
+    if (!flagshipCanvas) {
+      if (error) return {
+        bg: "#FFF1F0", fg: "#8B1E1E", content: (
+          <span className="flex items-center gap-2 justify-center">
+            <span className="flex-1 text-center">
+              {error}{!subdomainInput.trim() ? <> — <Link href={mySiteDetailHref(projectId)} className="font-bold underline">Open Domain &amp; SEO</Link></> : null}
+            </span>
+            <button type="button" onClick={() => setError(null)} className="shrink-0 text-base font-bold" aria-label="Dismiss">×</button>
+          </span>
+        ),
+      };
+      if (aiPreview) return { bg: "#EFF6FF", fg: "#1D4ED8", content: "Previewing Yande’s proposal — apply to save your draft or discard to revert the canvas." };
+      if (createNote) return { bg: "#F0FDF4", fg: "#166534", content: createNote };
+      if (improveNote) return { bg: "#FFF4EC", fg: "#C2410C", content: improveNote };
+      if (publishState?.hasUnpublishedChanges) return {
+        bg: "#FFF8E8", fg: "#6B5B45", border: "#F0E4C8", content: (
+          <>
+            <strong style={{ color: "#0F0D33" }}>Editing a draft.</strong>{" "}
+            Visitors see your last published version until you click <strong>Publish</strong>.
+            {publishState.isLive && (publishState.livePublicPath || publishUrl) ? (
+              <> Live: <a href={publishState.livePublicPath?.startsWith("http") ? publishState.livePublicPath : `${appOrigin}${publishState.livePublicPath || publishUrl || ""}`} target="_blank" rel="noreferrer" className="underline font-semibold">{publishState.livePublicPath || publishUrl}</a></>
+            ) : null}
+          </>
+        ),
+      };
+      if (publishState?.isLive) return {
+        bg: "#E8F8EE", fg: "#1B6B3A", border: "#C8E8D4", content: (
+          <>Live and up to date.{publishUrl ? <> <a href={publishUrl.startsWith("http") ? publishUrl : `${appOrigin}${publishUrl}`} target="_blank" rel="noreferrer" className="underline font-semibold">Open live site</a></> : null}</>
+        ),
+      };
+    }
+    return null;
+  })();
+
   return (
+    <>
+    <div
+      className="flex sm:hidden h-dvh flex-col items-center justify-center gap-5 p-8 text-center"
+      style={{ background: BUILDER.bg, color: BUILDER.ink }}
+    >
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: BUILDER.muted }}>
+        <rect x="2" y="5" width="20" height="14" rx="2" />
+        <path d="M6 19v2M18 19v2M3 19h18" strokeLinecap="round" />
+      </svg>
+      <div>
+        <p className="text-base font-bold mb-1">Open on a larger screen</p>
+        <p className="text-sm leading-relaxed" style={{ color: BUILDER.muted }}>
+          The builder works on desktop or tablet. Open this link on a laptop or desktop to keep editing.
+        </p>
+      </div>
+      <Link
+        href="/my-sites"
+        className="rounded-full px-5 py-2 text-sm font-semibold"
+        style={{ background: BUILDER.ink, color: "#fff" }}
+      >
+        ← My sites
+      </Link>
+    </div>
+    <div className="hidden sm:contents">
     <DataModeProvider>
     <div
       className="relative flex h-dvh flex-col overflow-hidden"
@@ -1351,107 +1411,13 @@ export default function ProjectEditorPage() {
         </div>
       ) : null}
 
-      {error ? (
-        <div
-          className="border-b px-4 py-2.5 text-xs flex items-center gap-2"
-          style={{ background: "#FFF1F0", color: "#8B1E1E" }}
-          role="alert"
-        >
-          <span className="flex-1 text-center">
-            {error}{" "}
-            {!subdomainInput.trim() ? (
-              <Link href={mySiteDetailHref(projectId)} className="font-bold underline">
-                Open Domain &amp; SEO
-              </Link>
-            ) : null}
-          </span>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            className="shrink-0 text-base font-bold leading-none"
-            aria-label="Dismiss error"
-          >
-            ×
-          </button>
-        </div>
-      ) : null}
-
-      {createNote && !maylecorRussianLayout ? (
+      {activeBanner ? (
         <div
           className="border-b px-4 py-2 text-center text-[11px] font-medium"
-          style={{ background: "#F0FDF4", color: "#166534" }}
-          role="status"
+          style={{ background: activeBanner.bg, color: activeBanner.fg, borderColor: activeBanner.border }}
+          role={error ? "alert" : "status"}
         >
-          {createNote}
-        </div>
-      ) : null}
-
-      {improveNote && !maylecorRussianLayout ? (
-        <div
-          className="border-b px-4 py-2 text-center text-[11px] font-medium"
-          style={{ background: "#FFF4EC", color: "#C2410C" }}
-          role="status"
-        >
-          {improveNote}
-        </div>
-      ) : null}
-
-      {aiPreview && !maylecorRussianLayout ? (
-        <div
-          className="border-b px-4 py-2 text-center text-[11px] font-medium"
-          style={{ background: "#EFF6FF", color: "#1D4ED8" }}
-          role="status"
-        >
-          Previewing Yande&apos;s proposal — apply to save your draft or discard to revert the canvas.
-        </div>
-      ) : null}
-
-      {publishState?.hasUnpublishedChanges && !maylecorRussianLayout ? (
-        <div
-          className="border-b px-4 py-2.5 text-center text-xs leading-relaxed"
-          style={{ background: "#FFF8E8", borderColor: "#F0E4C8", color: "#6B5B45" }}
-        >
-          <strong style={{ color: "#0F0D33" }}>You are editing a draft.</strong> Changes save automatically but{" "}
-          <strong>visitors only see your last published version</strong> until you click{" "}
-          <strong>Publish</strong> (top right).
-          {publishState.isLive && (publishState.livePublicPath || publishUrl) ? (
-            <>
-              {" "}
-              Live site:{" "}
-              <a
-                href={
-                  publishState.livePublicPath?.startsWith("http")
-                    ? publishState.livePublicPath
-                    : `${appOrigin}${publishState.livePublicPath || publishUrl || ""}`
-                }
-                target="_blank"
-                rel="noreferrer"
-                className="underline font-semibold"
-              >
-                {publishState.livePublicPath || publishUrl}
-              </a>
-            </>
-          ) : null}
-        </div>
-      ) : publishState?.isLive && !maylecorRussianLayout ? (
-        <div
-          className="border-b px-4 py-2 text-center text-[11px]"
-          style={{ background: "#E8F8EE", borderColor: "#C8E8D4", color: "#1B6B3A" }}
-        >
-          Live and up to date. Edit anytime — publish again from the top right when you want changes public.
-          {publishUrl ? (
-            <>
-              {" "}
-              <a
-                href={publishUrl.startsWith("http") ? publishUrl : `${appOrigin}${publishUrl}`}
-                target="_blank"
-                rel="noreferrer"
-                className="underline font-semibold"
-              >
-                Open live site
-              </a>
-            </>
-          ) : null}
+          {activeBanner.content}
         </div>
       ) : null}
 
@@ -4483,15 +4449,22 @@ export default function ProjectEditorPage() {
           </div>
         </div>
       ) : null}
-      {kbSaveNote ? (
+      {(kbSaveNote || (saveState !== "idle" && saveState !== "saved")) ? (
         <p
-          className="pointer-events-none fixed right-3 top-14 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
-          style={{ background: "rgba(255,251,247,0.95)", color: "#166534", border: "1px solid #E8E6DF" }}
+          className="pointer-events-none fixed right-3 bottom-4 z-[55] max-w-xs rounded-lg px-2.5 py-1.5 text-[10px] font-medium"
+          style={{
+            background: saveState === "error" ? "#FFF1F0" : "rgba(255,251,247,0.97)",
+            color: saveState === "error" ? "#8B1E1E" : "#166534",
+            border: `1px solid ${saveState === "error" ? "#FECACA" : "#E8E6DF"}`,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          }}
         >
-          {kbSaveNote}
+          {kbSaveNote ?? saveStatusLabel}
         </p>
       ) : null}
     </div>
     </DataModeProvider>
+    </div>
+    </>
   );
 }
