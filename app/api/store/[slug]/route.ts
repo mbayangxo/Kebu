@@ -1,14 +1,9 @@
-import { NextRequest } from "next/server";
-import { storeDb } from "@/lib/store-data";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  const { slug } = await params;
-  const site = storeDb.sites.get(slug);
-  if (!site) {
-    return Response.json({ error: "Site not found" }, { status: 404 });
-  }
-  return Response.json(site);
+/** Legacy in-memory store GET. Public deployments are now at /api/public/sites/[subdomain]. */
+export async function GET(_req: NextRequest) {
+  return NextResponse.json(
+    { error: "This endpoint has been removed." },
+    { status: 410 },
+  );
 }
