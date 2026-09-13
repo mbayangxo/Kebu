@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
 import { carrierLabel } from "@/lib/shop/carriers";
+import {
+  quoteShippingCorridor,
+  supportedCorridorPairs,
+  formatShippingXof,
+} from "@/lib/shop/shipping-corridors";
 
 type ShippingOrder = {
   id: string;
@@ -34,6 +39,62 @@ const CARRIER_LINKS: Record<string, string> = {
   mondial_relay: "https://www.mondialrelay.fr/suivi-de-colis",
   chronopost: "https://www.chronopost.fr/fr/tracking-no-cms",
 };
+
+function ShippingRatesCard() {
+  const [open, setOpen] = useState(false);
+  const pairs = supportedCorridorPairs();
+
+  return (
+    <div
+      className="rounded-2xl border"
+      style={{ borderColor: KEBU.border, background: "#fff" }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
+      >
+        <div>
+          <p className="text-xs font-semibold" style={{ color: KEBU.black }}>
+            Tarifs livraison ECOWAS ({pairs.length} corridors)
+          </p>
+          <p className="mt-0.5 text-[10px]" style={{ color: KEBU.muted }}>
+            Estimations — pas une réservation. Non contraignant légalement.
+          </p>
+        </div>
+        <span className="shrink-0 text-xs" style={{ color: KEBU.muted }}>
+          {open ? "▲" : "▼"}
+        </span>
+      </button>
+
+      {open ? (
+        <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: KEBU.border }}>
+          <div className="space-y-1 max-h-64 overflow-y-auto">
+            {pairs.map((p) => {
+              const q = quoteShippingCorridor({ fromCountry: p.from, toCountry: p.to });
+              if (!q) return null;
+              return (
+                <div
+                  key={`${p.from}→${p.to}`}
+                  className="flex items-center justify-between gap-3 rounded-lg px-3 py-1.5 text-xs"
+                  style={{ background: KEBU.cream }}
+                >
+                  <span style={{ color: KEBU.black }}>{p.label}</span>
+                  <span style={{ color: KEBU.muted, whiteSpace: "nowrap" }}>
+                    ~{formatShippingXof(q.amountXof)} · {q.etaMinDays}–{q.etaMaxDays} j
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[10px]" style={{ color: KEBU.faint }}>
+            Ces tarifs sont des estimations indicatives. Les frais réels dépendent du transporteur, du poids et de la valeur des marchandises.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function ShopShippingPanel({ projectId }: { projectId: string }) {
   const [orders, setOrders] = useState<ShippingOrder[]>([]);
@@ -233,6 +294,8 @@ export function ShopShippingPanel({ projectId }: { projectId: string }) {
           shipment from the confirmation email or from the store confirmation page.
         </p>
       </div>
+
+      <ShippingRatesCard />
     </div>
   );
 }

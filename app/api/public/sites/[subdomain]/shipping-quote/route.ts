@@ -28,7 +28,7 @@ const querySchema = z.object({
 
 /**
  * Public shipping quote for a live storefront.
- * SN→GH (and SN→SN) in v1 — honest estimates, not live carrier booking.
+ * ECOWAS corridor table v2 — honest estimates, not live carrier booking or legal advice.
  */
 export async function GET(req: Request, { params }: Params) {
   const { subdomain: raw } = await params;
@@ -86,7 +86,7 @@ export async function GET(req: Request, { params }: Params) {
     destinations: shippingDestinationOptions(sellerCountry),
     quote,
     unsupported: !quote
-      ? `No corridor quote yet for ${sellerCountry}→${parsed.data.to}. Only SN→SN and SN→GH in this slice.`
+      ? `No corridor quote for ${sellerCountry}→${parsed.data.to} in the current table. Contact Kebu to request this route.`
       : null,
     honestNote:
       "Estimates from Kebu corridor table v1 — not a booked shipment. Duties may apply; not legal advice.",
