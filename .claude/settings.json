@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kebu": {
+      "type": "http",
+      "url": "${KEBU_MCP_URL:-https://kebu.africa}/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MCP_BEARER_TOKEN}"
+      }
+    }
+  }
+}

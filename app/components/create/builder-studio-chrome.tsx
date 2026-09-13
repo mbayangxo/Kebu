@@ -72,9 +72,9 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   },
   {
     id: "yande",
-    label: "Yande",
+    label: "Ask AI ✦",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8L12 3z" strokeLinejoin="round" />
       </svg>
     ),
@@ -102,6 +102,7 @@ export function BuilderStudioRail({
     >
       {RAIL.map((item) => {
         const on = panelOpen && railTab === item.id;
+        const isAI = item.id === "yande";
         return (
           <button
             key={item.id}
@@ -110,13 +111,25 @@ export function BuilderStudioRail({
             aria-label={item.label}
             aria-pressed={on}
             onClick={() => onRail(item.id)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg"
+            className={
+              isAI
+                ? "flex w-9 flex-col items-center justify-center gap-0.5 rounded-lg py-1.5"
+                : "flex h-9 w-9 items-center justify-center rounded-lg"
+            }
             style={{
-              background: on ? BUILDER.ink : "transparent",
-              color: on ? "#fff" : BUILDER.muted,
+              background: on ? "#FF5500" : isAI ? "rgba(255,85,0,0.08)" : "transparent",
+              color: on ? "#fff" : isAI ? "#FF5500" : BUILDER.muted,
             }}
           >
             {item.icon}
+            {isAI && (
+              <span
+                className="font-bold leading-none"
+                style={{ fontSize: 7, letterSpacing: "0.04em", color: on ? "#fff" : "#FF5500" }}
+              >
+                AI ✦
+              </span>
+            )}
           </button>
         );
       })}
