@@ -76,25 +76,25 @@ export function agenceSocialMediaWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "📱",
                   title: "Social media management",
-                  description:
+                  body:
                     "Gestion complète Instagram, TikTok, Facebook — calendrier éditorial, création posts, stories, réponse commentaires. Abonnement mensuel.",
                 },
                 {
                   icon: "🎬",
                   title: "Création de contenu",
-                  description:
+                  body:
                     "Reels, vidéos produits, photos lifestyle, UGC — contenu natif qui performe sur chaque plateforme.",
                 },
                 {
                   icon: "📣",
                   title: "Publicité Meta & TikTok Ads",
-                  description:
+                  body:
                     "Campagnes publicitaires payantes — setup, ciblage, créatifs, optimisation. ROI mesuré, budget maîtrisé.",
                 },
                 {
                   icon: "📊",
                   title: "Analytics & reporting",
-                  description:
+                  body:
                     "Rapport mensuel chiffré — portée, engagement, conversions, ROI. On vous montre ce que chaque euro/FCFA rapporte.",
                 },
               ],
@@ -180,19 +180,19 @@ export function agenceSocialMediaWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "En 3 mois avec VOLTA STUDIO, on est passé de 2 000 à 15 000 followers Instagram. Le taux d'engagement a triplé. Les commandes WhatsApp ont doublé. On n'aurait pas cru ça possible.",
-                  author: "Ndéye D.",
+                  name: "Ndéye D.",
                   role: "Fondatrice, marque beauté Dakar",
                 },
                 {
                   quote:
                     "VOLTA crée du contenu qui ressemble vraiment à notre marque. Les reels font 10x plus de vues qu'avant. Et leur rapport mensuel nous montre exactement où va chaque FCFA investi.",
-                  author: "Seydou K.",
+                  name: "Seydou K.",
                   role: "Gérant, restaurant Dakar",
                 },
                 {
                   quote:
                     "On a lancé notre première campagne Meta avec VOLTA STUDIO. 300 000 FCFA de budget, 8 commandes directes. Le ROI était clair dès la première semaine.",
-                  author: "Marème B.",
+                  name: "Marème B.",
                   role: "Propriétaire, boutique mode",
                 },
               ],
@@ -204,7 +204,7 @@ export function agenceSocialMediaWorldDefinition(): WebsiteDefinition {
               heading: "Démarrer ou obtenir un audit",
               subheading:
                 "Décrivez votre marque et vos objectifs. On vous répond avec une proposition sous 24h.",
-              phoneNumber: "221780000006",
+              phone: "221780000006",
               message:
                 "Bonjour VOLTA STUDIO — je voudrais [démarrer un abonnement / demander l'audit gratuit / autre]. Ma marque : [nom]. Réseaux actuels : [Instagram/TikTok/Facebook]. Nombre de followers actuels :",
               buttonLabel: "Nous écrire sur WhatsApp",
@@ -229,12 +229,12 @@ export function agenceSocialMediaWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Comment on travaille",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "🎯", title: "Audit & stratégie", description: "Analyse de votre situation, vos objectifs, votre audience. On définit la stratégie ensemble." },
-                { icon: "📅", title: "Calendrier éditorial", description: "Planning de contenu mensuel validé avec vous avant publication. Aucune surprise." },
-                { icon: "📲", title: "Publication & gestion", description: "On publie, on répond aux commentaires, on optimise en temps réel." },
-                { icon: "📊", title: "Rapport mensuel", description: "Résultats chiffrés chaque mois — ce qui marche, ce qu'on améliore, les prochains objectifs." },
+                { icon: "🎯", title: "Audit & stratégie", body: "Analyse de votre situation, vos objectifs, votre audience. On définit la stratégie ensemble." },
+                { icon: "📅", title: "Calendrier éditorial", body: "Planning de contenu mensuel validé avec vous avant publication. Aucune surprise." },
+                { icon: "📲", title: "Publication & gestion", body: "On publie, on répond aux commentaires, on optimise en temps réel." },
+                { icon: "📊", title: "Rapport mensuel", body: "Résultats chiffrés chaque mois — ce qui marche, ce qu'on améliore, les prochains objectifs." },
               ],
             },
           },
@@ -288,12 +288,12 @@ export function agenceSocialMediaWorldDefinition(): WebsiteDefinition {
               heading: "Secteurs",
               layout: "grid",
               items: [
-                { icon: "👗", title: "Mode & beauté", description: "Marques mode, beauté, cosmétiques sénégalaises — Instagram et TikTok." },
-                { icon: "🍽️", title: "Restauration", description: "Restaurants, traiteurs, food brands — contenu culinaire et géolocalisation." },
-                { icon: "🏠", title: "Immobilier", description: "Agences et promoteurs — campagnes Meta ciblage Dakar + diaspora." },
-                { icon: "💼", title: "Services B2B", description: "Cabinets, agences, prestataires — personal branding et génération de leads." },
-                { icon: "🛒", title: "E-commerce", description: "Boutiques en ligne — campagnes conversions, retargeting, catalogue Ads." },
-                { icon: "🎵", title: "Musique & culture", description: "Artistes, événements, labels — community building et promotion de sortie." },
+                { icon: "👗", title: "Mode & beauté", body: "Marques mode, beauté, cosmétiques sénégalaises — Instagram et TikTok." },
+                { icon: "🍽️", title: "Restauration", body: "Restaurants, traiteurs, food brands — contenu culinaire et géolocalisation." },
+                { icon: "🏠", title: "Immobilier", body: "Agences et promoteurs — campagnes Meta ciblage Dakar + diaspora." },
+                { icon: "💼", title: "Services B2B", body: "Cabinets, agences, prestataires — personal branding et génération de leads." },
+                { icon: "🛒", title: "E-commerce", body: "Boutiques en ligne — campagnes conversions, retargeting, catalogue Ads." },
+                { icon: "🎵", title: "Musique & culture", body: "Artistes, événements, labels — community building et promotion de sortie." },
               ],
             },
           },

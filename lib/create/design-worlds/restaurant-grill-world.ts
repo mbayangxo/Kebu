@@ -174,19 +174,19 @@ export function restaurantGrillWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "La côte de bœuf est exceptionnelle — personne ne fait ça aussi bien à Dakar. Le charbon donne un goût fumé incomparable. On revient au moins une fois par mois.",
-                  author: "Serigne D.",
+                  name: "Serigne D.",
                   role: "Client régulier, Dakar",
                 },
                 {
                   quote:
                     "Les brochettes agneau sont les meilleures que j'ai mangées. La marinade ras-el-hanout + miel est parfaite. Et l'ambiance la nuit est vraiment bonne.",
-                  author: "Aïssatou B.",
+                  name: "Aïssatou B.",
                   role: "Cliente, Dakar",
                 },
                 {
                   quote:
                     "On a fêté l'anniversaire de mon mari avec le plateau grill pour 8. Service impeccable, qualité constante, prix justes. BRAISE DAKAR c'est la valeur sûre.",
-                  author: "Mariama N.",
+                  name: "Mariama N.",
                   role: "Cliente, Dakar",
                 },
               ],
@@ -198,7 +198,7 @@ export function restaurantGrillWorldDefinition(): WebsiteDefinition {
               heading: "Réserver une table",
               subheading:
                 "Réservation conseillée le week-end. Groupes de 8+ personnes : contactez-nous pour un espace privatif.",
-              phoneNumber: "221780000002",
+              phone: "221780000002",
               message:
                 "Bonjour BRAISE DAKAR — je voudrais réserver une table. Date : [date]. Heure : [heure]. Nombre de personnes : [nombre]. Occasion particulière : [oui/non].",
               buttonLabel: "Réserver sur WhatsApp",

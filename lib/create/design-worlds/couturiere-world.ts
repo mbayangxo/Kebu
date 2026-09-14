@@ -66,7 +66,7 @@ export function couturiereWorldDefinition(): WebsiteDefinition {
                 "Broderie Peul",
                 "Ankara Imprimé",
               ],
-              speed: "normal",
+              speed: 40,
               separator: "·",
             },
           },
@@ -138,19 +138,19 @@ export function couturiereWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Ma robe de mariée était exactement ce que j'avais imaginé. Fatou a su traduire mes envies en une pièce absolument magnifique.",
-                  author: "Khadija T.",
+                  name: "Khadija T.",
                   role: "Mariée, juin 2024",
                 },
                 {
                   quote:
                     "Le grand boubou pour le baptême de mon fils était parfait. Les broderies sont d'une finesse exceptionnelle.",
-                  author: "Aminata D.",
+                  name: "Aminata D.",
                   role: "Cliente fidèle depuis 2021",
                 },
                 {
                   quote:
                     "J'avais une idée floue, ils l'ont transformée en tenue de rêve. Le service est professionnel du début à la fin.",
-                  author: "Rokhaya S.",
+                  name: "Rokhaya S.",
                   role: "Dakar",
                 },
               ],
@@ -162,7 +162,7 @@ export function couturiereWorldDefinition(): WebsiteDefinition {
               heading: "Commencer votre projet",
               subheading:
                 "Décrivez-nous votre occasion, vos couleurs préférées et votre budget. Nous vous répondons sous 24h.",
-              phoneNumber: "221780000000",
+              phone: "221780000000",
               message:
                 "Bonjour CULT MODUS, je souhaite créer une tenue sur-mesure pour [précisez l'occasion]. Mon budget est d'environ [montant] FCFA.",
               buttonLabel: "Écrire sur WhatsApp",
@@ -280,36 +280,36 @@ export function couturiereWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Le processus CULT MODUS",
-              layout: "horizontal",
+              layout: "grid",
               items: [
                 {
                   icon: "💬",
                   title: "1. Consultation",
-                  description:
+                  body:
                     "Rendez-vous en atelier ou par WhatsApp pour définir votre projet, l'occasion, le style et le budget.",
                 },
                 {
                   icon: "🪡",
                   title: "2. Choix des tissus",
-                  description:
+                  body:
                     "Sélection des matières dans notre stock et chez nos fournisseurs à Sandaga, Saint-Louis et Bamako.",
                 },
                 {
                   icon: "📐",
                   title: "3. Prise de mesures",
-                  description:
+                  body:
                     "Séance de mesures complètes en atelier. Déplacement à domicile disponible sur Dakar.",
                 },
                 {
                   icon: "✂️",
                   title: "4. Confection",
-                  description:
+                  body:
                     "Coupe, montage et finitions réalisés entièrement par nos couturières qualifiées.",
                 },
                 {
                   icon: "👗",
                   title: "5. Essayage & livraison",
-                  description:
+                  body:
                     "Un essayage intermédiaire et une dernière retouche avant la remise de votre pièce.",
                 },
               ],
@@ -414,7 +414,7 @@ export function couturiereWorldDefinition(): WebsiteDefinition {
               heading: "Réservez votre consultation",
               subheading:
                 "Partagez-nous votre projet en quelques mots. Nous vous confirmons un créneau sous 24h.",
-              phoneNumber: "221780000000",
+              phone: "221780000000",
               message:
                 "Bonjour, je souhaite prendre rendez-vous pour une consultation sur-mesure. Mon occasion est [baptême / mariage / fête] et je suis disponible [vos disponibilités].",
               buttonLabel: "Prendre rendez-vous",

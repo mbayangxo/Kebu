@@ -68,7 +68,7 @@ export function decoInterieurWorldDefinition(): WebsiteDefinition {
                 "Espaces événementiels",
                 "Mobilier sur-mesure",
               ],
-              speed: "normal",
+              speed: 40,
               separator: "·",
             },
           },
@@ -136,30 +136,30 @@ export function decoInterieurWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Ce qui nous distingue",
-              layout: "horizontal",
+              layout: "grid",
               items: [
                 {
                   icon: "🎨",
                   title: "Design ancré localement",
-                  description:
+                  body:
                     "Nous intégrons des matériaux, des artisanats et des artistes sénégalais dans chaque projet.",
                 },
                 {
                   icon: "🔨",
                   title: "Clé en main complet",
-                  description:
+                  body:
                     "Plans, sourcing, artisans, suivi chantier et livraison finale. Vous n'avez rien à coordonner.",
                 },
                 {
                   icon: "💰",
                   title: "Budget transparent",
-                  description:
+                  body:
                     "Devis détaillé poste par poste. Pas de surprise en cours de chantier.",
                 },
                 {
                   icon: "⏱️",
                   title: "Délais respectés",
-                  description:
+                  body:
                     "Engagement contractuel sur les délais. Pénalité de retard appliquée si dépassement.",
                 },
               ],
@@ -173,19 +173,19 @@ export function decoInterieurWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "OBLIQ a transformé notre appartement en quelque chose que nous n'aurions jamais imaginé. Chaque détail est pensé, chaque matière choisie avec soin.",
-                  author: "Famille Diallo",
+                  name: "Famille Diallo",
                   role: "Villa Almadies, Dakar",
                 },
                 {
                   quote:
                     "Notre restaurant a multiplié ses réservations par 3 après l'ouverture. L'espace est beau, fonctionnel et la clientèle adore partager des photos.",
-                  author: "Chef Oumar",
+                  name: "Chef Oumar",
                   role: "Restaurant Le Terracotta, Plateau",
                 },
                 {
                   quote:
                     "Livraison en 8 semaines comme promis, budget respecté à 100%. Je recommande OBLIQ à tous mes clients qui construisent.",
-                  author: "Mme Ndiaye",
+                  name: "Mme Ndiaye",
                   role: "Architecte, Dakar",
                 },
               ],
@@ -197,7 +197,7 @@ export function decoInterieurWorldDefinition(): WebsiteDefinition {
               heading: "Consultation gratuite",
               subheading:
                 "Décrivez votre espace et votre projet. Notre designer vous rappelle sous 24h.",
-              phoneNumber: "221790000000",
+              phone: "221790000000",
               message:
                 "Bonjour OBLIQ STUDIO, je souhaite une consultation pour [appartement / villa / boutique / bureau] de [superficie approximative] m² à [ville/quartier]. Budget indicatif : [montant] FCFA.",
               buttonLabel: "Demander une consultation",
@@ -257,13 +257,13 @@ export function decoInterieurWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Notre processus en 5 étapes",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "🗣️", title: "1. Consultation", description: "Écoute de votre projet, visite de l'espace, analyse des contraintes et du budget." },
-                { icon: "📐", title: "2. Concept", description: "Moodboard, plan d'aménagement, palette matières & couleurs. Présentation en 1 semaine." },
-                { icon: "🛋️", title: "3. Sourcing", description: "Sélection mobilier, matériaux et artisans. Devis détaillé par poste." },
-                { icon: "🔨", title: "4. Chantier", description: "Coordination des artisans, suivi quotidien, contrôle qualité à chaque étape." },
-                { icon: "🗝️", title: "5. Livraison", description: "Visite finale, mise en scène photographique, guide d'entretien remis." },
+                { icon: "🗣️", title: "1. Consultation", body: "Écoute de votre projet, visite de l'espace, analyse des contraintes et du budget." },
+                { icon: "📐", title: "2. Concept", body: "Moodboard, plan d'aménagement, palette matières & couleurs. Présentation en 1 semaine." },
+                { icon: "🛋️", title: "3. Sourcing", body: "Sélection mobilier, matériaux et artisans. Devis détaillé par poste." },
+                { icon: "🔨", title: "4. Chantier", body: "Coordination des artisans, suivi quotidien, contrôle qualité à chaque étape." },
+                { icon: "🗝️", title: "5. Livraison", body: "Visite finale, mise en scène photographique, guide d'entretien remis." },
               ],
             },
           },
@@ -360,7 +360,7 @@ export function decoInterieurWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Parlez-nous de votre espace",
               subheading: "Envoyez-nous des photos, un plan ou décrivez simplement votre projet.",
-              phoneNumber: "221790000000",
+              phone: "221790000000",
               message: "Bonjour OBLIQ STUDIO, je voudrais discuter d'un projet de décoration pour [type d'espace] à [ville/quartier].",
               buttonLabel: "Nous écrire",
             },

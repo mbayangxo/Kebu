@@ -64,37 +64,37 @@ export function maquilleurWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "💍",
                   title: "Maquillage mariée",
-                  description:
+                  body:
                     "Maquillage longue tenue pour votre jour J. Test de maquillage inclus. Je me déplace à domicile.",
                 },
                 {
                   icon: "📸",
                   title: "Shooting photo & vidéo",
-                  description:
+                  body:
                     "Looks adaptés aux contraintes de la prise de vue : studio, extérieur, flash professionnel.",
                 },
                 {
                   icon: "🎉",
                   title: "Événements & soirées",
-                  description:
+                  body:
                     "Baptêmes, anniversaires, galas. Maquillage sophistiqué pour les grandes occasions.",
                 },
                 {
                   icon: "🎓",
                   title: "Cours particuliers",
-                  description:
+                  body:
                     "Apprenez à vous maquiller vous-même. Cours individuels adaptés à votre type de peau.",
                 },
                 {
                   icon: "👰🏾",
                   title: "Forfait cortège",
-                  description:
+                  body:
                     "Maquillage coordonné pour demoiselles d'honneur et famille de la mariée.",
                 },
                 {
                   icon: "🎬",
                   title: "Plateau TV & Scène",
-                  description:
+                  body:
                     "Expérience plateau télévision et spectacles vivants. Maquillage HD adapté aux caméras HD.",
                 },
               ],
@@ -125,19 +125,19 @@ export function maquilleurWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Mariama a sublimé mon regard pour mon mariage. Le maquillage a tenu toute la journée, même sous la chaleur de juillet. Merci !",
-                  author: "Fatou Ndiaye",
+                  name: "Fatou Ndiaye",
                   role: "Mariée, juillet 2024",
                 },
                 {
                   quote:
                     "J'ai fait appel à Nour by Mariama pour un shooting mode. Résultat bluffant — les photos sont magnifiques.",
-                  author: "Aicha Mbaye",
+                  name: "Aicha Mbaye",
                   role: "Shooting Vogue Afrique",
                 },
                 {
                   quote:
                     "Les cours particuliers m'ont transformée. Je sais maintenant me maquiller seule pour toutes les occasions.",
-                  author: "Rokhaya Diop",
+                  name: "Rokhaya Diop",
                   role: "Cours maquillage",
                 },
               ],
@@ -149,7 +149,7 @@ export function maquilleurWorldDefinition(): WebsiteDefinition {
               heading: "Réserver ma prestation",
               subheading:
                 "Précisez votre type d'événement, la date et votre ville. Je vous réponds sous 2h.",
-              phoneNumber: "221760000000",
+              phone: "221760000000",
               message:
                 "Bonjour Mariama, je souhaite réserver une prestation maquillage pour [mariage / shooting / événement] le [date] à [ville]. Merci de me contacter.",
               buttonLabel: "Contacter Mariama",
@@ -317,7 +317,7 @@ export function maquilleurWorldDefinition(): WebsiteDefinition {
               heading: "Prendre rendez-vous",
               subheading:
                 "Disponible 7j/7. Je réponds généralement en moins de 2 heures.",
-              phoneNumber: "221760000000",
+              phone: "221760000000",
               message: "Bonjour Mariama, je souhaite réserver une prestation pour [type d'événement] le [date].",
               buttonLabel: "Écrire à Mariama",
             },

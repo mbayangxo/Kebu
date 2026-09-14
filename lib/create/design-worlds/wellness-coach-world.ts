@@ -53,25 +53,25 @@ export function wellnessCoachWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🌸",
                   title: "Corps & Nutrition",
-                  description:
+                  body:
                     "Alimentation intuitive ancrée dans notre culture culinaire africaine. Pas de régimes — une relation saine avec votre corps.",
                 },
                 {
                   icon: "🧘",
                   title: "Mental & Méditation",
-                  description:
+                  body:
                     "Pleine conscience, gestion du stress, pratiques ancestrales africaines adaptées au quotidien moderne.",
                 },
                 {
                   icon: "✨",
                   title: "Vie & Purpose",
-                  description:
+                  body:
                     "Clarifier vos valeurs, aligner vos choix, construire une vie qui vous ressemble. Coaching ICF certifié.",
                 },
                 {
                   icon: "🤝",
                   title: "Communauté féminine",
-                  description:
+                  body:
                     "Rejoindre une communauté de femmes africaines qui s'élèvent ensemble. Cercles de parole mensuels.",
                 },
               ],
@@ -169,19 +169,19 @@ export function wellnessCoachWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Mariama m'a aidée à sortir d'une dépression que je cachais à tout le monde. 8 semaines de coaching et j'ai retrouvé une joie que je ne connaissais plus. Je recommande à toutes les femmes.",
-                  author: "Rokhaya D.",
+                  name: "Rokhaya D.",
                   role: "Directrice marketing, Dakar",
                 },
                 {
                   quote:
                     "La retraite à Saly était magique. Trois jours de déconnexion totale, de partage avec 11 femmes incroyables. Je suis rentrée différente, plus légère, plus alignée.",
-                  author: "Aminata K.",
+                  name: "Aminata K.",
                   role: "Entrepreneur, Dakar",
                 },
                 {
                   quote:
                     "Le programme nutrition a changé ma relation à la nourriture. Plus de culpabilité, plus de régimes. Je mange bien, je me sens belle, et j'ai perdu 8 kilos en 3 mois.",
-                  author: "Fatou S.",
+                  name: "Fatou S.",
                   role: "Maman de 3 enfants, Thiès",
                 },
               ],
@@ -193,9 +193,8 @@ export function wellnessCoachWorldDefinition(): WebsiteDefinition {
               heading: "Commençons votre chemin",
               subheading:
                 "Une session découverte gratuite de 60 min. Dites-moi où vous en êtes.",
-              phoneNumber: "221730000000",
-              message:
-                "Bonjour Mariama, je voudrais réserver une session découverte gratuite. En ce moment, je traverse [situation : stress / burnout / manque d'énergie / autre]. Je cherche [coaching / nutrition / méditation]. Merci.",
+              phone: "221730000000",
+              message: "Bonjour Mariama, je voudrais réserver une session découverte gratuite. En ce moment, je traverse [situation : stress / burnout / manque d'énergie / autre]. Je cherche [coaching / nutrition /",
               buttonLabel: "Réserver la session gratuite",
             },
           },
@@ -218,12 +217,12 @@ export function wellnessCoachWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Le chemin LUMINA",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "🌱", title: "1. Découverte", description: "Session gratuite pour comprendre où vous en êtes et ce que vous voulez." },
-                { icon: "🗺️", title: "2. Programme", description: "Je crée un plan sur-mesure adapté à vos besoins, votre agenda et votre budget." },
-                { icon: "🌿", title: "3. Accompagnement", description: "Sessions régulières, outils pratiques, support WhatsApp entre les séances." },
-                { icon: "🌸", title: "4. Intégration", description: "Ancrer les changements dans votre vie quotidienne. Autonomie et épanouissement durables." },
+                { icon: "🌱", title: "1. Découverte", body: "Session gratuite pour comprendre où vous en êtes et ce que vous voulez." },
+                { icon: "🗺️", title: "2. Programme", body: "Je crée un plan sur-mesure adapté à vos besoins, votre agenda et votre budget." },
+                { icon: "🌿", title: "3. Accompagnement", body: "Sessions régulières, outils pratiques, support WhatsApp entre les séances." },
+                { icon: "🌸", title: "4. Intégration", body: "Ancrer les changements dans votre vie quotidienne. Autonomie et épanouissement durables." },
               ],
             },
           },
@@ -259,7 +258,7 @@ export function wellnessCoachWorldDefinition(): WebsiteDefinition {
         ],
       },
       {
-        slug: "à-propos",
+        slug: "a-propos",
         title: "À propos",
         sections: [
           {

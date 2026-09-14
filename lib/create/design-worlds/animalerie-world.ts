@@ -171,23 +171,23 @@ export function animalerieWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🚚",
                   title: "Livraison 24h Dakar",
-                  description: "Commandez avant 14h, livraison le lendemain matin dans tout Grand-Dakar.",
+                  body: "Commandez avant 14h, livraison le lendemain matin dans tout Grand-Dakar.",
                 },
                 {
                   icon: "👨‍⚕️",
                   title: "Conseil vétérinaire",
-                  description:
+                  body:
                     "Un vétérinaire répond à vos questions sur WhatsApp. Gratuit pour tous nos clients.",
                 },
                 {
                   icon: "💳",
                   title: "Paiement flexible",
-                  description: "Wave, Orange Money, paiement à la livraison. En 2 fois sans frais dès 25 000 FCFA.",
+                  body: "Wave, Orange Money, paiement à la livraison. En 2 fois sans frais dès 25 000 FCFA.",
                 },
                 {
                   icon: "🔄",
                   title: "Abonnement mensuel",
-                  description:
+                  body:
                     "Programmez votre commande de croquettes. Livraison automatique, réduction de 10%.",
                 },
               ],
@@ -201,19 +201,19 @@ export function animalerieWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Je commande les croquettes de Rex toutes les 2 semaines sur BAMBA PET. Livraison impeccable, toujours dans les délais. C'est devenu un réflexe !",
-                  author: "Fatou B.",
+                  name: "Fatou B.",
                   role: "Propriétaire de Rex, labrador 3 ans",
                 },
                 {
                   quote:
                     "Le vétérinaire en ligne m'a aidé quand ma chatte ne mangeait plus. Diagnostic rapide et solution efficace. Ce service vaut de l'or.",
-                  author: "Mamadou K.",
+                  name: "Mamadou K.",
                   role: "Propriétaire de Luna, chat persan",
                 },
                 {
                   quote:
                     "Kit aquarium reçu emballé parfaitement. Tout était inclus, j'ai pu lancer mon bac en une heure. Je recommande sans hésiter.",
-                  author: "Ibrahim S.",
+                  name: "Ibrahim S.",
                   role: "Aquariophile débutant",
                 },
               ],
@@ -225,7 +225,7 @@ export function animalerieWorldDefinition(): WebsiteDefinition {
               heading: "Commander par WhatsApp",
               subheading:
                 "Envoyez-nous votre liste de produits. Nous vous confirmons la disponibilité et la livraison.",
-              phoneNumber: "221785000000",
+              phone: "221785000000",
               message:
                 "Bonjour BAMBA PET, je souhaite commander : [produit 1], [produit 2]. Adresse de livraison : [votre adresse à Dakar]. Paiement : [Wave / Orange Money / à la livraison].",
               buttonLabel: "Passer une commande",

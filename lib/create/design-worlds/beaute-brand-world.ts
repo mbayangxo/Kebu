@@ -171,25 +171,25 @@ export function beauteBrandWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🌿",
                   title: "100% ingrédients naturels",
-                  description:
+                  body:
                     "Karité, baobab, moringa, neem — tous nos actifs viennent d'Afrique de l'Ouest. Aucun ingrédient synthétique douteux.",
                 },
                 {
                   icon: "🔬",
                   title: "Formulé pour peau africaine",
-                  description:
+                  body:
                     "Nos formules tiennent compte des besoins spécifiques des carnations foncées — hyperpigmentation, sécheresse, brillance.",
                 },
                 {
                   icon: "🚫",
                   title: "Clean — sans les mauvais ingrédients",
-                  description:
+                  body:
                     "Sans paraben, sans sulfate, sans silicone, sans parfum artificiel. Testé dermatologiquement. Jamais sur animaux.",
                 },
                 {
                   icon: "♻️",
                   title: "Emballage responsable",
-                  description:
+                  body:
                     "Flacons en verre ou plastique recyclé. Étiquettes en papier recyclé. Zéro surplastique. Packaging rechargeable en cours.",
                 },
               ],
@@ -234,19 +234,19 @@ export function beauteBrandWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Le sérum vitamine C ÉCLAT NATUREL a transformé ma peau en 3 semaines. J'avais des taches post-acné depuis des années — elles ont clairement diminué. C'est le premier produit qui marche vraiment sur ma peau.",
-                  author: "Fatou N.",
+                  name: "Fatou N.",
                   role: "Cliente, Dakar",
                 },
                 {
                   quote:
                     "J'utilise la crème karité éclat depuis 6 mois. Ma peau est hydratée toute la journée, même pendant la saison sèche. Et j'apprécie vraiment de connaître chaque ingrédient — rien de caché.",
-                  author: "Aminata D.",
+                  name: "Aminata D.",
                   role: "Cliente régulière, Dakar",
                 },
                 {
                   quote:
                     "L'huile capillaire fortifiante a relancé la croissance de mes cheveux. En 2 mois, j'ai vu une vraie différence en densité et en brillance. Je recommande à toutes mes amies.",
-                  author: "Ndéye K.",
+                  name: "Ndéye K.",
                   role: "Cliente, Thiès",
                 },
               ],
@@ -258,9 +258,8 @@ export function beauteBrandWorldDefinition(): WebsiteDefinition {
               heading: "Conseil personnalisé & commande",
               subheading:
                 "Décrivez-nous votre type de peau et vos objectifs. On vous recommande les bons produits.",
-              phoneNumber: "221770000003",
-              message:
-                "Bonjour ÉCLAT NATUREL — je voudrais [commander / avoir un conseil]. Mon type de peau : [sèche / mixte / grasse / sensible]. Mes objectifs : [hydratation / éclat / anti-taches / anti-âge]. Budget indicatif :",
+              phone: "221770000003",
+              message: "Bonjour ÉCLAT NATUREL — je voudrais [commander / avoir un conseil]. Mon type de peau : [sèche / mixte / grasse / sensible]. Mes objectifs : [hydratation / éclat / anti-taches / anti-âge]. Budget",
               buttonLabel: "Nous écrire — WhatsApp",
             },
           },

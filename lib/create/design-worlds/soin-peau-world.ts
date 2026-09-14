@@ -63,25 +63,25 @@ export function soinPeauWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🌿",
                   title: "100% naturel",
-                  description:
+                  body:
                     "Formules à base de beurre de karité, huile de baobab, argile blanche et plantes médicinales africaines. Zéro produit chimique agressif.",
                 },
                 {
                   icon: "🔬",
                   title: "Diagnostic précis",
-                  description:
+                  body:
                     "Chaque client reçoit un diagnostic de peau personnalisé avant tout soin. Nous adaptons chaque protocole à votre type de peau.",
                 },
                 {
                   icon: "✨",
                   title: "Résultats durables",
-                  description:
+                  body:
                     "Pas de résultats éphémères — nos protocoles rééquilibrent la peau en profondeur pour un éclat qui dure.",
                 },
                 {
                   icon: "🤲",
                   title: "Expertise africaine",
-                  description:
+                  body:
                     "Nos esthéticiennes connaissent les peaux africaines. Hyperpigmentation, acné, teint terne — nous avons les solutions adaptées.",
                 },
               ],
@@ -214,19 +214,19 @@ export function soinPeauWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "J'avais des taches sombres depuis 3 ans que rien ne faisait partir. Après 3 séances chez SOLEIL DOUX, mon teint est unifié et lumineux. C'est magique !",
-                  author: "Khadija F.",
+                  name: "Khadija F.",
                   role: "Cliente fidèle, Dakar",
                 },
                 {
                   quote:
                     "L'ambiance est tellement apaisante. Ndèye Rama prend le temps d'analyser votre peau avant tout soin. Je me suis sentie vraiment écoutée et prise en charge.",
-                  author: "Aminata N.",
+                  name: "Aminata N.",
                   role: "Cliente depuis 2021",
                 },
                 {
                   quote:
                     "Le gommage au baobab est une tuerie. Ma peau n'a jamais été aussi douce. Je reviens chaque mois maintenant.",
-                  author: "Rokhaya D.",
+                  name: "Rokhaya D.",
                   role: "Cliente régulière, Almadies",
                 },
               ],
@@ -238,9 +238,8 @@ export function soinPeauWorldDefinition(): WebsiteDefinition {
               heading: "Réserver votre soin",
               subheading:
                 "Dites-nous votre type de peau et votre objectif. On vous propose le soin adapté.",
-              phoneNumber: "221760000000",
-              message:
-                "Bonjour SOLEIL DOUX, je souhaite réserver un soin. Mon type de peau : [sèche / grasse / mixte / sensible]. Mon objectif : [éclat / anti-taches / acné / relaxation]. Mes disponibilités : [jours/heures].",
+              phone: "221760000000",
+              message: "Bonjour SOLEIL DOUX, je souhaite réserver un soin. Mon type de peau : [sèche / grasse / mixte / sensible]. Mon objectif : [éclat / anti-taches / acné / relaxation]. Mes disponibilités :",
               buttonLabel: "Réserver maintenant",
             },
           },
@@ -264,12 +263,12 @@ export function soinPeauWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Comment ça marche",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "📋", title: "1. Diagnostic", description: "Analyse de votre peau par notre esthéticienne — type, besoins, sensibilités." },
-                { icon: "🌿", title: "2. Protocole", description: "Soin personnalisé sélectionné selon votre diagnostic et vos objectifs." },
-                { icon: "✨", title: "3. Soin", description: "Séance en cabine privée avec produits naturels africains." },
-                { icon: "📱", title: "4. Suivi", description: "Conseils d'entretien et suivi WhatsApp entre les séances." },
+                { icon: "📋", title: "1. Diagnostic", body: "Analyse de votre peau par notre esthéticienne — type, besoins, sensibilités." },
+                { icon: "🌿", title: "2. Protocole", body: "Soin personnalisé sélectionné selon votre diagnostic et vos objectifs." },
+                { icon: "✨", title: "3. Soin", body: "Séance en cabine privée avec produits naturels africains." },
+                { icon: "📱", title: "4. Suivi", body: "Conseils d'entretien et suivi WhatsApp entre les séances." },
               ],
             },
           },

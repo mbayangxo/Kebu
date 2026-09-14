@@ -93,25 +93,25 @@ export function modeEditorialeWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "📷",
                   title: "Shooting éditorial",
-                  description:
+                  body:
                     "Magazines, lookbooks, portfolios créateurs. Style éditorial fort, composition travaillée, direction artistique claire.",
                 },
                 {
                   icon: "📣",
                   title: "Campagne publicitaire",
-                  description:
+                  body:
                     "Marques mode, beauté, lifestyle — campagnes print et digital. Brief à image finale, avec ou sans équipe créative.",
                 },
                 {
                   icon: "👗",
                   title: "Défilés",
-                  description:
+                  body:
                     "Fashion week Dakar, shows privés, présentations presse. Expérience passerelle depuis 2019.",
                 },
                 {
                   icon: "🎥",
                   title: "Contenu vidéo",
-                  description:
+                  body:
                     "Reels, TikTok, clips mode et beauté. Motion adapté aux réseaux pour les marques qui veulent du contenu qui engage.",
                 },
               ],
@@ -134,7 +134,7 @@ export function modeEditorialeWorldDefinition(): WebsiteDefinition {
               heading: "Booking & collaborations",
               subheading:
                 "Vous avez un projet de shooting, campagne ou défilé ? Décrivez-le — on répond sous 24h.",
-              phoneNumber: "221780000004",
+              phone: "221780000004",
               message:
                 "Bonjour Aminata — j'aimerais vous proposer un projet. Type : [shooting éditorial / campagne / défilé / contenu vidéo]. Client/marque : [client]. Date prévue : [date]. Brief en quelques mots :",
               buttonLabel: "Envoyer le brief",

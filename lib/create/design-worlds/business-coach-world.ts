@@ -75,25 +75,25 @@ export function businessCoachWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "📈",
                   title: "Stratégie de croissance",
-                  description:
+                  body:
                     "Positionnement, offre, pricing, acquisition clients. Un plan clair pour doubler votre chiffre d'affaires.",
                 },
                 {
                   icon: "🧠",
                   title: "Leadership & posture",
-                  description:
+                  body:
                     "Devenir le leader que votre équipe attend. Prise de décision, délégation, management africain.",
                 },
                 {
                   icon: "💰",
                   title: "Finance d'entreprise",
-                  description:
+                  body:
                     "Trésorerie, marges, investissements, levée de fonds. Comprendre ses chiffres pour mieux piloter.",
                 },
                 {
                   icon: "🌍",
                   title: "Expansion africaine",
-                  description:
+                  body:
                     "Ouvrir dans un nouveau pays africain. Réseaux, partenaires, adaptation culturelle et légale.",
                 },
               ],
@@ -107,19 +107,19 @@ export function businessCoachWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "En 6 mois de coaching avec Fatima, mon chiffre d'affaires a triplé. Elle m'a aidé à sortir du chaos opérationnel et à vraiment scaler. C'est le meilleur investissement de ma vie d'entrepreneur.",
-                  author: "Aliou B.",
+                  name: "Aliou B.",
                   role: "Fondateur, plateforme e-commerce, Dakar",
                 },
                 {
                   quote:
                     "Fatima ne flatte pas l'ego. Elle identifie le vrai problème, souvent là où on ne le cherche pas. Grâce à elle, j'ai restructuré mon offre et recruté ma première vraie équipe.",
-                  author: "Marie-Claire T.",
+                  name: "Marie-Claire T.",
                   role: "CEO, agence de communication, Abidjan",
                 },
                 {
                   quote:
                     "Sa connaissance du marché sénégalais ET des pratiques internationales fait toute la différence. En 3 mois, elle m'a aidé à lever 30 millions FCFA auprès d'investisseurs locaux.",
-                  author: "Mamadou S.",
+                  name: "Mamadou S.",
                   role: "Fondateur, startup FinTech, Dakar",
                 },
               ],
@@ -131,7 +131,7 @@ export function businessCoachWorldDefinition(): WebsiteDefinition {
               heading: "Prêt(e) à passer au niveau supérieur ?",
               subheading:
                 "Décrivez votre business en 2–3 lignes. Session de découverte gratuite de 30 min offerte.",
-              phoneNumber: "221720000000",
+              phone: "221720000000",
               message:
                 "Bonjour Fatima, je suis entrepreneur(e) dans [secteur]. Mon principal défi en ce moment est [challenge]. Je voudrais explorer la possibilité de travailler ensemble.",
               buttonLabel: "Demander une session découverte",
@@ -249,7 +249,7 @@ export function businessCoachWorldDefinition(): WebsiteDefinition {
         ],
       },
       {
-        slug: "témoignages",
+        slug: "temoignages",
         title: "Résultats",
         sections: [
           {
@@ -272,37 +272,37 @@ export function businessCoachWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "En 6 mois de coaching avec Fatima, mon chiffre d'affaires a triplé. Elle m'a aidé à sortir du chaos opérationnel et à vraiment scaler.",
-                  author: "Aliou B.",
+                  name: "Aliou B.",
                   role: "E-commerce, Dakar",
                 },
                 {
                   quote:
                     "Fatima ne flatte pas l'ego. Elle identifie le vrai problème, souvent là où on ne le cherche pas. Grâce à elle, j'ai restructuré mon offre.",
-                  author: "Marie-Claire T.",
+                  name: "Marie-Claire T.",
                   role: "Agence de communication, Abidjan",
                 },
                 {
                   quote:
                     "Sa connaissance du marché sénégalais ET des pratiques internationales fait toute la différence. J'ai levé 30 millions FCFA en 3 mois.",
-                  author: "Mamadou S.",
+                  name: "Mamadou S.",
                   role: "FinTech, Dakar",
                 },
                 {
                   quote:
                     "J'avais un business confus avec une offre floue. En 3 mois, j'ai un positionnement clair, des clients qui paient au bon prix et une équipe qui tourne.",
-                  author: "Awa N.",
+                  name: "Awa N.",
                   role: "Cabinet conseil RH, Dakar",
                 },
                 {
                   quote:
                     "Le Mastermind est la meilleure chose que j'ai faite pour mon business. La combinaison coaching individuel + groupe d'entrepreneurs, c'est une force incomparable.",
-                  author: "Ibrahima D.",
+                  name: "Ibrahima D.",
                   role: "Agrobusiness, Saint-Louis",
                 },
                 {
                   quote:
                     "J'ai essayé plusieurs coachs. Fatima est la seule qui m'a donné des outils concrets adaptés au contexte africain, pas des frameworks copiés des USA.",
-                  author: "Rokhaya F.",
+                  name: "Rokhaya F.",
                   role: "Fondatrice, formation professionnelle, Abidjan",
                 },
               ],
@@ -311,7 +311,7 @@ export function businessCoachWorldDefinition(): WebsiteDefinition {
         ],
       },
       {
-        slug: "à-propos",
+        slug: "a-propos",
         title: "À propos",
         sections: [
           {

@@ -1295,10 +1295,10 @@ export function digitalArtCollectiveDistinctDefinition(): WebsiteDefinition {
             props: {
               heading: "What we do",
               items: [
-                { title: "Brand identity", description: "Logos, systems, campaigns for African brands" },
-                { title: "Digital illustration", description: "Editorial, covers, NFTs, prints" },
-                { title: "Motion & 3D", description: "Short films, title sequences, product renders" },
-                { title: "Exhibitions", description: "Physical + virtual shows in Dakar and online" },
+                { title: "Brand identity", body: "Logos, systems, campaigns for African brands" },
+                { title: "Digital illustration", body: "Editorial, covers, NFTs, prints" },
+                { title: "Motion & 3D", body: "Short films, title sequences, product renders" },
+                { title: "Exhibitions", body: "Physical + virtual shows in Dakar and online" },
               ],
             },
           },

@@ -158,7 +158,7 @@ export function ongWorldDefinition(): WebsiteDefinition {
             id: "ong-don-cta",
             type: "whatsapp",
             props: {
-              label: "Faire un don ou devenir bénévole — contactez-nous sur WhatsApp",
+              label: "Faire un don ou devenir bénévole",
               phone: "+221770000000",
               message: "Bonjour — je souhaite soutenir votre ONG. Comment puis-je faire un don ou m'impliquer ?",
             },

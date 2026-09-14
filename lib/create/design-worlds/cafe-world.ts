@@ -491,8 +491,8 @@ export function cafeWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Nous trouver",
               address: "Plateau, Dakar, Sénégal",
-              lat: 14.6928,
-              lng: -17.4467,
+              latitude: 14.6928,
+              longitude: -17.4467,
               zoom: 15,
             },
           },

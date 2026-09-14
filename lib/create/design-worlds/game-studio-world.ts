@@ -79,7 +79,7 @@ export function gameStudioWorldDefinition(): WebsiteDefinition {
                 "BAOBAB TOWER",
                 "WOYO RUNNER",
               ],
-              speed: "fast",
+              speed: 80,
               separator: "✦",
             },
           },
@@ -92,25 +92,25 @@ export function gameStudioWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🦁",
                   title: "SAVANE RUSH",
-                  description:
+                  body:
                     "Runner mobile ultra-rapide dans la savane africaine. 800K téléchargements. Disponible Android & iOS.",
                 },
                 {
                   icon: "⚽",
                   title: "KORA LEGENDS",
-                  description:
+                  body:
                     "Jeu de foot africain avec 200+ joueurs et 20 équipes nationales. Mode multijoueur en ligne.",
                 },
                 {
                   icon: "🏙️",
                   title: "DAKAR DRIFT",
-                  description:
+                  body:
                     "Jeu de course dans les rues de Dakar, Abidjan et Lagos. Physique réaliste, personnalisation poussée.",
                 },
                 {
                   icon: "⚔️",
                   title: "SAHEL WARS",
-                  description:
+                  body:
                     "Stratégie en temps réel dans l'Afrique médiévale. Construis ton empire, conquiers le Sahel.",
                 },
               ],
@@ -139,19 +139,19 @@ export function gameStudioWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "SAVANE RUSH est addictif ! Je joue 30 minutes par jour depuis 3 mois. Les graphismes sont incroyables pour un jeu mobile.",
-                  author: "Kofi A.",
+                  name: "Kofi A.",
                   role: "Joueur · Accra, Ghana",
                 },
                 {
                   quote:
                     "KORA LEGENDS est enfin le jeu de foot africain qu'on attendait. Mon équipe préférée y est, les joueurs ressemblent aux vrais !",
-                  author: "Moussa K.",
+                  name: "Moussa K.",
                   role: "Joueur · Dakar, Sénégal",
                 },
                 {
                   quote:
                     "Dakar Drift m'a fait redécouvrir ma propre ville. Les décors sont fidèles, la bande-son est parfaite.",
-                  author: "Aïcha D.",
+                  name: "Aïcha D.",
                   role: "Joueuse · Dakar",
                 },
               ],
@@ -163,7 +163,7 @@ export function gameStudioWorldDefinition(): WebsiteDefinition {
               heading: "Rejoindre la communauté",
               subheading:
                 "Bugs, suggestions, partenariats presse ou investissement — on vous répond.",
-              phoneNumber: "221750000000",
+              phone: "221750000000",
               message: "Bonjour KIWI GAMES, je souhaite [signaler un bug / proposer un partenariat / rejoindre la bêta de votre prochain jeu].",
               buttonLabel: "Nous écrire",
             },
@@ -280,10 +280,10 @@ export function gameStudioWorldDefinition(): WebsiteDefinition {
               heading: "On recrute",
               layout: "grid",
               items: [
-                { icon: "💻", title: "Développeur Unity / Unreal", description: "3+ ans d'expérience mobile. Remote ou Dakar." },
-                { icon: "🎨", title: "Game Artist 2D/3D", description: "Maîtrise Blender ou Spine2D. Portfolio requis." },
-                { icon: "🎵", title: "Compositeur Jeux", description: "Musique africaine + sound design. Projet par projet." },
-                { icon: "📱", title: "Product Manager", description: "Expérience free-to-play et analytics mobile." },
+                { icon: "💻", title: "Développeur Unity / Unreal", body: "3+ ans d'expérience mobile. Remote ou Dakar." },
+                { icon: "🎨", title: "Game Artist 2D/3D", body: "Maîtrise Blender ou Spine2D. Portfolio requis." },
+                { icon: "🎵", title: "Compositeur Jeux", body: "Musique africaine + sound design. Projet par projet." },
+                { icon: "📱", title: "Product Manager", body: "Expérience free-to-play et analytics mobile." },
               ],
             },
           },

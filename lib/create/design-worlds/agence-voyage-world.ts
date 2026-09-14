@@ -107,37 +107,37 @@ export function agenceVoyageWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🛂",
                   title: "Visa & démarches inclus",
-                  description:
+                  body:
                     "Nous gérons les visas, laissez-passer et formalités administratives pour vous.",
                 },
                 {
                   icon: "🏨",
                   title: "Hôtels sélectionnés",
-                  description:
+                  body:
                     "Chaque établissement est visité et validé par notre équipe avant d'être proposé.",
                 },
                 {
                   icon: "🚌",
                   title: "Transfers sécurisés",
-                  description:
+                  body:
                     "Véhicules climatisés et chauffeurs agréés pour tous vos déplacements sur place.",
                 },
                 {
                   icon: "📞",
                   title: "Assistance 24h/24",
-                  description:
+                  body:
                     "Un correspondant joignable à toute heure pendant votre voyage. Jamais seul à l'étranger.",
                 },
                 {
                   icon: "💳",
                   title: "Paiement en plusieurs fois",
-                  description:
+                  body:
                     "Réservez avec 30% d'acompte. Solde en 2 ou 3 versements sans frais via Wave.",
                 },
                 {
                   icon: "🌿",
                   title: "Tourisme responsable",
-                  description:
+                  body:
                     "Partenariat avec des guides locaux et hébergements communautaires partout où c'est possible.",
                 },
               ],
@@ -151,19 +151,19 @@ export function agenceVoyageWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Le circuit Maroc organisé par Teranga était parfait. Hôtels superbes, guide passionné, aucun stress. Je recommande les yeux fermés.",
-                  author: "Ibrahima C.",
+                  name: "Ibrahima C.",
                   role: "Circuit Maroc 10 jours, 2024",
                 },
                 {
                   quote:
                     "Mon Omra avec Teranga était une expérience spirituelle inoubliable. Tout était géré, je n'avais qu'à prier.",
-                  author: "Mariama D.",
+                  name: "Mariama D.",
                   role: "Omra Ramadan 2024",
                 },
                 {
                   quote:
                     "Voyage d'affaires à Abidjan — billets, hôtel et airport transfer réservés en 2 heures. Efficace et professionnel.",
-                  author: "Moussa K.",
+                  name: "Moussa K.",
                   role: "Voyage d'affaires",
                 },
               ],
@@ -175,7 +175,7 @@ export function agenceVoyageWorldDefinition(): WebsiteDefinition {
               heading: "Obtenir un devis gratuit",
               subheading:
                 "Dites-nous votre destination, vos dates et le nombre de voyageurs. Devis sous 2 heures.",
-              phoneNumber: "221770000000",
+              phone: "221770000000",
               message:
                 "Bonjour Teranga Voyages, je souhaite un devis pour [destination], du [date départ] au [date retour], pour [nb personnes] personnes. Budget approximatif : [montant] FCFA.",
               buttonLabel: "Demander un devis",
@@ -292,12 +292,12 @@ export function agenceVoyageWorldDefinition(): WebsiteDefinition {
               heading: "Ce qui est inclus dans nos forfaits Omra",
               layout: "grid",
               items: [
-                { icon: "✈️", title: "Vol aller-retour", description: "Dakar – Jeddah en classe économique ou affaires." },
-                { icon: "🕌", title: "Hébergement", description: "Hôtels 3★ à 5★ à moins de 500m de la Masjid Al-Haram." },
-                { icon: "🚌", title: "Transfers", description: "Aéroport, hôtel, Masjid, Médine. Tout est inclus." },
-                { icon: "📋", title: "Visa", description: "Traitement du dossier visa Omra pris en charge." },
-                { icon: "📿", title: "Guide religieux", description: "Accompagnement spirituel par un érudit francophone." },
-                { icon: "🍽️", title: "Repas", description: "Petit-déjeuner et dîner inclus selon les forfaits." },
+                { icon: "✈️", title: "Vol aller-retour", body: "Dakar – Jeddah en classe économique ou affaires." },
+                { icon: "🕌", title: "Hébergement", body: "Hôtels 3★ à 5★ à moins de 500m de la Masjid Al-Haram." },
+                { icon: "🚌", title: "Transfers", body: "Aéroport, hôtel, Masjid, Médine. Tout est inclus." },
+                { icon: "📋", title: "Visa", body: "Traitement du dossier visa Omra pris en charge." },
+                { icon: "📿", title: "Guide religieux", body: "Accompagnement spirituel par un érudit francophone." },
+                { icon: "🍽️", title: "Repas", body: "Petit-déjeuner et dîner inclus selon les forfaits." },
               ],
             },
           },
@@ -353,7 +353,7 @@ export function agenceVoyageWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Planifier votre prochain voyage",
               subheading: "Envoyez-nous votre projet, nous vous recontactons rapidement.",
-              phoneNumber: "221770000000",
+              phone: "221770000000",
               message: "Bonjour Teranga Voyages, je voudrais planifier un voyage à [destination] pour [nb personnes] personnes en [mois/année].",
               buttonLabel: "Écrire sur WhatsApp",
             },

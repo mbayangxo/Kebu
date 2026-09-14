@@ -68,7 +68,7 @@ export function prAgencyWorldDefinition(): WebsiteDefinition {
                 "Lancement de marque",
                 "Crisis management",
               ],
-              speed: "normal",
+              speed: 40,
               separator: "—",
             },
           },
@@ -123,19 +123,19 @@ export function prAgencyWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "ÉCLAT a transformé notre lancement de marque. En 3 mois, nous avons eu 40 articles presse et 12 placements TV. Résultats au-delà de nos attentes.",
-                  author: "Directrice Marketing",
+                  name: "Directrice Marketing",
                   role: "Marque cosmétiques, Dakar",
                 },
                 {
                   quote:
                     "La campagne d'influence pour notre application a généré 25 000 téléchargements en une semaine. ÉCLAT sait choisir les bons profils.",
-                  author: "CEO",
+                  name: "CEO",
                   role: "FinTech sénégalaise",
                 },
                 {
                   quote:
                     "Notre soirée de lancement organisée par ÉCLAT était parfaite. Presse, influenceurs, décoration, timing — tout était impeccable.",
-                  author: "Fondatrice",
+                  name: "Fondatrice",
                   role: "Marque fashion Abidjan",
                 },
               ],
@@ -147,7 +147,7 @@ export function prAgencyWorldDefinition(): WebsiteDefinition {
               heading: "Parler de votre projet",
               subheading:
                 "Brief gratuit et confidentiel. Nous vous présentons une proposition sous 48h.",
-              phoneNumber: "221755000000",
+              phone: "221755000000",
               message:
                 "Bonjour ÉCLAT STUDIO, je souhaite discuter d'un projet de communication pour [ma marque / mon lancement / mon événement]. Secteur : [votre secteur]. Merci.",
               buttonLabel: "Nous contacter",
@@ -172,27 +172,27 @@ export function prAgencyWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Relations Presse & Médias",
-              layout: "horizontal",
+              layout: "grid",
               items: [
                 {
                   icon: "📰",
                   title: "Communiqués de presse",
-                  description: "Rédaction et diffusion aux médias ciblés selon votre secteur et audience.",
+                  body: "Rédaction et diffusion aux médias ciblés selon votre secteur et audience.",
                 },
                 {
                   icon: "🎙️",
                   title: "Conférence de presse",
-                  description: "Organisation complète : lieu, invitations, dossier de presse, revue de presse.",
+                  body: "Organisation complète : lieu, invitations, dossier de presse, revue de presse.",
                 },
                 {
                   icon: "📺",
                   title: "Placement TV & Radio",
-                  description: "Interviews, reportages et émissions sur RTS, TFM, 2STV et radios nationales.",
+                  body: "Interviews, reportages et émissions sur RTS, TFM, 2STV et radios nationales.",
                 },
                 {
                   icon: "🌍",
                   title: "Couverture internationale",
-                  description: "Placement dans Jeune Afrique, RFI, Le Monde Afrique et médias diaspora.",
+                  body: "Placement dans Jeune Afrique, RFI, Le Monde Afrique et médias diaspora.",
                 },
               ],
             },
@@ -203,10 +203,10 @@ export function prAgencyWorldDefinition(): WebsiteDefinition {
               heading: "Influence & Digital",
               layout: "grid",
               items: [
-                { icon: "📱", title: "Influence Afrique", description: "Sélection rigoureuse d'influenceurs authentiques par secteur." },
-                { icon: "📊", title: "Community Management", description: "Gestion quotidienne de vos réseaux sociaux avec reporting mensuel." },
-                { icon: "🎯", title: "Media Planning", description: "Achat d'espace publicitaire digital et print avec optimisation ROI." },
-                { icon: "⚡", title: "Crisis Management", description: "Cellule de crise disponible 24h/24. Réponse rapide et stratégique." },
+                { icon: "📱", title: "Influence Afrique", body: "Sélection rigoureuse d'influenceurs authentiques par secteur." },
+                { icon: "📊", title: "Community Management", body: "Gestion quotidienne de vos réseaux sociaux avec reporting mensuel." },
+                { icon: "🎯", title: "Media Planning", body: "Achat d'espace publicitaire digital et print avec optimisation ROI." },
+                { icon: "⚡", title: "Crisis Management", body: "Cellule de crise disponible 24h/24. Réponse rapide et stratégique." },
               ],
             },
           },
@@ -316,28 +316,21 @@ export function prAgencyWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Brief projet",
               subheading: "Remplissez ce formulaire et nous vous rappelons sous 24h.",
-              submitLabel: "Envoyer le brief",
+              buttonLabel: "Envoyer le brief",
               fields: [
-                { name: "nom", label: "Nom & prénom", type: "text", required: true },
-                { name: "entreprise", label: "Entreprise / Marque", type: "text", required: true },
-                { name: "telephone", label: "Téléphone", type: "tel", required: true },
-                { name: "email", label: "Email professionnel", type: "email", required: true },
+                { id: "nom", label: "Nom & prénom", type: "text", required: true },
+                { id: "entreprise", label: "Entreprise / Marque", type: "text", required: true },
+                { id: "telephone", label: "Téléphone", type: "phone", required: true },
+                { id: "email", label: "Email professionnel", type: "email", required: true },
                 {
-                  name: "service",
+                  id: "service",
                   label: "Service recherché",
                   type: "select",
                   required: true,
-                  options: [
-                    { value: "rp", label: "Relations presse" },
-                    { value: "influence", label: "Influence marketing" },
-                    { value: "evenement", label: "Événementiel" },
-                    { value: "strategie", label: "Brand strategy" },
-                    { value: "digital", label: "Community management" },
-                    { value: "complet", label: "Full service" },
-                  ],
+                  options: ["Relations presse", "Influence marketing", "Événementiel", "Brand strategy", "Community management", "Full service"],
                 },
-                { name: "budget", label: "Budget mensuel estimé (FCFA)", type: "text", required: false },
-                { name: "message", label: "Décrivez votre projet", type: "textarea", required: true },
+                { id: "budget", label: "Budget mensuel estimé (FCFA)", type: "text", required: false },
+                { id: "message", label: "Décrivez votre projet", type: "textarea", required: true },
               ],
             },
           },

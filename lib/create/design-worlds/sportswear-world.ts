@@ -157,25 +157,25 @@ export function sportswearWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "💨",
                   title: "Tissus techniques respirants",
-                  description:
+                  body:
                     "Polyester technique DryFit africain — évacuation rapide de la transpiration, séchage ultra-rapide pour l'entraînement intense.",
                 },
                 {
                   icon: "🌡️",
                   title: "Conçu pour le climat africain",
-                  description:
+                  body:
                     "Nos tissus sont testés à Dakar par 35°C. Plus légers et respirants que les marques européennes conçues pour des températures tempérées.",
                 },
                 {
                   icon: "💪",
                   title: "Coupes performance",
-                  description:
+                  body:
                     "Coupés pour la morphologie et la mobilité — pas des adaptations de patterns européens. Chaque vêtement suit le mouvement.",
                 },
                 {
                   icon: "🔄",
                   title: "Durabilité renforcée",
-                  description:
+                  body:
                     "Coutures renforcées aux points de tension, tissu anti-boulochage, couleurs résistantes au lavage. Pour l'entraînement intensif.",
                 },
               ],
@@ -207,19 +207,19 @@ export function sportswearWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Je cours 50km par semaine à Dakar. Les maillots KORA sont les seuls que je porte maintenant — légèreté, respirabilité, durabilité. Aucune autre marque à ce prix ne fait pareil sous notre soleil.",
-                  author: "Alioune D.",
+                  name: "Alioune D.",
                   role: "Coureur, Dakar Marathon",
                 },
                 {
                   quote:
                     "Le legging compression femme est parfait — taille haute stable, tissu opaque, coupe qui suit les mouvements. J'entraîne mes clientes avec ça, elles veulent toutes la référence.",
-                  author: "Coach Fatou B.",
+                  name: "Coach Fatou B.",
                   role: "Coach fitness, Dakar",
                 },
                 {
                   quote:
                     "On a équipé toute notre équipe de football en maillots KORA personnalisés. Qualité supérieure, livraison rapide, et la personnalisation nom/numéro est parfaite.",
-                  author: "Capitaine Cheikh S.",
+                  name: "Capitaine Cheikh S.",
                   role: "Football amateur, Dakar",
                 },
               ],
@@ -231,7 +231,7 @@ export function sportswearWorldDefinition(): WebsiteDefinition {
               heading: "Commander ou équiper votre équipe",
               subheading:
                 "Commande individuelle ou équipement d'équipe — on s'adapte à votre besoin.",
-              phoneNumber: "221770000005",
+              phone: "221770000005",
               message:
                 "Bonjour KORA SPORT — je voudrais commander. Ce que je cherche : [running / gym / football / pack]. Ma taille : [taille]. Pour une équipe : [nombre de personnes / sport / personnalisation souhaitée].",
               buttonLabel: "Commander sur WhatsApp",
@@ -364,12 +364,12 @@ export function sportswearWorldDefinition(): WebsiteDefinition {
               heading: "Nos disciplines",
               layout: "grid",
               items: [
-                { icon: "🏃", title: "Running", description: "Maillots et shorts techniques pour la course à pied et les marathons." },
-                { icon: "🏋️", title: "Gym & Fitness", description: "Tenues de salle — compression, stretch, respirant pour l'entraînement intensif." },
-                { icon: "⚽", title: "Football", description: "Maillots personnalisables pour équipes amateurs et académies." },
-                { icon: "🏊", title: "Natation", description: "Maillots de bain techniques et vêtements de plage performance." },
-                { icon: "🏀", title: "Basketball", description: "Shorts et maillots larges pour le jeu en salle et en extérieur." },
-                { icon: "🥊", title: "Arts martiaux", description: "Shorts et t-shirts techniques pour la boxe, le judo et les arts martiaux." },
+                { icon: "🏃", title: "Running", body: "Maillots et shorts techniques pour la course à pied et les marathons." },
+                { icon: "🏋️", title: "Gym & Fitness", body: "Tenues de salle — compression, stretch, respirant pour l'entraînement intensif." },
+                { icon: "⚽", title: "Football", body: "Maillots personnalisables pour équipes amateurs et académies." },
+                { icon: "🏊", title: "Natation", body: "Maillots de bain techniques et vêtements de plage performance." },
+                { icon: "🏀", title: "Basketball", body: "Shorts et maillots larges pour le jeu en salle et en extérieur." },
+                { icon: "🥊", title: "Arts martiaux", body: "Shorts et t-shirts techniques pour la boxe, le judo et les arts martiaux." },
               ],
             },
           },
@@ -378,7 +378,7 @@ export function sportswearWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Équiper votre équipe",
               subheading: "Pack équipe à partir de 10 pièces — personnalisation et tarifs réduits.",
-              phoneNumber: "221770000005",
+              phone: "221770000005",
               message: "Bonjour KORA SPORT — je veux équiper mon équipe. Sport : [sport]. Nombre de joueurs : [nombre]. Personnalisation : [nom + numéro / logo / couleurs équipe]. Budget approximatif :",
               buttonLabel: "Demander un devis équipe",
             },

@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const requireUser = vi.fn();
 const verifyDomainPointsToKebu = vi.fn();
+const provisionCustomDomainOnHosting = vi.fn().mockResolvedValue({ ok: true, detail: "SSL attached" });
 
 vi.mock("@/lib/create/auth", () => ({
   requireUser: (...args: unknown[]) => requireUser(...args),
@@ -11,6 +12,15 @@ vi.mock("@/lib/create/auth", () => ({
 vi.mock("@/lib/api-guard", () => ({
   builderRateLimit: () => null,
 }));
+
+vi.mock("@/lib/create/vercel-domains", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/create/vercel-domains")>();
+  return {
+    ...actual,
+    provisionCustomDomainOnHosting: (...args: unknown[]) => provisionCustomDomainOnHosting(...args),
+    hostingDomainAutoProvisionEnabled: () => true,
+  };
+});
 
 vi.mock("@/lib/create/custom-domains", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/create/custom-domains")>();
@@ -173,6 +183,30 @@ function mockSupabaseForDomains(options: {
             }),
           }),
         };
+      }
+
+      if (table === "site_subscriptions") {
+        const sub = {
+          id: "sub-1",
+          project_id: PROJECT_ID,
+          owner_id: options.ownerId ?? USER_A,
+          status: "active",
+          amount_usd_cents: 200,
+          period_start: "2024-01-01",
+          period_end: "2099-12-31",
+          joko_reference: null,
+          tier: "starter" as const,
+          billing_interval: "monthly" as const,
+        };
+        const chain: Record<string, unknown> = {};
+        const noop = () => chain;
+        chain.select = noop;
+        chain.eq = noop;
+        chain.gt = noop;
+        chain.order = noop;
+        chain.limit = noop;
+        chain.maybeSingle = async () => ({ data: sub });
+        return chain;
       }
 
       throw new Error(`Unexpected table ${table}`);

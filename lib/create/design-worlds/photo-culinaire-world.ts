@@ -90,25 +90,25 @@ export function photoCulinaireWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "📸",
                   title: "Photographie culinaire",
-                  description:
+                  body:
                     "Photos de plats, packshots produits, shooting de cuisine — images haute résolution pour menus, e-commerce et presse.",
                 },
                 {
                   icon: "🎨",
                   title: "Food styling",
-                  description:
+                  body:
                     "Composition, dressage, mise en scène — chaque plat est une œuvre. Votre food stylist intervient sur chaque shooting.",
                 },
                 {
                   icon: "📱",
                   title: "Contenu social",
-                  description:
+                  body:
                     "Packs photos pour Instagram et TikTok — formats, ratios et esthétique adaptés aux plateformes.",
                 },
                 {
                   icon: "📖",
                   title: "Édition & recettes",
-                  description:
+                  body:
                     "Shootings pour livres de cuisine, magazines gastronomiques et contenus éditoriaux.",
                 },
               ],
@@ -180,19 +180,19 @@ export function photoCulinaireWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "SAVEURS STUDIO a transformé notre présence Instagram. Les photos sont magnifiques — les plats africains sont enfin présentés avec la beauté qu'ils méritent.",
-                  author: "Moussa D.",
+                  name: "Moussa D.",
                   role: "Propriétaire, restaurant gastro Dakar",
                 },
                 {
                   quote:
                     "Aïssata comprend la cuisine africaine. Elle ne la 'westernise' pas — elle la sublime en restant authentique. C'est rare et précieux.",
-                  author: "Ndéye F.",
+                  name: "Ndéye F.",
                   role: "Fondatrice, marque épices sénégalaises",
                 },
                 {
                   quote:
                     "Notre livre de recettes illustré n'aurait pas pu exister sans SAVEURS STUDIO. 120 photos, 3 jours de shooting — travail impeccable.",
-                  author: "Chef Amadou K.",
+                  name: "Chef Amadou K.",
                   role: "Chef cuisinier, auteur culinaire",
                 },
               ],
@@ -204,9 +204,8 @@ export function photoCulinaireWorldDefinition(): WebsiteDefinition {
               heading: "Demander un devis",
               subheading:
                 "Décrivez votre projet en quelques lignes. Réponse sous 24h.",
-              phoneNumber: "221770000001",
-              message:
-                "Bonjour SAVEURS STUDIO — je voudrais un devis pour un shooting culinaire. Mon projet : [restaurant / marque alimentaire / livre / réseaux sociaux]. Nombre de plats/produits : [nombre]. Date souhaitée : [date].",
+              phone: "221770000001",
+              message: "Bonjour SAVEURS STUDIO — je voudrais un devis pour un shooting culinaire. Mon projet : [restaurant / marque alimentaire / livre / réseaux sociaux]. Nombre de plats/produits : [nombre]. Date",
               buttonLabel: "Demander un devis — WhatsApp",
             },
           },

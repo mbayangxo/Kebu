@@ -162,25 +162,25 @@ export function sneakerWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "✅",
                   title: "100% authentique",
-                  description:
+                  body:
                     "Chaque paire est vérifiée par nos experts avant expédition. Certificat d'authenticité sur toutes les paires premium. Jamais de faux.",
                 },
                 {
                   icon: "⚡",
                   title: "Livraison express Dakar",
-                  description:
+                  body:
                     "Commandez avant 14h, livré le soir même dans Dakar. Banlieue en 24h. Paiement à la livraison disponible.",
                 },
                 {
                   icon: "💳",
                   title: "Paiement Wave & Orange Money",
-                  description:
+                  body:
                     "Wave, Orange Money, cash. Pas de carte bancaire nécessaire. Paiement sécurisé, reçu immédiat.",
                 },
                 {
                   icon: "🔄",
                   title: "Retours 7 jours",
-                  description:
+                  body:
                     "Taille incorrecte ? Paire non conforme ? On reprend sans discussion dans les 7 jours suivant la réception.",
                 },
               ],
@@ -225,19 +225,19 @@ export function sneakerWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "J'ai commandé des Jordan 4 Military Black — livrées en 3h à Mermoz. 100% authentiques, boîte originale. SOLE DAKAR c'est la référence à Dakar, y'a pas mieux.",
-                  author: "Ibou D.",
+                  name: "Ibou D.",
                   role: "Sneakerhead, Dakar",
                 },
                 {
                   quote:
                     "Enfin une boutique qui vend du vrai à Dakar. J'ai essayé d'autres shops — j'ai eu des faux. Avec SOLE DAKAR, certificat d'authenticité à chaque achat. Never going back.",
-                  author: "Aminata K.",
+                  name: "Aminata K.",
                   role: "Cliente régulière, Dakar",
                 },
                 {
                   quote:
                     "Service client au top — j'avais la mauvaise pointure, échange le lendemain sans frais. Paiement Wave simple. C'est comme ça que ça devrait marcher partout.",
-                  author: "Omar S.",
+                  name: "Omar S.",
                   role: "Client, Pikine",
                 },
               ],
@@ -249,7 +249,7 @@ export function sneakerWorldDefinition(): WebsiteDefinition {
               heading: "Réserver une paire",
               subheading:
                 "Envoyez-nous la paire et la pointure. On vérifie le stock et on vous confirme sous 30 min.",
-              phoneNumber: "221780000001",
+              phone: "221780000001",
               message:
                 "Yo SOLE DAKAR — je veux réserver : [nom de la paire]. Pointure : [pointure]. Livraison : [Dakar/banlieue/adresse]. Paiement : [Wave/Orange Money/cash livraison].",
               buttonLabel: "Réserver sur WhatsApp",
@@ -420,12 +420,12 @@ export function sneakerWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Comment ça marche",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "📲", title: "S'inscrire", description: "Rejoignez la liste WhatsApp drop alerts." },
-                { icon: "🔔", title: "Alerte", description: "Notifié 24h avant chaque drop avec visuels et prix." },
-                { icon: "⚡", title: "Réserver", description: "Répondez vite — stock ultra-limité, first come first served." },
-                { icon: "📦", title: "Livraison", description: "On prépare et livre sous 24h à Dakar." },
+                { icon: "📲", title: "S'inscrire", body: "Rejoignez la liste WhatsApp drop alerts." },
+                { icon: "🔔", title: "Alerte", body: "Notifié 24h avant chaque drop avec visuels et prix." },
+                { icon: "⚡", title: "Réserver", body: "Répondez vite — stock ultra-limité, first come first served." },
+                { icon: "📦", title: "Livraison", body: "On prépare et livre sous 24h à Dakar." },
               ],
             },
           },
@@ -434,7 +434,7 @@ export function sneakerWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Liste drop alerts",
               subheading: "Drop alert exclusif — les meilleures paires avant tout le monde.",
-              phoneNumber: "221780000001",
+              phone: "221780000001",
               message: "Yo SOLE DAKAR — inscris-moi sur la liste drop alerts. Je cherche surtout : [Jordan / Nike / Adidas / New Balance / Yeezy / tout]. Ma pointure habituelle :",
               buttonLabel: "Rejoindre la liste",
             },

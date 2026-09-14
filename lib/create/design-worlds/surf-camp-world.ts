@@ -76,25 +76,25 @@ export function surfCampWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🌊",
                   title: "Vagues toute l'année",
-                  description:
+                  body:
                     "La presqu'île de Dakar offre des conditions de surf exceptionnelles 365 jours par an. Vagues régulières pour tous niveaux.",
                 },
                 {
                   icon: "🏆",
                   title: "Moniteurs certifiés",
-                  description:
+                  body:
                     "Tous nos moniteurs sont diplômés ISA ou FFSurf. Sécurité et pédagogie professionnelle garanties.",
                 },
                 {
                   icon: "🤙",
                   title: "Petits groupes",
-                  description:
+                  body:
                     "Maximum 6 élèves par moniteur. Chaque élève progresse à son rythme, avec un encadrement personnalisé.",
                 },
                 {
                   icon: "🏄",
                   title: "Matériel fourni",
-                  description:
+                  body:
                     "Planches de débutant à avancé, combinaisons, leash, crème solaire — tout est inclus. Venez juste en maillot.",
                 },
               ],
@@ -199,19 +199,19 @@ export function surfCampWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Je suis venu sans jamais avoir fait de surf. En 2h avec mon moniteur, j'étais debout sur la planche. En fin de semaine, je surfais seul. Une expérience inoubliable.",
-                  author: "Omar N.",
+                  name: "Omar N.",
                   role: "Élève débutant, Dakar",
                 },
                 {
                   quote:
                     "Le stage immersion de 7 jours a changé ma vie. Je pensais que le surf était réservé aux Occidentaux. ATLANTIQUE SURF m'a prouvé le contraire.",
-                  author: "Aissatou D.",
+                  name: "Aissatou D.",
                   role: "Stage 7 jours, été 2024",
                 },
                 {
                   quote:
                     "J'ai emmené mes deux fils de 10 et 13 ans. Moniteurs patients, sécurité impeccable, et les garçons n'ont pas voulu partir. On reviendra chaque vacances.",
-                  author: "Fatou T.",
+                  name: "Fatou T.",
                   role: "Mère de famille, Dakar",
                 },
               ],
@@ -223,9 +223,8 @@ export function surfCampWorldDefinition(): WebsiteDefinition {
               heading: "Réserver votre session",
               subheading:
                 "Indiquez votre niveau (débutant/intermédiaire/avancé), la date et le nombre de personnes.",
-              phoneNumber: "221750000000",
-              message:
-                "Bonjour ATLANTIQUE SURF, je souhaite réserver [cours initiation / pack 5 cours / cours privé / stage 7 jours] pour [nombre] personne(s). Niveau : [débutant / intermédiaire / avancé]. Date souhaitée : [date].",
+              phone: "221750000000",
+              message: "Bonjour ATLANTIQUE SURF, je souhaite réserver [cours initiation / pack 5 cours / cours privé / stage 7 jours] pour [nombre] personne(s). Niveau : [débutant / intermédiaire / avancé]. Date",
               buttonLabel: "Réserver maintenant",
             },
           },
@@ -248,12 +247,12 @@ export function surfCampWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Comment ça marche",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "📱", title: "1. Réservez", description: "Via WhatsApp, précisez votre niveau et la date." },
-                { icon: "🏖️", title: "2. Rendez-vous plage", description: "Retrouvez votre moniteur à la plage de Ngor à l'heure choisie." },
-                { icon: "🏄", title: "3. Surfez", description: "Matériel remis, briefing sécurité, puis dans l'eau !" },
-                { icon: "🎥", title: "4. Progressez", description: "Vidéos de votre session envoyées par WhatsApp soir-même." },
+                { icon: "📱", title: "1. Réservez", body: "Via WhatsApp, précisez votre niveau et la date." },
+                { icon: "🏖️", title: "2. Rendez-vous plage", body: "Retrouvez votre moniteur à la plage de Ngor à l'heure choisie." },
+                { icon: "🏄", title: "3. Surfez", body: "Matériel remis, briefing sécurité, puis dans l'eau !" },
+                { icon: "🎥", title: "4. Progressez", body: "Vidéos de votre session envoyées par WhatsApp soir-même." },
               ],
             },
           },

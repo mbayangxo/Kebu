@@ -64,25 +64,25 @@ export function designerPortfolioWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "📱",
                   title: "Design de produit",
-                  description:
+                  body:
                     "UX research, wireframes, prototypes Figma, design system. Apps mobiles et web app B2B/B2C.",
                 },
                 {
                   icon: "🎨",
                   title: "Identité visuelle",
-                  description:
+                  body:
                     "Logo, charte graphique, brandbook, illustration. Du brief au fichier final.",
                 },
                 {
                   icon: "🌐",
                   title: "Design web",
-                  description:
+                  body:
                     "Landing pages, sites marketing, e-commerce. Responsive, performant, bien référencé.",
                 },
                 {
                   icon: "📊",
                   title: "Design de contenu",
-                  description:
+                  body:
                     "Decks de présentation, infographies, templates réseaux sociaux. Cohérent sur tous supports.",
                 },
               ],
@@ -128,19 +128,19 @@ export function designerPortfolioWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Julia a refait entièrement notre app en 6 semaines. Résultat bluffant, les utilisateurs s'y retrouvent enfin. Le taux de rétention a grimpé de 180%.",
-                  author: "Moussa Ndiaye",
+                  name: "Moussa Ndiaye",
                   role: "CEO, WalletSN",
                 },
                 {
                   quote:
                     "La meilleure designer avec qui j'aie travaillé. Elle comprend vite, propose des solutions élégantes et respecte les délais.",
-                  author: "Amina Traoré",
+                  name: "Amina Traoré",
                   role: "Fondatrice, Tiss Mode",
                 },
                 {
                   quote:
                     "Notre deck de présentation investisseurs a été félicité à chaque pitch. Julia a transformé nos données en storytelling visuel.",
-                  author: "Ibrahima Fall",
+                  name: "Ibrahima Fall",
                   role: "CTO, AgriData",
                 },
               ],
@@ -152,7 +152,7 @@ export function designerPortfolioWorldDefinition(): WebsiteDefinition {
               heading: "Démarrer un projet",
               subheading:
                 "Brief, délai, budget — décrivez-moi votre projet en quelques lignes. Je réponds sous 4h.",
-              phoneNumber: "221740000000",
+              phone: "221740000000",
               message:
                 "Bonjour Julia, je voudrais discuter d'un projet de [design produit / identité / site web]. Mon budget est d'environ [montant] FCFA et le délai souhaité est [durée]. Merci.",
               buttonLabel: "Me contacter",
@@ -320,7 +320,7 @@ export function designerPortfolioWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Démarrer un projet",
               subheading: "Disponible pour de nouvelles missions. Réponse sous 4h en semaine.",
-              phoneNumber: "221740000000",
+              phone: "221740000000",
               message: "Bonjour Julia, je voudrais discuter d'un projet de design.",
               buttonLabel: "Écrire un brief",
             },

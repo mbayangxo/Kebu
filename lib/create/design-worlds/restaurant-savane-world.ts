@@ -23,7 +23,7 @@ export function restaurantSavaneWorldDefinition(): WebsiteDefinition {
       bodySize: "md",
       letterSpacing: "normal",
       radius: "round",
-      aestheticId: "bold-warm-african-contemporary-restaurant",
+      aestheticId: "bold-warm-african-contemporary",
     },
     pages: [
       {
@@ -188,19 +188,19 @@ export function restaurantSavaneWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Le brunch du dimanche à SAVANE est devenu notre rituel familial. Le buffet est généreux, l'ambiance terrasse est parfaite, et les cocktails sans alcool sont excellents. Indispensable.",
-                  author: "Awa D.",
+                  name: "Awa D.",
                   role: "Cliente régulière, Dakar",
                 },
                 {
                   quote:
                     "J'ai amené des collègues étrangers chez SAVANE pour qu'ils découvrent la cuisine sénégalaise. Ils ont adoré le thiébou dieune réinventé. Le meilleur ambassadeur de notre cuisine.",
-                  author: "Lamine K.",
+                  name: "Lamine K.",
                   role: "Client, Dakar",
                 },
                 {
                   quote:
                     "Les plats de partage sont généreux et vraiment bons. L'accueil est chaleureux, le cadre est beau. SAVANE DAKAR c'est l'endroit où on mange bien sans se ruiner.",
-                  author: "Sokhna B.",
+                  name: "Sokhna B.",
                   role: "Cliente, Dakar",
                 },
               ],
@@ -212,7 +212,7 @@ export function restaurantSavaneWorldDefinition(): WebsiteDefinition {
               heading: "Réserver votre table",
               subheading:
                 "Tables disponibles midi et soir, 7j/7. Brunch dimanche — réservation obligatoire.",
-              phoneNumber: "221780000003",
+              phone: "221780000003",
               message:
                 "Bonjour SAVANE DAKAR — je voudrais réserver une table. Date : [date]. Heure : [heure]. Nombre de personnes : [nombre]. Allergie ou occasion particulière : [préciser].",
               buttonLabel: "Réserver — WhatsApp",

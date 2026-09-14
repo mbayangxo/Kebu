@@ -66,25 +66,25 @@ export function bookingArtisteWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🎤",
                   title: "Booking artistes",
-                  description:
+                  body:
                     "Placement d'artistes pour événements corporate, festivals, soirées privées, concerts. Négociation, contrats, logistique.",
                 },
                 {
                   icon: "📈",
                   title: "Management",
-                  description:
+                  body:
                     "Développement de carrière, stratégie digitale, image, négociation labels et partenariats pour artistes en croissance.",
                 },
                 {
                   icon: "🎬",
                   title: "Production",
-                  description:
+                  body:
                     "Clip vidéo, sessions studio, EP et albums — nous connectons les artistes aux meilleurs producteurs d'Afrique de l'Ouest.",
                 },
                 {
                   icon: "🌍",
                   title: "Tournées internationales",
-                  description:
+                  body:
                     "Booking et logistique pour tournées Africa / diaspora Europe. Paris, Bruxelles, New York, Montréal — nous connaissons les marchés.",
                 },
               ],
@@ -167,19 +167,19 @@ export function bookingArtisteWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "RHYTHM AGENCY a booké 3 de nos soirées annuelles. Artistes ponctuels, contrats clairs, pas de mauvaises surprises. C'est la définition du professionnalisme.",
-                  author: "Oumar N.",
+                  name: "Oumar N.",
                   role: "Organisateur événementiel, Dakar",
                 },
                 {
                   quote:
                     "Depuis que je suis avec RHYTHM AGENCY, ma carrière a décollé. En 18 mois, je suis passée de 3 dates à plus de 40 par an. Leur réseau est imbattable.",
-                  author: "Fatou C.",
+                  name: "Fatou C.",
                   role: "DJ & productrice, Dakar",
                 },
                 {
                   quote:
                     "La tournée diaspora Paris-Bruxelles-Lyon qu'ils ont organisée était parfaitement rodée. 12 dates en 3 semaines, aucun problème logistique.",
-                  author: "Groupe Baobab Sons",
+                  name: "Groupe Baobab Sons",
                   role: "Artistes musique, Dakar",
                 },
               ],
@@ -191,7 +191,7 @@ export function bookingArtisteWorldDefinition(): WebsiteDefinition {
               heading: "Booking & demandes",
               subheading:
                 "Organisateurs — décrivez votre événement. Artistes — parlez-nous de votre projet.",
-              phoneNumber: "221710000000",
+              phone: "221710000000",
               message:
                 "Bonjour RHYTHM AGENCY — [je cherche un artiste pour mon événement / je suis artiste et cherche une agence]. Détails :",
               buttonLabel: "Contacter l'agence",
@@ -218,12 +218,12 @@ export function bookingArtisteWorldDefinition(): WebsiteDefinition {
               heading: "Genres représentés",
               layout: "grid",
               items: [
-                { icon: "🎵", title: "Afrobeats", description: "Les sons d'Afrique de l'Ouest — de Dakar à Lagos. DJ et live acts." },
-                { icon: "🎶", title: "Hip-hop africain", description: "Rap Dakarois, rap ivoire, rap camerounais. MC et groupes." },
-                { icon: "🎸", title: "Jazz & Blues", description: "Jazz africain contemporain, fusion traditionnelle / moderne." },
-                { icon: "🥁", title: "Musique traditionnelle", description: "Griottes, sabar, kora — pour événements culturels et institutionnels." },
-                { icon: "🎤", title: "R&B & Soul", description: "Voix féminines et masculines, reprises et créations originales." },
-                { icon: "🎹", title: "Electronic", description: "Afro-house, afro-electronic, DJ sets fusion culturelle." },
+                { icon: "🎵", title: "Afrobeats", body: "Les sons d'Afrique de l'Ouest — de Dakar à Lagos. DJ et live acts." },
+                { icon: "🎶", title: "Hip-hop africain", body: "Rap Dakarois, rap ivoire, rap camerounais. MC et groupes." },
+                { icon: "🎸", title: "Jazz & Blues", body: "Jazz africain contemporain, fusion traditionnelle / moderne." },
+                { icon: "🥁", title: "Musique traditionnelle", body: "Griottes, sabar, kora — pour événements culturels et institutionnels." },
+                { icon: "🎤", title: "R&B & Soul", body: "Voix féminines et masculines, reprises et créations originales." },
+                { icon: "🎹", title: "Electronic", body: "Afro-house, afro-electronic, DJ sets fusion culturelle." },
               ],
             },
           },
@@ -232,7 +232,7 @@ export function bookingArtisteWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Vous cherchez un artiste précis ?",
               subheading: "Dites-nous le genre musical, la date et le budget — on trouve le profil idéal.",
-              phoneNumber: "221710000000",
+              phone: "221710000000",
               message: "Bonjour RHYTHM AGENCY — je cherche un artiste pour mon événement. Genre musical : [afrobeats / hip-hop / jazz / autre]. Date : [date]. Budget indicatif :",
               buttonLabel: "Trouver l'artiste idéal",
             },
@@ -258,12 +258,12 @@ export function bookingArtisteWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Le processus",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "📝", title: "Brief", description: "Décrivez votre événement — date, lieu, type, budget." },
-                { icon: "🎨", title: "Proposition", description: "On vous propose 2-3 profils adaptés sous 24h." },
-                { icon: "✍️", title: "Contrat", description: "Contrat standard signé entre vous et l'artiste. Acompte 30%." },
-                { icon: "🎤", title: "Performance", description: "L'artiste est là à l'heure, prêt à performer." },
+                { icon: "📝", title: "Brief", body: "Décrivez votre événement — date, lieu, type, budget." },
+                { icon: "🎨", title: "Proposition", body: "On vous propose 2-3 profils adaptés sous 24h." },
+                { icon: "✍️", title: "Contrat", body: "Contrat standard signé entre vous et l'artiste. Acompte 30%." },
+                { icon: "🎤", title: "Performance", body: "L'artiste est là à l'heure, prêt à performer." },
               ],
             },
           },

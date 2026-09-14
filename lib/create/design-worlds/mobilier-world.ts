@@ -203,19 +203,19 @@ export function mobilierWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Notre salon a été complètement transformé. Le canapé Teranga est une pièce de conversation à lui tout seul. Nos invités demandent systématiquement d'où il vient.",
-                  author: "Famille Ndiaye",
+                  name: "Famille Ndiaye",
                   role: "Villa Almadies, Dakar",
                 },
                 {
                   quote:
                     "J'ai commandé un dressing sur-mesure pour un appartement aux dimensions irrégulières. L'atelier a résolu le problème parfaitement. Délai tenu, finition impeccable.",
-                  author: "Mariama D.",
+                  name: "Mariama D.",
                   role: "Appartement Liberté 6, Dakar",
                 },
                 {
                   quote:
                     "Pour notre restaurant, nous avons meublé les 12 tables et 48 chaises avec BOHI. Un an après, aucune pièce n'a bougé. Qualité remarquable pour le prix.",
-                  author: "Chef Oumar",
+                  name: "Chef Oumar",
                   role: "Restaurant Le Terroir, Plateau Dakar",
                 },
               ],
@@ -227,7 +227,7 @@ export function mobilierWorldDefinition(): WebsiteDefinition {
               heading: "Visiter le showroom ou commander",
               subheading:
                 "Showroom ouvert 7j/7 à Dakar. Commandes en ligne avec livraison montée.",
-              phoneNumber: "221695000000",
+              phone: "221695000000",
               message:
                 "Bonjour BOHI MAISON, je suis intéressé(e) par [canapé / table / lit / meuble sur-mesure]. Mon espace est [type d'espace] à [quartier]. Budget approximatif : [montant] FCFA.",
               buttonLabel: "Nous contacter",
@@ -339,12 +339,12 @@ export function mobilierWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Le processus sur-mesure",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "📐", title: "1. Consultation", description: "Visite à domicile ou au showroom. Prise de mesures et écoute de vos envies." },
-                { icon: "✏️", title: "2. Dessin", description: "Nos designers vous présentent 2–3 propositions + devis détaillé." },
-                { icon: "🪵", title: "3. Fabrication", description: "4–8 semaines en atelier. Choix des bois, tissus et finitions validés avec vous." },
-                { icon: "🚚", title: "4. Livraison", description: "Livraison et montage dans votre espace. Garantie 2 ans." },
+                { icon: "📐", title: "1. Consultation", body: "Visite à domicile ou au showroom. Prise de mesures et écoute de vos envies." },
+                { icon: "✏️", title: "2. Dessin", body: "Nos designers vous présentent 2–3 propositions + devis détaillé." },
+                { icon: "🪵", title: "3. Fabrication", body: "4–8 semaines en atelier. Choix des bois, tissus et finitions validés avec vous." },
+                { icon: "🚚", title: "4. Livraison", body: "Livraison et montage dans votre espace. Garantie 2 ans." },
               ],
             },
           },
@@ -399,7 +399,7 @@ export function mobilierWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Commander ou visiter",
               subheading: "Prenez rendez-vous ou commandez directement. Livraison montée partout à Dakar.",
-              phoneNumber: "221695000000",
+              phone: "221695000000",
               message: "Bonjour BOHI MAISON, je souhaite [visiter le showroom / commander un meuble / demander un devis sur-mesure].",
               buttonLabel: "Nous écrire",
             },

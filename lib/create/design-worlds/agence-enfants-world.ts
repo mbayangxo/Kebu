@@ -76,25 +76,25 @@ export function agenceEnfantsWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "⭐",
                   title: "Casting professionnel",
-                  description:
+                  body:
                     "Séances de casting mensuelles à Dakar. Effraction sécurisée, accompagnement parental obligatoire, bienveillance garantie.",
                 },
                 {
                   icon: "📸",
                   title: "Formation & coaching",
-                  description:
+                  body:
                     "Ateliers pose, confiance en soi, expression scénique. Nos jeunes arrivent préparés sur chaque shoot.",
                 },
                 {
                   icon: "🤝",
                   title: "Placement et contrats",
-                  description:
+                  body:
                     "Nos enfants collaborent avec les meilleures marques africaines et internationales présentes en Afrique de l'Ouest.",
                 },
                 {
                   icon: "🛡️",
                   title: "Protection et éthique",
-                  description:
+                  body:
                     "Charte éthique stricte, contrats clairs, présence parentale sur tous les shootings. Votre enfant est notre priorité.",
                 },
               ],
@@ -199,19 +199,19 @@ export function agenceEnfantsWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Ma fille Aïssatou a commencé à 5 ans. Grâce à PETITE ÉTOILE, elle a développé une confiance en elle extraordinaire. Elle a déjà participé à 3 campagnes de marques sénégalaises.",
-                  author: "Mama Aïssatou",
+                  name: "Mama Aïssatou",
                   role: "Mère, Dakar",
                 },
                 {
                   quote:
                     "L'équipe est professionnelle et bienveillante. Je suis toujours présent aux shootings et je vois comment ils prennent soin de mon fils. Je recommande à tous les parents.",
-                  author: "Papa Moussa Jr.",
+                  name: "Papa Moussa Jr.",
                   role: "Père, Thiès",
                 },
                 {
                   quote:
                     "On cherchait une activité qui développe la personnalité de notre fille. Elle fait du mannequinat depuis 2 ans et les résultats sont visibles : elle est à l'aise partout.",
-                  author: "Famille Sylla",
+                  name: "Famille Sylla",
                   role: "Dakar",
                 },
               ],
@@ -223,7 +223,7 @@ export function agenceEnfantsWorldDefinition(): WebsiteDefinition {
               heading: "Inscrire votre enfant",
               subheading:
                 "Envoyez une photo de votre enfant, son âge et vos coordonnées. Réponse sous 24h.",
-              phoneNumber: "221685000000",
+              phone: "221685000000",
               message:
                 "Bonjour PETITE ÉTOILE, je souhaite inscrire mon enfant [prénom] âgé(e) de [âge] ans pour un casting. Nous sommes basés à [ville]. Je joins sa photo.",
               buttonLabel: "Inscrire mon enfant",
@@ -250,12 +250,12 @@ export function agenceEnfantsWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Comment ça marche",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "📝", title: "1. Inscription", description: "Envoyez la photo de votre enfant, son âge et vos coordonnées via WhatsApp." },
-                { icon: "📅", title: "2. Invitation casting", description: "Si le profil correspond, vous recevez une invitation pour le prochain casting mensuel." },
-                { icon: "🎬", title: "3. Session casting", description: "1h de casting professionnel : pose, marche, expression. Parents présents et bienvenus." },
-                { icon: "⭐", title: "4. Sélection & placement", description: "Les profils retenus intègrent notre portfolio et commencent à recevoir des propositions de missions." },
+                { icon: "📝", title: "1. Inscription", body: "Envoyez la photo de votre enfant, son âge et vos coordonnées via WhatsApp." },
+                { icon: "📅", title: "2. Invitation casting", body: "Si le profil correspond, vous recevez une invitation pour le prochain casting mensuel." },
+                { icon: "🎬", title: "3. Session casting", body: "1h de casting professionnel : pose, marche, expression. Parents présents et bienvenus." },
+                { icon: "⭐", title: "4. Sélection & placement", body: "Les profils retenus intègrent notre portfolio et commencent à recevoir des propositions de missions." },
               ],
             },
           },

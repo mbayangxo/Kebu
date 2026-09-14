@@ -162,25 +162,25 @@ export function bijouterieLumiereWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "✦",
                   title: "Or 18 carats certifié",
-                  description:
+                  body:
                     "Tout notre or est 18 carats (750/1000) avec poinçon officiel. Certification incluse avec chaque pièce. Traçabilité complète.",
                 },
                 {
                   icon: "✦",
                   title: "Fait à la main à Dakar",
-                  description:
+                  body:
                     "Chaque bijou est façonné dans notre atelier du Plateau par nos maîtres joailliers. Aucune pièce industrielle — que du travail artisanal.",
                 },
                 {
                   icon: "✦",
                   title: "Sur mesure & gravure",
-                  description:
+                  body:
                     "Taille, gravure intérieure, modification de design — toutes nos pièces sont personnalisables sur commande sans frais supplémentaire.",
                 },
                 {
                   icon: "✦",
                   title: "Entretien à vie",
-                  description:
+                  body:
                     "Polissage, replaqué, réparation — nous assurons l'entretien de toutes nos pièces à vie. Votre bijou vivra aussi longtemps que vous.",
                 },
               ],
@@ -212,19 +212,19 @@ export function bijouterieLumiereWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Nos alliances de mariage ont été façonnées par LUMIÈRE FINE. La qualité est exceptionnelle — des joncs or jaune parfaitement proportionnés, avec nos prénoms gravés. 5 ans après, elles sont comme neuves.",
-                  author: "Marème & Oumar",
+                  name: "Marème & Oumar",
                   role: "Mariés, Dakar",
                 },
                 {
                   quote:
                     "J'ai commandé une bague solitaire pour la demande en mariage de ma fille. Ibrahima a pris le temps de comprendre son style — le résultat est magnifique. Elle a dit oui !",
-                  author: "Mme Ndiaye",
+                  name: "Mme Ndiaye",
                   role: "Cliente, Dakar",
                 },
                 {
                   quote:
                     "Les créoles or que j'ai achetées chez LUMIÈRE FINE font partie de ma routine quotidienne depuis 3 ans. La solidité, l'éclat — exactement ce qu'on attend de l'or 18 carats vrai.",
-                  author: "Aïda F.",
+                  name: "Aïda F.",
                   role: "Cliente régulière, Dakar",
                 },
               ],
@@ -236,9 +236,8 @@ export function bijouterieLumiereWorldDefinition(): WebsiteDefinition {
               heading: "Commander ou créer",
               subheading:
                 "Pièce du catalogue ou création sur mesure — décrivez ce que vous cherchez. Réponse sous 2h.",
-              phoneNumber: "221770000002",
-              message:
-                "Bonjour LUMIÈRE FINE — je voudrais [commander une pièce du catalogue / créer un bijou sur mesure]. Détails : [pièce / occasion / budget indicatif]. Je suis disponible pour un rendez-vous atelier si besoin.",
+              phone: "221770000002",
+              message: "Bonjour LUMIÈRE FINE — je voudrais [commander une pièce du catalogue / créer un bijou sur mesure]. Détails : [pièce / occasion / budget indicatif]. Je suis disponible pour un rendez-vous atelier",
               buttonLabel: "Nous écrire sur WhatsApp",
             },
           },
@@ -378,12 +377,12 @@ export function bijouterieLumiereWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Le processus création",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "💬", title: "Consultation", description: "Rendez-vous atelier (gratuit) — on écoute votre projet, vos goûts, votre budget." },
-                { icon: "✏️", title: "Esquisse", description: "Nos joailliers réalisent une esquisse et un devis détaillé sous 48h." },
-                { icon: "🔧", title: "Fabrication", description: "Une fois validé, fabrication en 2-3 semaines dans notre atelier." },
-                { icon: "✦", title: "Remise", description: "Remise en mains propres à l'atelier ou livraison sécurisée." },
+                { icon: "💬", title: "Consultation", body: "Rendez-vous atelier (gratuit) — on écoute votre projet, vos goûts, votre budget." },
+                { icon: "✏️", title: "Esquisse", body: "Nos joailliers réalisent une esquisse et un devis détaillé sous 48h." },
+                { icon: "🔧", title: "Fabrication", body: "Une fois validé, fabrication en 2-3 semaines dans notre atelier." },
+                { icon: "✦", title: "Remise", body: "Remise en mains propres à l'atelier ou livraison sécurisée." },
               ],
             },
           },

@@ -322,7 +322,7 @@ export function schoolWorldDefinition(): WebsiteDefinition {
             id: "sc-actu-wa",
             type: "whatsapp",
             props: {
-              label: "Rejoindre le groupe WhatsApp parents — informations en temps réel",
+              label: "Rejoindre le groupe WhatsApp parents",
               phone: "+221770000000",
               message: "Bonjour — je suis parent à l'école Excellence et je voudrais rejoindre le groupe WhatsApp d'information.",
             },

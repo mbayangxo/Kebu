@@ -107,30 +107,30 @@ export function artisteVisuelWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Expositions & résidences",
-              layout: "horizontal",
+              layout: "grid",
               items: [
                 {
                   icon: "🏛️",
                   title: "Dak'Art Biennale 2024",
-                  description:
+                  body:
                     "Exposition 'Mémoires Vives' au Musée Théodore Monod. Sélection officielle.",
                 },
                 {
                   icon: "🇫🇷",
                   title: "Galerie Templon Paris",
-                  description:
+                  body:
                     "Solo show 'Harmattan' — 18 peintures grands formats. Octobre 2023.",
                 },
                 {
                   icon: "🇺🇸",
                   title: "Brooklyn Museum, New York",
-                  description:
+                  body:
                     "Participation à l'exposition collective 'New African Photography'. 2022.",
                 },
                 {
                   icon: "🌍",
                   title: "Résidence CITÉ des Arts, Paris",
-                  description: "Résidence de création 6 mois. Production de la série 'Frontières'. 2021.",
+                  body: "Résidence de création 6 mois. Production de la série 'Frontières'. 2021.",
                 },
               ],
             },
@@ -141,7 +141,7 @@ export function artisteVisuelWorldDefinition(): WebsiteDefinition {
               heading: "Acquérir une œuvre",
               subheading:
                 "Disponibilités, prix et conditions d'acquisition. Je réponds personnellement.",
-              phoneNumber: "221770000001",
+              phone: "221770000001",
               message:
                 "Bonjour Ablaye, je suis intéressé(e) par [une peinture / une photographie / une édition numérotée] de votre travail. Pouvez-vous me donner plus d'informations ?",
               buttonLabel: "Contacter l'artiste",
@@ -304,12 +304,12 @@ export function artisteVisuelWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Presse & publications",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "📰", title: "Jeune Afrique", description: "\"L'un des artistes africains les plus prometteurs de sa génération\" — Jeune Afrique, 2023." },
-                { icon: "📸", title: "Vogue Africa", description: "Portfolio publié dans le numéro inaugural de Vogue Africa, édition 2022." },
-                { icon: "🎙️", title: "RFI Musique & Art", description: "Interview sur la scène artistique dakaroise et la Biennale Dak'Art." },
-                { icon: "📚", title: "Monographie", description: "\"Ablaye Seck — L'œuvre 2008–2023\" publié aux éditions Gallimard, 2023." },
+                { icon: "📰", title: "Jeune Afrique", body: "\"L'un des artistes africains les plus prometteurs de sa génération\" — Jeune Afrique, 2023." },
+                { icon: "📸", title: "Vogue Africa", body: "Portfolio publié dans le numéro inaugural de Vogue Africa, édition 2022." },
+                { icon: "🎙️", title: "RFI Musique & Art", body: "Interview sur la scène artistique dakaroise et la Biennale Dak'Art." },
+                { icon: "📚", title: "Monographie", body: "\"Ablaye Seck — L'œuvre 2008–2023\" publié aux éditions Gallimard, 2023." },
               ],
             },
           },
@@ -325,7 +325,7 @@ export function artisteVisuelWorldDefinition(): WebsiteDefinition {
               heading: "Contacter l'artiste",
               subheading:
                 "Acquisition d'œuvres, expositions, commandes privées, presse et partenariats.",
-              phoneNumber: "221770000001",
+              phone: "221770000001",
               message: "Bonjour Ablaye, je vous contacte au sujet de [acquisition / exposition / commande / presse].",
               buttonLabel: "Écrire à l'artiste",
             },

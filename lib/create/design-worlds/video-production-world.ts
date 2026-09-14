@@ -69,7 +69,7 @@ export function videoProductionWorldDefinition(): WebsiteDefinition {
                 "Motion Design",
                 "Drone",
               ],
-              speed: "normal",
+              speed: 40,
               separator: "·",
             },
           },
@@ -130,19 +130,19 @@ export function videoProductionWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "DAKAR FILMS a produit notre campagne TV en 3 semaines. Qualité internationale, équipe réactive et budget respecté. Notre spot a été diffusé dans 5 pays.",
-                  author: "Directeur Marketing",
+                  name: "Directeur Marketing",
                   role: "Groupe Ecobank Sénégal",
                 },
                 {
                   quote:
                     "Le clip de mon album a explosé avec 2 millions de vues en une semaine. La vision artistique de DAKAR FILMS a transcendé ce que j'imaginais.",
-                  author: "Sidy Diallo",
+                  name: "Sidy Diallo",
                   role: "Artiste, Dakar",
                 },
                 {
                   quote:
                     "Leur équipe drone a capturé nos chantiers sous des angles impossibles. Le film de présentation a conquis nos investisseurs.",
-                  author: "Ibrahim Sylla",
+                  name: "Ibrahim Sylla",
                   role: "Directeur, Groupe Immobilier Prestige",
                 },
               ],
@@ -154,9 +154,8 @@ export function videoProductionWorldDefinition(): WebsiteDefinition {
               heading: "Démarrer votre projet",
               subheading:
                 "Décrivez votre idée, votre budget et votre date cible. Devis sous 24h, sans engagement.",
-              phoneNumber: "221770000000",
-              message:
-                "Bonjour DAKAR FILMS, je souhaite produire [type de vidéo : publicité / clip / corporate / documentaire] pour [marque / artiste / entreprise]. Budget indicatif : [montant] FCFA. Date souhaitée : [date]. Merci.",
+              phone: "221770000000",
+              message: "Bonjour DAKAR FILMS, je souhaite produire [type de vidéo : publicité / clip / corporate / documentaire] pour [marque / artiste / entreprise]. Budget indicatif : [montant] FCFA. Date souhaitée :",
               buttonLabel: "Demander un devis",
             },
           },
@@ -214,13 +213,13 @@ export function videoProductionWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Notre processus de production",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "💡", title: "1. Brief créatif", description: "Échange sur votre vision, cible et objectifs. Moodboard et proposition créative sous 48h." },
-                { icon: "📝", title: "2. Développement", description: "Écriture du script, storyboard, casting, repérage des lieux. Validation avant tournage." },
-                { icon: "🎬", title: "3. Tournage", description: "Équipe full-service : réalisateur, cadreurs, son, lumière, drone. Studio ou extérieur." },
-                { icon: "🎞️", title: "4. Post-production", description: "Montage, étalonnage couleurs, sound design, motion graphics, effets spéciaux." },
-                { icon: "📦", title: "5. Livraison", description: "Formats optimisés TV, web, réseaux sociaux. Archives HD livrées en bonus." },
+                { icon: "💡", title: "1. Brief créatif", body: "Échange sur votre vision, cible et objectifs. Moodboard et proposition créative sous 48h." },
+                { icon: "📝", title: "2. Développement", body: "Écriture du script, storyboard, casting, repérage des lieux. Validation avant tournage." },
+                { icon: "🎬", title: "3. Tournage", body: "Équipe full-service : réalisateur, cadreurs, son, lumière, drone. Studio ou extérieur." },
+                { icon: "🎞️", title: "4. Post-production", body: "Montage, étalonnage couleurs, sound design, motion graphics, effets spéciaux." },
+                { icon: "📦", title: "5. Livraison", body: "Formats optimisés TV, web, réseaux sociaux. Archives HD livrées en bonus." },
               ],
             },
           },
@@ -352,7 +351,7 @@ export function videoProductionWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Demander un devis",
               subheading: "Décrivez votre projet en quelques lignes. Réponse sous 2h en semaine.",
-              phoneNumber: "221770000000",
+              phone: "221770000000",
               message: "Bonjour DAKAR FILMS, je voudrais discuter d'un projet de production vidéo.",
               buttonLabel: "Nous écrire",
             },

@@ -643,6 +643,75 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     },
   },
   {
+    slug: "agency-kdirection",
+    name: "K-Direction",
+    category: "agency",
+    description:
+      "Owner portfolio — K-Direction Artistry label and creative agency. Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: (() => {
+      const pages = kdirectionWixSitePages();
+      return {
+        schemaVersion: "website-v1",
+        title: "K-Direction",
+        theme: {
+          primary: "#0A0A0A",
+          accent: "#FFF86B",
+          background: "#e8e0f0",
+          text: "#0A0A0A",
+          fontDisplay: "Oswald",
+          fontBody: "Arial",
+          spacing: "comfortable" as const,
+        },
+        pages: pages.map((p) => ({
+          slug: p.slug,
+          title: p.title,
+          sections: p.sections.map((s, i) => ({
+            id: `kdirection-${p.slug}-${i}`,
+            type: s.type as "kdirection-home" | "kdirection-page" | "events" | "features" | "contact" | "navigation" | "footer",
+            props: s.props,
+          })),
+        })),
+      } as WebsiteDefinition;
+    })(),
+  },
+  {
+    slug: "agency-dklns",
+    name: "DkLNS",
+    category: "agency",
+    description:
+      "Owner portfolio — DkLNS management & creative agency (May Lecor signed). Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: dklnsWebsiteDefinition(),
+  },
+  {
+    slug: "production-ndaoan-house",
+    name: "Ndaoan House",
+    category: "production",
+    description:
+      "Owner portfolio — Ndaoan House production & content studio. Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: ndaoanWebsiteDefinition(),
+  },
+  {
+    slug: "entertainment-rect",
+    name: "RECT",
+    category: "music",
+    description:
+      "Owner portfolio — RECT music streaming & entertainment tech (lime / black / orange). Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: rectWebsiteDefinition(),
+  },
+  {
+    slug: "foundation-mayjor-good",
+    name: "For The Mayjor Good",
+    category: "nonprofit",
+    description:
+      "Owner portfolio — For The Mayjor Good foundation site (school supplies, talib/SST, food, medical, youth jobs). Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: mayjorGoodWebsiteDefinition(),
+  },
+  {
     slug: "film-studio",
     name: "Film studio",
     category: "film",
@@ -1288,6 +1357,514 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Marque streetwear drop culture Dakar — noir/rouge néon dark, 6 pièces limitées FCFA filterTags, collab artistes · 3 pages",
     definition: streetwearWorldDefinition(),
+  },
+  {
+    slug: "luxury-rtw",
+    name: "Maison RTW",
+    category: "fashion",
+    description:
+      "Luxury ready-to-wear — editorial silhouettes, minimal layout, stockist contact · Fraunces · 3 pages",
+    definition: {
+      schemaVersion: "website-v1",
+      title: "Maison RTW",
+      theme: {
+        primary: "#1A1814",
+        accent: "#A8956A",
+        background: "#F5F2EC",
+        text: "#1A1814",
+        fontDisplay: "Fraunces",
+        fontBody: "Cormorant Garamond",
+        spacing: "airy" as const,
+        headingScale: "xl" as const,
+        bodySize: "md" as const,
+        letterSpacing: "wide" as const,
+      },
+      pages: [
+        {
+          slug: "home",
+          title: "Home",
+          sections: [
+            {
+              id: "luxury-rtw-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Collection", href: "/collection" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-hero",
+              type: "hero" as const,
+              props: {
+                heading: "Ready to wear",
+                subheading:
+                  "Editorial fashion for the season — refined silhouettes, crafted in Dakar.",
+                buttonLabel: "View collection",
+                buttonHref: "/collection",
+                align: "left",
+                background: "#1A1814",
+              },
+            },
+            {
+              id: "luxury-rtw-text",
+              type: "text" as const,
+              props: {
+                heading: "The house",
+                body: "Ready-to-wear from Dakar — each piece built on tailoring tradition and contemporary silhouette. Replace this copy with your atelier story, drop dates, and stockist information.",
+              },
+            },
+            {
+              id: "luxury-rtw-features",
+              type: "features" as const,
+              props: {
+                heading: "Savoir-faire",
+                items: [
+                  { title: "Tailoring", body: "Each silhouette is hand-cut and fitted — no fast fashion shortcuts." },
+                  { title: "Fabric", body: "Natural fibers selected for drape, weight, and longevity." },
+                  { title: "Stockists", body: "Available at partner boutiques in Dakar, Paris, and Lagos — contact for nearest stockist." },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-whatsapp",
+              type: "whatsapp" as const,
+              props: {
+                label: "Order via WhatsApp",
+                phone: "+221770000000",
+                message: "Hello Maison RTW — I would like to order from the collection.",
+              },
+            },
+            {
+              id: "luxury-rtw-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison RTW — luxury ready-to-wear. Dakar.",
+                links: [
+                  { label: "Collection", href: "/collection" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          slug: "collection",
+          title: "Collection",
+          sections: [
+            {
+              id: "luxury-rtw-collection-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Collection", href: "/collection" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-gallery",
+              type: "gallery" as const,
+              props: {
+                heading: "Collection",
+                items: [
+                  { src: "", alt: "Look 01 — structured coat" },
+                  { src: "", alt: "Look 02 — midi dress" },
+                  { src: "", alt: "Look 03 — blazer" },
+                  { src: "", alt: "Look 04 — trousers" },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-collection-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison RTW — luxury ready-to-wear.",
+                links: [{ label: "Home", href: "/" }, { label: "Contact", href: "/contact" }],
+              },
+            },
+          ],
+        },
+        {
+          slug: "contact",
+          title: "Contact",
+          sections: [
+            {
+              id: "luxury-rtw-contact-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Collection", href: "/collection" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-contact",
+              type: "contact" as const,
+              props: {
+                heading: "Contact the house",
+                email: "maison@example.com",
+                phone: "",
+                address: "Dakar, Senegal",
+              },
+            },
+            {
+              id: "luxury-rtw-contact-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison RTW — luxury ready-to-wear.",
+                links: [{ label: "Collection", href: "/collection" }],
+              },
+            },
+          ],
+        },
+      ],
+    } as WebsiteDefinition,
+  },
+  {
+    slug: "accessories-maison",
+    name: "Accessories house",
+    category: "fashion",
+    description:
+      "Jewelry, bags & leather goods house — warm gold palette, gallery showcase, WhatsApp order · 3 pages",
+    definition: {
+      schemaVersion: "website-v1",
+      title: "Maison Accessories",
+      theme: {
+        primary: "#1A1208",
+        accent: "#C9A962",
+        background: "#FAFAF5",
+        text: "#1A1208",
+        fontDisplay: "Fraunces",
+        fontBody: "Cormorant Garamond",
+        spacing: "airy" as const,
+        headingScale: "lg" as const,
+        bodySize: "md" as const,
+        letterSpacing: "wide" as const,
+      },
+      pages: [
+        {
+          slug: "home",
+          title: "Home",
+          sections: [
+            {
+              id: "acc-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Jewellery", href: "/jewellery" },
+                  { label: "Bags", href: "/bags" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "acc-hero",
+              type: "hero" as const,
+              props: {
+                heading: "Crafted accessories",
+                subheading:
+                  "Jewelry, bags, and leather goods made to carry — each piece is hand-finished in Dakar.",
+                buttonLabel: "Shop jewellery",
+                buttonHref: "/jewellery",
+                align: "left",
+                background: "#1A1208",
+              },
+            },
+            {
+              id: "acc-text",
+              type: "text" as const,
+              props: {
+                heading: "The house",
+                body: "Accessories that outlast trends — pieces designed in Dakar using traditional goldsmithing and contemporary leather-work. Swap this for your maker story and craft process.",
+              },
+            },
+            {
+              id: "acc-features",
+              type: "features" as const,
+              props: {
+                heading: "Materials",
+                items: [
+                  { title: "Gold", body: "18k and recycled gold — sourced and hallmarked locally." },
+                  { title: "Leather", body: "Locally tanned hides, hand-stitched to last." },
+                  { title: "Beads", body: "West African trade beads woven into contemporary pendants and cuffs." },
+                ],
+              },
+            },
+            {
+              id: "acc-whatsapp",
+              type: "whatsapp" as const,
+              props: {
+                label: "Order via WhatsApp",
+                phone: "+221770000000",
+                message: "Hello — I am interested in an accessory from Maison.",
+              },
+            },
+            {
+              id: "acc-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison Accessories — jewelry, bags, leather goods. Dakar.",
+                links: [
+                  { label: "Jewellery", href: "/jewellery" },
+                  { label: "Bags", href: "/bags" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          slug: "jewellery",
+          title: "Jewellery",
+          sections: [
+            {
+              id: "acc-jewellery-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Jewellery", href: "/jewellery" },
+                  { label: "Bags", href: "/bags" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "acc-jewellery-gallery",
+              type: "gallery" as const,
+              props: {
+                heading: "Jewellery",
+                items: [
+                  { src: "", alt: "Gold bangle" },
+                  { src: "", alt: "Pendant necklace" },
+                  { src: "", alt: "Statement earrings" },
+                  { src: "", alt: "Beaded bracelet" },
+                ],
+              },
+            },
+            {
+              id: "acc-jewellery-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison Accessories — Dakar.",
+                links: [{ label: "Home", href: "/" }, { label: "Contact", href: "/contact" }],
+              },
+            },
+          ],
+        },
+        {
+          slug: "contact",
+          title: "Contact",
+          sections: [
+            {
+              id: "acc-contact-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Jewellery", href: "/jewellery" },
+                  { label: "Bags", href: "/bags" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "acc-contact",
+              type: "contact" as const,
+              props: {
+                heading: "Get in touch",
+                email: "contact@maison.sn",
+                phone: "+221770000000",
+                address: "Dakar, Senegal",
+              },
+            },
+            {
+              id: "acc-contact-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison Accessories — Dakar.",
+                links: [{ label: "Home", href: "/" }],
+              },
+            },
+          ],
+        },
+      ],
+    } as WebsiteDefinition,
+  },
+  {
+    slug: "activewear-studio",
+    name: "Activewear studio",
+    category: "fashion",
+    description:
+      "Performance activewear brand — dark neon palette, gym & outdoors, WhatsApp order · 3 pages",
+    definition: {
+      schemaVersion: "website-v1",
+      title: "Active Studio",
+      theme: {
+        primary: "#0A0A0F",
+        accent: "#00FF87",
+        background: "#0A0A0F",
+        text: "#F5F5F0",
+        fontDisplay: "Oswald",
+        fontBody: "system-ui",
+        spacing: "comfortable" as const,
+        headingScale: "xl" as const,
+        bodySize: "md" as const,
+        letterSpacing: "wide" as const,
+      },
+      pages: [
+        {
+          slug: "home",
+          title: "Home",
+          sections: [
+            {
+              id: "active-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "ACTIVE",
+                links: [
+                  { label: "Shop", href: "/shop" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "active-hero",
+              type: "hero" as const,
+              props: {
+                heading: "Built for performance",
+                subheading:
+                  "Activewear designed for African heat — gym, outdoors, and everyday movement.",
+                buttonLabel: "Shop gear",
+                buttonHref: "/shop",
+                align: "left",
+                background: "#0A0A0F",
+              },
+            },
+            {
+              id: "active-features",
+              type: "features" as const,
+              props: {
+                heading: "The gear",
+                items: [
+                  { title: "Compression", body: "High-performance compression for running, HIIT, and heavy training." },
+                  { title: "Breathable", body: "Technical fabrics that move sweat away fast — tested in Dakar heat." },
+                  { title: "Durable", body: "Double-stitched seams, reinforced stress points — built to outlast your training block." },
+                ],
+              },
+            },
+            {
+              id: "active-whatsapp",
+              type: "whatsapp" as const,
+              props: {
+                label: "Order via WhatsApp",
+                phone: "+221770000000",
+                message: "Hello Active Studio — I want to order performance gear.",
+              },
+            },
+            {
+              id: "active-footer",
+              type: "footer" as const,
+              props: {
+                text: "Active Studio — performance activewear. Dakar.",
+                links: [
+                  { label: "Shop", href: "/shop" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          slug: "shop",
+          title: "Shop",
+          sections: [
+            {
+              id: "active-shop-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "ACTIVE",
+                links: [
+                  { label: "Shop", href: "/shop" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "active-gallery",
+              type: "gallery" as const,
+              props: {
+                heading: "Performance gear",
+                items: [
+                  { src: "", alt: "Compression shorts" },
+                  { src: "", alt: "Training top" },
+                  { src: "", alt: "Sports bra" },
+                  { src: "", alt: "Track jacket" },
+                ],
+              },
+            },
+            {
+              id: "active-shop-footer",
+              type: "footer" as const,
+              props: {
+                text: "Active Studio — Dakar.",
+                links: [{ label: "Home", href: "/" }, { label: "Contact", href: "/contact" }],
+              },
+            },
+          ],
+        },
+        {
+          slug: "contact",
+          title: "Contact",
+          sections: [
+            {
+              id: "active-contact-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "ACTIVE",
+                links: [
+                  { label: "Shop", href: "/shop" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "active-contact",
+              type: "contact" as const,
+              props: {
+                heading: "Get in touch",
+                email: "hello@activestudio.sn",
+                phone: "+221770000000",
+                address: "Dakar, Senegal",
+              },
+            },
+            {
+              id: "active-contact-footer",
+              type: "footer" as const,
+              props: {
+                text: "Active Studio — Dakar.",
+                links: [{ label: "Shop", href: "/shop" }],
+              },
+            },
+          ],
+        },
+      ],
+    } as WebsiteDefinition,
   },
   {
     slug: "photographe-culinaire",

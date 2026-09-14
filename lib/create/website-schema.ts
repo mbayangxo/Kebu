@@ -104,7 +104,7 @@ const imageUrl = z.union([
     .string()
     .trim()
     .max(2000)
-    .regex(/^\/[a-zA-Z0-9._\-/]+$/, "Invalid image path"),
+    .regex(/^\/[a-zA-Z0-9._\-/]+(\?[a-zA-Z0-9._\-=&%]+)?$/, "Invalid image path"),
 ]);
 
 const socialLinksSchema = z
@@ -1156,7 +1156,7 @@ export const websiteDefinitionSchema = z.object({
   title: z.string().trim().min(1).max(120),
   theme: themeSchema,
   seo: siteSeoSchema.optional(),
-  pages: z.array(websitePageSchema).min(1).max(12),
+  pages: z.array(websitePageSchema).min(1).max(20),
 });
 
 export type WebsiteDefinition = z.infer<typeof websiteDefinitionSchema>;

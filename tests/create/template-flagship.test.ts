@@ -43,7 +43,7 @@ describe("user aesthetics gallery", () => {
     expect(gallery.every((t) => Boolean(t.cardVisual?.previewGradient))).toBe(true);
     const salon = gallery.find((t) => t.slug === "hair-salon");
     const store = gallery.find((t) => t.slug === "shopping-store");
-    expect(salon?.cardVisual?.layout).toBe("salon");
+    expect(salon?.cardVisual?.layout).toBe("bold-salon");
     expect(store?.cardVisual?.layout).toBe("store");
     expect(salon?.cardVisual?.previewGradient).not.toBe(store?.cardVisual?.previewGradient);
   });

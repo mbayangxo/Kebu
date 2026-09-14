@@ -12,7 +12,7 @@ import { verifyPaystackSignature } from "@/lib/payments/paystack-adapter";
 describe("shop payment adapter registry", () => {
   it("exposes status without secrets", () => {
     const status = shopPaymentAdapterStatus();
-    expect(status.joko.label).toBe("JOKO");
+    expect(status.joko.label).toBe("JOKO (Cauris)");
     expect(status.paypal.label).toBe("PayPal");
     expect(status.card.label).toContain("Paystack");
     expect(status.wave.label).toBe("Wave");

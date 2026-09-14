@@ -166,19 +166,19 @@ export function brasserieWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "La SÉRÈRE IPA est une révélation. Ce mélange de houblon et de gingembre sénégalais est unique. On ne trouve ça nulle part ailleurs en Afrique de l'Ouest.",
-                  author: "Cheikh T.",
+                  name: "Cheikh T.",
                   role: "Amateur de craft beer, Dakar",
                 },
                 {
                   quote:
                     "On a pris un fût de 30L pour le lancement de notre startup. Tout le monde a adoré. Le service de livraison est impeccable, à l'heure et bien emballé.",
-                  author: "Amina S.",
+                  name: "Amina S.",
                   role: "Entrepreneuse, Dakar",
                 },
                 {
                   quote:
                     "Le bar est devenu notre QG le vendredi soir. L'ambiance est parfaite, les bières excellentes et le staff toujours souriant.",
-                  author: "Moussa D.",
+                  name: "Moussa D.",
                   role: "Client régulier",
                 },
               ],
@@ -190,7 +190,7 @@ export function brasserieWorldDefinition(): WebsiteDefinition {
               heading: "Réserver ou commander",
               subheading:
                 "Réservations de tables, commandes en bouteille, fûts pour événements. Livraison Dakar disponible.",
-              phoneNumber: "221760000000",
+              phone: "221760000000",
               message:
                 "Bonjour LION BRASS, je souhaite [réserver une table pour X personnes / commander des bouteilles / louer un fût pour un événement]. Merci.",
               buttonLabel: "Nous contacter",
@@ -199,7 +199,7 @@ export function brasserieWorldDefinition(): WebsiteDefinition {
         ],
       },
       {
-        slug: "bières",
+        slug: "bieres",
         title: "Nos Bières",
         sections: [
           {
@@ -285,7 +285,7 @@ export function brasserieWorldDefinition(): WebsiteDefinition {
         ],
       },
       {
-        slug: "événements",
+        slug: "evenements",
         title: "Événements",
         sections: [
           {
@@ -308,22 +308,22 @@ export function brasserieWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🍺",
                   title: "Fût à domicile",
-                  description: "Fût 30L ou 50L livré avec pompe et accessoires. Choix de la référence. Livraison Dakar.",
+                  body: "Fût 30L ou 50L livré avec pompe et accessoires. Choix de la référence. Livraison Dakar.",
                 },
                 {
                   icon: "🏠",
                   title: "Privatisation du bar",
-                  description: "Notre espace bar jusqu'à 80 personnes. Formule open bar ou à la consommation.",
+                  body: "Notre espace bar jusqu'à 80 personnes. Formule open bar ou à la consommation.",
                 },
                 {
                   icon: "🎪",
                   title: "Bar mobile",
-                  description: "Notre équipe déplace un bar complet sur votre lieu d'événement. Dakar et environs.",
+                  body: "Notre équipe déplace un bar complet sur votre lieu d'événement. Dakar et environs.",
                 },
                 {
                   icon: "🎁",
                   title: "Pack cadeau",
-                  description: "Coffrets de 6 ou 12 bouteilles assortiment. Gravure personnalisée sur étiquette.",
+                  body: "Coffrets de 6 ou 12 bouteilles assortiment. Gravure personnalisée sur étiquette.",
                 },
               ],
             },
@@ -333,7 +333,7 @@ export function brasserieWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Organiser votre événement",
               subheading: "Date, nombre de personnes, lieu et type d'événement. Devis sous 24h.",
-              phoneNumber: "221760000000",
+              phone: "221760000000",
               message:
                 "Bonjour LION BRASS, je voudrais organiser [type d'événement] le [date] pour [nombre] personnes à [lieu]. Je suis intéressé(e) par [fût à domicile / privatisation / bar mobile].",
               buttonLabel: "Planifier l'événement",

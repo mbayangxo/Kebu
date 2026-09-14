@@ -93,22 +93,22 @@ export function filmPromoWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🎬",
                   title: "Mamadou Diallo",
-                  description: "Réalisateur. Après 'Thiossane' (2020) et 'Grand Dakar' (2022), il signe ici son thriller le plus ambitieux.",
+                  body: "Réalisateur. Après 'Thiossane' (2020) et 'Grand Dakar' (2022), il signe ici son thriller le plus ambitieux.",
                 },
                 {
                   icon: "🎭",
                   title: "Ibrahima Sarr",
-                  description: "Modou. Acteur de théâtre et de série. Révélation du film, nommé meilleur acteur FICA 2025.",
+                  body: "Modou. Acteur de théâtre et de série. Révélation du film, nommé meilleur acteur FICA 2025.",
                 },
                 {
                   icon: "🎭",
                   title: "Khady Mbaye",
-                  description: "Aïssatou, la mère. Comédienne de la troupe du Théâtre National Daniel Sorano.",
+                  body: "Aïssatou, la mère. Comédienne de la troupe du Théâtre National Daniel Sorano.",
                 },
                 {
                   icon: "🎵",
                   title: "Wally Seck",
-                  description: "Bande originale. Musique originale composée spécialement pour le film.",
+                  body: "Bande originale. Musique originale composée spécialement pour le film.",
                 },
               ],
             },
@@ -136,19 +136,19 @@ export function filmPromoWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Un thriller africain d'une maîtrise rare. Mamadou Diallo impose son style — tendu, ancré, cinématographiquement généreux.",
-                  author: "Olivier Barlet",
+                  name: "Olivier Barlet",
                   role: "Africultures",
                 },
                 {
                   quote:
                     "Ibrahima Sarr est une révélation. Il porte le film sur ses épaules avec une intensité qui ne lâche jamais le spectateur.",
-                  author: "Marie-Louise Petit",
+                  name: "Marie-Louise Petit",
                   role: "Libération",
                 },
                 {
                   quote:
                     "DËKK BI prouve que le cinéma africain n'a plus rien à envier aux productions internationales. Une grande réussite.",
-                  author: "Rédaction",
+                  name: "Rédaction",
                   role: "Jeune Afrique",
                 },
               ],
@@ -218,7 +218,8 @@ export function filmPromoWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Cinémas partenaires",
               address: "Cinéma MaCy — Plateau, Dakar, Sénégal",
-              embedUrl: "",
+              latitude: 14.6928,
+              longitude: -17.4467,
             },
           },
         ],
@@ -242,10 +243,10 @@ export function filmPromoWorldDefinition(): WebsiteDefinition {
               heading: "Ressources disponibles",
               layout: "grid",
               items: [
-                { icon: "📁", title: "Dossier de presse", description: "PDF complet 24 pages avec synopsis, biographies et photos." },
-                { icon: "🖼️", title: "Photos HD", description: "65 photos de tournage et d'affiche disponibles en haute résolution." },
-                { icon: "🎬", title: "Bande-annonce", description: "Fichier vidéo 4K et HD disponible sur demande." },
-                { icon: "📞", title: "Attachée de presse", description: "Awa Ndiaye — awa.ndiaye@deklfilm.sn · +221 76 000 00 00" },
+                { icon: "📁", title: "Dossier de presse", body: "PDF complet 24 pages avec synopsis, biographies et photos." },
+                { icon: "🖼️", title: "Photos HD", body: "65 photos de tournage et d'affiche disponibles en haute résolution." },
+                { icon: "🎬", title: "Bande-annonce", body: "Fichier vidéo 4K et HD disponible sur demande." },
+                { icon: "📞", title: "Attachée de presse", body: "Awa Ndiaye — awa.ndiaye@deklfilm.sn · +221 76 000 00 00" },
               ],
             },
           },
@@ -254,7 +255,7 @@ export function filmPromoWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Contact presse",
               subheading: "Demande de dossier, interview, projection presse — contactez Awa Ndiaye.",
-              phoneNumber: "221760000002",
+              phone: "221760000002",
               message: "Bonjour, je suis journaliste pour [média]. Je souhaite [demander le dossier de presse / organiser une interview / assister à une projection presse] pour DËKK BI.",
               buttonLabel: "Contacter l'attachée de presse",
             },

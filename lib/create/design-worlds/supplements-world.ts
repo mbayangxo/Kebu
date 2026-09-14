@@ -76,25 +76,25 @@ export function supplementsWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🌿",
                   title: "Ingrédients locaux",
-                  description:
+                  body:
                     "Moringa, baobab, spiruline sénégalaise, gingembre, curcuma — des super-aliments africains à haute densité nutritionnelle.",
                 },
                 {
                   icon: "🔬",
                   title: "Formulé pour l'Afrique",
-                  description:
+                  body:
                     "Nos formules tiennent compte du climat tropical, de l'alimentation locale et des besoins nutritionnels spécifiques aux populations africaines.",
                 },
                 {
                   icon: "✅",
                   title: "Qualité certifiée",
-                  description:
+                  body:
                     "Chaque lot testé par un laboratoire indépendant. Certificats d'analyse disponibles sur demande. Sans additifs, sans OGM.",
                 },
                 {
                   icon: "📱",
                   title: "Suivi personnalisé",
-                  description:
+                  body:
                     "Bilan nutritionnel gratuit par WhatsApp. Protocole sur mesure selon vos objectifs : énergie, sport, poids, santé.",
                 },
               ],
@@ -199,19 +199,19 @@ export function supplementsWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Le Moringa Boost a changé ma vie. J'avais une fatigue chronique depuis des années. Après 1 mois de cure, j'ai retrouvé mon énergie. Mon médecin a confirmé la hausse de mon taux de fer.",
-                  author: "Fatou M.",
+                  name: "Fatou M.",
                   role: "Enseignante, Dakar",
                 },
                 {
                   quote:
                     "Je m'entraîne 5 fois par semaine. La Protéine Baobab est la meilleure alternative végétale que j'ai trouvée en Afrique de l'Ouest. Goût naturel, bonne solubilité, résultats visibles en 3 semaines.",
-                  author: "Aliou T.",
+                  name: "Aliou T.",
                   role: "Athlete, Dakar",
                 },
                 {
                   quote:
                     "Dr. Ndiaye m'a fait un bilan complet via WhatsApp et m'a recommandé le Pack Énergie Femme. Livraison le lendemain, suivi régulier. C'est ce type de service qu'on attendait.",
-                  author: "Marième K.",
+                  name: "Marième K.",
                   role: "Entrepreneuse, Thiès",
                 },
               ],
@@ -223,9 +223,8 @@ export function supplementsWorldDefinition(): WebsiteDefinition {
               heading: "Bilan nutritionnel gratuit",
               subheading:
                 "Décrivez vos objectifs — on vous recommande le protocole adapté. Réponse sous 2h.",
-              phoneNumber: "221790000000",
-              message:
-                "Bonjour VITALITÉ AFRICA, je voudrais un bilan nutritionnel. Mon objectif : [énergie / sport / perte de poids / santé / grossesse / autre]. Mon âge : [âge]. Mes problèmes actuels : [fatigue / carence / autre].",
+              phone: "221790000000",
+              message: "Bonjour VITALITÉ AFRICA, je voudrais un bilan nutritionnel. Mon objectif : [énergie / sport / perte de poids / santé / grossesse / autre]. Mon âge : [âge]. Mes problèmes actuels : [fatigue /",
               buttonLabel: "Bilan gratuit WhatsApp",
             },
           },
@@ -368,12 +367,12 @@ export function supplementsWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Notre processus qualité",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "🌱", title: "Sourcing local", description: "Ingrédients sourcés directement auprès de producteurs sénégalais certifiés." },
-                { icon: "🔬", title: "Formulation", description: "Chaque formule développée avec notre équipe de nutritionnistes et médecins." },
-                { icon: "✅", title: "Test laboratoire", description: "Chaque lot testé par un laboratoire indépendant accrédité ISO." },
-                { icon: "📦", title: "Conditionnement", description: "Emballage protecteur, stockage contrôlé, livraison rapide sur Dakar." },
+                { icon: "🌱", title: "Sourcing local", body: "Ingrédients sourcés directement auprès de producteurs sénégalais certifiés." },
+                { icon: "🔬", title: "Formulation", body: "Chaque formule développée avec notre équipe de nutritionnistes et médecins." },
+                { icon: "✅", title: "Test laboratoire", body: "Chaque lot testé par un laboratoire indépendant accrédité ISO." },
+                { icon: "📦", title: "Conditionnement", body: "Emballage protecteur, stockage contrôlé, livraison rapide sur Dakar." },
               ],
             },
           },

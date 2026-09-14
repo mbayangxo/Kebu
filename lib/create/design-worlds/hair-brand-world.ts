@@ -171,9 +171,9 @@ export function hairBrandWorldDefinition(): WebsiteDefinition {
                   ],
                   hasVariants: true,
                   variants: [
-                    { id: "00000000-0000-0000-0000-000000000301", name: "Natural Black", option1: "Natural Black", priceLabel: "65 000 FCFA", imageUrl: "" },
-                    { id: "00000000-0000-0000-0000-000000000302", name: "Dark Brown #2", option1: "Dark Brown #2", priceLabel: "65 000 FCFA", imageUrl: "" },
-                    { id: "00000000-0000-0000-0000-000000000303", name: "Blonde #613", option1: "Blonde #613", priceLabel: "72 000 FCFA", imageUrl: "" },
+                    { id: "00000000-0000-4000-8000-000000000301", name: "Natural Black", option1: "Natural Black", priceLabel: "65 000 FCFA", imageUrl: "" },
+                    { id: "00000000-0000-4000-8000-000000000302", name: "Dark Brown #2", option1: "Dark Brown #2", priceLabel: "65 000 FCFA", imageUrl: "" },
+                    { id: "00000000-0000-4000-8000-000000000303", name: "Blonde #613", option1: "Blonde #613", priceLabel: "72 000 FCFA", imageUrl: "" },
                   ],
                   whatsappMessage:
                     "Bonjour — je voudrais commander la Perruque Lace Front Body Wave 20\". Quelle teinte avez-vous en stock ?",

@@ -113,19 +113,19 @@ export function photographeEditorialWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Kofi a transformé notre lookbook en œuvre d'art. Sa compréhension de la lumière naturelle à Dakar est unique. Nos ventes ont augmenté de 40% après la campagne.",
-                  author: "Ndeye Fatou",
+                  name: "Ndeye Fatou",
                   role: "Fondatrice, maison de mode NDÉYE, Dakar",
                 },
                 {
                   quote:
                     "Notre rapport annuel illustré par Kofi a reçu les félicitations de notre conseil d'administration. La qualité des portraits d'équipe est impressionnante.",
-                  author: "Directeur Communication",
+                  name: "Directeur Communication",
                   role: "Banque régionale d'Afrique de l'Ouest",
                 },
                 {
                   quote:
                     "Il sait capturer l'émotion sans jamais être intrusif. Nos photos de famille sont un trésor. On voit la lumière de Dakar dans chaque image.",
-                  author: "Famille Sarr",
+                  name: "Famille Sarr",
                   role: "Session portrait, Dakar 2024",
                 },
               ],
@@ -137,7 +137,7 @@ export function photographeEditorialWorldDefinition(): WebsiteDefinition {
               heading: "Réserver une session",
               subheading:
                 "Type de shoot, date souhaitée, lieu. Devis personnalisé sous 4h.",
-              phoneNumber: "221780000000",
+              phone: "221780000000",
               message:
                 "Bonjour EKKO STUDIO, je souhaite réserver une session photo de [type : mode / portrait / corporate / famille]. Date envisagée : [date]. Lieu : [Dakar / à définir]. Merci.",
               buttonLabel: "Réserver",

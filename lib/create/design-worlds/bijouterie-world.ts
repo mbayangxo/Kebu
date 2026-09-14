@@ -66,7 +66,7 @@ export function bijouterieWorldDefinition(): WebsiteDefinition {
                 "Pierre de Lune",
                 "Or 18 carats",
               ],
-              speed: "normal",
+              speed: 40,
               separator: "·",
             },
           },
@@ -187,19 +187,19 @@ export function bijouterieWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Ma parure de mariage était absolument magnifique. Mes invités n'ont pas arrêté de demander d'où venaient mes bijoux. Un travail d'orfèvre exceptionnel.",
-                  author: "Marième D.",
+                  name: "Marième D.",
                   role: "Mariée, Dakar 2024",
                 },
                 {
                   quote:
                     "J'ai commandé une bague de fiançailles sur-mesure avec une pierre trouvée au Mali. Le résultat a dépassé toutes mes espérances.",
-                  author: "Ibrahima C.",
+                  name: "Ibrahima C.",
                   role: "Client fidèle depuis 2019",
                 },
                 {
                   quote:
                     "Le bracelet en ambre est une pièce d'exception. On ne trouve pas ce genre de travail ailleurs à Dakar.",
-                  author: "Aminata K.",
+                  name: "Aminata K.",
                   role: "Dakar",
                 },
               ],
@@ -211,7 +211,7 @@ export function bijouterieWorldDefinition(): WebsiteDefinition {
               heading: "Commander ou créer votre bijou",
               subheading:
                 "Envoyez-nous vos inspirations, votre budget et l'occasion. Devis personnalisé sous 24h.",
-              phoneNumber: "221775000000",
+              phone: "221775000000",
               message:
                 "Bonjour OR DE SAHEL, je suis intéressé(e) par [un bijou de la collection / un bijou sur-mesure] pour [mariage / fiançailles / cadeau / moi-même]. Mon budget est d'environ [montant] FCFA.",
               buttonLabel: "Nous contacter",
@@ -336,13 +336,13 @@ export function bijouterieWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Le processus sur-mesure",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "💬", title: "1. Consultation", description: "Rendez-vous en atelier ou par WhatsApp. Vous décrivez votre idée, budget et délai." },
-                { icon: "✏️", title: "2. Croquis", description: "Notre orfèvre réalise 2 à 3 esquisses et vous les présente pour validation." },
-                { icon: "🔬", title: "3. Devis", description: "Devis détaillé : matière, poids or, pierres, façonnage. Transparent et sans surprise." },
-                { icon: "⚒️", title: "4. Fabrication", description: "3 à 4 semaines de fabrication artisanale dans notre atelier de Dakar." },
-                { icon: "✨", title: "5. Livraison", description: "Remise en mains propres avec certificat d'authenticité et écrin bois OR DE SAHEL." },
+                { icon: "💬", title: "1. Consultation", body: "Rendez-vous en atelier ou par WhatsApp. Vous décrivez votre idée, budget et délai." },
+                { icon: "✏️", title: "2. Croquis", body: "Notre orfèvre réalise 2 à 3 esquisses et vous les présente pour validation." },
+                { icon: "🔬", title: "3. Devis", body: "Devis détaillé : matière, poids or, pierres, façonnage. Transparent et sans surprise." },
+                { icon: "⚒️", title: "4. Fabrication", body: "3 à 4 semaines de fabrication artisanale dans notre atelier de Dakar." },
+                { icon: "✨", title: "5. Livraison", body: "Remise en mains propres avec certificat d'authenticité et écrin bois OR DE SAHEL." },
               ],
             },
           },

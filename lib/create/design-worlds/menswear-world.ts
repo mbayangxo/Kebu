@@ -142,22 +142,22 @@ export function menswearWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "✦",
                   title: "Matières nobles",
-                  description: "Lin, coton pima, coton supima, laine légère — aucun synthétique discount dans nos pièces principales.",
+                  body: "Lin, coton pima, coton supima, laine légère — aucun synthétique discount dans nos pièces principales.",
                 },
                 {
                   icon: "✦",
                   title: "Coupes précises",
-                  description: "Chaque modèle est ajusté pour la morphologie africaine — épaules larges, taille haute, jambes longues.",
+                  body: "Chaque modèle est ajusté pour la morphologie africaine — épaules larges, taille haute, jambes longues.",
                 },
                 {
                   icon: "✦",
                   title: "Collection restreinte",
-                  description: "Jamais plus de 20 références en même temps. On préfère 10 pièces parfaites à 100 pièces correctes.",
+                  body: "Jamais plus de 20 références en même temps. On préfère 10 pièces parfaites à 100 pièces correctes.",
                 },
                 {
                   icon: "✦",
                   title: "Conseil style inclus",
-                  description: "Chaque achat inclut un conseil style WhatsApp — on vous aide à construire une garde-robe cohérente.",
+                  body: "Chaque achat inclut un conseil style WhatsApp — on vous aide à construire une garde-robe cohérente.",
                 },
               ],
             },
@@ -185,7 +185,7 @@ export function menswearWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Commander & conseil style",
               subheading: "Dites-nous votre taille et ce que vous cherchez — on vous propose les bonnes pièces.",
-              phoneNumber: "221780000005",
+              phone: "221780000005",
               message:
                 "Bonjour ESSENTIEL HOM — je voudrais commander / avoir un conseil style. Ma taille habituelle : [S/M/L/XL/XXL]. Ce que je cherche : [casual / business / soirée / tout]. Budget :",
               buttonLabel: "Commander sur WhatsApp",

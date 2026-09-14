@@ -70,7 +70,7 @@ export function mondayStudioWorldDefinition(): WebsiteDefinition {
                 "Identité Visuelle",
                 "Packaging",
               ],
-              speed: "fast",
+              speed: 80,
               separator: "★",
             },
           },
@@ -131,19 +131,19 @@ export function mondayStudioWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "MONDAY a rebrandé notre entreprise de A à Z. Résultat : une identité moderne, distinctive, qui nous distingue de tous nos concurrents. Notre chiffre d'affaires a augmenté de 35% depuis le relancement.",
-                  author: "DG, groupe agroalimentaire",
+                  name: "DG, groupe agroalimentaire",
                   role: "Dakar, 2024",
                 },
                 {
                   quote:
                     "L'équipe comprend le marché africain ET les standards créatifs internationaux. Rares sont les agences capables de cette double maîtrise.",
-                  author: "Directrice Marketing",
+                  name: "Directrice Marketing",
                   role: "Opérateur télécoms Sénégal",
                 },
                 {
                   quote:
                     "Notre lancement de produit a généré 500K vues en 48h grâce à leur campagne. Brief le lundi, contenu le mercredi, live le vendredi.",
-                  author: "Fondateur, startup consumer tech",
+                  name: "Fondateur, startup consumer tech",
                   role: "Dakar-Paris",
                 },
               ],
@@ -155,7 +155,7 @@ export function mondayStudioWorldDefinition(): WebsiteDefinition {
               heading: "Parlons de votre projet",
               subheading:
                 "Décrivez votre projet, votre cible et votre budget. Brief gratuit, réponse sous 24h.",
-              phoneNumber: "221710000000",
+              phone: "221710000000",
               message:
                 "Bonjour MONDAY CRÉATIF, je voudrais discuter d'un projet de [branding / motion / digital / campagne] pour [marque / produit]. Budget indicatif : [montant] FCFA.",
               buttonLabel: "Démarrer le projet",

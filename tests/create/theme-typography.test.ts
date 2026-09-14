@@ -17,7 +17,7 @@ describe("theme typography tokens", () => {
       letterSpacing: "wide",
     });
     const vars = themeToCssVars(theme);
-    expect(vars["--kebu-font-display"]).toBe("Oswald");
+    expect(vars["--kebu-font-display"]).toBe('"Oswald", system-ui, sans-serif');
     expect(vars["--kebu-heading-scale"]).toBe("1.35");
     expect(vars["--kebu-body-size"]).toBe("1.125rem");
     expect(vars["--kebu-tracking"]).toBe("0.06em");

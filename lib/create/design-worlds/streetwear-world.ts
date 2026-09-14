@@ -192,19 +192,19 @@ export function streetwearWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "GLITCH c'est la seule marque de Dakar qui me représente vraiment. Leurs pièces tiennent dans le temps, le style est unique, et le fait que ce soit fait ici à Dakar — ça, c'est important.",
-                  author: "Ibrahima D.",
+                  name: "Ibrahima D.",
                   role: "Graphiste, Dakar",
                 },
                 {
                   quote:
                     "J'ai le hoodie 006 et je peux pas l'enlever. La qualité est là — rien à voir avec les marques importées à ce prix-là. GLITCH c'est une autre catégorie.",
-                  author: "Aminata K.",
+                  name: "Aminata K.",
                   role: "Musicienne, Dakar",
                 },
                 {
                   quote:
                     "Le drop 004 collab Karim Sall était historique. 20 pièces en 3 minutes. J'ai eu la chance d'en avoir une — ça valait le réveil à minuit.",
-                  author: "Omar S.",
+                  name: "Omar S.",
                   role: "Collectionneur, Abidjan",
                 },
               ],
@@ -216,7 +216,7 @@ export function streetwearWorldDefinition(): WebsiteDefinition {
               heading: "Liste exclusive — Drop 007",
               subheading:
                 "Rejoignez la liste d'attente pour le prochain drop. Accès prioritaire 24h avant le public.",
-              phoneNumber: "221780000000",
+              phone: "221780000000",
               message:
                 "Yo GLITCH, je veux être sur la liste pour le Drop 007. Mon prénom : [prénom]. Mes tailles : [S/M/L/XL pour les tees]. Je suis client depuis le Drop [numéro / jamais].",
               buttonLabel: "Rejoindre la liste — Drop 007",
@@ -285,12 +285,12 @@ export function streetwearWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Le système GLITCH",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "📅", title: "Drops planifiés", description: "1 drop par mois, annoncé 48h avant via WhatsApp et Instagram." },
-                { icon: "🔴", title: "Quantités limitées", description: "30 pièces max par référence. Jamais de restocking. Jamais de soldes." },
-                { icon: "🎨", title: "Collabs exclusives", description: "Chaque drop inclut au moins 1 collab avec un artiste dakarois." },
-                { icon: "🚚", title: "Livraison", description: "Dakar : 24h. International : 5-10 jours. Paiement Wave ou Orange Money." },
+                { icon: "📅", title: "Drops planifiés", body: "1 drop par mois, annoncé 48h avant via WhatsApp et Instagram." },
+                { icon: "🔴", title: "Quantités limitées", body: "30 pièces max par référence. Jamais de restocking. Jamais de soldes." },
+                { icon: "🎨", title: "Collabs exclusives", body: "Chaque drop inclut au moins 1 collab avec un artiste dakarois." },
+                { icon: "🚚", title: "Livraison", body: "Dakar : 24h. International : 5-10 jours. Paiement Wave ou Orange Money." },
               ],
             },
           },

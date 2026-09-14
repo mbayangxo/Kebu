@@ -142,25 +142,25 @@ export function boulangerieWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🌾",
                   title: "Ingrédients sélectionnés",
-                  description:
+                  body:
                     "Farine premium, beurre pur, œufs frais de ferme, sucre non raffiné. Aucun conservateur. Recettes simples et honnêtes.",
                 },
                 {
                   icon: "🕔",
                   title: "4h du matin, chaque jour",
-                  description:
+                  body:
                     "Nos boulangers commencent à 4h pour que tout soit prêt à l'ouverture à 7h. Jamais de pain de la veille réchauffé.",
                 },
                 {
                   icon: "🎂",
                   title: "Commandes personnalisées",
-                  description:
+                  body:
                     "Gâteaux d'anniversaire, pièces montées, plateaux événements. On crée ce que vous imaginez — donnez-nous 48h de préavis.",
                 },
                 {
                   icon: "🚗",
                   title: "Livraison Dakar",
-                  description:
+                  body:
                     "Livraison à domicile disponible pour commandes de 15 000 FCFA minimum. Zone Dakar et banlieue proche.",
                 },
               ],
@@ -192,19 +192,19 @@ export function boulangerieWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "Le pain au levain de MIETTES & CO est le meilleur de Dakar — je dis ça sans exagérer. J'en commande 3 fois par semaine. La croûte, la mie, le goût — c'est du grand artisanat.",
-                  author: "Amadou S.",
+                  name: "Amadou S.",
                   role: "Client régulier, Dakar",
                 },
                 {
                   quote:
                     "J'ai commandé le gâteau d'anniversaire pour mes 30 ans. Exactement ce que j'avais demandé — beau et délicieux. Toutes mes amies ont voulu le contact. MIETTES & CO c'est exceptionnel.",
-                  author: "Fatoumata K.",
+                  name: "Fatoumata K.",
                   role: "Cliente, Dakar",
                 },
                 {
                   quote:
                     "On commande les plateaux viennoiseries pour nos réunions d'équipe chaque semaine. Croissants toujours croustillants, livraison ponctuelle. Un partenaire fiable.",
-                  author: "Directrice RH",
+                  name: "Directrice RH",
                   role: "Entreprise, Dakar",
                 },
               ],
@@ -216,9 +216,8 @@ export function boulangerieWorldDefinition(): WebsiteDefinition {
               heading: "Commander ou réserver",
               subheading:
                 "Pain du matin, gâteau sur commande, plateau bureau — on prépare pour vous.",
-              phoneNumber: "221770000004",
-              message:
-                "Bonjour MIETTES & CO — je voudrais [commander / réserver]. Ce que je cherche : [pain au levain / croissants / gâteau anniversaire / plateau viennoiseries]. Pour : [date / heure de retrait ou livraison].",
+              phone: "221770000004",
+              message: "Bonjour MIETTES & CO — je voudrais [commander / réserver]. Ce que je cherche : [pain au levain / croissants / gâteau anniversaire / plateau viennoiseries]. Pour : [date / heure de retrait ou",
               buttonLabel: "Commander sur WhatsApp",
             },
           },
@@ -358,12 +357,12 @@ export function boulangerieWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Comment commander",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "💬", title: "WhatsApp", description: "Décrivez votre commande, l'occasion et la date souhaitée." },
-                { icon: "🎨", title: "Design", description: "On vous propose des visuels et parfums selon votre demande." },
-                { icon: "💳", title: "Acompte", description: "50% à la validation. Solde à la livraison ou au retrait." },
-                { icon: "📦", title: "Prêt", description: "Retrait en boutique ou livraison à votre adresse." },
+                { icon: "💬", title: "WhatsApp", body: "Décrivez votre commande, l'occasion et la date souhaitée." },
+                { icon: "🎨", title: "Design", body: "On vous propose des visuels et parfums selon votre demande." },
+                { icon: "💳", title: "Acompte", body: "50% à la validation. Solde à la livraison ou au retrait." },
+                { icon: "📦", title: "Prêt", body: "Retrait en boutique ou livraison à votre adresse." },
               ],
             },
           },
@@ -372,7 +371,7 @@ export function boulangerieWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Passer une commande",
               subheading: "Gâteaux, plateaux, commandes spéciales — 48h de préavis minimum.",
-              phoneNumber: "221770000004",
+              phone: "221770000004",
               message: "Bonjour MIETTES & CO — je voudrais passer une commande. Ce que je cherche : [gâteau anniversaire / plateau viennoiseries / autre]. Occasion : [occasion]. Date souhaitée : [date]. Budget indicatif :",
               buttonLabel: "Commander sur WhatsApp",
             },

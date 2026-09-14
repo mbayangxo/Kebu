@@ -76,25 +76,25 @@ export function centreFormationWorldDefinition(): WebsiteDefinition {
                 {
                   icon: "🏆",
                   title: "Certifications reconnues",
-                  description:
+                  body:
                     "Nos formations débouchent sur des certifications reconnues par les employeurs — CISCO, Microsoft, comptabilité OHADA, langues.",
                 },
                 {
                   icon: "👨‍🏫",
                   title: "Formateurs professionnels",
-                  description:
+                  body:
                     "Tous nos formateurs sont actifs dans leur secteur — pas que des enseignants théoriques, des praticiens qui vous préparent au vrai monde du travail.",
                 },
                 {
                   icon: "📅",
                   title: "Horaires flexibles",
-                  description:
+                  body:
                     "Cours du matin, du soir et week-end. Pour les actifs, les lycéens et les demandeurs d'emploi — sans quitter votre situation.",
                 },
                 {
                   icon: "💼",
                   title: "Insertion professionnelle",
-                  description:
+                  body:
                     "Partenariats avec 40+ entreprises dakaroises. Aide à la rédaction de CV, préparation aux entretiens, mise en relation avec des recruteurs.",
                 },
               ],
@@ -198,19 +198,19 @@ export function centreFormationWorldDefinition(): WebsiteDefinition {
                 {
                   quote:
                     "J'ai suivi la formation Excel avancé le soir après mon travail. En 4 semaines, j'ai obtenu ma certification MOS et obtenu une promotion dans mon entreprise. Investissement rentable.",
-                  author: "Moussa D.",
+                  name: "Moussa D.",
                   role: "Assistant comptable, Dakar",
                 },
                 {
                   quote:
                     "Après mon BAC, j'ai fait la formation marketing digital. 3 mois après, j'ai mes premiers clients en freelance. Je gagne plus qu'avec un emploi de base.",
-                  author: "Adja F.",
+                  name: "Adja F.",
                   role: "Freelance marketing digital, Dakar",
                 },
                 {
                   quote:
                     "Mon fils a suivi le soutien scolaire pendant 1 an. Il était en difficulté en maths. Il a eu son BAC avec mention — c'était inespéré. Merci ACADÉMIE FUTUR.",
-                  author: "Mme Sarr",
+                  name: "Mme Sarr",
                   role: "Mère d'élève, Pikine",
                 },
               ],
@@ -222,9 +222,8 @@ export function centreFormationWorldDefinition(): WebsiteDefinition {
               heading: "Renseignements & inscriptions",
               subheading:
                 "Dites-nous quelle formation vous intéresse. On vous répond avec les détails et les disponibilités.",
-              phoneNumber: "221720000001",
-              message:
-                "Bonjour ACADÉMIE FUTUR — je voudrais des renseignements sur [formation choisie / soutien scolaire]. Mon profil : [lycéen / adulte actif / demandeur d'emploi]. Disponibilités : [matin / soir / week-end].",
+              phone: "221720000001",
+              message: "Bonjour ACADÉMIE FUTUR — je voudrais des renseignements sur [formation choisie / soutien scolaire]. Mon profil : [lycéen / adulte actif / demandeur d'emploi]. Disponibilités : [matin / soir /",
               buttonLabel: "S'inscrire ou se renseigner",
             },
           },
@@ -247,12 +246,12 @@ export function centreFormationWorldDefinition(): WebsiteDefinition {
             type: "features",
             props: {
               heading: "Comment s'inscrire",
-              layout: "horizontal",
+              layout: "grid",
               items: [
-                { icon: "💬", title: "1. Contact", description: "Écrivez-nous sur WhatsApp — on vous renseigne sur les formations et disponibilités." },
-                { icon: "📋", title: "2. Évaluation", description: "Test de niveau gratuit pour placer chaque élève dans le bon groupe." },
-                { icon: "💳", title: "3. Inscription", description: "Paiement par tranche (Wave/Orange Money). Acompte 30% à l'inscription." },
-                { icon: "📚", title: "4. Formation", description: "Cours en présentiel avec supports papier et accès WhatsApp au formateur." },
+                { icon: "💬", title: "1. Contact", body: "Écrivez-nous sur WhatsApp — on vous renseigne sur les formations et disponibilités." },
+                { icon: "📋", title: "2. Évaluation", body: "Test de niveau gratuit pour placer chaque élève dans le bon groupe." },
+                { icon: "💳", title: "3. Inscription", body: "Paiement par tranche (Wave/Orange Money). Acompte 30% à l'inscription." },
+                { icon: "📚", title: "4. Formation", body: "Cours en présentiel avec supports papier et accès WhatsApp au formateur." },
               ],
             },
           },

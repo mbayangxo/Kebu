@@ -526,8 +526,8 @@ export function festivalWorldDefinition(): WebsiteDefinition {
             props: {
               heading: "Comment venir",
               address: "Plage de Saly-Portudal, Sénégal",
-              lat: 14.4522,
-              lng: -16.9972,
+              latitude: 14.4522,
+              longitude: -16.9972,
               zoom: 13,
             },
           },
