@@ -106,7 +106,7 @@ export function StudioTemplateGallery({
 
   const selected = filtered.find((t) => t.id === selectedId) ?? filtered[0] ?? null;
 
-  async function useTemplate() {
+  async function applyTemplate() {
     if (!selected) return;
     setBusy(true);
     setError(null);
@@ -242,7 +242,7 @@ export function StudioTemplateGallery({
           <button
             type="button"
             disabled={busy}
-            onClick={() => void useTemplate()}
+            onClick={() => void applyTemplate()}
             className="w-full rounded-full py-3 font-bold text-white disabled:opacity-50"
             style={{ background: "#0F0D33" }}
           >

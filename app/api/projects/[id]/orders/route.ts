@@ -171,7 +171,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   const orders = rows ?? [];
   const orderIds = orders.map((o) => o.id as string);
-  let itemsByOrder: Record<
+  const itemsByOrder: Record<
     string,
     {
       product_name: string;

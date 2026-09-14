@@ -64,14 +64,14 @@ export function SiteAssetsPanel({
     void load();
   }, [load]);
 
-  function useAsset(url: string, kind: KebuDragAsset["kind"]) {
+  function applyAsset(url: string, kind: KebuDragAsset["kind"]) {
     onPickUrl?.(url, kind);
     onUseOnSite?.({ url, kind });
   }
 
   function onUploaded(url: string, kind: KebuDragAsset["kind"]) {
     void load();
-    useAsset(url, kind);
+    applyAsset(url, kind);
     setUploadExpanded(false);
   }
 
@@ -178,7 +178,7 @@ export function SiteAssetsPanel({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={a.url} alt={a.alt ?? ""} className="h-full w-full object-cover pointer-events-none" />
                   ) : kind === "video" ? (
-                    // eslint-disable-next-line jsx-a11y/media-has-caption
+                     
                     <video src={a.url} className="h-full w-full object-cover pointer-events-none" muted />
                   ) : (
                     <div className="flex h-full items-center justify-center">
@@ -194,7 +194,7 @@ export function SiteAssetsPanel({
                     type="button"
                     className="w-full rounded-full py-1 text-[9px] font-bold uppercase tracking-wider text-white"
                     style={{ background: BUILDER.ink }}
-                    onClick={() => useAsset(a.url, kind)}
+                    onClick={() => applyAsset(a.url, kind)}
                   >
                     Use
                   </button>

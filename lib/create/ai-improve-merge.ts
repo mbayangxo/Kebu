@@ -93,7 +93,7 @@ export function mergePartialAiDefinition(
   const result: WebsiteDefinition = structuredClone(current);
 
   for (const proposedPage of proposed.pages) {
-    let targetPage = result.pages.find((p) => p.slug === proposedPage.slug);
+    const targetPage = result.pages.find((p) => p.slug === proposedPage.slug);
 
     if (!targetPage) {
       const acceptedSections = proposedPage.sections.filter((s) => s.id && accepted.has(s.id));

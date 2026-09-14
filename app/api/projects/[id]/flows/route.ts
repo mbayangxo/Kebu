@@ -54,7 +54,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   // Also fetch step counts per flow
   const flowIds = (data ?? []).map((f) => f.id as string);
-  let stepCounts: Record<string, number> = {};
+  const stepCounts: Record<string, number> = {};
   if (flowIds.length > 0) {
     const { data: steps } = await supabase
       .from("email_flow_steps")

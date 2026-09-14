@@ -34,13 +34,14 @@ export function EditableSocialRail({
   onSelect?: () => void;
   siteBase?: string;
 }) {
+  const dragging = useRef(false);
+
   if (style?.visible === false || !links.length) return null;
 
   const leftPct = clamp(style?.leftPct ?? 0, 0, 92);
   const topPct = clamp(style?.topPct ?? 12, 0, 85);
   const iconSize = clamp(style?.iconSize ?? 40, 20, 72);
   const bg = style?.bgColor?.trim() || "rgba(0,0,0,0.85)";
-  const dragging = useRef(false);
 
   const railStyle: CSSProperties = {
     position: "absolute",

@@ -612,7 +612,7 @@ async function executeTool(name: string, args: Args): Promise<unknown> {
 
     // ── Users (admin) ─────────────────────────────────────────────────────
     case "list_users": {
-      let q = sb.auth.admin.listUsers();
+      const q = sb.auth.admin.listUsers();
       const { data, error } = await q;
       if (error) throw new Error((error as { message: string }).message);
       let users = data.users;

@@ -44,7 +44,7 @@ export async function GET(_req: Request, { params }: Params) {
     .eq("project_id", projectId)
     .maybeSingle();
 
-  let ordersQuery = await supabase
+  const ordersQuery = await supabase
     .from("shop_orders")
     .select(
       "id, order_number, product_name, product_upc, price_label, quantity, status, payment_status, payment_preference, amount_xof, created_at, customer_note",
@@ -69,7 +69,7 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const orderIds = (ordersQuery.data ?? []).map((o) => o.id);
-  let itemsByOrder: Record<string, { product_name: string; quantity: number; price_label: string }[]> = {};
+  const itemsByOrder: Record<string, { product_name: string; quantity: number; price_label: string }[]> = {};
   if (orderIds.length) {
     const items = await supabase
       .from("shop_order_items")

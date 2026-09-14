@@ -38,7 +38,7 @@ export async function syncCatalogToProductsSections(
   }
 
   const productIds = (productRows ?? []).map((p) => p.id);
-  let variantsByProduct = new Map<string, NonNullable<Parameters<typeof productRowToSectionItem>[1]>>();
+  const variantsByProduct = new Map<string, NonNullable<Parameters<typeof productRowToSectionItem>[1]>>();
   if (productIds.length) {
     const { data: variantRows } = await supabase
       .from("project_product_variants")

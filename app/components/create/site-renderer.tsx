@@ -1867,7 +1867,7 @@ export function SiteRenderer({
                   </p>
                 )}
                 {isHosted ? (
-                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                   
                   <audio controls preload="metadata" className="w-full" src={src} />
                 ) : spotifyEmbed ? (
                   <iframe

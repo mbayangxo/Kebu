@@ -97,7 +97,7 @@ export async function GET() {
   const projectList = projects ?? [];
   const projectIds = projectList.map((p) => p.id);
 
-  let productCountByProject = new Map<string, number>();
+  const productCountByProject = new Map<string, number>();
   if (projectIds.length > 0) {
     const { data: products, error: prodErr } = await supabase
       .from("project_products")

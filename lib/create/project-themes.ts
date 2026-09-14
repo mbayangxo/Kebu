@@ -210,7 +210,7 @@ export async function addProjectTheme(
 
   let definition: WebsiteDefinition;
   let catalogSlug: string | null = null;
-  let source: ProjectThemeRow["source"] = input.source;
+  const source: ProjectThemeRow["source"] = input.source;
 
   if (input.source === "current") {
     const snapshot = await buildSnapshotFromDb(supabase, projectId);

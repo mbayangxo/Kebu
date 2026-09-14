@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
@@ -72,13 +73,13 @@ export function UploadAestheticButton({ sites }: { sites: SiteOption[] }) {
 
   if (sites.length === 0) {
     return (
-      <a
+      <Link
         href="/create/new"
         className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold border"
         style={{ borderColor: KEBU.border }}
       >
         Create a site to upload aesthetics
-      </a>
+      </Link>
     );
   }
 

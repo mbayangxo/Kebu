@@ -138,7 +138,7 @@ export async function POST(req: Request, { params }: Params) {
   let soldPriceLabel = product.price_label ?? "";
   let soldPriceXof = typeof product.price_xof === "number" ? product.price_xof : parseXofFromLabel(product.price_label);
   let soldSku = typeof product.sku === "string" ? product.sku : null;
-  let variantId: string | null = parsed.data.variantId ?? null;
+  const variantId: string | null = parsed.data.variantId ?? null;
 
   if (variantId) {
     const { data: variant } = await admin

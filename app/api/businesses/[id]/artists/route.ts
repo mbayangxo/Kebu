@@ -54,7 +54,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   const artists = data ?? [];
   const artistIds = artists.map((a) => a.id);
-  let kitsByArtist: Record<string, { id: string; public_id: string; title: string; status: string }[]> =
+  const kitsByArtist: Record<string, { id: string; public_id: string; title: string; status: string }[]> =
     {};
 
   if (artistIds.length) {

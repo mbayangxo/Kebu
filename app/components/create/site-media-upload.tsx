@@ -62,10 +62,10 @@ export function SiteMediaUpload({
 
       {showPreview && value ? (
         kind === "audio" ? (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
+           
           <audio controls preload="metadata" className="w-full" src={value} />
         ) : kind === "video" ? (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
+           
           <video controls preload="metadata" className="w-full rounded-lg max-h-40" src={value} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element

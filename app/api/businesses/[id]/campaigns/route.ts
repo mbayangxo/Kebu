@@ -84,8 +84,8 @@ export async function POST(req: Request, { params }: Params) {
 
   let bodyHtml = parsed.data.bodyHtml;
   let bodyText = parsed.data.bodyText ?? "";
-  let createDesignId = parsed.data.createDesignId ?? null;
-  let discountCodeId = parsed.data.discountCodeId ?? null;
+  const createDesignId = parsed.data.createDesignId ?? null;
+  const discountCodeId = parsed.data.discountCodeId ?? null;
 
   if (createDesignId) {
     const { data: design } = await supabase

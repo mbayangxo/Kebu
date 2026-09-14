@@ -376,13 +376,13 @@ export function AestheticsStoreClient({ sites }: { sites: SiteOption[] }) {
             ))}
           </div>
           {/* Developer account is a separate program — linked from footer, not shown to all users */}
-          <a
+          <Link
             href="/create/developers"
             className="text-[10px] font-semibold underline-offset-2 hover:underline"
             style={{ color: KEBU.muted }}
           >
             Become a creator →
-          </a>
+          </Link>
         </div>
 
       {error ? (

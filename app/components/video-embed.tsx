@@ -78,7 +78,7 @@ export function VideoEmbed({ src, title, caption, thumbnail, className = "" }: V
   if (direct) {
     return (
       <div className={className}>
-        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        { }
         <video
           controls
           preload="metadata"
