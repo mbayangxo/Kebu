@@ -146,6 +146,7 @@ export function nueeIntimatesWorldDefinition(): WebsiteDefinition {
       radius: "round",
       buttonStyle: "solid",
       aestheticId: "nuee-intimates",
+      motion: "expressive",
     },
     pages: [
       {

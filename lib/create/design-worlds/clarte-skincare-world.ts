@@ -155,6 +155,7 @@ export function clarteSkincareWorldDefinition(): WebsiteDefinition {
       radius: "round",
       buttonStyle: "solid",
       aestheticId: "clarte-compatible-skin",
+      motion: "expressive",
     },
     pages: [
       {

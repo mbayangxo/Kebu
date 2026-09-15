@@ -153,6 +153,7 @@ export function meridianFilmsWorldDefinition(): WebsiteDefinition {
       radius: "sharp",
       buttonStyle: "outline",
       aestheticId: "meridian-films",
+      motion: "expressive",
     },
     pages: [
       {

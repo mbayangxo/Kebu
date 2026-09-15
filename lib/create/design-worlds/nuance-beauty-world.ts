@@ -149,6 +149,7 @@ export function nuanceBeautyWorldDefinition(): WebsiteDefinition {
       radius: "sharp",
       buttonStyle: "solid",
       aestheticId: "nuance-beauty",
+      motion: "expressive",
     },
     pages: [
       {
