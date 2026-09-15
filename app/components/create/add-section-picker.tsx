@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BUILDER } from "@/lib/create/builder-ui";
 import {
   BUILDER_SECTION_CATALOG,
@@ -58,6 +58,26 @@ export function AddSectionPicker({
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<BuilderSectionCategory | "all">("all");
   const [adding, setAdding] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Close on click-outside and Escape — this is a floating popover over the canvas, not an inline
+  // panel, so it should behave like one: previously the only way to close it was to press the
+  // toggle button again, so it stayed open over the canvas after clicking anywhere else on the page.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   const options = useMemo(() => {
     if (category === "all") return BUILDER_SECTION_CATALOG;
@@ -75,7 +95,7 @@ export function AddSectionPicker({
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" ref={rootRef}>
       <button
         type="button"
         disabled={busy || Boolean(adding)}

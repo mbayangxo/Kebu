@@ -1,7 +1,7 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { KEBU } from "@/lib/kebu-brand";
 
@@ -196,17 +196,40 @@ function DevEmptyState() {
   );
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  site_template:   "Site Template",
+  business_tool:   "Business Tool",
+  mobile_money:    "Mobile Money",
+  ai_plugin:       "AI Plugin",
+  studio_template: "Studio Template",
+  logistics:       "Logistics",
+};
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DevOverviewPage() {
-  const apps: {
+  const [apps, setApps] = useState<{
     id: string;
     name: string;
     category: string;
     status: AppStatus;
     installs: number;
-    revenue: string;
-  }[] = [];
+    price_xof: number | null;
+    pricing: string;
+  }[]>([]);
+  const [assetCount, setAssetCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/dev/apps").then((r) => r.json()).catch(() => ({ apps: [] })),
+      fetch("/api/dev/assets").then((r) => r.json()).catch(() => ({ assets: [] })),
+    ]).then(([appsJson, assetsJson]) => {
+      setApps(appsJson.apps ?? []);
+      setAssetCount((assetsJson.assets ?? []).length);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const totalInstalls = apps.reduce((sum, a) => sum + (a.installs ?? 0), 0);
   const hasApps = apps.length > 0;
 
   return (
@@ -246,14 +269,18 @@ export default function DevOverviewPage() {
           ))}
         </div>
 
-        {hasApps ? (
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: KEBU.orange, borderTopColor: "transparent" }} />
+          </div>
+        ) : hasApps ? (
           <>
             <StatStrip
               items={[
-                { value: apps.length, label: "Apps",          href: "/dev/apps"    },
-                { value: 0,           label: "Total installs"                       },
-                { value: 0,           label: "Assets",        href: "/dev/assets"  },
-                { value: "0 XOF",     label: "Revenue"                              },
+                { value: apps.length,    label: "Apps",          href: "/dev/apps"    },
+                { value: totalInstalls,  label: "Total installs"                       },
+                { value: assetCount,     label: "Assets",        href: "/dev/assets"  },
+                { value: "0 XOF",        label: "Revenue"                              },
               ]}
             />
 
@@ -280,8 +307,19 @@ export default function DevOverviewPage() {
                     </p>
                   ))}
                 </div>
-                {apps.map((app) => (
-                  <AppRow key={app.id} {...app} href={`/dev/apps/${app.id}`} />
+                {apps.slice(0, 5).map((app) => (
+                  <AppRow
+                    key={app.id}
+                    name={app.name}
+                    category={CATEGORY_LABELS[app.category] ?? app.category}
+                    status={app.status}
+                    installs={app.installs}
+                    revenue={
+                      app.pricing === "free" ? "Free" :
+                      app.price_xof ? `${app.price_xof.toLocaleString()} XOF` : "—"
+                    }
+                    href={`/dev/apps/${app.id}`}
+                  />
                 ))}
               </div>
             </div>
