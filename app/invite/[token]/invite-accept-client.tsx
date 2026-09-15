@@ -74,7 +74,7 @@ export function InviteAcceptClient({ token }: { token: string }) {
           Team invite
         </p>
         {error && !preview ? (
-          <p className="mt-4 text-sm text-red-700">{error}</p>
+          <p className="mt-4 text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
         ) : !preview ? (
           <p className="mt-4 text-sm" style={{ color: KEBU.muted }}>
             Loading invite…
@@ -92,7 +92,7 @@ export function InviteAcceptClient({ token }: { token: string }) {
             <p className="mt-1 text-[11px] opacity-60">
               Expires {new Date(preview.expiresAt).toLocaleString()} · status {preview.status}
             </p>
-            {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+            {error ? <p className="mt-3 text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"

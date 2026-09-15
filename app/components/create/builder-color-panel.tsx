@@ -15,17 +15,59 @@ const SWATCHES = [
 ] as const;
 
 const DISPLAY_FONTS = [
-  "Fraunces",
+  // Serif
   "Playfair Display",
+  "Fraunces",
+  "Cormorant Garamond",
+  "Lora",
+  "Merriweather",
+  "DM Serif Display",
+  "Libre Baskerville",
+  "EB Garamond",
+  // Sans-serif
+  "Inter",
+  "Jost",
+  "Montserrat",
+  "Poppins",
+  "Raleway",
+  "Syne",
+  "DM Sans",
+  "Plus Jakarta Sans",
+  "Space Grotesk",
+  "Work Sans",
+  "Nunito",
+  "Outfit",
+  // Display / editorial
   "Oswald",
   "Bebas Neue",
-  "Syne",
-  "Steelfish",
-  "Georgia",
+  "Abril Fatface",
+  "Bungee",
+  // System
   "system-ui",
+  "Georgia",
+  "serif",
 ] as const;
 
-const BODY_FONTS = ["IBM Plex Sans", "system-ui", "Inter", "Georgia", "Arial", "Helvetica Neue"] as const;
+const BODY_FONTS = [
+  "Inter",
+  "IBM Plex Sans",
+  "DM Sans",
+  "Jost",
+  "Lato",
+  "Open Sans",
+  "Nunito",
+  "Raleway",
+  "Source Sans 3",
+  "Noto Sans",
+  "Karla",
+  "Mulish",
+  "Quicksand",
+  "Cabin",
+  "Barlow",
+  "system-ui",
+  "Georgia",
+  "serif",
+] as const;
 
 function ColorField({
   label,
@@ -110,41 +152,117 @@ export function BuilderTypographyPanel({
   theme: ThemeTokens;
   onThemeChange: (patch: Partial<ThemeTokens>) => void;
 }) {
+  const displayIsCustom = !(DISPLAY_FONTS as readonly string[]).includes(theme.fontDisplay);
+  const bodyIsCustom = !(BODY_FONTS as readonly string[]).includes(theme.fontBody);
+
   return (
     <div className="space-y-4">
       <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
         Typography
       </p>
-      <label className="block text-[10px] uppercase tracking-wider">
-        Display / headings
+
+      {/* Display / headings font */}
+      <div>
+        <p className="mb-1.5 text-[10px] uppercase tracking-wider">Display / headings</p>
         <select
-          className="mt-1 w-full rounded-lg px-2 py-2 text-xs"
+          className="w-full rounded-lg px-2 py-2 text-xs"
           style={{ border: `1px solid ${BUILDER.border}` }}
-          value={theme.fontDisplay}
-          onChange={(e) => onThemeChange({ fontDisplay: e.target.value })}
+          value={displayIsCustom ? "__custom__" : theme.fontDisplay}
+          onChange={(e) => {
+            if (e.target.value !== "__custom__") onThemeChange({ fontDisplay: e.target.value });
+          }}
         >
           {DISPLAY_FONTS.map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
+            <option key={f} value={f}>{f}</option>
           ))}
+          <option value="__custom__">Custom Google Font…</option>
         </select>
-      </label>
-      <label className="block text-[10px] uppercase tracking-wider">
-        Body
+        {(displayIsCustom) ? (
+          <input
+            className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
+            style={{ border: `1px solid ${BUILDER.border}` }}
+            value={theme.fontDisplay}
+            onChange={(e) => onThemeChange({ fontDisplay: e.target.value })}
+            placeholder="e.g. Dela Gothic One"
+          />
+        ) : null}
+        {/* quick-pick custom entry */}
+        {!displayIsCustom ? (
+          <input
+            className="mt-1 w-full rounded-lg px-2 py-1.5 text-[10px]"
+            style={{ border: `1px dashed ${BUILDER.border}`, background: BUILDER.surfaceMuted }}
+            placeholder="Or type any Google Font name…"
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => {
+              if (e.target.value.trim()) onThemeChange({ fontDisplay: e.target.value.trim() });
+            }}
+          />
+        ) : null}
+        {theme.fontDisplay && theme.fontDisplay !== "system-ui" && theme.fontDisplay !== "serif" ? (
+          <link
+            rel="stylesheet"
+            href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.fontDisplay)}:wght@400;700&display=swap`}
+          />
+        ) : null}
+        <p
+          className="mt-1.5 truncate text-[18px] leading-tight"
+          style={{ fontFamily: `"${theme.fontDisplay}", serif` }}
+          aria-hidden
+        >
+          Aa — {theme.fontDisplay}
+        </p>
+      </div>
+
+      {/* Body font */}
+      <div>
+        <p className="mb-1.5 text-[10px] uppercase tracking-wider">Body text</p>
         <select
-          className="mt-1 w-full rounded-lg px-2 py-2 text-xs"
+          className="w-full rounded-lg px-2 py-2 text-xs"
           style={{ border: `1px solid ${BUILDER.border}` }}
-          value={theme.fontBody}
-          onChange={(e) => onThemeChange({ fontBody: e.target.value })}
+          value={bodyIsCustom ? "__custom__" : theme.fontBody}
+          onChange={(e) => {
+            if (e.target.value !== "__custom__") onThemeChange({ fontBody: e.target.value });
+          }}
         >
           {BODY_FONTS.map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
+            <option key={f} value={f}>{f}</option>
           ))}
+          <option value="__custom__">Custom Google Font…</option>
         </select>
-      </label>
+        {bodyIsCustom ? (
+          <input
+            className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
+            style={{ border: `1px solid ${BUILDER.border}` }}
+            value={theme.fontBody}
+            onChange={(e) => onThemeChange({ fontBody: e.target.value })}
+            placeholder="e.g. Noto Sans"
+          />
+        ) : null}
+        {!bodyIsCustom ? (
+          <input
+            className="mt-1 w-full rounded-lg px-2 py-1.5 text-[10px]"
+            style={{ border: `1px dashed ${BUILDER.border}`, background: BUILDER.surfaceMuted }}
+            placeholder="Or type any Google Font name…"
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => {
+              if (e.target.value.trim()) onThemeChange({ fontBody: e.target.value.trim() });
+            }}
+          />
+        ) : null}
+        {theme.fontBody && theme.fontBody !== "system-ui" && theme.fontBody !== "serif" ? (
+          <link
+            rel="stylesheet"
+            href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.fontBody)}:wght@400;700&display=swap`}
+          />
+        ) : null}
+        <p
+          className="mt-1.5 truncate text-[13px]"
+          style={{ fontFamily: `"${theme.fontBody}", sans-serif` }}
+          aria-hidden
+        >
+          The quick brown fox — {theme.fontBody}
+        </p>
+      </div>
       <div>
         <p className="text-[10px] uppercase tracking-wider mb-1.5">Heading size</p>
         <div className="flex gap-1">

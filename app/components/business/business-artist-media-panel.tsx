@@ -319,7 +319,7 @@ export function BusinessArtistMediaPanel({ businessId }: { businessId: string })
         </>
       )}
 
-      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {hint ? (
         <p className="mt-3 break-all text-sm" style={{ color: KEBU.muted }}>
           {hint}

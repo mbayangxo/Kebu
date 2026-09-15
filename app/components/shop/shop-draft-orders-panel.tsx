@@ -250,7 +250,7 @@ export function ShopDraftOrdersPanel({ projectId }: { projectId: string }) {
               />
             </div>
           </div>
-          {saveError ? <p className="text-xs text-red-700">{saveError}</p> : null}
+          {saveError ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{saveError}</p> : null}
           <button
             type="submit"
             disabled={saving || !form.customer_name.trim() || !form.product_name.trim()}

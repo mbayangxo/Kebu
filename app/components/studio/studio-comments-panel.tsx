@@ -107,7 +107,7 @@ export function StudioCommentsPanel({
         <h3 className="text-sm font-bold">Comments</h3>
         <p className="text-[11px] text-muted mt-0.5">Async feedback — not live cursors.</p>
       </div>
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       <form
         className="space-y-2"
         onSubmit={(e) => {
@@ -172,7 +172,7 @@ export function StudioCommentsPanel({
                   {isOwner || mine ? (
                     <button
                       type="button"
-                      className="text-[11px] font-bold underline text-red-700"
+                      className="text-[11px] font-bold underline" style={{ color: "#8B1E1E" }}
                       disabled={busy}
                       onClick={() => void remove(c.id)}
                     >

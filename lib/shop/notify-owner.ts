@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendOrderNotification } from "@/lib/notifications";
 import { SHOP_TEAM_ROLES } from "@/lib/create/project-access";
+import { sendJokoPartnerMessage } from "@/lib/joko/payments";
+import { normalizeWhatsAppPhone } from "@/lib/create/site-commerce";
 
 export type ShopNotifyChannel =
   | "whatsapp"
@@ -110,6 +112,28 @@ export async function notifyShopOwnerOfOrder(
     }
   } catch {
     /* table may be missing until 067 */
+  }
+
+  // Mbolo → merchant (Joko Partner messaging, falls back to SMS if Mbolo unavailable).
+  if (opts.ownerNotifyPhone) {
+    const phone = normalizeWhatsAppPhone(opts.ownerNotifyPhone);
+    if (phone) {
+      const mboloText = [
+        `🛒 Nouvelle commande — ${opts.businessName}`,
+        `Client : ${opts.customerName} (${opts.customerPhone})`,
+        `Article : ${opts.quantity}× ${opts.productName}`,
+        `Paiement : ${opts.paymentPreference || opts.channel}`,
+        `Ref : ${opts.orderNumber || opts.orderId.slice(0, 8)}`,
+        `kebu.africa/shop/${opts.projectId}`,
+      ].join("\n");
+      sendJokoPartnerMessage({
+        toPhone: `+${phone}`,
+        text: mboloText,
+        channel: "mbolo_auto",
+        metadata: { kind: "merchant_new_order", order_id: opts.orderId, project_id: opts.projectId },
+        idempotencyKey: `new-order-merchant-${opts.orderId}`,
+      }).catch(() => {/* best-effort */});
+    }
   }
 
   try {

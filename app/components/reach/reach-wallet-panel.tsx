@@ -60,7 +60,7 @@ export function ReachWalletPanel() {
           when someone clicks your placement.
         </p>
       </div>
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {note ? <p className="text-[11px] opacity-70">{note}</p> : null}
       <div className="flex flex-wrap gap-2 items-end">
         <label className="text-xs font-semibold">

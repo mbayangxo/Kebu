@@ -3,9 +3,96 @@ import { createServiceClient } from "@/lib/opportunity/admin";
 import { activateSiteSubscriptionPayment } from "@/lib/billing/activate-site-subscription";
 import { parseHostingPlan } from "@/lib/billing/subscriptions";
 import { parseKebuPlanId } from "@/lib/billing/pricing";
-import { verifyJokoWebhookSignature } from "@/lib/joko/payments";
+import { verifyJokoWebhookSignature, sendJokoPartnerMessage } from "@/lib/joko/payments";
+import { normalizeWhatsAppPhone } from "@/lib/create/site-commerce";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * After Joko confirms a shop_order payment, send Mbolo messages to buyer and merchant.
+ * Fire-and-forget — never awaited on the hot path, never throws.
+ */
+async function sendShopOrderPaidMessages(
+  supabase: ReturnType<typeof createServiceClient>,
+  orderId: string,
+  projectId: string,
+): Promise<void> {
+  if (!supabase) return;
+  try {
+    const [orderRes, deployRes] = await Promise.all([
+      supabase
+        .from("shop_orders")
+        .select("customer_name, customer_phone, product_name, quantity, order_number, amount_xof, payment_preference")
+        .eq("id", orderId)
+        .maybeSingle(),
+      supabase
+        .from("deployments")
+        .select("snapshot")
+        .eq("project_id", projectId)
+        .eq("status", "live")
+        .maybeSingle(),
+    ]);
+
+    const order = orderRes.data;
+    if (!order) return;
+
+    const snapshot = deployRes.data?.snapshot as
+      | { seo?: { siteTitle?: string; commerce?: { merchantWhatsApp?: string } } }
+      | null;
+    const shopName = snapshot?.seo?.siteTitle ?? "Kebu Shop";
+    const orderRef = (order as { order_number?: string | null }).order_number ||
+      orderId.slice(0, 8).toUpperCase();
+
+    // — Buyer confirmation —
+    const buyerPhone = normalizeWhatsAppPhone(
+      String((order as { customer_phone?: string | null }).customer_phone ?? ""),
+    );
+    if (buyerPhone) {
+      const xof = (order as { amount_xof?: number | null }).amount_xof;
+      const amtLabel = xof ? ` (${new Intl.NumberFormat("fr-FR").format(xof)} XOF)` : "";
+      const buyerText = [
+        `✅ Paiement reçu — ${shopName}`,
+        `Merci ${(order as { customer_name?: string }).customer_name ?? ""}!`,
+        `Commande #${orderRef}${amtLabel} confirmée.`,
+        `Le vendeur va vous contacter pour la livraison.`,
+      ].join("\n");
+      await sendJokoPartnerMessage({
+        toPhone: `+${buyerPhone}`,
+        text: buyerText,
+        channel: "mbolo_auto",
+        metadata: { kind: "buyer_order_confirmation", order_id: orderId },
+        idempotencyKey: `buyer-confirm-${orderId}`,
+      });
+    }
+
+    // — Merchant new-order alert (merchant phone stored in deployment snapshot seo.commerce) —
+    const rawMerchantPhone = snapshot?.seo?.commerce?.merchantWhatsApp ?? "";
+    const merchantPhone = normalizeWhatsAppPhone(rawMerchantPhone);
+    if (merchantPhone) {
+      const qty = (order as { quantity?: number }).quantity ?? 1;
+      const prod = (order as { product_name?: string }).product_name ?? "produit";
+      const customerName = (order as { customer_name?: string }).customer_name ?? "";
+      const customerPhone = (order as { customer_phone?: string }).customer_phone ?? "";
+      const pay = (order as { payment_preference?: string }).payment_preference ?? "joko";
+      const merchantText = [
+        `💰 Paiement reçu — ${shopName}`,
+        `Client : ${customerName} (${customerPhone})`,
+        `Article : ${qty}× ${prod}`,
+        `Ref : #${orderRef} · ${pay}`,
+        `kebu.africa/shop/${projectId}`,
+      ].join("\n");
+      await sendJokoPartnerMessage({
+        toPhone: `+${merchantPhone}`,
+        text: merchantText,
+        channel: "mbolo_auto",
+        metadata: { kind: "merchant_order_paid", order_id: orderId, project_id: projectId },
+        idempotencyKey: `merchant-paid-${orderId}`,
+      });
+    }
+  } catch {
+    /* fire-and-forget — never blocks the webhook response */
+  }
+}
 
 type JokoWebhookPayload = {
   reference?: string;
@@ -153,6 +240,7 @@ export async function POST(req: NextRequest) {
         reference,
       }),
     );
+    void sendShopOrderPaidMessages(supabase, paid.orderId, paid.projectId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 
@@ -163,6 +251,7 @@ export async function POST(req: NextRequest) {
     if (!paid.ok) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }
+    void sendShopOrderPaidMessages(supabase, paid.orderId, paid.projectId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 

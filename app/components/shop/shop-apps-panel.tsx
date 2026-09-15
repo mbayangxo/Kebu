@@ -105,7 +105,7 @@ function YandeCreditsCard({ projectId }: { projectId: string }) {
               {remaining === 0 && limit > 0 ? (
                 <div className="rounded-xl p-3" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
                   <p className="text-xs font-semibold text-red-800">You&apos;ve used all your AI credits this month.</p>
-                  <p className="mt-1 text-[11px] text-red-700">
+                  <p className="mt-1 text-[11px]" style={{ color: "#8B1E1E" }}>
                     Upgrade to {nextPlan} for more AI generations, or wait until next month.
                   </p>
                   <Link

@@ -52,6 +52,7 @@ export function NavLinksEditor({
   projectId,
   allowIcons = false,
   allowMultiNav = true,
+  pages = [],
 }: {
   links: NavLinkEdit[];
   onChange: (next: NavLinkEdit[]) => void;
@@ -60,6 +61,8 @@ export function NavLinksEditor({
   allowIcons?: boolean;
   /** Hover dropdowns under a top-level tab (Shopify-style). */
   allowMultiNav?: boolean;
+  /** Available pages to pick from when setting child links. */
+  pages?: Array<{ id: string; slug: string; title: string }>;
 }) {
   function move(idx: number, dir: -1 | 1) {
     const next = [...links];
@@ -157,21 +160,23 @@ export function NavLinksEditor({
                     children: on
                       ? (link.children?.length
                           ? link.children
-                          : [{ label: "Subpage", href: link.href || "/page", iconUrl: "" }])
+                          : [{ label: "Sub-page", href: link.href || "/page", iconUrl: "" }])
                       : [],
                   });
                 }}
               />
-              Multi-nav (dropdown on hover)
+              Mega nav / dropdown
             </label>
           ) : null}
           {allowMultiNav && link.multiNav ? (
             <div className="ml-1 space-y-1.5 border-l-2 pl-2" style={{ borderColor: "#FF5500" }}>
-              <p className="text-[9px] font-bold uppercase tracking-wider opacity-60">Pages under this tab</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider" style={{ opacity: 0.6 }}>
+                Sub-pages (shown in dropdown)
+              </p>
               {(link.children ?? []).map((child, childIdx) => (
-                <div key={childIdx} className="space-y-1 rounded-md p-1.5" style={{ background: "#FAFAF8" }}>
+                <div key={childIdx} className="space-y-1 rounded-md p-1.5" style={{ background: "#FAFAF8", border: "1px solid #EEE" }}>
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-[9px] opacity-50">Child {childIdx + 1}</span>
+                    <span className="text-[9px] opacity-50">Item {childIdx + 1}</span>
                     <button
                       type="button"
                       className="text-[9px] font-bold uppercase text-red-600"
@@ -183,20 +188,46 @@ export function NavLinksEditor({
                       Remove
                     </button>
                   </div>
+                  {/* Page picker — if pages available, show a select to link to an existing page */}
+                  {pages.length > 0 ? (
+                    <select
+                      className="w-full text-xs rounded px-2 py-1"
+                      style={{ border: "1px solid #DDE0F0" }}
+                      value={child.href}
+                      onChange={(e) => {
+                        const slug = e.target.value;
+                        const page = pages.find((pg) => `/${pg.slug}` === slug || pg.slug === slug);
+                        patchChild(idx, childIdx, {
+                          href: `/${slug.replace(/^\//, "")}`,
+                          label: child.label || (page?.title ?? ""),
+                        });
+                      }}
+                    >
+                      <option value="">— Pick a page —</option>
+                      {pages.map((pg) => (
+                        <option key={pg.id} value={`/${pg.slug}`}>
+                          {pg.title} (/{pg.slug})
+                        </option>
+                      ))}
+                      <option value="__custom__">Custom URL…</option>
+                    </select>
+                  ) : null}
                   <input
                     className="w-full text-xs rounded px-2 py-1"
                     style={{ border: "1px solid #DDE0F0" }}
                     value={child.label}
-                    placeholder="Child label"
+                    placeholder="Display label"
                     onChange={(e) => patchChild(idx, childIdx, { label: e.target.value })}
                   />
-                  <input
-                    className="w-full text-xs rounded px-2 py-1"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    value={child.href}
-                    placeholder="/page"
-                    onChange={(e) => patchChild(idx, childIdx, { href: e.target.value })}
-                  />
+                  {pages.length === 0 ? (
+                    <input
+                      className="w-full text-xs rounded px-2 py-1"
+                      style={{ border: "1px solid #DDE0F0" }}
+                      value={child.href}
+                      placeholder="/page or https://…"
+                      onChange={(e) => patchChild(idx, childIdx, { href: e.target.value })}
+                    />
+                  ) : null}
                 </div>
               ))}
               <button
@@ -207,12 +238,12 @@ export function NavLinksEditor({
                   patchLink(idx, {
                     children: [
                       ...(link.children ?? []),
-                      { label: "New page", href: "/about", iconUrl: "" },
+                      { label: "", href: pages[0] ? `/${pages[0].slug}` : "/page", iconUrl: "" },
                     ],
                   })
                 }
               >
-                + Add page under tab
+                + Add sub-page
               </button>
             </div>
           ) : null}

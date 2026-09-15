@@ -147,7 +147,7 @@ export function ShopCheckoutEmailVerify({
         <p className="text-[11px] font-semibold text-emerald-800">Email confirmed ✓</p>
       )}
       {msg && !err ? <p className="text-[10px] opacity-70">{msg}</p> : null}
-      {err ? <p className="text-[11px] text-red-700">{err}</p> : null}
+      {err ? <p className="text-[11px]" style={{ color: "#8B1E1E" }}>{err}</p> : null}
       <p className="text-[9px] opacity-50">
         Code goes to the inbox you enter (including your Kebu login email if that is what you use).
       </p>

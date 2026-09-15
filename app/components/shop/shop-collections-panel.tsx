@@ -222,7 +222,7 @@ export function ShopCollectionsPanel({ projectId }: { projectId: string }) {
                 type="button"
                 disabled={busy}
                 onClick={() => void removeCollection(c.id)}
-                className="rounded-full px-3 py-1 text-[10px] font-bold text-red-700 border border-red-200"
+                className="rounded-full px-3 py-1 text-[10px] font-bold border" style={{ color: "#8B1E1E" }}
               >
                 Delete
               </button>

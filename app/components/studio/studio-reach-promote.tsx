@@ -125,7 +125,7 @@ export function StudioReachPromote({
         </button>
       </form>
 
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {createdPath ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs space-y-2">
           <p className="font-semibold text-emerald-900">Link ready</p>

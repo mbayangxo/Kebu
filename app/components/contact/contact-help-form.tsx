@@ -107,7 +107,7 @@ export function ContactHelpForm() {
           className="w-full rounded-xl border px-3 py-2.5 text-sm"
           style={{ borderColor: KEBU.border }}
         />
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {error ? <p className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
         <button
           type="submit"
           disabled={busy}

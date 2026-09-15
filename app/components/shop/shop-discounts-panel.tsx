@@ -140,7 +140,7 @@ export function ShopDiscountsPanel({
           Loading…
         </p>
       ) : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {note ? (
         <p className="text-xs rounded-xl px-3 py-2" style={{ background: KEBU.cream }}>
           {note}

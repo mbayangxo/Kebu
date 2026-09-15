@@ -358,7 +358,7 @@ export function ShopPagesPanel({ projectId }: { projectId: string }) {
           Loading pages…
         </p>
       ) : error ? (
-        <p className="text-sm text-red-700">{error}</p>
+        <p className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
       ) : (
         <ul className="space-y-2">
           {pages.map((page) => (

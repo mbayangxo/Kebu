@@ -1,7 +1,7 @@
 -- 088_shop_purchase_orders: purchase orders from merchant to suppliers
-create table if not exists shop_purchase_orders (
+create table if not exists public.shop_purchase_orders (
   id              uuid primary key default gen_random_uuid(),
-  project_id      uuid not null references projects(id) on delete cascade,
+  project_id      uuid not null references public.projects(id) on delete cascade,
   po_number       text not null,
   supplier_name   text not null,
   supplier_phone  text,
@@ -20,10 +20,9 @@ create table if not exists shop_purchase_orders (
   updated_at      timestamptz not null default now()
 );
 
--- line items
-create table if not exists shop_purchase_order_items (
+create table if not exists public.shop_purchase_order_items (
   id                  uuid primary key default gen_random_uuid(),
-  purchase_order_id   uuid not null references shop_purchase_orders(id) on delete cascade,
+  purchase_order_id   uuid not null references public.shop_purchase_orders(id) on delete cascade,
   product_name        text not null,
   sku                 text,
   qty_ordered         integer not null default 0,
@@ -33,103 +32,45 @@ create table if not exists shop_purchase_order_items (
   created_at          timestamptz not null default now()
 );
 
-create index if not exists shop_pos_project_idx  on shop_purchase_orders(project_id);
-create index if not exists shop_pos_status_idx   on shop_purchase_orders(project_id, status);
-create index if not exists shop_po_items_po_idx  on shop_purchase_order_items(purchase_order_id);
+create index if not exists shop_pos_project_idx  on public.shop_purchase_orders(project_id);
+create index if not exists shop_pos_status_idx   on public.shop_purchase_orders(project_id, status);
+create index if not exists shop_po_items_po_idx  on public.shop_purchase_order_items(purchase_order_id);
 
-alter table shop_purchase_orders enable row level security;
-alter table shop_purchase_order_items enable row level security;
+alter table public.shop_purchase_orders enable row level security;
+alter table public.shop_purchase_order_items enable row level security;
 
--- RLS: owner/collaborator
-create policy "shop_po_select" on shop_purchase_orders
-  for select using (
+drop policy if exists "Owners manage shop_purchase_orders" on public.shop_purchase_orders;
+create policy "Owners manage shop_purchase_orders"
+  on public.shop_purchase_orders for all
+  using (
     exists (
-      select 1 from projects p
-      where p.id = shop_purchase_orders.project_id
-        and (p.owner_id = auth.uid() or exists (
-          select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
-        ))
+      select 1 from public.projects p
+      where p.id = shop_purchase_orders.project_id and p.owner_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.projects p
+      where p.id = shop_purchase_orders.project_id and p.owner_id = auth.uid()
     )
   );
 
-create policy "shop_po_insert" on shop_purchase_orders
-  for insert with check (
+drop policy if exists "Owners manage shop_purchase_order_items" on public.shop_purchase_order_items;
+create policy "Owners manage shop_purchase_order_items"
+  on public.shop_purchase_order_items for all
+  using (
     exists (
-      select 1 from projects p
-      where p.id = shop_purchase_orders.project_id
-        and (p.owner_id = auth.uid() or exists (
-          select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
-        ))
-    )
-  );
-
-create policy "shop_po_update" on shop_purchase_orders
-  for update using (
-    exists (
-      select 1 from projects p
-      where p.id = shop_purchase_orders.project_id
-        and (p.owner_id = auth.uid() or exists (
-          select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
-        ))
-    )
-  );
-
-create policy "shop_po_delete" on shop_purchase_orders
-  for delete using (
-    exists (
-      select 1 from projects p
-      where p.id = shop_purchase_orders.project_id
-        and (p.owner_id = auth.uid() or exists (
-          select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
-        ))
-    )
-  );
-
--- items inherit PO access
-create policy "shop_po_items_select" on shop_purchase_order_items
-  for select using (
-    exists (
-      select 1 from shop_purchase_orders po
-      join projects p on p.id = po.project_id
+      select 1 from public.shop_purchase_orders po
+      join public.projects p on p.id = po.project_id
       where po.id = shop_purchase_order_items.purchase_order_id
-        and (p.owner_id = auth.uid() or exists (
-          select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
-        ))
+        and p.owner_id = auth.uid()
     )
-  );
-
-create policy "shop_po_items_insert" on shop_purchase_order_items
-  for insert with check (
+  )
+  with check (
     exists (
-      select 1 from shop_purchase_orders po
-      join projects p on p.id = po.project_id
+      select 1 from public.shop_purchase_orders po
+      join public.projects p on p.id = po.project_id
       where po.id = shop_purchase_order_items.purchase_order_id
-        and (p.owner_id = auth.uid() or exists (
-          select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
-        ))
-    )
-  );
-
-create policy "shop_po_items_update" on shop_purchase_order_items
-  for update using (
-    exists (
-      select 1 from shop_purchase_orders po
-      join projects p on p.id = po.project_id
-      where po.id = shop_purchase_order_items.purchase_order_id
-        and (p.owner_id = auth.uid() or exists (
-          select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
-        ))
-    )
-  );
-
-create policy "shop_po_items_delete" on shop_purchase_order_items
-  for delete using (
-    exists (
-      select 1 from shop_purchase_orders po
-      join projects p on p.id = po.project_id
-      where po.id = shop_purchase_order_items.purchase_order_id
-        and (p.owner_id = auth.uid() or exists (
-          select 1 from project_collaborators pc where pc.project_id = p.id and pc.user_id = auth.uid()
-        ))
+        and p.owner_id = auth.uid()
     )
   );

@@ -4,10 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BackLink } from "@/app/components/back-link";
 import { KebuMark } from "@/app/components/kebu-mark";
-import { KebuAppSidebar, type PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
+import { KebuNavShell } from "@/app/components/kebu-nav-shell";
+import { KebuOfflineBanner } from "@/app/components/kebu-offline-banner";
+import { KebuCommandPalette, CommandPaletteTrigger } from "@/app/components/kebu-command-palette";
+import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
 import { KebuMobileNav } from "@/app/components/kebu-mobile-nav";
-import { DataModeProvider } from "@/app/components/create/data-mode-provider";
+import { DataModeDock, DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
@@ -58,11 +61,13 @@ export function AppShell({
 
   return (
     <DataModeProvider>
+      <KebuOfflineBanner />
+      <KebuCommandPalette />
       <div
         className="kebu-app min-h-screen flex"
         style={{ background: KEBU.bright, color: KEBU.black }}
       >
-        <KebuAppSidebar portfolioSites={portfolioSites} />
+        <KebuNavShell />
 
         <div className="flex-1 min-w-0 flex flex-col">
           <header
@@ -75,7 +80,6 @@ export function AppShell({
             />
             <div className="flex items-center justify-between gap-2 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <KebuMobileNav />
                 <BackLink fallbackHref={fallback} variant="onDark" />
               </div>
               <p className="text-sm font-bold truncate text-white flex-1 text-center" style={{ fontFamily: "var(--font-fraunces)" }}>
@@ -107,6 +111,7 @@ export function AppShell({
               </h1>
             </div>
             <div className="flex items-center gap-3 shrink-0">
+              <CommandPaletteTrigger />
               {actions}
               <KebuAccountCorner />
             </div>
@@ -121,8 +126,10 @@ export function AppShell({
             </div>
           ) : null}
 
-          <main className="flex-1 min-h-0 pb-6">{children}</main>
+          {/* pb-20 ensures content clears the bottom tab bar on mobile */}
+          <main className="flex-1 min-h-0 pb-20 md:pb-8">{children}</main>
         </div>
+        <DataModeDock />
       </div>
     </DataModeProvider>
   );

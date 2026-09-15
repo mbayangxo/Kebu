@@ -1,7 +1,7 @@
 -- 087_shop_expenses: merchant expense tracking per project
-create table if not exists shop_expenses (
+create table if not exists public.shop_expenses (
   id           uuid primary key default gen_random_uuid(),
-  project_id   uuid not null references projects(id) on delete cascade,
+  project_id   uuid not null references public.projects(id) on delete cascade,
   description  text not null,
   category     text not null default 'other',
   amount_xof   numeric(12,2) not null default 0,
@@ -13,68 +13,23 @@ create table if not exists shop_expenses (
   updated_at   timestamptz not null default now()
 );
 
-create index if not exists shop_expenses_project_id_idx on shop_expenses(project_id);
-create index if not exists shop_expenses_date_idx       on shop_expenses(project_id, date desc);
+create index if not exists shop_expenses_project_id_idx on public.shop_expenses(project_id);
+create index if not exists shop_expenses_date_idx       on public.shop_expenses(project_id, date desc);
 
-alter table shop_expenses enable row level security;
+alter table public.shop_expenses enable row level security;
 
--- owners and collaborators with shop access can manage expenses
-create policy "shop_expenses_select" on shop_expenses
-  for select using (
+drop policy if exists "Owners manage shop_expenses" on public.shop_expenses;
+create policy "Owners manage shop_expenses"
+  on public.shop_expenses for all
+  using (
     exists (
-      select 1 from projects p
-      where p.id = shop_expenses.project_id
-        and (
-          p.owner_id = auth.uid()
-          or exists (
-            select 1 from project_collaborators pc
-            where pc.project_id = p.id and pc.user_id = auth.uid()
-          )
-        )
+      select 1 from public.projects p
+      where p.id = shop_expenses.project_id and p.owner_id = auth.uid()
     )
-  );
-
-create policy "shop_expenses_insert" on shop_expenses
-  for insert with check (
+  )
+  with check (
     exists (
-      select 1 from projects p
-      where p.id = shop_expenses.project_id
-        and (
-          p.owner_id = auth.uid()
-          or exists (
-            select 1 from project_collaborators pc
-            where pc.project_id = p.id and pc.user_id = auth.uid()
-          )
-        )
-    )
-  );
-
-create policy "shop_expenses_update" on shop_expenses
-  for update using (
-    exists (
-      select 1 from projects p
-      where p.id = shop_expenses.project_id
-        and (
-          p.owner_id = auth.uid()
-          or exists (
-            select 1 from project_collaborators pc
-            where pc.project_id = p.id and pc.user_id = auth.uid()
-          )
-        )
-    )
-  );
-
-create policy "shop_expenses_delete" on shop_expenses
-  for delete using (
-    exists (
-      select 1 from projects p
-      where p.id = shop_expenses.project_id
-        and (
-          p.owner_id = auth.uid()
-          or exists (
-            select 1 from project_collaborators pc
-            where pc.project_id = p.id and pc.user_id = auth.uid()
-          )
-        )
+      select 1 from public.projects p
+      where p.id = shop_expenses.project_id and p.owner_id = auth.uid()
     )
   );

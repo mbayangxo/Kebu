@@ -31,7 +31,6 @@ import { ShopNotificationsBell } from "@/app/components/shop/shop-notifications-
 import { ShopMarketsPanel } from "@/app/components/shop/shop-markets-panel";
 import { ShopAppsPanel } from "@/app/components/shop/shop-apps-panel";
 import { ShopPurchaseOrdersPanel } from "@/app/components/shop/shop-purchase-orders-panel";
-import { ShopNewsletterPanel } from "@/app/components/shop/shop-newsletter-panel";
 import { BusinessTeamPanel } from "@/app/components/business/business-team-panel";
 import { ShopSideNav, NAV_GROUPS } from "@/app/components/shop/shop-side-nav";
 import { mergeSiteCommerce, type SiteCommerce } from "@/lib/create/site-commerce";
@@ -44,8 +43,9 @@ import { evaluateKb, measureResponseBytes } from "@/lib/create/kb-budget";
 const VALID_TABS = new Set([
   "overview","products","collections","orders","payments","pages","customers",
   "discounts","abandoned","messages","analytics","sell","gift-cards","reviews",
-  "subscriptions","markets","apps","team","newsletter",
+  "subscriptions","markets","apps","team",
 ]);
+
 
 function parseTab(raw: string | null): string {
   return raw && VALID_TABS.has(raw) ? raw : "overview";
@@ -54,11 +54,11 @@ function parseTab(raw: string | null): string {
 function parseSub(tab: string, raw: string | null): string {
   if (!raw) return "";
   const VALID_SUBS: Record<string, Set<string>> = {
-    orders:    new Set(["all","drafts","shipping"]),
+    orders:    new Set(["all","customer","company","drafts","shipping"]),
     customers: new Set(["all","segments","companies"]),
-    analytics: new Set(["overview","earnings","payouts","expenses"]),
+    analytics: new Set(["overview","analytics","payouts","expenses"]),
     products:  new Set(["all","purchase-orders"]),
-    reviews:   new Set(["all","requests"]),
+    reviews:   new Set(["all"]),
   };
   return VALID_SUBS[tab]?.has(raw) ? raw : "";
 }
@@ -95,11 +95,7 @@ export default function ShopAdminPage() {
   const [error, setError]         = useState<string | null>(null);
   const [loading, setLoading]     = useState(true);
   const [note, setNote]           = useState<string | null>(null);
-  // Start collapsed — useEffect opens it on desktop
-  const [navCollapsed, setNavCollapsed] = useState(true);
-  useEffect(() => {
-    if (window.innerWidth > 720) setNavCollapsed(false);
-  }, []);
+  const [addingSection, setAddingSection] = useState(false);
 
   const commerce: SiteCommerce = mergeSiteCommerce(seo.commerce);
 
@@ -143,6 +139,24 @@ export default function ShopAdminPage() {
     router.replace(`/shop/${projectId}?${params.toString()}`);
   }
 
+  async function ensureProductsOnSite() {
+    setAddingSection(true);
+    setNote(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/sections`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "products" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNote(typeof data.error === "string" ? data.error : "Could not add products block.");
+        return;
+      }
+      setNote("Products block added to your website. Open the builder to pick a grid layout, then publish.");
+    } finally { setAddingSection(false); }
+  }
+
   const bc = breadcrumb(tab, sub);
 
   return (
@@ -155,37 +169,16 @@ export default function ShopAdminPage() {
           sub={sub}
           projectId={projectId}
           title={title}
-          onNavigate={(t, s) => { navigate(t, s); setNavCollapsed(true); }}
-          collapsed={navCollapsed}
-          onToggleCollapse={() => setNavCollapsed((c) => !c)}
+          onNavigate={navigate}
         />
-
-        {/* Mobile backdrop when nav is open */}
-        {!navCollapsed && (
-          <div
-            className="shop-nav-backdrop"
-            onClick={() => setNavCollapsed(true)}
-            aria-hidden
-          />
-        )}
 
         {/* ── Main content ── */}
         <div className="shop-main">
 
           {/* Top bar */}
           <div className="shop-topbar">
-            {/* Hamburger — mobile only, shows when nav is hidden */}
-            <button
-              type="button"
-              className="shop-topbar-hamburger"
-              onClick={() => setNavCollapsed((c) => !c)}
-              aria-label="Open menu"
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-                <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
-            </button>
             <div className="shop-topbar-left">
+              <div className="shop-topbar-eyebrow">Kebu Shop</div>
               <div className="shop-topbar-title">{title}</div>
               {subdomain && (
                 <div className="shop-topbar-subtitle">{subdomain}.kebu.africa</div>
@@ -195,12 +188,28 @@ export default function ShopAdminPage() {
               <ShopStoreSwitcher currentProjectId={projectId} currentTitle={title} />
               <ShopNotificationsBell projectId={projectId} />
               <Link
-                href={`/create/${projectId}`}
-                className="kb-btn-primary hidden sm:inline-flex"
+                href="/shop"
+                className="kb-btn-ghost"
                 style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
               >
-                Edit site
+                All shops
               </Link>
+              <Link
+                href={`/create/${projectId}`}
+                className="kb-btn-primary"
+                style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
+              >
+                Edit website
+              </Link>
+              <button
+                type="button"
+                disabled={addingSection}
+                onClick={() => void ensureProductsOnSite()}
+                className="kb-btn-ghost"
+                style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
+              >
+                {addingSection ? "Adding…" : "Show products on site"}
+              </button>
             </div>
           </div>
 
@@ -281,9 +290,6 @@ export default function ShopAdminPage() {
                     commerce={commerce}
                     businessName={title}
                   />
-                )}
-                {tab === "newsletter" && (
-                  <ShopNewsletterPanel projectId={projectId} sub={sub || "subscribers"} />
                 )}
                 {tab === "messages" && <ShopMessagesPanel projectId={projectId} embedded />}
                 {tab === "apps"     && <ShopAppsPanel projectId={projectId} />}

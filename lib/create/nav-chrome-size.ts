@@ -2,7 +2,7 @@
 export const NAV_SIZE_PRESETS = ["compact", "comfortable", "large", "fullscreen"] as const;
 export type NavSizePreset = (typeof NAV_SIZE_PRESETS)[number];
 
-export const NAV_LAYOUT_PRESETS = ["top", "side"] as const;
+export const NAV_LAYOUT_PRESETS = ["top", "side", "hamburger"] as const;
 export type NavLayoutPreset = (typeof NAV_LAYOUT_PRESETS)[number];
 
 export type NavChromeStyle = {
@@ -25,7 +25,7 @@ export function parseNavSize(raw: unknown): NavSizePreset {
 }
 
 export function parseNavLayout(raw: unknown): NavLayoutPreset {
-  if (raw === "side" || raw === "top") return raw;
+  if (raw === "side" || raw === "top" || raw === "hamburger") return raw;
   return "top";
 }
 

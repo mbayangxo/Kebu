@@ -165,7 +165,7 @@ export function ShopPaymentsPanel({
 
       <label className="block space-y-1.5">
         <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-          WhatsApp number for orders
+          Your phone — WhatsApp &amp; Joko/Mbolo notifications
         </span>
         <input
           className="w-full rounded-xl px-3 py-2.5 text-sm"
@@ -176,6 +176,10 @@ export function ShopPaymentsPanel({
           inputMode="tel"
           autoComplete="tel"
         />
+        <span className="block text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
+          Your phone number is your Joko/Mbolo identity — new-order alerts arrive directly in
+          Mbolo. Also used for WhatsApp orders and SMS fallback.
+        </span>
       </label>
 
       <fieldset className="space-y-3">
@@ -375,10 +379,9 @@ export function ShopPaymentsPanel({
             Offer Joko — buyers pay in Cauris
           </span>
           <span className="mt-0.5 block text-xs leading-relaxed" style={{ color: KEBU.muted }}>
-            Buyers see Joko first (Recommended) and pay an amount in Cauris (Joko’s currency), with XOF/NGN
-            equivalents shown. Wave, Orange, cards, and WhatsApp stay available when you enable them. Paid
-            only after the Joko webhook — never from the browser. Rates are provisional until a live feed
-            is wired.
+            Buyers see Joko first and pay in Cauris (XOF/NGN equivalents shown). After payment, Kebu
+            automatically sends a Mbolo or SMS confirmation to the buyer and an alert to your phone above —
+            no action needed from you. Wave, Orange, cards, and WhatsApp stay available alongside it.
           </span>
         </span>
       </label>

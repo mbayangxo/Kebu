@@ -27,7 +27,7 @@ type BillingSite = {
   } | null;
 };
 
-const PAID_DEFAULT = "shop";
+const PAID_DEFAULT = "starter";
 
 /** My Account — plans + autopay for every site (exempt accounts see free note). */
 export function AccountHostingBilling() {
@@ -35,7 +35,7 @@ export function AccountHostingBilling() {
   const [error, setError] = useState<string | null>(null);
   const [exempt, setExempt] = useState(false);
   const [message, setMessage] = useState("");
-  const [label, setLabel] = useState("$5/month");
+  const [label, setLabel] = useState("$2/site/month");
   const [autopayDescription, setAutopayDescription] = useState("");
   const [plans, setPlans] = useState<PlanOption[]>([]);
   const [sites, setSites] = useState<BillingSite[]>([]);
@@ -62,7 +62,7 @@ export function AccountHostingBilling() {
       }
       setExempt(Boolean(data.billingExempt));
       setMessage(data.message || "");
-      setLabel(data.label || "$5/month");
+      setLabel(data.label || "$2/site/month");
       setAutopayDescription(data.autopayDescription || "");
       setPlans(data.plans ?? []);
       setSites(data.sites ?? []);

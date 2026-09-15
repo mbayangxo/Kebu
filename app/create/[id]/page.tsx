@@ -4,40 +4,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
-import dynamic from "next/dynamic";
-const YandeAssistant = dynamic(
-  () => import("@/app/components/create/yande-assistant").then((m) => ({ default: m.YandeAssistant })),
-  { ssr: false, loading: () => <div className="flex-1 flex items-center justify-center text-sm" style={{ color: "#9CA3AF" }}>Loading Yande…</div> },
-);
-const BuilderAestheticsPanel = dynamic(
-  () => import("@/app/components/create/builder-aesthetics-panel").then((m) => ({ default: m.BuilderAestheticsPanel })),
-  { ssr: false },
-);
-const BuilderSiteChromePanel = dynamic(
-  () => import("@/app/components/create/builder-site-chrome-panel").then((m) => ({ default: m.BuilderSiteChromePanel })),
-  { ssr: false },
-);
-const BuilderSectionListDnd = dynamic(
-  () => import("@/app/components/create/builder-section-list-dnd").then((m) => ({ default: m.BuilderSectionListDnd })),
-  { ssr: false },
-);
-const BuilderPagesPanel = dynamic(
-  () => import("@/app/components/create/builder-pages-panel").then((m) => ({ default: m.BuilderPagesPanel })),
-  { ssr: false },
-);
-const BuilderBlogPanel = dynamic(
-  () => import("@/app/components/create/builder-blog-panel").then((m) => ({ default: m.BuilderBlogPanel })),
-  { ssr: false },
-);
-const BuilderAiPreviewPanel = dynamic(
-  () => import("@/app/components/create/builder-ai-preview-panel").then((m) => ({ default: m.BuilderAiPreviewPanel })),
-  { ssr: false },
-);
+import { BuilderAestheticsPanel } from "@/app/components/create/builder-aesthetics-panel";
+import { YandeAssistant } from "@/app/components/create/yande-assistant";
+import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
-import { BUILDER, labelForSectionType } from "@/lib/create/builder-ui";
+import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
-import { PanelSection } from "@/app/components/create/builder-panel-section";
+import { BuilderSiteChromePanel } from "@/app/components/create/builder-site-chrome-panel";
+import { BuilderBlogPanel } from "@/app/components/create/builder-blog-panel";
 import {
   CHROME_FOOTER_ID,
   CHROME_HEADER_ID,
@@ -50,15 +25,16 @@ import {
 import { defaultMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
-import type { SiteCommerce } from "@/lib/create/site-commerce";
 import type { PublishState } from "@/lib/create/publish-state";
 import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
-import { BuilderSiteCommandBar } from "@/app/components/create/builder-site-command-bar";
+import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
+import { BuilderPagesPanel } from "@/app/components/create/builder-pages-panel";
+import { BuilderAiPreviewPanel } from "@/app/components/create/builder-ai-preview-panel";
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
@@ -85,6 +61,23 @@ import {
   enqueueSaveSection,
   isBrowserOnline,
 } from "@/lib/create/offline-queue";
+
+function SidebarDetails({ title, children, defaultOpen = true }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean }) {
+  return (
+    <details open={defaultOpen} className="group border-b" style={{ borderColor: "#E5E5E5" }}>
+      <summary
+        className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 select-none"
+        style={{ background: "#F7F7F7" }}
+      >
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#5C5C5C" }}>{title}</span>
+        <span className="text-[10px] text-[#ABABAB] transition-transform group-open:rotate-90" aria-hidden>▶</span>
+      </summary>
+      <div className="px-4 py-3 space-y-3">
+        {children}
+      </div>
+    </details>
+  );
+}
 
 type Section = {
   id: string;
@@ -121,13 +114,12 @@ export default function ProjectEditorPage() {
   const [publishing, setPublishing] = useState(false);
   const [payingHosting, setPayingHosting] = useState(false);
   const [publishUrl, setPublishUrl] = useState<string | null>(null);
-  const [publishSuccess, setPublishSuccess] = useState<{ url: string; title: string } | null>(null);
   const [subdomainInput, setSubdomainInput] = useState("");
   const [seoSettings, setSeoSettings] = useState<SiteSeo>(() => defaultSiteSeo());
-  const [, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [, setSettingsNote] = useState<string | null>(null);
+  const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [settingsNote, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
-  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
@@ -140,10 +132,12 @@ export default function ProjectEditorPage() {
     tier?: string;
     plans?: Array<{ id: string; name: string; monthlyUsd: number; hero?: boolean }>;
   } | null>(null);
-  const [checkoutTier, setCheckoutTier] = useState("shop");
+  const [checkoutTier, setCheckoutTier] = useState("starter");
   const [improving, setImproving] = useState(false);
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
+  const [yandeOpen, setYandeOpen] = useState(false);
+  const [yandeDialOpen, setYandeDialOpen] = useState(true);
   const [improveMode, setImproveMode] = useState<"free" | "redesign" | "page" | "rewrite" | "convert">(
     "free",
   );
@@ -167,10 +161,7 @@ export default function ProjectEditorPage() {
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [firstRunStep, setFirstRunStep] = useState(0); // 0=off, 1-3=steps, 4=done
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAppOrigin(window.location.origin);
     const q = new URLSearchParams(window.location.search);
     if (q.get("created") !== "1") return;
@@ -180,34 +171,7 @@ export default function ProjectEditorPage() {
         ? "Yande built this draft from your words. Every page is editable Kebu structure — change anything, then publish."
         : "Draft site created from your words. Yande AI was not used this time (no key or generation fell back). You still have a full editable multi-page site.",
     );
-    // First-run tooltip tour — only once per project
-    try {
-      const key = `kebu-first-run-${params.id}`;
-      if (!localStorage.getItem(key)) {
-        localStorage.setItem(key, "1");
-        setFirstRunStep(1);
-      }
-    } catch { /* localStorage unavailable */ }
-  }, [params.id]);
-
-  // Track elapsed time since last save so the idle state is never blank.
-  useEffect(() => {
-    if (saveState === "saved") {
-      lastSavedAtRef.current = Date.now();
-      setSavedAgoLabel(null);
-    }
-    if (saveState !== "idle") return;
-    if (!lastSavedAtRef.current) return;
-    const tick = () => {
-      const sec = Math.round((Date.now() - (lastSavedAtRef.current ?? 0)) / 1000);
-      if (sec < 60) setSavedAgoLabel("Saved just now");
-      else if (sec < 3600) setSavedAgoLabel(`Saved ${Math.floor(sec / 60)} min ago`);
-      else setSavedAgoLabel("Saved earlier");
-    };
-    tick();
-    const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, [saveState]);
+  }, []);
 
   useEffect(() => {
     if (!previewFullscreen) return;
@@ -315,7 +279,7 @@ export default function ProjectEditorPage() {
             : "free";
         setBilling({
           canPublish: Boolean(billingData.canPublish),
-          label: typeof billingData.label === "string" ? billingData.label : "$5/month",
+          label: typeof billingData.label === "string" ? billingData.label : "$2/site/month",
           periodEnd: billingData.subscription?.periodEnd ?? null,
           billingExempt: Boolean(billingData.billingExempt),
           autopayEnabled: Boolean(billingData.subscription?.autopayEnabled),
@@ -323,7 +287,7 @@ export default function ProjectEditorPage() {
           plans: Array.isArray(billingData.plans) ? billingData.plans : undefined,
         });
         if (tier && tier !== "free") setCheckoutTier(tier);
-        else setCheckoutTier("shop");
+        else setCheckoutTier("starter");
       }
     } catch {
       setError("Network error. Retry.");
@@ -351,8 +315,6 @@ export default function ProjectEditorPage() {
   }
 
   const [kbSaveNote, setKbSaveNote] = useState<string | null>(null);
-  const lastSavedAtRef = useRef<number | null>(null);
-  const [savedAgoLabel, setSavedAgoLabel] = useState<string | null>(null);
 
   async function persistProps(sectionId: string, props: Record<string, unknown>) {
     const mode = resolveClientDataMode();
@@ -361,7 +323,6 @@ export default function ProjectEditorPage() {
       enqueueSaveSection({ projectId, sectionId, props });
       setSaveState("queued");
       setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setTimeout(() => setKbSaveNote(null), 4000);
       setError(null);
       return;
     }
@@ -379,7 +340,6 @@ export default function ProjectEditorPage() {
       const bytes = await measureResponseBytes(res);
       const ev = evaluateKb({ action: "save_section", mode, usedBytes: bytes });
       setKbSaveNote(ev.summary);
-      setTimeout(() => setKbSaveNote(null), 4000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSaveState("error");
@@ -407,13 +367,10 @@ export default function ProjectEditorPage() {
       );
       setSaveState("saved");
       setError(null);
-      // Transition to idle after a brief "Saved ✓" flash so the elapsed timer starts.
-      setTimeout(() => setSaveState("idle"), 2500);
     } catch {
       enqueueSaveSection({ projectId, sectionId, props });
       setSaveState("queued");
       setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setTimeout(() => setKbSaveNote(null), 4000);
       setError(null);
     }
   }
@@ -424,7 +381,6 @@ export default function ProjectEditorPage() {
     if (offline) {
       setSaveState("queued");
       setKbSaveNote("Site header/footer queued until Syncing…");
-      setTimeout(() => setKbSaveNote(null), 4000);
       return;
     }
     setSaveState("saving");
@@ -452,32 +408,9 @@ export default function ProjectEditorPage() {
       );
       setSaveState("saved");
       setError(null);
-      setTimeout(() => setSaveState("idle"), 2500);
     } catch {
       setSaveState("queued");
       setKbSaveNote("Site header/footer queued until Syncing…");
-      setTimeout(() => setKbSaveNote(null), 4000);
-    }
-  }
-
-  function saveAllNow() {
-    sections.forEach((s) => {
-      const timer = saveTimers.current[s.id];
-      if (timer != null) {
-        clearTimeout(timer);
-        delete saveTimers.current[s.id];
-        void persistProps(s.id, s.props as Record<string, unknown>);
-      }
-    });
-    if (chromeSaveTimer.current != null) {
-      clearTimeout(chromeSaveTimer.current);
-      chromeSaveTimer.current = null;
-      if (siteChrome?.header?.props) {
-        void persistChrome("header", siteChrome.header.props as Record<string, unknown>);
-      }
-      if (siteChrome?.footer?.props) {
-        void persistChrome("footer", siteChrome.footer.props as Record<string, unknown>);
-      }
     }
   }
 
@@ -627,7 +560,6 @@ export default function ProjectEditorPage() {
   }
 
   async function deleteSection(sectionId: string) {
-    if (!window.confirm("Delete this section? You can undo with Ctrl+Z.")) return;
     const res = await fetch(`/api/projects/${projectId}/sections`, {
       method: "DELETE",
       credentials: "include",
@@ -642,24 +574,6 @@ export default function ProjectEditorPage() {
       pushHistory(prev);
       return prev.filter((s) => s.id !== sectionId);
     });
-  }
-
-  function reorderBlocksInSection(sectionId: string, fromIndex: number, toIndex: number) {
-    const section = sections.find((s) => s.id === sectionId);
-    if (!section) return;
-    const arrayKey = (() => {
-      if (section.section_type === "free-text" && Array.isArray(section.props.blocks)) return "blocks";
-      if (Array.isArray(section.props.items)) return "items";
-      if (Array.isArray(section.props.links)) return "links";
-      if (Array.isArray(section.props.navLinks)) return "navLinks";
-      return null;
-    })();
-    if (!arrayKey) return;
-    const arr = [...(section.props[arrayKey] as unknown[])];
-    if (fromIndex < 0 || toIndex < 0 || fromIndex >= arr.length || toIndex >= arr.length) return;
-    const [item] = arr.splice(fromIndex, 1);
-    arr.splice(toIndex, 0, item!);
-    updateProps(sectionId, { [arrayKey]: arr });
   }
 
   async function reorderSections(orderedIds: string[]) {
@@ -703,110 +617,30 @@ export default function ProjectEditorPage() {
   }
 
   function undo() {
-    if (history.length === 0) return;
-    const prev = history[history.length - 1]!;
-
-    // Structural: sections in prev missing from current (were deleted) → recreate in DB
-    const toRecreate = prev.filter((s) => !sections.find((c) => c.id === s.id));
-    // Structural: sections in current missing from prev (were added) → delete from DB
-    const toDeleteIds = sections
-      .filter((s) => !prev.find((p) => p.id === s.id))
-      .map((s) => s.id);
-    // Props: sections present in both with changed props
-    const propsChanged = prev.filter((s) => {
-      const cur = sections.find((c) => c.id === s.id);
-      return cur && JSON.stringify(cur.props) !== JSON.stringify(s.props);
+    setHistory((h) => {
+      if (h.length === 0) return h;
+      const prev = h[h.length - 1]!;
+      setFuture((f) => [sections, ...f]);
+      setSections(prev);
+      // Persist each section props best-effort
+      prev.forEach((s) => {
+        void persistProps(s.id, s.props);
+      });
+      return h.slice(0, -1);
     });
-
-    setFuture((f) => [sections, ...f]);
-    setSections(prev);
-    setHistory((h) => h.slice(0, -1));
-
-    propsChanged.forEach((s) => {
-      if (saveTimers.current[s.id] != null) {
-        clearTimeout(saveTimers.current[s.id]);
-        delete saveTimers.current[s.id];
-      }
-      void persistProps(s.id, s.props as Record<string, unknown>);
-    });
-
-    if (toRecreate.length > 0 || toDeleteIds.length > 0) {
-      void Promise.all([
-        ...toRecreate.map((s) =>
-          fetch(`/api/projects/${projectId}/sections`, {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              pageId: (s as typeof s & { page_id: string }).page_id,
-              sectionType: (s as typeof s & { section_type: string }).section_type,
-              props: s.props,
-              sortOrder: (s as typeof s & { sort_order: number }).sort_order,
-            }),
-          }),
-        ),
-        ...toDeleteIds.map((id) =>
-          fetch(`/api/projects/${projectId}/sections`, {
-            method: "DELETE",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sectionId: id }),
-          }),
-        ),
-      ]).then(() => load());
-    }
   }
 
   function redo() {
-    if (future.length === 0) return;
-    const next = future[0]!;
-
-    const toRecreate = next.filter((s) => !sections.find((c) => c.id === s.id));
-    const toDeleteIds = sections
-      .filter((s) => !next.find((p) => p.id === s.id))
-      .map((s) => s.id);
-    const propsChanged = next.filter((s) => {
-      const cur = sections.find((c) => c.id === s.id);
-      return cur && JSON.stringify(cur.props) !== JSON.stringify(s.props);
+    setFuture((f) => {
+      if (f.length === 0) return f;
+      const next = f[0]!;
+      setHistory((h) => [...h, sections]);
+      setSections(next);
+      next.forEach((s) => {
+        void persistProps(s.id, s.props);
+      });
+      return f.slice(1);
     });
-
-    setHistory((h) => [...h, sections]);
-    setSections(next);
-    setFuture((f) => f.slice(1));
-
-    propsChanged.forEach((s) => {
-      if (saveTimers.current[s.id] != null) {
-        clearTimeout(saveTimers.current[s.id]);
-        delete saveTimers.current[s.id];
-      }
-      void persistProps(s.id, s.props as Record<string, unknown>);
-    });
-
-    if (toRecreate.length > 0 || toDeleteIds.length > 0) {
-      void Promise.all([
-        ...toRecreate.map((s) =>
-          fetch(`/api/projects/${projectId}/sections`, {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              pageId: (s as typeof s & { page_id: string }).page_id,
-              sectionType: (s as typeof s & { section_type: string }).section_type,
-              props: s.props,
-              sortOrder: (s as typeof s & { sort_order: number }).sort_order,
-            }),
-          }),
-        ),
-        ...toDeleteIds.map((id) =>
-          fetch(`/api/projects/${projectId}/sections`, {
-            method: "DELETE",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sectionId: id }),
-          }),
-        ),
-      ]).then(() => load());
-    }
   }
 
   async function payHostingWithJoko(opts?: {
@@ -899,11 +733,10 @@ export default function ProjectEditorPage() {
       ...seoSettings,
       ...(patch.seo ?? {}),
       commerce: {
-        ...(seoSettings.commerce ?? {}),
         merchantWhatsApp: seoSettings.commerce?.merchantWhatsApp ?? "",
         preferJokoCheckout: seoSettings.commerce?.preferJokoCheckout ?? false,
         ...(patch.seo?.commerce ?? {}),
-      } as SiteCommerce,
+      },
     };
     if (patch.subdomain !== undefined) setSubdomainInput(patch.subdomain);
     if (patch.seo) setSeoSettings(nextSeo);
@@ -966,7 +799,7 @@ export default function ProjectEditorPage() {
       }
       if (res.status === 402 && data.billingRequired) {
         setError(
-          `Publish needs hosting. Free works on a Kebu subdomain — or pay ${data.monthlyLabel ?? "$5/month"} (Shop) via JOKO.`,
+          `Publish needs a paid plan for a custom domain. Free sites publish on your Kebu subdomain — or upgrade to Starter ($2/site/month) via JOKO.`,
         );
         setBilling((b) => (b ? { ...b, canPublish: false } : b));
         return;
@@ -975,14 +808,7 @@ export default function ProjectEditorPage() {
         setError(typeof data.error === "string" ? data.error : "Publish failed.");
         return;
       }
-      const liveUrl = data.deployment?.public_path ?? data.liveUrl ?? data.publicPath ?? null;
-      setPublishUrl(liveUrl);
-      const fullUrl = liveUrl
-        ? liveUrl.startsWith("http")
-          ? liveUrl
-          : `https://${subdomainInput.trim().toLowerCase()}.kebu.africa`
-        : `https://${subdomainInput.trim().toLowerCase()}.kebu.africa`;
-      setPublishSuccess({ url: fullUrl, title: project?.title ?? "Your site" });
+      setPublishUrl(data.deployment?.public_path ?? data.liveUrl ?? data.publicPath ?? null);
       await load();
     } catch {
       setError("Network error while publishing.");
@@ -1112,8 +938,7 @@ export default function ProjectEditorPage() {
     onSelectSection: (id: string) => {
       setSelectedSectionId(id);
       setSidebarTab("content");
-      // On mobile the panel overlays the whole canvas — only auto-open on desktop
-      if (typeof window !== "undefined" && window.innerWidth >= 640) setLeftPanelOpen(true);
+      setLeftPanelOpen(true);
       const match = sections.find((s) => s.id === id);
       if (match) setEditPageId(match.page_id);
     },
@@ -1136,9 +961,7 @@ export default function ProjectEditorPage() {
       if (isChromeSectionId(id)) return;
       void moveSection(id, dir === "up" ? -1 : 1);
     },
-    onAddSectionAfter: async (type: string, afterSectionId: string | null) => {
-      await addSection(type, undefined, afterSectionId);
-    },
+    // Add/remove sections only from the left Sections rail — not on the canvas.
     onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => {
       const section = sections.find((s) => s.id === sectionId);
       if (!section || section.section_type !== "free-text") return;
@@ -1185,7 +1008,6 @@ export default function ProjectEditorPage() {
   useEffect(() => {
     // Keep Sections panel open by default (Shopify theme editor). Only collapse on tiny screens.
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLeftPanelOpen(false);
     } else {
       setLeftPanelOpen(true);
@@ -1207,217 +1029,27 @@ export default function ProjectEditorPage() {
     .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
     .sort((a, b) => a.sort_order - b.sort_order);
 
-  const hasDraftChanges = Boolean(publishState?.hasUnpublishedChanges);
   const saveStatusLabel =
     saveState === "saving"
       ? "Saving draft…"
       : saveState === "queued"
-        ? "Queued — offline"
+        ? "Not saved yet — queued"
         : saveState === "saved"
-          ? hasDraftChanges ? "Draft saved" : "Saved ✓"
+          ? "Draft saved"
           : saveState === "error"
-            ? "Save failed — retry"
-            : hasDraftChanges
-              ? savedAgoLabel ? `Draft · ${savedAgoLabel}` : "Draft saved — click Publish to go live"
-              : savedAgoLabel ?? "All changes saved";
+            ? "Save failed"
+            : "";
 
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
   /** Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames. */
   const wideCanvas = flagshipCanvas || device === "desktop";
 
-  type BannerItem = { bg: string; fg: string; border?: string; content: React.ReactNode; dismissable?: boolean };
-  const activeBanner = ((): BannerItem | null => {
-    if (!flagshipCanvas) {
-      if (error) return {
-        bg: "#FFF1F0", fg: "#8B1E1E", content: (
-          <span className="flex items-center gap-2 justify-center">
-            <span className="flex-1 text-center">
-              {error}{!subdomainInput.trim() ? <> — <Link href={mySiteDetailHref(projectId)} className="font-bold underline">Open Domain &amp; SEO</Link></> : null}
-            </span>
-            <button type="button" onClick={() => setError(null)} className="shrink-0 text-base font-bold" aria-label="Dismiss">×</button>
-          </span>
-        ),
-      };
-      if (aiPreview) return { bg: "#EFF6FF", fg: "#1D4ED8", content: "Previewing Yande’s proposal — apply to save your draft or discard to revert the canvas." };
-      if (createNote) return { bg: "#F0FDF4", fg: "#166534", content: createNote };
-      if (improveNote) return { bg: "#FFF4EC", fg: "#C2410C", content: improveNote };
-      if (publishState?.hasUnpublishedChanges) return {
-        bg: "#FFF8E8", fg: "#6B5B45", border: "#F0E4C8", content: (
-          <>
-            <strong style={{ color: "#0F0D33" }}>Changes saved to draft.</strong>{" "}
-            {publishState.isLive
-              ? <>Visitors still see your last published version. Click <strong>Publish</strong> to push these changes live.</>
-              : <>Your site isn't live yet. Click <strong>Publish</strong> when you're ready to launch.</>}
-            {publishState.isLive && (publishState.livePublicPath || publishUrl) ? (
-              <> <a href={publishState.livePublicPath?.startsWith("http") ? publishState.livePublicPath : `${appOrigin}${publishState.livePublicPath || publishUrl || ""}`} target="_blank" rel="noreferrer" className="underline font-semibold">View live site →</a></>
-            ) : null}
-          </>
-        ),
-      };
-      if (publishState?.isLive) return {
-        bg: "#E8F8EE", fg: "#1B6B3A", border: "#C8E8D4", content: (
-          <>Live and up to date.{publishUrl ? <> <a href={publishUrl.startsWith("http") ? publishUrl : `${appOrigin}${publishUrl}`} target="_blank" rel="noreferrer" className="underline font-semibold">Open live site</a></> : null}</>
-        ),
-      };
-    }
-    return null;
-  })();
-
   return (
-    <>
-    <div
-      className="flex sm:hidden h-dvh flex-col items-center justify-center gap-5 p-8 text-center"
-      style={{ background: BUILDER.bg, color: BUILDER.ink }}
-    >
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: BUILDER.muted }}>
-        <rect x="2" y="5" width="20" height="14" rx="2" />
-        <path d="M6 19v2M18 19v2M3 19h18" strokeLinecap="round" />
-      </svg>
-      <div>
-        <p className="text-base font-bold mb-1">Open on a larger screen</p>
-        <p className="text-sm leading-relaxed" style={{ color: BUILDER.muted }}>
-          The builder works on desktop or tablet. Open this link on a laptop or desktop to keep editing.
-        </p>
-      </div>
-      <Link
-        href="/my-sites"
-        className="rounded-full px-5 py-2 text-sm font-semibold"
-        style={{ background: BUILDER.ink, color: "#fff" }}
-      >
-        ← My sites
-      </Link>
-    </div>
-    <div className="hidden sm:contents">
     <DataModeProvider>
     <div
       className="relative flex h-dvh flex-col overflow-hidden"
       style={{ background: BUILDER.bg, color: BUILDER.ink }}
     >
-      {publishSuccess ? (
-        <div
-          className="fixed inset-0 z-[999] flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Site published"
-        >
-          {/* Confetti canvas */}
-          <canvas
-            ref={(canvas) => {
-              if (!canvas) return;
-              const W = canvas.width = window.innerWidth;
-              const H = canvas.height = window.innerHeight;
-              const ctx = canvas.getContext("2d");
-              if (!ctx) return;
-              const COLORS = ["#FF5500","#00C851","#FFD600","#FF3B8B","#7B5CF6","#00B4FF","#FF9500"];
-              const particles = Array.from({ length: 120 }, () => ({
-                x: W / 2 + (Math.random() - 0.5) * W * 0.4,
-                y: H * 0.4,
-                vx: (Math.random() - 0.5) * 12,
-                vy: -Math.random() * 14 - 4,
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                size: Math.random() * 8 + 4,
-                rot: Math.random() * Math.PI * 2,
-                rotV: (Math.random() - 0.5) * 0.3,
-                alpha: 1,
-              }));
-              let frame = 0;
-              const tick = () => {
-                ctx.clearRect(0, 0, W, H);
-                for (const p of particles) {
-                  p.vy += 0.45;
-                  p.x += p.vx;
-                  p.y += p.vy;
-                  p.rot += p.rotV;
-                  p.alpha = Math.max(0, 1 - frame / 90);
-                  ctx.save();
-                  ctx.globalAlpha = p.alpha;
-                  ctx.translate(p.x, p.y);
-                  ctx.rotate(p.rot);
-                  ctx.fillStyle = p.color;
-                  ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-                  ctx.restore();
-                }
-                frame++;
-                if (frame < 100) requestAnimationFrame(tick);
-              };
-              requestAnimationFrame(tick);
-            }}
-            className="pointer-events-none absolute inset-0"
-            style={{ width: "100%", height: "100%" }}
-          />
-          <div
-            className="relative w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl kebu-scale-in"
-            style={{ background: "#fff", border: "2px solid #0A0A0A" }}
-          >
-            {/* Animated checkmark */}
-            <div
-              className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ background: "#00C851", animation: "kebu-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}
-            >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <style>{`@keyframes kebu-pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}`}</style>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#00C851" }}>
-              Now live
-            </p>
-            <h2 className="mt-1 text-xl font-black leading-tight" style={{ fontFamily: "var(--font-fraunces)", color: "#0A0A0A" }}>
-              {publishSuccess.title} is live!
-            </h2>
-            <p className="mt-1 text-[11px]" style={{ color: "#6B7280" }}>
-              Your site is live and ready to share.
-            </p>
-            {/* URL box with copy */}
-            <div
-              className="mt-4 flex items-center gap-2 rounded-xl px-3 py-2.5"
-              style={{ background: "#F4F4F5", border: "1px solid #E5E5E5" }}
-            >
-              <a
-                href={publishSuccess.url}
-                target="_blank"
-                rel="noreferrer"
-                className="min-w-0 flex-1 truncate text-left text-[11px] font-mono font-semibold"
-                style={{ color: "#0A0A0A" }}
-              >
-                {publishSuccess.url.replace(/^https?:\/\//, "")}
-              </a>
-              <button
-                type="button"
-                onClick={async () => {
-                  try { await navigator.clipboard.writeText(publishSuccess.url); } catch { /* noop */ }
-                }}
-                className="shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white"
-                style={{ background: "#0A0A0A" }}
-              >
-                Copy
-              </button>
-            </div>
-            {/* Actions */}
-            <div className="mt-4 flex flex-col gap-2">
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Mon site est en ligne — visitez-le ici : ${publishSuccess.url}`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-center gap-2 rounded-full py-2.5 text-[12px] font-bold text-white"
-                style={{ background: "#25D366" }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" /></svg>
-                Partager sur WhatsApp
-              </a>
-              <button
-                type="button"
-                onClick={() => setPublishSuccess(null)}
-                className="rounded-full py-2.5 text-[12px] font-semibold"
-                style={{ border: "1px solid #E5E5E5", color: "#6B7280" }}
-              >
-                Continuer à éditer
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
       <BuilderStudioChrome
         projectId={projectId}
         title={project?.title ?? "Editor"}
@@ -1438,9 +1070,13 @@ export default function ProjectEditorPage() {
         onUndo={undo}
         onRedo={redo}
         publishing={publishing || improving}
-        publishLabel="Publish"
+        publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Publish"}
         onPublish={() => void publish()}
-        onSaveDraft={saveAllNow}
+        onSaveDraft={() => {
+          if (saveState === "idle" || saveState === "saved") {
+            setSaveState("saved");
+          }
+        }}
         savingDraft={saveState === "saving"}
         previewHost={project?.subdomain ? `${project.subdomain}.kebu.africa` : undefined}
         pages={pages
@@ -1538,17 +1174,101 @@ export default function ProjectEditorPage() {
           className="border-b px-4 py-2.5 text-center text-xs font-semibold"
           style={{ background: "#FF5500", color: "#fff" }}
         >
-          Support assist mode — you are helping edit someone else&apos;s site. Changes are audited.
+          Support assist mode — you are helping edit someone else's site. Changes are audited.
         </div>
       ) : null}
 
-      {activeBanner ? (
+      {error ? (
+        <div
+          className="border-b px-4 py-2.5 text-center text-xs"
+          style={{ background: "#FFF1F0", color: "#8B1E1E" }}
+          role="alert"
+        >
+          {error}{" "}
+          {!subdomainInput.trim() ? (
+            <Link href={mySiteDetailHref(projectId)} className="font-bold underline">
+              Open Domain &amp; SEO
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
+      {createNote && !maylecorRussianLayout ? (
         <div
           className="border-b px-4 py-2 text-center text-[11px] font-medium"
-          style={{ background: activeBanner.bg, color: activeBanner.fg, borderColor: activeBanner.border }}
-          role={error ? "alert" : "status"}
+          style={{ background: "#F0FDF4", color: "#166534" }}
+          role="status"
         >
-          {activeBanner.content}
+          {createNote}
+        </div>
+      ) : null}
+
+      {improveNote && !maylecorRussianLayout ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px] font-medium"
+          style={{ background: "#FFF4EC", color: "#C2410C" }}
+          role="status"
+        >
+          {improveNote}
+        </div>
+      ) : null}
+
+      {aiPreview && !maylecorRussianLayout ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px] font-medium"
+          style={{ background: "#EFF6FF", color: "#1D4ED8" }}
+          role="status"
+        >
+          Previewing Yande&apos;s proposal — apply to save your draft or discard to revert the canvas.
+        </div>
+      ) : null}
+
+      {publishState?.hasUnpublishedChanges && !maylecorRussianLayout ? (
+        <div
+          className="border-b px-4 py-2.5 text-center text-xs leading-relaxed"
+          style={{ background: "#FFF8E8", borderColor: "#F0E4C8", color: "#6B5B45" }}
+        >
+          <strong style={{ color: "#0F0D33" }}>You are editing a draft.</strong> Changes save automatically but{" "}
+          <strong>visitors only see your last published version</strong> until you click{" "}
+          <strong>Publish</strong> (top right).
+          {publishState.isLive && (publishState.livePublicPath || publishUrl) ? (
+            <>
+              {" "}
+              Live site:{" "}
+              <a
+                href={
+                  publishState.livePublicPath?.startsWith("http")
+                    ? publishState.livePublicPath
+                    : `${appOrigin}${publishState.livePublicPath || publishUrl || ""}`
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-semibold"
+              >
+                {publishState.livePublicPath || publishUrl}
+              </a>
+            </>
+          ) : null}
+        </div>
+      ) : publishState?.isLive && !maylecorRussianLayout ? (
+        <div
+          className="border-b px-4 py-2 text-center text-[11px]"
+          style={{ background: "#E8F8EE", borderColor: "#C8E8D4", color: "#1B6B3A" }}
+        >
+          Live and up to date. Edit anytime — publish again from the top right when you want changes public.
+          {publishUrl ? (
+            <>
+              {" "}
+              <a
+                href={publishUrl.startsWith("http") ? publishUrl : `${appOrigin}${publishUrl}`}
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-semibold"
+              >
+                Open live site
+              </a>
+            </>
+          ) : null}
         </div>
       ) : null}
 
@@ -1572,77 +1292,44 @@ export default function ProjectEditorPage() {
           </div>
         ) : (
           <>
-            {/* Desktop vertical icon rail — hidden on phones */}
-            <div className="hidden sm:contents">
-              <BuilderStudioRail
-                railTab={sidebarTab}
-                panelOpen={leftPanelOpen}
-                onRail={openStudioTab}
-                extras={
-                  <>
-                    <Link
-                      href={mySiteDetailHref(projectId)}
-                      title="Domain & SEO"
-                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase leading-none"
+            <BuilderStudioRail
+              railTab={sidebarTab}
+              panelOpen={leftPanelOpen}
+              onRail={openStudioTab}
+              extras={
+                <>
+                  <Link
+                    href={mySiteDetailHref(projectId)}
+                    title="Domain & SEO"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase leading-none"
+                    style={{ color: BUILDER.muted }}
+                  >
+                    SEO
+                  </Link>
+                  {maylecorRussianLayout || kdirectionLayout ? (
+                    <button
+                      type="button"
+                      title="Repair layout"
+                      onClick={() => void repairLayout()}
+                      disabled={repairing || loading}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase disabled:opacity-40"
                       style={{ color: BUILDER.muted }}
                     >
-                      SEO
-                    </Link>
-                    {maylecorRussianLayout || kdirectionLayout ? (
-                      <button
-                        type="button"
-                        title="Repair layout"
-                        onClick={() => void repairLayout()}
-                        disabled={repairing || loading}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase disabled:opacity-40"
-                        style={{ color: BUILDER.muted }}
-                      >
-                        Fix
-                      </button>
-                    ) : null}
-                  </>
-                }
-              />
-            </div>
-
-            {/* Mobile backdrop */}
-            {leftPanelOpen && (
-              <div
-                className="absolute inset-0 z-20 bg-black/40"
-                onClick={() => setLeftPanelOpen(false)}
-                aria-hidden
-              />
-            )}
-
-            {/* Desktop slide-over panel (sm+) */}
+                      Fix
+                    </button>
+                  ) : null}
+                </>
+              }
+            />
             <aside
               className={`${
-                leftPanelOpen
-                  ? "absolute sm:relative inset-y-0 left-0 sm:left-auto w-[280px] sm:w-[260px] z-30 sm:z-auto shadow-2xl sm:shadow-none kebu-slide-in-left"
-                  : "hidden sm:hidden"
-              } shrink-0 overflow-y-auto border-r`}
+                leftPanelOpen ? "relative w-[280px] max-w-[92vw]" : "hidden"
+              } shrink-0 min-h-0 overflow-y-auto border-r`}
               style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
             >
-              {/* Mobile close button */}
-              <div className="md:hidden flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#E5E5E5" }}>
-                <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: BUILDER.muted }}>
-                  {sidebarTab === "content" ? "Sections" : sidebarTab === "pages" ? "Pages" : sidebarTab === "aesthetic" ? "Style" : sidebarTab === "media" ? "Photos" : sidebarTab === "nav" ? "Navigation" : "Yande"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setLeftPanelOpen(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg"
-                  style={{ background: "#F0F0F0", color: BUILDER.ink }}
-                  aria-label="Close panel"
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-                    <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
 
               {sidebarTab === "pages" && project ? (
-                <div className="px-4 py-4">
+                <div className="px-3 py-3">
                 <BuilderPagesPanel
                   projectId={projectId}
                   pages={pages}
@@ -1664,6 +1351,24 @@ export default function ProjectEditorPage() {
                     projectId={projectId}
                     onUseOnSite={(asset) => void applyMediaAsset(asset)}
                   />
+                </div>
+              )}
+
+              {sidebarTab === "shop" && (
+                <div className="px-4 py-5 space-y-4">
+                  <div>
+                    <p className="text-[13px] font-semibold mb-1" style={{ color: BUILDER.ink }}>Shop</p>
+                    <p className="text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                      Products, orders, and payments live in Kebu Shop — keep the canvas free for the site.
+                    </p>
+                  </div>
+                  <Link
+                    href={`/shop/${projectId}`}
+                    className="inline-flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-[12px] font-semibold"
+                    style={{ background: BUILDER.ink, color: "#fff" }}
+                  >
+                    Open Shop
+                  </Link>
                 </div>
               )}
 
@@ -1702,6 +1407,7 @@ export default function ProjectEditorPage() {
                         <NavLinksEditor
                           projectId={projectId}
                           links={mapNavLinksForEditor(links)}
+                          pages={pages}
                           onChange={(navLinks) => {
                             if (hero.section_type === "navigation") {
                               updateProps(hero.id, { links: navLinks });
@@ -1834,50 +1540,6 @@ export default function ProjectEditorPage() {
                 </div>
               )}
 
-              {sidebarTab === "yande" && (
-                <div className="px-4 py-4 space-y-4">
-                <YandeAssistant
-                  variant="improve"
-                  value={improveInstruction}
-                  onChange={setImproveInstruction}
-                  onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
-                  busy={improving}
-                  submitLabel={aiPreview ? "Apply changes" : "Preview changes"}
-                />
-                {aiPreview ? (
-                  <BuilderAiPreviewPanel
-                    intents={aiPreview.intents}
-                    sectionChanges={aiPreview.sectionChanges}
-                    acceptedSectionIds={aiPreview.acceptedSectionIds}
-                    busy={improving}
-                    onToggleSection={(sectionId) => {
-                      setAiPreview((prev) => {
-                        if (!prev) return prev;
-                        const next = new Set(prev.acceptedSectionIds);
-                        if (next.has(sectionId)) next.delete(sectionId);
-                        else next.add(sectionId);
-                        return { ...prev, acceptedSectionIds: next };
-                      });
-                    }}
-                    onSelectAll={() => {
-                      setAiPreview((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
-                            }
-                          : prev,
-                      );
-                    }}
-                    onClearAll={() => {
-                      setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
-                    }}
-                    onApply={() => void applyAiPreview()}
-                    onDiscard={discardAiPreview}
-                  />
-                ) : null}
-                </div>
-              )}
 
               {sidebarTab === "content" && (
               <>
@@ -1912,74 +1574,13 @@ export default function ProjectEditorPage() {
                 </div>
               ) : (
                 /* Header shown when no section is selected */
-                <div className="border-b px-4 py-4" style={{ borderColor: BUILDER.border }}>
-                  <p className="text-[14px] font-semibold" style={{ color: BUILDER.ink }}>Sections</p>
-                  <p className="mt-0.5 text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                <div className="border-b px-3 py-2.5" style={{ borderColor: BUILDER.border }}>
+                  <p className="text-[13px] font-semibold" style={{ color: BUILDER.ink }}>Sections</p>
+                  <p className="text-[11px] leading-tight" style={{ color: BUILDER.muted }}>
                     Header · Template · Footer
                   </p>
                 </div>
               )}
-
-              {/* Chrome section inspector — shown when Site header or Site footer is selected */}
-              {selectedSectionId === CHROME_HEADER_ID && siteChrome?.header && (
-                <div className="px-4 py-4 space-y-3">
-                  <input
-                    className="w-full text-sm rounded-lg px-2 py-1.5"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    value={String(siteChrome.header.props.brand ?? "")}
-                    onChange={(e) => updateChromeProps("header", { brand: e.target.value })}
-                    aria-label="Brand name"
-                    placeholder="Brand name"
-                  />
-                  <NavLinksEditor
-                    links={mapNavLinksForEditor(
-                      (siteChrome.header.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
-                    )}
-                    onChange={(links) => updateChromeProps("header", { links })}
-                  />
-                  <NavSizeEditor
-                    scale={clampNavScale(siteChrome.header.props.navScale, 1)}
-                    size={parseNavSize(siteChrome.header.props.navSize)}
-                    layout={parseNavLayout(siteChrome.header.props.navLayout)}
-                    onChange={(patch) => updateChromeProps("header", patch)}
-                  />
-                </div>
-              )}
-              {selectedSectionId === CHROME_FOOTER_ID && siteChrome?.footer && (
-                <div className="px-4 py-4 space-y-3">
-                  <input
-                    className="w-full text-sm rounded-lg px-2 py-1.5"
-                    style={{ border: "1px solid #DDE0F0" }}
-                    placeholder="© Your Brand · 2026"
-                    value={String(siteChrome.footer.props.text ?? "")}
-                    onChange={(e) => updateChromeProps("footer", { text: e.target.value })}
-                  />
-                  <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Footer links</p>
-                  <NavLinksEditor
-                    links={mapNavLinksForEditor(
-                      (siteChrome.footer.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
-                    )}
-                    onChange={(links) => updateChromeProps("footer", { links })}
-                  />
-                </div>
-              )}
-              {selectedSectionId && !editPageSections.find((s) => s.id === selectedSectionId) &&
-                selectedSectionId !== CHROME_HEADER_ID && selectedSectionId !== CHROME_FOOTER_ID && (
-                <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-                  <p className="text-[13px] font-medium" style={{ color: BUILDER.muted }}>
-                    Section not found on this page.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSectionId(null)}
-                    className="text-[11px] underline"
-                    style={{ color: BUILDER.orange }}
-                  >
-                    Back to sections
-                  </button>
-                </div>
-              )}
-
               {!selectedSectionId && pages.length > 1 && (
                 <div className="px-4 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
                   <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
@@ -2007,11 +1608,7 @@ export default function ProjectEditorPage() {
                 </div>
               )}
 
-              {!selectedSectionId && (
-                <PanelSection title="Blog posts">
-                  <BuilderBlogPanel projectId={projectId} />
-                </PanelSection>
-              )}
+              {!selectedSectionId && <BuilderBlogPanel projectId={projectId} />}
 
               {!selectedSectionId && (
               <div className="px-2 py-1 space-y-1" style={{ background: "#ffffff" }}>
@@ -2055,7 +1652,6 @@ export default function ProjectEditorPage() {
                           const s = sections.find((x) => x.id === id);
                           if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
                         }}
-                        onReorderBlocks={(id, from, to) => reorderBlocksInSection(id, from, to)}
                       />
                     </BuilderSectionZone>
                     <BuilderSectionZone zone="lower">
@@ -2098,7 +1694,6 @@ export default function ProjectEditorPage() {
                         const s = sections.find((x) => x.id === id);
                         if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
                       }}
-                      onReorderBlocks={(id, from, to) => reorderBlocksInSection(id, from, to)}
                     />
                   </BuilderSectionZone>
                 )}
@@ -2107,12 +1702,9 @@ export default function ProjectEditorPage() {
 
               {/* Shopify drill-down: section props for the selected section only */}
               {selectedSectionId && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
-                    <div
-                      key={section.id}
-                      className="px-4 py-4 space-y-4"
-                    >
-                      {/* Section actions */}
-                      <div className="flex flex-wrap gap-1.5 pb-3 border-b" style={{ borderColor: BUILDER.border }}>
+                    <div key={section.id} className="pb-2">
+                      {/* Section actions — always visible */}
+                      <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
                           <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, -1)}>
                             ↑ Move up
                           </button>
@@ -2140,199 +1732,201 @@ export default function ProjectEditorPage() {
                             Remove
                           </button>
                         </div>
+                      <SidebarDetails title="Content">
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
-                          <PanelSection title="Text">
-                            <input
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.artistName ?? "")}
-                              onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
-                              aria-label="Artist name"
-                              placeholder="MAY LECOR"
-                            />
-                            <input
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.ctaLabel ?? "")}
-                              onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
-                              aria-label="CTA label"
-                            />
-                          </PanelSection>
-                          <PanelSection title="Photos">
-                            {(
-                              [
-                                ["backgroundImage", "Background"],
-                                ["portraitMain", "Main portrait"],
-                                ["collageTop", "Collage top"],
-                                ["collageMiddle", "Collage middle"],
-                                ["logoBanner", "Logo banner"],
-                                ["bottomLeft", "Bottom left photo"],
-                                ["bottomRight", "Bottom right photo"],
-                                ["logoSmall", "Small logo"],
-                              ] as const
-                            ).map(([key, label]) => (
-                              <SectionPhotoField
-                                key={key}
-                                projectId={projectId}
-                                label={label}
-                                value={String(section.props[key] ?? "")}
-                                onChange={(url) => updateProps(section.id, { [key]: url })}
-                              />
-                            ))}
-                          </PanelSection>
-                          <PanelSection title="Motion & Social">
-                            <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
-                              <input
-                                type="checkbox"
-                                checked={section.props.motionEnabled !== false}
-                                onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
-                              />
-                              Floating motion (cutouts + parallax)
-                            </label>
-                            <SocialLinksEditor
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+                            Words
+                          </p>
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.artistName ?? "")}
+                            onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
+                            aria-label="Artist name"
+                            placeholder="MAY LECOR"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.ctaLabel ?? "")}
+                            onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
+                            aria-label="CTA label"
+                          />
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
+                            Photos — tap upload
+                          </p>
+                          {(
+                            [
+                              ["backgroundImage", "Background"],
+                              ["portraitMain", "Main portrait"],
+                              ["collageTop", "Collage top"],
+                              ["collageMiddle", "Collage middle"],
+                              ["logoBanner", "Logo banner"],
+                              ["bottomLeft", "Bottom left photo"],
+                              ["bottomRight", "Bottom right photo"],
+                              ["logoSmall", "Small logo"],
+                            ] as const
+                          ).map(([key, label]) => (
+                            <SectionPhotoField
+                              key={key}
                               projectId={projectId}
-                              links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
-                                (l) => ({
-                                  label: String(l.label ?? ""),
-                                  href: String(l.href ?? ""),
-                                  iconUrl: String(l.iconUrl ?? ""),
-                                }),
-                              )}
-                              onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
-                              rail={{
-                                visible: section.props.socialRailVisible !== false,
-                                bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
-                                leftPct: Number(section.props.socialRailLeftPct ?? 0),
-                                topPct: Number(section.props.socialRailTopPct ?? 12),
-                                iconSize: Number(section.props.socialRailIconSize ?? 40),
-                              }}
-                              onRailChange={(patch) => updateProps(section.id, patch)}
+                              label={label}
+                              value={String(section.props[key] ?? "")}
+                              onChange={(url) => updateProps(section.id, { [key]: url })}
                             />
-                          </PanelSection>
+                          ))}
+                          <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                            <input
+                              type="checkbox"
+                              checked={section.props.motionEnabled !== false}
+                              onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
+                            />
+                            Floating motion (cutouts + parallax)
+                          </label>
+                          <SocialLinksEditor
+                            projectId={projectId}
+                            links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
+                              (l) => ({
+                                label: String(l.label ?? ""),
+                                href: String(l.href ?? ""),
+                                iconUrl: String(l.iconUrl ?? ""),
+                              }),
+                            )}
+                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                            rail={{
+                              visible: section.props.socialRailVisible !== false,
+                              bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
+                              leftPct: Number(section.props.socialRailLeftPct ?? 0),
+                              topPct: Number(section.props.socialRailTopPct ?? 12),
+                              iconSize: Number(section.props.socialRailIconSize ?? 40),
+                            }}
+                            onRailChange={(patch) => updateProps(section.id, patch)}
+                          />
                         </div>
                       )}
                       {section.section_type === "legally-blonde-hero" && (
                         <div className="space-y-2">
-                          <PanelSection title="Text">
-                            <button
-                              type="button"
-                              className="w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold"
-                              style={{ border: "1px solid #FF5500", color: "#FF5500" }}
-                              onClick={() =>
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
+                            May Lecor hero
+                          </p>
+                          <button
+                            type="button"
+                            className="w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold"
+                            style={{ border: "1px solid #FF5500", color: "#FF5500" }}
+                            onClick={() =>
+                              updateProps(section.id, {
+                                ...defaultMaylecorKsendrProps(
+                                  String(section.props.title ?? section.props.brandLabel ?? "MAY LECOR"),
+                                ),
+                              })
+                            }
+                          >
+                            Restore May circle + cutouts
+                          </button>
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.title ?? "")}
+                            onChange={(e) =>
+                              updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
+                            }
+                            aria-label="Title"
+                            placeholder="Artist or brand name"
+                          />
+                          <textarea
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            rows={3}
+                            value={String(section.props.subtitle ?? "")}
+                            onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
+                            aria-label="Subtitle"
+                            placeholder="Short bio or tagline"
+                          />
+                          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                            Center mark uses the May Lècor circle seal (not Russian text). Swap cutouts in Media or on the canvas.
+                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: "#FF5500" }}>
+                            Top bar logo (clicks → home)
+                          </p>
+                          <label className="flex items-center gap-2 text-[11px] font-semibold">
+                            <input
+                              type="checkbox"
+                              checked={section.props.showChromeLogo !== false}
+                              onChange={(e) => updateProps(section.id, { showChromeLogo: e.target.checked })}
+                            />
+                            Show small May logo in the upper bar
+                          </label>
+                          {section.props.showChromeLogo !== false ? (
+                            <SectionPhotoField
+                              projectId={projectId}
+                              label="Upper logo (optional — leave default or upload)"
+                              value={String(section.props.chromeLogo ?? "")}
+                              onChange={(url) => updateProps(section.id, { chromeLogo: url })}
+                            />
+                          ) : null}
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Nav look
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.navDisplay ?? "text")}
+                              onChange={(e) =>
                                 updateProps(section.id, {
-                                  ...defaultMaylecorKsendrProps(
-                                    String(section.props.title ?? section.props.brandLabel ?? "MAY LECOR"),
-                                  ),
+                                  navDisplay: e.target.value as "text" | "icons" | "photos",
                                 })
                               }
                             >
-                              Restore May circle + cutouts
-                            </button>
-                            <input
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
+                              <option value="text">Words</option>
+                              <option value="icons">Built-in icons</option>
+                              <option value="photos">Photos / custom icons</option>
+                            </select>
+                          </label>
+                          <NavLinksEditor
+                            projectId={projectId}
+                            allowIcons
+                            pages={pages}
+                            links={mapNavLinksForEditor(
+                              (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
+                            )}
+                            onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                          />
+                          <NavSizeEditor
+                            scale={clampNavScale(section.props.navScale, 1)}
+                            size={parseNavSize(section.props.navSize)}
+                            layout={parseNavLayout(section.props.navLayout)}
+                            logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
+                            onChange={(patch) => updateProps(section.id, patch)}
+                          />
+                          <label className="block text-[10px] uppercase tracking-wider">
+                            Display font (Steelfish recommended)
+                            <select
+                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
                               style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.title ?? "")}
-                              onChange={(e) =>
-                                updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
-                              }
-                              aria-label="Title"
-                              placeholder="Artist or brand name"
-                            />
-                            <textarea
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              rows={3}
-                              value={String(section.props.subtitle ?? "")}
-                              onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
-                              aria-label="Subtitle"
-                              placeholder="Short bio or tagline"
-                            />
-                            <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                              Center mark uses the May Lècor circle seal. Swap cutouts in Media or on the canvas.
-                            </p>
-                          </PanelSection>
-                          <PanelSection title="Navigation">
-                            <label className="flex items-center gap-2 text-[11px] font-semibold">
-                              <input
-                                type="checkbox"
-                                checked={section.props.showChromeLogo !== false}
-                                onChange={(e) => updateProps(section.id, { showChromeLogo: e.target.checked })}
-                              />
-                              Show logo in upper bar
-                            </label>
-                            {section.props.showChromeLogo !== false ? (
-                              <SectionPhotoField
-                                projectId={projectId}
-                                label="Upper logo (optional)"
-                                value={String(section.props.chromeLogo ?? "")}
-                                onChange={(url) => updateProps(section.id, { chromeLogo: url })}
-                              />
-                            ) : null}
-                            <label className="block text-[10px] uppercase tracking-wider">
-                              Nav look
-                              <select
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
-                                value={String(section.props.navDisplay ?? "text")}
-                                onChange={(e) =>
-                                  updateProps(section.id, {
-                                    navDisplay: e.target.value as "text" | "icons" | "photos",
-                                  })
-                                }
-                              >
-                                <option value="text">Words</option>
-                                <option value="icons">Built-in icons</option>
-                                <option value="photos">Photos / custom icons</option>
-                              </select>
-                            </label>
-                            <NavLinksEditor
-                              projectId={projectId}
-                              allowIcons
-                              links={mapNavLinksForEditor(
-                                (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
-                              )}
-                              onChange={(navLinks) => updateProps(section.id, { navLinks })}
-                            />
-                            <NavSizeEditor
-                              scale={clampNavScale(section.props.navScale, 1)}
-                              size={parseNavSize(section.props.navSize)}
-                              layout={parseNavLayout(section.props.navLayout)}
-                              onChange={(patch) => updateProps(section.id, patch)}
-                            />
-                            <label className="block text-[10px] uppercase tracking-wider">
-                              Display font
-                              <select
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
-                                value={String(section.props.displayFont ?? "Steelfish")}
-                                onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
-                              >
-                                {(
-                                  [
-                                    ["Steelfish", "Steelfish (bold condensed)"],
-                                    ["Oswald", "Oswald (strong titles)"],
-                                    ["Bebas Neue", "Bebas Neue (all-caps display)"],
-                                    ["Lobster", "Lobster (script)"],
-                                    ["Dancing Script", "Dancing Script (elegant script)"],
-                                    ["Great Vibes", "Great Vibes (formal script)"],
-                                    ["Pacifico", "Pacifico (fun script)"],
-                                    ["Abril Fatface", "Abril Fatface (bold serif)"],
-                                    ["Playfair Display", "Playfair Display (classic serif)"],
-                                    ["Fraunces", "Fraunces (editorial)"],
-                                    ["Syne", "Syne (modern sans)"],
-                                    ["Georgia", "Georgia"],
-                                    ["system-ui", "System default"],
-                                  ] as const
-                                ).map(([f, label]) => (
-                                  <option key={f} value={f}>
-                                    {label}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          </PanelSection>
-                          <PanelSection title="Layers & Photos">
+                              value={String(section.props.displayFont ?? "Steelfish")}
+                              onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
+                            >
+                              {(
+                                [
+                                  "Steelfish",
+                                  "Oswald",
+                                  "Bebas Neue",
+                                  "Playfair Display",
+                                  "Fraunces",
+                                  "Syne",
+                                  "Georgia",
+                                  "system-ui",
+                                ] as const
+                              ).map((f) => (
+                                <option key={f} value={f}>
+                                  {f}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
+                            May Lecor layers — drag on canvas or upload here
+                          </p>
                           <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
                             Remove background = solid accent color. Replace cutouts on the canvas or upload below.
                           </p>
@@ -2424,7 +2018,6 @@ export default function ProjectEditorPage() {
                                     widthPct: 14,
                                     rotate: -6,
                                     zIndex: 14,
-                                    parallaxRole: "figure",
                                   },
                                 ],
                               });
@@ -2444,21 +2037,6 @@ export default function ProjectEditorPage() {
                                   updateProps(section.id, { extraCutouts: next });
                                 }}
                               />
-                              <select
-                                className="w-full text-xs rounded px-2 py-1"
-                                style={{ border: "1px solid #DDE0F0", background: "#fff" }}
-                                value={String((cut as { parallaxRole?: string }).parallaxRole ?? "figure")}
-                                onChange={(e) => {
-                                  const next = [...((section.props.extraCutouts as typeof cut[]) ?? [])];
-                                  next[idx] = { ...next[idx]!, parallaxRole: e.target.value } as typeof cut;
-                                  updateProps(section.id, { extraCutouts: next });
-                                }}
-                                aria-label="Scroll behavior"
-                              >
-                                <option value="figure">Person — scrolls up slowly</option>
-                                <option value="city">Background — scrolls back fast</option>
-                                <option value="none">Static — stays in place</option>
-                              </select>
                               <input
                                 className="w-full text-xs rounded px-2 py-1"
                                 style={{ border: "1px solid #DDE0F0" }}
@@ -2511,10 +2089,11 @@ export default function ProjectEditorPage() {
                             />
                             One-screen home (off = full scroll scene)
                           </label>
-                          </PanelSection>
-                          <PanelSection title="Social & Layer Order">
+                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
+                            Music / social links
+                          </p>
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                            Add, remove, reorder links here. Drag the rail on the canvas.
+                            Add, remove, reorder, and set links only here. On the canvas you can drag the rail — not edit icons.
                           </p>
                           <SocialLinksEditor
                             projectId={projectId}
@@ -2619,8 +2198,7 @@ export default function ProjectEditorPage() {
                                     onChange={(e) => {
                                       const layerLinks = { ...linkMap, [layer.key]: e.target.value };
                                       if (!e.target.value.trim()) {
-                                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                                        const { [layer.key]: _removed, ...rest } = linkMap;
+                                        const { [layer.key]: _, ...rest } = linkMap;
                                         updateProps(section.id, { layerLinks: rest });
                                         return;
                                       }
@@ -2631,7 +2209,6 @@ export default function ProjectEditorPage() {
                               );
                             })}
                           </ul>
-                          </PanelSection>
                         </div>
                       )}
                       {section.section_type === "kdirection-home" && (
@@ -2906,6 +2483,7 @@ export default function ProjectEditorPage() {
                             </div>
                           ))}
                           <NavLinksEditor
+                            pages={pages}
                             links={mapNavLinksForEditor(
                               (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
@@ -2915,6 +2493,7 @@ export default function ProjectEditorPage() {
                             scale={clampNavScale(section.props.navScale, 1)}
                             size={parseNavSize(section.props.navSize)}
                             layout={parseNavLayout(section.props.navLayout)}
+                            logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
                             onChange={(patch) => updateProps(section.id, patch)}
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
@@ -2975,6 +2554,7 @@ export default function ProjectEditorPage() {
                             Dark overlay
                           </label>
                           <NavLinksEditor
+                            pages={pages}
                             links={mapNavLinksForEditor(
                               (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
@@ -2984,6 +2564,7 @@ export default function ProjectEditorPage() {
                             scale={clampNavScale(section.props.navScale, 1)}
                             size={parseNavSize(section.props.navSize)}
                             layout={parseNavLayout(section.props.navLayout)}
+                            logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
                             onChange={(patch) => updateProps(section.id, patch)}
                           />
                         </div>
@@ -3148,6 +2729,7 @@ export default function ProjectEditorPage() {
                             placeholder="Brand name"
                           />
                           <NavLinksEditor
+                            pages={pages}
                             links={mapNavLinksForEditor(
                               (section.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
@@ -3157,6 +2739,7 @@ export default function ProjectEditorPage() {
                             scale={clampNavScale(section.props.navScale, 1)}
                             size={parseNavSize(section.props.navSize)}
                             layout={parseNavLayout(section.props.navLayout)}
+                            logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
                             onChange={(patch) => updateProps(section.id, patch)}
                           />
                         </div>
@@ -3172,6 +2755,7 @@ export default function ProjectEditorPage() {
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Footer links</p>
                           <NavLinksEditor
+                            pages={pages}
                             links={mapNavLinksForEditor((section.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [])}
                             onChange={(links) => updateProps(section.id, { links })}
                           />
@@ -3247,46 +2831,18 @@ export default function ProjectEditorPage() {
                               <div key={idx} className="space-y-1.5 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
                                 <div className="flex items-center justify-between">
                                   <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Item {idx + 1}</span>
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      disabled={idx === 0}
-                                      className="text-[11px] disabled:opacity-20"
-                                      style={{ color: BUILDER.muted }}
-                                      aria-label="Move item up"
-                                      onClick={() => {
-                                        const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                        const [item] = items.splice(idx, 1);
-                                        items.splice(idx - 1, 0, item!);
-                                        updateProps(section.id, { items });
-                                      }}
-                                    >↑</button>
-                                    <button
-                                      type="button"
-                                      disabled={idx === (Array.isArray(section.props.items) ? section.props.items : []).length - 1}
-                                      className="text-[11px] disabled:opacity-20"
-                                      style={{ color: BUILDER.muted }}
-                                      aria-label="Move item down"
-                                      onClick={() => {
-                                        const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                        const [item] = items.splice(idx, 1);
-                                        items.splice(idx + 1, 0, item!);
-                                        updateProps(section.id, { items });
-                                      }}
-                                    >↓</button>
-                                    <button
-                                      type="button"
-                                      className="text-[10px] font-semibold"
-                                      style={{ color: "#B91C1C" }}
-                                      onClick={() => {
-                                        const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
-                                        items.splice(idx, 1);
-                                        updateProps(section.id, { items });
-                                      }}
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    className="text-[10px] font-semibold"
+                                    style={{ color: "#B91C1C" }}
+                                    onClick={() => {
+                                      const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                      items.splice(idx, 1);
+                                      updateProps(section.id, { items });
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
                                 </div>
                                 <input
                                   className="w-full text-sm rounded-lg px-2 py-1"
@@ -3361,14 +2917,6 @@ export default function ProjectEditorPage() {
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
                             (item: { question?: string; answer?: string }, idx: number) => (
                               <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Q {idx + 1}</span>
-                                  <div className="flex items-center gap-1">
-                                    <button type="button" disabled={idx === 0} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move up" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx - 1, 0, it!); updateProps(section.id, { items }); }}>↑</button>
-                                    <button type="button" disabled={idx === (Array.isArray(section.props.items) ? section.props.items : []).length - 1} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move down" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx + 1, 0, it!); updateProps(section.id, { items }); }}>↓</button>
-                                    <button type="button" className="text-[10px] font-semibold" style={{ color: "#B91C1C" }} onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; items.splice(idx, 1); updateProps(section.id, { items }); }}>×</button>
-                                  </div>
-                                </div>
                                 <input
                                   className="w-full text-sm rounded-lg px-2 py-1"
                                   style={{ border: "1px solid #DDE0F0" }}
@@ -3426,11 +2974,18 @@ export default function ProjectEditorPage() {
                               <div key={idx} className="space-y-1.5 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
                                 <div className="flex items-center justify-between">
                                   <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Quote {idx + 1}</span>
-                                  <div className="flex items-center gap-1">
-                                    <button type="button" disabled={idx === 0} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move up" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx - 1, 0, it!); updateProps(section.id, { items }); }}>↑</button>
-                                    <button type="button" disabled={idx === (Array.isArray(section.props.items) ? section.props.items : []).length - 1} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move down" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx + 1, 0, it!); updateProps(section.id, { items }); }}>↓</button>
-                                    <button type="button" className="text-[10px] font-semibold" style={{ color: "#B91C1C" }} onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; items.splice(idx, 1); updateProps(section.id, { items }); }}>×</button>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    className="text-[10px] font-semibold"
+                                    style={{ color: "#B91C1C" }}
+                                    onClick={() => {
+                                      const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                      items.splice(idx, 1);
+                                      updateProps(section.id, { items });
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
                                 </div>
                                 <textarea
                                   className="w-full text-sm rounded-lg px-2 py-1 min-h-[70px]"
@@ -3535,14 +3090,6 @@ export default function ProjectEditorPage() {
                               <option value={2}>2</option>
                               <option value={3}>3</option>
                             </select>
-                          </label>
-                          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(section.props.fullWidth)}
-                              onChange={(e) => updateProps(section.id, { fullWidth: e.target.checked })}
-                            />
-                            Full page width (edge-to-edge)
                           </label>
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
                             Videos — YouTube / Vimeo link, upload, or custom thumbnail
@@ -3745,11 +3292,17 @@ export default function ProjectEditorPage() {
                                     updateProps(section.id, { items });
                                   }}
                                 />
-                                <div className="flex items-center gap-1 pt-0.5">
-                                  <button type="button" disabled={idx === 0} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move up" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx - 1, 0, it!); updateProps(section.id, { items }); }}>↑</button>
-                                  <button type="button" disabled={idx === (Array.isArray(section.props.items) ? section.props.items : []).length - 1} className="text-[11px] disabled:opacity-20" style={{ color: BUILDER.muted }} aria-label="Move down" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; const [it] = items.splice(idx, 1); items.splice(idx + 1, 0, it!); updateProps(section.id, { items }); }}>↓</button>
-                                  <button type="button" className="text-[10px] text-red-600" onClick={() => { const items = [...(Array.isArray(section.props.items) ? section.props.items : [])]; items.splice(idx, 1); updateProps(section.id, { items }); }}>Remove photo</button>
-                                </div>
+                                <button
+                                  type="button"
+                                  className="text-[10px] text-red-600"
+                                  onClick={() => {
+                                    const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
+                                    items.splice(idx, 1);
+                                    updateProps(section.id, { items });
+                                  }}
+                                >
+                                  Remove photo
+                                </button>
                               </div>
                             ),
                           )}
@@ -3875,148 +3428,6 @@ export default function ProjectEditorPage() {
                             onChange={(e) => updateProps(section.id, { orderCtaLabel: e.target.value })}
                             placeholder="Order button label"
                           />
-                          {/* Full width toggle */}
-                          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(section.props.fullWidth)}
-                              onChange={(e) => updateProps(section.id, { fullWidth: e.target.checked })}
-                            />
-                            Full page width (edge-to-edge)
-                          </label>
-
-                          {/* Hover zoom toggle */}
-                          <label className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(section.props.hoverZoom)}
-                              onChange={(e) => updateProps(section.id, { hoverZoom: e.target.checked })}
-                            />
-                            Hover zoom on product images
-                          </label>
-
-                          {/* Filter mode */}
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
-                            Filter nav
-                          </p>
-                          <div className="grid grid-cols-3 gap-1.5">
-                            {(
-                              [
-                                ["none", "None"],
-                                ["horizontal", "Horizontal"],
-                                ["sidebar", "Sidebar"],
-                              ] as const
-                            ).map(([id, label]) => {
-                              const on = String(section.props.filterMode ?? "none") === id;
-                              return (
-                                <button
-                                  key={id}
-                                  type="button"
-                                  onClick={() => updateProps(section.id, { filterMode: id })}
-                                  className="rounded-lg px-1.5 py-2 text-[9px] font-bold uppercase tracking-wider"
-                                  style={{
-                                    background: on ? BUILDER.ink : BUILDER.surfaceMuted,
-                                    color: on ? "#fff" : BUILDER.ink,
-                                    border: `1px solid ${BUILDER.border}`,
-                                  }}
-                                  aria-pressed={on}
-                                >
-                                  {label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          {String(section.props.filterMode ?? "none") !== "none" ? (
-                            <div className="space-y-1">
-                              <p className="text-[10px] opacity-60">Filter tags — one per line (e.g. Size S, Color Red)</p>
-                              <textarea
-                                className="w-full text-xs rounded-lg px-2 py-1.5 min-h-[64px]"
-                                style={{ border: "1px solid #DDE0F0", resize: "vertical" }}
-                                value={((section.props.filterFields as string[]) ?? []).join("\n")}
-                                placeholder={"Size S\nSize M\nColor Red\nColor Black"}
-                                onChange={(e) =>
-                                  updateProps(section.id, {
-                                    filterFields: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
-                                  })
-                                }
-                              />
-                            </div>
-                          ) : null}
-
-                          {/* Banner section */}
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
-                            Banner (optional)
-                          </p>
-                          <SectionPhotoField
-                            projectId={projectId}
-                            label="Banner image"
-                            value={String(section.props.bannerImageUrl ?? "")}
-                            onChange={(url) => updateProps(section.id, { bannerImageUrl: url })}
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.bannerText ?? "")}
-                            onChange={(e) => updateProps(section.id, { bannerText: e.target.value })}
-                            placeholder="Banner text overlay (optional)"
-                          />
-
-                          {/* Related products per item */}
-                          {(() => {
-                            const items = (section.props.items as { name: string; productId?: string; relatedProductIds?: string[] }[] | undefined) ?? [];
-                            if (items.length < 2) return null;
-                            return (
-                              <div className="space-y-2">
-                                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
-                                  &ldquo;You might also like&rdquo; per product
-                                </p>
-                                {items.map((item, idx) => {
-                                  const others = items.filter((_, i) => i !== idx);
-                                  const currentRelated = item.relatedProductIds ?? [];
-                                  return (
-                                    <details key={item.productId ?? item.name ?? idx} className="rounded-lg overflow-hidden" style={{ border: `1px solid ${BUILDER.border}` }}>
-                                      <summary className="cursor-pointer px-2.5 py-1.5 text-[10px] font-semibold" style={{ background: BUILDER.surfaceMuted, listStyle: "none" }}>
-                                        {item.name}
-                                        {currentRelated.length > 0 ? (
-                                          <span className="ml-1.5 opacity-50">({currentRelated.length} related)</span>
-                                        ) : null}
-                                      </summary>
-                                      <div className="px-2.5 py-2 space-y-1">
-                                        {others.map((other) => {
-                                          const isChecked = other.productId
-                                            ? currentRelated.includes(other.productId)
-                                            : false;
-                                          return (
-                                            <label key={other.productId ?? other.name} className="flex items-center gap-1.5 text-[10px] cursor-pointer">
-                                              <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={(e) => {
-                                                  const newItems = items.map((it, i) => {
-                                                    if (i !== idx) return it;
-                                                    const prev = it.relatedProductIds ?? [];
-                                                    const pid = other.productId;
-                                                    if (!pid) return it;
-                                                    const next = e.target.checked
-                                                      ? [...prev, pid]
-                                                      : prev.filter((id) => id !== pid);
-                                                    return { ...it, relatedProductIds: next };
-                                                  });
-                                                  updateProps(section.id, { items: newItems });
-                                                }}
-                                              />
-                                              {other.name}
-                                            </label>
-                                          );
-                                        })}
-                                      </div>
-                                    </details>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })()}
-
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Catalog lives in{" "}
                             <Link href={`/shop/${projectId}?tab=products`} className="font-bold underline" style={{ color: "#FF5500" }}>
@@ -4062,7 +3473,7 @@ export default function ProjectEditorPage() {
                         <div className="space-y-2">
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Overlay on the live site. Emails save to your business list (same as Email list).
-                            Consent is stored in the visitor&apos;s browser — not a full legal cookie platform.
+                            Consent is stored in the visitor's browser — not a full legal cookie platform.
                           </p>
                           <label className="flex items-center gap-2 text-[11px]">
                             <input
@@ -4422,72 +3833,50 @@ export default function ProjectEditorPage() {
                           </label>
                         </div>
                       )}
-                      {section.section_type === "countdown" && (
-                        <div className="space-y-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Countdown</p>
-                          <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
-                            Launch date &amp; time
-                            <input
-                              type="datetime-local"
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              value={section.props.target ? String(section.props.target).slice(0, 16) : ""}
-                              onChange={(e) =>
-                                updateProps(section.id, { target: e.target.value ? e.target.value + ":00Z" : "" })
-                              }
-                            />
-                          </label>
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
-                            placeholder="Heading"
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.subheading ?? "")}
-                            onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
-                            placeholder="Subheading"
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.expiredMessage ?? "")}
-                            onChange={(e) => updateProps(section.id, { expiredMessage: e.target.value })}
-                            placeholder="Message after launch (e.g. We're live!)"
-                          />
-                          <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
-                            Layout
-                            <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.layout ?? "hero")}
-                              onChange={(e) => updateProps(section.id, { layout: e.target.value })}
-                            >
-                              <option value="hero">Hero (full-width)</option>
-                              <option value="strip">Strip (compact bar)</option>
-                              <option value="card">Card</option>
-                            </select>
-                          </label>
-                        </div>
-                      )}
-                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "email-popup", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page", "editorial-hero", "announcement-bar", "marquee", "split", "countdown"].includes(
+                      {!["hero", "text", "free-text", "navigation", "footer", "whatsapp", "contact", "features", "faq", "testimonials", "video", "audio", "map", "events", "image", "gallery", "products", "newsletter", "email-popup", "maylecor-home", "maylecor-music", "legally-blonde-hero", "kdirection-home", "kdirection-page", "editorial-hero", "announcement-bar", "marquee", "split"].includes(
                         section.section_type
                       ) && (
                         <p className="text-[11px]" style={{ color: "#8A8578" }}>
                           You can reorder or hide this section. Use Yande to rewrite copy.
                         </p>
                       )}
-                      <label className="flex items-center gap-2 mt-2 text-[11px]">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(section.props.hidden)}
-                          onChange={(e) => updateProps(section.id, { hidden: e.target.checked })}
-                        />
-                        Hide section
-                      </label>
+                      </SidebarDetails>
+                      <SidebarDetails title="Layout & Visibility" defaultOpen={false}>
+                        {/* Section vertical spacing control */}
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                            Section height
+                          </p>
+                          <div className="flex gap-1">
+                            {(["tight", "normal", "spacious", "open"] as const).map((id) => {
+                              const on = (section.props.sectionPaddingY ?? "normal") === id;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => updateProps(section.id, { sectionPaddingY: id })}
+                                  className="flex-1 rounded py-1 text-[9px] font-bold uppercase"
+                                  style={{
+                                    background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                                    color: on ? "#fff" : BUILDER.muted,
+                                    border: `1px solid ${BUILDER.border}`,
+                                  }}
+                                >
+                                  {id}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <label className="flex items-center gap-2 text-[11px]">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(section.props.hidden)}
+                            onChange={(e) => updateProps(section.id, { hidden: e.target.checked })}
+                          />
+                          Hide section
+                        </label>
+                      </SidebarDetails>
                     </div>
                   ))}
               </>
@@ -4506,7 +3895,7 @@ export default function ProjectEditorPage() {
             >
               <div
                 className={`mx-auto flex min-h-0 flex-1 w-full ${
-                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:p-8 pb-16 sm:pb-8"
+                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:p-8"
                 }`}
               >
                 <div
@@ -4535,7 +3924,10 @@ export default function ProjectEditorPage() {
                                 ? "2px solid #333"
                                 : "1px solid #c8c4bc",
                           borderRadius: device === "mobile" ? 28 : device === "tablet" ? 18 : 12,
-                          boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+                          boxShadow:
+                            device === "desktop"
+                              ? "0 16px 48px rgba(0,0,0,0.22)"
+                              : "0 12px 40px rgba(0,0,0,0.18)",
                         }
                   }
                 >
@@ -4556,84 +3948,241 @@ export default function ProjectEditorPage() {
                     editor={canvasEditor}
                   />
                 )}
+                {/* Always-visible "+ Add section" strip at the bottom of the canvas */}
+                {canvasDefinition && (
+                  <div className="border-t border-dashed border-black/15 bg-[#FAFAF8] px-4 py-5">
+                    <div className="mx-auto max-w-md">
+                      <AddSectionPicker
+                        pageTitle={
+                          pages.find((p) => p.slug === previewPageSlug)?.title ??
+                          pages.find((p) => p.id === editPageId)?.title ??
+                          "Home"
+                        }
+                        onAdd={async (type) => { await addSection(type); }}
+                      />
+                      <p className="mt-2 text-center text-[11px] text-black/40">
+                        Add sections to make this page longer. Remove a section by clicking it and pressing Remove.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 </div>
               </div>
-              {canvasDefinition ? (
-                <BuilderSiteCommandBar
-                  value={improveInstruction}
-                  onChange={setImproveInstruction}
-                  mode={improveMode}
-                  onModeChange={setImproveMode}
-                  onPreview={() => void previewWithAi()}
-                  onApply={() => void applyAiPreview()}
-                  onDiscard={discardAiPreview}
-                  busy={improving}
-                  device={device}
-                  preview={aiPreview ? { intents: aiPreview.intents, repaired: aiPreview.repaired } : null}
-                  sectionChanges={aiPreview?.sectionChanges}
-                  acceptedSectionIds={aiPreview?.acceptedSectionIds}
-                  onToggleSection={(sectionId) => {
-                    setAiPreview((prev) => {
-                      if (!prev) return prev;
-                      const next = new Set(prev.acceptedSectionIds);
-                      if (next.has(sectionId)) next.delete(sectionId);
-                      else next.add(sectionId);
-                      return { ...prev, acceptedSectionIds: next };
-                    });
-                  }}
-                  onSelectAllSections={() => {
-                    setAiPreview((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
-                          }
-                        : prev,
-                    );
-                  }}
-                  onClearAllSections={() => {
-                    setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
-                  }}
-                />
-              ) : null}
             </section>
           </>
         )}
 
-        {/* Mobile bottom tab bar — only on phones (hidden sm:flex makes it appear only < 640px) */}
-        {!loading && project ? (
-          <nav
-            className="sm:hidden absolute bottom-0 inset-x-0 z-40 flex items-center justify-around border-t bg-white"
-            style={{ borderColor: "#E5E5E5", height: 56, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-            aria-label="Builder tools"
+        {/* Dial backdrop — captures click-outside to dismiss speed-dial */}
+        {yandeDialOpen && !yandeOpen ? (
+          <div
+            className="absolute inset-0 z-20"
+            onClick={() => setYandeDialOpen(false)}
+            aria-hidden="true"
+          />
+        ) : null}
+
+        {/* Yande FAB + speed-dial — bottom-right */}
+        <div className="absolute bottom-5 right-5 z-30 flex flex-col items-end gap-2">
+
+          {/* Speed-dial mini-buttons — open by default on builder load */}
+          {yandeDialOpen && !yandeOpen ? (
+            <>
+              {(
+                [
+                  { label: "Redesign page", mode: "redesign" as const, color: "#7C3AED" },
+                  { label: "Improve content", mode: "free" as const, color: "#FF5500" },
+                  { label: "Ask Yande", mode: "free" as const, color: "#0F0D33" },
+                ] as const
+              ).map(({ label, mode, color }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span
+                    className="rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg whitespace-nowrap"
+                    style={{ background: "#fff", color: BUILDER.ink, boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}
+                  >
+                    {label}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImproveMode(mode);
+                      setYandeOpen(true);
+                      setYandeDialOpen(false);
+                    }}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-105 active:scale-95"
+                    style={{ background: color }}
+                    aria-label={label}
+                  >
+                    {mode === "redesign" ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.7L12 14.5l-5 3.6 1.9-5.7L4 8.8h6.1z" strokeLinejoin="round" />
+                      </svg>
+                    ) : mode === "free" && label === "Ask Yande" ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinejoin="round" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                        <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {/* Main FAB button */}
+          <button
+            type="button"
+            aria-label={yandeOpen ? "Close Yande" : yandeDialOpen ? "Close menu" : "Open Yande"}
+            onClick={() => {
+              if (yandeOpen) {
+                setYandeOpen(false);
+              } else {
+                setYandeDialOpen((o) => !o);
+              }
+            }}
+            className="rounded-full transition-transform hover:scale-105 active:scale-95"
+            style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.18)" }}
           >
-            {(
-              [
-                ["content", "Sections", <svg key="c" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 6h16M4 12h16M4 18h10" strokeLinecap="round" /></svg>],
-                ["aesthetic", "Style", <svg key="a" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 3a9 9 0 100 18 4 4 0 010-8h2a3 3 0 100-6h-1" strokeLinejoin="round" /><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none" /><circle cx="10.5" cy="7.5" r="1.1" fill="currentColor" stroke="none" /></svg>],
-                ["media", "Photos", <svg key="m" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.4" fill="currentColor" stroke="none" /><path d="M21 16l-5.5-5.5L8 18" strokeLinecap="round" /></svg>],
-                ["pages", "Pages", <svg key="p" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 4h8l4 4v12a1 1 0 01-1 1H6a1 1 0 01-1-1V5a1 1 0 011-1z" strokeLinejoin="round" /><path d="M14 4v4h4" strokeLinejoin="round" /></svg>],
-                ["yande", "Yande", <svg key="y" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8L12 3z" strokeLinejoin="round" /></svg>],
-              ] as const
-            ).map(([id, label, icon]) => {
-              const active = leftPanelOpen && sidebarTab === id;
-              return (
+            <YandeMark size={48} />
+          </button>
+        </div>
+
+        {/* Yande right-side sliding panel */}
+        {yandeOpen ? (
+          <>
+            {/* click-outside backdrop (transparent) */}
+            <div
+              className="absolute inset-0 z-30"
+              onClick={() => setYandeOpen(false)}
+              aria-hidden="true"
+            />
+            <div
+              className="absolute bottom-0 right-0 top-0 z-40 flex flex-col overflow-hidden border-l"
+              style={{
+                width: 300,
+                background: "#FAFAFA",
+                borderColor: "#E5E5E5",
+                boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* panel header */}
+              <div
+                className="flex shrink-0 items-center justify-between border-b px-3 py-2.5"
+                style={{ borderColor: "#E5E5E5" }}
+              >
+                <div className="flex items-center gap-2">
+                  <YandeMark size={28} />
+                  <span
+                    className="text-[11px] font-bold uppercase tracking-wider"
+                    style={{ color: BUILDER.ink }}
+                  >
+                    Yande AI
+                  </span>
+                </div>
                 <button
-                  key={id}
                   type="button"
-                  aria-label={label}
-                  aria-pressed={active}
-                  onClick={() => openStudioTab(id as typeof sidebarTab)}
-                  className="flex flex-col items-center gap-0.5 px-2 py-1"
-                  style={{ color: active ? BUILDER.ink : "#9CA3AF", minWidth: 48 }}
+                  aria-label="Close Yande"
+                  onClick={() => setYandeOpen(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-md"
+                  style={{ color: BUILDER.muted }}
                 >
-                  {icon}
-                  <span className="text-[9px] font-bold uppercase tracking-wider">{label}</span>
-                  {active ? <span className="h-0.5 w-4 rounded-full" style={{ background: BUILDER.ink }} /> : null}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+                  </svg>
                 </button>
-              );
-            })}
-          </nav>
+              </div>
+
+              {/* Mode selector */}
+              {!aiPreview ? (
+                <div
+                  className="flex shrink-0 flex-wrap gap-1 border-b px-3 py-2"
+                  style={{ borderColor: "#E5E5E5" }}
+                >
+                  {(
+                    [
+                      ["free", "Improve"],
+                      ["redesign", "Redesign"],
+                      ["page", "Page"],
+                      ["rewrite", "Rewrite"],
+                      ["convert", "Convert"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setImproveMode(id)}
+                      className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+                      style={{
+                        background: improveMode === id ? BUILDER.ink : "#F0F0F0",
+                        color: improveMode === id ? "#fff" : BUILDER.muted,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {/* AI preview panel when active */}
+              {aiPreview ? (
+                <div className="shrink-0 border-b px-3 py-3" style={{ borderColor: "#E5E5E5" }}>
+                  <BuilderAiPreviewPanel
+                    intents={aiPreview.intents}
+                    sectionChanges={aiPreview.sectionChanges}
+                    acceptedSectionIds={aiPreview.acceptedSectionIds}
+                    onApply={() => void applyAiPreview()}
+                    onDiscard={discardAiPreview}
+                    onToggleSection={(sectionId) => {
+                      setAiPreview((prev) => {
+                        if (!prev) return prev;
+                        const next = new Set(prev.acceptedSectionIds);
+                        if (next.has(sectionId)) next.delete(sectionId);
+                        else next.add(sectionId);
+                        return { ...prev, acceptedSectionIds: next };
+                      });
+                    }}
+                    onSelectAll={() => {
+                      setAiPreview((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
+                            }
+                          : prev,
+                      );
+                    }}
+                    onClearAll={() => {
+                      setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
+                    }}
+                    busy={improving}
+                  />
+                </div>
+              ) : null}
+
+              {/* Yande assistant input */}
+              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+                <YandeAssistant
+                  variant="improve"
+                  value={improveInstruction}
+                  onChange={setImproveInstruction}
+                  onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
+                  busy={improving}
+                  submitLabel={aiPreview ? "Apply" : "Preview"}
+                />
+                {improveNote ? (
+                  <p
+                    className="mt-3 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
+                    style={{ background: "#F4F4F5", color: BUILDER.muted }}
+                  >
+                    {improveNote}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </>
         ) : null}
       </main>
 
@@ -4714,98 +4263,15 @@ export default function ProjectEditorPage() {
           </div>
         </div>
       ) : null}
-      {(kbSaveNote || (saveState !== "idle" && saveState !== "saved")) ? (
+      {kbSaveNote ? (
         <p
-          className="pointer-events-none fixed right-3 bottom-4 z-[55] max-w-xs rounded-lg px-2.5 py-1.5 text-[10px] font-medium"
-          style={{
-            background: saveState === "error" ? "#FFF1F0" : "rgba(255,251,247,0.97)",
-            color: saveState === "error" ? "#8B1E1E" : "#166534",
-            border: `1px solid ${saveState === "error" ? "#FECACA" : "#E8E6DF"}`,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-          }}
+          className="pointer-events-none fixed left-3 bottom-3 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
+          style={{ background: "rgba(255,251,247,0.95)", color: "#166534", border: "1px solid #E8E6DF" }}
         >
-          {kbSaveNote ?? saveStatusLabel}
+          {kbSaveNote}
         </p>
       ) : null}
-
-      {/* First-run 3-step tour tooltip */}
-      {firstRunStep >= 1 && firstRunStep <= 3 ? (() => {
-        const steps = [
-          {
-            title: "This is your canvas",
-            body: "Everything you see is live — drag photos in, click any section to edit copy, colours, and layout.",
-            position: "center" as const,
-          },
-          {
-            title: "Sections are your building blocks",
-            body: "Click the Sections icon on the left rail to see every block on the page. Drag to reorder, hide, or add new ones.",
-            position: "left" as const,
-          },
-          {
-            title: "Hit Publish when you're ready",
-            body: "Your site goes live at a Kebu address instantly. Connect your own domain from My sites any time.",
-            position: "right" as const,
-          },
-        ];
-        const step = steps[firstRunStep - 1]!;
-        const isLast = firstRunStep === 3;
-        const posStyle: Record<string, string | number> =
-          step.position === "left"
-            ? { left: 56, top: "50%", transform: "translateY(-50%)" }
-            : step.position === "right"
-            ? { right: 12, top: 52 }
-            : { left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
-        return (
-          <>
-            {/* Dim overlay */}
-            <div
-              className="fixed inset-0 z-[70]"
-              style={{ background: "rgba(10,10,10,0.35)" }}
-              onClick={() => setFirstRunStep((s) => s + 1)}
-              aria-hidden
-            />
-            {/* Tooltip card */}
-            <div
-              className="fixed z-[71] w-72 rounded-2xl p-5 shadow-xl"
-              style={{ ...posStyle, background: "#fff" }}
-              role="dialog"
-              aria-modal
-              aria-label={`Step ${firstRunStep} of 3: ${step.title}`}
-            >
-              <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: "#FF5500" }}>
-                {firstRunStep} of 3
-              </p>
-              <p className="text-[15px] font-bold mb-1.5" style={{ color: "#0A0A0A" }}>
-                {step.title}
-              </p>
-              <p className="text-[12px] leading-relaxed mb-4" style={{ color: "#5C5348" }}>
-                {step.body}
-              </p>
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFirstRunStep(4)}
-                  className="text-[11px]"
-                  style={{ color: "#9CA3AF" }}
-                >
-                  Skip
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFirstRunStep((s) => s + 1)}
-                  className="rounded-full px-5 py-2 text-[12px] font-bold"
-                  style={{ background: "#FF5500", color: "#fff" }}
-                >
-                  {isLast ? "Let's go" : "Next →"}
-                </button>
-              </div>
-            </div>
-          </>
-        );
-      })() : null}
     </div>
     </DataModeProvider>
-    </div>
-    </>
   );
 }

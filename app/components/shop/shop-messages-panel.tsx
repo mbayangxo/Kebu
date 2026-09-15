@@ -112,7 +112,7 @@ export function ShopMessagesPanel({
           Loading…
         </p>
       ) : error ? (
-        <p className="mt-3 text-sm text-red-700">{error}</p>
+        <p className="mt-3 text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
       ) : threads.length === 0 ? (
         <p className="mt-3 text-sm" style={{ color: KEBU.muted }}>
           No messages yet. When a shopper signs in and writes from My account → Message store, threads

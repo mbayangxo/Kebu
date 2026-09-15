@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
+import { KEBU } from "@/lib/kebu-brand";
 
 interface FlagListingProps {
   opportunityId: string;
@@ -28,8 +29,7 @@ export function FlagListing({ opportunityId, opportunityTitle }: FlagListingProp
       });
       setState("done");
     } catch {
-      // table may not exist yet — still thank the user, log internally
-      console.warn("program_flags write failed — table may not exist yet");
+      // table may not exist yet — still thank the user
       setState("done");
     }
   }
@@ -38,7 +38,8 @@ export function FlagListing({ opportunityId, opportunityTitle }: FlagListingProp
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-[10px] font-medium text-muted hover:text-gold-dark transition-colors underline underline-offset-2"
+        className="text-[10px] font-medium underline underline-offset-2"
+        style={{ color: KEBU.muted }}
       >
         Flag as changed
       </button>
@@ -47,18 +48,21 @@ export function FlagListing({ opportunityId, opportunityTitle }: FlagListingProp
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6">
+      <div className="rounded-2xl w-full max-w-md shadow-2xl p-6" style={{ background: KEBU.white }}>
         {state === "done" ? (
           <div className="text-center py-4">
             <div className="text-2xl mb-3">🙏</div>
-            <h3 className="font-display font-bold text-ink mb-2">Got it — thank you</h3>
-            <p className="text-sm text-muted mb-4">
+            <h3 className="font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
+              Got it — thank you
+            </h3>
+            <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
               We&apos;ll flag this listing for reverification before it can lead anyone astray.
               This kind of correction is the most valuable thing you can do for the platform.
             </p>
             <button
               onClick={() => { setOpen(false); setState("idle"); setWhat(""); setContact(""); }}
-              className="bg-deep-green text-ivory text-sm font-semibold px-5 py-2 rounded-full"
+              className="text-sm font-semibold px-5 py-2 rounded-full text-white"
+              style={{ background: KEBU.black }}
             >
               Close
             </button>
@@ -67,56 +71,71 @@ export function FlagListing({ opportunityId, opportunityTitle }: FlagListingProp
           <>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="font-display font-bold text-ink text-base">Flag as changed</h3>
-                <p className="text-xs text-muted mt-0.5 leading-snug">
+                <h3 className="font-bold text-base" style={{ color: KEBU.black }}>Flag as changed</h3>
+                <p className="text-xs mt-0.5 leading-snug" style={{ color: KEBU.muted }}>
                   What did you notice? We&apos;ll hold this listing for reverification.
                 </p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-muted hover:text-ink text-lg leading-none ml-4">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-lg leading-none ml-4"
+                style={{ color: KEBU.muted }}
+              >
                 ×
               </button>
             </div>
 
-            <div className="bg-gold/10 border border-gold/20 rounded-xl px-3 py-2 mb-4">
-              <p className="text-[10px] text-gold-dark font-medium line-clamp-2">{opportunityTitle}</p>
+            <div
+              className="rounded-xl px-3 py-2 mb-4"
+              style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}
+            >
+              <p className="text-[10px] font-medium line-clamp-2" style={{ color: "#B45309" }}>
+                {opportunityTitle}
+              </p>
             </div>
 
             <div className="mb-4">
-              <label className="text-xs font-semibold text-ink block mb-1.5">What changed?</label>
+              <label className="text-xs font-semibold block mb-1.5" style={{ color: KEBU.black }}>
+                What changed?
+              </label>
               <textarea
                 value={what}
                 onChange={e => setWhat(e.target.value)}
-                placeholder={'e.g. "The program closed in March 2026" or "The deadline passed and was not renewed" or "The ministry website shows this program is suspended"'}
+                placeholder='e.g. "The program closed in March 2026" or "The deadline passed and was not renewed"'
                 rows={3}
-                className="w-full text-sm border border-border rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:border-deep-green transition-colors"
+                className="w-full text-sm rounded-xl px-3 py-2.5 resize-none focus:outline-none"
+                style={{ border: `1px solid ${KEBU.border}` }}
               />
             </div>
 
             <div className="mb-5">
-              <label className="text-xs font-semibold text-ink block mb-1.5">
+              <label className="text-xs font-semibold block mb-1.5" style={{ color: KEBU.black }}>
                 Contact (optional)
-                <span className="font-normal text-muted ml-1">— so we can follow up if needed</span>
+                <span className="font-normal ml-1" style={{ color: KEBU.muted }}>— so we can follow up if needed</span>
               </label>
               <input
                 type="text"
                 value={contact}
                 onChange={e => setContact(e.target.value)}
                 placeholder="Phone or email"
-                className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:border-deep-green transition-colors"
+                className="w-full text-sm rounded-xl px-3 py-2.5 focus:outline-none"
+                style={{ border: `1px solid ${KEBU.border}` }}
               />
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => setOpen(false)}
-                className="flex-1 text-sm font-medium text-muted border border-border rounded-full py-2 hover:border-ink transition-colors"
+                className="flex-1 text-sm font-medium rounded-full py-2"
+                style={{ border: `1px solid ${KEBU.border}`, color: KEBU.muted }}
               >
                 Cancel
               </button>
               <button
                 onClick={submit}
                 disabled={!what.trim() || state === "submitting"}
-                className="flex-1 text-sm font-semibold bg-gold text-white rounded-full py-2 hover:bg-gold-dark transition-colors disabled:opacity-40"
+                className="flex-1 text-sm font-semibold rounded-full py-2 text-white disabled:opacity-40"
+                style={{ background: KEBU.orange }}
               >
                 {state === "submitting" ? "Sending…" : "Flag it"}
               </button>

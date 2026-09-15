@@ -183,7 +183,7 @@ export function ProductVariantsEditor({
               <button type="button" className="underline" onClick={() => startEdit(v)}>
                 Edit
               </button>
-              <button type="button" className="text-red-700" onClick={() => void remove(v.id)}>
+              <button type="button" style={{ color: "#8B1E1E" }} onClick={() => void remove(v.id)}>
                 Delete
               </button>
             </span>

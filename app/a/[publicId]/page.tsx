@@ -55,7 +55,7 @@ export default function PublicArtistPage() {
     return (
       <main className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="text-2xl font-bold">Artist</h1>
-        <p className="mt-3 text-sm text-red-700">{error}</p>
+        <p className="mt-3 text-sm" style={{ color: "#8B1E1E" }}>{error}</p>
       </main>
     );
   }

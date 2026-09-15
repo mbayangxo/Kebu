@@ -145,7 +145,7 @@ export function StudioSharePanel({
         </button>
       </form>
 
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="text-xs" style={{ color: "#8B1E1E" }}>{error}</p> : null}
       {note ? <p className="text-xs text-emerald-800">{note}</p> : null}
 
       {collaborators.length === 0 ? (
