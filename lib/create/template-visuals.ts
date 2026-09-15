@@ -18,6 +18,8 @@ export type TemplateCardLayout =
   | "music"
   | "agency"
   | "salon"
+  | "bold-salon"
+  | "dark-fashion"
   | "store"
   | "restaurant"
   | "film"
@@ -30,6 +32,10 @@ export type TemplateCardLayout =
   | "farm"
   | "build"
   | "hotel"
+  | "luxury"
+  | "accessories"
+  | "streetwear"
+  | "activewear"
   | "generic";
 
 export type TemplateCardVisual = {
@@ -148,11 +154,11 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "FILM",
   },
   "hair-salon": {
-    previewGradient: "linear-gradient(160deg, #F5E6D3 0%, #D4A574 50%, #5C4033 100%)",
-    badge: "Salon & barber",
-    keywords: ["salon", "hair", "beauty"],
-    layout: "salon",
-    wordmark: "SALON",
+    previewGradient: "linear-gradient(160deg, #1A0F0A 0%, #2C1810 50%, #D4A574 100%)",
+    badge: "Salon premium · tresses & couleur",
+    keywords: ["salon", "hair", "braids", "colour", "balayage", "locs"],
+    layout: "bold-salon",
+    wordmark: "CHEZ AMARA",
   },
   "layers-beauty": {
     previewImage: "/templates/gallery/luxe-beauty-ref.png",
@@ -192,11 +198,39 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     wordmark: "ATELIER",
   },
   "clothing-company": {
-    previewGradient: "linear-gradient(135deg, #F8FAFC 0%, #DC2626 40%, #0F172A 100%)",
-    badge: "Clothing brand",
-    keywords: ["clothing", "fashion", "brand"],
-    layout: "store",
-    wordmark: "APPAREL",
+    previewGradient: "linear-gradient(160deg, #0D0D0D 0%, #1A0000 55%, #B91C1C 100%)",
+    badge: "VOLTA · Marque mode Dakar",
+    keywords: ["clothing", "fashion", "brand", "dakar", "urban"],
+    layout: "dark-fashion",
+    wordmark: "VOLTA",
+  },
+  "luxury-rtw": {
+    previewGradient: "linear-gradient(160deg, #F5F2EC 0%, #E8E2D6 50%, #1A1814 100%)",
+    badge: "Luxury RTW · editorial",
+    keywords: ["luxury", "fashion", "ready-to-wear", "editorial", "minimal"],
+    layout: "luxury",
+    wordmark: "MAISON",
+  },
+  "accessories-maison": {
+    previewGradient: "linear-gradient(160deg, #FAFAF5 0%, #E8D8A8 45%, #3D2C0E 100%)",
+    badge: "Accessories house",
+    keywords: ["jewelry", "accessories", "bags", "leather", "gold"],
+    layout: "accessories",
+    wordmark: "MAISON",
+  },
+  "streetwear-drop": {
+    previewGradient: "linear-gradient(160deg, #0A0A0A 0%, #1A1A0A 55%, #2A2A0A 100%)",
+    badge: "DROP · limited · hype",
+    keywords: ["streetwear", "drop", "hype", "limited", "urban"],
+    layout: "streetwear",
+    wordmark: "DROP",
+  },
+  "activewear-studio": {
+    previewGradient: "linear-gradient(160deg, #0A0A0F 0%, #0D1A2E 55%, #00364A 100%)",
+    badge: "Activewear · performance",
+    keywords: ["activewear", "fitness", "gym", "sport", "performance"],
+    layout: "activewear",
+    wordmark: "ACTIVE",
   },
   "shopping-store": {
     previewGradient: "linear-gradient(160deg, #E8F5E9 0%, #2D6A4F 100%)",

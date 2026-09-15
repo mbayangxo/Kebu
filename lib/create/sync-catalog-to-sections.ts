@@ -38,7 +38,7 @@ export async function syncCatalogToProductsSections(
   }
 
   const productIds = (productRows ?? []).map((p) => p.id);
-  let variantsByProduct = new Map<string, NonNullable<Parameters<typeof productRowToSectionItem>[1]>>();
+  const variantsByProduct = new Map<string, NonNullable<Parameters<typeof productRowToSectionItem>[1]>>();
   if (productIds.length) {
     const { data: variantRows } = await supabase
       .from("project_product_variants")
@@ -53,7 +53,7 @@ export async function syncCatalogToProductsSections(
     }
   }
 
-  const items = (productRows ?? []).map((row) =>
+  const freshItems = (productRows ?? []).map((row) =>
     productRowToSectionItem(row as ProjectProductRow, variantsByProduct.get(row.id)),
   );
 
@@ -66,6 +66,24 @@ export async function syncCatalogToProductsSections(
   for (const section of sections ?? []) {
     const props =
       typeof section.props === "object" && section.props ? (section.props as Record<string, unknown>) : {};
+
+    /* Preserve relatedProductIds set by the builder — keyed on productId */
+    const existingItems = Array.isArray(props.items)
+      ? (props.items as { productId?: string; relatedProductIds?: string[] }[])
+      : [];
+    const relatedMap = new Map<string, string[]>();
+    for (const item of existingItems) {
+      if (item.productId && Array.isArray(item.relatedProductIds) && item.relatedProductIds.length > 0) {
+        relatedMap.set(item.productId, item.relatedProductIds);
+      }
+    }
+    const items = freshItems.map((item) => {
+      const pid = (item as { productId?: string }).productId;
+      return pid && relatedMap.has(pid)
+        ? { ...item, relatedProductIds: relatedMap.get(pid) }
+        : item;
+    });
+
     await supabase
       .from("project_sections")
       .update({

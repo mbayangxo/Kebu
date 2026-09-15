@@ -93,12 +93,17 @@ export function AestheticGalleryCard({ item }: { item: AestheticGalleryItem }) {
         >
           {item.tagline}
         </p>
-        <p
-          className="mt-1.5 text-[13px] font-semibold tabular-nums"
-          style={{ color: KEBU.black, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
-        >
-          {item.priceLabel}
-        </p>
+        <div className="mt-2 flex items-center gap-2">
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+            style={{ background: "#E8F5E9", color: "#2D6A4F" }}
+          >
+            Free to try
+          </span>
+          <span className="text-[12px] font-semibold tabular-nums" style={{ color: KEBU.muted }}>
+            {item.priceLabel}
+          </span>
+        </div>
       </div>
     </Link>
   );

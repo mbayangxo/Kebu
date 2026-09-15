@@ -26,7 +26,7 @@ export function kdirectionWixSitePages(): KdirectionPageSpec[] {
           props: {
             ...defaultKdirectionPageProps("Artist"),
             body: "Our roster. Open an artist page or edit this text and photo in the builder.",
-            heroImage: defaultKdirectionHomeProps().featuredArtistImage,
+            heroImage: "",
             ctaLabel: "May L'ECOR",
             ctaHref: "/artists",
           },

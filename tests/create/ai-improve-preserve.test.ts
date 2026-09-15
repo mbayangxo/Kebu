@@ -109,7 +109,7 @@ describe("preserveTemplateVisualAssets", () => {
       backgroundLayer: string;
     };
     expect(props.subtitle).toContain("Yande");
-    expect(props.cutoutLeft).toContain("templates/legally-blonde");
+    expect(props.cutoutLeft).toContain("templates/maylecor");
     expect(props.backgroundLayer).toContain("templates/legally-blonde");
   });
 });

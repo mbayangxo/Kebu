@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**", "feature/**"]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  # ─── Gate 1-4: typecheck → lint → unit tests → build ─────────────────────
+  required:
+    name: Required gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Gate 1 — TypeScript
+        run: npm run typecheck
+
+      - name: Gate 2 — Lint
+        run: npm run lint
+
+      - name: Gate 3 — Unit & integration tests
+        run: npm test
+
+      - name: Gate 4 — Production build
+        run: npm run build
+        env:
+          # Suppress Sentry upload in CI unless token is set
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
+
+  # ─── E2E: only when secrets are present ──────────────────────────────────
+  e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    needs: required
+    if: >
+      github.event_name == 'push' &&
+      vars.KEBU_E2E_BASE_URL != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          KEBU_E2E_BASE_URL: ${{ vars.KEBU_E2E_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

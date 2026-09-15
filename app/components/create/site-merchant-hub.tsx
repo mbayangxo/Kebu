@@ -87,7 +87,7 @@ export function SiteMerchantHub({
       </div>
 
       <div className="min-w-0 flex-1 overflow-y-auto" style={{ background: "#F1F1F1" }}>
-        <div className="w-full space-y-5 px-5 py-6 sm:px-8 sm:py-8 lg:px-10">
+        <div className="w-full space-y-5 px-5 py-6 sm:px-8 sm:py-8 lg:px-14 lg:py-10">
           <div className="lg:hidden rounded-xl overflow-hidden" style={{ border: `1px solid ${ADMIN.border}` }}>
             {nav}
           </div>

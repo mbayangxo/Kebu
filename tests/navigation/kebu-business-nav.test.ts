@@ -36,8 +36,7 @@ describe("kebu business nav (Shopify-style accordion IA)", () => {
     const themes = online?.items?.find((i) => i.id === "os-themes");
     expect(themes?.href).toBe(`/create/${ctx.projectId}/themes`);
     expect(themes?.status).toBe("live");
-    const discover = online?.items?.find((i) => i.id === "os-discover");
-    expect(discover?.href).toBe("/create/aesthetics");
+    // os-discover was removed from the online-store section
   });
 
   it("maps Online Store customize to the editor", () => {

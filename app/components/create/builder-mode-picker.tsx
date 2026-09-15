@@ -96,7 +96,7 @@ export function BuilderModePicker({
                   className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
                   style={{ background: "rgba(10,10,10,0.06)", color: BUILDER.muted }}
                 >
-                  Not implemented
+                  Coming soon
                 </span>
               ) : null}
             </div>

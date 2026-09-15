@@ -58,35 +58,29 @@ export function YandeAssistant({
         border: `1px solid ${BUILDER.border}`,
       }}
     >
-      <div className="h-1 w-full" style={{ background: BUILDER.gradient }} />
-      <div className="p-5 sm:p-6 space-y-4">
-        <div className="flex items-start gap-3">
-          <YandeMark size={48} />
-          <div>
-            <p className="font-display text-lg font-bold leading-tight" style={{ fontFamily: "var(--font-fraunces)" }}>
-              Yande
-            </p>
-            <p className="text-sm leading-relaxed mt-1" style={{ color: BUILDER.muted }}>
-              {variant === "create"
-                ? "Describe what you’re building — Yande designs the whole storefront as editable Kebu pages. Then keep instructing until it feels right."
-                : "Yande is the designer. Say what to change — less Shopify-looking, add wholesale, different mobile — and the structured site updates. Publish when live should change."}
-            </p>
-          </div>
+      <div className="h-0.5 w-full" style={{ background: BUILDER.gradient }} />
+      <div className="p-4 space-y-3">
+        <div className="flex items-center gap-2.5">
+          <YandeMark size={36} />
+          <p className="font-semibold text-sm leading-tight" style={{ color: BUILDER.ink }}>
+            {variant === "create" ? "Describe your site" : "What should Yande change?"}
+          </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((s) => (
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+          {suggestions.slice(0, 4).map((s) => (
             <button
               key={s}
               type="button"
               disabled={busy}
               onClick={() => onChange(s)}
-              className="text-left rounded-full px-3.5 py-2 text-xs font-medium transition-colors disabled:opacity-50"
+              className="shrink-0 text-left rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50 max-w-[180px] truncate"
               style={{
                 background: "#fff",
                 color: BUILDER.ink,
                 border: `1px solid ${BUILDER.border}`,
               }}
+              title={s}
             >
               {s}
             </button>
@@ -94,7 +88,7 @@ export function YandeAssistant({
         </div>
 
         <textarea
-          className="w-full text-sm rounded-xl px-4 py-3 min-h-[100px] resize-y focus:outline-none focus:ring-2 focus:ring-[#FF5500]/25"
+          className="w-full text-sm rounded-xl px-3 py-2.5 min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-[#FF5500]/25"
           style={{
             background: "#fff",
             border: `1px solid ${BUILDER.border}`,
@@ -102,8 +96,8 @@ export function YandeAssistant({
           }}
           placeholder={
             variant === "create"
-              ? "Example: Create a Senegalese fashion store. Luxury African fashion magazine. Sand, deep green and gold. Founder story under the hero. Large editorial product cards."
-              : "Example: Make it less Shopify-looking. Add a wholesale section. Make mobile completely different from desktop."
+              ? "Senegalese fashion store. Luxury editorial. Sand, green, gold. Founder story below hero."
+              : "Less Shopify-looking. Add wholesale section. Mobile completely different."
           }
           value={value}
           onChange={(e) => onChange(e.target.value)}

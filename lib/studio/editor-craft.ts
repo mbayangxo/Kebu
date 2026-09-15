@@ -8,8 +8,8 @@ export function normalizeCrop(layer: {
   cropW?: number;
   cropH?: number;
 }): { x: number; y: number; w: number; h: number } {
-  let x = clamp01(layer.cropX ?? 0);
-  let y = clamp01(layer.cropY ?? 0);
+  const x = clamp01(layer.cropX ?? 0);
+  const y = clamp01(layer.cropY ?? 0);
   let w = clamp01(layer.cropW ?? 1);
   let h = clamp01(layer.cropH ?? 1);
   w = Math.max(0.05, Math.min(w, 1 - x));

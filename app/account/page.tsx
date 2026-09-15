@@ -179,18 +179,41 @@ export default function AccountPage() {
   return (
     <AppShell title="My Account">
       <div className="max-w-xl mx-auto px-5 py-8 lg:py-10">
-        <div className="flex items-center gap-3 mb-6">
-          {profile.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatarUrl} alt="" className="w-11 h-11 rounded-full object-cover" />
-          ) : (
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="relative group shrink-0 rounded-full focus:outline-none focus-visible:ring-2"
+            style={{ "--ring-color": KEBU.orange } as React.CSSProperties}
+            aria-label="Change profile photo"
+          >
+            {profile.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatarUrl} alt="" className="w-16 h-16 rounded-full object-cover" />
+            ) : (
+              <span
+                className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-black text-white"
+                style={{ background: KEBU.orange }}
+              >
+                {first.charAt(0).toUpperCase()}
+              </span>
+            )}
+            {/* Camera overlay on hover */}
             <span
-              className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white"
-              style={{ background: KEBU.orange }}
+              className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: "rgba(0,0,0,0.45)" }}
             >
-              {first.charAt(0).toUpperCase()}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
             </span>
-          )}
+            {busy && (
+              <span className="absolute inset-0 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </span>
+            )}
+          </button>
           <div className="min-w-0">
             <h1 className="text-xl font-bold truncate" style={{ fontFamily: "var(--font-fraunces)" }}>
               {first}
@@ -198,6 +221,7 @@ export default function AccountPage() {
             <p className="text-xs truncate" style={{ color: KEBU.muted }}>
               {profile.email}
             </p>
+            <p className="text-[10px] mt-0.5" style={{ color: KEBU.orange }}>Tap photo to change</p>
           </div>
         </div>
 
@@ -220,15 +244,6 @@ export default function AccountPage() {
                   if (f) void uploadAvatar(f);
                 }}
               />
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => fileRef.current?.click()}
-                className="text-[11px] font-bold underline disabled:opacity-60"
-                style={{ color: KEBU.orange }}
-              >
-                {busy ? "Uploading…" : "Change photo"}
-              </button>
               <form onSubmit={(e) => void saveProfile(e)} className="space-y-3">
                 <label className="block text-sm">
                   <span className="font-semibold">Name</span>

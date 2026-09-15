@@ -61,7 +61,7 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Site is not live." }, { status: 404 });
   }
 
-  let { data: product, error: productError } = await admin
+  const { data: product, error: productError } = await admin
     .from("project_products")
     .select(
       "id, project_id, name, price_label, price_xof, is_active, is_subscription, subscription_interval",
@@ -161,7 +161,7 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   const snap = live.snapshot as { definition?: WebsiteDefinition } | null;
-  const merchantPhone = resolveMerchantWhatsApp(snap?.definition ?? null);
+  const merchantPhone = snap?.definition ? resolveMerchantWhatsApp(snap.definition) : null;
   const whatsappHref = merchantPhone
     ? shopOrderWhatsAppHref(
         merchantPhone,

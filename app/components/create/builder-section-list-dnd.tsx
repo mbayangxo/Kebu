@@ -6,6 +6,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -19,6 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { labelForSectionType } from "@/lib/create/builder-section-catalog";
 import { blocksForSection, type SectionBlockPreview } from "@/lib/create/section-blocks";
+import { BUILDER } from "@/lib/create/builder-ui";
 
 type SectionRow = {
   id: string;
@@ -67,6 +69,7 @@ function iconForType(type: string): { bg: string; letter: string } {
     case "products": return { bg: "#10B981", letter: "P" };
     case "contact": return { bg: "#10B981", letter: "C" };
     case "whatsapp": return { bg: "#25D366", letter: "W" };
+    case "joko": return { bg: "#0070F3", letter: "J" };
     case "map": return { bg: "#10B981", letter: "M" };
     case "form": return { bg: "#F97316", letter: "FM" };
     case "newsletter": return { bg: "#F97316", letter: "N" };
@@ -76,6 +79,13 @@ function iconForType(type: string): { bg: string; letter: string } {
     case "faq": return { bg: "#F97316", letter: "?" };
     case "events": return { bg: "#F97316", letter: "E" };
     case "footer": return { bg: "#3B82F6", letter: "F" };
+    case "countdown": return { bg: "#0EA5E9", letter: "⏱" };
+    case "trust-badges": return { bg: "#10B981", letter: "TB" };
+    case "social-proof": return { bg: "#8B5CF6", letter: "SP" };
+    case "floating-cta": return { bg: "#25D366", letter: "FC" };
+    case "before-after": return { bg: "#F97316", letter: "BA" };
+    case "hotspot-image": return { bg: "#8B5CF6", letter: "HI" };
+    case "reviews": return { bg: "#F59E0B", letter: "★" };
     default: return { bg: "#9CA3AF", letter: type.slice(0, 2).toUpperCase() };
   }
 }
@@ -91,6 +101,7 @@ function SortableSectionRow({
   onMoveDown,
   onRemove,
   onToggleHidden,
+  onReorderBlocks,
   isFirst,
   isLast,
 }: {
@@ -104,6 +115,7 @@ function SortableSectionRow({
   onMoveDown: () => void;
   onRemove?: () => void;
   onToggleHidden?: () => void;
+  onReorderBlocks?: (fromIndex: number, toIndex: number) => void;
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -129,11 +141,11 @@ function SortableSectionRow({
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
-        {/* Drag handle */}
+        {/* Drag handle — always visible, dims when not focused */}
         <button
           type="button"
-          className="shrink-0 cursor-grab active:cursor-grabbing px-0.5 text-[12px] leading-none"
-          style={{ color: "#C0C0C0", touchAction: "none" }}
+          className="shrink-0 cursor-grab active:cursor-grabbing px-0.5 text-[12px] leading-none opacity-40 hover:opacity-100 transition-opacity"
+          style={{ color: BUILDER.ink, touchAction: "none" }}
           aria-label="Drag to reorder"
           {...attributes}
           {...listeners}
@@ -237,16 +249,36 @@ function SortableSectionRow({
       {/* Nested blocks */}
       {expanded && blocks.length > 0 ? (
         <ul className="ml-7 space-y-0.5 border-l border-[#E5E7EB] pl-2">
-          {blocks.map((b) => (
-            <li key={b.id}>
+          {blocks.map((b, idx) => (
+            <li key={b.id} className="group flex items-center gap-1">
               <button
                 type="button"
                 onClick={onSelect}
-                className="w-full truncate rounded px-1.5 py-1 text-left text-[11px] hover:bg-black/[0.04]"
+                className="min-w-0 flex-1 truncate rounded px-1.5 py-1 text-left text-[11px] hover:bg-black/[0.04]"
                 style={{ color: "#5C5C5C" }}
               >
                 {b.label}
               </button>
+              {onReorderBlocks ? (
+                <div className="hidden shrink-0 items-center gap-0 group-hover:flex">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => onReorderBlocks(idx, idx - 1)}
+                    className="rounded px-0.5 py-0.5 text-[10px] disabled:opacity-20"
+                    style={{ color: "#5C5C5C" }}
+                    aria-label="Move item up"
+                  >↑</button>
+                  <button
+                    type="button"
+                    disabled={idx === blocks.length - 1}
+                    onClick={() => onReorderBlocks(idx, idx + 1)}
+                    className="rounded px-0.5 py-0.5 text-[10px] disabled:opacity-20"
+                    style={{ color: "#5C5C5C" }}
+                    aria-label="Move item down"
+                  >↓</button>
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -265,6 +297,7 @@ export function BuilderSectionListDnd({
   onMoveDown,
   onRemove,
   onToggleHidden,
+  onReorderBlocks,
 }: {
   sections: SectionRow[];
   selectedSectionId: string | null;
@@ -274,10 +307,12 @@ export function BuilderSectionListDnd({
   onMoveDown: (id: string) => void;
   onRemove?: (id: string) => void;
   onToggleHidden?: (id: string) => void;
+  onReorderBlocks?: (sectionId: string, fromIndex: number, toIndex: number) => void;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -302,6 +337,8 @@ export function BuilderSectionListDnd({
     );
   }
 
+  const focusActive = selectedSectionId !== null;
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
@@ -309,27 +346,36 @@ export function BuilderSectionListDnd({
           {sections.map((section, index) => {
             const blocks = blocksForSection(section.section_type, section.props);
             const expanded = expandedId === section.id || selectedSectionId === section.id;
+            const isSelected = selectedSectionId === section.id;
             return (
-              <SortableSectionRow
+              <div
                 key={section.id}
-                section={section}
-                selected={selectedSectionId === section.id}
-                expanded={expanded}
-                blocks={blocks}
-                onSelect={() => {
-                  onSelect(section.id);
-                  setExpandedId(section.id);
+                style={{
+                  opacity: focusActive && !isSelected ? 0.45 : 1,
+                  transition: "opacity 0.15s ease",
                 }}
-                onToggleExpand={() =>
-                  setExpandedId((prev) => (prev === section.id ? null : section.id))
-                }
-                onMoveUp={() => onMoveUp(section.id)}
-                onMoveDown={() => onMoveDown(section.id)}
-                onRemove={onRemove ? () => onRemove(section.id) : undefined}
-                onToggleHidden={onToggleHidden ? () => onToggleHidden(section.id) : undefined}
-                isFirst={index === 0}
-                isLast={index === sections.length - 1}
-              />
+              >
+                <SortableSectionRow
+                  section={section}
+                  selected={isSelected}
+                  expanded={expanded}
+                  blocks={blocks}
+                  onSelect={() => {
+                    onSelect(section.id);
+                    setExpandedId(section.id);
+                  }}
+                  onToggleExpand={() =>
+                    setExpandedId((prev) => (prev === section.id ? null : section.id))
+                  }
+                  onMoveUp={() => onMoveUp(section.id)}
+                  onMoveDown={() => onMoveDown(section.id)}
+                  onRemove={onRemove ? () => onRemove(section.id) : undefined}
+                  onToggleHidden={onToggleHidden ? () => onToggleHidden(section.id) : undefined}
+                  onReorderBlocks={onReorderBlocks ? (from, to) => onReorderBlocks(section.id, from, to) : undefined}
+                  isFirst={index === 0}
+                  isLast={index === sections.length - 1}
+                />
+              </div>
             );
           })}
         </div>

@@ -35,7 +35,7 @@ export function RegistrationProgressTimeline({ steps }: { steps: ProgressStep[] 
   if (ordered.length === 0) {
     return (
       <p className="text-sm" style={{ color: "#6B5B45" }}>
-        Registration progress not available yet. Apply migrations 005–007 in Supabase.
+        Registration progress will appear here once your application is in review.
       </p>
     );
   }

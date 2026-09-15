@@ -21,7 +21,11 @@ export default async function PublicShopAccountPage({ params }: Params) {
 
   return (
     <main className="min-h-screen bg-[#f7f5f2]">
-      <PublicShopAccount subdomain={deployment.subdomain} siteTitle={deployment.definition.title} />
+      <PublicShopAccount
+        subdomain={deployment.subdomain}
+        siteTitle={deployment.definition.title}
+        commerce={deployment.seo?.commerce ?? null}
+      />
     </main>
   );
 }

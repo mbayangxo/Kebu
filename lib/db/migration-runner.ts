@@ -37,16 +37,18 @@ export async function runMigrations(): Promise<MigrationResult[]> {
   const db = createClient(url, key, { auth: { persistSession: false } });
 
   // Ensure tracking table exists
-  await db.rpc("sql", {
-    query: `
-      create table if not exists _kebu_migrations (
-        name       text primary key,
-        applied_at timestamptz not null default now()
-      );
-    `,
-  }).catch(() => {
+  try {
+    await db.rpc("sql", {
+      query: `
+        create table if not exists _kebu_migrations (
+          name       text primary key,
+          applied_at timestamptz not null default now()
+        );
+      `,
+    });
+  } catch {
     // rpc("sql") may not exist — fall back to direct query via REST
-  });
+  }
 
   // Fallback: create via raw query (works with service role)
   const { error: createErr } = await db

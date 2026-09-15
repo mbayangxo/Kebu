@@ -17,6 +17,7 @@ import {
   enqueueSaveSection,
   listOfflineQueue,
   removeOfflineQueueItem,
+  type OfflineQueueItem,
 } from "@/lib/create/offline-queue";
 
 describe("data mode defaults", () => {
@@ -107,7 +108,8 @@ describe("offline queue honesty", () => {
       props: { title: "Two" },
     });
     const same = listOfflineQueue().filter(
-      (i) => i.kind === "save_section" && i.payload.sectionId === "s1",
+      (i): i is Extract<OfflineQueueItem, { kind: "save_section" }> =>
+        i.kind === "save_section" && (i as Extract<OfflineQueueItem, { kind: "save_section" }>).payload.sectionId === "s1",
     );
     expect(same.length).toBe(1);
     expect(same[0]?.payload.props).toEqual({ title: "Two" });

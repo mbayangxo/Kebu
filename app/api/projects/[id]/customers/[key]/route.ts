@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 
-  let customerKey = decodeURIComponent(rawKey || "");
+  const customerKey = decodeURIComponent(rawKey || "");
   // Allow e%3Aemail or e:email
   if (!customerKey.startsWith("e:") && !customerKey.startsWith("p:")) {
     return NextResponse.json({ error: "Invalid customer key." }, { status: 400 });

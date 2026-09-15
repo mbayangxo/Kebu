@@ -154,8 +154,8 @@ export function applySiteChromeToDefinition(
     pages: def.pages.map((page) => ({
       ...page,
       sections: composePageSectionsWithChrome(
-        page.sections.map((s) => ({
-          id: s.id,
+        page.sections.filter((s) => s.id).map((s) => ({
+          id: s.id!,
           type: s.type,
           props: s.props as Record<string, unknown>,
         })),

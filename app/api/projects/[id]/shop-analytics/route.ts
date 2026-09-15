@@ -33,7 +33,7 @@ export async function GET(req: Request, { params }: Params) {
   const { project, db } = access;
 
   const url = new URL(req.url);
-  const rangeDays = Math.min(90, Math.max(1, Number(url.searchParams.get("days") ?? 30) || 30));
+  const rangeDays = Math.min(365, Math.max(1, Number(url.searchParams.get("days") ?? 30) || 30));
   const since = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: orderRows, error: orderErr } = await db

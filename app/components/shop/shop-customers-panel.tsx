@@ -6,11 +6,7 @@ import { KEBU } from "@/lib/kebu-brand";
 import type { ShopCustomerRow } from "@/lib/shop/customers";
 import type { ShopCustomerProfile } from "@/lib/shop/customer-profiles";
 import { carrierLabel } from "@/lib/shop/carriers";
-
-function formatXof(n: number): string {
-  if (!n) return "—";
-  return `${Math.round(n).toLocaleString()} XOF`;
-}
+import { formatXof } from "@/lib/shop/commerce-insights";
 
 export function ShopCustomersPanel({
   projectId,
@@ -170,7 +166,7 @@ export function ShopCustomersPanel({
               </p>
             ) : !profile ? (
               <p className="text-sm" style={{ color: KEBU.muted }}>
-                No profile data yet. Apply migration 054 if orders exist but profiles are empty.
+                No profile data yet for this customer.
               </p>
             ) : (
               <>

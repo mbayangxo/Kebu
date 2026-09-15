@@ -20,6 +20,7 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showNewPost, setShowNewPost] = useState(false);
   const [draft, setDraft] = useState({
     title: "",
     slug: "",
@@ -76,6 +77,7 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
         return;
       }
       setDraft({ title: "", slug: "", excerpt: "", body: "", authorName: "" });
+      setShowNewPost(false);
       await load();
     } finally {
       setBusy(false);
@@ -118,9 +120,6 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>
-        Blog posts
-      </p>
       <p className="text-xs leading-relaxed" style={{ color: BUILDER.muted }}>
         Add a <strong>Blog</strong> section to your page — published posts appear automatically.
       </p>
@@ -162,53 +161,62 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
         ))}
       </ul>
 
-      <form onSubmit={(e) => void createPost(e)} className="space-y-2 rounded-xl border p-3" style={{ borderColor: BUILDER.border }}>
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
-          New post
-        </p>
-        <input
-          className="w-full text-sm rounded-lg px-2 py-1.5"
-          style={{ border: `1px solid ${BUILDER.border}` }}
-          placeholder="Title"
-          value={draft.title}
-          onChange={(e) =>
-            setDraft((d) => ({
-              ...d,
-              title: e.target.value,
-              slug: d.slug || slugifyBlogTitle(e.target.value),
-            }))
-          }
-        />
-        <input
-          className="w-full text-sm rounded-lg px-2 py-1.5 font-mono"
-          style={{ border: `1px solid ${BUILDER.border}` }}
-          placeholder="slug"
-          value={draft.slug}
-          onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
-        />
-        <textarea
-          className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
-          style={{ border: `1px solid ${BUILDER.border}` }}
-          placeholder="Excerpt"
-          value={draft.excerpt}
-          onChange={(e) => setDraft((d) => ({ ...d, excerpt: e.target.value }))}
-        />
-        <textarea
-          className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[100px]"
-          style={{ border: `1px solid ${BUILDER.border}` }}
-          placeholder="Body (markdown-style plain text)"
-          value={draft.body}
-          onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
-        />
-        <button
-          type="submit"
-          disabled={busy || !draft.title.trim()}
-          className="rounded-full px-4 py-2 text-[10px] font-bold uppercase text-white disabled:opacity-50"
-          style={{ background: BUILDER.ink }}
-        >
-          Publish post
-        </button>
-      </form>
+      <button
+        type="button"
+        onClick={() => setShowNewPost((v) => !v)}
+        className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[10px] font-bold uppercase tracking-wider"
+        style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.muted }}
+      >
+        <span>+ New post</span>
+        <span>{showNewPost ? "▲" : "▼"}</span>
+      </button>
+
+      {showNewPost ? (
+        <form onSubmit={(e) => void createPost(e)} className="space-y-2 rounded-xl border p-3" style={{ borderColor: BUILDER.border }}>
+          <input
+            className="w-full text-sm rounded-lg px-2 py-1.5"
+            style={{ border: `1px solid ${BUILDER.border}` }}
+            placeholder="Title"
+            value={draft.title}
+            onChange={(e) =>
+              setDraft((d) => ({
+                ...d,
+                title: e.target.value,
+                slug: d.slug || slugifyBlogTitle(e.target.value),
+              }))
+            }
+          />
+          <input
+            className="w-full text-sm rounded-lg px-2 py-1.5 font-mono"
+            style={{ border: `1px solid ${BUILDER.border}` }}
+            placeholder="slug"
+            value={draft.slug}
+            onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
+          />
+          <textarea
+            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
+            style={{ border: `1px solid ${BUILDER.border}` }}
+            placeholder="Excerpt"
+            value={draft.excerpt}
+            onChange={(e) => setDraft((d) => ({ ...d, excerpt: e.target.value }))}
+          />
+          <textarea
+            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[80px]"
+            style={{ border: `1px solid ${BUILDER.border}` }}
+            placeholder="Body (markdown-style plain text)"
+            value={draft.body}
+            onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
+          />
+          <button
+            type="submit"
+            disabled={busy || !draft.title.trim()}
+            className="rounded-full px-4 py-2 text-[10px] font-bold uppercase text-white disabled:opacity-50"
+            style={{ background: BUILDER.ink }}
+          >
+            Publish post
+          </button>
+        </form>
+      ) : null}
     </div>
   );
 }

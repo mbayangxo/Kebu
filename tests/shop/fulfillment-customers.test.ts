@@ -39,7 +39,7 @@ describe("shop carriers + tracking", () => {
     expect(msg).toMatch(/May Shop/);
     expect(msg).toMatch(/ORD-1/);
     expect(msg).toMatch(/ABC/);
-    expect(msg).toMatch(/Track here/);
+    expect(msg).toMatch(/Track:/);
   });
 });
 

@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { authCallbackUrl, isEmailNotConfirmed } from "@/lib/auth/email-confirm";
 import { shopAccountPath } from "@/lib/shop/customer-account";
+import type { SiteCommerce } from "@/lib/create/site-commerce";
+import { shopOrderMboloHref } from "@/lib/shop/create-order";
 
 type OrderRow = {
   id: string;
@@ -14,6 +16,8 @@ type OrderRow = {
   price_label: string;
   status: string;
   payment_status?: string | null;
+  payment_preference?: string | null;
+  amount_xof?: number | null;
   created_at: string;
   items?: { product_name: string; quantity: number; price_label: string }[];
 };
@@ -29,9 +33,11 @@ type WishItem = {
 export function PublicShopAccount({
   subdomain,
   siteTitle,
+  commerce,
 }: {
   subdomain: string;
   siteTitle: string;
+  commerce?: SiteCommerce | null;
 }) {
   const supabase = createClient();
   const accountPath = shopAccountPath(subdomain);
@@ -401,31 +407,67 @@ export function PublicShopAccount({
             {orders.length === 0 ? (
               <p className="mt-3 text-sm opacity-60">No orders yet for this account on this store.</p>
             ) : (
-              <ul className="mt-3 space-y-2">
-                {orders.map((o) => (
-                  <li key={o.id} className="rounded-xl border border-black/10 bg-white px-3 py-3 text-sm">
-                    <p className="font-semibold">
-                      {o.order_number ? (
-                        <span className="font-mono text-[11px] opacity-70">{o.order_number} · </span>
+              <ul className="mt-3 space-y-3">
+                {orders.map((o) => {
+                  const isJoko = o.payment_preference === "joko" || (o.payment_status ?? "").toLowerCase().includes("joko");
+                  const ref = o.order_number?.trim() || o.id.replace(/-/g, "").slice(0, 8).toUpperCase();
+                  const mboloNum = commerce?.mboloNumber?.trim() || commerce?.merchantWhatsApp?.trim() || "";
+                  const mboloReviewHref = mboloNum
+                    ? shopOrderMboloHref(
+                        mboloNum,
+                        `Avis commande ${ref} — ${o.product_name} : `,
+                      )
+                    : "";
+                  return (
+                    <li key={o.id} className="rounded-xl border border-black/10 bg-white px-3 py-3 text-sm space-y-1.5">
+                      <p className="font-semibold">
+                        {o.order_number ? (
+                          <span className="font-mono text-[11px] opacity-70">{o.order_number} · </span>
+                        ) : null}
+                        {o.quantity}× {o.product_name}
+                      </p>
+                      {o.items && o.items.length > 1 ? (
+                        <ul className="text-[11px] opacity-70">
+                          {o.items.map((it, i) => (
+                            <li key={`${o.id}-${i}`}>
+                              {it.quantity}× {it.product_name}
+                            </li>
+                          ))}
+                        </ul>
                       ) : null}
-                      {o.quantity}× {o.product_name}
-                    </p>
-                    {o.items && o.items.length > 1 ? (
-                      <ul className="mt-1 text-[11px] opacity-70">
-                        {o.items.map((it, i) => (
-                          <li key={`${o.id}-${i}`}>
-                            {it.quantity}× {it.product_name}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    <p className="mt-1 text-[10px] uppercase tracking-wider opacity-50">
-                      {o.status}
-                      {o.payment_status ? ` · Money: ${o.payment_status}` : ""} ·{" "}
-                      {new Date(o.created_at).toLocaleString()}
-                    </p>
-                  </li>
-                ))}
+                      <p className="text-[10px] uppercase tracking-wider opacity-50">
+                        {o.status}
+                        {o.payment_status ? ` · ${o.payment_status}` : ""} ·{" "}
+                        {new Date(o.created_at).toLocaleString()}
+                      </p>
+                      {isJoko ? (
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#FF6B00]/10 px-2 py-0.5 text-[10px] font-bold text-[#FF6B00]">
+                            Joko
+                          </span>
+                          <span className="text-[10px] opacity-60">
+                            {o.payment_status === "paid" || o.payment_status === "joko_paid"
+                              ? "Paiement confirmé"
+                              : "Paiement en attente de confirmation"}
+                          </span>
+                          {ref ? (
+                            <span className="font-mono text-[10px] opacity-40">Réf. {ref}</span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {mboloReviewHref ? (
+                        <a
+                          href={mboloReviewHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block text-[11px] font-semibold text-[#00A3E0] underline"
+                        >
+                          Laisser un avis via Mbolo
+                        </a>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import { SiteAnalyticsBeacon } from "@/app/components/create/site-analytics-beacon";
 import {
-  DataModeControls,
   DataModeProvider,
   useDataMode,
 } from "@/app/components/create/data-mode-provider";
@@ -65,9 +64,6 @@ function PublicSiteInner({
         projectId={projectId}
         dataMode={mode}
       />
-      <div className="kebu-data-mode-dock" aria-label="Data mode">
-        <DataModeControls compact />
-      </div>
     </div>
   );
 }

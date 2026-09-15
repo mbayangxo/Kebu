@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash, createHmac } from "crypto";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
@@ -11,6 +12,15 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
+/** Stable 32-char salt derived from the subdomain, so hash changes when subdomain changes. */
+function sitePasswordHash(subdomain: string, password: string): string {
+  const salt = createHmac("sha256", process.env.NEXTAUTH_SECRET ?? "kebu-site-pw-salt")
+    .update(subdomain)
+    .digest("hex")
+    .slice(0, 32);
+  return createHash("sha256").update(`${salt}:${password}`).digest("hex");
+}
+
 const settingsSchema = z.object({
   subdomain: z
     .string()
@@ -22,6 +32,10 @@ const settingsSchema = z.object({
     .optional(),
   seo: siteSeoSchema.partial().optional(),
   theme: themeSchema.partial().optional(),
+  /** Set a site password (empty string = remove password). */
+  sitePassword: z.string().max(128).optional(),
+  /** Toggle password gate on/off without changing the stored hash. */
+  sitePasswordEnabled: z.boolean().optional(),
 });
 
 /** Update publish subdomain + SEO/favicon settings for an owned project. */
@@ -52,7 +66,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, owner_id, title, subdomain, seo, theme")
+    .select("id, owner_id, title, subdomain, seo, theme, site_password_enabled, site_password_hash")
     .eq("id", id)
     .eq("owner_id", user.id)
     .maybeSingle();
@@ -133,12 +147,27 @@ export async function PATCH(req: Request, { params }: Params) {
     patch.theme = merged;
   }
 
+  if (parsed.data.sitePassword !== undefined) {
+    const effectiveSubdomain = (parsed.data.subdomain ?? project.subdomain) as string | null;
+    if (parsed.data.sitePassword === "") {
+      patch.site_password_hash = null;
+      patch.site_password_enabled = false;
+    } else if (effectiveSubdomain) {
+      patch.site_password_hash = sitePasswordHash(effectiveSubdomain, parsed.data.sitePassword);
+      patch.site_password_enabled = true;
+    }
+  }
+
+  if (parsed.data.sitePasswordEnabled !== undefined) {
+    patch.site_password_enabled = parsed.data.sitePasswordEnabled;
+  }
+
   const { data: updated, error } = await supabase
     .from("projects")
     .update(patch)
     .eq("id", id)
     .eq("owner_id", user.id)
-    .select("id, subdomain, seo, theme, updated_at")
+    .select("id, subdomain, seo, theme, updated_at, site_password_enabled, site_password_hash")
     .single();
 
   if (error || !updated) {
@@ -162,9 +191,14 @@ export async function PATCH(req: Request, { params }: Params) {
   const publicPath = updated.subdomain ? `/sites/${updated.subdomain}` : null;
 
   return NextResponse.json({
-    project: updated,
+    project: {
+      ...updated,
+      site_password_hash: undefined, // never return the hash to the client
+    },
     httpsUrl: publicPath ? (appUrl ? `${appUrl}${publicPath}` : publicPath) : null,
     publicPath,
+    sitePasswordEnabled: Boolean(updated.site_password_enabled),
+    sitePasswordSet: Boolean(updated.site_password_hash),
     message: "Settings saved. Publish again to update your live site.",
   });
 }

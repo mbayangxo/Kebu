@@ -17,7 +17,7 @@ export function TemplatesVisualPage({
 }) {
   return (
     <div className="min-h-full" style={{ background: KEBU.bright }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="px-5 sm:px-8 lg:px-16 py-6 sm:py-8">
         <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-1" style={{ color: KEBU.orange }}>

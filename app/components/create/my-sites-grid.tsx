@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { kebuSitePreviewPath, liveSiteUrl } from "@/lib/create/site-urls";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF, mySiteDetailHref } from "@/lib/navigation/product-nav";
-import { UploadAestheticButton } from "@/app/components/create/upload-aesthetic-button";
 
 export type MySiteProject = {
   id: string;
@@ -237,10 +237,13 @@ function InCardDevicePreview({
 function SiteHealthCard({
   project,
   size,
+  onDeleted,
 }: {
   project: MySiteProject;
   size: "live" | "draft";
+  onDeleted?: (id: string) => void;
 }) {
+  const router = useRouter();
   const published = isSitePublished(project);
   const src = useMemo(() => previewSrc(project), [project]);
   const live = liveSiteUrl(project.subdomain);
@@ -254,6 +257,9 @@ function SiteHealthCard({
     message: src ? "Checking how this site loads…" : "Set a site address to preview.",
   });
   const frameLoads = useRef<number[]>([]);
+  const [publishing, setPublishing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -344,6 +350,40 @@ function SiteHealthCard({
       message: "Preview failed to load.",
     });
   }, []);
+
+  const handlePublish = useCallback(async () => {
+    if (publishing) return;
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/publish`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) router.refresh();
+    } finally {
+      setPublishing(false);
+    }
+  }, [project.id, publishing, router]);
+
+  const handleDelete = useCallback(async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        onDeleted?.(project.id);
+        router.refresh();
+      }
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }, [project.id, deleting, onDeleted, router]);
 
   const tone = healthTone(health.status);
   const isLive = size === "live";
@@ -439,9 +479,51 @@ function SiteHealthCard({
               className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white"
               style={{ background: KEBU.orange }}
             >
-              Open live
+              Open live ↗
             </a>
           ) : null}
+          {!published ? (
+            <button
+              type="button"
+              onClick={() => void handlePublish()}
+              disabled={publishing}
+              className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white disabled:opacity-60"
+              style={{ background: "#009E40" }}
+            >
+              {publishing ? "Publishing…" : "Publish"}
+            </button>
+          ) : null}
+          {confirmDelete ? (
+            <span className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+                className="rounded-full px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-60"
+                style={{ background: "#CC1A1A" }}
+              >
+                {deleting ? "Deleting…" : "Confirm delete"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="rounded-full px-2 py-1.5 text-[10px] font-semibold"
+                style={{ color: KEBU.muted }}
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="rounded-full px-2.5 py-1.5 text-[10px] font-semibold"
+              style={{ color: KEBU.muted, border: `1px solid ${KEBU.border}` }}
+              aria-label="Delete site"
+            >
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -463,17 +545,27 @@ export function MySitesGrid({
   initialFilter?: MySitesFilter;
 }) {
   const [filter, setFilter] = useState<MySitesFilter>(initialFilter);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setFilter(initialFilter);
   }, [initialFilter]);
 
-  const liveSites = useMemo(() => projects.filter(isSitePublished), [projects]);
-  const draftSites = useMemo(() => projects.filter((p) => !isSitePublished(p)), [projects]);
+  const visibleProjects = useMemo(
+    () => projects.filter((p) => !removedIds.has(p.id)),
+    [projects, removedIds],
+  );
+
+  const liveSites = useMemo(() => visibleProjects.filter(isSitePublished), [visibleProjects]);
+  const draftSites = useMemo(() => visibleProjects.filter((p) => !isSitePublished(p)), [visibleProjects]);
   const liveCount = liveSites.length;
   const draftCount = draftSites.length;
 
   const filterHref = (id: MySitesFilter) => (id === "all" ? MY_SITES_HREF : `${MY_SITES_HREF}?filter=${id}`);
+
+  const handleDeleted = useCallback((id: string) => {
+    setRemovedIds((prev) => new Set([...prev, id]));
+  }, []);
 
   function renderGrid(list: MySiteProject[], size: "live" | "draft") {
     if (list.length === 0) return null;
@@ -485,70 +577,48 @@ export function MySitesGrid({
             : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
         }
       >
-        {list.map((p) => (
-          <SiteHealthCard key={p.id} project={p} size={size} />
+        {list.map((p, i) => (
+          <div key={p.id} className="kebu-slide-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+            <SiteHealthCard project={p} size={size} onDeleted={handleDeleted} />
+          </div>
         ))}
       </div>
     );
   }
 
   return (
-    <div className={compact ? "" : "w-full px-6 py-8 sm:px-8 lg:px-10"}>
-      <div className={`flex flex-wrap items-end justify-between gap-4 ${compact ? "mb-4" : "mb-8"}`}>
+    <div className={compact ? "" : "w-full px-5 py-8 sm:px-8 lg:px-16"}>
+      <div className={`flex flex-wrap items-center justify-between gap-3 ${compact ? "mb-4" : "mb-6"}`}>
         <div>
           {!compact ? (
-            <>
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: KEBU.orange }}>
-                Your websites
-              </p>
-              <h1 className="text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-                My sites
-              </h1>
-              <p className="mt-2 max-w-xl text-sm" style={{ color: KEBU.muted }}>
-                Live sites and drafts are separated. Each card has one preview — switch Desktop / Tablet / Phone inside
-                the frame.
-              </p>
-            </>
+            <h1 className="text-xl font-black" style={{ color: KEBU.black }}>
+              My sites
+            </h1>
           ) : (
-            <div>
-              <h2 className="text-lg font-bold">Recent sites</h2>
-              <p className="mt-1 text-xs" style={{ color: KEBU.muted }}>
-                Drafts and live — open My sites for the full list.
-              </p>
-            </div>
+            <h2 className="text-base font-bold" style={{ color: KEBU.black }}>Recent sites</h2>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!compact ? (
             <>
               <Link
-                href="/create/aesthetics"
-                className="inline-flex rounded-full border px-5 py-2.5 text-sm font-bold"
-                style={{ borderColor: KEBU.border }}
-              >
-                Aesthetic Gallery
-              </Link>
-              <UploadAestheticButton
-                sites={projects.map((p) => ({ id: p.id, title: p.title || "Untitled site" }))}
-              />
-              <Link
-                href="/create/domains"
-                className="inline-flex rounded-full border px-5 py-2.5 text-sm font-bold"
-                style={{ borderColor: KEBU.border }}
-              >
-                Domains
-              </Link>
-              <Link
                 href="/create/new"
-                className="inline-flex rounded-full px-5 py-2.5 text-sm font-bold text-white"
+                className="inline-flex rounded-lg px-4 py-2 text-[13px] font-bold text-white"
                 style={{ background: KEBU.orange }}
               >
                 + New site
               </Link>
+              <Link
+                href="/create/aesthetics"
+                className="inline-flex rounded-lg border px-3.5 py-2 text-[12px] font-semibold"
+                style={{ borderColor: KEBU.border, color: KEBU.black }}
+              >
+                Aesthetics
+              </Link>
             </>
           ) : (
-            <Link href={MY_SITES_HREF} className="text-sm font-bold underline" style={{ color: KEBU.orange }}>
-              My sites →
+            <Link href={MY_SITES_HREF} className="text-[12px] font-bold" style={{ color: KEBU.orange }}>
+              View all →
             </Link>
           )}
         </div>
@@ -558,7 +628,7 @@ export function MySitesGrid({
         <div className="mb-6 flex flex-wrap gap-2">
           {(
             [
-              ["all", `All (${projects.length})`],
+              ["all", `All (${visibleProjects.length})`],
               ["live", `Live (${liveCount})`],
               ["draft", `Drafts (${draftCount})`],
             ] as const
@@ -567,10 +637,10 @@ export function MySitesGrid({
               key={id}
               type="button"
               onClick={() => setFilter(id)}
-              className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider"
+              className="rounded-md px-3.5 py-1.5 text-[11px] font-bold"
               style={{
-                background: filter === id ? KEBU.black : KEBU.white,
-                color: filter === id ? KEBU.white : KEBU.black,
+                background: filter === id ? KEBU.black : "transparent",
+                color: filter === id ? KEBU.white : KEBU.muted,
                 border: filter === id ? "none" : `1px solid ${KEBU.border}`,
               }}
             >
@@ -580,7 +650,7 @@ export function MySitesGrid({
         </div>
       ) : null}
 
-      {projects.length === 0 ? (
+      {visibleProjects.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-black/15 bg-white p-12 text-center">
           <p className="mb-2 text-lg font-semibold">No sites yet</p>
           <p className="mb-6 text-sm" style={{ color: KEBU.muted }}>

@@ -414,6 +414,12 @@ export function compileStoryboardToClips(
       scale: 1,
       rotation: 0,
       sceneId: scene.id,
+      chromaEnabled: false,
+      chromaColor: "#00FF00",
+      chromaSimilarity: 0.4,
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
     };
     t += scene.durationMs;
     return clip;

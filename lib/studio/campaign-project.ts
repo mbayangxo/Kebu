@@ -25,7 +25,7 @@ export const campaignProjectSchema = z.object({
   businessId: z.string().uuid().nullable().optional(),
   brandKitId: z.string().uuid().nullable().optional(),
   status: z.enum(["draft", "active", "launched", "archived"]).default("draft"),
-  mood: campaignMoodSchema.default({}),
+  mood: campaignMoodSchema.default({ direction: "", keywords: [], moodboardNotes: "" }),
 });
 
 export type CampaignProjectInput = z.infer<typeof campaignProjectSchema>;

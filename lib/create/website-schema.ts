@@ -21,12 +21,22 @@ export const SECTION_TYPES = [
   "testimonials",
   "faq",
   "products",
+  "quiz",
+  "stats",
   "contact",
   "newsletter",
   "email-popup",
   "form",
   "blog-list",
   "whatsapp",
+  "joko",
+  "countdown",
+  "trust-badges",
+  "social-proof",
+  "floating-cta",
+  "before-after",
+  "hotspot-image",
+  "reviews",
   "free-text",
   "footer",
   "maylecor-home",
@@ -53,10 +63,10 @@ export const themeSchema = z.object({
   /** Max content column width for standard sections. */
   contentWidth: z.enum(["narrow", "default", "wide"]).optional(),
   /** Relative heading size — Shopify-style typography scale. */
-  headingScale: z.enum(["sm", "md", "lg", "xl"]).optional().default("md"),
+  headingScale: z.enum(["sm", "md", "lg", "xl"]).optional(),
   /** Body text size. */
-  bodySize: z.enum(["sm", "md", "lg"]).optional().default("md"),
-  letterSpacing: z.enum(["tight", "normal", "wide"]).optional().default("normal"),
+  bodySize: z.enum(["sm", "md", "lg"]).optional(),
+  letterSpacing: z.enum(["tight", "normal", "wide"]).optional(),
   /** Corner radius feel for cards and buttons. */
   radius: z.enum(["sharp", "soft", "round"]).optional(),
   /** Primary button look. */
@@ -94,7 +104,7 @@ const imageUrl = z.union([
     .string()
     .trim()
     .max(2000)
-    .regex(/^\/[a-zA-Z0-9._\-/]+$/, "Invalid image path"),
+    .regex(/^\/[a-zA-Z0-9._\-/]+(\?[a-zA-Z0-9._\-=&%]+)?$/, "Invalid image path"),
 ]);
 
 const socialLinksSchema = z
@@ -132,10 +142,26 @@ export const sectionPropsSchemas = {
       .array(z.object({
         label: z.string().trim().max(40),
         href: safeHref,
-        children: z.array(z.object({ label: z.string().trim().max(40), href: safeHref })).max(8).optional(),
+        /** Regular dropdown children (standard nav) or mega-nav columns. */
+        children: z.array(z.object({
+          label: z.string().trim().max(40),
+          href: safeHref,
+          /** Mega-nav only: second-level items shown in a column under this child. */
+          grandchildren: z.array(z.object({ label: z.string().trim().max(40), href: safeHref })).max(8).optional(),
+        })).max(12).optional(),
+        /** Mega-nav only: column label shown above the children group. */
+        columnLabel: z.string().trim().max(60).optional(),
+        /** Mega-nav only: optional featured image or banner in the dropdown panel. */
+        featuredImage: imageUrl.optional(),
+        featuredImageAlt: z.string().trim().max(120).optional(),
       }))
-      .max(8)
+      .max(12)
       .default([]),
+    /**
+     * standard = regular nav with simple dropdown on hover.
+     * mega = full-width dropdown panel with columns per top-level link — like Fashion Nova / Best Buy.
+     */
+    navStyle: z.enum(["standard", "mega"]).optional().default("standard"),
     /** compact → fullscreen width; combined with navScale. */
     navSize: z.enum(["compact", "comfortable", "large", "fullscreen"]).optional().default("comfortable"),
     navScale: z.number().min(0.7).max(2.2).optional().default(1),
@@ -155,6 +181,88 @@ export const sectionPropsSchemas = {
     buttonHref: safeHref.default("#"),
     align: z.enum(["left", "center"]).default("center"),
     background: z.string().trim().max(40).optional(),
+    hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
+  }),
+  /** Full-bleed image/video hero with text overlay — editorial layouts and fashion templates. */
+  "editorial-hero": z.object({
+    heading: z.string().trim().min(1).max(160),
+    subheading: z.string().trim().max(400).default(""),
+    buttonLabel: z.string().trim().max(60).default(""),
+    buttonHref: safeHref.default("#"),
+    imageUrl: imageUrl.default(""),
+    imageAlt: z.string().trim().max(160).default(""),
+    /** 0–1 dark overlay opacity over the image. */
+    overlayOpacity: z.number().min(0).max(1).default(0.5),
+    align: z.enum(["left", "center", "right"]).default("left"),
+    /** Height of the hero block as a viewport-height percentage. */
+    heightVh: z.number().int().min(40).max(100).default(80),
+    background: z.string().trim().max(40).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  /** Sticky top bar with a short promotional message — high contrast, attention-grabbing. */
+  "announcement-bar": z.object({
+    text: z.string().trim().min(1).max(200),
+    /** Optional link destination when the bar is clicked. */
+    href: safeHref.optional(),
+    /** Background hex (e.g. "#B91C1C" for red — use a bold color per Boie pattern). */
+    background: z.string().trim().max(40).optional(),
+    /** Text/foreground color. */
+    color: z.string().trim().max(40).optional(),
+    /** Alias kept for backward-compat with templates that use textColor. */
+    textColor: z.string().trim().max(40).optional(),
+    /**
+     * ISO datetime string — when set, the bar shows a live countdown timer.
+     * E.g. "2025-12-31T23:59:59Z" → "VENTE — il reste 2h 14min 08s".
+     * Great for flash sales and limited-time offers (LUXORA "SALE ENDS TODAY" pattern).
+     */
+    countdownTo: z.string().trim().max(30).optional(),
+    countdownLabel: z.string().trim().max(80).optional(),
+    /**
+     * When set, the bar shows a free-shipping progress indicator.
+     * E.g. freeShippingThreshold: 15000 → "Encore 8 500 FCFA pour la livraison gratuite".
+     */
+    freeShippingThreshold: z.number().int().min(0).optional(),
+    freeShippingCurrency: z.string().trim().max(6).optional().default("FCFA"),
+    freeShippingAchievedText: z.string().trim().max(120).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  /** Horizontally scrolling text ticker — brand names, product categories, mottos. */
+  marquee: z.object({
+    items: z.array(z.string().trim().min(1).max(80)).min(1).max(24).default(["Kebu"]),
+    /** Scroll speed in pixels per second. */
+    speed: z.number().int().min(5).max(200).default(40),
+    background: z.string().trim().max(40).optional(),
+    color: z.string().trim().max(40).optional(),
+    separator: z.string().trim().max(10).optional().default("·"),
+    hidden: z.boolean().optional(),
+  }),
+  /** Two-column image + text layout — brand story, about, product feature. */
+  split: z.object({
+    heading: z.string().trim().max(160).optional(),
+    body: z.string().trim().max(1200).default(""),
+    imageUrl: imageUrl.default(""),
+    imageAlt: z.string().trim().max(160).default(""),
+    imagePosition: z.enum(["left", "right"]).default("right"),
+    buttonLabel: z.string().trim().max(60).optional(),
+    buttonHref: safeHref.optional(),
+    background: z.string().trim().max(40).optional(),
+    hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
+  }),
+  /** Grid of category / collection tiles — each is a clickable image + label. */
+  "category-tiles": z.object({
+    heading: z.string().trim().max(160).optional(),
+    columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional().default(4),
+    items: z
+      .array(z.object({
+        label: z.string().trim().min(1).max(60),
+        href: safeHref.default("#"),
+        imageUrl: imageUrl.default(""),
+        description: z.string().trim().max(120).optional(),
+      }))
+      .max(12)
+      .default([]),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
@@ -182,9 +290,19 @@ export const sectionPropsSchemas = {
       )
       .max(24)
       .default([]),
-    /** grid = thumbnails · single = one full-width photo · featured = first large + rest grid */
-    layout: z.enum(["grid", "single", "featured"]).optional().default("grid"),
+    /**
+     * grid = thumbnails · single = one full-width photo · featured = first large + rest grid ·
+     * carousel = horizontal scroll strip (LUXORA "Most-Loved Shades" pattern) ·
+     * masonry = Pinterest-style unequal columns
+     */
+    layout: z.enum(["grid", "single", "featured", "carousel", "masonry"]).optional().default("grid"),
     columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().default(3),
+    /**
+     * Instagram handle (without @) — renders a "On the Gram" CTA card inside the grid
+     * (Layers Beauty / Inspired theme pattern). Offline-first: photos are your own uploaded images.
+     */
+    instagramHandle: z.string().trim().max(60).optional(),
+    followLabel: z.string().trim().max(60).optional().default("Suivez-nous"),
     hidden: z.boolean().optional(),
   }),
   video: z.object({
@@ -246,8 +364,12 @@ export const sectionPropsSchemas = {
   }),
   features: z.object({
     heading: z.string().trim().max(160).default("Features"),
+    subheading: z.string().trim().max(240).optional(),
     /** grid = cards · moodboard = animated mosaic tiles (May's World / artist hubs) */
     layout: z.enum(["grid", "moodboard"]).optional().default("grid"),
+    /** Optional full-bleed background image behind the entire features section (image 1 pattern). */
+    backgroundImageUrl: imageUrl.optional().default(""),
+    background: z.string().trim().max(40).optional(),
     items: z
       .array(
         z.object({
@@ -255,6 +377,10 @@ export const sectionPropsSchemas = {
           body: z.string().trim().max(240),
           href: z.string().trim().max(500).optional(),
           image: imageUrl.optional().default(""),
+          /** Per-item illustration / photo (agency case study pattern — "VELVET THEORY"). */
+          imageUrl: imageUrl.optional().default(""),
+          /** Icon emoji or short label displayed above the title (e.g. "⚡", "🌿", "shield"). */
+          icon: z.string().trim().max(80).optional(),
         }),
       )
       .max(12)
@@ -264,9 +390,25 @@ export const sectionPropsSchemas = {
   }),
   testimonials: z.object({
     heading: z.string().trim().max(160).default("What customers say"),
+    /** Filter pill tags grouping review topics — e.g. "Hydration", "Texture & Feel". */
+    topics: z.array(z.string().trim().max(60)).max(12).optional().default([]),
     items: z
-      .array(z.object({ quote: z.string().trim().max(400), name: z.string().trim().max(80) }))
-      .max(8)
+      .array(z.object({
+        quote: z.string().trim().max(400),
+        name: z.string().trim().max(80),
+        /** Short line shown under name — e.g. "Peau mixte · hyperpigmentation — Dakar". */
+        role: z.string().trim().max(120).optional(),
+        /** Structured: skin type (Normal, Mixte, Grasse, Sèche, Sensible). */
+        skinType: z.string().trim().max(60).optional(),
+        /** Structured: main skin concern. */
+        skinConcern: z.string().trim().max(80).optional(),
+        /** Topics this review covers — must match topics array entries for filtering. */
+        reviewTopics: z.array(z.string().trim().max(60)).max(6).optional().default([]),
+        verified: z.boolean().optional(),
+        rating: z.number().int().min(1).max(5).optional(),
+        imageUrl: imageUrl.optional().default(""),
+      }))
+      .max(24)
       .default([]),
     hidden: z.boolean().optional(),
   }),
@@ -276,13 +418,25 @@ export const sectionPropsSchemas = {
       .array(z.object({ question: z.string().trim().max(200), answer: z.string().trim().max(800) }))
       .max(12)
       .default([]),
+    /**
+     * Optional "Still need help?" side panel shown next to the FAQ accordion
+     * (Layers Beauty / split-FAQ pattern). Rendered as a right-hand panel with background image.
+     */
+    contactPanel: z.object({
+      heading: z.string().trim().max(120).default("Encore des questions ?"),
+      body: z.string().trim().max(300).default(""),
+      buttonLabel: z.string().trim().max(60).default("Nous contacter"),
+      buttonHref: safeHref.default("/contact"),
+      background: z.string().trim().max(40).optional(),
+      imageUrl: imageUrl.optional().default(""),
+    }).optional(),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
   products: z.object({
     heading: z.string().trim().max(160).default("Products"),
     /** How products appear on the shop page. */
-    layout: z.enum(["grid", "grid-dense", "list", "featured"]).optional().default("grid"),
+    layout: z.enum(["grid", "grid-dense", "list", "featured", "carousel"]).optional().default("grid"),
     /** Columns for grid layouts (ignored for list). */
     columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional().default(3),
     /**
@@ -319,12 +473,131 @@ export const sectionPropsSchemas = {
             )
             .max(48)
             .optional(),
+          /** ISO date string YYYY-MM-DD — displayed as freshness indicator on food/pharma product cards. */
+          expiryDate: z.string().trim().max(10).optional(),
+          /** Internal batch/lot reference for traceability. */
+          batchCode: z.string().trim().max(40).optional(),
+          /** Positive use cases — shown as ✓ checklist on product detail. E.g. "peaux grasses", "KP". */
+          goodFor: z.array(z.string().trim().max(80)).max(8).optional().default([]),
+          /** Contraindications — shown as ✗ list on product detail. */
+          notGoodFor: z.array(z.string().trim().max(80)).max(6).optional().default([]),
+          /** Icon+label attribute badges shown under the product (e.g. "🌿 Sans conservateurs"). */
+          attributes: z.array(z.object({ icon: z.string().trim().max(4).optional(), label: z.string().trim().max(60) })).max(8).optional().default([]),
+          /** Discount % shown when subscription is chosen. E.g. 10 → "Abonnement — économisez 10%". */
+          subscriptionDiscount: z.number().int().min(1).max(50).optional(),
+          /** "You might also like" — product names to surface as cross-sells (display only). */
+          crossSells: z.array(z.string().trim().max(120)).max(4).optional().default([]),
+          /** Short badge shown on the product card corner. E.g. "NOUVEAU", "PROMO", "EXCLUSIF EN LIGNE". */
+          badge: z.string().trim().max(40).optional(),
+          /** Comparison/original price shown struck-through beside current price. E.g. "24 000 FCFA". */
+          valuePriceLabel: z.string().trim().max(60).optional(),
+          /** Category tags used by client-side filter chips. E.g. ["visage", "hydratation"]. */
+          filterTags: z.array(z.string().trim().max(40)).max(6).optional().default([]),
         }),
       )
       .max(24)
       .default([]),
+    /** Label above the filter chip bar. E.g. "Filtrer par gamme". Shown only when items have filterTags. */
+    filterLabel: z.string().trim().max(80).optional(),
+    /**
+     * Optional promotional banner card inserted into the product grid.
+     * E.g. "Commandez 3 produits → livraison gratuite" — high contrast, like Sephora's bonus-points card.
+     */
+    promoBanner: z
+      .object({
+        text: z.string().trim().min(1).max(200),
+        subtext: z.string().trim().max(120).optional(),
+        background: z.string().trim().max(40).optional(),
+        color: z.string().trim().max(40).optional(),
+        /** Which grid position to insert it (0-indexed). Default: after 2nd product. */
+        insertAfterIndex: z.number().int().min(0).max(23).optional().default(2),
+      })
+      .optional(),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
+  }),
+  /**
+   * Interactive product-finder / consultation quiz.
+   * Each step asks one question; the final step fires a pre-filled WhatsApp message
+   * containing all answers so the merchant can recommend products personally.
+   */
+  quiz: z.object({
+    heading: z.string().trim().max(160).default("Trouvez votre routine"),
+    subheading: z.string().trim().max(240).default(""),
+    /** Label on the final WhatsApp send button. */
+    ctaLabel: z.string().trim().max(60).default("Voir ma recommandation sur WhatsApp"),
+    /** Merchant WhatsApp number (E.164, digits only). */
+    whatsappPhone: z.string().trim().max(20).default(""),
+    /** Prefix prepended to the WhatsApp message before answers. */
+    whatsappIntro: z.string().trim().max(200).default("Bonjour, voici mes réponses au quiz :"),
+    /**
+     * "discount-gate" = single-question quiz that unlocks a promo code on completion
+     * (Blume "Mystery Discount" pattern — great for capturing engagement before first order).
+     * "recommender" = multi-step quiz showing an inline product recommendation on the page
+     * (Blume "What are you looking for?" pattern).
+     * "whatsapp" = default — all answers go into a pre-filled WhatsApp message.
+     */
+    mode: z.enum(["whatsapp", "recommender", "discount-gate"]).optional().default("whatsapp"),
+    /** discount-gate only: the promo code to reveal after answering (sent via WhatsApp). */
+    discountCode: z.string().trim().max(40).optional(),
+    /** discount-gate only: teaser text before the code is revealed. */
+    discountTeaser: z.string().trim().max(160).optional().default("Répondez pour débloquer votre code promo"),
+    steps: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(40),
+          question: z.string().trim().min(1).max(200),
+          /** Single-choice option list. */
+          options: z.array(z.string().trim().min(1).max(80)).min(2).max(8),
+          /** Emoji or short icon shown next to this step in the progress rail. */
+          icon: z.string().trim().max(4).optional(),
+          /**
+           * recommender mode only: maps each option (by index) to a product name to recommend.
+           * E.g. { "0": "Sérum Éclat", "1": "Crème Hydratante Légère" }
+           */
+          recommendations: z.record(z.string(), z.string().trim().max(120)).optional(),
+        }),
+      )
+      .min(1)
+      .max(6)
+      .default([
+        { id: "skin_type", question: "Quel est votre type de peau ?", options: ["Normale", "Mixte", "Grasse", "Sèche", "Sensible"], icon: "🌿" },
+        { id: "concern", question: "Votre priorité principale ?", options: ["Éclat & teint unifié", "Hydratation profonde", "Anti-taches", "Anti-âge", "Pores & points noirs"], icon: "✨" },
+        { id: "routine", question: "Votre routine actuelle ?", options: ["Je débute", "Routine simple (2–3 soins)", "Routine complète", "Soins naturels uniquement"], icon: "🕐" },
+      ]),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Numbers/achievements strip — social proof for agencies, freelancers, coaches.
+   * PORTUM portfolio pattern: "3,460+ Clients · 1,452+ Projects · 15+ Years of Experience".
+   */
+  stats: z.object({
+    heading: z.string().trim().max(160).optional(),
+    subheading: z.string().trim().max(240).optional(),
+    layout: z.enum(["row", "grid"]).optional().default("row"),
+    items: z
+      .array(z.object({
+        value: z.string().trim().min(1).max(40),
+        label: z.string().trim().min(1).max(80),
+        /** Optional suffix appended to value: "+" → "1 452+". */
+        suffix: z.string().trim().max(10).optional(),
+        /** Optional prefix: ">" or "+". */
+        prefix: z.string().trim().max(10).optional(),
+      }))
+      .min(1)
+      .max(8)
+      .default([]),
+    /**
+     * Optional certification/accreditation badge floating beside the stats.
+     * E.g. "Certified UX Professional", "ISO 9001", "Google Partner".
+     */
+    badge: z.object({
+      label: z.string().trim().min(1).max(80),
+      background: z.string().trim().max(40).optional(),
+      color: z.string().trim().max(40).optional(),
+    }).optional(),
+    background: z.string().trim().max(40).optional(),
+    hidden: z.boolean().optional(),
   }),
   contact: z.object({
     heading: z.string().trim().max(160).default("Contact"),
@@ -350,6 +623,15 @@ export const sectionPropsSchemas = {
     buttonLabel: z.string().trim().max(40).default("Send"),
     successMessage: z.string().trim().max(160).default("Thanks — we received your message."),
     notifyEmail: z.union([z.literal(""), z.string().trim().email().max(254)]).optional(),
+    /**
+     * Visual style for the form container.
+     * standard = clean flat fields (default);
+     * card = bordered card with shadow;
+     * dark = dark background, white fields;
+     * split = accent panel left + white form right;
+     * booking = appointment-booking feel with section labels.
+     */
+    formStyle: z.enum(["standard", "card", "dark", "split", "booking"]).optional().default("standard"),
     fields: z
       .array(
         z.object({
@@ -398,12 +680,171 @@ export const sectionPropsSchemas = {
     delaySeconds: z.number().int().min(0).max(60).default(4),
     /** Days before showing again after dismiss (0 = every visit until accept). */
     remindAfterDays: z.number().int().min(0).max(365).default(14),
+    /** If true, never show again after the first dismiss — ignores remindAfterDays. */
+    showOnFirstVisitOnly: z.boolean().optional().default(false),
+    /** Logo or card image shown above the heading. */
+    imageUrl: imageUrl.optional(),
+    /** Discount code revealed to the subscriber after signup. */
+    discountCode: z.string().trim().max(80).optional(),
+    /** Teaser shown instead of plain heading — e.g. "Get 15% off your first order". */
+    discountTeaser: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
   }),
   whatsapp: z.object({
     label: z.string().trim().max(60).default("Chat on WhatsApp"),
     phone: z.string().trim().min(5).max(40),
     message: z.string().trim().max(200).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  joko: z.object({
+    label: z.string().trim().max(60).default("Payer via Joko"),
+    /** Joko merchant phone or identifier (E.164 digits only). */
+    phone: z.string().trim().max(40).default(""),
+    /** Optional direct Joko pay link (overrides phone-based link). */
+    jokoPayLink: z.string().trim().max(500).optional(),
+    message: z.string().trim().max(200).optional(),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Hero-sized countdown timer — great for drops, launches, flash sales, events.
+   * Shows DD · HH · MM · SS with live JS countdown.
+   */
+  countdown: z.object({
+    heading: z.string().trim().max(160).optional(),
+    subheading: z.string().trim().max(240).optional(),
+    /** ISO 8601 datetime string — e.g. "2026-01-01T00:00:00Z". */
+    target: z.string().trim().max(40).default(""),
+    expiredMessage: z.string().trim().max(160).optional().default("L'événement a commencé !"),
+    /** Optional redirect when countdown hits zero. */
+    expiredHref: safeHref.optional(),
+    background: z.string().trim().max(40).optional(),
+    color: z.string().trim().max(40).optional(),
+    /** Accent color for the digit numbers. Defaults to site accent. */
+    accentColor: z.string().trim().max(40).optional(),
+    /** hero = full-width section · strip = compact bar (like announcement-bar) · card = centered floating card */
+    layout: z.enum(["hero", "strip", "card"]).optional().default("hero"),
+    showDays: z.boolean().optional().default(true),
+    labelDays: z.string().trim().max(20).optional().default("Jours"),
+    labelHours: z.string().trim().max(20).optional().default("Heures"),
+    labelMinutes: z.string().trim().max(20).optional().default("Minutes"),
+    labelSeconds: z.string().trim().max(20).optional().default("Secondes"),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Trust / reassurance badge strip — conversion booster under hero or cart.
+   * Secure payment · Fast shipping · Returns · WhatsApp support.
+   */
+  "trust-badges": z.object({
+    items: z
+      .array(z.object({
+        icon: z.string().trim().max(8).optional(),
+        label: z.string().trim().min(1).max(80),
+        description: z.string().trim().max(120).optional(),
+      }))
+      .min(1)
+      .max(8)
+      .default([
+        { icon: "🔒", label: "Paiement sécurisé", description: "Wave · Orange Money · Carte" },
+        { icon: "🚚", label: "Livraison rapide", description: "Dakar · Abidjan · Accra" },
+        { icon: "⭐", label: "Satisfait ou remboursé", description: "Échanges sans frais" },
+        { icon: "💬", label: "Support WhatsApp", description: "Réponse en moins d'1h" },
+      ]),
+    background: z.string().trim().max(40).optional(),
+    color: z.string().trim().max(40).optional(),
+    /** strip = icon + label row · grid = 2×2 with descriptions */
+    layout: z.enum(["strip", "grid"]).optional().default("strip"),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Social proof notification popup — cycling corner toasts showing recent orders.
+   * "Fatou de Dakar vient de commander Kit Rituel · il y a 3 min"
+   */
+  "social-proof": z.object({
+    items: z
+      .array(z.object({
+        name: z.string().trim().min(1).max(60),
+        location: z.string().trim().max(80).optional(),
+        product: z.string().trim().max(80).optional(),
+        minutesAgo: z.number().int().min(1).max(120).optional().default(5),
+      }))
+      .min(1)
+      .max(12)
+      .default([
+        { name: "Fatou", location: "Dakar", product: "Sérum Éclat", minutesAgo: 3 },
+        { name: "Aminata", location: "Abidjan", product: "Kit Rituel", minutesAgo: 7 },
+        { name: "Rokhaya", location: "Thiès", product: "Crème Nuit", minutesAgo: 12 },
+      ]),
+    /** Seconds between each notification. */
+    interval: z.number().int().min(3).max(30).optional().default(8),
+    position: z.enum(["bottom-left", "bottom-right"]).optional().default("bottom-left"),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Floating sticky CTA — WhatsApp / call button always visible at viewport corner.
+   * Renders as position:fixed in live mode; inline preview in builder.
+   */
+  "floating-cta": z.object({
+    type: z.enum(["whatsapp", "call", "link"]).optional().default("whatsapp"),
+    phone: z.string().trim().max(40).default(""),
+    message: z.string().trim().max(200).optional(),
+    label: z.string().trim().max(60).optional().default("Commander sur WhatsApp"),
+    /** Custom link (used when type = "link"). */
+    href: safeHref.optional(),
+    color: z.string().trim().max(40).optional(),
+    position: z.enum(["bottom-right", "bottom-left"]).optional().default("bottom-right"),
+    /** Show pulsing ring animation. */
+    pulse: z.boolean().optional().default(true),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Side-by-side drag slider revealing a before/after photo pair.
+   * Great for hair salons, skincare brands, makeup artists, construction before/after.
+   */
+  "before-after": z.object({
+    heading: z.string().trim().max(160).optional(),
+    subheading: z.string().trim().max(240).optional(),
+    beforeImageUrl: imageUrl.default(""),
+    afterImageUrl: imageUrl.default(""),
+    beforeLabel: z.string().trim().max(40).optional().default("Before"),
+    afterLabel: z.string().trim().max(40).optional().default("After"),
+    /** 0–100 — where the divider starts (50 = middle). */
+    initialPosition: z.number().min(0).max(100).optional().default(50),
+    hidden: z.boolean().optional(),
+  }),
+  /**
+   * Image with floating clickable pin circles — product tags, info tooltips.
+   * Great for fashion lookbooks (tag the outfit), room design, equipment guides.
+   */
+  "hotspot-image": z.object({
+    imageUrl: imageUrl.default(""),
+    imageAlt: z.string().trim().max(160).default(""),
+    heading: z.string().trim().max(160).optional(),
+    pins: z
+      .array(z.object({
+        id: z.string().trim().min(1).max(40),
+        /** Horizontal position as % of image width. */
+        xPct: z.number().min(0).max(100),
+        /** Vertical position as % of image height. */
+        yPct: z.number().min(0).max(100),
+        label: z.string().trim().max(80),
+        description: z.string().trim().max(300).optional(),
+        href: safeHref.optional(),
+        priceLabel: z.string().trim().max(60).optional(),
+      }))
+      .max(12)
+      .default([]),
+    hidden: z.boolean().optional(),
+  }),
+  /** Customer product reviews widget — Yotpo-style star ratings, submit form, breakdown. */
+  reviews: z.object({
+    heading: z.string().trim().max(160).optional().default("Avis clients"),
+    /** UUID of the product to show reviews for. If blank, shows a placeholder. */
+    productId: z.string().uuid().optional(),
+    /** Show the review submit form. Default true. */
+    showForm: z.boolean().optional().default(true),
+    /** How many reviews to show before "load more". */
+    maxVisible: z.number().int().min(1).max(50).optional().default(6),
+    layout: z.enum(["list", "grid"]).optional().default("list"),
     hidden: z.boolean().optional(),
   }),
   "free-text": z.object({
@@ -492,9 +933,9 @@ export const sectionPropsSchemas = {
     brandLabel: z.string().trim().max(80).optional(),
     backgroundLayer: imageUrl,
     titleLogo: imageUrl,
-    cutoutLeft: imageUrl,
-    cutoutRight: imageUrl,
-    cutoutAccent: imageUrl,
+    cutoutLeft: z.preprocess((v) => v ?? "", imageUrl),
+    cutoutRight: z.preprocess((v) => v ?? "", imageUrl),
+    cutoutAccent: z.preprocess((v) => v ?? "", imageUrl),
     cutoutSparkle: imageUrl.optional().default(""),
     macbook: imageUrl,
     sparkleGif: imageUrl.optional().default(""),
@@ -715,7 +1156,7 @@ export const websiteDefinitionSchema = z.object({
   title: z.string().trim().min(1).max(120),
   theme: themeSchema,
   seo: siteSeoSchema.optional(),
-  pages: z.array(websitePageSchema).min(1).max(12),
+  pages: z.array(websitePageSchema).min(1).max(20),
 });
 
 export type WebsiteDefinition = z.infer<typeof websiteDefinitionSchema>;

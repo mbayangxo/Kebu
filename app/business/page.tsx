@@ -64,9 +64,9 @@ const TABS: { id: TabId; label: string }[] = [
 function MySpaceInner() {
   const router = useRouter();
   const search = useSearchParams();
-  const tabParam = search.get("tab") as TabId | null;
+  const tabParam = search.get("tab");
   const [tab, setTab] = useState<TabId>(
-    tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "pulse",
+    tabParam && TABS.some((t) => t.id === tabParam) ? (tabParam as TabId) : "pulse",
   );
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [summary, setSummary] = useState<HomeSummary | null>(null);
@@ -130,7 +130,7 @@ function MySpaceInner() {
       router.replace("/business?tab=pulse", { scroll: false });
       return;
     }
-    if (tabParam && TABS.some((t) => t.id === tabParam)) setTab(tabParam);
+    if (tabParam && TABS.some((t) => t.id === tabParam)) setTab(tabParam as TabId);
   }, [tabParam, router]);
 
   useEffect(() => {
@@ -470,9 +470,9 @@ function MySpaceInner() {
                   style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
                 >
                   <p className="font-bold text-sm">{s.title}</p>
-                  {"loadError" in s && s.loadError ? (
+                  {"loadError" in s && typeof (s as { loadError?: string }).loadError === "string" ? (
                     <p className="text-[11px] mt-1" style={{ color: KEBU.red }}>
-                      {s.loadError}
+                      {(s as { loadError: string }).loadError}
                     </p>
                   ) : (
                     <p className="text-[11px] mt-1" style={{ color: KEBU.muted }}>

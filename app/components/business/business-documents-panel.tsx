@@ -64,8 +64,8 @@ export function BusinessDocumentsPanel({
       if (!res.ok) {
         setError(
           typeof data.error === "string"
-            ? data.error
-            : "Could not load documents. Apply migration 017 + 021 in Supabase if this is a new project.",
+            ? data.error.replace(/\bApply migration[^.]*\./gi, "").trim() || "Could not load documents."
+            : "Could not load documents.",
         );
         return;
       }

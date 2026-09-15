@@ -98,20 +98,22 @@ export async function loadPublicDeployment(subdomain: string): Promise<PublicDep
   if (!parsed.success) return null;
 
   const seo = mergeSiteSeo(parsed.data.seo, parsed.data.title);
-  const customDomainUrl = data.project_id
-    ? await loadPrimaryCustomDomainUrl(data.project_id)
-    : null;
   const path = kebuSitePreviewPath(data.subdomain) ?? `/sites/${data.subdomain}`;
-  const httpsUrl =
-    customDomainUrl ?? liveSiteUrl(data.subdomain) ?? path;
+
+  // Run domain lookup and billing check in parallel — sequential queries add ~200–500 ms.
+  const admin = serviceClientOrNull();
+  const [customDomainUrl, hostingResult] = await Promise.all([
+    data.project_id ? loadPrimaryCustomDomainUrl(data.project_id) : Promise.resolve(null),
+    !admin || !data.project_id || data.status === "suspended"
+      ? Promise.resolve(null)
+      : projectHostingIsPaid(admin, data.project_id),
+  ]);
+
+  const httpsUrl = customDomainUrl ?? liveSiteUrl(data.subdomain) ?? path;
 
   let billingSuspended = data.status === "suspended";
-  // Paid/free check needs service role (owner RLS hides rows from anon SSR).
-  // Without it, trust deployment.status — never false-suspend a live site.
-  const admin = serviceClientOrNull();
-  if (!billingSuspended && data.project_id && admin) {
-    const hosting = await projectHostingIsPaid(admin, data.project_id);
-    billingSuspended = !hosting.paid;
+  if (!billingSuspended && hostingResult !== null) {
+    billingSuspended = !hostingResult.paid;
   }
 
   return {

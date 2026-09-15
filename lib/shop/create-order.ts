@@ -95,3 +95,10 @@ export function shopOrderWhatsAppMessage(opts: {
 export function shopOrderWhatsAppHref(merchantPhone: string, message: string): string {
   return whatsAppOrderHref(normalizeWhatsAppPhone(merchantPhone), message);
 }
+
+/** Mbolo deep-link for order confirmation. Same format as WhatsApp but via Joko's mbolo:// scheme. Falls back to WhatsApp when no Mbolo number. */
+export function shopOrderMboloHref(mboloNumber: string, message: string): string {
+  const digits = normalizeWhatsAppPhone(mboloNumber);
+  if (!digits) return "";
+  return `https://mbolo.io/chat/${digits}?text=${encodeURIComponent(message)}`;
+}

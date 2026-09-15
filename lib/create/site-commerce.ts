@@ -47,12 +47,33 @@ export const siteCommerceSchema = z.object({
   jokoPayLink: z.string().trim().max(300).default(""),
   /** Short label for share cards (Instagram / TikTok / WhatsApp status). */
   shareTagline: z.string().trim().max(120).default(""),
+  /** Accept orders via Mbolo (Joko's built-in messaging, like WhatsApp). */
+  acceptMbolo: z.boolean().optional().default(false),
+  /** Mbolo / Joko number for orders (digits only or with +). */
+  mboloNumber: z.string().trim().max(24).default(""),
+  /**
+   * Merchant-configurable message shown at the top of the checkout form.
+   * Use for: custom instructions, minimum orders, delivery zones, promo codes.
+   */
+  customCheckoutNote: z.string().trim().max(400).default(""),
+  /**
+   * Primary display currency for the shop — ISO 4217 code.
+   * Prices are stored and processed in XOF; this controls what the customer sees.
+   * Defaults to "XOF" (West African CFA franc).
+   */
+  shopCurrency: z.string().trim().max(8).default("XOF"),
+  /**
+   * Additional currencies the merchant accepts or displays (comma-separated codes).
+   * Used to show multi-currency price hints on product cards.
+   */
+  acceptedCurrencies: z.string().trim().max(200).default(""),
 });
 
 export type SiteCommerce = z.infer<typeof siteCommerceSchema>;
 
 export const SHOP_PAYMENT_PREFERENCES = [
   "whatsapp",
+  "mbolo",
   "cod",
   "mobile_money",
   "card",
@@ -113,6 +134,7 @@ export function commercePaymentLabels(commerce: SiteCommerce | null | undefined)
   if (!commerce) return ["WhatsApp order"];
   const labels: string[] = [];
   if (commerce.acceptWhatsApp !== false) labels.push("WhatsApp");
+  if (commerce.acceptMbolo) labels.push("Mbolo");
   if (commerce.acceptCod) labels.push("Pay on delivery");
   if (commerce.acceptMobileMoney) {
     labels.push(commerce.mobileMoneyLabel?.trim() || "Mobile money");
@@ -145,6 +167,9 @@ export function commercePaymentOptions(
   }
   if (c.acceptWhatsApp !== false) {
     optsList.push({ id: "whatsapp", label: "WhatsApp", hint: "Confirm and pay with the merchant on chat." });
+  }
+  if (c.acceptMbolo) {
+    optsList.push({ id: "mbolo", label: "Mbolo", hint: "Order and pay via Mbolo — Joko's built-in messaging." });
   }
   if (c.acceptCod) {
     optsList.push({ id: "cod", label: "Pay on delivery", hint: "Cash or mobile money when you receive it." });
@@ -199,6 +224,8 @@ export function paymentPreferenceLabel(id: ShopPaymentPreference | string | null
       return "PayPal";
     case "joko":
       return "Joko (Cauris)";
+    case "mbolo":
+      return "Mbolo";
     case "whatsapp":
     default:
       return "WhatsApp";

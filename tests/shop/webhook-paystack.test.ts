@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createHmac } from "node:crypto";
+import type { NextRequest } from "next/server";
+
+function mkReq(url: string, init?: RequestInit): NextRequest {
+  return new Request(url, init) as unknown as NextRequest;
+}
 
 const markShopOrderPaidByProviderRef = vi.fn();
 const createServiceClient = vi.fn();
@@ -40,7 +45,7 @@ describe("shop webhooks (C1)", () => {
     const signature = createHmac("sha512", process.env.PAYSTACK_SECRET_KEY!).update(raw).digest("hex");
 
     const res = await paystackWebhook(
-      new Request("http://localhost/api/webhooks/paystack", {
+      mkReq("http://localhost/api/webhooks/paystack", {
         method: "POST",
         headers: { "x-paystack-signature": signature },
         body: raw,
@@ -56,7 +61,7 @@ describe("shop webhooks (C1)", () => {
 
   it("rejects invalid Paystack signature", async () => {
     const res = await paystackWebhook(
-      new Request("http://localhost/api/webhooks/paystack", {
+      mkReq("http://localhost/api/webhooks/paystack", {
         method: "POST",
         headers: { "x-paystack-signature": "bad" },
         body: JSON.stringify({ event: "charge.success", data: { status: "success", reference: "x" } }),

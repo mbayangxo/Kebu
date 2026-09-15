@@ -8,7 +8,7 @@ import { AppChrome } from "@/app/components/app-chrome";
 import { AuthSessionKeeper } from "@/app/components/auth-session-keeper";
 import { EducationProvider } from "@/app/components/education-system";
 import { KebuDataModeRoot } from "@/app/components/kebu-data-mode-root";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { DATA_MODE_COOKIE, parseDataMode } from "@/lib/create/data-mode";
 
 const syne = Syne({
@@ -73,6 +73,8 @@ export default async function RootLayout({
 }>) {
   const jar = await cookies();
   const mode = parseDataMode(jar.get(DATA_MODE_COOKIE)?.value, "data_saver");
+  const hdrs = await headers();
+  const isPublicSite = hdrs.get("x-kebu-is-public-site") === "1";
   const modeClass =
     mode === "offline"
       ? "kebu-mode-offline kebu-mode-data-saver"
@@ -90,6 +92,9 @@ export default async function RootLayout({
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
+        {/* Preconnect for Google Fonts used by site templates — cuts DNS + TLS round-trips. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       </head>
       <body className="min-h-full text-ink bg-ivory">
         <PWARegister />
@@ -98,7 +103,7 @@ export default async function RootLayout({
             <EducationProvider>
               <KebuDataModeRoot>
                 <AuthSessionKeeper />
-                <AppChrome />
+                {!isPublicSite && <AppChrome />}
                 {children}
               </KebuDataModeRoot>
             </EducationProvider>

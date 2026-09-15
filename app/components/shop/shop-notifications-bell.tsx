@@ -138,7 +138,7 @@ export function ShopNotificationsBell({ projectId }: { projectId: string }) {
           <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
             {items.length === 0 ? (
               <li className="text-xs" style={{ color: KEBU.muted }}>
-                No alerts yet. When someone orders, it shows here (apply migration 067 if empty forever).
+                No alerts yet. Order notifications will appear here.
               </li>
             ) : (
               items.map((n) => (

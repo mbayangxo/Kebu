@@ -18,6 +18,15 @@ export function AestheticCardVisual({
   const layout: TemplateCardLayout = visual.layout ?? "generic";
   const mark = visual.wordmark ?? name;
   const bg = visual.previewGradient ?? `linear-gradient(160deg, ${accent}55 0%, #0a0a0a 100%)`;
+  const photo = visual.previewImage ?? null;
+  function ImgFallback({ className, style }: { className?: string; style?: React.CSSProperties }) {
+    if (!photo) return null;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={photo} alt="" className={className} style={style}
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+    );
+  }
 
   /* ── DARK ARTIST (music stage) ──────────────────────────────────────────── */
   if (layout === "dark-artist") {
@@ -136,6 +145,49 @@ export function AestheticCardVisual({
     );
   }
 
+  /* ── BOLD SALON (Chez Amara premium hair studio) ────────────────────────── */
+  if (layout === "bold-salon") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#1A0F0A" }}>
+        {/* Announcement bar */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#D4A574" }}>
+          <span className="text-[3.5px] font-bold tracking-widest" style={{ color: "#1A0F0A" }}>✦ BALAYAGE · TRESSES · LOCS NATURELS</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(212,165,116,0.2)" }}>
+          <span className="text-[4.5px] font-semibold tracking-[0.18em] uppercase" style={{ color: "#D4A574", fontFamily: "Georgia, serif" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[3.5px] font-bold" style={{ background: "#D4A574", color: "#1A0F0A" }}>BOOK</div>
+        </div>
+        {/* Hero */}
+        <div className="px-2 py-1.5">
+          <div className="text-[8px] font-bold leading-tight" style={{ color: "#FFF9F3", fontFamily: "Georgia, serif" }}>Votre look.<br />Notre art.</div>
+          <div className="mt-0.5 text-[3.5px] tracking-wide" style={{ color: "#D4A574" }}>Coupes · Tresses · Couleur · Dakar</div>
+        </div>
+        {/* Category tiles */}
+        <div className="grid grid-cols-4 gap-0.5 px-1.5">
+          {["Coupes", "Tresses", "Couleur", "Soins"].map((c) => (
+            <div key={c} className="flex items-center justify-center rounded-sm py-1" style={{ background: "rgba(212,165,116,0.12)", border: "1px solid rgba(212,165,116,0.25)" }}>
+              <span className="text-[3px] font-bold text-center" style={{ color: "#D4A574" }}>{c}</span>
+            </div>
+          ))}
+        </div>
+        {/* Price list */}
+        <div className="px-1.5 mt-1 flex-1 space-y-0.5">
+          {[["Coupe naturelle", "12 000 F"], ["Box braids", "40 000 F"], ["Balayage", "60 000 F"]].map(([s, p]) => (
+            <div key={s} className="flex items-center justify-between" style={{ borderBottom: "1px solid rgba(212,165,116,0.1)" }}>
+              <span className="text-[3.5px]" style={{ color: "rgba(255,249,243,0.65)" }}>{s}</span>
+              <span className="text-[3.5px] font-bold" style={{ color: "#D4A574" }}>{p}</span>
+            </div>
+          ))}
+        </div>
+        {/* CTA */}
+        <div className="px-1.5 pb-1.5 mt-0.5">
+          <div className="rounded-full py-1 text-center text-[4px] font-black tracking-wider" style={{ background: "#D4A574", color: "#1A0F0A" }}>Réserver sur WhatsApp</div>
+        </div>
+      </div>
+    );
+  }
+
   /* ── STORE (shop / boutique) ────────────────────────────────────────────── */
   if (layout === "store") {
     return (
@@ -179,6 +231,7 @@ export function AestheticCardVisual({
         </div>
         {/* Hero photo mock */}
         <div className="relative flex items-center justify-center" style={{ height: "38%", background: `radial-gradient(ellipse at 50% 60%, #4A2810 0%, #1A0F05 75%)` }}>
+          {photo && <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-60" />}
           <div className="absolute inset-0 opacity-30" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${accent}22 0px, ${accent}22 1px, transparent 1px, transparent 8px)` }} />
           <div className="text-center z-10">
             <div className="text-[9px] font-black leading-none" style={{ color: "#F5E6C8", fontFamily: "Georgia, serif" }}>TASTE THE</div>
@@ -204,6 +257,51 @@ export function AestheticCardVisual({
   }
 
   /* ── FASHION (atelier / lookbook / editorial) ────────────────────────────── */
+  /* ── DARK FASHION (VOLTA urban clothing brand) ─────────────────────────── */
+  if (layout === "dark-fashion") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0D0D0D" }}>
+        {/* Announcement bar */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#B91C1C" }}>
+          <span className="text-[3px] font-bold tracking-widest text-white">LIVRAISON DAKAR · PAIEMENT WAVE · ORANGE MONEY</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(185,28,28,0.3)" }}>
+          <span className="text-[6px] font-black tracking-[0.15em] uppercase text-white">{mark}</span>
+          <div className="rounded px-1.5 py-0.5 text-[3.5px] font-bold text-white" style={{ background: "#B91C1C" }}>SHOP</div>
+        </div>
+        {/* Hero */}
+        <div className="relative px-2 py-2 flex-1 flex flex-col justify-between">
+          {photo && <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-30" />}
+          <div className="relative z-10">
+            <div className="text-[11px] font-black uppercase leading-none tracking-tight text-white">WEAR<br />THE<br />BOLD</div>
+            <div className="mt-1 text-[3.5px] tracking-widest uppercase" style={{ color: "#B91C1C" }}>Collection 2026 · Dakar-born</div>
+          </div>
+          {/* Product tiles */}
+          <div className="relative z-10 grid grid-cols-3 gap-0.5 mt-1">
+            {[["#1A0000", "Tee"], ["#0D0D0D", "Hoodie"], ["#1A0000", "Accessoires"]].map(([c, l], i) => (
+              <div key={i} className="flex flex-col overflow-hidden rounded-sm" style={{ background: c, border: "1px solid rgba(185,28,28,0.3)" }}>
+                <div className="aspect-square w-full" style={{ background: `linear-gradient(135deg, ${c}, rgba(185,28,28,0.4))` }} />
+                <div className="px-0.5 py-0.5">
+                  <span className="text-[3px] font-bold uppercase text-white">{l}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Category strip */}
+        <div className="flex" style={{ borderTop: "1px solid rgba(185,28,28,0.3)" }}>
+          {["HOMME", "FEMME", "ACCÈS", "SOLDES"].map((c) => (
+            <div key={c} className="flex-1 py-0.5 text-center" style={{ borderRight: "1px solid rgba(185,28,28,0.2)" }}>
+              <span className="text-[3px] font-bold tracking-wider" style={{ color: "rgba(255,255,255,0.6)" }}>{c}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── FASHION (editorial light / fashion-atelier) ────────────────────────── */
   if (layout === "fashion") {
     return (
       <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAFAF8" }}>
@@ -215,8 +313,11 @@ export function AestheticCardVisual({
         </div>
         {/* Full-bleed hero image */}
         <div className="relative flex-1" style={{ background: "linear-gradient(180deg, #F0EDE8 0%, #E0DAD2 100%)" }}>
-          {/* Portrait placeholder */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-[45%] -translate-x-1/2" style={{ background: "linear-gradient(180deg, #D0C8C0, #A89890)" }} />
+          {/* Portrait — real photo when available, gradient placeholder otherwise */}
+          {photo
+            ? <ImgFallback className="absolute inset-0 h-full w-full object-cover" />
+            : <div className="absolute left-1/2 top-0 bottom-0 w-[45%] -translate-x-1/2" style={{ background: "linear-gradient(180deg, #D0C8C0, #A89890)" }} />
+          }
           {/* Text overlay */}
           <div className="absolute bottom-3 left-2">
             <div className="text-[6px] font-light tracking-[0.5em] uppercase" style={{ color: "rgba(0,0,0,0.6)", fontFamily: "Times New Roman, serif" }}>SS 2026</div>
@@ -336,10 +437,15 @@ export function AestheticCardVisual({
         </div>
         {/* Bottle + text layout */}
         <div className="flex-1 flex items-center gap-2 px-2 py-1.5">
-          {/* Bottle shape */}
-          <div className="flex-shrink-0 flex flex-col items-center gap-0.5" style={{ width: "22%" }}>
-            <div className="w-2 h-1 rounded-t-sm" style={{ background: accent + "99" }} />
-            <div className="w-5 flex-1 rounded-b-[6px]" style={{ background: `linear-gradient(180deg, ${accent}66, ${accent}22)`, minHeight: "28px", border: `1px solid ${accent}55` }} />
+          {/* Bottle / product image */}
+          <div className="flex-shrink-0 flex flex-col items-center gap-0.5 overflow-hidden rounded" style={{ width: "36%", height: "100%" }}>
+            {photo
+              ? <ImgFallback className="h-full w-full object-cover rounded" />
+              : <>
+                  <div className="w-2 h-1 rounded-t-sm" style={{ background: accent + "99" }} />
+                  <div className="w-5 flex-1 rounded-b-[6px]" style={{ background: `linear-gradient(180deg, ${accent}66, ${accent}22)`, minHeight: "28px", border: `1px solid ${accent}55` }} />
+                </>
+            }
           </div>
           <div className="flex-1">
             <div className="text-[5px] tracking-[0.3em] uppercase" style={{ color: "#999", fontFamily: "Georgia, serif" }}>EAU DE PARFUM</div>
@@ -371,7 +477,8 @@ export function AestheticCardVisual({
         </div>
         {/* Hero room photo */}
         <div className="relative" style={{ height: "40%", background: `linear-gradient(160deg, #E8DDD0, #C8BDB0)` }}>
-          <div className="absolute inset-0 flex items-end p-1.5">
+          {photo && <ImgFallback className="absolute inset-0 h-full w-full object-cover" />}
+          <div className="absolute inset-0 flex items-end p-1.5" style={{ background: photo ? "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)" : undefined }}>
             <div>
               <div className="text-[4px] tracking-[0.3em] uppercase" style={{ color: "rgba(255,255,255,0.8)" }}>SUPERIOR ROOM</div>
               <div className="text-[7px] font-semibold" style={{ color: "#fff", fontFamily: "Georgia, serif" }}>From 85,000 F/night</div>
@@ -555,11 +662,136 @@ export function AestheticCardVisual({
     );
   }
 
-  /* ── DARK ARTIST secondary (used for label roster etc.) ─── */
-  if (layout === "music") {
+  /* ── LUXURY (editorial RTW / minimal luxury fashion) ───────────────────── */
+  if (layout === "luxury") {
     return (
-      <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>
-        <p className="absolute inset-x-0 top-[28%] z-10 text-center text-[14px] font-black uppercase tracking-tight text-white drop-shadow">{mark}</p>
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#F5F2EC" }}>
+        {/* Nav — ultra-thin */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+          <span className="text-[5.5px] font-thin tracking-[0.4em] uppercase" style={{ color: "#1A1814", letterSpacing: "0.35em" }}>{mark}</span>
+          <div className="flex gap-1.5">
+            {["SHOP", "ABOUT"].map((l) => (
+              <span key={l} className="text-[3.5px] tracking-[0.2em]" style={{ color: "rgba(0,0,0,0.4)" }}>{l}</span>
+            ))}
+          </div>
+        </div>
+        {/* Full-bleed hero — photo or gradient */}
+        <div className="relative flex-1">
+          <ImgFallback className="absolute inset-0 h-full w-full object-cover" />
+          {!photo && (
+            <div className="absolute inset-0" style={{ background: "linear-gradient(170deg, #E8E2D6 0%, #C4B89A 60%, #A08060 100%)" }} />
+          )}
+          {/* Text overlay bottom */}
+          <div className="absolute bottom-0 inset-x-0 px-2 pb-1.5" style={{ background: photo ? "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)" : "none" }}>
+            <div className="text-[7px] font-light leading-tight" style={{ color: photo ? "#fff" : "#1A1814", letterSpacing: "0.08em" }}>
+              COLLECTION<br /><span className="font-thin">SS 2026</span>
+            </div>
+          </div>
+        </div>
+        {/* Thin strip — category marquee */}
+        <div className="flex items-center gap-2 px-2 py-0.5 overflow-hidden" style={{ borderTop: "1px solid rgba(0,0,0,0.07)", background: "#FAF8F2" }}>
+          {["READY-TO-WEAR", "·", "MADE-TO-ORDER", "·", "STOCKISTS"].map((t, i) => (
+            <span key={i} className="text-[3px] tracking-[0.2em] shrink-0" style={{ color: "rgba(0,0,0,0.35)" }}>{t}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── ACCESSORIES (jewelry / bags / leather goods) ───────────────────────── */
+  if (layout === "accessories") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FAFAF5" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid #EDE7D0" }}>
+          <span className="text-[5px] font-medium tracking-[0.3em] uppercase" style={{ color: "#2C1E08", fontFamily: "Georgia, serif" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[3.5px] font-semibold tracking-widest" style={{ background: "#C9A962", color: "#fff" }}>SHOP</div>
+        </div>
+        {/* Product grid — 2 + 1 layout */}
+        <div className="flex flex-1 gap-0.5 p-1">
+          <div className="flex flex-col gap-0.5 w-[55%]">
+            <div className="relative flex-1 rounded overflow-hidden" style={{ background: "#EDE7D0" }}>
+              <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-80" />
+              {!photo && <div className="absolute inset-0 flex items-center justify-center text-[10px]" style={{ color: "#C9A962" }}>◇</div>}
+            </div>
+            <div className="h-[35%] rounded" style={{ background: "#E0D4B0" }} />
+          </div>
+          <div className="flex flex-col gap-0.5 flex-1">
+            <div className="flex-1 rounded" style={{ background: "#D8CBAA" }} />
+            <div className="h-[40%] rounded flex items-end p-1" style={{ background: "#2C1E08" }}>
+              <div className="text-[3px] font-semibold tracking-widest" style={{ color: "#C9A962" }}>NEW</div>
+            </div>
+          </div>
+        </div>
+        {/* Category tags */}
+        <div className="flex gap-1 px-1 pb-1">
+          {["Jewelry", "Bags", "Belts"].map((c) => (
+            <div key={c} className="rounded-full px-1.5 py-0.5 text-[3.5px]" style={{ background: "#EDE7D0", color: "#2C1E08" }}>{c}</div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── STREETWEAR (drop culture / hype / limited edition) ─────────────────── */
+  if (layout === "streetwear") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0A0A0A" }}>
+        {/* Announcement — countdown */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#FFE600" }}>
+          <span className="text-[3.5px] font-black tracking-widest" style={{ color: "#0A0A0A" }}>DROP 04 · 00:12:47:23</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-0.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <span className="text-[6px] font-black tracking-tight text-white">{mark}</span>
+          <span className="text-[3.5px] font-bold" style={{ color: "#FFE600" }}>WAITLIST</span>
+        </div>
+        {/* Hero — big text + photo */}
+        <div className="relative flex-1">
+          <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-25" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="text-[22px] font-black leading-none tracking-tighter text-white" style={{ lineHeight: 0.9 }}>04</div>
+            <div className="text-[4.5px] font-black tracking-[0.4em] mt-0.5" style={{ color: "#FFE600" }}>LIMITED DROP</div>
+          </div>
+          {/* Product strip */}
+          <div className="absolute bottom-0 inset-x-0 flex gap-0.5 p-1">
+            {["#1A1A1A", "#222", "#1A1A0A"].map((c, i) => (
+              <div key={i} className="flex-1 aspect-square rounded-sm flex items-end p-0.5" style={{ background: c, border: "1px solid rgba(255,230,0,0.2)" }}>
+                <span className="text-[3px] font-bold" style={{ color: "#FFE600" }}>{["TEE", "CAP", "HOODIE"][i]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── ACTIVEWEAR (gym / running / performance) ────────────────────────────── */
+  if (layout === "activewear") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0A0A0F" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(0,255,135,0.12)" }}>
+          <span className="text-[5.5px] font-black tracking-tight text-white">{mark}</span>
+          <div className="rounded px-1.5 py-0.5 text-[3.5px] font-black" style={{ background: "#00FF87", color: "#0A0A0F" }}>SHOP</div>
+        </div>
+        {/* Hero */}
+        <div className="relative flex-1">
+          <ImgFallback className="absolute inset-0 h-full w-full object-cover opacity-40" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 40%, #0A0A0F 100%)" }} />
+          <div className="absolute inset-x-0 top-[16%] px-2">
+            <div className="text-[9px] font-black uppercase leading-none text-white tracking-tight">Built<br />for<br />This.</div>
+          </div>
+          {/* Product cards */}
+          <div className="absolute bottom-0 inset-x-0 flex gap-0.5 px-1 pb-1">
+            {[["TIGHTS", "8 900 F"], ["BRAS", "5 900 F"], ["KITS", "14 000 F"]].map(([cat, p]) => (
+              <div key={cat} className="flex-1 rounded-sm px-1 py-0.5" style={{ background: "rgba(0,255,135,0.08)", border: "1px solid rgba(0,255,135,0.15)" }}>
+                <div className="text-[3.5px] font-black text-white">{cat}</div>
+                <div className="text-[3px] mt-0.5" style={{ color: "#00FF87" }}>{p}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

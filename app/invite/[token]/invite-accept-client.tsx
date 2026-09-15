@@ -68,7 +68,7 @@ export function InviteAcceptClient({ token }: { token: string }) {
   }
 
   return (
-    <AppShell>
+    <AppShell title="Team Invite">
       <main className="mx-auto max-w-lg px-4 py-12">
         <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
           Team invite

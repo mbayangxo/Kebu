@@ -24,7 +24,7 @@ export function StudioVersionHistoryPanel({
     if (res.status === 503) {
       setMissingMigration(true);
       setVersions([]);
-      setError(typeof data.error === "string" ? data.error : "Apply migration 078.");
+      setError("Version history is not available yet.");
       return;
     }
     if (!res.ok) {

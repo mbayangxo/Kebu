@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { paymentPreferenceLabel } from "@/lib/create/site-commerce";
 import { KEBU } from "@/lib/kebu-brand";
 import { SHOP_CARRIERS, type ShopCarrierId } from "@/lib/shop/carriers";
+import { OrderCelebration } from "@/app/components/shop/order-celebration";
 
 type ShopOrder = {
   id: string;
@@ -46,6 +47,44 @@ type ShopOrder = {
 type CarrierOpt = { id: string; label: string };
 type FilterTab = "open" | "fulfill" | "done" | "all";
 
+function StatusChip({ status }: { status: string }) {
+  const map: Record<string, { bg: string; color: string }> = {
+    pending:   { bg: "#FEF3C7", color: "#92400E" },
+    contacted: { bg: "#DBEAFE", color: "#1E40AF" },
+    fulfilled: { bg: "#D1FAE5", color: "#065F46" },
+    cancelled: { bg: "#FEE2E2", color: "#991B1B" },
+    archived:  { bg: "#F3F4F6", color: "#6B7280" },
+    refunded:  { bg: "#EDE9FE", color: "#5B21B6" },
+  };
+  const s = map[status] ?? { bg: "#F4F4F4", color: "#555" };
+  return (
+    <span
+      className="ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+      style={{ background: s.bg, color: s.color }}
+    >
+      {status}
+    </span>
+  );
+}
+
+function PayChip({ status }: { status: string }) {
+  const map: Record<string, { bg: string; color: string }> = {
+    paid:     { bg: "#D1FAE5", color: "#065F46" },
+    unpaid:   { bg: "#FEF3C7", color: "#92400E" },
+    refunded: { bg: "#EDE9FE", color: "#5B21B6" },
+    partial:  { bg: "#DBEAFE", color: "#1E40AF" },
+  };
+  const s = map[status] ?? { bg: "#F4F4F4", color: "#555" };
+  return (
+    <span
+      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+      style={{ background: s.bg, color: s.color }}
+    >
+      {status}
+    </span>
+  );
+}
+
 export function ShopOrdersPanel({
   projectId,
   embedded = false,
@@ -58,6 +97,7 @@ export function ShopOrdersPanel({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>("open");
+  const [celebrating, setCelebrating] = useState<1 | 2 | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [demoBusy, setDemoBusy] = useState<1 | 2 | null>(null);
   const [demoHint, setDemoHint] = useState<string | null>(null);
@@ -78,10 +118,24 @@ export function ShopOrdersPanel({
         setError(typeof data.error === "string" ? data.error : "Could not load orders.");
         return;
       }
-      setOrders(Array.isArray(data.orders) ? data.orders : []);
+      const ordersArr: ShopOrder[] = Array.isArray(data.orders) ? data.orders : [];
+      setOrders(ordersArr);
       if (Array.isArray(data.carriers) && data.carriers.length) {
         setCarriers(data.carriers);
       }
+      // Celebration milestones — fires once per project per milestone
+      try {
+        const count = ordersArr.length;
+        const key1 = `kebu_celebrated_1st_${projectId}`;
+        const key2 = `kebu_celebrated_2nd_${projectId}`;
+        if (count >= 1 && !localStorage.getItem(key1)) {
+          localStorage.setItem(key1, "1");
+          setCelebrating(1);
+        } else if (count >= 2 && !localStorage.getItem(key2)) {
+          localStorage.setItem(key2, "1");
+          setCelebrating(2);
+        }
+      } catch { /* localStorage blocked */ }
     } catch {
       setError("Network error.");
     } finally {
@@ -98,11 +152,7 @@ export function ShopOrdersPanel({
       if (filter === "all") return true;
       if (filter === "open") return o.status === "pending" || o.status === "contacted";
       if (filter === "fulfill") {
-        return (
-          (o.status === "pending" || o.status === "contacted") &&
-          o.status !== "archived" &&
-          o.status !== "cancelled"
-        );
+        return o.status === "pending" || o.status === "contacted";
       }
       if (filter === "done") {
         return o.status === "fulfilled" || o.status === "archived" || o.status === "cancelled";
@@ -212,6 +262,9 @@ export function ShopOrdersPanel({
 
   return (
     <section className={embedded ? "" : "mt-10"}>
+      {celebrating !== null && (
+        <OrderCelebration orderNum={celebrating} onDismiss={() => setCelebrating(null)} />
+      )}
       {!embedded ? (
         <>
           <h2 className="text-lg font-bold" style={{ color: KEBU.black }}>
@@ -300,9 +353,7 @@ export function ShopOrdersPanel({
                   ) : null}
                   {order.quantity}× {order.product_name}{" "}
                   {order.price_label ? <span className="opacity-70">· {order.price_label}</span> : null}
-                  <span className="ml-2 text-[10px] font-bold uppercase tracking-wider opacity-60">
-                    {order.status}
-                  </span>
+                  <StatusChip status={order.status} />
                 </p>
                 {order.items && order.items.length > 1 ? (
                   <ul className="mt-1 space-y-0.5 text-[11px] opacity-80">
@@ -324,7 +375,7 @@ export function ShopOrdersPanel({
                     </span>
                   ) : null}
                   {order.payment_status ? (
-                    <span className="opacity-70"> · Money: {order.payment_status}</span>
+                    <> · <PayChip status={order.payment_status} /></>
                   ) : null}
                 </p>
                 {order.is_gift ? (

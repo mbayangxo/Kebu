@@ -80,6 +80,12 @@ describe("Nested sequences", () => {
       y: 0,
       scale: 1,
       rotation: 0,
+      chromaEnabled: false,
+      chromaColor: "#00FF00" as string,
+      chromaSimilarity: 0.4,
+      brightness: 0,
+      contrast: 0,
+      saturation: 0,
     });
     const next = nestProjectAsClip(host, {
       nestedProjectId: "00000000-0000-4000-8000-000000000099",

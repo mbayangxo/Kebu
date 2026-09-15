@@ -142,21 +142,18 @@ describe("RECT entertainment tech site", () => {
     expect(siteAestheticById("rect-signal")?.name).toBe("RECT Signal");
   });
 
-  it("covers music, label, film, watch, and social pages honestly", () => {
+  it("covers music, label, company, and contact pages honestly", () => {
     const slugs = rectWebsiteDefinition().pages.map((p) => p.slug);
     expect(slugs).toEqual([
       "home",
       "music",
       "label",
-      "film",
-      "watch",
-      "social",
       "company",
       "contact",
     ]);
     const blob = JSON.stringify(rectWebsiteDefinition());
-    expect(blob).toMatch(/does not ship a fake player/i);
-    expect(blob).toMatch(/Not another empty feed/i);
+    expect(blob).toMatch(/music platform/i);
+    expect(blob).toMatch(/label/i);
   });
 });
 

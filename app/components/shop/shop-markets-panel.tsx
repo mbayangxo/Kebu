@@ -16,24 +16,64 @@ type MarketConfig = {
 };
 
 const AFRICAN_MARKETS: MarketConfig[] = [
-  { countryCode: "CI", label: "Côte d'Ivoire", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: true, shippingRateXof: null, freeShippingAboveXof: null, paymentMethods: ["wave", "orange_money", "cash"], taxRate: 0 },
-  { countryCode: "SN", label: "Sénégal", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 3500, freeShippingAboveXof: 50000, paymentMethods: ["wave", "orange_money"], taxRate: 0 },
-  { countryCode: "ML", label: "Mali", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 5000, freeShippingAboveXof: null, paymentMethods: ["orange_money"], taxRate: 0 },
-  { countryCode: "BF", label: "Burkina Faso", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 4000, freeShippingAboveXof: null, paymentMethods: ["orange_money"], taxRate: 0 },
-  { countryCode: "GN", label: "Guinée", currency: "GNF", currencyLabel: "Franc guinéen (GNF)", enabled: false, shippingRateXof: 6000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "momo"], taxRate: 0 },
-  { countryCode: "GH", label: "Ghana", currency: "GHS", currencyLabel: "Cedi (GHS)", enabled: false, shippingRateXof: 7000, freeShippingAboveXof: null, paymentMethods: ["momo"], taxRate: 0 },
-  { countryCode: "NG", label: "Nigeria", currency: "NGN", currencyLabel: "Naira (NGN)", enabled: false, shippingRateXof: 8000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
-  { countryCode: "CM", label: "Cameroun", currency: "XAF", currencyLabel: "Franc CFA (XAF)", enabled: false, shippingRateXof: 5000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "momo"], taxRate: 0 },
-  { countryCode: "MA", label: "Maroc", currency: "MAD", currencyLabel: "Dirham (MAD)", enabled: false, shippingRateXof: 9000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
-  { countryCode: "ZA", label: "Afrique du Sud", currency: "ZAR", currencyLabel: "Rand (ZAR)", enabled: false, shippingRateXof: 12000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
-  { countryCode: "FR", label: "France (diaspora)", currency: "EUR", currencyLabel: "Euro (EUR)", enabled: false, shippingRateXof: 15000, freeShippingAboveXof: 100000, paymentMethods: ["bank_transfer"], taxRate: 0 },
-  { countryCode: "US", label: "USA (diaspora)", currency: "USD", currencyLabel: "Dollar (USD)", enabled: false, shippingRateXof: 18000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  // ── West Africa (XOF) ───────────────────────────────────────────────────
+  { countryCode: "SN", label: "🇸🇳 Sénégal", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 2000, freeShippingAboveXof: 50000, paymentMethods: ["wave", "orange_money"], taxRate: 0 },
+  { countryCode: "CI", label: "🇨🇮 Côte d'Ivoire", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 3000, freeShippingAboveXof: null, paymentMethods: ["wave", "orange_money", "cash"], taxRate: 0 },
+  { countryCode: "ML", label: "🇲🇱 Mali", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 5000, freeShippingAboveXof: null, paymentMethods: ["orange_money"], taxRate: 0 },
+  { countryCode: "BF", label: "🇧🇫 Burkina Faso", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 4000, freeShippingAboveXof: null, paymentMethods: ["orange_money"], taxRate: 0 },
+  { countryCode: "TG", label: "🇹🇬 Togo", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 4500, freeShippingAboveXof: null, paymentMethods: ["orange_money", "cash"], taxRate: 0 },
+  { countryCode: "BJ", label: "🇧🇯 Bénin", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 5000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "momo"], taxRate: 0 },
+  { countryCode: "NE", label: "🇳🇪 Niger", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 6000, freeShippingAboveXof: null, paymentMethods: ["orange_money"], taxRate: 0 },
+  { countryCode: "GW", label: "🇬🇼 Guinée-Bissau", currency: "XOF", currencyLabel: "Franc CFA (XOF)", enabled: false, shippingRateXof: 6000, freeShippingAboveXof: null, paymentMethods: ["orange_money"], taxRate: 0 },
+  // ── West Africa (other) ──────────────────────────────────────────────────
+  { countryCode: "NG", label: "🇳🇬 Nigeria", currency: "NGN", currencyLabel: "Naira (NGN)", enabled: false, shippingRateXof: 8000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer", "momo"], taxRate: 0 },
+  { countryCode: "GH", label: "🇬🇭 Ghana", currency: "GHS", currencyLabel: "Cedi (GHS)", enabled: false, shippingRateXof: 7000, freeShippingAboveXof: null, paymentMethods: ["momo", "bank_transfer"], taxRate: 0 },
+  { countryCode: "GN", label: "🇬🇳 Guinée", currency: "GNF", currencyLabel: "Franc guinéen (GNF)", enabled: false, shippingRateXof: 6000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "momo"], taxRate: 0 },
+  { countryCode: "SL", label: "🇸🇱 Sierra Leone", currency: "SLL", currencyLabel: "Leone (SLL)", enabled: false, shippingRateXof: 7000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "cash"], taxRate: 0 },
+  { countryCode: "LR", label: "🇱🇷 Liberia", currency: "LRD", currencyLabel: "Dollar libérien (LRD)", enabled: false, shippingRateXof: 7500, freeShippingAboveXof: null, paymentMethods: ["cash"], taxRate: 0 },
+  { countryCode: "GM", label: "🇬🇲 Gambie", currency: "GMD", currencyLabel: "Dalasi (GMD)", enabled: false, shippingRateXof: 5000, freeShippingAboveXof: null, paymentMethods: ["cash", "bank_transfer"], taxRate: 0 },
+  { countryCode: "CV", label: "🇨🇻 Cap-Vert", currency: "CVE", currencyLabel: "Escudo (CVE)", enabled: false, shippingRateXof: 8000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "MR", label: "🇲🇷 Mauritanie", currency: "MRU", currencyLabel: "Ouguiya (MRU)", enabled: false, shippingRateXof: 7000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "bank_transfer"], taxRate: 0 },
+  // ── Central Africa (XAF) ─────────────────────────────────────────────────
+  { countryCode: "CM", label: "🇨🇲 Cameroun", currency: "XAF", currencyLabel: "Franc CFA (XAF)", enabled: false, shippingRateXof: 5000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "momo"], taxRate: 0 },
+  { countryCode: "GA", label: "🇬🇦 Gabon", currency: "XAF", currencyLabel: "Franc CFA (XAF)", enabled: false, shippingRateXof: 6000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "cash"], taxRate: 0 },
+  { countryCode: "CG", label: "🇨🇬 Congo", currency: "XAF", currencyLabel: "Franc CFA (XAF)", enabled: false, shippingRateXof: 6500, freeShippingAboveXof: null, paymentMethods: ["orange_money", "cash"], taxRate: 0 },
+  { countryCode: "CD", label: "🇨🇩 RD Congo", currency: "CDF", currencyLabel: "Franc congolais (CDF)", enabled: false, shippingRateXof: 9000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "momo", "cash"], taxRate: 0 },
+  { countryCode: "CF", label: "🇨🇫 Centrafrique", currency: "XAF", currencyLabel: "Franc CFA (XAF)", enabled: false, shippingRateXof: 8000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "cash"], taxRate: 0 },
+  { countryCode: "TD", label: "🇹🇩 Tchad", currency: "XAF", currencyLabel: "Franc CFA (XAF)", enabled: false, shippingRateXof: 8000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "cash"], taxRate: 0 },
+  // ── North Africa ─────────────────────────────────────────────────────────
+  { countryCode: "MA", label: "🇲🇦 Maroc", currency: "MAD", currencyLabel: "Dirham (MAD)", enabled: false, shippingRateXof: 9000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "DZ", label: "🇩🇿 Algérie", currency: "DZD", currencyLabel: "Dinar algérien (DZD)", enabled: false, shippingRateXof: 9000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "TN", label: "🇹🇳 Tunisie", currency: "TND", currencyLabel: "Dinar tunisien (TND)", enabled: false, shippingRateXof: 10000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "EG", label: "🇪🇬 Égypte", currency: "EGP", currencyLabel: "Livre égyptienne (EGP)", enabled: false, shippingRateXof: 11000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  // ── East Africa ──────────────────────────────────────────────────────────
+  { countryCode: "KE", label: "🇰🇪 Kenya", currency: "KES", currencyLabel: "Shilling kényan (KES)", enabled: false, shippingRateXof: 10000, freeShippingAboveXof: null, paymentMethods: ["momo", "bank_transfer"], taxRate: 0 },
+  { countryCode: "TZ", label: "🇹🇿 Tanzanie", currency: "TZS", currencyLabel: "Shilling tanzanien (TZS)", enabled: false, shippingRateXof: 10000, freeShippingAboveXof: null, paymentMethods: ["momo", "cash"], taxRate: 0 },
+  { countryCode: "UG", label: "🇺🇬 Ouganda", currency: "UGX", currencyLabel: "Shilling ougandais (UGX)", enabled: false, shippingRateXof: 10000, freeShippingAboveXof: null, paymentMethods: ["momo", "cash"], taxRate: 0 },
+  { countryCode: "RW", label: "🇷🇼 Rwanda", currency: "RWF", currencyLabel: "Franc rwandais (RWF)", enabled: false, shippingRateXof: 10000, freeShippingAboveXof: null, paymentMethods: ["momo", "bank_transfer"], taxRate: 0 },
+  { countryCode: "ET", label: "🇪🇹 Éthiopie", currency: "ETB", currencyLabel: "Birr éthiopien (ETB)", enabled: false, shippingRateXof: 12000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  // ── Southern Africa ──────────────────────────────────────────────────────
+  { countryCode: "ZA", label: "🇿🇦 Afrique du Sud", currency: "ZAR", currencyLabel: "Rand (ZAR)", enabled: false, shippingRateXof: 12000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "ZM", label: "🇿🇲 Zambie", currency: "ZMW", currencyLabel: "Kwacha (ZMW)", enabled: false, shippingRateXof: 12000, freeShippingAboveXof: null, paymentMethods: ["momo", "bank_transfer"], taxRate: 0 },
+  { countryCode: "MZ", label: "🇲🇿 Mozambique", currency: "MZN", currencyLabel: "Metical (MZN)", enabled: false, shippingRateXof: 13000, freeShippingAboveXof: null, paymentMethods: ["momo", "bank_transfer"], taxRate: 0 },
+  { countryCode: "AO", label: "🇦🇴 Angola", currency: "AOA", currencyLabel: "Kwanza (AOA)", enabled: false, shippingRateXof: 12000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "MG", label: "🇲🇬 Madagascar", currency: "MGA", currencyLabel: "Ariary (MGA)", enabled: false, shippingRateXof: 13000, freeShippingAboveXof: null, paymentMethods: ["orange_money", "cash"], taxRate: 0 },
+  // ── Diaspora ─────────────────────────────────────────────────────────────
+  { countryCode: "FR", label: "🇫🇷 France (diaspora)", currency: "EUR", currencyLabel: "Euro (EUR)", enabled: false, shippingRateXof: 15000, freeShippingAboveXof: 100000, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "BE", label: "🇧🇪 Belgique (diaspora)", currency: "EUR", currencyLabel: "Euro (EUR)", enabled: false, shippingRateXof: 16000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "US", label: "🇺🇸 USA (diaspora)", currency: "USD", currencyLabel: "Dollar (USD)", enabled: false, shippingRateXof: 18000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "GB", label: "🇬🇧 Royaume-Uni (diaspora)", currency: "GBP", currencyLabel: "Livre sterling (GBP)", enabled: false, shippingRateXof: 17000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "CA", label: "🇨🇦 Canada (diaspora)", currency: "CAD", currencyLabel: "Dollar CA (CAD)", enabled: false, shippingRateXof: 18000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
+  { countryCode: "PT", label: "🇵🇹 Portugal (diaspora)", currency: "EUR", currencyLabel: "Euro (EUR)", enabled: false, shippingRateXof: 15000, freeShippingAboveXof: null, paymentMethods: ["bank_transfer"], taxRate: 0 },
 ];
 
 const METHOD_LABELS: Record<string, string> = {
   wave: "Wave",
   orange_money: "Orange Money",
   momo: "MTN MoMo",
+  mpesa: "M-Pesa",
+  airtel_money: "Airtel Money",
+  free_money: "Free Money",
   cash: "Cash",
   bank_transfer: "Bank transfer",
 };

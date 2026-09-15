@@ -23,6 +23,80 @@ import { appLaunchWorldDefinition, techStartupWorldDefinition } from "./design-w
 import { proPortfolioWorldDefinition, studentPortfolioWorldDefinition } from "./design-worlds/portfolio-worlds";
 import { ngoImpactWorldDefinition, farmAgriWorldDefinition } from "./design-worlds/impact-worlds";
 import { professionalServicesWorldDefinition } from "./design-worlds/agency-professional-world";
+import { voltaClothingWorldDefinition } from "./design-worlds/clothing-brand-world";
+import { maquisWorldDefinition } from "./design-worlds/maquis-world";
+import { barbershopWorldDefinition } from "./design-worlds/barbershop-world";
+import { traiteurWorldDefinition } from "./design-worlds/traiteur-world";
+import { artisanWorldDefinition } from "./design-worlds/artisan-world";
+import { realEstateWorldDefinition } from "./design-worlds/real-estate-world";
+import { coachingWorldDefinition } from "./design-worlds/coaching-world";
+import { pharmacieWorldDefinition } from "./design-worlds/pharmacie-world";
+import { btpWorldDefinition } from "./design-worlds/btp-world";
+import { photographeWorldDefinition } from "./design-worlds/photographe-world";
+import { agenceDigitaleWorldDefinition } from "./design-worlds/agence-digitale-world";
+import { musicienWorldDefinition } from "./design-worlds/musicien-world";
+import { agricultureWorldDefinition } from "./design-worlds/agriculture-world";
+import { ongWorldDefinition } from "./design-worlds/ong-world";
+import { egliseWorldDefinition } from "./design-worlds/eglise-world";
+import { legalWorldDefinition } from "./design-worlds/legal-world";
+import { wholesaleWorldDefinition } from "./design-worlds/wholesale-world";
+import { fashionWorldDefinition } from "./design-worlds/fashion-world";
+import { talentAgencyWorldDefinition, managementCompanyWorldDefinition } from "./design-worlds/talent-management-worlds";
+import { skincareWorldDefinition } from "./design-worlds/skincare-world";
+import { foodBrandWorldDefinition, juiceBrandWorldDefinition } from "./design-worlds/food-beverage-worlds";
+import { electronicsStoreWorldDefinition, supermarketWorldDefinition } from "./design-worlds/retail-worlds";
+import { schoolWorldDefinition, mediaCompanyWorldDefinition } from "./design-worlds/education-media-worlds";
+import { makeupBrandWorldDefinition } from "./design-worlds/makeup-brand-world";
+import { creativeStudioWorldDefinition } from "./design-worlds/creative-studio-world";
+import { hairBrandWorldDefinition } from "./design-worlds/hair-brand-world";
+import { gymWorldDefinition } from "./design-worlds/gym-world";
+import { nailStudioWorldDefinition } from "./design-worlds/nail-studio-world";
+import { festivalWorldDefinition } from "./design-worlds/festival-world";
+import { cafeWorldDefinition } from "./design-worlds/cafe-world";
+import { yogaWorldDefinition } from "./design-worlds/yoga-world";
+import { bridalWorldDefinition } from "./design-worlds/bridal-world";
+import { dentalClinicWorldDefinition } from "./design-worlds/dental-clinic-world";
+import { luxuryLipWorldDefinition } from "./design-worlds/luxury-lip-world";
+import { architectureWorldDefinition } from "./design-worlds/architecture-world";
+import { pastryWorldDefinition } from "./design-worlds/pastry-world";
+import { couturiereWorldDefinition } from "./design-worlds/couturiere-world";
+import { agenceVoyageWorldDefinition } from "./design-worlds/agence-voyage-world";
+import { maquilleurWorldDefinition } from "./design-worlds/maquilleur-world";
+import { immobilierLuxeWorldDefinition } from "./design-worlds/immobilier-luxe-world";
+import { gameStudioWorldDefinition } from "./design-worlds/game-studio-world";
+import { prAgencyWorldDefinition } from "./design-worlds/pr-agency-world";
+import { artisteVisuelWorldDefinition } from "./design-worlds/artiste-visuel-world";
+import { filmPromoWorldDefinition } from "./design-worlds/film-promo-world";
+import { animalerieWorldDefinition } from "./design-worlds/animalerie-world";
+import { designerPortfolioWorldDefinition } from "./design-worlds/designer-portfolio-world";
+import { decoInterieurWorldDefinition } from "./design-worlds/deco-interieur-world";
+import { bijouterieWorldDefinition } from "./design-worlds/bijouterie-world";
+import { videoProductionWorldDefinition } from "./design-worlds/video-production-world";
+import { brasserieWorldDefinition } from "./design-worlds/brasserie-world";
+import { photographeEditorialWorldDefinition } from "./design-worlds/photographe-editorial-world";
+import { surfCampWorldDefinition } from "./design-worlds/surf-camp-world";
+import { businessCoachWorldDefinition } from "./design-worlds/business-coach-world";
+import { wellnessCoachWorldDefinition } from "./design-worlds/wellness-coach-world";
+import { mondayStudioWorldDefinition } from "./design-worlds/monday-studio-world";
+import { mobilierWorldDefinition } from "./design-worlds/mobilier-world";
+import { agenceEnfantsWorldDefinition } from "./design-worlds/agence-enfants-world";
+import { soinPeauWorldDefinition } from "./design-worlds/soin-peau-world";
+import { supplementsWorldDefinition } from "./design-worlds/supplements-world";
+import { streetwearWorldDefinition } from "./design-worlds/streetwear-world";
+import { photoCulinaireWorldDefinition } from "./design-worlds/photo-culinaire-world";
+import { bookingArtisteWorldDefinition } from "./design-worlds/booking-artiste-world";
+import { centreFormationWorldDefinition } from "./design-worlds/centre-formation-world";
+import { sneakerWorldDefinition } from "./design-worlds/sneaker-world";
+import { bijouterieLumiereWorldDefinition } from "./design-worlds/bijouterie-lumiere-world";
+import { beauteBrandWorldDefinition } from "./design-worlds/beaute-brand-world";
+import { restaurantGrillWorldDefinition } from "./design-worlds/restaurant-grill-world";
+import { restaurantSavaneWorldDefinition } from "./design-worlds/restaurant-savane-world";
+import { boulangerieWorldDefinition } from "./design-worlds/boulangerie-world";
+import { modeEditorialeWorldDefinition } from "./design-worlds/mode-editoriale-world";
+import { menswearWorldDefinition } from "./design-worlds/menswear-world";
+import { sportswearWorldDefinition } from "./design-worlds/sportswear-world";
+import { agenceSocialMediaWorldDefinition } from "./design-worlds/agence-social-media-world";
+import { fioreBeautyWorldDefinition } from "./design-worlds/fiore-beauty-world";
 import {
   agencyCreativeDistinctDefinition,
   artistGalleryDistinctDefinition,
@@ -114,6 +188,137 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     category: "restaurant",
     description: "Restaurant / café — menu, about, reserve, FAQ (not a one-page flyer)",
     definition: restaurantTableWorldDefinition(),
+  },
+  // Tier 1 — West Africa high-volume
+  {
+    slug: "maquis",
+    name: "Maquis",
+    category: "restaurant",
+    description:
+      "Maquis / open-air eatery — daily specials, WhatsApp reservation, mobile money · 5 pages",
+    definition: maquisWorldDefinition(),
+  },
+  {
+    slug: "barbershop",
+    name: "Barbershop",
+    category: "beauty",
+    description:
+      "Urban barbershop — service tiles, before/after gallery, WhatsApp appointment · 5 pages",
+    definition: barbershopWorldDefinition(),
+  },
+  {
+    slug: "traiteur",
+    name: "Traiteur",
+    category: "food",
+    description:
+      "Event catering — package formulas, gallery, devis form, mobile money payment · 5 pages",
+    definition: traiteurWorldDefinition(),
+  },
+  {
+    slug: "artisan",
+    name: "Artisan",
+    category: "craft",
+    description:
+      "Craftmaker — product catalog, custom-order form, mobile money, WhatsApp · 5 pages",
+    definition: artisanWorldDefinition(),
+  },
+  {
+    slug: "real-estate",
+    name: "Immobilier",
+    category: "real-estate",
+    description:
+      "Property agency — listings, agent WhatsApp per listing, Wave / Orange Money deposit · 5 pages",
+    definition: realEstateWorldDefinition(),
+  },
+  {
+    slug: "coaching",
+    name: "Coach",
+    category: "education",
+    description:
+      "Business / life coach — cohort programs, enrollment form, mobile money payment · 5 pages",
+    definition: coachingWorldDefinition(),
+  },
+  // — Tier 2 —
+  {
+    slug: "pharmacie",
+    name: "Pharmacie",
+    category: "health",
+    description:
+      "Pharmacy — WhatsApp prescription, home delivery, Wave / Orange Money · 5 pages",
+    definition: pharmacieWorldDefinition(),
+  },
+  {
+    slug: "btp",
+    name: "BTP",
+    category: "construction",
+    description:
+      "Construction & renovation contractor — milestone payments, before/after gallery, devis form · 5 pages",
+    definition: btpWorldDefinition(),
+  },
+  {
+    slug: "photographe",
+    name: "Photographe",
+    category: "creative",
+    description:
+      "Professional photographer — portfolio, FCFA packages, booking form, mobile money · 5 pages",
+    definition: photographeWorldDefinition(),
+  },
+  {
+    slug: "agence-digitale",
+    name: "Agence Digitale",
+    category: "agency",
+    description:
+      "Digital marketing agency — services, case studies, team, WhatsApp lead gen · 5 pages",
+    definition: agenceDigitaleWorldDefinition(),
+  },
+  {
+    slug: "musicien",
+    name: "Musicien",
+    category: "music",
+    description:
+      "Musician / artist — Boomplay & Audiomack links, events booking, merch shop · 5 pages",
+    definition: musicienWorldDefinition(),
+  },
+  // — Tier 3 —
+  {
+    slug: "agriculture",
+    name: "Agriculture",
+    category: "agriculture",
+    description:
+      "Farm / producer — seasonal availability badge, bulk orders, WhatsApp delivery, Wave / Orange Money · 5 pages",
+    definition: agricultureWorldDefinition(),
+  },
+  {
+    slug: "ong",
+    name: "ONG",
+    category: "ngo",
+    description:
+      "Non-profit / NGO — projects, impact stats, donations via mobile money, volunteer signup · 5 pages",
+    definition: ongWorldDefinition(),
+  },
+  {
+    slug: "eglise",
+    name: "Église",
+    category: "community",
+    description:
+      "Church / faith community — service times, announcements, donations via Wave / Orange Money · 5 pages",
+    definition: egliseWorldDefinition(),
+  },
+  {
+    slug: "legal",
+    name: "Cabinet Juridique",
+    category: "legal",
+    description:
+      "Law firm / legal consultant — practice areas, consultation booking, FCFA fees, confidential · 5 pages",
+    definition: legalWorldDefinition(),
+  },
+  {
+    slug: "wholesale",
+    name: "Grossiste",
+    category: "wholesale",
+    description:
+      "B2B wholesale distributor — product catalog, bulk order minimums, WhatsApp price list, mobile money · 5 pages",
+    definition: wholesaleWorldDefinition(),
   },
   {
     slug: "portfolio-pro",
@@ -438,6 +643,75 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     },
   },
   {
+    slug: "agency-kdirection",
+    name: "K-Direction",
+    category: "agency",
+    description:
+      "Owner portfolio — K-Direction Artistry label and creative agency. Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: (() => {
+      const pages = kdirectionWixSitePages();
+      return {
+        schemaVersion: "website-v1",
+        title: "K-Direction",
+        theme: {
+          primary: "#0A0A0A",
+          accent: "#FFF86B",
+          background: "#e8e0f0",
+          text: "#0A0A0A",
+          fontDisplay: "Oswald",
+          fontBody: "Arial",
+          spacing: "comfortable" as const,
+        },
+        pages: pages.map((p) => ({
+          slug: p.slug,
+          title: p.title,
+          sections: p.sections.map((s, i) => ({
+            id: `kdirection-${p.slug}-${i}`,
+            type: s.type as "kdirection-home" | "kdirection-page" | "events" | "features" | "contact" | "navigation" | "footer",
+            props: s.props,
+          })),
+        })),
+      } as WebsiteDefinition;
+    })(),
+  },
+  {
+    slug: "agency-dklns",
+    name: "DkLNS",
+    category: "agency",
+    description:
+      "Owner portfolio — DkLNS management & creative agency (May Lecor signed). Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: dklnsWebsiteDefinition(),
+  },
+  {
+    slug: "production-ndaoan-house",
+    name: "Ndaoan House",
+    category: "production",
+    description:
+      "Owner portfolio — Ndaoan House production & content studio. Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: ndaoanWebsiteDefinition(),
+  },
+  {
+    slug: "entertainment-rect",
+    name: "RECT",
+    category: "music",
+    description:
+      "Owner portfolio — RECT music streaming & entertainment tech (lime / black / orange). Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: rectWebsiteDefinition(),
+  },
+  {
+    slug: "foundation-mayjor-good",
+    name: "For The Mayjor Good",
+    category: "nonprofit",
+    description:
+      "Owner portfolio — For The Mayjor Good foundation site (school supplies, talib/SST, food, medical, youth jobs). Not offered as a shared template.",
+    visibility: "owner_portfolio",
+    definition: mayjorGoodWebsiteDefinition(),
+  },
+  {
     slug: "film-studio",
     name: "Film studio",
     category: "film",
@@ -455,90 +729,10 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   },
   {
     slug: "clothing-company",
-    name: "Clothing company",
+    name: "VOLTA — Marque mode",
     category: "fashion",
-    description: "Fashion brand / clothing line — collections, lookbook, wholesale & retail",
-    definition: {
-      schemaVersion: "website-v1",
-      title: "Clothing Co",
-      theme: baseTheme("#2C1810", "#D4A574"),
-      pages: [
-        {
-          slug: "home",
-          title: "Home",
-          sections: [
-            {
-              id: "nav-1",
-              type: "navigation",
-              props: {
-                brand: "Clothing Co",
-                links: [
-                  { label: "Collections", href: "#collections" },
-                  { label: "About", href: "#about" },
-                  { label: "Shop", href: "#shop" },
-                ],
-              },
-            },
-            {
-              id: "hero-1",
-              type: "hero",
-              props: {
-                heading: "Wear the story",
-                subheading: "Contemporary African fashion — limited drops and made-to-order pieces.",
-                buttonLabel: "See collections",
-                buttonHref: "#collections",
-                align: "center",
-              },
-            },
-            {
-              id: "gallery-1",
-              type: "gallery",
-              props: {
-                items: [
-                  { src: "", alt: "Collection look 1" },
-                  { src: "", alt: "Collection look 2" },
-                  { src: "", alt: "Collection look 3" },
-                ],
-              },
-            },
-            {
-              id: "collections-1",
-              type: "features",
-              props: {
-                heading: "Collections",
-                items: [
-                  { title: "New season", body: "Latest pieces — sizes, colours, and prices." },
-                  { title: "Basics", body: "Everyday essentials that last." },
-                  { title: "Wholesale", body: "Boutiques and retailers — request a line sheet." },
-                ],
-              },
-            },
-            {
-              id: "about-1",
-              type: "text",
-              props: {
-                heading: "About the brand",
-                body: "Who makes it, where materials come from, and what you stand for.",
-              },
-            },
-            {
-              id: "wa-1",
-              type: "whatsapp",
-              props: {
-                label: "Order on WhatsApp",
-                phone: "+221770000000",
-                message: "Hi, I want to order from Clothing Co.",
-              },
-            },
-            {
-              id: "footer-1",
-              type: "footer",
-              props: { text: "© Clothing Co", links: [] },
-            },
-          ],
-        },
-      ],
-    },
+    description: "Marque streetwear urbaine — collections, lookbook, commande WhatsApp & mobile money",
+    definition: voltaClothingWorldDefinition(),
   },
   {
     slug: "shopping-store",
@@ -779,6 +973,1002 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     category: "fashion",
     description: "Dark urban streetwear — announcement bar, category tiles, product drops (distinct from editorial Fashion Atelier)",
     definition: streetwearShopDistinctDefinition(),
+  },
+  {
+    slug: "fashion",
+    name: "Mode / Fashion",
+    category: "fashion",
+    description:
+      "Boutique mode West African — scroll éditorial, photo plein écran, WhatsApp «Je le veux» par produit · 5 pages",
+    definition: fashionWorldDefinition(),
+  },
+  {
+    slug: "talent-agency",
+    name: "Talent Agency",
+    category: "entertainment",
+    description:
+      "Agence de talent — roster, casting briefs WhatsApp, représentation mannequins/acteurs/influenceurs · 5 pages",
+    definition: talentAgencyWorldDefinition(),
+  },
+  {
+    slug: "management-company",
+    name: "Management Company",
+    category: "entertainment",
+    description:
+      "Management d'artistes & créateurs — roster, brand deals, services, formulaire partenariat · 5 pages",
+    definition: managementCompanyWorldDefinition(),
+  },
+  {
+    slug: "skincare-brand",
+    name: "Marque Skincare",
+    category: "beauty",
+    description:
+      "Marque skincare peaux africaines — éducation, consultation WhatsApp, avis avec type de peau, loyalty · 6 pages",
+    definition: skincareWorldDefinition(),
+  },
+  {
+    slug: "food-brand",
+    name: "Marque alimentaire",
+    category: "food",
+    description:
+      "Marque alimentaire africaine — produits, recettes, stockistes, commande B2C et B2B · 6 pages",
+    definition: foodBrandWorldDefinition(),
+  },
+  {
+    slug: "juice-brand",
+    name: "Marque de jus & boissons",
+    category: "food",
+    description:
+      "Cold-pressed, fruits africains — gamme, ingrédients locaux, abonnement hebdomadaire, livraison matin · 5 pages",
+    definition: juiceBrandWorldDefinition(),
+  },
+  {
+    slug: "electronics-store",
+    name: "Boutique high-tech",
+    category: "retail",
+    description:
+      "Téléphones neuf/reconditionné, accessoires, réparation express — paiement en 3× Wave · 6 pages",
+    definition: electronicsStoreWorldDefinition(),
+  },
+  {
+    slug: "supermarket",
+    name: "Supermarché / épicerie",
+    category: "retail",
+    description:
+      "Courses livrées en 2h — liste WhatsApp, rayons, promotions, abonnement hebdomadaire · 5 pages",
+    definition: supermarketWorldDefinition(),
+  },
+  {
+    slug: "school",
+    name: "École & établissement scolaire",
+    category: "education",
+    description:
+      "Site d'école — programmes, admission, vie scolaire, groupe WhatsApp parents, actualités · 6 pages",
+    definition: schoolWorldDefinition(),
+  },
+  {
+    slug: "media-company",
+    name: "Média & presse",
+    category: "media",
+    description:
+      "Média digital africain — actualités, émissions, podcast, publicité brand content · 6 pages",
+    definition: mediaCompanyWorldDefinition(),
+  },
+  {
+    slug: "makeup-brand",
+    name: "Marque maquillage",
+    category: "beauty",
+    description:
+      "Marque makeup Gen-Z africaine — pigments intenses, quiz promo, filter chips, deals hebdo · 4 pages",
+    definition: makeupBrandWorldDefinition(),
+  },
+  {
+    slug: "creative-studio",
+    name: "Studio créatif",
+    category: "creative",
+    description:
+      "Studio direction artistique & photographie — portfolio éditorial, offres, brief client · 4 pages",
+    definition: creativeStudioWorldDefinition(),
+  },
+  {
+    slug: "hair-brand",
+    name: "Marque capillaire",
+    category: "beauty",
+    description:
+      "Extensions, perruques & tressage africains — annonce livraison gratuite, bestsellers FCFA, éducation, WhatsApp · 3 pages",
+    definition: hairBrandWorldDefinition(),
+  },
+  {
+    slug: "gym-fitness",
+    name: "Salle de sport & fitness",
+    category: "fitness",
+    description:
+      "Salle de sport dark neon — stats membres, disciplines, planning cours, abonnements FCFA, coaching perso · 5 pages",
+    definition: gymWorldDefinition(),
+  },
+  {
+    slug: "nail-studio",
+    name: "Nail studio",
+    category: "beauty",
+    description:
+      "Studio nail art éditorial B&W — masonry gallery, services gel/extensions FCFA, aftercare, réservation WhatsApp · 4 pages",
+    definition: nailStudioWorldDefinition(),
+  },
+  {
+    slug: "fiore-beauty-studio",
+    name: "Fiore Beauty Studio",
+    category: "beauty",
+    description:
+      "Studio de beauté haut de gamme — champagne/ivoire, soins visage/corps/mains, galerie, réservation WhatsApp, Wave & Orange Money · 5 pages",
+    definition: fioreBeautyWorldDefinition(),
+  },
+  {
+    slug: "festival",
+    name: "Festival de musique",
+    category: "event",
+    description:
+      "Festival musique africaine — lineup, programme jour par jour, billets FCFA (Wave/Orange Money), camping, navettes · 5 pages",
+    definition: festivalWorldDefinition(),
+  },
+  {
+    slug: "cafe-coffee",
+    name: "Café & coffee shop",
+    category: "restaurant",
+    description:
+      "Café specialty africain — menu boissons FCFA, pâtisserie maison, brunch week-end, traiteur entreprise · 5 pages",
+    definition: cafeWorldDefinition(),
+  },
+  {
+    slug: "yoga-studio",
+    name: "Studio yoga & bien-être",
+    category: "fitness",
+    description:
+      "Studio yoga sage/ivoire — cours collectifs, planning hebdo, retraites Sine-Saloum, abonnements FCFA, premiers cours offerts · 5 pages",
+    definition: yogaWorldDefinition(),
+  },
+  {
+    slug: "bridal-styling",
+    name: "Stylisme bridal",
+    category: "wedding",
+    description:
+      "Studio bridal africain — lookbook mariage, packs stylisme FCFA, consultation gratuite, galerie masonry, formulaire RDV · 5 pages",
+    definition: bridalWorldDefinition(),
+  },
+  {
+    slug: "dental-clinic",
+    name: "Clinique dentaire",
+    category: "health",
+    description:
+      "Cabinet dentaire moderne — soins, blanchiment, implants, pédodontie, tarifs FCFA transparents, urgences WhatsApp · 5 pages",
+    definition: dentalClinicWorldDefinition(),
+  },
+  {
+    slug: "luxury-lip-brand",
+    name: "Marque maquillage luxe",
+    category: "beauty",
+    description:
+      "Marque makeup luxe éditoriale — obsidienne + or, éditions limitées, filterTags produits, WhatsApp concierge · 4 pages",
+    definition: luxuryLipWorldDefinition(),
+  },
+  {
+    slug: "architecture-studio",
+    name: "Cabinet d'architecture",
+    category: "architecture",
+    description:
+      "Atelier architecture & design d'intérieur — portfolio masonry, missions, process, équipe, formulaire projet · 5 pages",
+    definition: architectureWorldDefinition(),
+  },
+  {
+    slug: "pastry-shop",
+    name: "Pâtisserie artisanale",
+    category: "restaurant",
+    description:
+      "Pâtisserie artisanale africaine — best-sellers FCFA, wedding cakes, commandes sur-mesure, galerie masonry · 4 pages",
+    definition: pastryWorldDefinition(),
+  },
+  {
+    slug: "couturiere-atelier",
+    name: "Atelier de couture",
+    category: "fashion",
+    description:
+      "Atelier couture africain contemporain — tenues sur-mesure, mariage, cérémonie, processus 5 étapes, galerie masonry · 4 pages",
+    definition: couturiereWorldDefinition(),
+  },
+  {
+    slug: "agence-voyage",
+    name: "Agence de voyage",
+    category: "travel",
+    description:
+      "Agence voyage africaine premium — circuits Afrique, safaris, Omra tout compris, paiement Wave/Orange Money · 4 pages",
+    definition: agenceVoyageWorldDefinition(),
+  },
+  {
+    slug: "maquilleuse-freelance",
+    name: "Maquilleuse professionnelle",
+    category: "beauty",
+    description:
+      "Maquilleuse freelance Dakar — mariage, shooting, plateau TV, cours particuliers, portfolio masonry · 4 pages",
+    definition: maquilleurWorldDefinition(),
+  },
+  {
+    slug: "immobilier-luxe",
+    name: "Immobilier de prestige",
+    category: "real-estate",
+    description:
+      "Agence immobilier luxe Dakar — villas, penthouses, terrains titrés, gestion locative, formulaire projet · 4 pages",
+    definition: immobilierLuxeWorldDefinition(),
+  },
+  {
+    slug: "game-studio",
+    name: "Studio de jeux vidéo",
+    category: "tech",
+    description:
+      "Studio jeux mobile africain — neon dark, catalogue de 6+ jeux gratuits, stats 2M+ téléchargements, recrutement · 3 pages",
+    definition: gameStudioWorldDefinition(),
+  },
+  {
+    slug: "agence-communication",
+    name: "Agence de communication",
+    category: "agency",
+    description:
+      "Agence RP & communication Dakar — relations presse, influence, événementiel, forfaits FCFA, brief project form · 4 pages",
+    definition: prAgencyWorldDefinition(),
+  },
+  {
+    slug: "artiste-plasticien",
+    name: "Artiste plasticien",
+    category: "portfolio",
+    description:
+      "Portfolio beaux-arts africain — peintures, photographies, tirages à vendre, biographie, galeries internationales · 5 pages",
+    definition: artisteVisuelWorldDefinition(),
+  },
+  {
+    slug: "film-promotionnel",
+    name: "Page promotionnelle film",
+    category: "media",
+    description:
+      "Promo film africain dark cinéma — bande-annonce, synopsis, casting, critique presse, programmation salles · 3 pages",
+    definition: filmPromoWorldDefinition(),
+  },
+  {
+    slug: "animalerie-pets",
+    name: "Animalerie & vétérinaire",
+    category: "ecommerce",
+    description:
+      "Animalerie en ligne Dakar — 6 produits FCFA, conseil vétérinaire WhatsApp, livraison 24h, 4 catégories animaux · 3 pages",
+    definition: animalerieWorldDefinition(),
+  },
+  {
+    slug: "designer-portfolio",
+    name: "Designer UI/UX freelance",
+    category: "portfolio",
+    description:
+      "Portfolio designer freelance — cool minimal, 4 services, case studies, 6 forfaits FCFA, remote-friendly · 4 pages",
+    definition: designerPortfolioWorldDefinition(),
+  },
+  {
+    slug: "deco-interieur",
+    name: "Studio de décoration",
+    category: "architecture",
+    description:
+      "Studio déco d'intérieur Dakar — warm brutalist, 95+ projets masonry, processus 5 étapes, forfaits clé en main · 4 pages",
+    definition: decoInterieurWorldDefinition(),
+  },
+  {
+    slug: "bijouterie-or",
+    name: "Bijouterie & joaillerie",
+    category: "ecommerce",
+    description:
+      "Joaillerie africaine Dakar — dark opulence or 22 carats, 6 pièces FCFA avec filtres, atelier sur-mesure 5 étapes, gravure offerte · 3 pages",
+    definition: bijouterieWorldDefinition(),
+  },
+  {
+    slug: "video-production",
+    name: "Agence de production vidéo",
+    category: "agency",
+    description:
+      "Production vidéo Dakar — dark cinematic, publicité TV, clips, corporate, drone, 6 forfaits FCFA · 4 pages",
+    definition: videoProductionWorldDefinition(),
+  },
+  {
+    slug: "brasserie-artisanale",
+    name: "Brasserie & bar artisanal",
+    category: "food",
+    description:
+      "Brasserie craft Dakar — bold industrial jaune/noir, 6 bières signature FCFA avec filtres, fûts événements, happy hour · 4 pages",
+    definition: brasserieWorldDefinition(),
+  },
+  {
+    slug: "photographe-editorial",
+    name: "Photographe éditorial",
+    category: "portfolio",
+    description:
+      "Studio photo Dakar — monochrome élégant, mode/portrait/corporate/docu, 6 forfaits FCFA, galerie masonry · 4 pages",
+    definition: photographeEditorialWorldDefinition(),
+  },
+  {
+    slug: "surf-camp",
+    name: "École de surf & camp",
+    category: "sport",
+    description:
+      "Surf camp Dakar Ngor — coastal energy bleu/sable, cours débutants avancés, stage 7j, trips Casamance · 3 pages",
+    definition: surfCampWorldDefinition(),
+  },
+  {
+    slug: "business-coach",
+    name: "Coach business & entrepreneur",
+    category: "services",
+    description:
+      "Coach business Dakar — bold rouge/blanc, 6 programmes FCFA, résultats mesurables, session découverte gratuite · 4 pages",
+    definition: businessCoachWorldDefinition(),
+  },
+  {
+    slug: "wellness-coach",
+    name: "Coach bien-être & développement",
+    category: "services",
+    description:
+      "Coaching bien-être féminin Dakar — soft bordeaux/rose, nutrition holiste, retraites groupe, session découverte gratuite · 3 pages",
+    definition: wellnessCoachWorldDefinition(),
+  },
+  {
+    slug: "agence-creative-monday",
+    name: "Agence créative bold",
+    category: "agency",
+    description:
+      "Studio créatif Dakar — bold jaune/noir pop, branding motion digital, 6 services FCFA, portfolio masonry · 4 pages",
+    definition: mondayStudioWorldDefinition(),
+  },
+  {
+    slug: "mobilier-design",
+    name: "Mobilier design & ameublement",
+    category: "ecommerce",
+    description:
+      "Showroom mobilier Dakar — warm contemporary sable/bois, 6 pièces FCFA filterTags, atelier sur-mesure 4 étapes · 4 pages",
+    definition: mobilierWorldDefinition(),
+  },
+  {
+    slug: "agence-mannequinat-enfants",
+    name: "Agence mannequinat enfants",
+    category: "services",
+    description:
+      "Agence casting enfants Dakar — violet/orange playful, boutique mode 6 pièces FCFA filterTags, processus casting 4 étapes · 3 pages",
+    definition: agenceEnfantsWorldDefinition(),
+  },
+  {
+    slug: "institut-soin-peau",
+    name: "Institut de soins & beauté",
+    category: "services",
+    description:
+      "Institut beauté naturelle Dakar — nude/taupe soft luxury, 9 soins FCFA filterTags Visage/Corps/Forfaits, diagnostic peau · 3 pages",
+    definition: soinPeauWorldDefinition(),
+  },
+  {
+    slug: "complements-naturels",
+    name: "Compléments alimentaires naturels",
+    category: "ecommerce",
+    description:
+      "Nutrition sportive & santé Dakar — vert forêt/citron clean health, 9 produits FCFA filterTags, bilan nutritionnel gratuit · 3 pages",
+    definition: supplementsWorldDefinition(),
+  },
+  {
+    slug: "streetwear-drop",
+    name: "Streetwear drops limités",
+    category: "ecommerce",
+    description:
+      "Marque streetwear drop culture Dakar — noir/rouge néon dark, 6 pièces limitées FCFA filterTags, collab artistes · 3 pages",
+    definition: streetwearWorldDefinition(),
+  },
+  {
+    slug: "luxury-rtw",
+    name: "Maison RTW",
+    category: "fashion",
+    description:
+      "Luxury ready-to-wear — editorial silhouettes, minimal layout, stockist contact · Fraunces · 3 pages",
+    definition: {
+      schemaVersion: "website-v1",
+      title: "Maison RTW",
+      theme: {
+        primary: "#1A1814",
+        accent: "#A8956A",
+        background: "#F5F2EC",
+        text: "#1A1814",
+        fontDisplay: "Fraunces",
+        fontBody: "Cormorant Garamond",
+        spacing: "airy" as const,
+        headingScale: "xl" as const,
+        bodySize: "md" as const,
+        letterSpacing: "wide" as const,
+      },
+      pages: [
+        {
+          slug: "home",
+          title: "Home",
+          sections: [
+            {
+              id: "luxury-rtw-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Collection", href: "/collection" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-hero",
+              type: "hero" as const,
+              props: {
+                heading: "Ready to wear",
+                subheading:
+                  "Editorial fashion for the season — refined silhouettes, crafted in Dakar.",
+                buttonLabel: "View collection",
+                buttonHref: "/collection",
+                align: "left",
+                background: "#1A1814",
+              },
+            },
+            {
+              id: "luxury-rtw-text",
+              type: "text" as const,
+              props: {
+                heading: "The house",
+                body: "Ready-to-wear from Dakar — each piece built on tailoring tradition and contemporary silhouette. Replace this copy with your atelier story, drop dates, and stockist information.",
+              },
+            },
+            {
+              id: "luxury-rtw-features",
+              type: "features" as const,
+              props: {
+                heading: "Savoir-faire",
+                items: [
+                  { title: "Tailoring", body: "Each silhouette is hand-cut and fitted — no fast fashion shortcuts." },
+                  { title: "Fabric", body: "Natural fibers selected for drape, weight, and longevity." },
+                  { title: "Stockists", body: "Available at partner boutiques in Dakar, Paris, and Lagos — contact for nearest stockist." },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-whatsapp",
+              type: "whatsapp" as const,
+              props: {
+                label: "Order via WhatsApp",
+                phone: "+221770000000",
+                message: "Hello Maison RTW — I would like to order from the collection.",
+              },
+            },
+            {
+              id: "luxury-rtw-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison RTW — luxury ready-to-wear. Dakar.",
+                links: [
+                  { label: "Collection", href: "/collection" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          slug: "collection",
+          title: "Collection",
+          sections: [
+            {
+              id: "luxury-rtw-collection-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Collection", href: "/collection" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-gallery",
+              type: "gallery" as const,
+              props: {
+                heading: "Collection",
+                items: [
+                  { src: "", alt: "Look 01 — structured coat" },
+                  { src: "", alt: "Look 02 — midi dress" },
+                  { src: "", alt: "Look 03 — blazer" },
+                  { src: "", alt: "Look 04 — trousers" },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-collection-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison RTW — luxury ready-to-wear.",
+                links: [{ label: "Home", href: "/" }, { label: "Contact", href: "/contact" }],
+              },
+            },
+          ],
+        },
+        {
+          slug: "contact",
+          title: "Contact",
+          sections: [
+            {
+              id: "luxury-rtw-contact-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Collection", href: "/collection" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "luxury-rtw-contact",
+              type: "contact" as const,
+              props: {
+                heading: "Contact the house",
+                email: "maison@example.com",
+                phone: "",
+                address: "Dakar, Senegal",
+              },
+            },
+            {
+              id: "luxury-rtw-contact-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison RTW — luxury ready-to-wear.",
+                links: [{ label: "Collection", href: "/collection" }],
+              },
+            },
+          ],
+        },
+      ],
+    } as WebsiteDefinition,
+  },
+  {
+    slug: "accessories-maison",
+    name: "Accessories house",
+    category: "fashion",
+    description:
+      "Jewelry, bags & leather goods house — warm gold palette, gallery showcase, WhatsApp order · 3 pages",
+    definition: {
+      schemaVersion: "website-v1",
+      title: "Maison Accessories",
+      theme: {
+        primary: "#1A1208",
+        accent: "#C9A962",
+        background: "#FAFAF5",
+        text: "#1A1208",
+        fontDisplay: "Fraunces",
+        fontBody: "Cormorant Garamond",
+        spacing: "airy" as const,
+        headingScale: "lg" as const,
+        bodySize: "md" as const,
+        letterSpacing: "wide" as const,
+      },
+      pages: [
+        {
+          slug: "home",
+          title: "Home",
+          sections: [
+            {
+              id: "acc-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Jewellery", href: "/jewellery" },
+                  { label: "Bags", href: "/bags" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "acc-hero",
+              type: "hero" as const,
+              props: {
+                heading: "Crafted accessories",
+                subheading:
+                  "Jewelry, bags, and leather goods made to carry — each piece is hand-finished in Dakar.",
+                buttonLabel: "Shop jewellery",
+                buttonHref: "/jewellery",
+                align: "left",
+                background: "#1A1208",
+              },
+            },
+            {
+              id: "acc-text",
+              type: "text" as const,
+              props: {
+                heading: "The house",
+                body: "Accessories that outlast trends — pieces designed in Dakar using traditional goldsmithing and contemporary leather-work. Swap this for your maker story and craft process.",
+              },
+            },
+            {
+              id: "acc-features",
+              type: "features" as const,
+              props: {
+                heading: "Materials",
+                items: [
+                  { title: "Gold", body: "18k and recycled gold — sourced and hallmarked locally." },
+                  { title: "Leather", body: "Locally tanned hides, hand-stitched to last." },
+                  { title: "Beads", body: "West African trade beads woven into contemporary pendants and cuffs." },
+                ],
+              },
+            },
+            {
+              id: "acc-whatsapp",
+              type: "whatsapp" as const,
+              props: {
+                label: "Order via WhatsApp",
+                phone: "+221770000000",
+                message: "Hello — I am interested in an accessory from Maison.",
+              },
+            },
+            {
+              id: "acc-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison Accessories — jewelry, bags, leather goods. Dakar.",
+                links: [
+                  { label: "Jewellery", href: "/jewellery" },
+                  { label: "Bags", href: "/bags" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          slug: "jewellery",
+          title: "Jewellery",
+          sections: [
+            {
+              id: "acc-jewellery-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Jewellery", href: "/jewellery" },
+                  { label: "Bags", href: "/bags" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "acc-jewellery-gallery",
+              type: "gallery" as const,
+              props: {
+                heading: "Jewellery",
+                items: [
+                  { src: "", alt: "Gold bangle" },
+                  { src: "", alt: "Pendant necklace" },
+                  { src: "", alt: "Statement earrings" },
+                  { src: "", alt: "Beaded bracelet" },
+                ],
+              },
+            },
+            {
+              id: "acc-jewellery-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison Accessories — Dakar.",
+                links: [{ label: "Home", href: "/" }, { label: "Contact", href: "/contact" }],
+              },
+            },
+          ],
+        },
+        {
+          slug: "contact",
+          title: "Contact",
+          sections: [
+            {
+              id: "acc-contact-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "MAISON",
+                links: [
+                  { label: "Jewellery", href: "/jewellery" },
+                  { label: "Bags", href: "/bags" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "acc-contact",
+              type: "contact" as const,
+              props: {
+                heading: "Get in touch",
+                email: "contact@maison.sn",
+                phone: "+221770000000",
+                address: "Dakar, Senegal",
+              },
+            },
+            {
+              id: "acc-contact-footer",
+              type: "footer" as const,
+              props: {
+                text: "Maison Accessories — Dakar.",
+                links: [{ label: "Home", href: "/" }],
+              },
+            },
+          ],
+        },
+      ],
+    } as WebsiteDefinition,
+  },
+  {
+    slug: "activewear-studio",
+    name: "Activewear studio",
+    category: "fashion",
+    description:
+      "Performance activewear brand — dark neon palette, gym & outdoors, WhatsApp order · 3 pages",
+    definition: {
+      schemaVersion: "website-v1",
+      title: "Active Studio",
+      theme: {
+        primary: "#0A0A0F",
+        accent: "#00FF87",
+        background: "#0A0A0F",
+        text: "#F5F5F0",
+        fontDisplay: "Oswald",
+        fontBody: "system-ui",
+        spacing: "comfortable" as const,
+        headingScale: "xl" as const,
+        bodySize: "md" as const,
+        letterSpacing: "wide" as const,
+      },
+      pages: [
+        {
+          slug: "home",
+          title: "Home",
+          sections: [
+            {
+              id: "active-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "ACTIVE",
+                links: [
+                  { label: "Shop", href: "/shop" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "active-hero",
+              type: "hero" as const,
+              props: {
+                heading: "Built for performance",
+                subheading:
+                  "Activewear designed for African heat — gym, outdoors, and everyday movement.",
+                buttonLabel: "Shop gear",
+                buttonHref: "/shop",
+                align: "left",
+                background: "#0A0A0F",
+              },
+            },
+            {
+              id: "active-features",
+              type: "features" as const,
+              props: {
+                heading: "The gear",
+                items: [
+                  { title: "Compression", body: "High-performance compression for running, HIIT, and heavy training." },
+                  { title: "Breathable", body: "Technical fabrics that move sweat away fast — tested in Dakar heat." },
+                  { title: "Durable", body: "Double-stitched seams, reinforced stress points — built to outlast your training block." },
+                ],
+              },
+            },
+            {
+              id: "active-whatsapp",
+              type: "whatsapp" as const,
+              props: {
+                label: "Order via WhatsApp",
+                phone: "+221770000000",
+                message: "Hello Active Studio — I want to order performance gear.",
+              },
+            },
+            {
+              id: "active-footer",
+              type: "footer" as const,
+              props: {
+                text: "Active Studio — performance activewear. Dakar.",
+                links: [
+                  { label: "Shop", href: "/shop" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          slug: "shop",
+          title: "Shop",
+          sections: [
+            {
+              id: "active-shop-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "ACTIVE",
+                links: [
+                  { label: "Shop", href: "/shop" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "active-gallery",
+              type: "gallery" as const,
+              props: {
+                heading: "Performance gear",
+                items: [
+                  { src: "", alt: "Compression shorts" },
+                  { src: "", alt: "Training top" },
+                  { src: "", alt: "Sports bra" },
+                  { src: "", alt: "Track jacket" },
+                ],
+              },
+            },
+            {
+              id: "active-shop-footer",
+              type: "footer" as const,
+              props: {
+                text: "Active Studio — Dakar.",
+                links: [{ label: "Home", href: "/" }, { label: "Contact", href: "/contact" }],
+              },
+            },
+          ],
+        },
+        {
+          slug: "contact",
+          title: "Contact",
+          sections: [
+            {
+              id: "active-contact-nav",
+              type: "navigation" as const,
+              props: {
+                brand: "ACTIVE",
+                links: [
+                  { label: "Shop", href: "/shop" },
+                  { label: "About", href: "/about" },
+                  { label: "Contact", href: "/contact" },
+                ],
+              },
+            },
+            {
+              id: "active-contact",
+              type: "contact" as const,
+              props: {
+                heading: "Get in touch",
+                email: "hello@activestudio.sn",
+                phone: "+221770000000",
+                address: "Dakar, Senegal",
+              },
+            },
+            {
+              id: "active-contact-footer",
+              type: "footer" as const,
+              props: {
+                text: "Active Studio — Dakar.",
+                links: [{ label: "Shop", href: "/shop" }],
+              },
+            },
+          ],
+        },
+      ],
+    } as WebsiteDefinition,
+  },
+  {
+    slug: "photographe-culinaire",
+    name: "Photographe culinaire & food styling",
+    category: "portfolio",
+    description:
+      "Studio photo culinaire Dakar — warm brun/or éditorial, portfolio masonry, 4 forfaits food styling FCFA · 3 pages",
+    definition: photoCulinaireWorldDefinition(),
+  },
+  {
+    slug: "booking-artistes-musique",
+    name: "Agence booking artistes & management",
+    category: "services",
+    description:
+      "RHYTHM AGENCY — dark electric violet, 3 pages (booking, artistes, FAQ), 4 formules sur devis, DJ/live/festival · Dakar",
+    definition: bookingArtisteWorldDefinition(),
+  },
+  {
+    slug: "centre-formation-pro",
+    name: "Centre de formation professionnelle",
+    category: "services",
+    description:
+      "ACADÉMIE FUTUR — bleu marine/or, 9 formations FCFA filterTags, soutien scolaire + certifications · Dakar",
+    definition: centreFormationWorldDefinition(),
+  },
+  {
+    slug: "sneaker-boutique",
+    name: "Boutique sneakers & culture sneaker",
+    category: "ecommerce",
+    description:
+      "SOLE DAKAR — noir/orange brûlé, 9 paires Jordan/Nike/Adidas FCFA, drop alerts WhatsApp, authenticité garantie · 3 pages",
+    definition: sneakerWorldDefinition(),
+  },
+  {
+    slug: "bijouterie-fine",
+    name: "Bijouterie fine & joaillerie artisanale",
+    category: "ecommerce",
+    description:
+      "LUMIÈRE FINE — crème ivoire/or editorial, 9 bijoux or 18K FCFA, sur mesure, Cormorant Garamond · 3 pages",
+    definition: bijouterieLumiereWorldDefinition(),
+  },
+  {
+    slug: "marque-beaute-naturelle",
+    name: "Marque beauté & soins peau africaine",
+    category: "ecommerce",
+    description:
+      "ÉCLAT NATUREL — vert sauge/or naturel, 9 produits clean beauty FCFA filterTags, formulé peau africaine · 3 pages",
+    definition: beauteBrandWorldDefinition(),
+  },
+  {
+    slug: "restaurant-grill-braise",
+    name: "Restaurant grill & steakhouse",
+    category: "restaurant",
+    description:
+      "BRAISE DAKAR — dark charbon/rouge braise, 9 grillades FCFA, charbon de bois, Almadies · 3 pages",
+    definition: restaurantGrillWorldDefinition(),
+  },
+  {
+    slug: "restaurant-africain-contemporain",
+    name: "Restaurant africain contemporain",
+    category: "restaurant",
+    description:
+      "SAVANE DAKAR — terracotta/jaune soleil chaud, cuisine africaine réinventée, brunch dimanche · 3 pages",
+    definition: restaurantSavaneWorldDefinition(),
+  },
+  {
+    slug: "boulangerie-patisserie",
+    name: "Boulangerie artisanale & pâtisserie",
+    category: "restaurant",
+    description:
+      "MIETTES & CO — lin doux/brun beurré, pains levain + gâteaux sur commande FCFA, artisanal · 3 pages",
+    definition: boulangerieWorldDefinition(),
+  },
+  {
+    slug: "portfolio-mode-editorial",
+    name: "Portfolio mannequin & mode éditoriale",
+    category: "portfolio",
+    description:
+      "NUANCE — noir/blanc éditorial strict, galerie masonry, booking WhatsApp, Bodoni Moda · 3 pages",
+    definition: modeEditorialeWorldDefinition(),
+  },
+  {
+    slug: "menswear-premium",
+    name: "Menswear premium & prêt-à-porter masculin",
+    category: "ecommerce",
+    description:
+      "ESSENTIEL HOM — beige sable/noir quiet luxury, 9 pièces lin/coton FCFA, conseil style inclus · 3 pages",
+    definition: menswearWorldDefinition(),
+  },
+  {
+    slug: "sportswear-performance",
+    name: "Marque sportswear & performance",
+    category: "ecommerce",
+    description:
+      "KORA SPORT — noir technique/vert électrique, 9 articles sport FCFA filterTags Running/Gym/Football, équipe · 3 pages",
+    definition: sportswearWorldDefinition(),
+  },
+  {
+    slug: "agence-social-media",
+    name: "Agence social media & création de contenu",
+    category: "services",
+    description:
+      "VOLTA STUDIO — noir/jaune éclair bold, 6 offres priceLabel, audit gratuit, 3 packs mensuels, résultats clients · 3 pages",
+    definition: agenceSocialMediaWorldDefinition(),
   },
 ];
 

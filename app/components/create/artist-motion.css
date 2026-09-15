@@ -30,10 +30,10 @@
 @keyframes maylecor-float-portrait {
   0%,
   100% {
-    transform: translate3d(-50%, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(-50%, -8px, 0) scale(1.02);
+    transform: translate3d(0, -8px, 0) scale(1.02);
   }
 }
 

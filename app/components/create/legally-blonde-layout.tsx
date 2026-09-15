@@ -271,7 +271,16 @@ function renderLayer(
   if (move && (move.dx || move.dy)) {
     transformParts.push(`translate3d(${move.dx}px, ${move.dy}px, 0)`);
   }
-  if (opts.motion && hasScrollMotion && opts.scrollProgress !== undefined && !opts.editing) {
+  // Skip scroll offset for layers with a looping CSS animation — the animation's keyframe
+  // transform would override style.transform, making the scroll offset invisible.
+  const hasLoopAnim = opts.motion && !opts.editing && (() => {
+    const key = propKey || layer.id;
+    const custom = props.layerMotions?.[key] as LayerMotion | undefined;
+    if (custom === "none") return false;
+    if (custom === "spin" || custom === "float" || custom === "bob") return true;
+    return Boolean(HERO_LOOP_ANIM[layer.id]);
+  })();
+  if (opts.motion && hasScrollMotion && opts.scrollProgress !== undefined && !opts.editing && !hasLoopAnim) {
     transformParts.push(`translate3d(${scroll.x}px, ${scroll.y}px, 0)`);
     if (scroll.rotate) transformParts.push(`rotate(${scroll.rotate}deg)`);
   }
@@ -377,7 +386,7 @@ function renderLayer(
         aria-label={props.title}
       >
         <CircularBrandRing
-          text={props.title || "MAY LECOR"}
+          text={props.title || "YOUR BRAND"}
           color={props.accentColor || "#E9006B"}
           spinning={opts.motion && !opts.editing && customMotion === "spin"}
         />
@@ -759,7 +768,7 @@ export function LegallyBlondeHeroLayout({
         </section>
       ) : null}
 
-      {!viewportOnly && !editing ? (
+      {!viewportOnly && !editing && motion ? (
         <div ref={scrollTrackRef} className="lb-scroll-scene" style={{ height: scrollTrackHeight }}>
           <div className={motion ? "lb-scroll-pin" : undefined}>
             <ScaledArtboard
@@ -775,6 +784,32 @@ export function LegallyBlondeHeroLayout({
                   onNavigatePage: editor?.onNavigatePage,
                 }),
               )}
+              {extraCutouts
+                .filter((c) => c.src)
+                .map((photo) => {
+                  const scale = props.layerScales?.[photo.id] ?? 1;
+                  return (
+                    <ExtraCutoutItem
+                      key={photo.id}
+                      photo={{
+                        ...photo,
+                        widthPct: photo.widthPct * scale,
+                        zIndex:
+                          typeof props.layerZIndex?.[photo.id] === "number"
+                            ? Math.min(40, props.layerZIndex[photo.id]!)
+                            : photo.zIndex,
+                      }}
+                      editing={false}
+                      selected={false}
+                      siteBase={siteBase}
+                      onNavigatePage={editor?.onNavigatePage}
+                      onSelect={() => undefined}
+                      onMoved={() => undefined}
+                      scrollProgress={scrollProgress}
+                      motion={motion}
+                    />
+                  );
+                })}
             </ScaledArtboard>
           </div>
         </div>

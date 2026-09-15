@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { builderRateLimit } from "@/lib/api-guard";
 import { assertBusinessManager } from "@/lib/business/assert-manager";
 import {
@@ -63,7 +64,10 @@ export async function GET(_req: Request, { params }: Params) {
   });
 }
 
-export async function POST(req: Request, { params }: Params) {
+export async function POST(req: NextRequest, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -132,7 +136,10 @@ export async function POST(req: Request, { params }: Params) {
   });
 }
 
-export async function PATCH(req: Request, { params }: Params) {
+export async function PATCH(req: NextRequest, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 

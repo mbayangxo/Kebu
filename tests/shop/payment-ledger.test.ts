@@ -34,6 +34,13 @@ describe("defaultPaymentPreference", () => {
         wavePayLink: "",
         jokoPayLink: "",
         shareTagline: "",
+        shopOpened: false,
+        shopOpenedAt: "",
+        acceptMbolo: false,
+        mboloNumber: "",
+        customCheckoutNote: "",
+        shopCurrency: "XOF",
+        acceptedCurrencies: "",
       }),
     ).toBe("joko");
   });

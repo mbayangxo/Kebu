@@ -82,6 +82,15 @@ describe("site chrome W13", () => {
       {
         schemaVersion: "website-v1",
         title: "T",
+        theme: {
+          primary: "#0F0D33",
+          accent: "#00C851",
+          background: "#FAFAF8",
+          text: "#0F0D33",
+          fontDisplay: "Fraunces",
+          fontBody: "system-ui",
+          spacing: "comfortable",
+        },
         pages: [
           { slug: "home", title: "Home", sections: [{ type: "hero", props: { heading: "A" } }] },
           { slug: "about", title: "About", sections: [{ type: "text", props: { heading: "B", body: "" } }] },
