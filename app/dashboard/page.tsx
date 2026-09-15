@@ -74,12 +74,54 @@ function StatTile({
 // ── Onboarding checklist for brand-new users ─────────────────────────────────
 
 const CHECKLIST = [
-  { id: "intake", label: "Tell Kebu about yourself", href: "/welcome", sub: "3 min — personalises your whole experience" },
-  { id: "site", label: "Build your first site", href: "/create/new", sub: "Pick a style → go live in minutes" },
-  { id: "shop", label: "Add a product to your shop", href: "/create/new?type=store", sub: "Sell from day one — free with transaction fee" },
-  { id: "business", label: "Register a Kebu business", href: "/business/register", sub: "Get your Kebu ID, unlock the B2B directory" },
-  { id: "design", label: "Create a design in Studio", href: "/studio/new", sub: "Poster, flyer, social media — better than Canva" },
-  { id: "opportunity", label: "Explore Opportunity OS", href: "/opportunity", sub: "Grants, fellowships, tenders curated for you" },
+  {
+    id: "intake",
+    label: "Tell Kebu about yourself",
+    href: "/welcome",
+    sub: "3 min — personalises your whole experience",
+    icon: "🌍",
+    cta: "Personalize",
+  },
+  {
+    id: "site",
+    label: "Build your first site",
+    href: "/create/new",
+    sub: "Pick a style → go live in minutes",
+    icon: "🌐",
+    cta: "Build a site",
+  },
+  {
+    id: "shop",
+    label: "Add a product to your shop",
+    href: "/create/new?type=store",
+    sub: "Sell from day one — free with transaction fee",
+    icon: "🛍️",
+    cta: "Add product",
+  },
+  {
+    id: "business",
+    label: "Register a Kebu business",
+    href: "/business/register",
+    sub: "Get your Kebu ID, unlock the B2B directory",
+    icon: "💼",
+    cta: "Register",
+  },
+  {
+    id: "design",
+    label: "Create a design in Studio",
+    href: "/studio/new",
+    sub: "Poster, flyer, social media — better than Canva",
+    icon: "🎨",
+    cta: "Open Studio",
+  },
+  {
+    id: "opportunity",
+    label: "Explore Opportunity OS",
+    href: "/opportunity",
+    sub: "Grants, fellowships, tenders curated for you",
+    icon: "✨",
+    cta: "Explore",
+  },
 ];
 
 function SetupChecklist({ summary }: { summary: HomeSummary }) {
@@ -93,9 +135,13 @@ function SetupChecklist({ summary }: { summary: HomeSummary }) {
   const pct = Math.round((done.size / CHECKLIST.length) * 100);
   if (pct >= 100) return null;
 
+  const pending = CHECKLIST.filter(({ id }) => !done.has(id));
+  const completed = CHECKLIST.filter(({ id }) => done.has(id));
+
   return (
     <section className="mb-10">
-      <div className="flex items-center justify-between mb-4">
+      {/* Header + progress */}
+      <div className="flex items-center justify-between mb-3">
         <h2 className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: KEBU.orange }}>
           Get started
         </h2>
@@ -103,58 +149,74 @@ function SetupChecklist({ summary }: { summary: HomeSummary }) {
           {done.size}/{CHECKLIST.length} done
         </span>
       </div>
-      {/* Progress bar */}
       <div
-        className="h-1.5 rounded-full mb-5 overflow-hidden"
+        className="h-1.5 rounded-full mb-6 overflow-hidden"
         style={{ background: "rgba(10,10,10,0.08)" }}
       >
         <div
-          className="h-full rounded-full transition-all"
+          className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
         />
       </div>
-      <div className="space-y-2">
-        {CHECKLIST.map(({ id, label, href, sub }) => {
-          const completed = done.has(id);
-          return (
+
+      {/* Visual action cards for pending items */}
+      {pending.length > 0 && (
+        <div className="grid sm:grid-cols-2 gap-3 mb-4">
+          {pending.map(({ id, label, href, sub, icon, cta }) => (
             <Link
               key={id}
               href={href}
-              className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all hover:-translate-y-px"
+              className="group block rounded-2xl p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
               style={{
-                background: completed ? "rgba(16,185,129,0.06)" : KEBU.white,
-                border: `1px solid ${completed ? "rgba(16,185,129,0.2)" : KEBU.border}`,
-                opacity: completed ? 0.7 : 1,
+                background: KEBU.white,
+                border: `1px solid ${KEBU.border}`,
+              }}
+            >
+              <span className="text-2xl block mb-3">{icon}</span>
+              <p className="text-sm font-bold mb-1" style={{ color: KEBU.black }}>{label}</p>
+              <p className="text-[11px] mb-4 leading-relaxed" style={{ color: KEBU.muted }}>{sub}</p>
+              <span
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold rounded-full px-3 py-1.5"
+                style={{ background: KEBU.orange, color: KEBU.white }}
+              >
+                {cta}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Compact completed rows */}
+      {completed.length > 0 && (
+        <div className="space-y-1.5">
+          {completed.map(({ id, label, href, icon }) => (
+            <Link
+              key={id}
+              href={href}
+              className="flex items-center gap-3 rounded-xl px-4 py-2.5"
+              style={{
+                background: "rgba(16,185,129,0.05)",
+                border: "1px solid rgba(16,185,129,0.15)",
+                opacity: 0.75,
               }}
             >
               <div
                 className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                style={{
-                  background: completed ? "#10B981" : "transparent",
-                  border: `2px solid ${completed ? "#10B981" : KEBU.border}`,
-                }}
+                style={{ background: "#10B981" }}
               >
-                {completed && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold" style={{ color: completed ? KEBU.muted : KEBU.black }}>
-                  {label}
-                </p>
-                <p className="text-[11px] mt-0.5" style={{ color: KEBU.faint }}>{sub}</p>
-              </div>
-              {!completed && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={KEBU.orange} strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12" />
                 </svg>
-              )}
+              </div>
+              <span className="text-base leading-none">{icon}</span>
+              <p className="text-sm font-semibold" style={{ color: KEBU.muted }}>{label}</p>
             </Link>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

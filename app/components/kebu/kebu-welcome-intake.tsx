@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AppShell } from "@/app/components/app-shell";
+import { KebuWordmark } from "@/app/components/kebu-mark";
 import { KEBU } from "@/lib/kebu-brand";
 import {
   BUDGET_BANDS,
@@ -30,6 +30,19 @@ const AFRICAN_COUNTRY_OPTIONS = [
   { code: "EG", name: "Egypt" },
 ];
 
+const C = {
+  bg: KEBU.black,
+  card: "rgba(255,255,255,0.05)",
+  cardBorder: "rgba(255,255,255,0.1)",
+  cardHover: "rgba(255,255,255,0.08)",
+  activeCard: KEBU.orange,
+  activeBorder: KEBU.orange,
+  text: KEBU.white,
+  muted: "rgba(255,255,255,0.5)",
+  faint: "rgba(255,255,255,0.25)",
+  bar: KEBU.orange,
+} as const;
+
 function Chip({
   active,
   onClick,
@@ -47,10 +60,10 @@ function Chip({
       onClick={onClick}
       className={`text-left rounded-2xl transition-all ${large ? "p-5" : "px-4 py-2.5"}`}
       style={{
-        background: active ? KEBU.orange : "rgba(255,255,255,0.9)",
-        color: active ? "#fff" : KEBU.black,
-        border: active ? "none" : `1px solid ${KEBU.border}`,
-        boxShadow: active ? "0 12px 32px rgba(255,85,0,0.25)" : "none",
+        background: active ? KEBU.orange : C.card,
+        color: active ? KEBU.white : C.text,
+        border: `1px solid ${active ? C.activeBorder : C.cardBorder}`,
+        boxShadow: active ? "0 8px 24px rgba(255,85,0,0.35)" : "none",
       }}
     >
       {children}
@@ -161,60 +174,110 @@ export function KebuWelcomeIntake() {
   }
 
   return (
-    <AppShell title="Welcome to Kebu">
-      <div className="max-w-2xl mx-auto px-5 py-8 lg:py-12">
-        <div className="mb-8">
-          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.orange }}>
-            Step {step + 1} of {totalSteps + 1} · Kebu learns about you
-          </p>
-          <div className="flex gap-1 mb-6">
-            {Array.from({ length: totalSteps + 1 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-1 flex-1 rounded-full"
-                style={{ background: i <= step ? KEBU.orange : KEBU.border, opacity: i <= step ? 1 : 0.35 }}
-              />
-            ))}
-          </div>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: C.bg, color: C.text }}
+    >
+      {/* Ambient orbs */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background: `radial-gradient(ellipse 55% 40% at 90% 0%, rgba(255,85,0,0.18), transparent 55%),
+                       radial-gradient(ellipse 40% 35% at 5% 100%, rgba(225,6,0,0.12), transparent 50%)`,
+        }}
+        aria-hidden
+      />
+
+      {/* Top bar */}
+      <header
+        className="relative z-10 flex items-center justify-between px-6 py-5 shrink-0"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <Link href="/">
+          <KebuWordmark size={28} dark={false} />
+        </Link>
+        {step > 0 && (
+          <span className="text-xs font-semibold" style={{ color: C.faint }}>
+            {step} / {totalSteps}
+          </span>
+        )}
+      </header>
+
+      {/* Progress bar */}
+      <div className="relative z-10 h-[3px] w-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+        <div
+          className="h-full transition-all duration-500"
+          style={{
+            width: `${Math.round((step / totalSteps) * 100)}%`,
+            background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})`,
+          }}
+        />
+      </div>
+
+      {/* Content */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-start px-4 py-10 pb-20">
+        <div className="w-full max-w-2xl">
 
           {step === 0 && (
             <div>
-              <h1 className="text-3xl font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>
-                What brings you to Kebu?
-              </h1>
-              <p className="text-base leading-relaxed mb-4" style={{ color: KEBU.muted }}>
-                You do <strong>not</strong> need a business to use Kebu. We learn about <strong>you</strong> first —
-                then Opportunity OS, Yande AI, and your home page customize to your goals, interests, and place in
-                Africa.
+              <p className="text-xs font-bold uppercase tracking-[0.2em] mb-4" style={{ color: KEBU.orange }}>
+                Welcome to Kebu
               </p>
-              <ul className="text-sm space-y-2 mb-8" style={{ color: KEBU.muted }}>
-                <li>🌍 Explore countries, resources, heritage — no registration required</li>
-                <li>✨ Find what you can offer and what fits you</li>
-                <li>🚀 Build a site or business later — only when you are ready</li>
-              </ul>
+              <h1
+                className="text-4xl sm:text-5xl font-bold mb-4 leading-[1.05]"
+                style={{ fontFamily: "var(--font-fraunces)" }}
+              >
+                What can we help you do?
+              </h1>
+              <p className="text-base mb-10" style={{ color: C.muted }}>
+                Takes 3 minutes. Personalizes your entire Kebu experience — Opportunity OS, Yande AI, your dashboard.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-4 mb-10">
+                {[
+                  { icon: "🌍", title: "Explore Africa", desc: "Countries, resources, opportunities, heritage" },
+                  { icon: "🚀", title: "Build something", desc: "Site, store, or brand — live in minutes" },
+                  { icon: "💼", title: "Grow a business", desc: "Kebu ID, B2B directory, clients across Africa" },
+                ].map((card) => (
+                  <div
+                    key={card.title}
+                    className="rounded-2xl p-5"
+                    style={{ background: C.card, border: `1px solid ${C.cardBorder}` }}
+                  >
+                    <span className="text-3xl block mb-3">{card.icon}</span>
+                    <p className="font-bold text-sm mb-1">{card.title}</p>
+                    <p className="text-xs leading-relaxed" style={{ color: C.muted }}>{card.desc}</p>
+                  </div>
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="rounded-full px-8 py-4 text-sm font-bold text-white"
-                style={{ background: KEBU.orange }}
+                className="rounded-full px-10 py-4 text-sm font-bold"
+                style={{ background: KEBU.orange, color: KEBU.white }}
               >
-                Let&apos;s go — about 3 minutes
+                Let&apos;s go →
               </button>
-              <p className="text-xs mt-4" style={{ color: KEBU.faint }}>
-                <Link href="/opportunity" className="underline" style={{ color: KEBU.orange }}>
-                  Skip to Opportunity OS
+              <p className="text-xs mt-5" style={{ color: C.faint }}>
+                <Link href="/opportunity" style={{ color: KEBU.orange }}>
+                  Skip for now
                 </Link>{" "}
-                (you can finish this anytime from your home page)
+                — you can personalize anytime
               </p>
             </div>
           )}
 
           {step === 1 && (
             <div>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] mb-4" style={{ color: KEBU.orange }}>
+                About you
+              </p>
+              <h2
+                className="text-3xl font-bold mb-2"
+                style={{ fontFamily: "var(--font-fraunces)" }}
+              >
                 What are you here for right now?
               </h2>
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
+              <p className="text-sm mb-6" style={{ color: C.muted }}>
                 Pick the closest match. This is personal — not a business profile.
               </p>
               <div className="grid sm:grid-cols-2 gap-3">
@@ -222,7 +285,7 @@ export function KebuWelcomeIntake() {
                   <Chip key={g.id} active={mainGoal === g.id} onClick={() => setMainGoal(g.id)} large>
                     <span className="text-2xl mb-2 block">{g.icon}</span>
                     <span className="font-bold text-sm">{g.label}</span>
-                    <span className="text-xs mt-1 block opacity-90">{g.desc}</span>
+                    <span className="text-xs mt-1 block" style={{ opacity: 0.75 }}>{g.desc}</span>
                   </Chip>
                 ))}
               </div>
@@ -231,9 +294,18 @@ export function KebuWelcomeIntake() {
 
           {step === 2 && (
             <div>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] mb-4" style={{ color: KEBU.orange }}>
+                Goals
+              </p>
+              <h2
+                className="text-3xl font-bold mb-2"
+                style={{ fontFamily: "var(--font-fraunces)" }}
+              >
                 What else matters to you?
               </h2>
+              <p className="text-sm mb-6" style={{ color: C.muted }}>
+                Pick as many as you like.
+              </p>
               <div className="flex flex-wrap gap-2">
                 {[...KEBU_HERE_FOR, ...OPPORTUNITY_GOALS].filter(
                   (g, i, arr) => arr.findIndex((x) => x.id === g.id) === i,
@@ -249,11 +321,17 @@ export function KebuWelcomeIntake() {
 
           {step === 3 && (
             <div>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] mb-4" style={{ color: KEBU.orange }}>
+                Interests
+              </p>
+              <h2
+                className="text-3xl font-bold mb-2"
+                style={{ fontFamily: "var(--font-fraunces)" }}
+              >
                 What are you curious about?
               </h2>
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                {exploringMode() ? "Optional — skip with Next if you are just exploring." : "Pick at least one."}
+              <p className="text-sm mb-6" style={{ color: C.muted }}>
+                {exploringMode() ? "Optional — skip with Continue if you are just exploring." : "Pick at least one."}
               </p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {OPPORTUNITY_INTERESTS.map((item) => (
@@ -264,7 +342,7 @@ export function KebuWelcomeIntake() {
                     large
                   >
                     <p className="font-bold text-sm">{item.label}</p>
-                    <p className="text-xs mt-1 opacity-90">{item.desc}</p>
+                    <p className="text-xs mt-1" style={{ opacity: 0.75 }}>{item.desc}</p>
                   </Chip>
                 ))}
               </div>
@@ -273,11 +351,17 @@ export function KebuWelcomeIntake() {
 
           {step === 4 && (
             <div>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] mb-4" style={{ color: KEBU.orange }}>
+                Resources
+              </p>
+              <h2
+                className="text-3xl font-bold mb-2"
+                style={{ fontFamily: "var(--font-fraunces)" }}
+              >
                 What kind of help might you need?
               </h2>
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                Grants, jobs, heritage stories, country intel… {exploringMode() ? "Optional for now." : ""}
+              <p className="text-sm mb-6" style={{ color: C.muted }}>
+                Grants, jobs, heritage, country intel…{exploringMode() ? " Optional for now." : ""}
               </p>
               <div className="flex flex-wrap gap-2">
                 {OPPORTUNITY_RESOURCE_NEEDS.map((r) => (
@@ -295,17 +379,23 @@ export function KebuWelcomeIntake() {
 
           {step === 5 && (
             <div>
-              <h2 className="text-xl font-bold mb-4" style={{ fontFamily: "var(--font-fraunces)" }}>
-                How much could you start with — if you built something?
+              <p className="text-xs font-bold uppercase tracking-[0.2em] mb-4" style={{ color: KEBU.orange }}>
+                Starting point
+              </p>
+              <h2
+                className="text-3xl font-bold mb-2"
+                style={{ fontFamily: "var(--font-fraunces)" }}
+              >
+                How much could you start with?
               </h2>
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                Honest answer helps us plan. &quot;Not sure&quot; is fine — especially if you are only exploring.
+              <p className="text-sm mb-6" style={{ color: C.muted }}>
+                Honest answer helps us surface the right opportunities. &quot;Not sure&quot; is perfectly fine.
               </p>
               <div className="space-y-3 max-w-lg">
                 {BUDGET_BANDS.map((b) => (
                   <Chip key={b.id} active={budget === b.id} onClick={() => setBudget(b.id)} large>
                     <p className="font-bold">{b.label}</p>
-                    <p className="text-xs mt-1 opacity-90">{b.hint}</p>
+                    <p className="text-xs mt-1" style={{ opacity: 0.75 }}>{b.hint}</p>
                   </Chip>
                 ))}
               </div>
@@ -313,11 +403,20 @@ export function KebuWelcomeIntake() {
           )}
 
           {step === 6 && (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div>
-                <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] mb-4" style={{ color: KEBU.orange }}>
+                  Your Africa
+                </p>
+                <h2
+                  className="text-3xl font-bold mb-2"
+                  style={{ fontFamily: "var(--font-fraunces)" }}
+                >
                   Which countries matter to you?
                 </h2>
+                <p className="text-sm mb-6" style={{ color: C.muted }}>
+                  Pick all that apply — home, diaspora, markets you want to reach.
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {AFRICAN_COUNTRY_OPTIONS.map((c) => (
                     <Chip
@@ -331,56 +430,72 @@ export function KebuWelcomeIntake() {
                 </div>
               </div>
               <label className="block">
-                <span className="font-bold text-sm">What do you enjoy — or want to try?</span>
+                <span className="font-bold text-sm block mb-2">What do you enjoy — or want to try?</span>
                 <textarea
                   value={enjoyDoing}
                   onChange={(e) => setEnjoyDoing(e.target.value)}
                   rows={3}
                   placeholder="e.g. music, farming, fixing phones, teaching kids, design…"
-                  className="mt-2 w-full rounded-xl border px-4 py-3 text-sm"
-                  style={{ borderColor: KEBU.border }}
+                  className="w-full rounded-xl px-4 py-3 text-sm"
+                  style={{
+                    background: C.card,
+                    border: `1px solid ${C.cardBorder}`,
+                    color: C.text,
+                    outline: "none",
+                  }}
                 />
               </label>
             </div>
           )}
 
-          {step > 0 && (
-            <div className="flex flex-wrap gap-3 mt-10 pt-6" style={{ borderTop: `1px solid ${KEBU.border}` }}>
+          {/* Navigation */}
+          <div
+            className="flex flex-wrap items-center gap-3 mt-10 pt-6"
+            style={{ borderTop: `1px solid rgba(255,255,255,0.08)` }}
+          >
+            {step > 0 && (
               <button
                 type="button"
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
                 className="rounded-full px-6 py-3 text-sm font-semibold"
-                style={{ border: `1px solid ${KEBU.border}` }}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  color: C.muted,
+                  background: "transparent",
+                }}
               >
-                Back
+                ← Back
               </button>
-              {step < 6 ? (
-                <button
-                  type="button"
-                  disabled={!canNext()}
-                  onClick={() => setStep((s) => s + 1)}
-                  className="rounded-full px-8 py-3 text-sm font-bold text-white disabled:opacity-40"
-                  style={{ background: KEBU.orange }}
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void finish()}
-                  className="rounded-full px-8 py-3 text-sm font-bold text-white disabled:opacity-40"
-                  style={{ background: KEBU.black }}
-                >
-                  {busy ? "Saving…" : "Personalize my Kebu"}
-                </button>
-              )}
-            </div>
-          )}
+            )}
+            {step > 0 && step < 6 && (
+              <button
+                type="button"
+                disabled={!canNext()}
+                onClick={() => setStep((s) => s + 1)}
+                className="rounded-full px-8 py-3 text-sm font-bold disabled:opacity-40"
+                style={{ background: KEBU.orange, color: KEBU.white }}
+              >
+                Continue →
+              </button>
+            )}
+            {step === 6 && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void finish()}
+                className="rounded-full px-8 py-3 text-sm font-bold disabled:opacity-40"
+                style={{ background: KEBU.orange, color: KEBU.white }}
+              >
+                {busy ? "Saving…" : "Personalize my Kebu →"}
+              </button>
+            )}
+          </div>
 
-          {error ? <p className="text-sm text-red-600 mt-4">{error}</p> : null}
+          {error ? (
+            <p className="text-sm mt-4" style={{ color: "#EF4444" }}>{error}</p>
+          ) : null}
         </div>
-      </div>
-    </AppShell>
+      </main>
+    </div>
   );
 }
