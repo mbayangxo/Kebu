@@ -9,9 +9,17 @@ import {
 } from "@/lib/create/user-aesthetics-catalog";
 
 describe("user aesthetics gallery", () => {
-  it("offers 2 aesthetics per business type, except beauty's documented 3rd (owner override)", () => {
+  it("offers 2 aesthetics per business type, except the documented overrides (owner decisions)", () => {
+    // Owner decisions, 2026-09 — see AESTHETICS-PHASE-SLICES.md (A5–A8):
+    // beauty ships 2 documented overrides (CLARTÉ, then NUANCE) → 4 total;
+    // fashion and production each ship one documented override → 3 total.
+    const EXPECTED_PAIR_LENGTH: Record<string, number> = {
+      beauty: 4,
+      fashion: 3,
+      production: 3,
+    };
     for (const group of USER_AESTHETICS_BY_TYPE) {
-      const expectedLength = group.type === "beauty" ? 3 : 2;
+      const expectedLength = EXPECTED_PAIR_LENGTH[group.type] ?? 2;
       expect(group.pair).toHaveLength(expectedLength);
       const slugs = group.pair.map((p) => p.slug);
       expect(new Set(slugs).size).toBe(slugs.length);

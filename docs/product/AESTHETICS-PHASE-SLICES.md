@@ -11,6 +11,9 @@
 | A3 | **Lock beauty** | **IMPLEMENTED** | Beauty pair locked: `hair-salon` + `layers-beauty` (`LOCKED_AESTHETIC_TYPES`) |
 | A4 | **Live demo** | **IMPLEMENTED** | `/create/demo/layers-beauty` — all pages · theme background · Use → create |
 | A5 | **CLARTÉ** design world (owner override, adds 3rd beauty look) | **IMPLEMENTED** | Compatibility-first skincare — Home · Shop · Compatibility · Routine · Reviews · About · FAQ · distinct archetype from LAYERS (ritual/climate) — `/create/demo/clarte-compatible-skin` |
+| A6 | **NUANCE** design world (owner override, adds 4th beauty look) | **IMPLEMENTED** | Shade-inclusive color cosmetics — Home · Shop · Shade Finder · Looks · Reviews · About · FAQ · distinct archetype from LAYERS/CLARTÉ (color cosmetics vs. skincare) — `/create/demo/nuance-beauty` |
+| A7 | **NUÉE** design world (owner override, adds 3rd fashion look) | **IMPLEMENTED** | Size-inclusive intimates & loungewear with a Fit Finder quiz — Home · Shop · Fit Finder · Reviews · About · FAQ — `/create/demo/nuee-intimates` |
+| A8 | **MERIDIAN FILMS** design world (owner override, adds 3rd production look) | **IMPLEMENTED** | Editorial, typography-led indie film studio — Home · Films · Shop · Submissions · Press · About · FAQ — `/create/demo/meridian-films` |
 
 ## Phase B — Agency
 

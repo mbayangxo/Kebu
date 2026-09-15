@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { clarteSkincareWorldDefinition } from "@/lib/create/design-worlds/clarte-skincare-world";
+import { nuanceBeautyWorldDefinition } from "@/lib/create/design-worlds/nuance-beauty-world";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { isPublicTemplateSlug } from "@/lib/create/templates-seed";
 import { USER_AESTHETICS_BY_TYPE } from "@/lib/create/user-aesthetics-catalog";
 
-describe("clarte-compatible-skin design world", () => {
-  it("validates multipage skincare IA", () => {
-    const def = clarteSkincareWorldDefinition();
+describe("nuance-beauty design world", () => {
+  it("validates multipage cosmetics IA", () => {
+    const def = nuanceBeautyWorldDefinition();
     expect(def.pages.map((p) => p.slug)).toEqual([
       "home",
       "shop",
-      "compatibility",
-      "routine",
+      "shade-finder",
+      "looks",
       "reviews",
       "about",
       "faq",
@@ -20,20 +20,19 @@ describe("clarte-compatible-skin design world", () => {
     expect(validated.ok).toBe(true);
   });
 
-  it("includes products, compatibility chart, quiz, testimonials, faq — not hero-only", () => {
-    const def = clarteSkincareWorldDefinition();
+  it("includes products, shade finder quiz, gallery, testimonials, faq — not hero-only", () => {
+    const def = nuanceBeautyWorldDefinition();
     const home = def.pages.find((p) => p.slug === "home");
     const homeTypes = home?.sections.map((s) => s.type) ?? [];
     expect(homeTypes).toContain("products");
     expect(homeTypes).toContain("trust-badges");
-    expect(homeTypes).toContain("before-after");
     expect(homeTypes).toContain("social-proof");
 
-    const compatibility = def.pages.find((p) => p.slug === "compatibility");
-    expect(compatibility?.sections.some((s) => s.type === "features")).toBe(true);
+    const shadeFinder = def.pages.find((p) => p.slug === "shade-finder");
+    expect(shadeFinder?.sections.some((s) => s.type === "quiz")).toBe(true);
 
-    const routine = def.pages.find((p) => p.slug === "routine");
-    expect(routine?.sections.some((s) => s.type === "quiz")).toBe(true);
+    const looks = def.pages.find((p) => p.slug === "looks");
+    expect(looks?.sections.some((s) => s.type === "gallery")).toBe(true);
 
     const reviews = def.pages.find((p) => p.slug === "reviews");
     expect(reviews?.sections.some((s) => s.type === "testimonials")).toBe(true);
@@ -43,19 +42,19 @@ describe("clarte-compatible-skin design world", () => {
     expect(faq?.sections.some((s) => s.type === "form")).toBe(true);
   });
 
-  it("is public and listed as the 3rd beauty aesthetic (explicit lock override)", () => {
-    expect(isPublicTemplateSlug("clarte-compatible-skin")).toBe(true);
+  it("is public and listed as the 4th beauty aesthetic (explicit lock override, 2nd exception)", () => {
+    expect(isPublicTemplateSlug("nuance-beauty")).toBe(true);
     const beauty = USER_AESTHETICS_BY_TYPE.find((t) => t.type === "beauty");
-    // Beauty later shipped a 4th look too (NUANCE) — see AESTHETICS-PHASE-SLICES.md (A6).
     expect(beauty?.pair.length).toBe(4);
-    expect(beauty?.pair.some((p) => p.slug === "clarte-compatible-skin")).toBe(true);
-    // The other locked beauty looks must remain untouched by this addition.
+    expect(beauty?.pair.some((p) => p.slug === "nuance-beauty")).toBe(true);
+    // The three previously-locked beauty looks must remain untouched by this addition.
     expect(beauty?.pair.some((p) => p.slug === "hair-salon")).toBe(true);
     expect(beauty?.pair.some((p) => p.slug === "layers-beauty")).toBe(true);
+    expect(beauty?.pair.some((p) => p.slug === "clarte-compatible-skin")).toBe(true);
   });
 
   it("does not reuse other owner-brand assets or reference the source brand it was inspired by", () => {
-    const blob = JSON.stringify(clarteSkincareWorldDefinition());
-    expect(blob).not.toMatch(/maylecor|legally-blonde|drunk elephant|elephant/i);
+    const blob = JSON.stringify(nuanceBeautyWorldDefinition());
+    expect(blob).not.toMatch(/maylecor|legally-blonde|fenty|rihanna|gloss bomb/i);
   });
 });

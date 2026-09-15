@@ -11,6 +11,9 @@ import { mayjorGoodWebsiteDefinition } from "./mayjor-good-site";
 import { fashionAtelierWorldDefinition } from "./design-worlds/fashion-atelier-world";
 import { layersBeautyWorldDefinition } from "./design-worlds/layers-beauty-world";
 import { clarteSkincareWorldDefinition } from "./design-worlds/clarte-skincare-world";
+import { nueeIntimatesWorldDefinition } from "./design-worlds/nuee-intimates-world";
+import { nuanceBeautyWorldDefinition } from "./design-worlds/nuance-beauty-world";
+import { meridianFilmsWorldDefinition } from "./design-worlds/meridian-films-world";
 import { carmineCreativeWorldDefinition } from "./design-worlds/carmine-creative-world";
 import { perfumeMaisonWorldDefinition } from "./design-worlds/perfume-maison-world";
 import { restaurantTableWorldDefinition } from "./design-worlds/restaurant-table-world";
@@ -183,6 +186,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Compatibility-first clinical skincare — home, shop, compatibility chart, routine quiz, reviews, about, FAQ · 7 pages",
     definition: clarteSkincareWorldDefinition(),
+  },
+  {
+    slug: "nuance-beauty",
+    name: "NUANCE",
+    category: "beauty",
+    description:
+      "Shade-inclusive color cosmetics — home, shop, shade finder, looks, reviews, about, FAQ · 7 pages",
+    definition: nuanceBeautyWorldDefinition(),
   },
   {
     slug: "beauty-studio",
@@ -744,6 +755,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     definition: voltaClothingWorldDefinition(),
   },
   {
+    slug: "nuee-intimates",
+    name: "NUÉE",
+    category: "fashion",
+    description:
+      "Size-inclusive intimates & loungewear — home, shop, fit finder, reviews, about, FAQ · 6 pages",
+    definition: nueeIntimatesWorldDefinition(),
+  },
+  {
     slug: "shopping-store",
     name: "Marché Boutique",
     category: "store",
@@ -939,6 +958,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Dakar production house — work, services, clients, WhatsApp briefs",
     definition: productionHouseWorldDefinition(),
+  },
+  {
+    slug: "meridian-films",
+    name: "MERIDIAN FILMS",
+    category: "film",
+    description:
+      "Editorial, typography-led indie studio — home, films, shop, submissions, press, about, FAQ · 7 pages",
+    definition: meridianFilmsWorldDefinition(),
   },
   {
     slug: "hair-salon",
