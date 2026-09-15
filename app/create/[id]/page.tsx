@@ -51,6 +51,7 @@ import {
   DataModeProvider,
 } from "@/app/components/create/data-mode-provider";
 import { useProjectAutosave } from "./use-project-autosave";
+import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 
 /**
  * Code-split the heaviest sidebar/panel views that are hidden behind a tab or a closed-by-default
@@ -1206,10 +1207,37 @@ export default function ProjectEditorPage() {
             />
             <aside
               className={`${
-                leftPanelOpen ? "relative w-[280px] max-w-[92vw]" : "hidden"
+                leftPanelOpen
+                  ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[280px] sm:max-w-[92vw]"
+                  : "hidden"
               } shrink-0 min-h-0 overflow-y-auto border-r`}
-              style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
+              style={{
+                borderColor: "#E5E5E5",
+                background: "#FAFAFA",
+                // Only matters at the mobile fixed-overlay width (below sm); at sm:relative this is an
+                // ordinary flex sibling and doesn't overlap anything, so a fixed z-index here is harmless.
+                zIndex: leftPanelOpen ? Z_LAYERS.drawerPanel : undefined,
+              }}
             >
+              {/* Mobile only: editing takes the full screen (a fixed 280px sidebar squeezed the live
+                  preview into an unreadable sliver — docs/product/KEBU-BUILDER-UX-STANDARD.md). "Done"
+                  is the same dismissal already wired to the rail's toggle-tap behavior. */}
+              <div
+                className="sm:hidden sticky top-0 z-10 flex items-center justify-between border-b px-3 py-2.5"
+                style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
+              >
+                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                  Editing
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLeftPanelOpen(false)}
+                  className="rounded-full px-4 py-1.5 text-xs font-bold text-white"
+                  style={{ background: BUILDER.ink }}
+                >
+                  Done — view site
+                </button>
+              </div>
 
               {sidebarTab === "pages" && project ? (
                 <div className="px-3 py-3">
