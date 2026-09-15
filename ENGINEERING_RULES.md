@@ -93,6 +93,26 @@ Before implementing any feature slice:
 - **Mobile money**: XOF currency; Wave + Orange Money via Joko; no Stripe assumptions
 - **WhatsApp + Joko**: primary messaging and payment channels
 
+### Animation vs. asset data cost — these are separate concerns
+
+CSS/JS animations (transitions, keyframes, transforms, IntersectionObserver scroll-reveals,
+hover effects, clip-path entrances) cost essentially zero data — they are code, not media.
+**Animations are encouraged.** Quality sites animate. Do not suppress motion to save data.
+
+What actually costs data is the *assets being animated*. Keep assets lean:
+
+| Asset type | Rule |
+|---|---|
+| Images | WebP format, correct size, `loading="lazy"` on below-fold images |
+| Autoplay video backgrounds | Never — costs 5–20 MB per load |
+| Parallax on images | Avoid — requires loading an oversized image |
+| External fonts | Subset to characters used; preload critical faces |
+| CSS/JS animations | Use freely — `opacity`, `transform`, `clip-path`, keyframes cost ~0 |
+
+`prefers-reduced-motion` must be respected: wrap animated CSS in
+`@media (prefers-reduced-motion: no-preference)` so users who need less motion get a
+clean static version at no UX cost.
+
 ---
 
 ## 7. CI gate (mandatory before merge)
