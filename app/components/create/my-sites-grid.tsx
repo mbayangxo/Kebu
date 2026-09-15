@@ -45,6 +45,11 @@ type HealthState = {
 };
 
 function previewSrc(p: MySiteProject): string | null {
+  // Draft sites must use the builder preview — the live /sites/{subdomain} URL
+  // doesn't exist yet, so loading it shows "This page doesn't exist".
+  if (!isSitePublished(p)) {
+    return `/create/${p.id}/preview?embed=1`;
+  }
   if (p.subdomain?.trim()) {
     return kebuSitePreviewPath(p.subdomain) ?? `/sites/${p.subdomain.trim().toLowerCase()}`;
   }
