@@ -43,6 +43,7 @@ import { wholesaleWorldDefinition } from "./design-worlds/wholesale-world";
 import { fashionWorldDefinition } from "./design-worlds/fashion-world";
 import { talentAgencyWorldDefinition, managementCompanyWorldDefinition } from "./design-worlds/talent-management-worlds";
 import { skincareWorldDefinition } from "./design-worlds/skincare-world";
+import { clarteSkincareWorldDefinition } from "./design-worlds/clarte-skincare-world";
 import { foodBrandWorldDefinition, juiceBrandWorldDefinition } from "./design-worlds/food-beverage-worlds";
 import { electronicsStoreWorldDefinition, supermarketWorldDefinition } from "./design-worlds/retail-worlds";
 import { schoolWorldDefinition, mediaCompanyWorldDefinition } from "./design-worlds/education-media-worlds";
@@ -1961,6 +1962,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "KORA SPORT — noir technique/vert électrique, 9 articles sport FCFA filterTags Running/Gym/Football, équipe · 3 pages",
     definition: sportswearWorldDefinition(),
+  },
+  {
+    slug: "clarte-skincare",
+    name: "Marque skincare luminosité",
+    category: "beauty",
+    description:
+      "CLARTÉ — crystal luxury blanc/charbon/or, sérum Vitamine C, diagnostic peau WhatsApp, 4 pages",
+    definition: clarteSkincareWorldDefinition(),
   },
   {
     slug: "agence-social-media",
