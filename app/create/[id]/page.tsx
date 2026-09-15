@@ -144,6 +144,8 @@ export default function ProjectEditorPage() {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
+  // Ref to the iframe used for mobile/tablet device preview (see below)
+  const previewIframeRef = useRef<HTMLIFrameElement>(null);
   const [billing, setBilling] = useState<{
     canPublish: boolean;
     label: string;
@@ -941,6 +943,30 @@ export default function ProjectEditorPage() {
    * the user: "the desktop tablet and phone on top of the builder preview doesn't even work."
    */
   const wideCanvas = device === "desktop";
+
+  // When the user switches to mobile/tablet, the canvas becomes an iframe (see below) so that
+  // Tailwind responsive breakpoints fire against the iframe's real viewport, not the browser window.
+  // This effect keeps the iframe's definition in sync with the Builder's current in-memory state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const iframe = previewIframeRef.current;
+    if (!iframe || !canvasDefinition || wideCanvas) return;
+    const send = () => {
+      iframe.contentWindow?.postMessage(
+        { type: "kebu:definition:update", definition: canvasDefinition, pageSlug: previewPageSlug },
+        window.location.origin,
+      );
+    };
+    // When the iframe signals it's ready, push the current definition immediately
+    function onMessage(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      if ((e.data as { type?: string })?.type === "kebu:preview:ready") send();
+    }
+    window.addEventListener("message", onMessage);
+    // Also push whenever definition or pageSlug changes (iframe may already be ready)
+    send();
+    return () => window.removeEventListener("message", onMessage);
+  }, [canvasDefinition, previewPageSlug, wideCanvas]); // previewIframeRef is stable
 
   return (
     <DataModeProvider>
@@ -3849,7 +3875,7 @@ export default function ProjectEditorPage() {
                         }
                   }
                 >
-                {canvasDefinition && (
+                {canvasDefinition && wideCanvas && (
                   <BuilderEditablePreview
                     definition={canvasDefinition}
                     pageSlug={previewPageSlug}
@@ -3864,6 +3890,22 @@ export default function ProjectEditorPage() {
                     }
                     onAssetDrop={(asset, drop) => void applyMediaAsset(asset, drop)}
                     editor={canvasEditor}
+                  />
+                )}
+                {/* Mobile/tablet: iframe so Tailwind breakpoints fire against a real viewport of that
+                    width, not the browser window. The Builder pushes the live definition via
+                    postMessage (see useEffect above) so the preview tracks unsaved edits in real time. */}
+                {canvasDefinition && !wideCanvas && (
+                  <iframe
+                    ref={previewIframeRef}
+                    src={`/create/${projectId}/preview?embed=1`}
+                    title={`${device} preview`}
+                    style={{
+                      width: "100%",
+                      minHeight: device === "mobile" ? 700 : 900,
+                      border: "none",
+                      display: "block",
+                    }}
                   />
                 )}
                 {/* Always-visible "+ Add section" strip at the bottom of the canvas */}
