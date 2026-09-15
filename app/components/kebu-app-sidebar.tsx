@@ -480,6 +480,21 @@ export function KebuAppSidebar({
                   active={isActive(pathname, "/b2b")}
                 />
               </div>
+
+              <SectionLabel title="Developer" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <NavAccordion
+                  href="/dev"
+                  label="Developer Platform"
+                  active={isActive(pathname, "/dev", true)}
+                  pathname={pathname}
+                  childItems={[
+                    { label: "Apps", href: "/dev/apps" },
+                    { label: "Assets", href: "/dev/assets" },
+                    { label: "API Keys", href: "/dev/api-keys" },
+                  ]}
+                />
+              </div>
             </>
           )}
 

@@ -80,5 +80,12 @@ export const PRODUCT_NAV = {
     { label: "Brand DNA", href: "/studio/brand" },
     { label: "Campaigns", href: "/studio/campaigns" },
   ] satisfies NavItem[],
+  developer: [
+    { label: "Overview", href: "/dev", exact: true },
+    { label: "Apps", href: "/dev/apps" },
+    { label: "Assets", href: "/dev/assets" },
+    { label: "API Keys", href: "/dev/api-keys" },
+  ] satisfies NavItem[],
+
   account: [{ label: "My Account", href: "/account" }] satisfies NavItem[],
 } as const;
