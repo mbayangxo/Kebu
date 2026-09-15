@@ -11,63 +11,50 @@ import type { HomeSummary, HomeUpdate, HomeSiteRow } from "@/lib/account/home-su
 import { readStoredWorkspace } from "@/lib/navigation/kebu-workspace";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 
-// ── Small stat tile ──────────────────────────────────────────────────────────
+// ── Compact stat strip ────────────────────────────────────────────────────────
 
-function StatTile({
-  value,
-  label,
-  href,
-  ctaLabel,
-  accent,
+function StatStrip({
+  stats,
+  businesses,
 }: {
-  value: number;
-  label: string;
-  href: string;
-  ctaLabel: string;
-  accent?: string;
+  stats: HomeSummary["stats"];
+  businesses: HomeSummary["businesses"];
 }) {
-  const isEmpty = value === 0;
-  const color = accent ?? KEBU.orange;
+  const items = [
+    { value: stats.sitesTotal,       label: "Sites",       href: MY_SITES_HREF,                                                           accent: KEBU.orange },
+    { value: stats.sitesPublished,   label: "Published",   href: `${MY_SITES_HREF}?filter=live`,                                          accent: KEBU.red    },
+    { value: stats.storeProducts,    label: "Products",    href: MY_SITES_HREF,                                                           accent: "#10B981"   },
+    { value: stats.emailSubscribers, label: "Subscribers", href: businesses[0] ? `/business/${businesses[0].id}` : "/account",            accent: "#0EA5E9"   },
+    { value: stats.createDesigns,    label: "Designs",     href: "/studio",                                                               accent: "#9333EA"   },
+    { value: stats.countriesLive,    label: "Countries",   href: "/opportunity/countries",                                                accent: "#10B981"   },
+  ];
+
   return (
-    <Link
-      href={href}
-      className="group block rounded-2xl p-5 transition-all hover:-translate-y-0.5"
-      style={{
-        background: KEBU.white,
-        border: `2px solid ${KEBU.black}`,
-        boxShadow: "3px 3px 0 rgba(10,10,10,0.9)",
-      }}
+    <div
+      className="flex flex-wrap overflow-hidden rounded-2xl mb-8"
+      style={{ border: `1px solid ${KEBU.border}`, background: KEBU.white }}
     >
-      {isEmpty ? (
-        <p
-          className="text-xs font-bold uppercase tracking-wide mb-3"
-          style={{ color: KEBU.faint }}
+      {items.map((item, i) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          className="flex-1 min-w-[80px] px-4 py-3.5 transition-colors"
+          style={{ borderRight: i < items.length - 1 ? `1px solid ${KEBU.border}` : "none" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,85,0,0.035)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
         >
-          {label}
-        </p>
-      ) : (
-        <p
-          className="text-3xl font-black leading-none mb-2"
-          style={{ fontFamily: "var(--font-fraunces)", color }}
-        >
-          {value}
-        </p>
-      )}
-      <p
-        className="text-[11px] font-bold uppercase tracking-wider"
-        style={{ color: isEmpty ? KEBU.orange : KEBU.black }}
-      >
-        {isEmpty ? ctaLabel : label}
-      </p>
-      {!isEmpty && (
-        <span
-          className="inline-block mt-3 text-[10px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ color: KEBU.red }}
-        >
-          Open →
-        </span>
-      )}
-    </Link>
+          <p
+            className="text-xl font-black leading-none mb-1 tabular-nums"
+            style={{ fontFamily: "var(--font-fraunces)", color: item.value > 0 ? item.accent : KEBU.faint }}
+          >
+            {item.value}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: KEBU.muted }}>
+            {item.label}
+          </p>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -229,26 +216,26 @@ function SiteRow({ site }: { site: HomeSiteRow }) {
   return (
     <Link
       href={isStore ? `/shop/${site.id}` : `/my-sites/${site.id}`}
-      className="flex items-center gap-3 rounded-xl px-4 py-3 transition-all hover:-translate-y-px"
+      className="flex items-center gap-3 rounded-xl px-4 py-2.5 transition-all hover:-translate-y-px"
       style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
     >
       <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white text-xs font-black"
+        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
         style={{ background: isStore ? "#10B981" : KEBU.orange }}
       >
         {isStore ? (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 01-8 0" />
           </svg>
         ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
             <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
           </svg>
         )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold truncate" style={{ color: KEBU.black }}>{site.title}</p>
-        <p className="text-[11px] truncate" style={{ color: KEBU.faint }}>
+        <p className="text-[10px] truncate" style={{ color: KEBU.faint }}>
           {site.subdomain ? `${site.subdomain}.kebu.co` : (isStore ? "Store" : "Site")}
           {isStore && site.productCount > 0 ? ` · ${site.productCount} products` : ""}
         </p>
@@ -281,7 +268,7 @@ function UpdateRow({ item }: { item: HomeUpdate }) {
   return (
     <Link
       href={item.href}
-      className="flex gap-3 rounded-xl p-4 transition-all hover:-translate-y-px"
+      className="flex gap-3 rounded-xl px-4 py-3 transition-all hover:-translate-y-px"
       style={{
         background: KEBU.white,
         border: `1px solid ${KEBU.border}`,
@@ -339,85 +326,74 @@ export default function KebuHomePage() {
   return (
     <AppShell title="Your Kebu">
       <div className="min-h-full">
-        {/* ── Hero strip ───────────────────────────────────────── */}
-        <div className="relative overflow-hidden" style={{ background: KEBU.black }}>
-          <div
-            className="absolute inset-0 pointer-events-none opacity-40"
-            style={{
-              background: `radial-gradient(ellipse 70% 100% at 100% 0%, ${KEBU.orange}, transparent 55%),
-                           radial-gradient(ellipse 50% 80% at 0% 100%, ${KEBU.red}, transparent 50%)`,
-            }}
-          />
-          <div className="relative max-w-5xl mx-auto px-5 lg:px-10 py-10 lg:py-14">
+
+        {/* ── Compact hero strip ───────────────────────────────── */}
+        <div style={{ background: KEBU.black }}>
+          <div className="max-w-5xl mx-auto px-5 lg:px-10 py-3.5 flex items-center gap-3">
             {loading ? (
-              <div className="flex items-center gap-5">
-                <Skeleton width={64} height={64} radius={32} style={{ background: "rgba(255,255,255,0.12)", flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <Skeleton height={10} width={80} style={{ background: "rgba(255,255,255,0.1)", marginBottom: 10 }} />
-                  <Skeleton height={32} width="55%" style={{ background: "rgba(255,255,255,0.15)", marginBottom: 10 }} />
-                  <Skeleton height={13} width="70%" style={{ background: "rgba(255,255,255,0.08)" }} />
-                </div>
-              </div>
+              <>
+                <Skeleton width={32} height={32} radius={16} style={{ background: "rgba(255,255,255,0.12)", flexShrink: 0 }} />
+                <Skeleton height={12} width={140} style={{ background: "rgba(255,255,255,0.12)" }} />
+              </>
             ) : error ? (
-              <div className="rounded-xl p-4 text-sm" style={{ background: KEBU.red, color: KEBU.white }}>
+              <div className="rounded-lg px-3 py-1.5 text-xs" style={{ background: KEBU.red, color: KEBU.white }}>
                 {error}{" "}
                 <button type="button" className="underline font-bold" onClick={() => void load()}>Retry</button>
               </div>
             ) : summary ? (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+              <>
                 {summary.profile.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={summary.profile.avatarUrl}
                     alt=""
-                    className="w-16 h-16 rounded-full object-cover ring-4 ring-[#FF5500]"
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-[#FF5500] shrink-0"
                   />
                 ) : (
                   <span
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-black text-white shrink-0"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0"
                     style={{ background: KEBU.orange }}
                   >
                     {first.charAt(0).toUpperCase()}
                   </span>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] mb-1" style={{ color: KEBU.orange }}>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.24em] leading-none mb-0.5" style={{ color: KEBU.orange }}>
                     Your Kebu
                   </p>
-                  <h1
-                    className="text-2xl lg:text-4xl font-black text-white"
-                    style={{ fontFamily: "var(--font-fraunces)" }}
-                  >
+                  <p className="text-sm font-black text-white leading-tight truncate">
                     {isNew ? `Welcome, ${first}` : `Hi, ${first}`}
-                  </h1>
-                  <p className="text-sm mt-2 max-w-xl" style={{ color: "rgba(255,255,255,0.72)" }}>
-                    {isNew
-                      ? "Let's set up your Kebu. Follow the checklist below — takes about 10 minutes."
-                      : summary.personalization.exploreOnly
-                      ? "Explore Africa, learn, build when you are ready."
-                      : "Sites, store, opportunities — everything in one place."}
                   </p>
-                  {summary.profile.afriqueId ? (
-                    <p className="text-[11px] font-mono mt-2 font-bold" style={{ color: KEBU.orange }}>
-                      {summary.profile.afriqueId}
-                    </p>
-                  ) : null}
                 </div>
-              </div>
+                {summary.profile.afriqueId && (
+                  <p className="text-[10px] font-mono font-bold shrink-0 hidden sm:block" style={{ color: "rgba(255,255,255,0.45)" }}>
+                    {summary.profile.afriqueId}
+                  </p>
+                )}
+              </>
             ) : null}
           </div>
-          <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }} />
+          <div className="h-px w-full" style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }} />
         </div>
 
         {/* ── Body ────────────────────────────────────────────── */}
-        <div className="max-w-5xl mx-auto px-5 lg:px-10 py-8 lg:py-12">
+        <div className="max-w-5xl mx-auto px-5 lg:px-10 py-7 lg:py-10">
+
           {loading ? (
             <>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+              {/* Compact strip skeleton */}
+              <div
+                className="flex overflow-hidden rounded-2xl mb-8"
+                style={{ border: `1px solid ${KEBU.border}`, background: KEBU.white }}
+              >
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} style={{ background: KEBU.white, border: `2px solid ${KEBU.black}`, borderRadius: 16, padding: "1.25rem" }}>
-                    <Skeleton height={32} width="50%" style={{ marginBottom: 8 }} />
-                    <Skeleton height={11} width="65%" />
+                  <div
+                    key={i}
+                    className="flex-1 px-4 py-3.5"
+                    style={{ borderRight: i < 6 ? `1px solid ${KEBU.border}` : "none" }}
+                  >
+                    <Skeleton height={22} width="50%" style={{ marginBottom: 6 }} />
+                    <Skeleton height={10} width="70%" />
                   </div>
                 ))}
               </div>
@@ -431,56 +407,14 @@ export default function KebuHomePage() {
                 <SetupChecklist summary={summary} />
               ) : null}
 
-              {/* Stat grid — hide when all zeros and user is new */}
+              {/* Compact stat strip — hide when brand new */}
               {!isNew ? (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-                  <StatTile
-                    value={summary.stats.sitesTotal}
-                    label="Your sites"
-                    href={MY_SITES_HREF}
-                    ctaLabel="Build a site →"
-                    accent={KEBU.orange}
-                  />
-                  <StatTile
-                    value={summary.stats.sitesPublished}
-                    label="Published"
-                    href={`${MY_SITES_HREF}?filter=live`}
-                    ctaLabel="Publish a site →"
-                    accent={KEBU.red}
-                  />
-                  <StatTile
-                    value={summary.stats.storeProducts}
-                    label="Store products"
-                    href={MY_SITES_HREF}
-                    ctaLabel="Add a product →"
-                  />
-                  <StatTile
-                    value={summary.stats.emailSubscribers}
-                    label="Email subscribers"
-                    href={summary.businesses[0] ? `/business/${summary.businesses[0].id}` : "/account"}
-                    ctaLabel="Capture emails →"
-                    accent="#0EA5E9"
-                  />
-                  <StatTile
-                    value={summary.stats.createDesigns}
-                    label="Studio designs"
-                    href="/studio"
-                    ctaLabel="Open Studio →"
-                    accent="#9333EA"
-                  />
-                  <StatTile
-                    value={summary.stats.countriesLive}
-                    label="Countries live"
-                    href="/opportunity/countries"
-                    ctaLabel="Explore Africa →"
-                    accent="#10B981"
-                  />
-                </div>
+                <StatStrip stats={summary.stats} businesses={summary.businesses} />
               ) : null}
 
               {/* Quick actions */}
-              <section className="mb-10">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.24em] mb-4" style={{ color: KEBU.red }}>
+              <section className="mb-8">
+                <h2 className="text-[10px] font-black uppercase tracking-[0.24em] mb-3" style={{ color: KEBU.red }}>
                   Quick actions
                 </h2>
                 <div className="flex flex-wrap gap-2">
@@ -496,7 +430,7 @@ export default function KebuHomePage() {
                     <Link
                       key={a.href}
                       href={a.href}
-                      className="rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all hover:brightness-110"
+                      className="rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all active:scale-[0.97] hover:brightness-110"
                       style={{ background: KEBU.black, color: KEBU.white }}
                     >
                       {a.label}
@@ -507,8 +441,8 @@ export default function KebuHomePage() {
 
               {/* Recent sites */}
               {summary.sites.length > 0 ? (
-                <section className="mb-10">
-                  <div className="flex items-center justify-between mb-4">
+                <section className="mb-8">
+                  <div className="flex items-center justify-between mb-3">
                     <h2 className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: KEBU.red }}>
                       Your sites
                     </h2>
@@ -516,7 +450,7 @@ export default function KebuHomePage() {
                       All sites →
                     </Link>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {summary.sites.slice(0, 4).map((s) => (
                       <SiteRow key={s.id} site={s} />
                     ))}
@@ -526,8 +460,8 @@ export default function KebuHomePage() {
 
               {/* Business & KA score */}
               {summary.businesses.length > 0 ? (
-                <section className="mb-10">
-                  <div className="flex items-center justify-between mb-4">
+                <section className="mb-8">
+                  <div className="flex items-center justify-between mb-3">
                     <h2 className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: KEBU.red }}>
                       Business & Kebu ID
                     </h2>
@@ -535,23 +469,23 @@ export default function KebuHomePage() {
                       All businesses →
                     </Link>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {summary.businesses.map((b) => (
                       <Link
                         key={b.id}
                         href={`/business/${b.id}`}
-                        className="flex items-center justify-between rounded-2xl px-5 py-4 transition-all hover:-translate-y-px"
-                        style={{ background: KEBU.black, borderLeft: `4px solid ${KEBU.orange}` }}
+                        className="flex items-center justify-between rounded-xl px-4 py-3 transition-all hover:-translate-y-px"
+                        style={{ background: KEBU.black, borderLeft: `3px solid ${KEBU.orange}` }}
                       >
-                        <div>
-                          <p className="font-bold text-sm text-white">{b.name}</p>
-                          <p className="text-[11px] font-mono font-bold mt-0.5" style={{ color: KEBU.orange }}>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-white truncate">{b.name}</p>
+                          <p className="text-[10px] font-mono font-bold mt-0.5" style={{ color: KEBU.orange }}>
                             {b.publicKebuId}
                           </p>
                         </div>
                         {b.readinessScore != null ? (
-                          <div className="text-right">
-                            <p className="text-2xl font-black" style={{ color: KEBU.orange }}>
+                          <div className="text-right shrink-0 ml-3">
+                            <p className="text-xl font-black" style={{ color: KEBU.orange }}>
                               {b.readinessScore}
                             </p>
                             <p className="text-[9px] font-bold uppercase" style={{ color: KEBU.faint }}>
@@ -559,7 +493,7 @@ export default function KebuHomePage() {
                             </p>
                           </div>
                         ) : (
-                          <span className="text-xs font-bold uppercase" style={{ color: KEBU.orange }}>
+                          <span className="text-xs font-bold uppercase shrink-0 ml-3" style={{ color: KEBU.orange }}>
                             Set up →
                           </span>
                         )}
@@ -577,10 +511,10 @@ export default function KebuHomePage() {
               {/* Activity feed */}
               {summary.updates.length > 0 ? (
                 <section>
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.24em] mb-4" style={{ color: KEBU.red }}>
+                  <h2 className="text-[10px] font-black uppercase tracking-[0.24em] mb-3" style={{ color: KEBU.red }}>
                     Next steps
                   </h2>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {summary.updates.map((u) => (
                       <UpdateRow key={u.id} item={u} />
                     ))}
