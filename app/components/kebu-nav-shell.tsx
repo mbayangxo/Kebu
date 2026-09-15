@@ -165,10 +165,10 @@ function NavLink({
 }) {
   const on = active(pathname, item.href, item.exact);
   const badge = item.badgeKey ? (badges[item.badgeKey] ?? 0) : 0;
+  const anyChildOn = (item.children ?? []).some((c) => active(pathname, c.href, c.exact));
+  const [open, setOpen] = useState(on || anyChildOn);
 
   if (item.children && item.children.length > 0) {
-    const anyChildOn = item.children.some((c) => active(pathname, c.href, c.exact));
-    const [open, setOpen] = useState(on || anyChildOn);
     return (
       <div>
         <button
