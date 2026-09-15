@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/app/components/app-shell";
 import { KEBU } from "@/lib/kebu-brand";
+import { toast } from "@/app/components/kebu/toast";
 
 const T = { border: KEBU.border } as const;
 
@@ -37,15 +38,17 @@ function TextInput({
   onChange,
   placeholder,
   maxLength,
+  type = "text",
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   maxLength?: number;
+  type?: string;
 }) {
   return (
     <input
-      type="text"
+      type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
@@ -116,10 +119,29 @@ export default function NewAppPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || saving) return;
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSaving(false);
+
+    const price_xof =
+      (pricing === "paid" || pricing === "recurring") && price
+        ? parseInt(price, 10)
+        : undefined;
+
+    const res = await fetch("/api/dev/apps", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim(), tagline: tagline.trim() || null, category, pricing, price_xof }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      toast(json.error ?? "Could not create app.", "error");
+      setSaving(false);
+      return;
+    }
+
+    toast(`"${name.trim()}" created!`, "success");
     router.push("/dev/apps");
   }
 
@@ -186,7 +208,7 @@ export default function NewAppPage() {
               <FieldLabel required>
                 {pricing === "paid" ? "Price (XOF)" : "Monthly price (XOF)"}
               </FieldLabel>
-              <TextInput value={price} onChange={setPrice} placeholder="e.g. 2500" />
+              <TextInput value={price} onChange={setPrice} placeholder="e.g. 2500" type="number" />
               <p className="text-[11px] mt-1.5" style={{ color: KEBU.muted }}>
                 Kebu takes a 15% platform fee. You keep 85%.
               </p>

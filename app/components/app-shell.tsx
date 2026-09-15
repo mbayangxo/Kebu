@@ -13,6 +13,7 @@ import { KebuMobileNav } from "@/app/components/kebu-mobile-nav";
 import { DataModeDock, DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
+import { ToastProvider } from "@/app/components/kebu/toast";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import "@/app/components/create/kebu-site-responsive.css";
 
@@ -130,6 +131,7 @@ export function AppShell({
           <main className="flex-1 min-h-0 pb-20 md:pb-8">{children}</main>
         </div>
         <DataModeDock />
+        <ToastProvider />
       </div>
     </DataModeProvider>
   );
