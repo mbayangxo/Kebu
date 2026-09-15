@@ -6,14 +6,7 @@ import Link from "next/link";
 import { AppShell } from "@/app/components/app-shell";
 import { KEBU } from "@/lib/kebu-brand";
 
-const D = {
-  bg:      "#0D1117",
-  surface: "#161B22",
-  border:  "rgba(255,255,255,0.08)",
-  muted:   "rgba(255,255,255,0.45)",
-  faint:   "rgba(255,255,255,0.2)",
-  text:    "#E6EDF3",
-} as const;
+const T = { border: KEBU.border } as const;
 
 const CATEGORIES = [
   { id: "site_template",   label: "Site Template",    desc: "Sell in Aesthetic Gallery" },
@@ -32,7 +25,7 @@ const PRICING = [
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className="block text-[11px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: D.muted }}>
+    <label className="block text-[11px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: KEBU.muted }}>
       {children}
       {required && <span style={{ color: KEBU.orange }}> *</span>}
     </label>
@@ -59,12 +52,12 @@ function TextInput({
       maxLength={maxLength}
       className="w-full rounded-xl px-4 py-2.5 text-sm transition-all outline-none"
       style={{
-        background: D.surface,
-        border: `1.5px solid ${D.border}`,
-        color: D.text,
+        background: KEBU.white,
+        border: `1.5px solid ${T.border}`,
+        color: KEBU.black,
       }}
       onFocus={(e) => { e.currentTarget.style.borderColor = KEBU.orange; }}
-      onBlur={(e) => { e.currentTarget.style.borderColor = D.border; }}
+      onBlur={(e) => { e.currentTarget.style.borderColor = T.border; }}
     />
   );
 }
@@ -86,20 +79,20 @@ function OptionCard({
       onClick={onClick}
       className="w-full text-left rounded-xl p-3.5 transition-all active:scale-[0.98]"
       style={{
-        background: active ? "rgba(255,85,0,0.08)" : D.surface,
-        border: `1.5px solid ${active ? KEBU.orange : D.border}`,
-        boxShadow: active ? "0 0 0 3px rgba(255,85,0,0.1)" : "none",
+        background: active ? "rgba(255,85,0,0.05)" : KEBU.white,
+        border: `1.5px solid ${active ? KEBU.orange : T.border}`,
+        boxShadow: active ? "0 0 0 3px rgba(255,85,0,0.08)" : "none",
       }}
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: D.text }}>{label}</p>
-          <p className="text-[11px] mt-0.5" style={{ color: D.muted }}>{desc}</p>
+          <p className="text-sm font-semibold" style={{ color: KEBU.black }}>{label}</p>
+          <p className="text-[11px] mt-0.5" style={{ color: KEBU.muted }}>{desc}</p>
         </div>
         <div
           className="w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center"
           style={{
-            borderColor: active ? KEBU.orange : D.border,
+            borderColor: active ? KEBU.orange : T.border,
             background: active ? KEBU.orange : "transparent",
           }}
         >
@@ -132,98 +125,89 @@ export default function NewAppPage() {
 
   return (
     <AppShell title="New App">
-      <div className="min-h-full" style={{ background: D.bg }}>
-        <div className="max-w-xl mx-auto px-5 sm:px-8 lg:px-10 py-8">
+      <div className="max-w-xl mx-auto px-5 sm:px-8 lg:px-10 py-8">
 
-          <div className="mb-7">
-            <Link
-              href="/dev/apps"
-              className="text-xs font-semibold mb-3 inline-flex items-center gap-1"
-              style={{ color: D.muted }}
-            >
-              ← Back to Apps
-            </Link>
-            <h1
-              className="text-2xl font-bold"
-              style={{ fontFamily: "var(--font-fraunces)", color: D.text }}
-            >
-              Create an App
-            </h1>
-            <p className="text-sm mt-1" style={{ color: D.muted }}>
-              Build once. Distribute to every Kebu business in Africa.
-            </p>
+        <div className="mb-7">
+          <Link href="/dev/apps" className="text-xs font-semibold mb-3 inline-flex items-center gap-1" style={{ color: KEBU.muted }}>
+            ← Back to Apps
+          </Link>
+          <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
+            Create an App
+          </h1>
+          <p className="text-sm mt-1" style={{ color: KEBU.muted }}>
+            Build once. Distribute to every Kebu business in Africa.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-7">
+
+          <div>
+            <FieldLabel required>App name</FieldLabel>
+            <TextInput value={name} onChange={setName} placeholder="e.g. Wave Pay Connector" maxLength={60} />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-7">
+          <div>
+            <FieldLabel>Tagline</FieldLabel>
+            <TextInput value={tagline} onChange={setTagline} placeholder="One sentence — what does this app do?" maxLength={120} />
+          </div>
 
+          <div>
+            <FieldLabel required>Category</FieldLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {CATEGORIES.map((c) => (
+                <OptionCard
+                  key={c.id}
+                  active={category === c.id}
+                  onClick={() => setCategory(c.id)}
+                  label={c.label}
+                  desc={c.desc}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel required>Pricing</FieldLabel>
+            <div className="space-y-2">
+              {PRICING.map((p) => (
+                <OptionCard
+                  key={p.id}
+                  active={pricing === p.id}
+                  onClick={() => setPricing(p.id)}
+                  label={p.label}
+                  desc={p.desc}
+                />
+              ))}
+            </div>
+          </div>
+
+          {(pricing === "paid" || pricing === "recurring") && (
             <div>
-              <FieldLabel required>App name</FieldLabel>
-              <TextInput value={name} onChange={setName} placeholder="e.g. Wave Pay Connector" maxLength={60} />
+              <FieldLabel required>
+                {pricing === "paid" ? "Price (XOF)" : "Monthly price (XOF)"}
+              </FieldLabel>
+              <TextInput value={price} onChange={setPrice} placeholder="e.g. 2500" />
+              <p className="text-[11px] mt-1.5" style={{ color: KEBU.muted }}>
+                Kebu takes a 15% platform fee. You keep 85%.
+              </p>
             </div>
+          )}
 
-            <div>
-              <FieldLabel>Tagline</FieldLabel>
-              <TextInput value={tagline} onChange={setTagline} placeholder="One sentence — what does this app do?" maxLength={120} />
-            </div>
+          <div className="flex items-center gap-3 pt-4" style={{ borderTop: `1px solid ${T.border}` }}>
+            <button
+              type="submit"
+              disabled={!canSubmit || saving}
+              className="rounded-xl px-6 py-2.5 text-sm font-bold transition-all active:scale-[0.97] hover:brightness-105 disabled:opacity-40"
+              style={{ background: KEBU.orange, color: KEBU.white }}
+            >
+              {saving ? "Creating…" : "Create app"}
+            </button>
+            <Link href="/dev/apps" className="text-sm font-semibold" style={{ color: KEBU.muted }}>
+              Cancel
+            </Link>
+          </div>
 
-            <div>
-              <FieldLabel required>Category</FieldLabel>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {CATEGORIES.map((c) => (
-                  <OptionCard
-                    key={c.id}
-                    active={category === c.id}
-                    onClick={() => setCategory(c.id)}
-                    label={c.label}
-                    desc={c.desc}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <FieldLabel required>Pricing</FieldLabel>
-              <div className="space-y-2">
-                {PRICING.map((p) => (
-                  <OptionCard
-                    key={p.id}
-                    active={pricing === p.id}
-                    onClick={() => setPricing(p.id)}
-                    label={p.label}
-                    desc={p.desc}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {(pricing === "paid" || pricing === "recurring") && (
-              <div>
-                <FieldLabel required>
-                  {pricing === "paid" ? "Price (XOF)" : "Monthly price (XOF)"}
-                </FieldLabel>
-                <TextInput value={price} onChange={setPrice} placeholder="e.g. 2500" />
-                <p className="text-[11px] mt-1.5" style={{ color: D.muted }}>
-                  Kebu takes a 15% platform fee. You keep 85%.
-                </p>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 pt-4" style={{ borderTop: `1px solid ${D.border}` }}>
-              <button
-                type="submit"
-                disabled={!canSubmit || saving}
-                className="rounded-xl px-6 py-2.5 text-sm font-bold transition-all active:scale-[0.97] hover:brightness-105 disabled:opacity-40"
-                style={{ background: KEBU.orange, color: KEBU.white }}
-              >
-                {saving ? "Creating…" : "Create app"}
-              </button>
-              <Link href="/dev/apps" className="text-sm font-semibold" style={{ color: D.muted }}>
-                Cancel
-              </Link>
-            </div>
-
-          </form>
-        </div>
+        </form>
       </div>
     </AppShell>
   );

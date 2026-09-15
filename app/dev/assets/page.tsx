@@ -5,14 +5,7 @@ import { useRef, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { KEBU } from "@/lib/kebu-brand";
 
-const D = {
-  bg:      "#0D1117",
-  surface: "#161B22",
-  border:  "rgba(255,255,255,0.08)",
-  muted:   "rgba(255,255,255,0.45)",
-  faint:   "rgba(255,255,255,0.2)",
-  text:    "#E6EDF3",
-} as const;
+const T = { border: KEBU.border } as const;
 
 const FILTERS = ["All", "Images", "Templates", "Fonts", "Icons"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -34,10 +27,10 @@ function DropZone({ onFiles }: { onFiles: (files: FileList) => void }) {
 
   return (
     <div
-      className="flex flex-col items-center justify-center py-16 rounded-2xl text-center cursor-pointer transition-all"
+      className="flex flex-col items-center justify-center py-14 rounded-2xl text-center cursor-pointer transition-all"
       style={{
-        border: `2px dashed ${dragging ? KEBU.orange : D.border}`,
-        background: dragging ? "rgba(255,85,0,0.05)" : D.surface,
+        border: `2px dashed ${dragging ? KEBU.orange : T.border}`,
+        background: dragging ? "rgba(255,85,0,0.04)" : KEBU.white,
       }}
       onClick={() => inputRef.current?.click()}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -54,18 +47,16 @@ function DropZone({ onFiles }: { onFiles: (files: FileList) => void }) {
         multiple
         accept="image/*,.pdf,.ttf,.otf,.zip"
         className="hidden"
-        onChange={(e) => {
-          if (e.target.files?.length) onFiles(e.target.files);
-        }}
+        onChange={(e) => { if (e.target.files?.length) onFiles(e.target.files); }}
       />
       <span className="text-4xl mb-4">☁️</span>
-      <p className="text-sm font-bold mb-1" style={{ color: D.text }}>
+      <p className="text-sm font-bold mb-1" style={{ color: KEBU.black }}>
         Drop files here, or click to browse
       </p>
-      <p className="text-xs" style={{ color: D.muted }}>
+      <p className="text-xs" style={{ color: KEBU.muted }}>
         Images, templates, fonts, icons — up to 50 MB per file
       </p>
-      <p className="text-[11px] mt-4 px-6 leading-relaxed max-w-xs" style={{ color: D.faint }}>
+      <p className="text-[11px] mt-4 px-6 leading-relaxed max-w-xs" style={{ color: KEBU.faint }}>
         Asset storage requires Supabase Storage to be configured. Coming soon.
       </p>
     </div>
@@ -76,35 +67,35 @@ function AssetCard({ asset }: { asset: Asset }) {
   return (
     <div
       className="group relative rounded-xl overflow-hidden transition-all hover:-translate-y-0.5"
-      style={{ border: `1px solid ${D.border}`, background: D.surface }}
+      style={{ border: `1px solid ${T.border}`, background: KEBU.white }}
     >
       <div
         className="aspect-video flex items-center justify-center text-3xl"
-        style={{ background: "rgba(255,255,255,0.03)" }}
+        style={{ background: "rgba(10,10,10,0.04)" }}
       >
         {asset.type === "Images" ? "🖼️" :
          asset.type === "Templates" ? "📄" :
          asset.type === "Fonts" ? "Aa" : "🎨"}
       </div>
       <div className="px-3 py-2.5">
-        <p className="text-xs font-semibold truncate" style={{ color: D.text }}>{asset.name}</p>
-        <p className="text-[10px] mt-0.5" style={{ color: D.muted }}>{asset.size} · {asset.uploadedAt}</p>
+        <p className="text-xs font-semibold truncate" style={{ color: KEBU.black }}>{asset.name}</p>
+        <p className="text-[10px] mt-0.5" style={{ color: KEBU.muted }}>{asset.size} · {asset.uploadedAt}</p>
       </div>
       <div
         className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ background: "rgba(13,17,23,0.9)" }}
+        style={{ background: "rgba(255,251,247,0.92)" }}
       >
         <button
           type="button"
           className="rounded-lg px-3 py-1.5 text-xs font-bold"
-          style={{ background: KEBU.orange, color: KEBU.white }}
+          style={{ background: KEBU.black, color: KEBU.white }}
         >
           Download
         </button>
         <button
           type="button"
           className="rounded-lg px-3 py-1.5 text-xs font-semibold"
-          style={{ border: `1px solid ${D.border}`, color: D.muted }}
+          style={{ border: `1px solid ${T.border}`, color: KEBU.muted }}
         >
           Delete
         </button>
@@ -125,84 +116,72 @@ export default function DevAssetsPage() {
   }
 
   return (
-    <AppShell title="Assets">
-      <div className="min-h-full" style={{ background: D.bg }}>
-        <div className="max-w-4xl mx-auto px-5 sm:px-8 lg:px-10 py-8">
+    <AppShell
+      title="Assets"
+      actions={
+        <button
+          type="button"
+          onClick={() => document.getElementById("asset-upload-trigger")?.click()}
+          className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all active:scale-[0.97] hover:brightness-105"
+          style={{ background: KEBU.orange, color: KEBU.white }}
+        >
+          + Upload
+        </button>
+      }
+    >
+      <div className="max-w-4xl mx-auto px-5 sm:px-8 lg:px-10 py-8">
 
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: KEBU.orange }}>
-                Developer Platform
-              </p>
-              <h1 className="text-xl font-black" style={{ fontFamily: "var(--font-fraunces)", color: D.text }}>
-                Assets
-              </h1>
-            </div>
+        {/* Filters */}
+        <div className="flex flex-wrap gap-1.5 mb-6">
+          {FILTERS.map((f) => (
             <button
+              key={f}
               type="button"
-              onClick={() => document.getElementById("asset-upload-trigger")?.click()}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all active:scale-[0.97] hover:brightness-105"
-              style={{ background: KEBU.orange, color: KEBU.white }}
+              onClick={() => setFilter(f)}
+              className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all active:scale-[0.97]"
+              style={{
+                background: filter === f ? KEBU.black : KEBU.white,
+                color: filter === f ? KEBU.white : KEBU.muted,
+                border: `1px solid ${filter === f ? KEBU.black : T.border}`,
+              }}
             >
-              + Upload
+              {f}
             </button>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-1.5 mb-6">
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFilter(f)}
-                className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all active:scale-[0.97]"
-                style={{
-                  background: filter === f ? KEBU.orange : "rgba(255,255,255,0.06)",
-                  color: filter === f ? KEBU.white : D.muted,
-                  border: `1px solid ${filter === f ? KEBU.orange : D.border}`,
-                }}
-              >
-                {f}
-              </button>
-            ))}
-            {MOCK_ASSETS.length > 0 && (
-              <span className="ml-auto text-[11px] font-semibold" style={{ color: D.muted }}>
-                {filtered.length} {filter === "All" ? "assets" : filter.toLowerCase()}
-              </span>
-            )}
-          </div>
-
-          {MOCK_ASSETS.length === 0 ? (
-            <DropZone onFiles={handleFiles} />
-          ) : (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
-                {filtered.map((asset) => <AssetCard key={asset.id} asset={asset} />)}
-              </div>
-              <div
-                className="flex items-center gap-4 rounded-xl px-5 py-3.5 cursor-pointer transition-colors"
-                style={{ border: `1.5px dashed ${D.border}` }}
-                onClick={() => document.getElementById("asset-upload-trigger")?.click()}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,85,0,0.04)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
-              >
-                <span className="text-xl" style={{ color: KEBU.orange }}>+</span>
-                <p className="text-sm font-semibold" style={{ color: D.text }}>Upload more assets</p>
-                <p className="text-xs ml-auto" style={{ color: D.muted }}>Images, templates, fonts, icons</p>
-              </div>
-            </>
+          ))}
+          {MOCK_ASSETS.length > 0 && (
+            <span className="ml-auto text-[11px] font-semibold" style={{ color: KEBU.muted }}>
+              {filtered.length} {filter === "All" ? "assets" : filter.toLowerCase()}
+            </span>
           )}
-
-          <input
-            id="asset-upload-trigger"
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }}
-          />
-
         </div>
+
+        {MOCK_ASSETS.length === 0 ? (
+          <DropZone onFiles={handleFiles} />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+              {filtered.map((asset) => <AssetCard key={asset.id} asset={asset} />)}
+            </div>
+            <div
+              className="flex items-center gap-4 rounded-xl px-5 py-3.5 cursor-pointer transition-colors hover:bg-orange-50"
+              style={{ border: `1.5px dashed ${T.border}` }}
+              onClick={() => document.getElementById("asset-upload-trigger")?.click()}
+            >
+              <span className="text-xl">+</span>
+              <p className="text-sm font-semibold" style={{ color: KEBU.black }}>Upload more assets</p>
+              <p className="text-xs ml-auto" style={{ color: KEBU.muted }}>Images, templates, fonts, icons</p>
+            </div>
+          </>
+        )}
+
+        <input
+          id="asset-upload-trigger"
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); }}
+        />
+
       </div>
     </AppShell>
   );
