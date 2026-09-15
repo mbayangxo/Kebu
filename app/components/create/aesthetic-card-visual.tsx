@@ -796,6 +796,50 @@ export function AestheticCardVisual({
     );
   }
 
+  /* ── CLINICAL (compatibility-first skincare — bright color-block, ingredient chips) ── */
+  if (layout === "clinical") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FBF6EE" }}>
+        {/* Announcement */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#141414" }}>
+          <span className="text-[3.5px] font-bold tracking-widest" style={{ color: "#FBF6EE" }}>NEW: CLARITY DROPS — SHOP NOW →</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #EFE6D8" }}>
+          <span className="text-[5.5px] font-black tracking-tight" style={{ color: "#141414" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[3.5px] font-black text-white" style={{ background: accent }}>SHOP</div>
+        </div>
+        {/* Hero */}
+        <div className="px-2 py-1.5">
+          <div className="text-[7.5px] font-black leading-tight tracking-tight" style={{ color: "#141414" }}>Skincare that<br />plays nice together.</div>
+        </div>
+        {/* Compatibility chips — the signature UI element */}
+        <div className="flex flex-wrap gap-0.5 px-2">
+          {[["✓ Niacinamide + SPF", true], ["✗ Two actives at once", false]].map(([label, ok], i) => (
+            <div
+              key={i}
+              className="rounded-full px-1.5 py-0.5 text-[3px] font-bold"
+              style={ok ? { background: accent, color: "#fff" } : { background: "#fff", color: "#141414", border: "1px solid #141414" }}
+            >
+              {label as string}
+            </div>
+          ))}
+        </div>
+        {/* Product grid */}
+        <div className="grid grid-cols-3 gap-0.5 px-1.5 py-1.5 flex-1">
+          {[accent, "#141414", accent + "AA"].map((c, i) => (
+            <div key={i} className="flex flex-col overflow-hidden rounded-lg" style={{ background: "#fff", border: "1px solid #EFE6D8" }}>
+              <div className="aspect-square w-full" style={{ background: c }} />
+              <div className="px-0.5 py-0.5">
+                <div className="h-0.5 w-4/5 rounded-full" style={{ background: "#EFE6D8" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   /* ── GENERIC fallback ──────────────────────────────────────────────────── */
   return (
     <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>

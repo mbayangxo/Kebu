@@ -10,10 +10,12 @@ describe("aesthetics gallery", () => {
     const groups = getAestheticGalleryGroups();
     expect(groups.length).toBeGreaterThan(5);
     const beauty = groups.find((g) => g.type === "beauty");
-    expect(beauty?.items).toHaveLength(2);
+    // Beauty exceptionally ships a 3rd look (CLARTÉ) — see AESTHETICS-PHASE-SLICES.md (A5).
+    expect(beauty?.items).toHaveLength(3);
     expect(beauty?.items.some((i) => i.slug === "layers-beauty")).toBe(true);
+    expect(beauty?.items.some((i) => i.slug === "clarte-compatible-skin")).toBe(true);
     const layouts = new Set(beauty!.items.map((i) => i.cardVisual.layout));
-    expect(layouts.size).toBe(2);
+    expect(layouts.size).toBe(3);
     for (const item of beauty!.items) {
       expect(item.detailPath).toBe(`/create/aesthetics/${item.slug}`);
       expect(item.demoPath).toContain("/create/demo/");

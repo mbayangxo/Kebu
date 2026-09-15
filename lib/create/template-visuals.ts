@@ -36,6 +36,7 @@ export type TemplateCardLayout =
   | "accessories"
   | "streetwear"
   | "activewear"
+  | "clinical"
   | "generic";
 
 export type TemplateCardVisual = {
@@ -159,6 +160,13 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     keywords: ["salon", "hair", "braids", "colour", "balayage", "locs"],
     layout: "bold-salon",
     wordmark: "CHEZ AMARA",
+  },
+  "clarte-compatible-skin": {
+    previewGradient: "linear-gradient(155deg, #FBF6EE 0%, #FF5A36 60%, #141414 100%)",
+    badge: "CLARTÉ · Compatible skincare",
+    keywords: ["clarte", "skincare", "clinical", "compatibility", "ingredients", "barrier"],
+    layout: "clinical",
+    wordmark: "CLARTÉ",
   },
   "layers-beauty": {
     previewImage: "/templates/gallery/luxe-beauty-ref.png",

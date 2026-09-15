@@ -37,6 +37,10 @@ const AESTHETIC_BUSINESS_META: Record<string, { story: string; pages: string[] }
     story: "LAYERS is a Dakar skincare brand selling shea butter serums and ritual kits. Products ship across West Africa via Joko, payment by Wave.",
     pages: ["Home", "Shop", "Rituals", "About", "Gift sets"],
   },
+  "clarte-compatible-skin": {
+    story: "CLARTÉ is an Abidjan skincare lab built around one idea: routines fail when products fight each other, not because any one of them is bad. Every formula ships with a compatibility chart, and customers text the formulator directly on WhatsApp.",
+    pages: ["Home", "Shop", "Compatibility", "Routine", "Reviews", "About", "FAQ"],
+  },
   "perfume-brand": {
     story: "Maison Brume crafts artisanal perfumes inspired by Sahel landscapes — oud, vetiver, baobab. Stockists in Dakar and Paris. Shop online with Wave.",
     pages: ["Home", "Fragrances", "Stockists", "Story", "Contact"],

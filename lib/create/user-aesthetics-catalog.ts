@@ -1,8 +1,11 @@
 /**
- * User-facing aesthetics gallery — exactly 2 looks per business type.
+ * User-facing aesthetics gallery — 2 looks per business type by default.
  * Owner portfolio (May Lecor, K-Direction, DkLNS, Ndaoan, RECT, For The Mayjor Good) is NOT listed here.
  *
- * `lockedTypes` = pairs that passed design review — do not swap for generic clones.
+ * `lockedTypes` = groups that passed design review — do not swap an existing look for a generic
+ * clone. A group may exceptionally ship a 3rd+ look (explicit owner decision, documented inline
+ * on the group) when it is a genuinely distinct archetype rather than a near-duplicate — see
+ * `beauty` (CLARTÉ) and AESTHETICS-PHASE-SLICES.md.
  */
 
 /** Business types whose pair is locked after exceptional worlds ship. */
@@ -57,9 +60,13 @@ export const USER_AESTHETICS_BY_TYPE = [
   {
     type: "beauty",
     label: "Beauty & salon",
+    // NOTE: explicit override of the "exactly 2 per type" lock (owner decision, 2026-09) to add a
+    // third, deliberately distinct skincare look (compatibility-first / clinical vs. LAYERS' ritual
+    // positioning) rather than swap out an already-shipped world. See AESTHETICS-PHASE-SLICES.md.
     pair: [
       { slug: "hair-salon", name: "Hair salon & barber", tagline: "Menu + WhatsApp booking", accent: "#D4A574" },
       { slug: "layers-beauty", name: "LAYERS Beauty", tagline: "Skincare shop · rituals · gifts", accent: "#C4786A" },
+      { slug: "clarte-compatible-skin", name: "CLARTÉ", tagline: "Compatibility-first skincare · ingredient transparency", accent: "#FF5A36" },
     ],
   },
   {

@@ -10,6 +10,7 @@ import { rectWebsiteDefinition } from "./rect-site";
 import { mayjorGoodWebsiteDefinition } from "./mayjor-good-site";
 import { fashionAtelierWorldDefinition } from "./design-worlds/fashion-atelier-world";
 import { layersBeautyWorldDefinition } from "./design-worlds/layers-beauty-world";
+import { clarteSkincareWorldDefinition } from "./design-worlds/clarte-skincare-world";
 import { carmineCreativeWorldDefinition } from "./design-worlds/carmine-creative-world";
 import { perfumeMaisonWorldDefinition } from "./design-worlds/perfume-maison-world";
 import { restaurantTableWorldDefinition } from "./design-worlds/restaurant-table-world";
@@ -174,6 +175,14 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
     description:
       "Organic skincare shop — home, shop, about, gallery, FAQ, journal, gifts, contact (not a generic spa page)",
     definition: layersBeautyWorldDefinition(),
+  },
+  {
+    slug: "clarte-compatible-skin",
+    name: "CLARTÉ",
+    category: "beauty",
+    description:
+      "Compatibility-first clinical skincare — home, shop, compatibility chart, routine quiz, reviews, about, FAQ · 7 pages",
+    definition: clarteSkincareWorldDefinition(),
   },
   {
     slug: "beauty-studio",

@@ -10,6 +10,7 @@
 | A2 | **Editor chrome** for aesthetics | **IMPLEMENTED** | Add/remove sections (DnD Remove) · create/delete pages · chrome nav sync · Theme settings (colors + fonts load) |
 | A3 | **Lock beauty** | **IMPLEMENTED** | Beauty pair locked: `hair-salon` + `layers-beauty` (`LOCKED_AESTHETIC_TYPES`) |
 | A4 | **Live demo** | **IMPLEMENTED** | `/create/demo/layers-beauty` — all pages · theme background · Use → create |
+| A5 | **CLARTÉ** design world (owner override, adds 3rd beauty look) | **IMPLEMENTED** | Compatibility-first skincare — Home · Shop · Compatibility · Routine · Reviews · About · FAQ · distinct archetype from LAYERS (ritual/climate) — `/create/demo/clarte-compatible-skin` |
 
 ## Phase B — Agency
 

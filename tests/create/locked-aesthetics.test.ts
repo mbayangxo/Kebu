@@ -7,10 +7,14 @@ import {
 import { isPublicTemplateSlug } from "@/lib/create/templates-seed";
 
 describe("locked aesthetic pairs", () => {
-  it("locks beauty to hair-salon + layers-beauty", () => {
+  it("locks beauty to hair-salon + layers-beauty, plus an explicit 3rd override (clarte-compatible-skin)", () => {
     expect(isAestheticTypeLocked("beauty")).toBe(true);
     const beauty = USER_AESTHETICS_BY_TYPE.find((t) => t.type === "beauty");
-    expect(beauty?.pair.map((p) => p.slug).sort()).toEqual(["hair-salon", "layers-beauty"].sort());
+    // Owner decision, 2026-09: beauty exceptionally ships a 3rd, deliberately distinct look
+    // instead of swapping out an already-shipped one. See AESTHETICS-PHASE-SLICES.md (A5).
+    expect(beauty?.pair.map((p) => p.slug).sort()).toEqual(
+      ["clarte-compatible-skin", "hair-salon", "layers-beauty"].sort(),
+    );
     for (const p of beauty?.pair ?? []) {
       expect(isPublicTemplateSlug(p.slug)).toBe(true);
     }
