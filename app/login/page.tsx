@@ -89,17 +89,17 @@ function LoginForm() {
           <KebuMark size={64} />
           <span
             className="text-3xl font-bold uppercase tracking-[0.16em]"
-            style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
+            style={{ fontFamily: "var(--font-fraunces)", color: KEBU.white }}
           >
             Kebu
           </span>
         </Link>
-        <p className="mt-3 text-sm" style={{ color: KEBU.muted }}>
+        <p className="mt-3 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
           Africa is the opportunity
         </p>
       </div>
 
-      <div className="rounded-2xl p-8 bg-white" style={{ border: `1px solid ${KEBU.border}`, boxShadow: "0 16px 40px rgba(255,85,0,0.08)" }}>
+      <div className="rounded-2xl p-8 bg-white" style={{ border: `1px solid ${KEBU.border}`, boxShadow: "0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,85,0,0.08)" }}>
         <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
           Welcome back
         </h1>
@@ -224,15 +224,15 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: KEBU.bright }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: KEBU.black }}>
       <div
         className="pointer-events-none fixed inset-0"
         style={{
-          background: `radial-gradient(ellipse 70% 50% at 80% 0%, rgba(255,85,0,0.18), transparent 55%), radial-gradient(ellipse 50% 40% at 0% 100%, rgba(225,6,0,0.1), transparent 50%)`,
+          background: `radial-gradient(ellipse 60% 50% at 85% 5%, rgba(255,85,0,0.22), transparent 55%), radial-gradient(ellipse 45% 40% at 0% 95%, rgba(225,6,0,0.14), transparent 50%)`,
         }}
         aria-hidden
       />
-      <Suspense fallback={<div className="text-sm" style={{ color: KEBU.muted }}>Loading…</div>}>
+      <Suspense fallback={<div className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>Loading…</div>}>
         <LoginForm />
       </Suspense>
     </div>

@@ -73,54 +73,85 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
               aria-expanded={menuOpen}
               aria-controls="marketing-mobile-menu"
             >
-              {menuOpen ? "Close" : "Menu"}
+              Menu
             </button>
           </div>
         </div>
       </nav>
+
+      {/* Full-screen dark mobile nav — covers the whole viewport like Shopify's mobile menu */}
       {menuOpen ? (
-        <>
-          {/* Backdrop starts below the header row (not inset-0) so the Close button above stays
-              clickable without needing to hit the backdrop first — a second, redundant dismissal. */}
+        <div
+          id="marketing-mobile-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation"
+          className="lg:hidden fixed inset-0 flex flex-col"
+          style={{ background: C.black, zIndex: Z_LAYERS.modalPanel }}
+        >
+          {/* Top bar inside the overlay */}
           <div
-            className="lg:hidden fixed inset-x-0 bottom-0"
-            style={{ top: 72, background: "rgba(0,0,0,0.35)", zIndex: Z_LAYERS.drawerBackdrop }}
-            onClick={() => setMenuOpen(false)}
-            aria-hidden
-          />
-          <div
-            id="marketing-mobile-menu"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu"
-            className="lg:hidden fixed inset-x-0 border-t px-5 py-4 space-y-3 shadow-xl"
-            style={{ top: 72, borderColor: C.border, background: C.paper, zIndex: Z_LAYERS.drawerPanel }}
+            className="flex items-center justify-between px-5 h-[72px] shrink-0"
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
           >
+            <Link href="/" onClick={() => setMenuOpen(false)}>
+              <KebuWordmark size={32} dark={false} />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close menu"
+              className="w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold"
+              style={{ color: "rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.08)" }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Nav items — large text with dividers */}
+          <nav className="flex-1 overflow-y-auto px-5 pt-2">
             {KEBU_MARKETING_NAV.map(({ label, href }) => (
               <Link
                 key={href}
                 href={href}
-                className="block text-xs font-bold uppercase tracking-wider"
-                style={{ color: activeHref === href ? C.orange : C.muted }}
+                className="flex items-center justify-between py-5"
+                style={{
+                  borderBottom: "1px solid rgba(255,255,255,0.07)",
+                  color: activeHref === href ? C.orange : C.white,
+                  fontSize: "1.4rem",
+                  fontWeight: 700,
+                  letterSpacing: "-0.01em",
+                }}
                 onClick={() => setMenuOpen(false)}
               >
                 {label}
+                <span style={{ color: "rgba(255,255,255,0.25)", fontSize: "1rem" }}>→</span>
               </Link>
             ))}
-            {/* Sign in is hidden from the header row below sm: (see KebuAuthHeaderCTA) — surface it
-                here instead of dropping it, and hide it again once the header's own pill takes over. */}
+          </nav>
+
+          {/* Bottom CTAs */}
+          <div className="px-5 py-6 space-y-3 shrink-0">
             {!profileLoading && !profile ? (
               <Link
                 href="/login"
-                className="sm:hidden block pt-3 text-xs font-bold uppercase tracking-wider"
-                style={{ color: C.orange, borderTop: `1px solid ${C.border}` }}
+                className="block w-full text-center py-4 rounded-full text-sm font-bold uppercase tracking-[0.1em]"
+                style={{ border: "2px solid rgba(255,255,255,0.25)", color: C.white }}
                 onClick={() => setMenuOpen(false)}
               >
-                Sign in
+                Log in
               </Link>
             ) : null}
+            <Link
+              href={profile ? "/dashboard" : "/signup"}
+              className="block w-full text-center py-4 rounded-full text-sm font-bold uppercase tracking-[0.1em]"
+              style={{ background: C.white, color: C.black }}
+              onClick={() => setMenuOpen(false)}
+            >
+              {profile ? "Your Kebu" : "Start for free"}
+            </Link>
           </div>
-        </>
+        </div>
       ) : null}
     </header>
   );
