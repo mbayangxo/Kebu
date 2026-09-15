@@ -574,8 +574,8 @@ export function ShopOrdersPanel({
                         onClick={() =>
                           void patchOrder(order.id, { action: "status", status: "cancelled" })
                         }
-                        className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50" style={{ color: "#8B1E1E" }}
-                        style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
+                        className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+                        style={{ color: "#8B1E1E", border: `1px solid ${KEBU.border}`, background: "#fff" }}
                       >
                         Cancel
                       </button>

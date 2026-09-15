@@ -69,6 +69,13 @@ export const themeSchema = z.object({
   letterSpacing: z.enum(["tight", "normal", "wide"]).optional(),
   /** Corner radius feel for cards and buttons. */
   radius: z.enum(["sharp", "soft", "round"]).optional(),
+  /**
+   * Opt-in richer motion (scroll-reveal, hero Ken Burns, product hover-zoom, animated quiz
+   * transitions) for aesthetics that specifically call for it — defaults to no change in
+   * behavior for every other template. "expressive" activates the effects; omitted/"none" keeps
+   * the current static rendering.
+   */
+  motion: z.enum(["none", "expressive"]).optional(),
   /** Primary button look. */
   buttonStyle: z.enum(["solid", "outline", "soft"]).optional(),
   aestheticId: z.string().trim().max(40).optional(),

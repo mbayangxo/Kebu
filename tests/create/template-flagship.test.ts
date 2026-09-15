@@ -9,10 +9,10 @@ import {
 } from "@/lib/create/user-aesthetics-catalog";
 
 describe("user aesthetics gallery", () => {
-  it("offers exactly 2 aesthetics per business type", () => {
+  it("has no duplicate slugs within any business type", () => {
     for (const group of USER_AESTHETICS_BY_TYPE) {
-      expect(group.pair).toHaveLength(2);
-      expect(group.pair[0]?.slug).not.toBe(group.pair[1]?.slug);
+      const slugs = group.pair.map((p) => p.slug);
+      expect(new Set(slugs).size).toBe(slugs.length);
     }
   });
 

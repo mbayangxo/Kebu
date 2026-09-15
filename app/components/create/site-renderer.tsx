@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion as fx } from "motion/react";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { VideoGrid } from "@/app/components/video-embed";
 import { NewsletterSignup } from "@/app/components/create/newsletter-signup";
@@ -46,6 +47,9 @@ import { MaylecorSiteFooter } from "@/app/components/create/maylecor-site-footer
 import { sanitizeMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import { navChromeMetrics, parseNavLayout } from "@/lib/create/nav-chrome-size";
 import "./artist-motion.css";
+import "./kebu-scroll-entrance.css";
+import "./kebu-motion-effects.css";
+import { initScrollEntrances, ENTRANCE_MOTION } from "./kebu-scroll-entrance";
 import { KEBU_SITE_ROOT_CLASS } from "@/lib/create/site-responsive";
 import { themeToCssVars } from "@/lib/create/site-aesthetics";
 import { dataModeSiteClass, preferSystemFonts, type DataMode } from "@/lib/create/data-mode";
@@ -140,14 +144,23 @@ function wrapEditorSection(
   /** Only fill the viewport when this is the sole section — otherwise the page must grow/scroll. */
   fillViewport = false,
   sectionPaddingY?: string,
+  /** Scroll-entrance preset ("fade-up" / "fade-in" / ...) — only set when theme.motion === "expressive". */
+  motionPreset?: string,
 ): ReactNode {
   if (!editor || !sectionId) {
-    if (sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]) {
+    const padStyle =
+      sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
+        ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
+        : undefined;
+    if (motionPreset) {
       return (
-        <div style={{ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties}>
+        <div className="kebu-entrance" data-motion={motionPreset} style={padStyle}>
           {children}
         </div>
       );
+    }
+    if (padStyle) {
+      return <div style={padStyle}>{children}</div>;
     }
     return children;
   }
@@ -160,11 +173,12 @@ function wrapEditorSection(
   return (
     <div
       data-section-id={sectionId}
+      data-motion={motionPreset || undefined}
       onClick={(e) => {
         e.stopPropagation();
         editor.onSelectSection?.(sectionId);
       }}
-      className={`group relative ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
+      className={`group relative ${motionPreset ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
       style={{ cursor: "pointer", ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
     >
       {selected && sectionType ? (
@@ -346,6 +360,7 @@ function SiteNav({
   maxWidth,
   logoAlign,
   layout,
+  navScale,
   resolveHref,
   onNavigate,
   onNavResize,
@@ -360,7 +375,7 @@ function SiteNav({
   padX: number;
   fontPx: number;
   gap: number;
-  maxWidth: number;
+  maxWidth: string | undefined;
   logoAlign: "left" | "center" | "right";
   layout?: "top" | "side" | "hamburger";
   /** Current scale value, passed so the drag handle can compute correctly. */
@@ -604,6 +619,152 @@ function SiteNav({
   );
 }
 
+type QuizStepDef = { id: string; question: string; options: string[]; icon?: string };
+
+/**
+ * Real, working multi-step quiz: pick an answer per step, then hand the full set of answers to
+ * WhatsApp as a pre-filled message. Progress bar + back navigation, step transitions animate only
+ * when `motionExpressive` is set (theme.motion === "expressive").
+ */
+function QuizSection({
+  heading,
+  subheading,
+  ctaLabel,
+  steps,
+  whatsappPhone,
+  whatsappIntro,
+  fontDisplay,
+  motionExpressive,
+}: {
+  heading: string;
+  subheading: string;
+  ctaLabel: string;
+  steps: QuizStepDef[];
+  whatsappPhone: string;
+  whatsappIntro: string;
+  fontDisplay: string;
+  motionExpressive: boolean;
+}) {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  if (steps.length === 0) return null;
+
+  const total = steps.length;
+  const isDone = stepIndex >= total;
+  const current = !isDone ? steps[stepIndex] : null;
+
+  function choose(option: string) {
+    if (!current) return;
+    setAnswers((prev) => ({ ...prev, [current.id]: option }));
+    setStepIndex((i) => i + 1);
+  }
+
+  function reset() {
+    setStepIndex(0);
+    setAnswers({});
+  }
+
+  const message = [
+    whatsappIntro,
+    ...steps.map((s) => `${s.question} → ${answers[s.id] ?? "(skipped)"}`),
+  ].join("\n");
+  const waHref = whatsAppOrderHref(whatsappPhone, message);
+  const progressPct = Math.round((Math.min(stepIndex, total) / total) * 100);
+
+  const stepContent = isDone ? (
+    <div className="text-center">
+      <p className="text-lg font-bold">All done.</p>
+      <p className="mt-2 text-sm opacity-70">Tap below to send your answers and get a real reply.</p>
+      <a
+        href={waHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-6 inline-block rounded-full px-6 py-3 text-sm font-bold text-white"
+        style={{ background: "var(--kebu-accent)" }}
+      >
+        {ctaLabel}
+      </a>
+      <button
+        type="button"
+        onClick={reset}
+        className="mt-4 block w-full text-center text-xs underline opacity-60"
+      >
+        Start over
+      </button>
+    </div>
+  ) : current ? (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-wider opacity-50">
+        Step {stepIndex + 1} of {total}
+      </p>
+      <p className="mt-2 text-xl font-bold" style={{ fontFamily: cssFontStack(fontDisplay) }}>
+        {current.icon ? <span className="mr-2">{current.icon}</span> : null}
+        {current.question}
+      </p>
+      <div className="mt-5 flex flex-col gap-2">
+        {current.options.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => choose(opt)}
+            className="rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-colors hover:border-[var(--kebu-accent)] hover:bg-[var(--kebu-accent)] hover:text-white"
+            style={{ borderColor: "rgba(0,0,0,0.15)" }}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+      {stepIndex > 0 ? (
+        <button
+          type="button"
+          onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
+          className="mt-4 text-xs underline opacity-60"
+        >
+          ← Back
+        </button>
+      ) : null}
+    </div>
+  ) : null;
+
+  return (
+    <section className="kebu-section mx-auto max-w-xl px-5 py-16">
+      {heading ? (
+        <h2
+          className="text-center text-2xl font-bold"
+          style={{ fontFamily: cssFontStack(fontDisplay) }}
+        >
+          {heading}
+        </h2>
+      ) : null}
+      {subheading ? <p className="mt-2 text-center text-sm opacity-70">{subheading}</p> : null}
+      <div className="mt-5 h-1 w-full overflow-hidden rounded-full bg-black/10">
+        <div
+          className="h-full rounded-full transition-all duration-300"
+          style={{ width: `${progressPct}%`, background: "var(--kebu-accent)" }}
+        />
+      </div>
+      <div className="mt-8 rounded-2xl border p-6" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
+        {motionExpressive ? (
+          <AnimatePresence mode="wait">
+            <fx.div
+              key={isDone ? "done" : current?.id}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              {stepContent}
+            </fx.div>
+          </AnimatePresence>
+        ) : (
+          stepContent
+        )}
+      </div>
+    </section>
+  );
+}
+
 /** Public/preview renderer — approved section types only. */
 export function SiteRenderer({
   definition,
@@ -629,6 +790,13 @@ export function SiteRenderer({
   dataMode?: DataMode;
 }) {
   const theme = definition.theme;
+  /** Opt-in richer motion for aesthetics that specifically declare it — no-op for every other template. */
+  const motionExpressive = theme.motion === "expressive";
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!motionExpressive || !rootRef.current) return;
+    return initScrollEntrances(rootRef.current);
+  }, [motionExpressive, pageSlug]);
   const merchantPhone = resolveMerchantWhatsApp(definition, definition.seo as SiteSeo | undefined);
   const shopCommerce = mergeSiteCommerce((definition.seo as SiteSeo | undefined)?.commerce);
   const paymentLabels = commercePaymentLabels(shopCommerce);
@@ -807,8 +975,9 @@ export function SiteRenderer({
         const fillViewport =
           STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
         const sectionPaddingY = String((section.props as Record<string, unknown>)?.sectionPaddingY ?? "normal");
+        const motionPreset = motionExpressive ? ENTRANCE_MOTION[section.type] : undefined;
         const wrap = (node: ReactNode) =>
-          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY);
+          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset);
         const sectionEl = (() => {
         switch (section.type) {
           case "maylecor-home":
@@ -1439,7 +1608,7 @@ export function SiteRenderer({
               return (
                 <article
                   key={`${item.productId ?? item.name}`}
-                  className={`kebu-card overflow-hidden ${
+                  className={`kebu-card overflow-hidden ${motionExpressive ? "kebu-hover-zoom" : ""} ${
                     isList ? "flex flex-col sm:flex-row gap-0" : ""
                   } ${isFeatured ? "sm:col-span-2 lg:col-span-2" : ""}`}
                 >
@@ -1448,7 +1617,7 @@ export function SiteRenderer({
                     <img
                       src={item.imageUrl}
                       alt={item.name}
-                      className={
+                      className={`${
                         isList
                           ? "w-full sm:w-44 h-40 sm:h-auto object-cover shrink-0"
                           : isFeatured
@@ -1456,7 +1625,7 @@ export function SiteRenderer({
                             : layout === "grid-dense"
                               ? "w-full h-36 object-cover"
                               : "w-full h-40 object-cover"
-                      }
+                      } ${motionExpressive ? "kebu-hover-zoom-img" : ""}`}
                       loading="lazy"
                       decoding="async"
                     />
@@ -1488,7 +1657,7 @@ export function SiteRenderer({
                           productId={item.productId}
                           productName={item.name}
                           priceLabel={item.priceLabel ?? ""}
-                          variants={item.variants}
+                          variants={item.variants as import("@/app/components/create/public-product-variant-picker").ProductVariantOption[] | undefined}
                           commerce={shopCommerce}
                           orderStyle={p.orderStyle ?? "inline"}
                           ctaLabel={p.orderCtaLabel ?? "Place order"}
@@ -1593,7 +1762,7 @@ export function SiteRenderer({
           case "form": {
             const p = section.props as import("@/lib/create/site-forms").SiteFormSectionProps;
             const liveSubForm =
-              mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase)) : undefined;
+              mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase) ?? undefined) : undefined;
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 max-w-3xl mx-auto scroll-mt-20">
                 <EditableText
@@ -2220,10 +2389,13 @@ export function SiteRenderer({
               subheading: String(readDeviceOverride(raw, device, "subheading") ?? ""),
               buttonLabel: String(readDeviceOverride(raw, device, "buttonLabel") ?? ""),
               buttonHref: String(raw.buttonHref ?? "#"),
-              image: String(raw.image ?? ""),
+              // Schema field is `imageUrl` (website-schema.ts) — `image`/`minHeight` kept as a
+              // fallback for any legacy content authored against the older field names.
+              image: String(raw.imageUrl ?? raw.image ?? ""),
+              imageAlt: String(raw.imageAlt ?? ""),
               overlayOpacity: (raw.overlayOpacity as number | undefined) ?? 0.35,
               align: (raw.align as "left" | "center" | undefined) ?? "left",
-              minHeight: (raw.minHeight as string | undefined) ?? "70vh",
+              minHeight: raw.heightVh ? `${raw.heightVh}vh` : String(raw.minHeight ?? "70vh"),
             };
             const patchHero = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
@@ -2239,8 +2411,8 @@ export function SiteRenderer({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={p.image}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
+                    alt={p.imageAlt}
+                    className={`absolute inset-0 h-full w-full object-cover${motionExpressive ? " kebu-kenburns" : ""}`}
                     style={{ opacity: 1 - p.overlayOpacity * 0.3 }}
                   />
                 ) : (
@@ -2439,6 +2611,31 @@ export function SiteRenderer({
               </section>,
             );
           }
+          case "quiz": {
+            const raw = section.props as Record<string, unknown>;
+            const rawSteps = Array.isArray(raw.steps) ? (raw.steps as Record<string, unknown>[]) : [];
+            const steps: QuizStepDef[] = rawSteps
+              .filter((s) => typeof s.id === "string" && typeof s.question === "string")
+              .map((s) => ({
+                id: String(s.id),
+                question: String(s.question),
+                options: Array.isArray(s.options) ? s.options.map((o) => String(o)) : [],
+                icon: typeof s.icon === "string" ? s.icon : undefined,
+              }));
+            return wrap(
+              <QuizSection
+                key={key}
+                heading={String(raw.heading ?? "")}
+                subheading={String(raw.subheading ?? "")}
+                ctaLabel={String(raw.ctaLabel ?? "Send on WhatsApp")}
+                steps={steps}
+                whatsappPhone={String(raw.whatsappPhone || merchantPhone || "")}
+                whatsappIntro={String(raw.whatsappIntro ?? "Hi, here are my quiz answers:")}
+                fontDisplay={theme.fontDisplay}
+                motionExpressive={motionExpressive}
+              />,
+            );
+          }
           default:
             return null;
         }
@@ -2469,6 +2666,7 @@ export function SiteRenderer({
 
   return (
     <div
+      ref={rootRef}
       className={`${rootClass} relative${sideNav ? " md:flex md:flex-row md:items-stretch" : ""}${
         editingPreview && legallyBlondeOnly ? " flex h-full min-h-0 flex-col" : ""
       }`}

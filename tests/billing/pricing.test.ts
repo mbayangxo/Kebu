@@ -33,18 +33,18 @@ describe("site billing pricing", () => {
     expect(KEBU_DOMAIN_YEARLY_USD_FROM).toBe(5);
   });
 
-  it("exposes Free → Pro catalog with Shop as hero", () => {
+  it("exposes Free → Pro catalog with Starter as hero", () => {
     expect(KEBU_PLANS.free.monthlyUsd).toBe(0);
     expect(KEBU_PLANS.starter.monthlyUsd).toBe(2);
+    expect(KEBU_PLANS.starter.hero).toBe(true);
     expect(KEBU_PLANS.shop.monthlyUsd).toBe(5);
-    expect(KEBU_PLANS.shop.hero).toBe(true);
-    expect(KEBU_PLANS.business.monthlyUsd).toBe(10);
-    expect(KEBU_PLANS.pro.monthlyUsd).toBe(20);
+    expect(KEBU_PLANS.business.monthlyUsd).toBe(5);
+    expect(KEBU_PLANS.pro.monthlyUsd).toBe(0); // contact us for volume pricing
     expect(KEBU_PLANS.student.monthlyUsd).toBe(1);
   });
 
   it("exposes pricing headline and competitor reference", () => {
-    expect(KEBU_PRICING_HEADLINE).toContain("build your business");
+    expect(KEBU_PRICING_HEADLINE).toContain("Build free");
     expect(KEBU_COMPETITOR_ECOMMERCE_USD_MONTHLY).toBe(29);
   });
 

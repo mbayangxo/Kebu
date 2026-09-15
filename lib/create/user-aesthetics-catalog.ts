@@ -1,33 +1,7 @@
 /**
- * User-facing aesthetics gallery — exactly 2 looks per business type.
+ * User-facing aesthetics gallery — any number of looks per business type.
  * Owner portfolio (May Lecor, K-Direction, DkLNS, Ndaoan, RECT, For The Mayjor Good) is NOT listed here.
- *
- * `lockedTypes` = pairs that passed design review — do not swap for generic clones.
  */
-
-/** Business types whose pair is locked after exceptional worlds ship. */
-export const LOCKED_AESTHETIC_TYPES = [
-  "beauty",
-  "agency",
-  "fashion",
-  "fashion-luxury",
-  "fashion-street",
-  "fragrance",
-  "food",
-  "store",
-  "music",
-  "production",
-  "business",
-  "tech",
-  "portfolio",
-  "impact",
-] as const;
-
-export type LockedAestheticType = (typeof LOCKED_AESTHETIC_TYPES)[number];
-
-export function isAestheticTypeLocked(type: string): boolean {
-  return (LOCKED_AESTHETIC_TYPES as readonly string[]).includes(type);
-}
 
 export const USER_AESTHETICS_BY_TYPE = [
   {
@@ -52,6 +26,7 @@ export const USER_AESTHETICS_BY_TYPE = [
     pair: [
       { slug: "production-company", name: "Production house", tagline: "Commercials & events · WhatsApp brief", accent: "#E94560" },
       { slug: "film-studio", name: "Film studio", tagline: "Showreel · hire crew", accent: "#FF1493" },
+      { slug: "meridian-films", name: "MERIDIAN FILMS", tagline: "Editorial film catalog · festival premieres · merch", accent: "#1A1A1A" },
     ],
   },
   {
@@ -60,6 +35,8 @@ export const USER_AESTHETICS_BY_TYPE = [
     pair: [
       { slug: "hair-salon", name: "Hair salon & barber", tagline: "Menu + WhatsApp booking", accent: "#D4A574" },
       { slug: "layers-beauty", name: "LAYERS Beauty", tagline: "Skincare shop · rituals · gifts", accent: "#C4786A" },
+      { slug: "clarte-compatible-skin", name: "CLARTÉ", tagline: "Compatibility-first skincare · ingredient transparency", accent: "#FF5A36" },
+      { slug: "nuance-beauty", name: "NUANCE", tagline: "Shade-inclusive color cosmetics · shade finder", accent: "#D62839" },
     ],
   },
   {
@@ -76,6 +53,7 @@ export const USER_AESTHETICS_BY_TYPE = [
     pair: [
       { slug: "fashion-atelier", name: "Fashion atelier", tagline: "Editorial lookbook", accent: "#1A1A2E" },
       { slug: "clothing-company", name: "Clothing brand", tagline: "Catalog + brand story", accent: "#B91C1C" },
+      { slug: "nuee-intimates", name: "NUÉE", tagline: "Size-inclusive intimates · fit finder", accent: "#E85B4A" },
     ],
   },
   {

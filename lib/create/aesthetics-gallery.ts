@@ -29,6 +29,10 @@ const AESTHETIC_BUSINESS_META: Record<string, { story: string; pages: string[] }
     story: "Studio Félix is a film house in Ouagadougou making short films for international festivals. Full-bleed film stills, crew hiring, and a slate of current productions.",
     pages: ["Home", "Films", "Crew", "Contact"],
   },
+  "meridian-films": {
+    story: "MERIDIAN FILMS is an editorial, typography-led indie studio — a film catalog with synopses and festival selections, an open pitch-submission page for filmmakers, and a small merch shop alongside the main site, the way A24-style studios structure theirs.",
+    pages: ["Home", "Films", "Shop", "Submissions", "Press", "About", "FAQ"],
+  },
   "hair-salon": {
     story: "Salon Fatou has 3 chairs in Treichville, Abidjan. Services menu with XOF prices, WhatsApp booking link, and hours — the full booking flow happens on WhatsApp.",
     pages: ["Home", "Services & prices", "Gallery", "Book now"],
@@ -36,6 +40,14 @@ const AESTHETIC_BUSINESS_META: Record<string, { story: string; pages: string[] }
   "layers-beauty": {
     story: "LAYERS is a Dakar skincare brand selling shea butter serums and ritual kits. Products ship across West Africa via Joko, payment by Wave.",
     pages: ["Home", "Shop", "Rituals", "About", "Gift sets"],
+  },
+  "clarte-compatible-skin": {
+    story: "CLARTÉ is an Abidjan skincare lab built around one idea: routines fail when products fight each other, not because any one of them is bad. Every formula ships with a compatibility chart, and customers text the formulator directly on WhatsApp.",
+    pages: ["Home", "Shop", "Compatibility", "Routine", "Reviews", "About", "FAQ"],
+  },
+  "nuance-beauty": {
+    story: "NUANCE is a color cosmetics line built around a shade finder instead of a generic swatch chart — customers answer a few questions about undertone and depth and get a real recommendation on WhatsApp before they ever open a compact.",
+    pages: ["Home", "Shop", "Shade Finder", "Looks", "Reviews", "About", "FAQ"],
   },
   "perfume-brand": {
     story: "Maison Brume crafts artisanal perfumes inspired by Sahel landscapes — oud, vetiver, baobab. Stockists in Dakar and Paris. Shop online with Wave.",
@@ -52,6 +64,10 @@ const AESTHETIC_BUSINESS_META: Record<string, { story: string; pages: string[] }
   "clothing-company": {
     story: "VOLTA is a streetwear brand out of Accra. Catalog with sizes and XOF/GHS prices, brand story, and a WhatsApp order flow.",
     pages: ["Home", "Catalog", "Brand", "Order"],
+  },
+  "nuee-intimates": {
+    story: "NUÉE is a Lagos intimates and loungewear brand built around a Fit Finder — a short quiz that ends with a real fit recommendation on WhatsApp instead of a size chart customers have to interpret alone.",
+    pages: ["Home", "Shop", "Fit Finder", "Reviews", "About", "FAQ"],
   },
   "shopping-store": {
     story: "Marché Boutique is a neighborhood shop in the Plateau district, Dakar — household goods, dry foods, cleaning products. Customers order on WhatsApp, pay by Wave, get same-day delivery.",

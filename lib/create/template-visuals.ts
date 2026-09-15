@@ -36,6 +36,10 @@ export type TemplateCardLayout =
   | "accessories"
   | "streetwear"
   | "activewear"
+  | "clinical"
+  | "intimates"
+  | "cosmetics"
+  | "editorial-film"
   | "generic";
 
 export type TemplateCardVisual = {
@@ -153,12 +157,33 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     layout: "event",
     wordmark: "FILM",
   },
+  "meridian-films": {
+    previewGradient: "linear-gradient(160deg, #0A0A0A 0%, #3A3A3A 55%, #F2EFE9 100%)",
+    badge: "MERIDIAN FILMS · Editorial catalog",
+    keywords: ["meridian", "film", "studio", "indie", "editorial", "typography"],
+    layout: "editorial-film",
+    wordmark: "MERIDIAN",
+  },
   "hair-salon": {
     previewGradient: "linear-gradient(160deg, #1A0F0A 0%, #2C1810 50%, #D4A574 100%)",
     badge: "Salon premium · tresses & couleur",
     keywords: ["salon", "hair", "braids", "colour", "balayage", "locs"],
     layout: "bold-salon",
     wordmark: "CHEZ AMARA",
+  },
+  "clarte-compatible-skin": {
+    previewGradient: "linear-gradient(155deg, #FBF6EE 0%, #FF5A36 60%, #141414 100%)",
+    badge: "CLARTÉ · Compatible skincare",
+    keywords: ["clarte", "skincare", "clinical", "compatibility", "ingredients", "barrier"],
+    layout: "clinical",
+    wordmark: "CLARTÉ",
+  },
+  "nuance-beauty": {
+    previewGradient: "linear-gradient(155deg, #2B0A10 0%, #D62839 55%, #FFF6E9 100%)",
+    badge: "NUANCE · Shade-inclusive cosmetics",
+    keywords: ["nuance", "makeup", "cosmetics", "shade finder", "foundation", "color"],
+    layout: "cosmetics",
+    wordmark: "NUANCE",
   },
   "layers-beauty": {
     previewImage: "/templates/gallery/luxe-beauty-ref.png",
@@ -203,6 +228,13 @@ export const TEMPLATE_CARD_VISUALS: Record<string, TemplateCardVisual> = {
     keywords: ["clothing", "fashion", "brand", "dakar", "urban"],
     layout: "dark-fashion",
     wordmark: "VOLTA",
+  },
+  "nuee-intimates": {
+    previewGradient: "linear-gradient(155deg, #FDF3EF 0%, #E85B4A 55%, #2B1218 100%)",
+    badge: "NUÉE · Size-inclusive intimates",
+    keywords: ["nuee", "intimates", "lingerie", "loungewear", "fit finder", "sizing"],
+    layout: "intimates",
+    wordmark: "NUÉE",
   },
   "luxury-rtw": {
     previewGradient: "linear-gradient(160deg, #F5F2EC 0%, #E8E2D6 50%, #1A1814 100%)",

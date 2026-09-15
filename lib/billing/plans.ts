@@ -229,7 +229,7 @@ export const KEBU_PLANS: Record<KebuPlanId, KebuPlan> = {
 export const KEBU_COMPETITOR_ECOMMERCE_USD_MONTHLY = 29;
 
 /** Marketing headline. */
-export const KEBU_PRICING_HEADLINE = “Build free. Pay per site when you're ready.”;
+export const KEBU_PRICING_HEADLINE = "Build free. Pay per site when you're ready.";
 
 /** Additional revenue beyond subscription (document targets; enforce per slice). */
 export const KEBU_ADDITIONAL_REVENUE_STREAMS = [

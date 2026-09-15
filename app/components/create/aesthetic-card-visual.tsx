@@ -796,6 +796,162 @@ export function AestheticCardVisual({
     );
   }
 
+  /* ── CLINICAL (compatibility-first skincare — bright color-block, ingredient chips) ── */
+  if (layout === "clinical") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FBF6EE" }}>
+        {/* Announcement */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#141414" }}>
+          <span className="text-[3.5px] font-bold tracking-widest" style={{ color: "#FBF6EE" }}>NEW: CLARITY DROPS — SHOP NOW →</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #EFE6D8" }}>
+          <span className="text-[5.5px] font-black tracking-tight" style={{ color: "#141414" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[3.5px] font-black text-white" style={{ background: accent }}>SHOP</div>
+        </div>
+        {/* Hero */}
+        <div className="px-2 py-1.5">
+          <div className="text-[7.5px] font-black leading-tight tracking-tight" style={{ color: "#141414" }}>Skincare that<br />plays nice together.</div>
+        </div>
+        {/* Compatibility chips — the signature UI element */}
+        <div className="flex flex-wrap gap-0.5 px-2">
+          {[["✓ Niacinamide + SPF", true], ["✗ Two actives at once", false]].map(([label, ok], i) => (
+            <div
+              key={i}
+              className="rounded-full px-1.5 py-0.5 text-[3px] font-bold"
+              style={ok ? { background: accent, color: "#fff" } : { background: "#fff", color: "#141414", border: "1px solid #141414" }}
+            >
+              {label as string}
+            </div>
+          ))}
+        </div>
+        {/* Product grid */}
+        <div className="grid grid-cols-3 gap-0.5 px-1.5 py-1.5 flex-1">
+          {[accent, "#141414", accent + "AA"].map((c, i) => (
+            <div key={i} className="flex flex-col overflow-hidden rounded-lg" style={{ background: "#fff", border: "1px solid #EFE6D8" }}>
+              <div className="aspect-square w-full" style={{ background: c }} />
+              <div className="px-0.5 py-0.5">
+                <div className="h-0.5 w-4/5 rounded-full" style={{ background: "#EFE6D8" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── INTIMATES (NUÉE — size-inclusive intimates) ─────────────────────────── */
+  if (layout === "intimates") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#FDF3EF" }}>
+        {/* Announcement */}
+        <div className="px-2 py-0.5 text-center" style={{ background: "#2B1218" }}>
+          <span className="text-[3.5px] font-bold tracking-widest" style={{ color: "#FDF3EF" }}>40+ SIZES · FIND YOUR FIT →</span>
+        </div>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1 bg-white" style={{ borderBottom: "1px solid #F1DED6" }}>
+          <span className="text-[5.5px] font-black tracking-tight" style={{ color: "#2B1218" }}>{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[3.5px] font-black text-white" style={{ background: accent }}>SHOP</div>
+        </div>
+        {/* Hero */}
+        <div className="px-2 py-1.5">
+          <div className="text-[7.5px] font-black leading-tight tracking-tight" style={{ color: "#2B1218" }}>Foundations that<br />actually fit.</div>
+        </div>
+        {/* Fit Finder chips — the signature UI element */}
+        <div className="flex flex-wrap gap-0.5 px-2">
+          {["32B", "34C", "36D+"].map((size, i) => (
+            <div
+              key={size}
+              className="rounded-full px-1.5 py-0.5 text-[3px] font-bold"
+              style={i === 1 ? { background: accent, color: "#fff" } : { background: "#fff", color: "#2B1218", border: "1px solid #2B1218" }}
+            >
+              {size}
+            </div>
+          ))}
+        </div>
+        {/* Product grid */}
+        <div className="grid grid-cols-3 gap-0.5 px-1.5 py-1.5 flex-1">
+          {[accent, "#2B1218", accent + "AA"].map((c, i) => (
+            <div key={i} className="flex flex-col overflow-hidden rounded-lg" style={{ background: "#fff", border: "1px solid #F1DED6" }}>
+              <div className="aspect-square w-full" style={{ background: c }} />
+              <div className="px-0.5 py-0.5">
+                <div className="h-0.5 w-4/5 rounded-full" style={{ background: "#F1DED6" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── COSMETICS (NUANCE — shade-inclusive color cosmetics) ────────────────── */
+  if (layout === "cosmetics") {
+    const shades = ["#4A2C1D", "#8A5A3C", "#C68A5E", "#E0B08C", "#F2D3B3"];
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#1A0508" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+          <span className="text-[5.5px] font-black tracking-tight text-white">{mark}</span>
+          <div className="rounded-full px-1.5 py-0.5 text-[3.5px] font-black" style={{ background: accent, color: "#fff" }}>SHOP</div>
+        </div>
+        {/* Hero */}
+        <div className="px-2 py-1.5">
+          <div className="text-[7.5px] font-black leading-tight tracking-tight text-white">Find your<br />exact shade.</div>
+        </div>
+        {/* Shade swatch row — the signature UI element */}
+        <div className="flex items-center gap-0.5 px-2 py-1">
+          {shades.map((c, i) => (
+            <div
+              key={c}
+              className="h-3 w-3 rounded-full"
+              style={{ background: c, border: i === 2 ? `1px solid ${accent}` : "1px solid rgba(255,255,255,0.25)" }}
+            />
+          ))}
+          <span className="ml-1 text-[3px] font-bold tracking-wide" style={{ color: accent }}>50 SHADES →</span>
+        </div>
+        {/* Product grid */}
+        <div className="grid grid-cols-3 gap-0.5 px-1.5 py-1.5 flex-1">
+          {[accent, "#F2D3B3", accent + "AA"].map((c, i) => (
+            <div key={i} className="flex flex-col overflow-hidden rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="aspect-square w-full" style={{ background: c }} />
+              <div className="px-0.5 py-0.5">
+                <div className="h-0.5 w-4/5 rounded-full" style={{ background: "rgba(255,255,255,0.2)" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── EDITORIAL FILM (MERIDIAN FILMS — typography-led indie studio) ──────── */
+  if (layout === "editorial-film") {
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0A0A0A" }}>
+        {/* Nav */}
+        <div className="flex items-center justify-between px-2 py-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+          <span className="text-[5px] font-black tracking-[0.2em] text-white">{mark}</span>
+          <div className="flex gap-1.5">
+            {["FILMS", "SHOP"].map((l) => (
+              <span key={l} className="text-[4px] tracking-wider" style={{ color: "rgba(255,255,255,0.5)" }}>{l}</span>
+            ))}
+          </div>
+        </div>
+        {/* Editorial hero */}
+        <div className="flex-1 px-2 py-2 flex flex-col justify-center">
+          <div className="text-[3.5px] tracking-[0.3em]" style={{ color: accent }}>NOW SHOWING</div>
+          <div className="mt-1 text-[9px] font-black uppercase leading-[0.95] tracking-tight text-white">A Quiet<br />Distance</div>
+        </div>
+        {/* Film strip — the signature UI element */}
+        <div className="grid grid-cols-4 gap-0.5 px-1.5 pb-1.5">
+          {["#3A3A3A", accent, "#5A5A5A", "#2A2A2A"].map((c, i) => (
+            <div key={i} className="aspect-[2/3] w-full rounded-sm" style={{ background: c }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   /* ── GENERIC fallback ──────────────────────────────────────────────────── */
   return (
     <div className="absolute inset-0 overflow-hidden" style={{ background: bg }}>

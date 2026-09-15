@@ -43,3 +43,8 @@ next-env.d.ts
 # Claude Code
 .claude/worktrees/
 .tmp-joko-partner-env
+
+# Agent skill tooling (per-session installs, e.g. `npx skills add`) — not product code
+.agents/
+.claude/skills/
+skills-lock.json

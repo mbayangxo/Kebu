@@ -1,0 +1,39 @@
+/*
+ * Kebu opt-in "expressive" motion effects — activated only when
+ * theme.motion === "expressive" (site-renderer.tsx stamps the classes below).
+ * Every other template's rendering is unaffected: these classes are never
+ * added unless a design world explicitly opts in.
+ *
+ * Respects prefers-reduced-motion throughout.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* --- editorial-hero background: slow Ken Burns zoom --- */
+  .kebu-kenburns {
+    animation: kebu-kenburns-zoom 22s ease-in-out infinite alternate;
+  }
+
+  @keyframes kebu-kenburns-zoom {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.08);
+    }
+  }
+
+  /* --- product card image: hover zoom --- */
+  .kebu-hover-zoom-img {
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .kebu-hover-zoom:hover .kebu-hover-zoom-img {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kebu-kenburns {
+    animation: none;
+  }
+}
