@@ -51,6 +51,7 @@ import "./kebu-scroll-entrance.css";
 import "./kebu-motion-effects.css";
 import { initScrollEntrances, ENTRANCE_MOTION } from "./kebu-scroll-entrance";
 import { KEBU_SITE_ROOT_CLASS } from "@/lib/create/site-responsive";
+import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 import { themeToCssVars } from "@/lib/create/site-aesthetics";
 import { dataModeSiteClass, preferSystemFonts, type DataMode } from "@/lib/create/data-mode";
 import { definitionHasShop } from "@/lib/create/site-shop";
@@ -432,7 +433,12 @@ function SiteNav({
       <div key={l.label} className="relative">
         <button
           type="button"
-          onClick={() => setOpenGroup(groupOpen ? null : l.label)}
+          onClick={() => {
+            // Mutually exclusive with the mobile drawer: opening a dropdown should never leave the
+            // drawer open underneath it (see kebu-z-layers.ts for why both being open was a real risk).
+            setDrawerOpen(false);
+            setOpenGroup(groupOpen ? null : l.label);
+          }}
           className="kebu-nav-link flex items-center gap-1"
           style={{ fontSize: fontPx }}
         >
@@ -441,10 +447,11 @@ function SiteNav({
         </button>
         {groupOpen && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpenGroup(null)} aria-hidden />
+            <div className="fixed inset-0" style={{ zIndex: Z_LAYERS.dropdownBackdrop }} onClick={() => setOpenGroup(null)} aria-hidden />
             <div
-              className="absolute left-0 top-full z-50 mt-1 overflow-hidden rounded-xl shadow-xl"
+              className="absolute left-0 top-full mt-1 overflow-hidden rounded-xl shadow-xl"
               style={{
+                zIndex: Z_LAYERS.dropdownPanel,
                 background: navBg || "#000",
                 border: "1px solid rgba(255,255,255,0.12)",
                 minWidth: l.children!.length > 4 ? 240 : 180,
@@ -597,8 +604,8 @@ function SiteNav({
       {drawerOpen && (
         <>
           <div
-            className={`fixed inset-0 z-40 ${alwaysHamburger ? "" : "sm:hidden"}`}
-            style={{ background: "rgba(0,0,0,0.35)" }}
+            className={`fixed inset-0 ${alwaysHamburger ? "" : "sm:hidden"}`}
+            style={{ background: "rgba(0,0,0,0.35)", zIndex: Z_LAYERS.drawerBackdrop }}
             onClick={() => setDrawerOpen(false)}
             aria-hidden
           />
@@ -1879,7 +1886,24 @@ export function SiteRenderer({
             const rawItems = p.items ?? [];
             const items = rawItems.filter((item) => item.src);
             const editingGallery = Boolean(editor?.inlineEdit);
-            if (!items.length && !editingGallery) return null;
+            if (!items.length && !editingGallery) {
+              // No populated images on a LIVE site: don't silently drop the whole section (it breaks
+              // anchor links and makes page structure unpredictable) and don't show editor-only "Empty
+              // slot / Drop photo here" language to a visitor. If there's at least a heading, show an
+              // honest, visitor-appropriate placeholder; only truly empty sections render nothing.
+              const hasHeading = Boolean(p.heading && p.heading.trim());
+              if (!hasHeading) return null;
+              return wrap(
+                <section key={key} id={anchor} className="px-5 py-8 max-w-5xl mx-auto scroll-mt-20 space-y-4">
+                  <h2 className="text-2xl font-bold" style={{ fontFamily: cssFontStack(theme.fontDisplay) }}>
+                    {p.heading}
+                  </h2>
+                  <div className="flex items-center justify-center rounded-xl border border-dashed border-black/15 bg-black/[0.02] py-12 text-center text-sm opacity-60">
+                    Photos coming soon.
+                  </div>
+                </section>,
+              );
+            }
             const layout = p.layout ?? "grid";
             const columns = p.columns ?? 3;
             if (editingGallery && rawItems.some((i) => !i.src)) {

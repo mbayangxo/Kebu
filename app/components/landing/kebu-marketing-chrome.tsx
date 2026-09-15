@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KebuWordmark } from "@/app/components/kebu-mark";
 import { KebuAuthHeaderCTA } from "@/app/components/kebu-auth-header-cta";
 import { KEBU_MARKETING_FOOTER, KEBU_MARKETING_NAV } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
+import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 
 const C = {
   ...KEBU,
@@ -17,6 +18,16 @@ const C = {
 
 export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Real drawer dismissal: Escape always closes it, on top of the backdrop click already below.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.92)" }}>
@@ -58,13 +69,31 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
               style={{ borderColor: C.border, color: C.muted }}
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
+              aria-controls="marketing-mobile-menu"
             >
-              Menu
+              {menuOpen ? "Close" : "Menu"}
             </button>
           </div>
         </div>
-        {menuOpen ? (
-          <div className="lg:hidden border-t px-5 py-4 space-y-3" style={{ borderColor: C.border }}>
+      </nav>
+      {menuOpen ? (
+        <>
+          {/* Backdrop starts below the header row (not inset-0) so the Close button above stays
+              clickable without needing to hit the backdrop first — a second, redundant dismissal. */}
+          <div
+            className="lg:hidden fixed inset-x-0 bottom-0"
+            style={{ top: 72, background: "rgba(0,0,0,0.35)", zIndex: Z_LAYERS.drawerBackdrop }}
+            onClick={() => setMenuOpen(false)}
+            aria-hidden
+          />
+          <div
+            id="marketing-mobile-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            className="lg:hidden fixed inset-x-0 border-t px-5 py-4 space-y-3 shadow-xl"
+            style={{ top: 72, borderColor: C.border, background: C.paper, zIndex: Z_LAYERS.drawerPanel }}
+          >
             {KEBU_MARKETING_NAV.map(({ label, href }) => (
               <Link
                 key={href}
@@ -77,8 +106,8 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
               </Link>
             ))}
           </div>
-        ) : null}
-      </nav>
+        </>
+      ) : null}
     </header>
   );
 }

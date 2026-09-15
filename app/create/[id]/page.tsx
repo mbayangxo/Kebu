@@ -1,24 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
-import { BuilderAestheticsPanel } from "@/app/components/create/builder-aesthetics-panel";
-import { YandeAssistant } from "@/app/components/create/yande-assistant";
 import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
 import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
-import { BuilderSiteChromePanel } from "@/app/components/create/builder-site-chrome-panel";
 import { BuilderBlogPanel } from "@/app/components/create/builder-blog-panel";
 import {
   CHROME_FOOTER_ID,
   CHROME_HEADER_ID,
   isChromeSectionId,
   parseSiteChrome,
-  patchSiteChromePart,
   projectUsesEmbeddedNav,
   type SiteChrome,
 } from "@/lib/create/site-chrome";
@@ -27,15 +24,12 @@ import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
 import type { PublishState } from "@/lib/create/publish-state";
-import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
 import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
-import { BuilderPagesPanel } from "@/app/components/create/builder-pages-panel";
-import { BuilderAiPreviewPanel } from "@/app/components/create/builder-ai-preview-panel";
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
@@ -56,12 +50,38 @@ import { mySiteDetailHref } from "@/lib/navigation/product-nav";
 import {
   DataModeProvider,
 } from "@/app/components/create/data-mode-provider";
-import { resolveClientDataMode } from "@/lib/create/data-mode";
-import { measureResponseBytes, evaluateKb } from "@/lib/create/kb-budget";
-import {
-  enqueueSaveSection,
-  isBrowserOnline,
-} from "@/lib/create/offline-queue";
+import { useProjectAutosave } from "./use-project-autosave";
+
+/**
+ * Code-split the heaviest sidebar/panel views that are hidden behind a tab or a closed-by-default
+ * panel on first load (docs/product/KEBU-BUILDER-UX-STANDARD.md: "zero code-splitting" finding).
+ * Each of these only mounts once its gating condition (sidebarTab / aiPreview / yandeOpen) becomes
+ * true, so its chunk is fetched on demand instead of shipping in the Builder's initial bundle.
+ */
+const BuilderAestheticsPanel = dynamic(
+  () => import("@/app/components/create/builder-aesthetics-panel").then((m) => m.BuilderAestheticsPanel),
+  { ssr: false },
+);
+const BuilderSiteChromePanel = dynamic(
+  () => import("@/app/components/create/builder-site-chrome-panel").then((m) => m.BuilderSiteChromePanel),
+  { ssr: false },
+);
+const SiteAssetsPanel = dynamic(
+  () => import("@/app/components/create/site-assets-panel").then((m) => m.SiteAssetsPanel),
+  { ssr: false },
+);
+const BuilderPagesPanel = dynamic(
+  () => import("@/app/components/create/builder-pages-panel").then((m) => m.BuilderPagesPanel),
+  { ssr: false },
+);
+const BuilderAiPreviewPanel = dynamic(
+  () => import("@/app/components/create/builder-ai-preview-panel").then((m) => m.BuilderAiPreviewPanel),
+  { ssr: false },
+);
+const YandeAssistant = dynamic(
+  () => import("@/app/components/create/yande-assistant").then((m) => m.YandeAssistant),
+  { ssr: false },
+);
 
 function SidebarDetails({ title, children, defaultOpen = true }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean }) {
   return (
@@ -109,7 +129,6 @@ export default function ProjectEditorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [supportAssist, setSupportAssist] = useState(false);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "error">("idle");
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -159,9 +178,6 @@ export default function ProjectEditorPage() {
   const [editPageId, setEditPageId] = useState("");
   const [publishState, setPublishState] = useState<PublishState | null>(null);
   const [appOrigin, setAppOrigin] = useState("");
-  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     setAppOrigin(window.location.origin);
     const q = new URLSearchParams(window.location.search);
@@ -299,14 +315,11 @@ export default function ProjectEditorPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const timers = saveTimers.current;
     queueMicrotask(() => {
       if (!cancelled) void load();
     });
     return () => {
       cancelled = true;
-      Object.values(timers).forEach(clearTimeout);
-      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
     };
   }, [load]);
 
@@ -315,140 +328,25 @@ export default function ProjectEditorPage() {
     setFuture([]);
   }
 
-  const [kbSaveNote, setKbSaveNote] = useState<string | null>(null);
-
-  async function persistProps(sectionId: string, props: Record<string, unknown>) {
-    const mode = resolveClientDataMode();
-    const offline = !isBrowserOnline() || mode === "offline";
-    if (offline) {
-      enqueueSaveSection({ projectId, sectionId, props });
-      setSaveState("queued");
-      setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setError(null);
-      return;
-    }
-    setSaveState("saving");
-    try {
-      const res = await fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Kebu-Data-Mode": mode,
-        },
-        body: JSON.stringify({ sectionId, props }),
-      });
-      const bytes = await measureResponseBytes(res);
-      const ev = evaluateKb({ action: "save_section", mode, usedBytes: bytes });
-      setKbSaveNote(ev.summary);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSaveState("error");
-        const issueHint =
-          data?.issues?.fieldErrors && typeof data.issues.fieldErrors === "object"
-            ? Object.entries(data.issues.fieldErrors as Record<string, string[]>)
-                .map(([k, v]) => `${k}: ${(v ?? []).join(", ")}`)
-                .slice(0, 3)
-                .join(" · ")
-            : "";
-        setError(
-          [typeof data.error === "string" ? data.error : "Save failed.", issueHint || data.detail]
-            .filter(Boolean)
-            .join(" — "),
-        );
-        return;
-      }
-      if (data.section) {
-        setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, ...data.section } : s)));
-      }
-      setPublishState((prev) =>
-        prev
-          ? { ...prev, hasUnpublishedChanges: true }
-          : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
-      );
-      setSaveState("saved");
-      setError(null);
-    } catch {
-      enqueueSaveSection({ projectId, sectionId, props });
-      setSaveState("queued");
-      setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setError(null);
-    }
-  }
-
-  async function persistChrome(part: "header" | "footer", props: Record<string, unknown>) {
-    const mode = resolveClientDataMode();
-    const offline = !isBrowserOnline() || mode === "offline";
-    if (offline) {
-      setSaveState("queued");
-      setKbSaveNote("Site header/footer queued until Syncing…");
-      return;
-    }
-    setSaveState("saving");
-    try {
-      const body = part === "header" ? { header: props } : { footer: props };
-      const res = await fetch(`/api/projects/${projectId}/site-chrome`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "X-Kebu-Data-Mode": mode },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSaveState("error");
-        setError(typeof data.error === "string" ? data.error : "Could not save site header/footer.");
-        return;
-      }
-      if (data.siteChrome) {
-        setSiteChrome(parseSiteChrome(data.siteChrome));
-      }
-      setPublishState((prev) =>
-        prev
-          ? { ...prev, hasUnpublishedChanges: true }
-          : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
-      );
-      setSaveState("saved");
-      setError(null);
-    } catch {
-      setSaveState("queued");
-      setKbSaveNote("Site header/footer queued until Syncing…");
-    }
-  }
-
-  function updateChromeProps(part: "header" | "footer", patch: Record<string, unknown>) {
-    setSiteChrome((prev) => {
-      const base = prev ?? parseSiteChrome(null);
-      const next = patchSiteChromePart({ ...base, enabled: true }, part, patch);
-      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
-      chromeSaveTimer.current = setTimeout(() => {
-        const props =
-          part === "header"
-            ? next.header?.props
-            : next.footer?.props;
-        if (props) void persistChrome(part, props as Record<string, unknown>);
-      }, 500);
-      return next;
+  const {
+    saveState,
+    saveStatusLabel,
+    kbSaveNote,
+    updateProps,
+    updateChromeProps,
+    saveDraftNow,
+    persistProps,
+    markAllSaved,
+  } = useProjectAutosave({
+      projectId,
+      sections,
+      setSections,
+      pushHistory,
+      siteChrome,
+      setSiteChrome,
+      setPublishState,
+      setError,
     });
-  }
-
-  function updateProps(sectionId: string, patch: Record<string, unknown>) {
-    if (isChromeSectionId(sectionId)) {
-      updateChromeProps(sectionId === CHROME_HEADER_ID ? "header" : "footer", patch);
-      return;
-    }
-    setSections((prev) => {
-      pushHistory(prev);
-      const next = prev.map((s) =>
-        s.id === sectionId ? { ...s, props: { ...s.props, ...patch } } : s
-      );
-      const merged = next.find((s) => s.id === sectionId)?.props ?? patch;
-      if (saveTimers.current[sectionId]) clearTimeout(saveTimers.current[sectionId]);
-      saveTimers.current[sectionId] = setTimeout(() => {
-        void persistProps(sectionId, merged);
-      }, 500);
-      return next;
-    });
-  }
 
   async function addSection(
     type: string,
@@ -899,7 +797,7 @@ export default function ProjectEditorPage() {
       setHistory([]);
       setFuture([]);
       await load();
-      setSaveState("saved");
+      markAllSaved();
     } catch {
       setError("Network error while applying changes. Retry.");
     } finally {
@@ -1029,17 +927,6 @@ export default function ProjectEditorPage() {
     .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
     .sort((a, b) => a.sort_order - b.sort_order);
 
-  const saveStatusLabel =
-    saveState === "saving"
-      ? "Saving draft…"
-      : saveState === "queued"
-        ? "Not saved yet — queued"
-        : saveState === "saved"
-          ? "Draft saved"
-          : saveState === "error"
-            ? "Save failed"
-            : "";
-
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
   /** Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames. */
   const wideCanvas = flagshipCanvas || device === "desktop";
@@ -1072,11 +959,7 @@ export default function ProjectEditorPage() {
         publishing={publishing || improving}
         publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Publish"}
         onPublish={() => void publish()}
-        onSaveDraft={() => {
-          if (saveState === "idle" || saveState === "saved") {
-            setSaveState("saved");
-          }
-        }}
+        onSaveDraft={() => void saveDraftNow()}
         savingDraft={saveState === "saving"}
         previewHost={project?.subdomain ? `${project.subdomain}.kebu.africa` : undefined}
         pages={pages
