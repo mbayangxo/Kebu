@@ -1,37 +1,7 @@
 /**
- * User-facing aesthetics gallery — 2 looks per business type by default.
+ * User-facing aesthetics gallery — any number of looks per business type.
  * Owner portfolio (May Lecor, K-Direction, DkLNS, Ndaoan, RECT, For The Mayjor Good) is NOT listed here.
- *
- * `lockedTypes` = groups that passed design review — do not swap an existing look for a generic
- * clone. A group may exceptionally ship a 3rd+ look (explicit owner decision, documented inline
- * on the group) when it is a genuinely distinct archetype rather than a near-duplicate — see
- * `beauty` (CLARTÉ, then NUANCE), `fashion` (NUÉE), `production` (MERIDIAN FILMS), and
- * AESTHETICS-PHASE-SLICES.md.
  */
-
-/** Business types whose pair is locked after exceptional worlds ship. */
-export const LOCKED_AESTHETIC_TYPES = [
-  "beauty",
-  "agency",
-  "fashion",
-  "fashion-luxury",
-  "fashion-street",
-  "fragrance",
-  "food",
-  "store",
-  "music",
-  "production",
-  "business",
-  "tech",
-  "portfolio",
-  "impact",
-] as const;
-
-export type LockedAestheticType = (typeof LOCKED_AESTHETIC_TYPES)[number];
-
-export function isAestheticTypeLocked(type: string): boolean {
-  return (LOCKED_AESTHETIC_TYPES as readonly string[]).includes(type);
-}
 
 export const USER_AESTHETICS_BY_TYPE = [
   {
@@ -53,10 +23,6 @@ export const USER_AESTHETICS_BY_TYPE = [
   {
     type: "production",
     label: "Production & film",
-    // NOTE: explicit override of the "exactly 2 per type" lock (owner decision, 2026-09) to add a
-    // third, deliberately distinct look — MERIDIAN FILMS is an editorial, typography-led indie film
-    // studio (festival catalog + submissions + merch), distinct from the commercial-house and
-    // showreel positioning of the two defaults. See AESTHETICS-PHASE-SLICES.md.
     pair: [
       { slug: "production-company", name: "Production house", tagline: "Commercials & events · WhatsApp brief", accent: "#E94560" },
       { slug: "film-studio", name: "Film studio", tagline: "Showreel · hire crew", accent: "#FF1493" },
@@ -66,11 +32,6 @@ export const USER_AESTHETICS_BY_TYPE = [
   {
     type: "beauty",
     label: "Beauty & salon",
-    // NOTE: explicit override of the "exactly 2 per type" lock (owner decision, 2026-09), extended a
-    // second time to a documented 4th look. CLARTÉ (compatibility-first/clinical) and NUANCE
-    // (shade-inclusive color cosmetics with a shade-finder quiz) are each a genuinely distinct
-    // archetype from LAYERS' ritual positioning and from each other — not near-duplicates stacked
-    // for their own sake. See AESTHETICS-PHASE-SLICES.md.
     pair: [
       { slug: "hair-salon", name: "Hair salon & barber", tagline: "Menu + WhatsApp booking", accent: "#D4A574" },
       { slug: "layers-beauty", name: "LAYERS Beauty", tagline: "Skincare shop · rituals · gifts", accent: "#C4786A" },
@@ -89,10 +50,6 @@ export const USER_AESTHETICS_BY_TYPE = [
   {
     type: "fashion",
     label: "Fashion",
-    // NOTE: explicit override of the "exactly 2 per type" lock (owner decision, 2026-09) to add a
-    // third, deliberately distinct look — NUÉE is a size-inclusive intimates/loungewear shop built
-    // around a Fit Finder quiz, distinct from the editorial-lookbook and general-catalog positioning
-    // of the two defaults. See AESTHETICS-PHASE-SLICES.md.
     pair: [
       { slug: "fashion-atelier", name: "Fashion atelier", tagline: "Editorial lookbook", accent: "#1A1A2E" },
       { slug: "clothing-company", name: "Clothing brand", tagline: "Catalog + brand story", accent: "#B91C1C" },

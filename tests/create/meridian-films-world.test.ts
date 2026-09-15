@@ -45,12 +45,10 @@ describe("meridian-films design world", () => {
     expect(faq?.sections.some((s) => s.type === "faq")).toBe(true);
   });
 
-  it("is public and listed as the 3rd production aesthetic (explicit lock override)", () => {
+  it("is public and listed in the production aesthetic", () => {
     expect(isPublicTemplateSlug("meridian-films")).toBe(true);
     const production = USER_AESTHETICS_BY_TYPE.find((t) => t.type === "production");
-    expect(production?.pair.length).toBe(3);
     expect(production?.pair.some((p) => p.slug === "meridian-films")).toBe(true);
-    // The two previously-locked production looks must remain untouched by this addition.
     expect(production?.pair.some((p) => p.slug === "production-company")).toBe(true);
     expect(production?.pair.some((p) => p.slug === "film-studio")).toBe(true);
   });

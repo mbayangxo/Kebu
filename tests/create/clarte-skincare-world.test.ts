@@ -43,13 +43,10 @@ describe("clarte-compatible-skin design world", () => {
     expect(faq?.sections.some((s) => s.type === "form")).toBe(true);
   });
 
-  it("is public and listed as the 3rd beauty aesthetic (explicit lock override)", () => {
+  it("is public and listed in the beauty aesthetic", () => {
     expect(isPublicTemplateSlug("clarte-compatible-skin")).toBe(true);
     const beauty = USER_AESTHETICS_BY_TYPE.find((t) => t.type === "beauty");
-    // Beauty later shipped a 4th look too (NUANCE) — see AESTHETICS-PHASE-SLICES.md (A6).
-    expect(beauty?.pair.length).toBe(4);
     expect(beauty?.pair.some((p) => p.slug === "clarte-compatible-skin")).toBe(true);
-    // The other locked beauty looks must remain untouched by this addition.
     expect(beauty?.pair.some((p) => p.slug === "hair-salon")).toBe(true);
     expect(beauty?.pair.some((p) => p.slug === "layers-beauty")).toBe(true);
   });

@@ -6,26 +6,20 @@ import {
 } from "@/lib/create/aesthetics-gallery";
 
 describe("aesthetics gallery", () => {
-  it("builds category pairs with distinct layout chrome", () => {
+  it("builds category items with distinct layout chrome", () => {
     const groups = getAestheticGalleryGroups();
     expect(groups.length).toBeGreaterThan(5);
     const beauty = groups.find((g) => g.type === "beauty");
-    // Beauty exceptionally ships a 3rd and 4th look (CLARTÉ, NUANCE) — see AESTHETICS-PHASE-SLICES.md (A5, A6).
-    expect(beauty?.items).toHaveLength(4);
     expect(beauty?.items.some((i) => i.slug === "layers-beauty")).toBe(true);
     expect(beauty?.items.some((i) => i.slug === "clarte-compatible-skin")).toBe(true);
     expect(beauty?.items.some((i) => i.slug === "nuance-beauty")).toBe(true);
     const beautyLayouts = new Set(beauty!.items.map((i) => i.cardVisual.layout));
-    expect(beautyLayouts.size).toBe(4);
+    expect(beautyLayouts.size).toBe(beauty!.items.length);
 
     const fashion = groups.find((g) => g.type === "fashion");
-    // Fashion exceptionally ships a 3rd look (NUÉE) — see AESTHETICS-PHASE-SLICES.md (A7).
-    expect(fashion?.items).toHaveLength(3);
     expect(fashion?.items.some((i) => i.slug === "nuee-intimates")).toBe(true);
 
     const production = groups.find((g) => g.type === "production");
-    // Production exceptionally ships a 3rd look (MERIDIAN FILMS) — see AESTHETICS-PHASE-SLICES.md (A8).
-    expect(production?.items).toHaveLength(3);
     expect(production?.items.some((i) => i.slug === "meridian-films")).toBe(true);
 
     for (const group of [beauty, fashion, production]) {

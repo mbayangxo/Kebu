@@ -42,12 +42,10 @@ describe("nuance-beauty design world", () => {
     expect(faq?.sections.some((s) => s.type === "form")).toBe(true);
   });
 
-  it("is public and listed as the 4th beauty aesthetic (explicit lock override, 2nd exception)", () => {
+  it("is public and listed in the beauty aesthetic", () => {
     expect(isPublicTemplateSlug("nuance-beauty")).toBe(true);
     const beauty = USER_AESTHETICS_BY_TYPE.find((t) => t.type === "beauty");
-    expect(beauty?.pair.length).toBe(4);
     expect(beauty?.pair.some((p) => p.slug === "nuance-beauty")).toBe(true);
-    // The three previously-locked beauty looks must remain untouched by this addition.
     expect(beauty?.pair.some((p) => p.slug === "hair-salon")).toBe(true);
     expect(beauty?.pair.some((p) => p.slug === "layers-beauty")).toBe(true);
     expect(beauty?.pair.some((p) => p.slug === "clarte-compatible-skin")).toBe(true);

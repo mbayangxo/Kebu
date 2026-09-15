@@ -39,12 +39,10 @@ describe("nuee-intimates design world", () => {
     expect(faq?.sections.some((s) => s.type === "form")).toBe(true);
   });
 
-  it("is public and listed as the 3rd fashion aesthetic (explicit lock override)", () => {
+  it("is public and listed in the fashion aesthetic", () => {
     expect(isPublicTemplateSlug("nuee-intimates")).toBe(true);
     const fashion = USER_AESTHETICS_BY_TYPE.find((t) => t.type === "fashion");
-    expect(fashion?.pair.length).toBe(3);
     expect(fashion?.pair.some((p) => p.slug === "nuee-intimates")).toBe(true);
-    // The two previously-locked fashion looks must remain untouched by this addition.
     expect(fashion?.pair.some((p) => p.slug === "fashion-atelier")).toBe(true);
     expect(fashion?.pair.some((p) => p.slug === "clothing-company")).toBe(true);
   });

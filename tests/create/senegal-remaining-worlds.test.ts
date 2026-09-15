@@ -9,7 +9,6 @@ import { appLaunchWorldDefinition, techStartupWorldDefinition } from "@/lib/crea
 import { proPortfolioWorldDefinition, studentPortfolioWorldDefinition } from "@/lib/create/design-worlds/portfolio-worlds";
 import { ngoImpactWorldDefinition, farmAgriWorldDefinition } from "@/lib/create/design-worlds/impact-worlds";
 import { professionalServicesWorldDefinition } from "@/lib/create/design-worlds/agency-professional-world";
-import { LOCKED_AESTHETIC_TYPES } from "@/lib/create/user-aesthetics-catalog";
 
 const WORLDS: { slug: string; def: () => ReturnType<typeof artistDarkStageWorldDefinition> }[] = [
   { slug: "musician-artist", def: artistDarkStageWorldDefinition },
@@ -28,21 +27,6 @@ const WORLDS: { slug: string; def: () => ReturnType<typeof artistDarkStageWorldD
 ];
 
 describe("Senegal remaining aesthetic worlds", () => {
-  it("locks all user aesthetic types", () => {
-    expect(LOCKED_AESTHETIC_TYPES).toEqual(
-      expect.arrayContaining([
-        "music",
-        "production",
-        "business",
-        "tech",
-        "portfolio",
-        "impact",
-        "store",
-        "agency",
-      ]),
-    );
-  });
-
   for (const w of WORLDS) {
     it(`validates ${w.slug}`, () => {
       const v = validateWebsiteDefinition(w.def());
