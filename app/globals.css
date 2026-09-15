@@ -219,10 +219,27 @@ input:focus, select:focus, textarea:focus {
   animation: kebu-landing-orb 12s ease-in-out infinite;
 }
 
+/* Scroll-triggered reveal — JS adds .in-view via IntersectionObserver */
+.kebu-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.kebu-reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kebu-landing-rise,
   .kebu-landing-orb {
     animation: none !important;
+  }
+  .kebu-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }
 
