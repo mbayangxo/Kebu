@@ -629,13 +629,15 @@ export default function ProjectEditorPage() {
 
   function queueSiteSettingsSave(patch: { subdomain?: string; seo?: Partial<SiteSeo>; theme?: Partial<ThemeTokens> }) {
     const nextSubdomain = patch.subdomain ?? subdomainInput;
+    // Base the merge on the FULL current commerce object (not just two cherry-picked fields) — a
+    // save triggered by an unrelated change (favicon, meta title, subdomain) must never drop payment
+    // settings (COD, mobile money, card, PayPal, Wave link, etc.) that were already configured
+    // elsewhere (e.g. the Shop admin's Payments tab). mergeSiteCommerce also guarantees every
+    // required field is present, which is what keeps this object assignable to SiteSeo["commerce"].
     const nextSeo: SiteSeo = {
       ...seoSettings,
       ...(patch.seo ?? {}),
-      commerce: mergeSiteCommerce({
-        ...seoSettings.commerce,
-        ...(patch.seo?.commerce ?? {}),
-      }),
+      commerce: mergeSiteCommerce(patch.seo?.commerce, seoSettings.commerce),
     };
     if (patch.subdomain !== undefined) setSubdomainInput(patch.subdomain);
     if (patch.seo) setSeoSettings(nextSeo);
@@ -929,8 +931,16 @@ export default function ProjectEditorPage() {
     .sort((a, b) => a.sort_order - b.sort_order);
 
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
-  /** Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames. */
-  const wideCanvas = flagshipCanvas || device === "desktop";
+  /**
+   * Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames.
+   *
+   * This must NOT also key off flagshipCanvas — doing so previously forced full-bleed at every
+   * device size for Maylecor/Russian and K-Direction projects, which made the mobile/tablet/desktop
+   * switcher above the canvas a no-op for those projects (switching device changed editDevice-driven
+   * section logic but the canvas never actually resized, so nothing visibly changed). Bug reported by
+   * the user: "the desktop tablet and phone on top of the builder preview doesn't even work."
+   */
+  const wideCanvas = device === "desktop";
 
   return (
     <DataModeProvider>

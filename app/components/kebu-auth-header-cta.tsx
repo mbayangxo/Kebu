@@ -41,9 +41,16 @@ export function KebuAuthHeaderCTA({
 
   return (
     <>
+      {/*
+        Hidden below sm: on a callers's mobile header this pill sits next to "Start" AND a hamburger
+        menu button in the same row, and none of the three shrink or wrap — at common phone widths
+        (~390px) that overflowed the viewport and pushed the menu button off-screen entirely, making
+        the mobile nav unopenable for signed-out visitors. "Sign in" stays reachable from the mobile
+        menu itself (see KebuMarketingHeader's drawer); "Start" is the one CTA that must survive here.
+      */}
       <Link
         href="/login"
-        className={`inline-flex items-center justify-center font-bold uppercase tracking-[0.1em] rounded-full transition-all hover:bg-black/[0.04] px-5 py-2.5 text-[11px] ${signInClassName}`}
+        className={`hidden sm:inline-flex items-center justify-center font-bold uppercase tracking-[0.1em] rounded-full transition-all hover:bg-black/[0.04] px-5 py-2.5 text-[11px] ${signInClassName}`}
         style={{ border: `2px solid ${orange}`, color: orange, background: white }}
       >
         Sign in

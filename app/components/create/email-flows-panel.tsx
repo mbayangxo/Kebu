@@ -108,10 +108,20 @@ function StepCard({
         marginBottom: 8,
       }}
     >
-      {/* Step header */}
+      {/* Step header — a real button (not a div) so keyboard/screen-reader users can expand this
+          step, not just mouse users. The nested delete <button> below still works via stopPropagation. */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
         className="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
         onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setExpanded((v) => !v);
+          }
+        }}
         style={{ userSelect: "none" }}
       >
         <span

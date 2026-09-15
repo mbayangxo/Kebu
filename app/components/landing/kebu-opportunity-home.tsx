@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { KebuMark } from "@/app/components/kebu-mark";
+import { YandeMark } from "@/app/components/yande-mark";
 import { KebuLandingHeroCTA } from "@/app/components/kebu-landing-hero-cta";
 import { KebuMarketingFooter, KebuMarketingHeader } from "@/app/components/landing/kebu-marketing-chrome";
 import { KEBU } from "@/lib/kebu-brand";
@@ -94,47 +96,29 @@ export function KebuOpportunityHome() {
         </div>
       </section>
 
-      <section style={{ background: C.paperSoft, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
-        <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-14">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.orange }}>
-                Live on Kebu now
-              </p>
-              <h2
-                style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05, color: C.ink }}
-                className="font-bold text-[clamp(1.75rem,4vw,2.75rem)]"
-              >
-                Country Explorer. Business ID.
-                <span style={{ color: C.red }}> Site builder.</span>
-              </h2>
-            </div>
-            <p className="text-sm max-w-md leading-relaxed" style={{ color: C.muted }}>
-              We only link what ships. Grants, tenders, maps, and feeds will appear here when they are
-              DB-backed — not as sample pages that look finished.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-3 gap-3">
-            {LIVE_PATHS.map(({ level, href, desc }) => (
-              <Link
-                key={href}
-                href={href}
-                className="group p-5 rounded-2xl transition-all hover:-translate-y-0.5"
-                style={{ background: C.white, border: `1px solid ${C.border}`, boxShadow: "0 8px 24px rgba(255,85,0,0.06)" }}
-              >
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2" style={{ color: C.red }}>
-                  {level}
-                </p>
-                <p className="text-sm leading-snug mb-3" style={{ color: C.ink }}>
-                  {desc}
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] group-hover:underline" style={{ color: C.orange }}>
-                  Open →
-                </p>
-              </Link>
+      {/*
+        Was a full card grid repeating the exact same three LIVE_PATHS entries shown again a few
+        hundred pixels below in the "Three live paths" section — same labels, same links, same copy,
+        just restyled. Collapsed to a single honest status line so the page says it once. Doubles as
+        a dark beat between the cream hero and the cream card grid, closer to how Shopify breaks up
+        long light stretches with a contrasting strip.
+      */}
+      <section style={{ background: C.ink }}>
+        <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-7 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-8">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] shrink-0" style={{ color: C.orangeLight }}>
+            Phase One, shipped
+          </p>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            {["Country Explorer", "Kebu ID", "Site Builder"].map((label, i) => (
+              <span key={label} className="flex items-center gap-2 text-sm font-semibold" style={{ color: C.white }}>
+                {i > 0 && <span style={{ color: "rgba(255,255,255,0.25)" }}>·</span>}
+                {label}
+              </span>
             ))}
           </div>
+          <p className="sm:ml-auto text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+            No waitlist pages for features that don&apos;t exist yet.
+          </p>
         </div>
       </section>
 
@@ -190,6 +174,143 @@ export function KebuOpportunityHome() {
                 <span className="text-xs font-bold uppercase tracking-[0.12em]">Go →</span>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Real product proof — actual working templates from the aesthetic gallery, not stock photography
+          standing in for screenshots. Both are live aesthetics any Kebu user can pick and personalize. */}
+      <section className="py-20 lg:py-28" style={{ background: C.paper }}>
+        <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
+          <div className="mb-12 max-w-2xl">
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.red }}>
+              From the aesthetic gallery
+            </p>
+            <h2
+              style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05 }}
+              className="font-bold text-[clamp(1.75rem,4vw,3rem)] mb-4"
+            >
+              Real templates.
+              <span style={{ color: C.orange }}> Not mockups of a builder.</span>
+            </h2>
+            <p className="text-sm leading-relaxed" style={{ color: C.muted }}>
+              Two of the working aesthetics in the gallery today. Pick one, swap in your own name, photos,
+              and colors, and publish — the layout underneath is the same one you&apos;re looking at.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            <Link
+              href="/create/aesthetics"
+              className="group block rounded-3xl overflow-hidden transition-transform hover:-translate-y-1"
+              style={{ background: "#FFE4F0", border: `1px solid ${C.border}`, boxShadow: "0 8px 24px rgba(10,10,10,0.04)" }}
+            >
+              <div className="relative h-64 sm:h-72 overflow-hidden">
+                <Image
+                  src="/templates/maylecor/hero-collage.png"
+                  alt="Maylecor aesthetic template — artist portrait with a New York City skyline collage"
+                  fill
+                  sizes="(min-width: 640px) 50vw, 100vw"
+                  // This PNG's transparent cutout background survives untouched when served as-is, but
+                  // Next's image optimizer re-encodes transparent PNGs to an indexed (palette) PNG whose
+                  // tRNS transparency chunk Chromium doesn't honor — it renders those pixels using their
+                  // raw (opaque, near-white/gray) palette color instead of as transparent, which looks
+                  // exactly like a checkerboard behind the cutout. Verified by comparing the optimizer's
+                  // output against the original bytes directly. `unoptimized` serves the original file.
+                  unoptimized
+                  className="object-contain object-bottom p-4"
+                />
+              </div>
+              <div className="p-5" style={{ borderTop: `1px solid ${C.border}` }}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1" style={{ color: C.red }}>
+                  Maylecor
+                </p>
+                <p className="text-sm leading-snug" style={{ color: C.ink }}>
+                  Recording-artist template — hero collage, music embeds, tour dates.
+                </p>
+              </div>
+            </Link>
+
+            <Link
+              href="/create/aesthetics"
+              className="group block rounded-3xl overflow-hidden transition-transform hover:-translate-y-1"
+              style={{ background: "#170006", border: `1px solid ${C.border}`, boxShadow: "0 8px 24px rgba(10,10,10,0.04)" }}
+            >
+              <div className="relative h-64 sm:h-72 overflow-hidden">
+                <Image
+                  src="/templates/kdirection/portrait.jpg"
+                  alt="K-Direction aesthetic template — studio portrait on a magenta background"
+                  fill
+                  sizes="(min-width: 640px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-5" style={{ borderTop: `1px solid ${C.border}` }}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1" style={{ color: C.red }}>
+                  K-Direction
+                </p>
+                <p className="text-sm leading-snug" style={{ color: C.ink }}>
+                  Record-label template — roster pages, portrait-forward hero, press kit.
+                </p>
+              </div>
+            </Link>
+          </div>
+
+          <Link
+            href="/create/aesthetics"
+            className="inline-flex items-center gap-2 mt-8 text-sm font-bold uppercase tracking-[0.1em]"
+            style={{ color: C.orange }}
+          >
+            Browse the aesthetic gallery →
+          </Link>
+        </div>
+      </section>
+
+      {/* Yande is a real, shipped feature (app/components/yande-global-fab.tsx) — the starter prompts
+          below are its actual default suggestions, not invented copy. */}
+      <section className="py-20 lg:py-28" style={{ background: C.ink }}>
+        <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="mb-6 inline-flex">
+                <YandeMark size={56} />
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3" style={{ color: C.orangeLight }}>
+                Built into every site
+              </p>
+              <h2
+                style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05, color: C.white }}
+                className="font-bold text-[clamp(1.75rem,4vw,3rem)] mb-4"
+              >
+                Ask Yande instead of guessing.
+              </h2>
+              <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.72)" }}>
+                Yande sits on top of the builder and knows the page you&apos;re on — not a generic help
+                doc. Drag it out of the way, ask a question, keep working.
+              </p>
+            </div>
+
+            <div className="rounded-3xl p-6" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
+                What people actually ask it
+              </p>
+              <div className="space-y-3">
+                {[
+                  "How do I add photos to my music page?",
+                  "How do I connect maylecor.com on Namecheap?",
+                  "How do I change my site colors?",
+                  "What should I publish first?",
+                ].map((q) => (
+                  <p
+                    key={q}
+                    className="text-sm rounded-xl px-4 py-3"
+                    style={{ background: "rgba(255,255,255,0.9)", color: C.ink }}
+                  >
+                    {q}
+                  </p>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -8,7 +8,12 @@ import { LEGALLY_BLONDE_ASSETS } from "./legally-blonde-defaults";
 export const MAYLECOR_SEED_REVISION = "2026-09-10b";
 
 /** Bump when replacing files under /public/templates/maylecor so CDN/browser caches refresh. */
-const MAY_ASSET_V = "20260910b";
+// Bumped: hero-collage.png and may-figure.png were re-exported with real alpha transparency — the
+// previous files had a checkerboard "no background" placeholder baked into their pixels instead of an
+// actual alpha channel, so they rendered with a visible gray/white checker behind the artist cutout and
+// city skyline on every page that uses them (including customer-facing published sites). Bumping the
+// cache-busting query param so CDNs/browsers fetch the corrected files instead of the cached bad ones.
+const MAY_ASSET_V = "20260915a";
 
 function mayAsset(path: string): string {
   return `${path}?v=${MAY_ASSET_V}`;

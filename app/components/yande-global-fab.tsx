@@ -47,7 +47,13 @@ export function YandeGlobalFab({
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const size = variant === "stacked" ? 56 : 64;
-  const [pos, setPos] = useState<FabPos>(() => defaultPos(size));
+  // Always start at the same fixed point the SSR branch of defaultPos() would return — calling
+  // defaultPos(size) here directly (as this used to) computes a real position from `window` on the
+  // client's very first render, before hydration reconciles, while the server rendered the {16,16}
+  // fallback. React logged that as a hydration mismatch on every single page load site-wide (this FAB
+  // is mounted globally). The mount effect below already re-derives the real position immediately
+  // after — it just needs the initial value to match the server's, not to duplicate that work early.
+  const [pos, setPos] = useState<FabPos>({ x: 16, y: 16 });
   const dragRef = useRef<{
     pointerId: number;
     startX: number;

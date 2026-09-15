@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { KebuWordmark } from "@/app/components/kebu-mark";
 import { KebuAuthHeaderCTA } from "@/app/components/kebu-auth-header-cta";
+import { useKebuUser } from "@/app/hooks/use-kebu-user";
 import { KEBU_MARKETING_FOOTER, KEBU_MARKETING_NAV } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
 import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
@@ -18,6 +19,7 @@ const C = {
 
 export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { profile, loading: profileLoading } = useKebuUser();
 
   // Real drawer dismissal: Escape always closes it, on top of the backdrop click already below.
   useEffect(() => {
@@ -105,6 +107,18 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
                 {label}
               </Link>
             ))}
+            {/* Sign in is hidden from the header row below sm: (see KebuAuthHeaderCTA) — surface it
+                here instead of dropping it, and hide it again once the header's own pill takes over. */}
+            {!profileLoading && !profile ? (
+              <Link
+                href="/login"
+                className="sm:hidden block pt-3 text-xs font-bold uppercase tracking-wider"
+                style={{ color: C.orange, borderTop: `1px solid ${C.border}` }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Sign in
+              </Link>
+            ) : null}
           </div>
         </>
       ) : null}
