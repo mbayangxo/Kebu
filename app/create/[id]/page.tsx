@@ -501,6 +501,14 @@ export default function ProjectEditorPage() {
     if (idx < 0 || swapIdx < 0 || swapIdx >= ordered.length) return;
     const a = ordered[idx]!;
     const b = ordered[swapIdx]!;
+    // Apply swap optimistically so the UI updates immediately without a reload
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id === a.id) return { ...s, sort_order: b.sort_order };
+        if (s.id === b.id) return { ...s, sort_order: a.sort_order };
+        return s;
+      }),
+    );
     await Promise.all([
       fetch(`/api/projects/${projectId}/sections`, {
         method: "PATCH",
@@ -515,7 +523,6 @@ export default function ProjectEditorPage() {
         body: JSON.stringify({ sectionId: b.id, sortOrder: a.sort_order }),
       }),
     ]);
-    await load();
   }
 
   function undo() {

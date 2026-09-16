@@ -2307,18 +2307,64 @@ export function SiteRenderer({
             );
           }
           case "footer": {
-            const p = section.props as { text?: string; links?: { label: string; href: string }[]; bgColor?: string; textColor?: string };
+            const p = section.props as {
+              text?: string;
+              links?: { label: string; href: string }[];
+              bgColor?: string;
+              textColor?: string;
+              paddingTop?: number;
+              paddingBottom?: number;
+            };
             const hasCustomBg = Boolean(p.bgColor);
-            return (
+            const ptPx = p.paddingTop ?? 32;
+            const pbPx = p.paddingBottom ?? 32;
+
+            function makeFooterDragHandle(which: "top" | "bottom") {
+              if (!editor?.onPatchSection) return null;
+              return (
+                <div
+                  className="absolute left-0 right-0 z-50 flex cursor-ns-resize items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                  style={{
+                    height: 10,
+                    top: which === "top" ? 0 : undefined,
+                    bottom: which === "bottom" ? 0 : undefined,
+                    background: "rgba(44,110,203,0.3)",
+                  }}
+                  title={which === "top" ? "Drag to change top padding" : "Drag to change bottom padding"}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const startY = e.clientY;
+                    const base = which === "top" ? ptPx : pbPx;
+                    function onMove(ev: MouseEvent) {
+                      const delta = (which === "top" ? -1 : 1) * (ev.clientY - startY);
+                      const next = Math.min(200, Math.max(8, Math.round(base + delta)));
+                      editor!.onPatchSection!(sectionId, which === "top" ? { paddingTop: next } : { paddingBottom: next });
+                    }
+                    function onUp() {
+                      window.removeEventListener("mousemove", onMove);
+                      window.removeEventListener("mouseup", onUp);
+                    }
+                    window.addEventListener("mousemove", onMove);
+                    window.addEventListener("mouseup", onUp);
+                  }}
+                />
+              );
+            }
+
+            return wrap(
               <footer
                 key={key}
-                className={`px-4 sm:px-5 py-8 mt-8 text-center text-sm${hasCustomBg ? "" : " opacity-60"}`}
+                className={`relative px-4 sm:px-5 mt-8 text-center text-sm${hasCustomBg ? "" : " opacity-60"}`}
                 style={{
                   borderTop: "1px solid #E8E6DF",
                   background: p.bgColor || undefined,
                   color: p.textColor || undefined,
+                  paddingTop: ptPx,
+                  paddingBottom: pbPx,
                 }}
               >
+                {makeFooterDragHandle("top")}
                 <p>{p.text}</p>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
                   {(p.links ?? []).map((l) => (
@@ -2327,6 +2373,7 @@ export function SiteRenderer({
                     </a>
                   ))}
                 </div>
+                {makeFooterDragHandle("bottom")}
               </footer>
             );
           }

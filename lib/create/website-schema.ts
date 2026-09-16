@@ -904,6 +904,8 @@ export const sectionPropsSchemas = {
     bgColor: z.string().trim().max(32).optional(),
     textColor: z.string().trim().max(32).optional(),
     hidden: z.boolean().optional(),
+    paddingTop: z.number().int().min(8).max(200).default(32),
+    paddingBottom: z.number().int().min(8).max(200).default(32),
   }),
   "maylecor-home": z.object({
     artistName: z.string().trim().min(1).max(80),
