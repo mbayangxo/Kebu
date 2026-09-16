@@ -76,7 +76,7 @@ const PRODUCTS: Product[] = [
   {
     id: "yande",
     icon: "layers",
-    label: "Yande",
+    label: "Sites",
     href: "/my-sites",
     prefixes: ["/create", "/my-sites"],
     items: [
@@ -111,7 +111,7 @@ const PRODUCTS: Product[] = [
   {
     id: "alkebulan",
     icon: "globe",
-    label: "Alkebulan",
+    label: "Business",
     href: "/b2b",
     prefixes: ["/b2b", "/business", "/messages"],
     items: [
