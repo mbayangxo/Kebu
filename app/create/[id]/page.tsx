@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
 import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
@@ -883,11 +883,16 @@ export default function ProjectEditorPage() {
     },
   };
 
-  const previewDefinition: WebsiteDefinition | null = project
-    ? buildEditorPreviewDefinition({ ...project, seo: seoSettings }, pages, sections, siteChrome)
-    : null;
+  const previewDefinition = useMemo<WebsiteDefinition | null>(
+    () =>
+      project
+        ? buildEditorPreviewDefinition({ ...project, seo: seoSettings }, pages, sections, siteChrome)
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [project, seoSettings, pages, sections, siteChrome],
+  );
 
-  const canvasDefinition = (() => {
+  const canvasDefinition = useMemo(() => {
     if (!aiPreview) return previewDefinition;
     if (aiPreview.sectionChanges.length === 0 || !previewDefinition) {
       return aiPreview.definition;
@@ -897,23 +902,29 @@ export default function ProjectEditorPage() {
       aiPreview.definition,
       [...aiPreview.acceptedSectionIds],
     );
-  })();
+  }, [aiPreview, previewDefinition]);
 
   const previewSiteBase = project?.subdomain ? `/sites/${project.subdomain}` : "";
-  const maylecorRussianLayout = projectUsesMaylecorRussianLayout(
-    project?.description,
-    sections.map((s) => s.section_type),
+
+  const sectionTypes = useMemo(() => sections.map((s) => s.section_type), [sections]);
+
+  const maylecorRussianLayout = useMemo(
+    () => projectUsesMaylecorRussianLayout(project?.description, sectionTypes),
+    [project?.description, sectionTypes],
   );
-  const kdirectionLayout = projectUsesKdirectionLayout(
-    project?.description,
-    sections.map((s) => s.section_type),
+  const kdirectionLayout = useMemo(
+    () => projectUsesKdirectionLayout(project?.description, sectionTypes),
+    [project?.description, sectionTypes],
   );
 
-  const chromeActive =
-    Boolean(siteChrome?.enabled) &&
-    !projectUsesEmbeddedNav(sections.map((s) => s.section_type)) &&
-    !maylecorRussianLayout &&
-    !kdirectionLayout;
+  const chromeActive = useMemo(
+    () =>
+      Boolean(siteChrome?.enabled) &&
+      !projectUsesEmbeddedNav(sectionTypes) &&
+      !maylecorRussianLayout &&
+      !kdirectionLayout,
+    [siteChrome?.enabled, sectionTypes, maylecorRussianLayout, kdirectionLayout],
+  );
 
   useEffect(() => {
     // Keep Sections panel open by default (Shopify theme editor). Only collapse on tiny screens.
@@ -934,10 +945,14 @@ export default function ProjectEditorPage() {
     setLeftPanelOpen(true);
   }
 
-  const editPageSections = sections
-    .filter((s) => s.page_id === editPageId)
-    .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
-    .sort((a, b) => a.sort_order - b.sort_order);
+  const editPageSections = useMemo(
+    () =>
+      sections
+        .filter((s) => s.page_id === editPageId)
+        .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
+        .sort((a, b) => a.sort_order - b.sort_order),
+    [sections, editPageId, chromeActive],
+  );
 
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
   /**
