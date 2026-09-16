@@ -66,17 +66,16 @@ const PRODUCTS: Product[] = [
     icon: "lightning",
     label: "Opportunity",
     href: "/opportunity",
-    prefixes: ["/opportunity", "/ka-score"],
+    prefixes: ["/opportunity"],
     items: [
       { label: "Browse", href: "/opportunity", exact: true },
       { label: "Listings", href: "/opportunity/listings" },
-      { label: "KA Score", href: "/ka-score" },
     ],
   },
   {
     id: "yande",
     icon: "layers",
-    label: "Yande",
+    label: "Sites",
     href: "/my-sites",
     prefixes: ["/create", "/my-sites"],
     items: [
@@ -111,12 +110,13 @@ const PRODUCTS: Product[] = [
   {
     id: "alkebulan",
     icon: "globe",
-    label: "Alkebulan",
+    label: "Business",
     href: "/b2b",
-    prefixes: ["/b2b", "/business", "/messages"],
+    prefixes: ["/b2b", "/business", "/messages", "/ka-score"],
     items: [
       { label: "Marketplace", href: "/b2b", exact: true },
       { label: "My Businesses", href: "/business", exact: true },
+      { label: "KA Score", href: "/ka-score" },
       { label: "Messages", href: "/messages", badgeKey: "messages" },
     ],
   },
