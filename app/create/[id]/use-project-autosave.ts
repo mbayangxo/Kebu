@@ -217,7 +217,10 @@ export function useProjectAutosave<T extends AutosaveSection>({
       chromeSaveTimer.current = null;
     }
     const pending = Array.from(pendingSavesRef.current);
-    if (pending.length === 0) return;
+    if (pending.length === 0) {
+      setSaveState("saved"); // explicit confirmation: nothing was pending, all is saved
+      return;
+    }
     await Promise.all(
       pending.map((key) => {
         if (key.startsWith("section:")) {

@@ -1005,6 +1005,12 @@ export default function ProjectEditorPage() {
         onPublish={() => void publish()}
         onSaveDraft={() => void saveDraftNow()}
         savingDraft={saveState === "saving"}
+        saveLabelColor={
+          saveState === "error" ? "#CC1A1A"
+          : saveState === "unsaved" || saveState === "queued" ? "#D97706"
+          : saveState === "saved" ? "#009E40"
+          : "#8C8C8C"
+        }
         previewHost={project?.subdomain ? `${project.subdomain}.kebu.africa` : undefined}
         pages={pages
           .slice()
