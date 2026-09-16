@@ -9,8 +9,7 @@ import { KebuOfflineBanner } from "@/app/components/kebu-offline-banner";
 import { KebuCommandPalette, CommandPaletteTrigger } from "@/app/components/kebu-command-palette";
 import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
-import { KebuMobileNav } from "@/app/components/kebu-mobile-nav";
-import { DataModeDock, DataModeProvider } from "@/app/components/create/data-mode-provider";
+import { DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
@@ -129,7 +128,6 @@ export function AppShell({
           {/* pb-20 ensures content clears the bottom tab bar on mobile */}
           <main className="flex-1 min-h-0 pb-20 md:pb-8">{children}</main>
         </div>
-        <DataModeDock />
       </div>
     </DataModeProvider>
   );

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
+import { KebuButton, KebuLinkButton } from "@/app/components/kebu-button";
+import { KebuEmptyState } from "@/app/components/kebu-empty-state";
 import { KEBU } from "@/lib/kebu-brand";
 import { formatXof } from "@/lib/shop/commerce-insights";
 
@@ -116,20 +118,12 @@ function ShopCard({ p, stats }: { p: ProjectRow; stats: Pulse | undefined }) {
         </div>
 
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Link
-            href={`/shop/${p.id}?tab=orders`}
-            className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-            style={{ background: KEBU.orange, color: KEBU.white }}
-          >
+          <KebuLinkButton href={`/shop/${p.id}?tab=orders`} variant="primary" size="sm">
             Orders
-          </Link>
-          <Link
-            href={`/shop/${p.id}?tab=overview`}
-            className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-            style={{ background: KEBU.black, color: KEBU.white }}
-          >
+          </KebuLinkButton>
+          <KebuLinkButton href={`/shop/${p.id}?tab=overview`} variant="secondary" size="sm">
             Dashboard
-          </Link>
+          </KebuLinkButton>
         </div>
       </div>
 
@@ -263,29 +257,21 @@ export default function ShopHubPage() {
               </span>
             )}
           </h1>
-          <button onClick={() => void load()} className="text-xs font-bold pb-1" style={{ color: KEBU.orange }}>
+          <KebuButton onClick={() => void load()} variant="ghost" size="xs" style={{ color: KEBU.orange }}>
             Refresh
-          </button>
+          </KebuButton>
         </div>
         <p className="max-w-xl text-sm leading-relaxed mb-5" style={{ color: KEBU.muted }}>
           Each store runs inside a website. Open a dashboard to manage orders, products, and analytics.
         </p>
 
         <div className="flex flex-wrap gap-2 mb-6">
-          <Link
-            href="/create/new?type=store"
-            className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
-            style={{ background: KEBU.orange }}
-          >
+          <KebuLinkButton href="/create/new?type=store" variant="primary" size="sm">
             + New storefront
-          </Link>
-          <Link
-            href="/create"
-            className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-            style={{ background: KEBU.cream, color: KEBU.black, border: `1px solid ${KEBU.border}` }}
-          >
+          </KebuLinkButton>
+          <KebuLinkButton href="/create" variant="outline" size="sm">
             Website builder
-          </Link>
+          </KebuLinkButton>
         </div>
 
         {error && (
@@ -306,41 +292,18 @@ export default function ShopHubPage() {
             {[1, 2].map((n) => <SkeletonCard key={n} />)}
           </ul>
         ) : projects.length === 0 ? (
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}
-          >
-            {/* Shop bag icon */}
-            <svg className="mx-auto mb-4" width="44" height="44" viewBox="0 0 44 44" fill="none">
-              <rect width="44" height="44" rx="14" fill={KEBU.border} />
-              <path
-                d="M16 18h12l-2 10H18L16 18z"
-                stroke={KEBU.muted}
-                strokeWidth="1.5"
-                fill="none"
-                opacity=".6"
-              />
-              <path
-                d="M18.5 18a3.5 3.5 0 017 0"
-                stroke={KEBU.muted}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                fill="none"
-                opacity=".6"
-              />
-            </svg>
-            <p className="font-bold mb-1" style={{ color: KEBU.black }}>No storefront yet</p>
-            <p className="text-sm mb-4 max-w-xs mx-auto" style={{ color: KEBU.muted }}>
-              Create a website and turn on the shop to start selling. Free plan includes up to 50 products.
-            </p>
-            <Link
-              href="/create/new?type=store"
-              className="inline-flex px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider"
-              style={{ background: KEBU.orange, color: KEBU.white }}
-            >
-              Create a storefront
-            </Link>
-          </div>
+          <KebuEmptyState
+            icon={
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={KEBU.muted} strokeWidth="1.5" strokeLinecap="round">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                <path d="M3 6h18" />
+                <path d="M16 10a4 4 0 01-8 0" />
+              </svg>
+            }
+            title="No storefront yet"
+            body="Create a website and turn on the shop to start selling. Free plan includes up to 50 products."
+            action={<KebuLinkButton href="/create/new?type=store" variant="primary" size="sm">Create a storefront</KebuLinkButton>}
+          />
         ) : (
           <ul className="space-y-3">
             {projects.map((p) => (
