@@ -207,6 +207,16 @@ export default function ProjectEditorPage() {
     };
   }, [previewFullscreen]);
 
+  // Escape closes the Yande AI panel when open
+  useEffect(() => {
+    if (!yandeOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setYandeOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [yandeOpen]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);

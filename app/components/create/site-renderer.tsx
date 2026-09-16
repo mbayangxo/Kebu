@@ -1849,8 +1849,7 @@ export function SiteRenderer({
           }
           case "whatsapp": {
             const p = section.props as { label?: string; phone: string; message?: string };
-            const phone = p.phone.replace(/\D/g, "");
-            const href = `https://wa.me/${phone}${p.message ? `?text=${encodeURIComponent(p.message)}` : ""}`;
+            const href = whatsAppOrderHref(p.phone ?? "", p.message ?? "");
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 text-center scroll-mt-20">
                 <a
