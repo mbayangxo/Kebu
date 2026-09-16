@@ -1346,7 +1346,7 @@ export function SiteRenderer({
                         {img ? (
                           <div className="mays-world-moodboard__media" aria-hidden>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img} alt="" />
+                            <img src={img} alt="" loading="lazy" />
                           </div>
                         ) : null}
                         <div className="mays-world-moodboard__copy">
@@ -1870,7 +1870,7 @@ export function SiteRenderer({
             return wrap(
               <figure key={key} className="kebu-section px-5 max-w-4xl mx-auto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.src} alt={p.alt || ""} className="w-full rounded-2xl" />
+                <img src={p.src} alt={p.alt || ""} className="w-full rounded-2xl" loading="lazy" />
                 {p.caption && <figcaption className="text-xs mt-2 opacity-60">{p.caption}</figcaption>}
               </figure>,
             );
@@ -1951,7 +1951,7 @@ export function SiteRenderer({
                     </h2>
                   ) : null}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={first.src} alt={first.alt || ""} className="w-full rounded-2xl object-cover" />
+                  <img src={first.src} alt={first.alt || ""} className="w-full rounded-2xl object-cover" loading="lazy" />
                 </section>,
               );
             }

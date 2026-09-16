@@ -221,7 +221,11 @@ export default function ProjectEditorPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}`, { credentials: "include" });
+      // Fire project and billing fetches in parallel — billing only needs the project ID.
+      const [res, billingRes] = await Promise.all([
+        fetch(`/api/projects/${projectId}`, { credentials: "include" }),
+        fetch(`/api/projects/${projectId}/billing`, { credentials: "include" }),
+      ]);
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
         router.replace(`/login?next=/create/${projectId}`);
@@ -300,7 +304,6 @@ export default function ProjectEditorPage() {
         setSeoSettings((prev) => ({ ...prev, ...(data.project.seo as SiteSeo) }));
       }
 
-      const billingRes = await fetch(`/api/projects/${projectId}/billing`, { credentials: "include" });
       const billingData = await billingRes.json().catch(() => ({}));
       if (billingRes.ok) {
         const tier =
