@@ -183,33 +183,13 @@
 .kebu-data-mode-dock {
   position: fixed;
   right: 0.75rem;
-  top: 0.35rem;
-  bottom: auto;
+  top: 0.4rem;
   z-index: 200;
-  max-width: min(100vw - 1.5rem, 22rem);
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(10, 10, 10, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 8px rgba(10, 10, 10, 0.25);
-  backdrop-filter: blur(10px);
-  transition: border-radius 0.15s ease, padding 0.15s ease;
-}
-
-/* When expanded, switch to card shape below the header */
-.kebu-data-mode-dock:has(.flex-col) {
-  border-radius: 1rem;
-  padding: 0.6rem 0.75rem;
-  top: 3.5rem;
-  background: rgba(255, 251, 247, 0.98);
-  border: 1px solid rgba(10, 10, 10, 0.12);
-  box-shadow: 0 4px 16px rgba(10, 10, 10, 0.12);
 }
 
 @media (min-width: 768px) {
   .kebu-data-mode-dock {
     right: 1rem;
-    top: 0.4rem;
   }
 }
 
