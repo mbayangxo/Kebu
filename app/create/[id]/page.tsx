@@ -2088,7 +2088,8 @@ export default function ProjectEditorPage() {
                               })) as { key: string; label: string }[]),
                             ].map((layer) => {
                               const zMap = (section.props.layerZIndex as Record<string, number>) ?? {};
-                              const z = typeof zMap[layer.key] === "number" ? zMap[layer.key]! : 10;
+                              const hasExplicitZ = typeof zMap[layer.key] === "number";
+                              const z = hasExplicitZ ? zMap[layer.key]! : null;
                               const linkMap = (section.props.layerLinks as Record<string, string>) ?? {};
                               return (
                                 <li
@@ -2099,7 +2100,7 @@ export default function ProjectEditorPage() {
                                   <div className="flex items-center justify-between gap-2">
                                     <span className="truncate text-[11px] font-medium">{layer.label}</span>
                                     <span className="text-[9px] tabular-nums" style={{ color: BUILDER.muted }}>
-                                      z{z}
+                                      {z !== null ? `z${z}` : "auto"}
                                     </span>
                                   </div>
                                   <div className="mt-1 flex flex-wrap gap-1">
@@ -2108,7 +2109,9 @@ export default function ProjectEditorPage() {
                                       className="rounded px-1.5 py-0.5 text-[9px] font-bold"
                                       style={{ border: `1px solid ${BUILDER.border}` }}
                                       onClick={() => {
-                                        const next = Math.min(80, z + 10);
+                                        // If no explicit z yet, jump straight to front (80) so the
+                                        // first "Front" click reliably puts the layer above all others.
+                                        const next = z !== null ? Math.min(80, z + 10) : 80;
                                         const layerZIndex = { ...zMap, [layer.key]: next };
                                         const extras = (
                                           (section.props.extraCutouts as { id?: string; zIndex?: number }[]) ?? []
@@ -2128,7 +2131,9 @@ export default function ProjectEditorPage() {
                                       className="rounded px-1.5 py-0.5 text-[9px] font-bold"
                                       style={{ border: `1px solid ${BUILDER.border}` }}
                                       onClick={() => {
-                                        const next = Math.max(1, z - 10);
+                                        // If no explicit z yet, jump straight to back (1) so the
+                                        // first "Back" click reliably sends the layer behind all others.
+                                        const next = z !== null ? Math.max(1, z - 10) : 1;
                                         const layerZIndex = { ...zMap, [layer.key]: next };
                                         const extras = (
                                           (section.props.extraCutouts as { id?: string; zIndex?: number }[]) ?? []
