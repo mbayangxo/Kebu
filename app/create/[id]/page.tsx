@@ -84,9 +84,9 @@ const YandeAssistant = dynamic(
   { ssr: false },
 );
 
-function SidebarDetails({ title, children, defaultOpen = true }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean }) {
+function SidebarDetails({ title, children, defaultOpen = true, group }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean; group?: string }) {
   return (
-    <details open={defaultOpen} className="group border-b" style={{ borderColor: "#E5E5E5" }}>
+    <details open={defaultOpen} name={group} className="group border-b" style={{ borderColor: "#E5E5E5" }}>
       <summary
         className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 select-none"
         style={{ background: "#F7F7F7" }}
@@ -1686,7 +1686,7 @@ export default function ProjectEditorPage() {
                             Remove
                           </button>
                         </div>
-                      <SidebarDetails title="Content">
+                      <SidebarDetails title="Content" group="section-inspector">
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
@@ -3795,7 +3795,7 @@ export default function ProjectEditorPage() {
                         </p>
                       )}
                       </SidebarDetails>
-                      <SidebarDetails title="Layout & Visibility" defaultOpen={false}>
+                      <SidebarDetails title="Layout & Visibility" defaultOpen={false} group="section-inspector">
                         {/* Section vertical spacing control */}
                         <div className="space-y-1.5">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>

@@ -72,7 +72,7 @@ export function BuilderSiteChromePanel({
 
       {selected && part === "header" ? (
         <div className="space-y-2">
-          <PanelSection title="Brand & Logo">
+          <PanelSection title="Brand & Logo" group="chrome-header">
             <input
               className="w-full text-sm rounded-lg px-2 py-1.5"
               style={{ border: "1px solid #DDE0F0" }}
@@ -118,7 +118,7 @@ export function BuilderSiteChromePanel({
               </button>
             </label>
           </PanelSection>
-          <PanelSection title="Nav links">
+          <PanelSection title="Nav links" group="chrome-header">
             <NavLinksEditor
               links={mapNavLinksForEditor(
                 (headerProps.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
@@ -126,7 +126,7 @@ export function BuilderSiteChromePanel({
               onChange={(links) => onPatch({ links })}
             />
           </PanelSection>
-          <PanelSection title="Nav size">
+          <PanelSection title="Nav size" group="chrome-header">
             <NavSizeEditor
               scale={clampNavScale(headerProps.navScale, 1)}
               size={parseNavSize(headerProps.navSize)}
@@ -139,7 +139,7 @@ export function BuilderSiteChromePanel({
 
       {selected && part === "footer" ? (
         <div className="space-y-2">
-          <PanelSection title="Copyright">
+          <PanelSection title="Copyright" group="chrome-footer">
             <div className="flex gap-1">
               <input
                 className="w-16 text-xs rounded px-2 py-1 shrink-0"
@@ -168,7 +168,7 @@ export function BuilderSiteChromePanel({
               placeholder="Custom text — leave blank to auto-generate"
             />
           </PanelSection>
-          <PanelSection title="Font">
+          <PanelSection title="Font" group="chrome-footer">
             <select
               className="w-full text-xs rounded px-2 py-1"
               style={{ border: "1px solid #DDE0F0", background: "#fff" }}
@@ -185,7 +185,7 @@ export function BuilderSiteChromePanel({
               <option value="'IBM Plex Sans', sans-serif">IBM Plex (modern)</option>
             </select>
           </PanelSection>
-          <PanelSection title="Colors">
+          <PanelSection title="Colors" group="chrome-footer">
             <label className="flex items-center gap-2">
               <span className="text-[10px] uppercase tracking-wider w-16 shrink-0" style={{ color: "#5C5348" }}>Background</span>
               <input
@@ -221,7 +221,7 @@ export function BuilderSiteChromePanel({
               />
             </label>
           </PanelSection>
-          <PanelSection title="Links">
+          <PanelSection title="Links" group="chrome-footer">
             {(footerProps.links ?? []).map((link, i) => (
               <div key={i} className="flex gap-1">
                 <input
