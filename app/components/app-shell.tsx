@@ -27,6 +27,9 @@ function fallbackForPath(pathname: string): string {
     return "/create/aesthetics";
   }
   if (pathname === "/create" || pathname === "/create/") return "/create/aesthetics";
+  // Sub-pages of a specific project (themes, preview, etc.) → back to that project's builder
+  const projectSubpage = pathname.match(/^\/create\/([^/]+)\/.+/);
+  if (projectSubpage) return `/create/${projectSubpage[1]}`;
   if (pathname.startsWith("/create")) return "/create/aesthetics";
   if (pathname.startsWith("/shop")) return "/shop";
   if (pathname.startsWith("/business/")) return "/business";
