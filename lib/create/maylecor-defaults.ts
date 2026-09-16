@@ -82,37 +82,37 @@ export const MAYLECOR_SOCIAL_DEFAULTS = [
     label: "SoundCloud",
     iconUrl:
       "https://static.wixstatic.com/media/e3496b0865884e4ca74ea5377ed41068.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/e3496b0865884e4ca74ea5377ed41068.png",
-    href: "https://soundcloud.com/maylecor",
+    href: "",
   },
   {
     label: "Apple Music",
     iconUrl:
       "https://static.wixstatic.com/media/b2a4e7e9c56a45df9961c749501f1139.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/b2a4e7e9c56a45df9961c749501f1139.png",
-    href: "https://music.apple.com/",
+    href: "",
   },
   {
     label: "Spotify",
     iconUrl:
       "https://static.wixstatic.com/media/e18eec328e7446079b7c7cef09488b18.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/e18eec328e7446079b7c7cef09488b18.png",
-    href: "https://open.spotify.com/",
+    href: "",
   },
   {
     label: "Instagram",
     iconUrl:
       "https://static.wixstatic.com/media/81af6121f84c41a5b4391d7d37fce12a.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/81af6121f84c41a5b4391d7d37fce12a.png",
-    href: "https://instagram.com/maylecor",
+    href: "",
   },
   {
     label: "Facebook",
     iconUrl:
       "https://static.wixstatic.com/media/23fd2a2be53141ed810f4d3dcdcd01fa.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/23fd2a2be53141ed810f4d3dcdcd01fa.png",
-    href: "https://www.facebook.com/maylecor",
+    href: "",
   },
   {
     label: "YouTube",
     iconUrl:
       "https://static.wixstatic.com/media/203dcdc2ac8b48de89313f90d2a4cda1.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/203dcdc2ac8b48de89313f90d2a4cda1.png",
-    href: "https://youtube.com/user/maylecor",
+    href: "",
   },
 ] as const;
 
