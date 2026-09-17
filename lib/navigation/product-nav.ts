@@ -59,7 +59,7 @@ export const PRODUCT_NAV = {
   ] satisfies NavItem[],
 
   /** Continent B2B — not under My KEBU */
-  alkebulan: [{ label: "Alkebulan", href: "/b2b" }] satisfies NavItem[],
+  alkebulan: [{ label: "Business Marketplace", href: "/b2b" }] satisfies NavItem[],
 
   /** @deprecated use myKebu — kept for any leftover imports */
   businessHome: [

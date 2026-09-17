@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -236,46 +237,135 @@ export function DataModeControls({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** Fixed dock for builder / live site / app shell. Collapses to a chip on mobile. */
+const MODE_ICON_COLOR: Record<DataMode, string> = {
+  normal: KEBU.orange,
+  data_saver: "#22C55E",
+  ultra: "#0EA5E9",
+  offline: "#F59E0B",
+};
+
+/** Signal-bars icon — active bar count reflects mode intensity */
+function DataModeSignalIcon({ mode }: { mode: DataMode }) {
+  const c = MODE_ICON_COLOR[mode];
+  const activeMap: Record<DataMode, [boolean, boolean, boolean]> = {
+    normal: [true, true, true],
+    data_saver: [true, true, false],
+    ultra: [true, false, false],
+    offline: [false, false, false],
+  };
+  const active = activeMap[mode];
+  return (
+    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" aria-hidden>
+      <rect x="0.5" y="8.5" width="3" height="5" rx="0.75" fill={c} opacity={active[0] ? 1 : 0.18} />
+      <rect x="5.5" y="5" width="3" height="8.5" rx="0.75" fill={c} opacity={active[1] ? 1 : 0.18} />
+      <rect x="10.5" y="0.5" width="3" height="13" rx="0.75" fill={c} opacity={active[2] ? 1 : 0.18} />
+    </svg>
+  );
+}
+
+/** Fixed icon-button dock — color and bar count change with data mode. */
 export function DataModeDock() {
   const { mode, online } = useDataMode();
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const modeLabel = labelDataMode(mode);
-  const dot = online ? "#22c55e" : "#f97316";
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const color = MODE_ICON_COLOR[mode];
+  const onlineDot = online ? "#22C55E" : "#F59E0B";
 
   return (
-    <div className="kebu-data-mode-dock" aria-label="Data mode">
-      {!expanded ? (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className="flex items-center gap-1.5 text-[10px] font-bold"
-          style={{ color: "#fff" }}
-          aria-label="Expand data mode settings"
+    <div ref={containerRef} className="kebu-data-mode-dock" style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={`Data mode: ${labelDataMode(mode)}. Tap to change.`}
+        aria-expanded={open}
+        title={`${labelDataMode(mode)} — ${online ? "Online" : "Offline"}`}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          width: 36,
+          height: 36,
+          borderRadius: "50%",
+          background: `${color}1A`,
+          border: `1.5px solid ${color}66`,
+          cursor: "pointer",
+          outline: "none",
+          transition: "background 0.2s ease, border-color 0.2s ease",
+          boxShadow: open ? `0 0 0 3px ${color}22` : "none",
+        }}
+      >
+        <DataModeSignalIcon mode={mode} />
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            bottom: 4,
+            right: 4,
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: onlineDot,
+            border: "1.5px solid rgba(10,10,10,0.7)",
+          }}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="dialog"
+          aria-label="Data mode settings"
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "calc(100% + 0.5rem)",
+            zIndex: 10,
+            minWidth: 196,
+            background: "rgba(255,251,247,0.98)",
+            border: "1px solid rgba(10,10,10,0.12)",
+            borderRadius: "1rem",
+            padding: "0.65rem 0.75rem",
+            boxShadow: "0 4px 20px rgba(10,10,10,0.15)",
+            backdropFilter: "blur(10px)",
+            fontFamily: "var(--kebu-ui-font, system-ui, sans-serif)",
+          }}
         >
-          <span
-            className="w-1.5 h-1.5 rounded-full shrink-0"
-            style={{ background: dot }}
-            aria-hidden
-          />
-          {modeLabel}
-          <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden>
-            <path d="M2 4l3 3 3-3" stroke="rgba(255,255,255,0.6)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.black }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                color: KEBU.black,
+              }}
+            >
               Data mode
             </p>
             <button
               type="button"
-              onClick={() => setExpanded(false)}
-              className="text-[11px] font-bold"
-              style={{ color: KEBU.muted }}
-              aria-label="Collapse data mode"
+              onClick={() => setOpen(false)}
+              aria-label="Close"
+              style={{ fontSize: 11, fontWeight: 700, color: KEBU.muted, lineHeight: 1 }}
             >
               ✕
             </button>
