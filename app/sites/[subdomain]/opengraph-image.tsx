@@ -1,7 +1,6 @@
 import { ImageResponse } from "next/og";
 import { loadPublicDeployment } from "@/lib/create/public-site-loader";
 
-export const runtime = "edge";
 export const alt = "Shop preview";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
