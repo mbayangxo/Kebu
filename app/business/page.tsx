@@ -321,21 +321,37 @@ function MySpaceInner() {
                   Nothing urgent. Register a business, build a site, or open a shop when you’re ready to sell.
                 </p>
               ) : (
-                <ul className="space-y-2">
-                  {pulseItems.slice(0, 16).map((u) => (
-                    <li key={u.id}>
-                      <Link href={u.href} className="block rounded-xl px-3 py-2.5 hover:bg-black/[0.03]">
-                        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
-                          {u.kind}
-                          {u.businessName ? ` · ${u.businessName}` : ""}
-                        </span>
-                        <span className="block text-sm font-semibold">{u.title}</span>
-                        <span className="block text-xs mt-0.5" style={{ color: KEBU.muted }}>
-                          {u.body}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
+                <ul className="space-y-1.5">
+                  {pulseItems.slice(0, 16).map((u) => {
+                    const kindColor =
+                      u.kind.toLowerCase().includes("order") ? "#10B981" :
+                      u.kind.toLowerCase().includes("message") ? "#0EA5E9" :
+                      u.kind.toLowerCase().includes("site") ? KEBU.orange :
+                      KEBU.red;
+                    return (
+                      <li key={u.id}>
+                        <Link
+                          href={u.href}
+                          className="flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-black/[0.025]"
+                          style={{ borderLeft: `3px solid ${kindColor}` }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: kindColor }}>
+                              {u.kind}
+                              {u.businessName ? ` · ${u.businessName}` : ""}
+                            </span>
+                            <span className="block text-sm font-semibold leading-tight mt-0.5">{u.title}</span>
+                            <span className="block text-xs mt-0.5 leading-relaxed" style={{ color: KEBU.muted }}>
+                              {u.body}
+                            </span>
+                          </div>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="shrink-0 mt-1.5" style={{ color: KEBU.faint }}>
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                          </svg>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>

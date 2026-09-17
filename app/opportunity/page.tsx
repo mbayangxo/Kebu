@@ -126,11 +126,18 @@ export default function OpportunityOsHubPage() {
         headline="Protected intelligence — verify once"
         subhead="Kebu Opportunity OS personalized matching is for verified Africans. Explore countries and opportunity cards openly while you complete African ID verification."
         heroVisual={
-          <div
-            className="rounded-full w-48 h-48 mx-auto flex items-center justify-center text-5xl"
-            style={{ background: `linear-gradient(135deg, ${KEBU.orange}33, ${KEBU.cream})` }}
-          >
-            🔐
+          <div className="relative w-44 h-44 mx-auto flex items-center justify-center">
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{ background: `radial-gradient(circle at 40% 35%, rgba(255,85,0,0.18), rgba(255,85,0,0.04) 70%)`, border: `1.5px solid rgba(255,85,0,0.15)` }}
+            />
+            <svg width="72" height="72" viewBox="0 0 48 48" fill="none">
+              <path d="M24 4L8 10v14c0 9.94 6.84 19.24 16 22 9.16-2.76 16-12.06 16-22V10L24 4z" fill={`${KEBU.orange}22`} stroke={KEBU.orange} strokeWidth="2" strokeLinejoin="round"/>
+              <path d="M17 24l5 5 9-9" stroke={KEBU.orange} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: KEBU.orange }}>African Access</span>
+            </div>
           </div>
         }
       >
