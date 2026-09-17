@@ -224,15 +224,15 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: KEBU.black }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: KEBU.bright }}>
       <div
         className="pointer-events-none fixed inset-0"
         style={{
-          background: `radial-gradient(ellipse 60% 50% at 85% 5%, rgba(255,85,0,0.22), transparent 55%), radial-gradient(ellipse 45% 40% at 0% 95%, rgba(225,6,0,0.14), transparent 50%)`,
+          background: `radial-gradient(ellipse 60% 50% at 85% 5%, rgba(255,85,0,0.10), transparent 55%), radial-gradient(ellipse 45% 40% at 0% 95%, rgba(225,6,0,0.06), transparent 50%)`,
         }}
         aria-hidden
       />
-      <Suspense fallback={<div className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>Loading…</div>}>
+      <Suspense fallback={<div className="text-sm" style={{ color: KEBU.muted }}>Loading…</div>}>
         <LoginForm />
       </Suspense>
     </div>

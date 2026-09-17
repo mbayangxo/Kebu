@@ -98,22 +98,22 @@ export function KebuOpportunityHome() {
   useScrollReveal();
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: C.ink, color: C.white }}>
+    <div className="min-h-screen flex flex-col" style={{ background: C.paper, color: C.ink }}>
       <KebuMarketingHeader />
 
-      {/* ── Hero — dark, full-bleed ──────────────────────────────────────────── */}
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section
         className="relative min-h-[94svh] overflow-hidden flex flex-col justify-center"
-        style={{ background: C.black }}
+        style={{ background: C.paper }}
       >
         <div
-          className="kebu-landing-orb pointer-events-none absolute -right-24 top-[8%] h-[520px] w-[520px] rounded-full blur-3xl opacity-25 sm:h-[700px] sm:w-[700px]"
-          style={{ background: "radial-gradient(circle, rgba(255,85,0,0.7), transparent 65%)" }}
+          className="kebu-landing-orb pointer-events-none absolute -right-24 top-[8%] h-[520px] w-[520px] rounded-full blur-3xl opacity-[0.12] sm:h-[700px] sm:w-[700px]"
+          style={{ background: "radial-gradient(circle, rgba(255,85,0,0.8), transparent 65%)" }}
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute -left-16 bottom-[12%] h-[340px] w-[340px] rounded-full blur-3xl opacity-15"
-          style={{ background: "radial-gradient(circle, rgba(225,6,0,0.8), transparent 65%)", animationDelay: "4s" }}
+          className="pointer-events-none absolute -left-16 bottom-[12%] h-[340px] w-[340px] rounded-full blur-3xl opacity-[0.08]"
+          style={{ background: "radial-gradient(circle, rgba(225,6,0,0.9), transparent 65%)", animationDelay: "4s" }}
           aria-hidden
         />
 
@@ -127,7 +127,7 @@ export function KebuOpportunityHome() {
             style={{
               fontFamily: "var(--font-fraunces)",
               fontSize: "clamp(3.4rem,12vw,9rem)",
-              color: C.white,
+              color: C.ink,
             }}
           >
             Build your
@@ -137,7 +137,7 @@ export function KebuOpportunityHome() {
 
           <p
             className="kebu-landing-rise kebu-landing-rise-delay-2 text-[clamp(1.05rem,2.4vw,1.3rem)] max-w-xl mb-10 leading-relaxed"
-            style={{ color: "rgba(255,255,255,0.6)" }}
+            style={{ color: C.muted }}
           >
             Find the opportunity. Create your business. Build and publish a real site — all in one place. Made for Africa.
           </p>
@@ -145,8 +145,8 @@ export function KebuOpportunityHome() {
           <div className="kebu-landing-rise kebu-landing-rise-delay-3">
             <KebuLandingHeroCTA
               orange={C.orange}
-              ink={C.white}
-              border="rgba(255,255,255,0.25)"
+              ink={C.ink}
+              border={C.border}
             />
           </div>
 
@@ -159,9 +159,9 @@ export function KebuOpportunityHome() {
                 key={chip}
                 className="text-[10px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 rounded-full"
                 style={{
-                  background: "rgba(255,255,255,0.06)",
-                  color: "rgba(255,255,255,0.55)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: C.white,
+                  color: C.muted,
+                  border: `1px solid ${C.border}`,
                 }}
               >
                 {chip}
@@ -194,18 +194,18 @@ export function KebuOpportunityHome() {
         </div>
       </section>
 
-      {/* ── Three moves / steps — dark ───────────────────────────────────────── */}
-      <section className="py-24 lg:py-32" style={{ background: "#111111" }}>
+      {/* ── Three moves / steps ──────────────────────────────────────────────── */}
+      <section className="py-24 lg:py-32" style={{ background: C.paperSoft }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="kebu-reveal mb-16 max-w-2xl">
             <p
               className="text-[10px] font-bold uppercase tracking-[0.22em] mb-4"
-              style={{ color: C.orangeLight }}
+              style={{ color: C.orange }}
             >
               How it works
             </p>
             <h2
-              style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, color: C.white }}
+              style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, color: C.ink }}
               className="font-bold text-[clamp(2rem,5vw,3.5rem)]"
             >
               Three moves.
@@ -218,31 +218,32 @@ export function KebuOpportunityHome() {
               <Link
                 key={num}
                 href={href}
-                className="kebu-reveal group block rounded-3xl p-8 transition-colors hover:bg-white/[0.06]"
+                className="kebu-reveal group block rounded-3xl p-8 transition-colors hover:shadow-md"
                 style={{
                   transitionDelay: `${i * 0.1}s`,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.09)",
+                  background: C.white,
+                  border: `1px solid ${C.border}`,
+                  boxShadow: "0 2px 8px rgba(10,10,10,0.04)",
                 }}
               >
                 <p
                   className="font-black text-[3.2rem] leading-none mb-6 tabular-nums"
-                  style={{ color: "rgba(255,85,0,0.3)", fontFamily: "var(--font-fraunces)" }}
+                  style={{ color: "rgba(255,85,0,0.2)", fontFamily: "var(--font-fraunces)" }}
                 >
                   {num}
                 </p>
                 <h3
-                  style={{ fontFamily: "var(--font-fraunces)", color: C.white }}
+                  style={{ fontFamily: "var(--font-fraunces)", color: C.ink }}
                   className="font-bold text-xl mb-3"
                 >
                   {title}
                 </h3>
-                <p className="text-sm leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>
+                <p className="text-sm leading-relaxed mb-6" style={{ color: C.muted }}>
                   {desc}
                 </p>
                 <span
                   className="text-xs font-bold uppercase tracking-[0.12em] transition-colors group-hover:text-[#FF5500]"
-                  style={{ color: "rgba(255,255,255,0.35)" }}
+                  style={{ color: C.faint }}
                 >
                   Start here →
                 </span>
@@ -252,20 +253,20 @@ export function KebuOpportunityHome() {
         </div>
       </section>
 
-      {/* ── Stats + West Africa map ──────────────────────────────────────────── */}
-      <section className="py-24 lg:py-32" style={{ background: C.black }}>
+      {/* ── Stats + West Africa ──────────────────────────────────────────────── */}
+      <section className="py-24 lg:py-32" style={{ background: C.paper }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
               <div className="kebu-reveal mb-10">
                 <p
                   className="text-[10px] font-bold uppercase tracking-[0.22em] mb-4"
-                  style={{ color: C.orangeLight }}
+                  style={{ color: C.orange }}
                 >
                   Built for Africa
                 </p>
                 <h2
-                  style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, color: C.white }}
+                  style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, color: C.ink }}
                   className="font-bold text-[clamp(2rem,5vw,3.2rem)]"
                 >
                   Africa is the
@@ -280,8 +281,9 @@ export function KebuOpportunityHome() {
                     className="kebu-reveal rounded-2xl p-6"
                     style={{
                       transitionDelay: `${i * 0.1}s`,
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
+                      background: C.white,
+                      border: `1px solid ${C.border}`,
+                      boxShadow: "0 2px 8px rgba(10,10,10,0.04)",
                     }}
                   >
                     <p
@@ -292,7 +294,7 @@ export function KebuOpportunityHome() {
                     </p>
                     <p
                       className="text-[10px] uppercase tracking-[0.14em]"
-                      style={{ color: "rgba(255,255,255,0.4)" }}
+                      style={{ color: C.faint }}
                     >
                       {label}
                     </p>
@@ -304,7 +306,7 @@ export function KebuOpportunityHome() {
             <div className="kebu-reveal" style={{ transitionDelay: "0.15s" }}>
               <p
                 className="text-[10px] font-bold uppercase tracking-[0.22em] mb-5"
-                style={{ color: "rgba(255,255,255,0.35)" }}
+                style={{ color: C.faint }}
               >
                 West Africa — our home
               </p>
@@ -314,20 +316,20 @@ export function KebuOpportunityHome() {
                     key={country}
                     className="rounded-xl px-2 py-2.5 text-center"
                     style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.07)",
+                      background: C.white,
+                      border: `1px solid ${C.border}`,
                     }}
                   >
                     <p
                       className="text-[9px] font-semibold leading-tight"
-                      style={{ color: "rgba(255,255,255,0.45)" }}
+                      style={{ color: C.muted }}
                     >
                       {country}
                     </p>
                   </div>
                 ))}
               </div>
-              <p className="mt-5 text-[11px]" style={{ color: "rgba(255,255,255,0.25)" }}>
+              <p className="mt-5 text-[11px]" style={{ color: C.faint }}>
                 Dakar-built · XOF native · Mobile money first
               </p>
             </div>
@@ -335,8 +337,8 @@ export function KebuOpportunityHome() {
         </div>
       </section>
 
-      {/* ── Template gallery — light section ────────────────────────────────── */}
-      <section className="py-24 lg:py-32" style={{ background: C.paper }}>
+      {/* ── Template gallery ─────────────────────────────────────────────────── */}
+      <section className="py-24 lg:py-32" style={{ background: C.paperSoft }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="kebu-reveal mb-12 max-w-2xl">
             <p
@@ -433,18 +435,18 @@ export function KebuOpportunityHome() {
         </div>
       </section>
 
-      {/* ── Builder stories / use cases — dark ──────────────────────────────── */}
-      <section className="py-24 lg:py-32" style={{ background: "#111111" }}>
+      {/* ── Builder stories / use cases ──────────────────────────────────────── */}
+      <section className="py-24 lg:py-32" style={{ background: C.paper }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="kebu-reveal mb-14">
             <p
               className="text-[10px] font-bold uppercase tracking-[0.22em] mb-4"
-              style={{ color: C.orangeLight }}
+              style={{ color: C.orange }}
             >
               What builders do with it
             </p>
             <h2
-              style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, color: C.white }}
+              style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, color: C.ink }}
               className="font-bold text-[clamp(1.75rem,4vw,3rem)]"
             >
               Made for the
@@ -459,8 +461,9 @@ export function KebuOpportunityHome() {
                 className="kebu-reveal rounded-3xl p-7"
                 style={{
                   transitionDelay: `${i * 0.1}s`,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.09)",
+                  background: C.white,
+                  border: `1px solid ${C.border}`,
+                  boxShadow: "0 2px 8px rgba(10,10,10,0.04)",
                 }}
               >
                 <p
@@ -471,22 +474,22 @@ export function KebuOpportunityHome() {
                 </p>
                 <p
                   className="text-base leading-relaxed mb-6"
-                  style={{ color: "rgba(255,255,255,0.8)" }}
+                  style={{ color: C.ink }}
                 >
                   &ldquo;{story}&rdquo;
                 </p>
                 <div className="flex items-center gap-3">
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                    style={{ background: "rgba(255,85,0,0.18)", color: C.orange }}
+                    style={{ background: `${C.orange}18`, color: C.orange }}
                   >
                     {role[0]}
                   </div>
                   <div>
-                    <p className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.65)" }}>
+                    <p className="text-xs font-semibold" style={{ color: C.ink }}>
                       {role}
                     </p>
-                    <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                    <p className="text-[10px]" style={{ color: C.faint }}>
                       {city}
                     </p>
                   </div>
@@ -498,7 +501,7 @@ export function KebuOpportunityHome() {
       </section>
 
       {/* ── Yande AI ─────────────────────────────────────────────────────────── */}
-      <section className="py-24 lg:py-32" style={{ background: C.black }}>
+      <section className="py-24 lg:py-32" style={{ background: C.paperSoft }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="kebu-reveal">
@@ -507,17 +510,17 @@ export function KebuOpportunityHome() {
               </div>
               <p
                 className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3"
-                style={{ color: C.orangeLight }}
+                style={{ color: C.orange }}
               >
                 Built into every site
               </p>
               <h2
-                style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05, color: C.white }}
+                style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05, color: C.ink }}
                 className="font-bold text-[clamp(1.75rem,4vw,3rem)] mb-4"
               >
                 Ask Yande instead of guessing.
               </h2>
-              <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+              <p className="text-sm leading-relaxed" style={{ color: C.muted }}>
                 Yande sits inside the builder and knows the page you&apos;re editing. Drag it out of the way, ask a question, keep building.
               </p>
             </div>
@@ -526,13 +529,14 @@ export function KebuOpportunityHome() {
               className="kebu-reveal rounded-3xl p-6"
               style={{
                 transitionDelay: "0.12s",
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: C.white,
+                border: `1px solid ${C.border}`,
+                boxShadow: "0 2px 8px rgba(10,10,10,0.04)",
               }}
             >
               <p
                 className="text-[10px] font-bold uppercase tracking-[0.18em] mb-4"
-                style={{ color: "rgba(255,255,255,0.35)" }}
+                style={{ color: C.faint }}
               >
                 What builders actually ask
               </p>
@@ -546,7 +550,7 @@ export function KebuOpportunityHome() {
                   <p
                     key={q}
                     className="text-sm rounded-xl px-4 py-3"
-                    style={{ background: "rgba(255,255,255,0.9)", color: C.black }}
+                    style={{ background: C.paperSoft, color: C.black, border: `1px solid ${C.border}` }}
                   >
                     {q}
                   </p>
