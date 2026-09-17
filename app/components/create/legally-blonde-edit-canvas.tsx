@@ -139,12 +139,21 @@ export function LegallyBlondeEditCanvas({
   const layerZ = (props.layerZIndex as Record<string, number>) ?? {};
 
   function bumpLayer(key: string, dir: "front" | "back") {
-    const current = typeof layerZ[key] === "number" ? layerZ[key]! : 10;
-    const next = dir === "front" ? Math.min(80, current + 10) : Math.max(1, current - 10);
+    // Collect z-indexes of ALL other layers so we can truly move to front/back
+    const allSlotKeys = DEFAULT_SLOTS.map((s) => s.key);
+    const allExtraIds = Array.isArray(props.extraCutouts)
+      ? (props.extraCutouts as { id?: string }[]).map((c) => c.id ?? "")
+      : [];
+    const otherKeys = [...allSlotKeys, ...allExtraIds].filter((k) => k && k !== key);
+    const othersZ = otherKeys.map((k) => (typeof layerZ[k] === "number" ? layerZ[k]! : 10));
+    const maxOther = othersZ.length > 0 ? Math.max(...othersZ) : 10;
+    const minOther = othersZ.length > 0 ? Math.min(...othersZ) : 10;
+    // Bring to Front = above everyone; Send to Back = below everyone
+    const next = dir === "front" ? Math.min(79, maxOther + 10) : Math.max(1, minOther - 1);
     const nextMap = { ...layerZ, [key]: next };
     const extras = Array.isArray(props.extraCutouts)
       ? (props.extraCutouts as { id?: string; zIndex?: number }[]).map((c) =>
-          c.id === key ? { ...c, zIndex: Math.min(40, next) } : c,
+          c.id === key ? { ...c, zIndex: next } : c,
         )
       : props.extraCutouts;
     onPatch({
@@ -673,6 +682,14 @@ function CutoutChip({
 }) {
   const moved = useRef(false);
   const [pulsing, setPulsing] = useState(false);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    window.addEventListener("pointerdown", close);
+    return () => window.removeEventListener("pointerdown", close);
+  }, [ctxMenu]);
 
   const baseRotate = slot.rotate ?? 0;
   const scrollTransform =
@@ -860,6 +877,7 @@ function CutoutChip({
         e.preventDefault();
         e.stopPropagation();
         onSelect();
+        setCtxMenu({ x: e.clientX, y: e.clientY });
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -876,74 +894,31 @@ function CutoutChip({
             : `Drag to move ${slot.label} · corners to resize · double-click to change photo`
       }
     >
-      {(selected || titleEditing) && (onReplaceImage || onDelete || onLinkChange) ? (
+      {/* Right-click context menu — position: fixed so it escapes overflow:hidden */}
+      {ctxMenu ? (
         <div
           data-chip-toolbar="1"
-          className="absolute -top-14 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-1"
+          className="fixed z-[200] flex min-w-[168px] flex-col overflow-hidden rounded-xl bg-white py-1 shadow-2xl"
+          style={{ left: ctxMenu.x + 4, top: ctxMenu.y - 4 }}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex gap-1 whitespace-nowrap">
-            {titleText !== null ? (
-              <button
-                type="button"
-                className="rounded-md bg-[#0F0D33] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow"
-                onClick={() => onStartTitleEdit?.()}
-              >
-                Type
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="rounded-md bg-[#0F0D33] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow"
-                onClick={() => onReplaceImage?.()}
-              >
-                Change
-              </button>
-            )}
-            {href.trim() ? (
-              <button
-                type="button"
-                className="rounded-md bg-[#E9006B] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow"
-                onClick={() => onOpenLink?.()}
-              >
-                Open
-              </button>
-            ) : null}
-            {onDelete ? (
-              <button
-                type="button"
-                className="rounded-md bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-red-600 shadow"
-                onClick={() => onDelete()}
-              >
-                Delete
-              </button>
-            ) : null}
-            {onBringFront ? (
-              <button
-                type="button"
-                className="rounded-md bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#0F0D33] shadow"
-                onClick={() => onBringFront()}
-                title="Bring to front"
-              >
-                Front
-              </button>
-            ) : null}
-            {onSendBack ? (
-              <button
-                type="button"
-                className="rounded-md bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#0F0D33] shadow"
-                onClick={() => onSendBack()}
-                title="Send to back"
-              >
-                Back
-              </button>
-            ) : null}
-          </div>
-          {onLinkChange ? (
-            <p className="max-w-[220px] text-center text-[8px] font-semibold uppercase tracking-wider text-white/80">
-              Set link in left Sections panel
-            </p>
+          {titleText !== null ? (
+            <CtxItem onClick={() => { onStartTitleEdit?.(); setCtxMenu(null); }}>Type name</CtxItem>
+          ) : (
+            <CtxItem onClick={() => { onReplaceImage?.(); setCtxMenu(null); }}>Replace photo</CtxItem>
+          )}
+          {href.trim() ? (
+            <CtxItem onClick={() => { onOpenLink?.(); setCtxMenu(null); }}>Open link</CtxItem>
+          ) : null}
+          {onBringFront ? (
+            <CtxItem onClick={() => { onBringFront(); setCtxMenu(null); }}>Bring to Front</CtxItem>
+          ) : null}
+          {onSendBack ? (
+            <CtxItem onClick={() => { onSendBack(); setCtxMenu(null); }}>Send to Back</CtxItem>
+          ) : null}
+          {onDelete ? (
+            <CtxItem danger onClick={() => { onDelete(); setCtxMenu(null); }}>Delete</CtxItem>
           ) : null}
         </div>
       ) : null}
@@ -958,30 +933,46 @@ function CutoutChip({
               color={accentColor}
               spinning={!selected && !titleEditing}
             />
-            {titleEditing ? (
-              <div
-                data-title-edit="1"
-                className="absolute inset-0 z-20 flex items-center justify-center p-[22%]"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <input
-                  ref={titleInputRef}
-                  autoFocus
-                  className="w-full bg-transparent text-center text-[11px] font-black uppercase tracking-[0.14em] text-white caret-white outline-none sm:text-sm"
-                  style={{ textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}
-                  value={titleText}
-                  placeholder="YOUR NAME"
-                  aria-label="Type your name"
-                  onChange={(e) => onTitleChange?.(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === "Escape") {
-                      e.preventDefault();
-                      onEndTitleEdit?.();
-                    }
+            {/* Center content — name text always visible; input swaps in when editing */}
+            <div className="absolute inset-0 z-20 flex items-center justify-center p-[22%]">
+              {titleEditing ? (
+                <div
+                  data-title-edit="1"
+                  className="w-full"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <input
+                    ref={titleInputRef}
+                    autoFocus
+                    className="w-full bg-transparent text-center text-[11px] font-black uppercase tracking-[0.14em] text-white caret-white outline-none sm:text-sm"
+                    style={{ textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}
+                    value={titleText}
+                    placeholder="YOUR NAME"
+                    aria-label="Type your name"
+                    onChange={(e) => onTitleChange?.(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === "Escape") {
+                        e.preventDefault();
+                        onEndTitleEdit?.();
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <p
+                  className="pointer-events-none w-full break-words text-center font-black uppercase text-white"
+                  style={{
+                    fontSize: "clamp(6px, 11%, 11px)",
+                    letterSpacing: "0.12em",
+                    lineHeight: 1.15,
+                    textShadow: "0 1px 8px rgba(0,0,0,0.55)",
+                    fontFamily: "Impact, Arial Black, Helvetica, sans-serif",
                   }}
-                />
-              </div>
-            ) : null}
+                >
+                  {titleText || "MAY LECOR"}
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
@@ -1041,5 +1032,26 @@ function CutoutChip({
         />
       )}
     </div>
+  );
+}
+
+function CtxItem({
+  onClick,
+  danger = false,
+  children,
+}: {
+  onClick: () => void;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[12px] font-semibold tracking-tight hover:bg-gray-50 active:bg-gray-100"
+      style={{ color: danger ? "#DC2626" : "#111111" }}
+      onClick={onClick}
+    >
+      {children}
+    </button>
   );
 }

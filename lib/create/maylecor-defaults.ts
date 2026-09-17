@@ -8,7 +8,12 @@ import { LEGALLY_BLONDE_ASSETS } from "./legally-blonde-defaults";
 export const MAYLECOR_SEED_REVISION = "2026-09-10b";
 
 /** Bump when replacing files under /public/templates/maylecor so CDN/browser caches refresh. */
-const MAY_ASSET_V = "20260910b";
+// Bumped: hero-collage.png and may-figure.png were re-exported with real alpha transparency — the
+// previous files had a checkerboard "no background" placeholder baked into their pixels instead of an
+// actual alpha channel, so they rendered with a visible gray/white checker behind the artist cutout and
+// city skyline on every page that uses them (including customer-facing published sites). Bumping the
+// cache-busting query param so CDNs/browsers fetch the corrected files instead of the cached bad ones.
+const MAY_ASSET_V = "20260915a";
 
 function mayAsset(path: string): string {
   return `${path}?v=${MAY_ASSET_V}`;
@@ -77,37 +82,37 @@ export const MAYLECOR_SOCIAL_DEFAULTS = [
     label: "SoundCloud",
     iconUrl:
       "https://static.wixstatic.com/media/e3496b0865884e4ca74ea5377ed41068.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/e3496b0865884e4ca74ea5377ed41068.png",
-    href: "https://soundcloud.com/maylecor",
+    href: "",
   },
   {
     label: "Apple Music",
     iconUrl:
       "https://static.wixstatic.com/media/b2a4e7e9c56a45df9961c749501f1139.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/b2a4e7e9c56a45df9961c749501f1139.png",
-    href: "https://music.apple.com/",
+    href: "",
   },
   {
     label: "Spotify",
     iconUrl:
       "https://static.wixstatic.com/media/e18eec328e7446079b7c7cef09488b18.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/e18eec328e7446079b7c7cef09488b18.png",
-    href: "https://open.spotify.com/",
+    href: "",
   },
   {
     label: "Instagram",
     iconUrl:
       "https://static.wixstatic.com/media/81af6121f84c41a5b4391d7d37fce12a.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/81af6121f84c41a5b4391d7d37fce12a.png",
-    href: "https://instagram.com/maylecor",
+    href: "",
   },
   {
     label: "Facebook",
     iconUrl:
       "https://static.wixstatic.com/media/23fd2a2be53141ed810f4d3dcdcd01fa.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/23fd2a2be53141ed810f4d3dcdcd01fa.png",
-    href: "https://www.facebook.com/maylecor",
+    href: "",
   },
   {
     label: "YouTube",
     iconUrl:
       "https://static.wixstatic.com/media/203dcdc2ac8b48de89313f90d2a4cda1.png/v1/fill/w_61,h_61,al_c,q_85,enc_auto/203dcdc2ac8b48de89313f90d2a4cda1.png",
-    href: "https://youtube.com/user/maylecor",
+    href: "",
   },
 ] as const;
 

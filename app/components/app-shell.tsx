@@ -12,6 +12,7 @@ import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
 import { DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
+import { ToastProvider } from "@/app/components/kebu/toast";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import "@/app/components/create/kebu-site-responsive.css";
 
@@ -25,6 +26,9 @@ function fallbackForPath(pathname: string): string {
     return "/create/aesthetics";
   }
   if (pathname === "/create" || pathname === "/create/") return "/create/aesthetics";
+  // Sub-pages of a specific project (themes, preview, etc.) → back to that project's builder
+  const projectSubpage = pathname.match(/^\/create\/([^/]+)\/.+/);
+  if (projectSubpage) return `/create/${projectSubpage[1]}`;
   if (pathname.startsWith("/create")) return "/create/aesthetics";
   if (pathname.startsWith("/shop")) return "/shop";
   if (pathname.startsWith("/business/")) return "/business";

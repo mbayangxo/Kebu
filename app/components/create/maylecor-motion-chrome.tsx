@@ -74,6 +74,28 @@ export function MaylecorMotionChrome({
     setLocale(stored);
   }, []);
 
+  // The dropdown items below open on hover (desktop) as well as tap (touch). Touch devices never fire
+  // `mouseleave`, so relying on it alone left a menu opened by tap with no way to close except finding
+  // and re-tapping the exact same trigger. Add the two standard dismissals — tap/click outside, and
+  // Escape — so it can always be closed regardless of input type.
+  useEffect(() => {
+    if (!openMenu) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-maylecor-nav-item]")) return;
+      setOpenMenu(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenMenu(null);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [openMenu]);
+
   const pickLocale = (code: MaylecorLocale) => {
     setLocale(code);
     localStorage.setItem(MAYLECOR_LOCALE_STORAGE_KEY, code);
@@ -259,6 +281,7 @@ export function MaylecorMotionChrome({
     return (
       <div
         key={key}
+        data-maylecor-nav-item
         className="relative"
         onMouseEnter={() => setOpenMenu(key)}
         onMouseLeave={() => setOpenMenu(null)}

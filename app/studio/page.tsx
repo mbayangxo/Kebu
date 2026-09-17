@@ -141,7 +141,7 @@ export default async function StudioHomePage() {
             className="text-3xl lg:text-5xl font-black text-white leading-tight mb-3"
             style={{ fontFamily: "var(--font-fraunces)" }}
           >
-            Design for Africa&apos;s<br className="hidden sm:block" /> best brands.
+            Design that makes<br className="hidden sm:block" /> your brand unforgettable.
           </h1>
           <p className="text-sm lg:text-base max-w-xl mb-8" style={{ color: "rgba(255,255,255,0.6)" }}>
             Posters, social, flyers, brand kits — all in one workspace. Create from blank, a template, or let AI do the heavy lifting.

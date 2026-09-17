@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import { CreateShell } from "@/app/components/create/create-shell";
 import { buildDefinitionFromProjectParts } from "@/lib/create/editor-definition";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
+
+// postMessage protocol between the Builder canvas iframe and page.tsx
+type PreviewInboundMsg =
+  | { type: "kebu:definition:update"; definition: WebsiteDefinition; pageSlug: string }
+  | { type: "kebu:definition:request" };
 
 function ProjectPreviewInner() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +24,9 @@ function ProjectPreviewInner() {
   const [subdomain, setSubdomain] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  // When embedded in the Builder's device preview iframe, track whether we're using the parent's
+  // live definition (via postMessage) or the fetched saved one.
+  const parentDefinitionRef = useRef<WebsiteDefinition | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +46,10 @@ function ProjectPreviewInner() {
       if (!cancelled) {
         setPages(pageRows);
         setSubdomain(data.project?.subdomain ?? null);
-        setDefinition(buildDefinitionFromProjectParts(data.project, pageRows, sections));
+        // Only use the fetched definition if the parent hasn't already pushed a live one
+        if (!parentDefinitionRef.current) {
+          setDefinition(buildDefinitionFromProjectParts(data.project, pageRows, sections));
+        }
         if (pageRows[0]?.slug) setPreviewPageSlug(pageRows[0].slug);
       }
     }
@@ -47,6 +58,29 @@ function ProjectPreviewInner() {
       cancelled = true;
     };
   }, [id, router]);
+
+  // In embed mode: receive the Builder's live definition via postMessage so the iframe always
+  // shows the current editing state (not just the last saved/autosaved state).
+  useEffect(() => {
+    if (!embed) return;
+    function onMessage(e: MessageEvent) {
+      // Only accept messages from our own origin
+      if (e.origin !== window.location.origin) return;
+      const msg = e.data as PreviewInboundMsg;
+      if (msg?.type === "kebu:definition:update") {
+        parentDefinitionRef.current = msg.definition;
+        setDefinition(msg.definition);
+        setPreviewPageSlug(msg.pageSlug);
+      } else if (msg?.type === "kebu:definition:request") {
+        // Parent is asking us to signal readiness again (e.g. after a page change)
+        window.parent.postMessage({ type: "kebu:preview:ready" }, window.location.origin);
+      }
+    }
+    window.addEventListener("message", onMessage);
+    // Tell the parent we are ready to receive the live definition
+    window.parent.postMessage({ type: "kebu:preview:ready" }, window.location.origin);
+    return () => window.removeEventListener("message", onMessage);
+  }, [embed]);
 
   if (embed) {
     return (

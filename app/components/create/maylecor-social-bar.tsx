@@ -25,10 +25,9 @@ export function MaylecorSocialBar({
   variant?: "pill" | "rail" | "footer";
   className?: string;
 }) {
-  const items =
-    links == null
-      ? MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s }))
-      : links.filter((l) => String(l.href ?? "").trim() && String(l.href) !== "#");
+  const items = (
+    links == null ? MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s })) : links
+  ).filter((l) => String(l.href ?? "").trim() && String(l.href) !== "#");
 
   if (!items.length) return null;
 

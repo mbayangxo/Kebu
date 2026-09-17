@@ -23,215 +23,14 @@ export function isSitePublished(p: MySiteProject): boolean {
   return Boolean(p.published_at) || p.status === "published" || p.status === "live";
 }
 
-type Device = "desktop" | "tablet" | "mobile";
-
-const DEVICES: {
-  id: Device;
-  label: string;
-  width: number;
-  height: number;
-  radius: number;
-}[] = [
-  { id: "desktop", label: "Desktop", width: 1280, height: 800, radius: 10 },
-  { id: "tablet", label: "Tablet", width: 768, height: 1024, radius: 14 },
-  { id: "mobile", label: "Phone", width: 390, height: 844, radius: 20 },
-];
-
-type HealthState = {
-  status: "checking" | "ok" | "slow" | "fail" | "missing";
-  loadMs: number | null;
-  httpStatus: number | null;
-  message: string;
-};
-
 function previewSrc(p: MySiteProject): string | null {
+  if (!isSitePublished(p)) {
+    return `/create/${p.id}/preview?embed=1`;
+  }
   if (p.subdomain?.trim()) {
     return kebuSitePreviewPath(p.subdomain) ?? `/sites/${p.subdomain.trim().toLowerCase()}`;
   }
   return `/create/${p.id}/preview?embed=1`;
-}
-
-function speedLabel(ms: number | null): string {
-  if (ms == null) return "—";
-  if (ms < 1000) return `${ms} ms`;
-  return `${(ms / 1000).toFixed(1)} s`;
-}
-
-function healthTone(status: HealthState["status"]): { bg: string; color: string; label: string } {
-  switch (status) {
-    case "ok":
-      return { bg: "rgba(0,200,81,0.15)", color: "#009E40", label: "Healthy" };
-    case "slow":
-      return { bg: "rgba(255,85,0,0.15)", color: "#C2410C", label: "Slow" };
-    case "fail":
-      return { bg: "#FFF1F0", color: "#8B1E1E", label: "Failing" };
-    case "missing":
-      return { bg: "rgba(0,0,0,0.06)", color: KEBU.muted, label: "No preview" };
-    default:
-      return { bg: "rgba(0,0,0,0.06)", color: KEBU.muted, label: "Checking…" };
-  }
-}
-
-/** One device preview inside the site card — switch Desktop / Tablet / Phone in-frame. */
-function InCardDevicePreview({
-  src,
-  title,
-  device,
-  onDevice,
-  onFrameLoad,
-  onFrameError,
-  active,
-  tall,
-}: {
-  src: string | null;
-  title: string;
-  device: Device;
-  onDevice: (d: Device) => void;
-  onFrameLoad: (ms: number) => void;
-  onFrameError: () => void;
-  active: boolean;
-  /** Live sites get a slightly taller preview. */
-  tall: boolean;
-}) {
-  const spec = DEVICES.find((d) => d.id === device) ?? DEVICES[0]!;
-  const shellRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.18);
-  const [ready, setReady] = useState(false);
-  const startRef = useRef<number | null>(null);
-  const chromeH = device === "desktop" ? 22 : 12;
-  const slotH = tall ? 200 : 148;
-
-  useEffect(() => {
-    const el = shellRef.current;
-    if (!el) return;
-    const measure = () => {
-      const w = el.clientWidth;
-      const h = el.clientHeight - chromeH;
-      if (w <= 0 || h <= 0) return;
-      setScale(Math.min(w / spec.width, h / spec.height));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [spec.width, spec.height, chromeH, slotH]);
-
-  useEffect(() => {
-    setReady(false);
-    startRef.current = null;
-  }, [src, device]);
-
-  return (
-    <div className="w-full">
-      <div
-        className="mb-2 flex items-center justify-center gap-0.5 rounded-md p-0.5"
-        style={{ background: "rgba(0,0,0,0.06)" }}
-        role="group"
-        aria-label="Preview device"
-      >
-        {DEVICES.map((d) => (
-          <button
-            key={d.id}
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onDevice(d.id);
-            }}
-            className="rounded px-2 py-1 text-[9px] font-bold uppercase tracking-wider"
-            style={{
-              background: device === d.id ? "#fff" : "transparent",
-              color: device === d.id ? KEBU.black : KEBU.muted,
-              boxShadow: device === d.id ? "0 0 0 1px rgba(0,0,0,0.08)" : "none",
-            }}
-            aria-pressed={device === d.id}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
-
-      <div
-        ref={shellRef}
-        className="relative mx-auto w-full overflow-hidden bg-white"
-        style={{
-          height: slotH,
-          maxWidth: device === "mobile" ? 120 : device === "tablet" ? 160 : "100%",
-          borderRadius: spec.radius,
-          border: `1.5px solid ${KEBU.black}`,
-        }}
-      >
-        {device === "desktop" ? (
-          <div
-            className="flex items-center gap-1 px-2"
-            style={{ height: chromeH, background: "#F3F0EB", borderBottom: `1px solid ${KEBU.border}` }}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#FF5F57]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#FEBC2E]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#28C840]" />
-            <span
-              className="ml-1 flex-1 truncate rounded-sm px-1 text-[6px]"
-              style={{ background: "#fff", color: KEBU.muted, lineHeight: `${chromeH - 8}px` }}
-            >
-              {title}
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center" style={{ height: chromeH }}>
-            <span className="h-0.5 w-8 rounded-full bg-black/20" aria-hidden />
-          </div>
-        )}
-
-        <div className="relative overflow-hidden" style={{ height: slotH - chromeH }}>
-          {!ready && active && src ? (
-            <div className="absolute inset-0 z-[1] flex items-center justify-center bg-white/80">
-              <div
-                className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent"
-                style={{ borderColor: `${KEBU.orange}55`, borderTopColor: KEBU.orange }}
-              />
-            </div>
-          ) : null}
-
-          {active && src ? (
-            <iframe
-              key={`${src}-${device}`}
-              src={src}
-              title={`${title} ${spec.label} preview`}
-              className="absolute left-1/2 top-0 border-0 origin-top bg-white pointer-events-none"
-              style={{
-                width: spec.width,
-                height: spec.height,
-                transform: `translateX(-50%) scale(${scale})`,
-                opacity: ready ? 1 : 0,
-              }}
-              tabIndex={-1}
-              loading="lazy"
-              onLoad={() => {
-                const started = startRef.current ?? performance.now();
-                const ms = Math.max(0, Math.round(performance.now() - started));
-                setReady(true);
-                onFrameLoad(ms);
-              }}
-              onError={() => {
-                setReady(false);
-                onFrameError();
-              }}
-              ref={(node) => {
-                if (node && startRef.current == null) startRef.current = performance.now();
-              }}
-            />
-          ) : (
-            <div
-              className="absolute inset-0 flex items-center justify-center px-2 text-center"
-              style={{ background: `linear-gradient(135deg, ${KEBU.black}, ${KEBU.orange})`, color: "#fff" }}
-            >
-              <p className="text-[10px] font-bold">{title}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function SiteHealthCard({
@@ -248,15 +47,10 @@ function SiteHealthCard({
   const src = useMemo(() => previewSrc(project), [project]);
   const live = liveSiteUrl(project.subdomain);
   const hostRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-  const [device, setDevice] = useState<Device>("desktop");
-  const [health, setHealth] = useState<HealthState>({
-    status: src ? "checking" : "missing",
-    loadMs: null,
-    httpStatus: null,
-    message: src ? "Checking how this site loads…" : "Set a site address to preview.",
-  });
-  const frameLoads = useRef<number[]>([]);
+  const [frameReady, setFrameReady] = useState(false);
+  const [scale, setScale] = useState(0.22);
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -278,78 +72,11 @@ function SiteHealthCard({
   }, []);
 
   useEffect(() => {
-    if (!visible || !src) return;
-    let cancelled = false;
-    const started = performance.now();
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 12000);
-
-    (async () => {
-      try {
-        const res = await fetch(src, {
-          credentials: "include",
-          signal: controller.signal,
-          cache: "no-store",
-        });
-        if (cancelled) return;
-        const ms = Math.round(performance.now() - started);
-        if (!res.ok) {
-          setHealth({
-            status: "fail",
-            loadMs: ms,
-            httpStatus: res.status,
-            message: `Page returned ${res.status}.`,
-          });
-          return;
-        }
-        setHealth({
-          status: ms >= 2000 ? "slow" : "ok",
-          loadMs: ms,
-          httpStatus: res.status,
-          message: ms >= 2000 ? `Responded in ${speedLabel(ms)} — a bit slow.` : `Responded in ${speedLabel(ms)}.`,
-        });
-      } catch {
-        if (cancelled) return;
-        setHealth({
-          status: "fail",
-          loadMs: null,
-          httpStatus: null,
-          message: "Could not reach this preview.",
-        });
-      } finally {
-        window.clearTimeout(timeout);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
-  }, [visible, src]);
-
-  const onFrameLoad = useCallback((ms: number) => {
-    frameLoads.current.push(ms);
-    const worst = Math.max(...frameLoads.current);
-    setHealth((prev) => {
-      if (prev.status === "fail") return prev;
-      return {
-        status: worst >= 2500 ? "slow" : "ok",
-        loadMs: Math.max(prev.loadMs ?? 0, worst),
-        httpStatus: prev.httpStatus ?? 200,
-        message: `Preview ready in ${speedLabel(worst)}.`,
-      };
-    });
-  }, []);
-
-  const onFrameError = useCallback(() => {
-    setHealth({
-      status: "fail",
-      loadMs: null,
-      httpStatus: null,
-      message: "Preview failed to load.",
-    });
-  }, []);
+    const el = shellRef.current;
+    if (!el) return;
+    const w = el.clientWidth;
+    if (w > 0) setScale(Math.min(0.38, w / 1280));
+  }, [visible]);
 
   const handlePublish = useCallback(async () => {
     if (publishing) return;
@@ -385,8 +112,8 @@ function SiteHealthCard({
     }
   }, [project.id, deleting, onDeleted, router]);
 
-  const tone = healthTone(health.status);
   const isLive = size === "live";
+  const slotH = isLive ? 192 : 152;
 
   return (
     <article
@@ -394,14 +121,21 @@ function SiteHealthCard({
       className="flex h-full flex-col overflow-hidden rounded-xl bg-white"
       style={{
         border: `1px solid ${KEBU.border}`,
-        boxShadow: isLive ? "0 6px 20px rgba(10,10,10,0.07)" : "0 2px 10px rgba(10,10,10,0.04)",
+        boxShadow: isLive
+          ? "0 6px 24px rgba(10,10,10,0.08)"
+          : "0 2px 12px rgba(10,10,10,0.05)",
       }}
     >
-      <div
-        className="flex items-center justify-between gap-2 px-3 py-2"
-        style={{ background: isLive ? KEBU.cream : "#FAFAFA", borderBottom: `1px solid ${KEBU.border}` }}
+      {/* Card header — links to site detail */}
+      <Link
+        href={mySiteDetailHref(project.id)}
+        className="flex items-center justify-between gap-2 px-3 py-2 transition-colors hover:bg-black/[0.02]"
+        style={{
+          background: isLive ? KEBU.cream : "#FAFAFA",
+          borderBottom: `1px solid ${KEBU.border}`,
+        }}
       >
-        <div className="min-w-0 flex items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
           <span
             className="h-1.5 w-1.5 shrink-0 rounded-full"
             style={{ background: published ? "#00C851" : KEBU.orange }}
@@ -423,40 +157,74 @@ function SiteHealthCard({
         >
           {published ? "Live" : "Draft"}
         </span>
-      </div>
+      </Link>
 
+      {/* Preview thumbnail — desktop only, lazy */}
       <div
-        className="flex-1 px-3 pt-2 pb-1"
-        style={{ background: "linear-gradient(180deg, #EDE9E3 0%, #E2DDD4 100%)" }}
+        ref={shellRef}
+        className="relative overflow-hidden"
+        style={{ height: slotH, background: "#F5F4F2" }}
       >
-        <InCardDevicePreview
-          src={src}
-          title={project.title}
-          device={device}
-          onDevice={setDevice}
-          active={visible}
-          tall={isLive}
-          onFrameLoad={onFrameLoad}
-          onFrameError={onFrameError}
-        />
+        {visible && src ? (
+          <>
+            {!frameReady ? (
+              <div className="absolute inset-0 z-10 flex items-center justify-center">
+                <div
+                  className="h-4 w-4 animate-spin rounded-full border-2"
+                  style={{
+                    borderColor: `${KEBU.orange}33`,
+                    borderTopColor: KEBU.orange,
+                  }}
+                />
+              </div>
+            ) : null}
+            <iframe
+              key={src}
+              src={src}
+              title={`${project.title} preview`}
+              className="absolute left-1/2 top-0 border-0 origin-top bg-white pointer-events-none"
+              style={{
+                width: 1280,
+                height: 800,
+                transform: `translateX(-50%) scale(${scale})`,
+                opacity: frameReady ? 1 : 0,
+                transition: "opacity 0.25s",
+              }}
+              tabIndex={-1}
+              loading="lazy"
+              onLoad={() => setFrameReady(true)}
+              onError={() => setFrameReady(false)}
+            />
+          </>
+        ) : (
+          <div
+            className="absolute inset-0 flex items-center justify-center px-4"
+            style={{
+              background: `linear-gradient(135deg, #0A0A0A 0%, #1C1C1C 70%, rgba(255,85,0,0.2) 100%)`,
+            }}
+          >
+            <p
+              className="text-center text-xs font-bold leading-tight text-white/80"
+              style={{ fontFamily: "var(--font-fraunces)" }}
+            >
+              {project.title}
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="mt-auto space-y-2 px-3 py-2.5" style={{ borderTop: `1px solid ${KEBU.border}` }}>
+      {/* Footer — actions */}
+      <div
+        className="mt-auto space-y-2 px-3 py-2.5"
+        style={{ borderTop: `1px solid ${KEBU.border}` }}
+      >
+        {live ?? project.subdomain ? (
+          <p className="truncate text-[9px] font-mono" style={{ color: KEBU.muted }}>
+            {live ? live.replace(/^https?:\/\//, "") : `/sites/${project.subdomain}`}
+          </p>
+        ) : null}
+
         <div className="flex flex-wrap items-center gap-1.5">
-          <span
-            className="rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider"
-            style={{ background: tone.bg, color: tone.color }}
-          >
-            {tone.label}
-          </span>
-          <span className="text-[9px] tabular-nums" style={{ color: KEBU.muted }}>
-            {speedLabel(health.loadMs)}
-          </span>
-          <span className="truncate text-[9px] font-mono" style={{ color: KEBU.muted }}>
-            {live?.replace(/^https?:\/\//, "") ?? "Not published"}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
           <Link
             href={`/create/${project.id}`}
             className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white"
@@ -464,13 +232,7 @@ function SiteHealthCard({
           >
             Edit
           </Link>
-          <Link
-            href={mySiteDetailHref(project.id)}
-            className="rounded-full px-3 py-1.5 text-[10px] font-bold"
-            style={{ background: KEBU.cream, color: KEBU.black, border: `1px solid ${KEBU.border}` }}
-          >
-            Detail
-          </Link>
+
           {live ? (
             <a
               href={live}
@@ -479,49 +241,57 @@ function SiteHealthCard({
               className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white"
               style={{ background: KEBU.orange }}
             >
-              Open live ↗
+              Open ↗
             </a>
           ) : null}
+
           {!published ? (
             <button
               type="button"
               onClick={() => void handlePublish()}
               disabled={publishing}
-              className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white disabled:opacity-60"
-              style={{ background: "#009E40" }}
+              className="rounded-full px-3 py-1.5 text-[10px] font-bold disabled:opacity-60"
+              style={{
+                background: "rgba(0,200,81,0.1)",
+                color: "#009E40",
+                border: "1px solid rgba(0,200,81,0.25)",
+              }}
             >
               {publishing ? "Publishing…" : "Publish"}
             </button>
           ) : null}
+
+          <div className="flex-1" />
+
           {confirmDelete ? (
             <span className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => void handleDelete()}
                 disabled={deleting}
-                className="rounded-full px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-60"
+                className="rounded-full px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-60"
                 style={{ background: "#CC1A1A" }}
               >
-                {deleting ? "Deleting…" : "Confirm delete"}
+                {deleting ? "…" : "Delete?"}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-full px-2 py-1.5 text-[10px] font-semibold"
+                className="rounded-full px-1.5 py-1 text-[9px]"
                 style={{ color: KEBU.muted }}
               >
-                Cancel
+                No
               </button>
             </span>
           ) : (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded-full px-2.5 py-1.5 text-[10px] font-semibold"
-              style={{ color: KEBU.muted, border: `1px solid ${KEBU.border}` }}
+              className="rounded-full p-1.5 text-[10px] leading-none opacity-30 transition-opacity hover:opacity-70"
+              style={{ color: KEBU.muted }}
               aria-label="Delete site"
             >
-              Delete
+              ✕
             </button>
           )}
         </div>
@@ -557,11 +327,15 @@ export function MySitesGrid({
   );
 
   const liveSites = useMemo(() => visibleProjects.filter(isSitePublished), [visibleProjects]);
-  const draftSites = useMemo(() => visibleProjects.filter((p) => !isSitePublished(p)), [visibleProjects]);
+  const draftSites = useMemo(
+    () => visibleProjects.filter((p) => !isSitePublished(p)),
+    [visibleProjects],
+  );
   const liveCount = liveSites.length;
   const draftCount = draftSites.length;
 
-  const filterHref = (id: MySitesFilter) => (id === "all" ? MY_SITES_HREF : `${MY_SITES_HREF}?filter=${id}`);
+  const filterHref = (id: MySitesFilter) =>
+    id === "all" ? MY_SITES_HREF : `${MY_SITES_HREF}?filter=${id}`;
 
   const handleDeleted = useCallback((id: string) => {
     setRemovedIds((prev) => new Set([...prev, id]));
@@ -588,14 +362,18 @@ export function MySitesGrid({
 
   return (
     <div className={compact ? "" : "w-full px-5 py-8 sm:px-8 lg:px-16"}>
-      <div className={`flex flex-wrap items-center justify-between gap-3 ${compact ? "mb-4" : "mb-6"}`}>
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 ${compact ? "mb-4" : "mb-6"}`}
+      >
         <div>
           {!compact ? (
             <h1 className="text-xl font-black" style={{ color: KEBU.black }}>
               My sites
             </h1>
           ) : (
-            <h2 className="text-base font-bold" style={{ color: KEBU.black }}>Recent sites</h2>
+            <h2 className="text-base font-bold" style={{ color: KEBU.black }}>
+              Recent sites
+            </h2>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -693,7 +471,10 @@ export function MySitesGrid({
                 <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
                   Live
                 </h2>
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider"
+                  style={{ color: KEBU.muted }}
+                >
                   {liveCount} site{liveCount === 1 ? "" : "s"}
                 </span>
               </div>
@@ -705,12 +486,17 @@ export function MySitesGrid({
             <section>
               <div
                 className={`mb-3 flex items-baseline justify-between gap-2 ${filter === "all" && liveCount > 0 ? "border-t pt-8" : ""}`}
-                style={filter === "all" && liveCount > 0 ? { borderColor: KEBU.border } : undefined}
+                style={
+                  filter === "all" && liveCount > 0 ? { borderColor: KEBU.border } : undefined
+                }
               >
                 <h2 className="text-base font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
                   Drafts
                 </h2>
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider"
+                  style={{ color: KEBU.muted }}
+                >
                   {draftCount} draft{draftCount === 1 ? "" : "s"}
                 </span>
               </div>

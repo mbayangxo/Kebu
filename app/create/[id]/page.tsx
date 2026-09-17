@@ -1,40 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
-import { BuilderAestheticsPanel } from "@/app/components/create/builder-aesthetics-panel";
-import { YandeAssistant } from "@/app/components/create/yande-assistant";
 import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
 import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
-import { BuilderSiteChromePanel } from "@/app/components/create/builder-site-chrome-panel";
 import { BuilderBlogPanel } from "@/app/components/create/builder-blog-panel";
 import {
   CHROME_FOOTER_ID,
   CHROME_HEADER_ID,
   isChromeSectionId,
   parseSiteChrome,
-  patchSiteChromePart,
   projectUsesEmbeddedNav,
   type SiteChrome,
 } from "@/lib/create/site-chrome";
 import { defaultMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
+import { mergeSiteCommerce } from "@/lib/create/site-commerce";
 import type { PublishState } from "@/lib/create/publish-state";
-import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
 import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
-import { BuilderPagesPanel } from "@/app/components/create/builder-pages-panel";
-import { BuilderAiPreviewPanel } from "@/app/components/create/builder-ai-preview-panel";
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
@@ -55,16 +50,43 @@ import { mySiteDetailHref } from "@/lib/navigation/product-nav";
 import {
   DataModeProvider,
 } from "@/app/components/create/data-mode-provider";
-import { resolveClientDataMode } from "@/lib/create/data-mode";
-import { measureResponseBytes, evaluateKb } from "@/lib/create/kb-budget";
-import {
-  enqueueSaveSection,
-  isBrowserOnline,
-} from "@/lib/create/offline-queue";
+import { useProjectAutosave } from "./use-project-autosave";
+import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 
-function SidebarDetails({ title, children, defaultOpen = true }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean }) {
+/**
+ * Code-split the heaviest sidebar/panel views that are hidden behind a tab or a closed-by-default
+ * panel on first load (docs/product/KEBU-BUILDER-UX-STANDARD.md: "zero code-splitting" finding).
+ * Each of these only mounts once its gating condition (sidebarTab / aiPreview / yandeOpen) becomes
+ * true, so its chunk is fetched on demand instead of shipping in the Builder's initial bundle.
+ */
+const BuilderAestheticsPanel = dynamic(
+  () => import("@/app/components/create/builder-aesthetics-panel").then((m) => m.BuilderAestheticsPanel),
+  { ssr: false },
+);
+const BuilderSiteChromePanel = dynamic(
+  () => import("@/app/components/create/builder-site-chrome-panel").then((m) => m.BuilderSiteChromePanel),
+  { ssr: false },
+);
+const SiteAssetsPanel = dynamic(
+  () => import("@/app/components/create/site-assets-panel").then((m) => m.SiteAssetsPanel),
+  { ssr: false },
+);
+const BuilderPagesPanel = dynamic(
+  () => import("@/app/components/create/builder-pages-panel").then((m) => m.BuilderPagesPanel),
+  { ssr: false },
+);
+const BuilderAiPreviewPanel = dynamic(
+  () => import("@/app/components/create/builder-ai-preview-panel").then((m) => m.BuilderAiPreviewPanel),
+  { ssr: false },
+);
+const YandeAssistant = dynamic(
+  () => import("@/app/components/create/yande-assistant").then((m) => m.YandeAssistant),
+  { ssr: false },
+);
+
+function SidebarDetails({ title, children, defaultOpen = true, group }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean; group?: string }) {
   return (
-    <details open={defaultOpen} className="group border-b" style={{ borderColor: "#E5E5E5" }}>
+    <details open={defaultOpen} name={group} className="group border-b" style={{ borderColor: "#E5E5E5" }}>
       <summary
         className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 select-none"
         style={{ background: "#F7F7F7" }}
@@ -108,7 +130,6 @@ export default function ProjectEditorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [supportAssist, setSupportAssist] = useState(false);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "error">("idle");
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -123,6 +144,8 @@ export default function ProjectEditorPage() {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
+  // Ref to the iframe used for mobile/tablet device preview (see below)
+  const previewIframeRef = useRef<HTMLIFrameElement>(null);
   const [billing, setBilling] = useState<{
     canPublish: boolean;
     label: string;
@@ -158,9 +181,6 @@ export default function ProjectEditorPage() {
   const [editPageId, setEditPageId] = useState("");
   const [publishState, setPublishState] = useState<PublishState | null>(null);
   const [appOrigin, setAppOrigin] = useState("");
-  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     setAppOrigin(window.location.origin);
     const q = new URLSearchParams(window.location.search);
@@ -187,11 +207,25 @@ export default function ProjectEditorPage() {
     };
   }, [previewFullscreen]);
 
+  // Escape closes the Yande AI panel when open
+  useEffect(() => {
+    if (!yandeOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setYandeOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [yandeOpen]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}`, { credentials: "include" });
+      // Fire project and billing fetches in parallel — billing only needs the project ID.
+      const [res, billingRes] = await Promise.all([
+        fetch(`/api/projects/${projectId}`, { credentials: "include" }),
+        fetch(`/api/projects/${projectId}/billing`, { credentials: "include" }),
+      ]);
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
         router.replace(`/login?next=/create/${projectId}`);
@@ -270,7 +304,6 @@ export default function ProjectEditorPage() {
         setSeoSettings((prev) => ({ ...prev, ...(data.project.seo as SiteSeo) }));
       }
 
-      const billingRes = await fetch(`/api/projects/${projectId}/billing`, { credentials: "include" });
       const billingData = await billingRes.json().catch(() => ({}));
       if (billingRes.ok) {
         const tier =
@@ -298,14 +331,11 @@ export default function ProjectEditorPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const timers = saveTimers.current;
     queueMicrotask(() => {
       if (!cancelled) void load();
     });
     return () => {
       cancelled = true;
-      Object.values(timers).forEach(clearTimeout);
-      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
     };
   }, [load]);
 
@@ -314,140 +344,25 @@ export default function ProjectEditorPage() {
     setFuture([]);
   }
 
-  const [kbSaveNote, setKbSaveNote] = useState<string | null>(null);
-
-  async function persistProps(sectionId: string, props: Record<string, unknown>) {
-    const mode = resolveClientDataMode();
-    const offline = !isBrowserOnline() || mode === "offline";
-    if (offline) {
-      enqueueSaveSection({ projectId, sectionId, props });
-      setSaveState("queued");
-      setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setError(null);
-      return;
-    }
-    setSaveState("saving");
-    try {
-      const res = await fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Kebu-Data-Mode": mode,
-        },
-        body: JSON.stringify({ sectionId, props }),
-      });
-      const bytes = await measureResponseBytes(res);
-      const ev = evaluateKb({ action: "save_section", mode, usedBytes: bytes });
-      setKbSaveNote(ev.summary);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSaveState("error");
-        const issueHint =
-          data?.issues?.fieldErrors && typeof data.issues.fieldErrors === "object"
-            ? Object.entries(data.issues.fieldErrors as Record<string, string[]>)
-                .map(([k, v]) => `${k}: ${(v ?? []).join(", ")}`)
-                .slice(0, 3)
-                .join(" · ")
-            : "";
-        setError(
-          [typeof data.error === "string" ? data.error : "Save failed.", issueHint || data.detail]
-            .filter(Boolean)
-            .join(" — "),
-        );
-        return;
-      }
-      if (data.section) {
-        setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, ...data.section } : s)));
-      }
-      setPublishState((prev) =>
-        prev
-          ? { ...prev, hasUnpublishedChanges: true }
-          : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
-      );
-      setSaveState("saved");
-      setError(null);
-    } catch {
-      enqueueSaveSection({ projectId, sectionId, props });
-      setSaveState("queued");
-      setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setError(null);
-    }
-  }
-
-  async function persistChrome(part: "header" | "footer", props: Record<string, unknown>) {
-    const mode = resolveClientDataMode();
-    const offline = !isBrowserOnline() || mode === "offline";
-    if (offline) {
-      setSaveState("queued");
-      setKbSaveNote("Site header/footer queued until Syncing…");
-      return;
-    }
-    setSaveState("saving");
-    try {
-      const body = part === "header" ? { header: props } : { footer: props };
-      const res = await fetch(`/api/projects/${projectId}/site-chrome`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "X-Kebu-Data-Mode": mode },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSaveState("error");
-        setError(typeof data.error === "string" ? data.error : "Could not save site header/footer.");
-        return;
-      }
-      if (data.siteChrome) {
-        setSiteChrome(parseSiteChrome(data.siteChrome));
-      }
-      setPublishState((prev) =>
-        prev
-          ? { ...prev, hasUnpublishedChanges: true }
-          : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
-      );
-      setSaveState("saved");
-      setError(null);
-    } catch {
-      setSaveState("queued");
-      setKbSaveNote("Site header/footer queued until Syncing…");
-    }
-  }
-
-  function updateChromeProps(part: "header" | "footer", patch: Record<string, unknown>) {
-    setSiteChrome((prev) => {
-      const base = prev ?? parseSiteChrome(null);
-      const next = patchSiteChromePart({ ...base, enabled: true }, part, patch);
-      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
-      chromeSaveTimer.current = setTimeout(() => {
-        const props =
-          part === "header"
-            ? next.header?.props
-            : next.footer?.props;
-        if (props) void persistChrome(part, props as Record<string, unknown>);
-      }, 500);
-      return next;
+  const {
+    saveState,
+    saveStatusLabel,
+    kbSaveNote,
+    updateProps,
+    updateChromeProps,
+    saveDraftNow,
+    persistProps,
+    markAllSaved,
+  } = useProjectAutosave({
+      projectId,
+      sections,
+      setSections,
+      pushHistory,
+      siteChrome,
+      setSiteChrome,
+      setPublishState,
+      setError,
     });
-  }
-
-  function updateProps(sectionId: string, patch: Record<string, unknown>) {
-    if (isChromeSectionId(sectionId)) {
-      updateChromeProps(sectionId === CHROME_HEADER_ID ? "header" : "footer", patch);
-      return;
-    }
-    setSections((prev) => {
-      pushHistory(prev);
-      const next = prev.map((s) =>
-        s.id === sectionId ? { ...s, props: { ...s.props, ...patch } } : s
-      );
-      const merged = next.find((s) => s.id === sectionId)?.props ?? patch;
-      if (saveTimers.current[sectionId]) clearTimeout(saveTimers.current[sectionId]);
-      saveTimers.current[sectionId] = setTimeout(() => {
-        void persistProps(sectionId, merged);
-      }, 500);
-      return next;
-    });
-  }
 
   async function addSection(
     type: string,
@@ -599,6 +514,14 @@ export default function ProjectEditorPage() {
     if (idx < 0 || swapIdx < 0 || swapIdx >= ordered.length) return;
     const a = ordered[idx]!;
     const b = ordered[swapIdx]!;
+    // Apply swap optimistically so the UI updates immediately without a reload
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id === a.id) return { ...s, sort_order: b.sort_order };
+        if (s.id === b.id) return { ...s, sort_order: a.sort_order };
+        return s;
+      }),
+    );
     await Promise.all([
       fetch(`/api/projects/${projectId}/sections`, {
         method: "PATCH",
@@ -613,7 +536,6 @@ export default function ProjectEditorPage() {
         body: JSON.stringify({ sectionId: b.id, sortOrder: a.sort_order }),
       }),
     ]);
-    await load();
   }
 
   function undo() {
@@ -729,14 +651,15 @@ export default function ProjectEditorPage() {
 
   function queueSiteSettingsSave(patch: { subdomain?: string; seo?: Partial<SiteSeo>; theme?: Partial<ThemeTokens> }) {
     const nextSubdomain = patch.subdomain ?? subdomainInput;
+    // Base the merge on the FULL current commerce object (not just two cherry-picked fields) — a
+    // save triggered by an unrelated change (favicon, meta title, subdomain) must never drop payment
+    // settings (COD, mobile money, card, PayPal, Wave link, etc.) that were already configured
+    // elsewhere (e.g. the Shop admin's Payments tab). mergeSiteCommerce also guarantees every
+    // required field is present, which is what keeps this object assignable to SiteSeo["commerce"].
     const nextSeo: SiteSeo = {
       ...seoSettings,
       ...(patch.seo ?? {}),
-      commerce: {
-        merchantWhatsApp: seoSettings.commerce?.merchantWhatsApp ?? "",
-        preferJokoCheckout: seoSettings.commerce?.preferJokoCheckout ?? false,
-        ...(patch.seo?.commerce ?? {}),
-      },
+      commerce: mergeSiteCommerce(patch.seo?.commerce, seoSettings.commerce),
     };
     if (patch.subdomain !== undefined) setSubdomainInput(patch.subdomain);
     if (patch.seo) setSeoSettings(nextSeo);
@@ -899,7 +822,7 @@ export default function ProjectEditorPage() {
       setHistory([]);
       setFuture([]);
       await load();
-      setSaveState("saved");
+      markAllSaved();
     } catch {
       setError("Network error while applying changes. Retry.");
     } finally {
@@ -973,11 +896,16 @@ export default function ProjectEditorPage() {
     },
   };
 
-  const previewDefinition: WebsiteDefinition | null = project
-    ? buildEditorPreviewDefinition({ ...project, seo: seoSettings }, pages, sections, siteChrome)
-    : null;
+  const previewDefinition = useMemo<WebsiteDefinition | null>(
+    () =>
+      project
+        ? buildEditorPreviewDefinition({ ...project, seo: seoSettings }, pages, sections, siteChrome)
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [project, seoSettings, pages, sections, siteChrome],
+  );
 
-  const canvasDefinition = (() => {
+  const canvasDefinition = useMemo(() => {
     if (!aiPreview) return previewDefinition;
     if (aiPreview.sectionChanges.length === 0 || !previewDefinition) {
       return aiPreview.definition;
@@ -987,23 +915,29 @@ export default function ProjectEditorPage() {
       aiPreview.definition,
       [...aiPreview.acceptedSectionIds],
     );
-  })();
+  }, [aiPreview, previewDefinition]);
 
   const previewSiteBase = project?.subdomain ? `/sites/${project.subdomain}` : "";
-  const maylecorRussianLayout = projectUsesMaylecorRussianLayout(
-    project?.description,
-    sections.map((s) => s.section_type),
+
+  const sectionTypes = useMemo(() => sections.map((s) => s.section_type), [sections]);
+
+  const maylecorRussianLayout = useMemo(
+    () => projectUsesMaylecorRussianLayout(project?.description, sectionTypes),
+    [project?.description, sectionTypes],
   );
-  const kdirectionLayout = projectUsesKdirectionLayout(
-    project?.description,
-    sections.map((s) => s.section_type),
+  const kdirectionLayout = useMemo(
+    () => projectUsesKdirectionLayout(project?.description, sectionTypes),
+    [project?.description, sectionTypes],
   );
 
-  const chromeActive =
-    Boolean(siteChrome?.enabled) &&
-    !projectUsesEmbeddedNav(sections.map((s) => s.section_type)) &&
-    !maylecorRussianLayout &&
-    !kdirectionLayout;
+  const chromeActive = useMemo(
+    () =>
+      Boolean(siteChrome?.enabled) &&
+      !projectUsesEmbeddedNav(sectionTypes) &&
+      !maylecorRussianLayout &&
+      !kdirectionLayout,
+    [siteChrome?.enabled, sectionTypes, maylecorRussianLayout, kdirectionLayout],
+  );
 
   useEffect(() => {
     // Keep Sections panel open by default (Shopify theme editor). Only collapse on tiny screens.
@@ -1024,25 +958,50 @@ export default function ProjectEditorPage() {
     setLeftPanelOpen(true);
   }
 
-  const editPageSections = sections
-    .filter((s) => s.page_id === editPageId)
-    .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
-    .sort((a, b) => a.sort_order - b.sort_order);
-
-  const saveStatusLabel =
-    saveState === "saving"
-      ? "Saving draft…"
-      : saveState === "queued"
-        ? "Not saved yet — queued"
-        : saveState === "saved"
-          ? "Draft saved"
-          : saveState === "error"
-            ? "Save failed"
-            : "";
+  const editPageSections = useMemo(
+    () =>
+      sections
+        .filter((s) => s.page_id === editPageId)
+        .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
+        .sort((a, b) => a.sort_order - b.sort_order),
+    [sections, editPageId, chromeActive],
+  );
 
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
-  /** Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames. */
-  const wideCanvas = flagshipCanvas || device === "desktop";
+  /**
+   * Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames.
+   *
+   * This must NOT also key off flagshipCanvas — doing so previously forced full-bleed at every
+   * device size for Maylecor/Russian and K-Direction projects, which made the mobile/tablet/desktop
+   * switcher above the canvas a no-op for those projects (switching device changed editDevice-driven
+   * section logic but the canvas never actually resized, so nothing visibly changed). Bug reported by
+   * the user: "the desktop tablet and phone on top of the builder preview doesn't even work."
+   */
+  const wideCanvas = device === "desktop";
+
+  // When the user switches to mobile/tablet, the canvas becomes an iframe (see below) so that
+  // Tailwind responsive breakpoints fire against the iframe's real viewport, not the browser window.
+  // This effect keeps the iframe's definition in sync with the Builder's current in-memory state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const iframe = previewIframeRef.current;
+    if (!iframe || !canvasDefinition || wideCanvas) return;
+    const send = () => {
+      iframe.contentWindow?.postMessage(
+        { type: "kebu:definition:update", definition: canvasDefinition, pageSlug: previewPageSlug },
+        window.location.origin,
+      );
+    };
+    // When the iframe signals it's ready, push the current definition immediately
+    function onMessage(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      if ((e.data as { type?: string })?.type === "kebu:preview:ready") send();
+    }
+    window.addEventListener("message", onMessage);
+    // Also push whenever definition or pageSlug changes (iframe may already be ready)
+    send();
+    return () => window.removeEventListener("message", onMessage);
+  }, [canvasDefinition, previewPageSlug, wideCanvas]); // previewIframeRef is stable
 
   return (
     <DataModeProvider>
@@ -1072,12 +1031,14 @@ export default function ProjectEditorPage() {
         publishing={publishing || improving}
         publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Publish"}
         onPublish={() => void publish()}
-        onSaveDraft={() => {
-          if (saveState === "idle" || saveState === "saved") {
-            setSaveState("saved");
-          }
-        }}
+        onSaveDraft={() => void saveDraftNow()}
         savingDraft={saveState === "saving"}
+        saveLabelColor={
+          saveState === "error" ? "#CC1A1A"
+          : saveState === "unsaved" || saveState === "queued" ? "#D97706"
+          : saveState === "saved" ? "#009E40"
+          : "#8C8C8C"
+        }
         previewHost={project?.subdomain ? `${project.subdomain}.kebu.africa` : undefined}
         pages={pages
           .slice()
@@ -1323,10 +1284,37 @@ export default function ProjectEditorPage() {
             />
             <aside
               className={`${
-                leftPanelOpen ? "relative w-[280px] max-w-[92vw]" : "hidden"
+                leftPanelOpen
+                  ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[280px] sm:max-w-[92vw]"
+                  : "hidden"
               } shrink-0 min-h-0 overflow-y-auto border-r`}
-              style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
+              style={{
+                borderColor: "#E5E5E5",
+                background: "#FAFAFA",
+                // Only matters at the mobile fixed-overlay width (below sm); at sm:relative this is an
+                // ordinary flex sibling and doesn't overlap anything, so a fixed z-index here is harmless.
+                zIndex: leftPanelOpen ? Z_LAYERS.drawerPanel : undefined,
+              }}
             >
+              {/* Mobile only: editing takes the full screen (a fixed 280px sidebar squeezed the live
+                  preview into an unreadable sliver — docs/product/KEBU-BUILDER-UX-STANDARD.md). "Done"
+                  is the same dismissal already wired to the rail's toggle-tap behavior. */}
+              <div
+                className="sm:hidden sticky top-0 z-10 flex items-center justify-between border-b px-3 py-2.5"
+                style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
+              >
+                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                  Editing
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLeftPanelOpen(false)}
+                  className="rounded-full px-4 py-1.5 text-xs font-bold text-white"
+                  style={{ background: BUILDER.ink }}
+                >
+                  Done — view site
+                </button>
+              </div>
 
               {sidebarTab === "pages" && project ? (
                 <div className="px-3 py-3">
@@ -1732,7 +1720,7 @@ export default function ProjectEditorPage() {
                             Remove
                           </button>
                         </div>
-                      <SidebarDetails title="Content">
+                      <SidebarDetails title="Content" group="section-inspector">
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
@@ -2134,7 +2122,8 @@ export default function ProjectEditorPage() {
                               })) as { key: string; label: string }[]),
                             ].map((layer) => {
                               const zMap = (section.props.layerZIndex as Record<string, number>) ?? {};
-                              const z = typeof zMap[layer.key] === "number" ? zMap[layer.key]! : 10;
+                              const hasExplicitZ = typeof zMap[layer.key] === "number";
+                              const z = hasExplicitZ ? zMap[layer.key]! : null;
                               const linkMap = (section.props.layerLinks as Record<string, string>) ?? {};
                               return (
                                 <li
@@ -2145,7 +2134,7 @@ export default function ProjectEditorPage() {
                                   <div className="flex items-center justify-between gap-2">
                                     <span className="truncate text-[11px] font-medium">{layer.label}</span>
                                     <span className="text-[9px] tabular-nums" style={{ color: BUILDER.muted }}>
-                                      z{z}
+                                      {z !== null ? `z${z}` : "auto"}
                                     </span>
                                   </div>
                                   <div className="mt-1 flex flex-wrap gap-1">
@@ -2154,7 +2143,9 @@ export default function ProjectEditorPage() {
                                       className="rounded px-1.5 py-0.5 text-[9px] font-bold"
                                       style={{ border: `1px solid ${BUILDER.border}` }}
                                       onClick={() => {
-                                        const next = Math.min(80, z + 10);
+                                        // If no explicit z yet, jump straight to front (80) so the
+                                        // first "Front" click reliably puts the layer above all others.
+                                        const next = z !== null ? Math.min(80, z + 10) : 80;
                                         const layerZIndex = { ...zMap, [layer.key]: next };
                                         const extras = (
                                           (section.props.extraCutouts as { id?: string; zIndex?: number }[]) ?? []
@@ -2174,7 +2165,9 @@ export default function ProjectEditorPage() {
                                       className="rounded px-1.5 py-0.5 text-[9px] font-bold"
                                       style={{ border: `1px solid ${BUILDER.border}` }}
                                       onClick={() => {
-                                        const next = Math.max(1, z - 10);
+                                        // If no explicit z yet, jump straight to back (1) so the
+                                        // first "Back" click reliably sends the layer behind all others.
+                                        const next = z !== null ? Math.max(1, z - 10) : 1;
                                         const layerZIndex = { ...zMap, [layer.key]: next };
                                         const extras = (
                                           (section.props.extraCutouts as { id?: string; zIndex?: number }[]) ?? []
@@ -3841,7 +3834,7 @@ export default function ProjectEditorPage() {
                         </p>
                       )}
                       </SidebarDetails>
-                      <SidebarDetails title="Layout & Visibility" defaultOpen={false}>
+                      <SidebarDetails title="Layout & Visibility" defaultOpen={false} group="section-inspector">
                         {/* Section vertical spacing control */}
                         <div className="space-y-1.5">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
@@ -3924,14 +3917,11 @@ export default function ProjectEditorPage() {
                                 ? "2px solid #333"
                                 : "1px solid #c8c4bc",
                           borderRadius: device === "mobile" ? 28 : device === "tablet" ? 18 : 12,
-                          boxShadow:
-                            device === "desktop"
-                              ? "0 16px 48px rgba(0,0,0,0.22)"
-                              : "0 12px 40px rgba(0,0,0,0.18)",
+                          boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
                         }
                   }
                 >
-                {canvasDefinition && (
+                {canvasDefinition && wideCanvas && (
                   <BuilderEditablePreview
                     definition={canvasDefinition}
                     pageSlug={previewPageSlug}
@@ -3946,6 +3936,22 @@ export default function ProjectEditorPage() {
                     }
                     onAssetDrop={(asset, drop) => void applyMediaAsset(asset, drop)}
                     editor={canvasEditor}
+                  />
+                )}
+                {/* Mobile/tablet: iframe so Tailwind breakpoints fire against a real viewport of that
+                    width, not the browser window. The Builder pushes the live definition via
+                    postMessage (see useEffect above) so the preview tracks unsaved edits in real time. */}
+                {canvasDefinition && !wideCanvas && (
+                  <iframe
+                    ref={previewIframeRef}
+                    src={`/create/${projectId}/preview?embed=1`}
+                    title={`${device} preview`}
+                    style={{
+                      width: "100%",
+                      minHeight: device === "mobile" ? 700 : 900,
+                      border: "none",
+                      display: "block",
+                    }}
                   />
                 )}
                 {/* Always-visible "+ Add section" strip at the bottom of the canvas */}

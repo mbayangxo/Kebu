@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { AppShell } from "@/app/components/app-shell";
+import { useEffect, useRef, useState } from "react";
+import { KebuWordmark } from "@/app/components/kebu-mark";
 import { KEBU } from "@/lib/kebu-brand";
 import {
   BUDGET_BANDS,
@@ -30,31 +30,133 @@ const AFRICAN_COUNTRY_OPTIONS = [
   { code: "EG", name: "Egypt" },
 ];
 
-function Chip({
+// Pill-shaped tag chip (for multi-select: goals, resource needs, countries)
+function Tag({
   active,
   onClick,
   children,
-  large = false,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  large?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`text-left rounded-2xl transition-all ${large ? "p-5" : "px-4 py-2.5"}`}
+      className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all"
       style={{
-        background: active ? KEBU.orange : "rgba(255,255,255,0.9)",
-        color: active ? "#fff" : KEBU.black,
-        border: active ? "none" : `1px solid ${KEBU.border}`,
-        boxShadow: active ? "0 12px 32px rgba(255,85,0,0.25)" : "none",
+        background: active ? KEBU.orange : KEBU.white,
+        color: active ? KEBU.white : KEBU.black,
+        border: `1.5px solid ${active ? KEBU.orange : KEBU.border}`,
+        boxShadow: active ? "0 4px 16px rgba(255,85,0,0.2)" : "none",
       }}
     >
+      {active && (
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      )}
       {children}
     </button>
+  );
+}
+
+const INTEREST_ICONS: Record<string, string> = {
+  construction_bidding: "🏗️",
+  agriculture_resources: "🌾",
+  grants_funding: "🎯",
+  loans_credit: "💰",
+  jobs_employment: "💼",
+  trade_import_export: "🚢",
+  tech_software: "💻",
+  creative_media: "🎨",
+  ancestry_heritage: "🪢",
+  retail_store: "🛍️",
+  manufacturing: "🔧",
+};
+
+const BUDGET_ICONS: Record<string, string> = {
+  under_50k: "🌱",
+  "50k_500k": "📦",
+  "500k_5m": "⚙️",
+  "5m_plus": "🏦",
+  not_sure: "🤷",
+};
+
+// Card chip (for single-select with icon + description: main goal, interests, budget)
+function Card({
+  active,
+  onClick,
+  icon,
+  label,
+  desc,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: string;
+  label: string;
+  desc?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left rounded-2xl p-4 transition-all"
+      style={{
+        background: active ? "rgba(255,85,0,0.06)" : KEBU.white,
+        border: `2px solid ${active ? KEBU.orange : KEBU.border}`,
+        boxShadow: active ? "0 0 0 4px rgba(255,85,0,0.08)" : "none",
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <span className="text-2xl leading-none mt-0.5 shrink-0">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm" style={{ color: KEBU.black }}>{label}</p>
+          {desc && <p className="text-xs mt-0.5 leading-relaxed" style={{ color: KEBU.muted }}>{desc}</p>}
+        </div>
+        <div
+          className="w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center mt-0.5"
+          style={{
+            borderColor: active ? KEBU.orange : KEBU.border,
+            background: active ? KEBU.orange : "transparent",
+          }}
+        >
+          {active && (
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function StepLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-bold uppercase tracking-[0.18em] mb-3" style={{ color: KEBU.orange }}>
+      {children}
+    </p>
+  );
+}
+
+function StepHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      className="text-2xl font-bold mb-1.5 leading-tight"
+      style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function StepSub({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-sm mb-6 leading-relaxed" style={{ color: KEBU.muted }}>
+      {children}
+    </p>
   );
 }
 
@@ -69,6 +171,9 @@ export function KebuWelcomeIntake() {
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [animDir, setAnimDir] = useState<"forward" | "back">("forward");
+  const [animKey, setAnimKey] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const [mainGoal, setMainGoal] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
@@ -121,6 +226,13 @@ export function KebuWelcomeIntake() {
     set(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
   }
 
+  function goTo(next: number) {
+    setAnimDir(next > step ? "forward" : "back");
+    setAnimKey((k) => k + 1);
+    setStep(next);
+    contentRef.current?.scrollTo({ top: 0 });
+  }
+
   async function finish() {
     setBusy(true);
     setError(null);
@@ -161,226 +273,312 @@ export function KebuWelcomeIntake() {
   }
 
   return (
-    <AppShell title="Welcome to Kebu">
-      <div className="max-w-2xl mx-auto px-5 py-8 lg:py-12">
-        <div className="mb-8">
-          <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: KEBU.orange }}>
-            Step {step + 1} of {totalSteps + 1} · Kebu learns about you
-          </p>
-          <div className="flex gap-1 mb-6">
-            {Array.from({ length: totalSteps + 1 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-1 flex-1 rounded-full"
-                style={{ background: i <= step ? KEBU.orange : KEBU.border, opacity: i <= step ? 1 : 0.35 }}
-              />
-            ))}
-          </div>
+    <div className="min-h-screen flex flex-col" style={{ background: KEBU.bright }}>
+      <style>{`
+        @keyframes step-in-forward {
+          from { opacity: 0; transform: translateX(20px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes step-in-back {
+          from { opacity: 0; transform: translateX(-20px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        .step-animate-forward { animation: step-in-forward 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+        .step-animate-back    { animation: step-in-back 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+        @media (prefers-reduced-motion: reduce) {
+          .step-animate-forward, .step-animate-back { animation: none; }
+        }
+      `}</style>
 
-          {step === 0 && (
-            <div>
-              <h1 className="text-3xl font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>
-                What brings you to Kebu?
-              </h1>
-              <p className="text-base leading-relaxed mb-4" style={{ color: KEBU.muted }}>
-                You do <strong>not</strong> need a business to use Kebu. We learn about <strong>you</strong> first —
-                then Opportunity OS, Yande AI, and your home page customize to your goals, interests, and place in
-                Africa.
-              </p>
-              <ul className="text-sm space-y-2 mb-8" style={{ color: KEBU.muted }}>
-                <li>🌍 Explore countries, resources, heritage — no registration required</li>
-                <li>✨ Find what you can offer and what fits you</li>
-                <li>🚀 Build a site or business later — only when you are ready</li>
-              </ul>
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="rounded-full px-8 py-4 text-sm font-bold text-white"
-                style={{ background: KEBU.orange }}
-              >
-                Let&apos;s go — about 3 minutes
-              </button>
-              <p className="text-xs mt-4" style={{ color: KEBU.faint }}>
-                <Link href="/opportunity" className="underline" style={{ color: KEBU.orange }}>
-                  Skip to Opportunity OS
-                </Link>{" "}
-                (you can finish this anytime from your home page)
-              </p>
-            </div>
-          )}
+      {/* Header */}
+      <header
+        className="sticky top-0 z-20 flex items-center gap-4 px-5 sm:px-8 h-[60px] shrink-0"
+        style={{ background: KEBU.bright, borderBottom: `1px solid ${KEBU.border}` }}
+      >
+        <Link href="/" className="shrink-0">
+          <KebuWordmark size={26} dark />
+        </Link>
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(10,10,10,0.07)" }}>
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${Math.round((step / totalSteps) * 100)}%`,
+              background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})`,
+            }}
+          />
+        </div>
+        <span className="shrink-0 text-[11px] font-bold tabular-nums" style={{ color: KEBU.muted }}>
+          {step > 0 ? `${step} / ${totalSteps}` : ""}
+        </span>
+      </header>
 
-          {step === 1 && (
-            <div>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-                What are you here for right now?
-              </h2>
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                Pick the closest match. This is personal — not a business profile.
-              </p>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {KEBU_HERE_FOR.map((g) => (
-                  <Chip key={g.id} active={mainGoal === g.id} onClick={() => setMainGoal(g.id)} large>
-                    <span className="text-2xl mb-2 block">{g.icon}</span>
-                    <span className="font-bold text-sm">{g.label}</span>
-                    <span className="text-xs mt-1 block opacity-90">{g.desc}</span>
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Scrollable content */}
+      <main ref={contentRef} className="flex-1 overflow-y-auto">
+        <div className="max-w-xl mx-auto px-5 sm:px-8 py-10 pb-28">
+          <div
+            key={animKey}
+            className={animDir === "forward" ? "step-animate-forward" : "step-animate-back"}
+          >
 
-          {step === 2 && (
-            <div>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-                What else matters to you?
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {[...KEBU_HERE_FOR, ...OPPORTUNITY_GOALS].filter(
-                  (g, i, arr) => arr.findIndex((x) => x.id === g.id) === i,
-                ).map((g) => (
-                  <Chip key={g.id} active={goals.includes(g.id)} onClick={() => toggle(goals, g.id, setGoals)}>
-                    {"icon" in g && g.icon ? `${g.icon} ` : ""}
-                    {g.label}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-                What are you curious about?
-              </h2>
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                {exploringMode() ? "Optional — skip with Next if you are just exploring." : "Pick at least one."}
-              </p>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {OPPORTUNITY_INTERESTS.map((item) => (
-                  <Chip
-                    key={item.id}
-                    active={interestPaths.includes(item.id)}
-                    onClick={() => toggle(interestPaths, item.id, setInterestPaths)}
-                    large
-                  >
-                    <p className="font-bold text-sm">{item.label}</p>
-                    <p className="text-xs mt-1 opacity-90">{item.desc}</p>
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div>
-              <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-                What kind of help might you need?
-              </h2>
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                Grants, jobs, heritage stories, country intel… {exploringMode() ? "Optional for now." : ""}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {OPPORTUNITY_RESOURCE_NEEDS.map((r) => (
-                  <Chip
-                    key={r.id}
-                    active={resourceNeeds.includes(r.id)}
-                    onClick={() => toggle(resourceNeeds, r.id, setResourceNeeds)}
-                  >
-                    {r.label}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div>
-              <h2 className="text-xl font-bold mb-4" style={{ fontFamily: "var(--font-fraunces)" }}>
-                How much could you start with — if you built something?
-              </h2>
-              <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-                Honest answer helps us plan. &quot;Not sure&quot; is fine — especially if you are only exploring.
-              </p>
-              <div className="space-y-3 max-w-lg">
-                {BUDGET_BANDS.map((b) => (
-                  <Chip key={b.id} active={budget === b.id} onClick={() => setBudget(b.id)} large>
-                    <p className="font-bold">{b.label}</p>
-                    <p className="text-xs mt-1 opacity-90">{b.hint}</p>
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 6 && (
-            <div className="space-y-6">
+            {step === 0 && (
               <div>
-                <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-                  Which countries matter to you?
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {AFRICAN_COUNTRY_OPTIONS.map((c) => (
-                    <Chip
-                      key={c.code}
-                      active={countryCodes.includes(c.code)}
-                      onClick={() => toggle(countryCodes, c.code, setCountryCodes)}
+                <StepLabel>Welcome to Kebu</StepLabel>
+                <h1
+                  className="text-3xl sm:text-4xl font-bold mb-2 leading-tight"
+                  style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
+                >
+                  What are you here to build?
+                </h1>
+                <p className="text-sm mb-8 leading-relaxed" style={{ color: KEBU.muted }}>
+                  3 minutes — personalizes your entire Kebu experience.
+                  You don't need a business to start.
+                </p>
+
+                <div className="grid grid-cols-1 gap-3 mb-8">
+                  {[
+                    { icon: "🌍", title: "Explore Africa", desc: "Countries, resources, opportunities, culture — understand the continent" },
+                    { icon: "🌐", title: "Build a site or store", desc: "Get online fast — site, shop, or brand live in minutes" },
+                    { icon: "💼", title: "Grow a business", desc: "Kebu ID, B2B directory, search, email, clients across Africa" },
+                    { icon: "✨", title: "Find opportunities", desc: "Grants, fellowships, tenders, jobs — curated for you" },
+                  ].map((c) => (
+                    <div
+                      key={c.title}
+                      className="flex items-start gap-4 rounded-2xl p-4"
+                      style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
                     >
-                      {c.name}
-                    </Chip>
+                      <span className="text-xl shrink-0 mt-0.5">{c.icon}</span>
+                      <div>
+                        <p className="font-bold text-sm" style={{ color: KEBU.black }}>{c.title}</p>
+                        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: KEBU.muted }}>{c.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => goTo(1)}
+                  className="w-full rounded-2xl py-4 text-sm font-bold transition-all hover:brightness-105"
+                  style={{ background: KEBU.orange, color: KEBU.white }}
+                >
+                  Get started →
+                </button>
+                <p className="text-xs mt-4 text-center" style={{ color: KEBU.faint }}>
+                  <Link href="/opportunity" style={{ color: KEBU.muted, textDecoration: "underline" }}>
+                    Skip for now
+                  </Link>
+                  {" "}— you can personalize anytime from your home page
+                </p>
+              </div>
+            )}
+
+            {step === 1 && (
+              <div>
+                <StepLabel>About you</StepLabel>
+                <StepHeading>What are you here for right now?</StepHeading>
+                <StepSub>Pick the closest match — this is personal, not a business profile.</StepSub>
+                <div className="space-y-2.5">
+                  {KEBU_HERE_FOR.map((g) => (
+                    <Card
+                      key={g.id}
+                      active={mainGoal === g.id}
+                      onClick={() => setMainGoal(g.id)}
+                      icon={g.icon}
+                      label={g.label}
+                      desc={g.desc}
+                    />
                   ))}
                 </div>
               </div>
-              <label className="block">
-                <span className="font-bold text-sm">What do you enjoy — or want to try?</span>
-                <textarea
-                  value={enjoyDoing}
-                  onChange={(e) => setEnjoyDoing(e.target.value)}
-                  rows={3}
-                  placeholder="e.g. music, farming, fixing phones, teaching kids, design…"
-                  className="mt-2 w-full rounded-xl border px-4 py-3 text-sm"
-                  style={{ borderColor: KEBU.border }}
-                />
-              </label>
-            </div>
-          )}
+            )}
 
-          {step > 0 && (
-            <div className="flex flex-wrap gap-3 mt-10 pt-6" style={{ borderTop: `1px solid ${KEBU.border}` }}>
-              <button
-                type="button"
-                onClick={() => setStep((s) => Math.max(0, s - 1))}
-                className="rounded-full px-6 py-3 text-sm font-semibold"
-                style={{ border: `1px solid ${KEBU.border}` }}
-              >
-                Back
-              </button>
-              {step < 6 ? (
-                <button
-                  type="button"
-                  disabled={!canNext()}
-                  onClick={() => setStep((s) => s + 1)}
-                  className="rounded-full px-8 py-3 text-sm font-bold text-white disabled:opacity-40"
-                  style={{ background: KEBU.orange }}
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void finish()}
-                  className="rounded-full px-8 py-3 text-sm font-bold text-white disabled:opacity-40"
-                  style={{ background: KEBU.black }}
-                >
-                  {busy ? "Saving…" : "Personalize my Kebu"}
-                </button>
-              )}
-            </div>
-          )}
+            {step === 2 && (
+              <div>
+                <StepLabel>Goals</StepLabel>
+                <StepHeading>What else matters to you?</StepHeading>
+                <StepSub>Pick as many as you like.</StepSub>
+                <div className="flex flex-wrap gap-2">
+                  {[...KEBU_HERE_FOR, ...OPPORTUNITY_GOALS].filter(
+                    (g, i, arr) => arr.findIndex((x) => x.id === g.id) === i,
+                  ).map((g) => (
+                    <Tag key={g.id} active={goals.includes(g.id)} onClick={() => toggle(goals, g.id, setGoals)}>
+                      {"icon" in g && g.icon ? `${g.icon} ` : ""}
+                      {g.label}
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {error ? <p className="text-sm text-red-600 mt-4">{error}</p> : null}
+            {step === 3 && (
+              <div>
+                <StepLabel>Interests</StepLabel>
+                <StepHeading>What are you curious about?</StepHeading>
+                <StepSub>
+                  {exploringMode() ? "Optional — tap Continue to skip." : "Pick at least one area."}
+                </StepSub>
+                <div className="space-y-2.5">
+                  {OPPORTUNITY_INTERESTS.map((item) => (
+                    <Card
+                      key={item.id}
+                      active={interestPaths.includes(item.id)}
+                      onClick={() => toggle(interestPaths, item.id, setInterestPaths)}
+                      icon={INTEREST_ICONS[item.id] ?? "📌"}
+                      label={item.label}
+                      desc={item.desc}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {step === 4 && (
+              <div>
+                <StepLabel>Resources</StepLabel>
+                <StepHeading>What kind of support might you need?</StepHeading>
+                <StepSub>
+                  Grants, jobs, heritage stories, country intel…{exploringMode() ? " Optional for now." : ""}
+                </StepSub>
+                <div className="flex flex-wrap gap-2">
+                  {OPPORTUNITY_RESOURCE_NEEDS.map((r) => (
+                    <Tag
+                      key={r.id}
+                      active={resourceNeeds.includes(r.id)}
+                      onClick={() => toggle(resourceNeeds, r.id, setResourceNeeds)}
+                    >
+                      {r.label}
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {step === 5 && (
+              <div>
+                <StepLabel>Starting point</StepLabel>
+                <StepHeading>How much could you start with?</StepHeading>
+                <StepSub>
+                  Honest answer helps us show the right opportunities. "Not sure" is perfectly fine.
+                </StepSub>
+                <div className="space-y-2.5">
+                  {BUDGET_BANDS.map((b) => (
+                    <Card
+                      key={b.id}
+                      active={budget === b.id}
+                      onClick={() => setBudget(b.id)}
+                      icon={BUDGET_ICONS[b.id] ?? "💰"}
+                      label={b.label}
+                      desc={b.hint}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {step === 6 && (
+              <div className="space-y-7">
+                <div>
+                  <StepLabel>Your Africa</StepLabel>
+                  <StepHeading>Which countries matter to you?</StepHeading>
+                  <StepSub>Home, diaspora, or markets you want to reach — pick all that apply.</StepSub>
+                  <div className="flex flex-wrap gap-2">
+                    {AFRICAN_COUNTRY_OPTIONS.map((c) => (
+                      <Tag
+                        key={c.code}
+                        active={countryCodes.includes(c.code)}
+                        onClick={() => toggle(countryCodes, c.code, setCountryCodes)}
+                      >
+                        {c.name}
+                      </Tag>
+                    ))}
+                  </div>
+                </div>
+                <label className="block">
+                  <span className="block font-bold text-sm mb-2" style={{ color: KEBU.black }}>
+                    What do you enjoy — or want to try?
+                  </span>
+                  <textarea
+                    value={enjoyDoing}
+                    onChange={(e) => setEnjoyDoing(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. music, farming, fixing phones, teaching kids, design…"
+                    className="w-full rounded-xl px-4 py-3 text-sm"
+                    style={{
+                      background: KEBU.white,
+                      border: `1.5px solid ${KEBU.border}`,
+                      color: KEBU.black,
+                      outline: "none",
+                    }}
+                  />
+                </label>
+              </div>
+            )}
+
+          </div>
         </div>
+      </main>
+
+      {/* Sticky bottom navigation */}
+      <div
+        className="sticky bottom-0 z-20 px-5 sm:px-8 py-4"
+        style={{
+          background: KEBU.bright,
+          borderTop: `1px solid ${KEBU.border}`,
+        }}
+      >
+        <div className="max-w-xl mx-auto flex items-center gap-3">
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={() => goTo(step - 1)}
+              className="rounded-xl px-5 py-3 text-sm font-semibold transition-all"
+              style={{
+                background: "transparent",
+                border: `1.5px solid ${KEBU.border}`,
+                color: KEBU.muted,
+              }}
+            >
+              ← Back
+            </button>
+          )}
+          <div className="flex-1" />
+          {step === 0 && (
+            <button
+              type="button"
+              onClick={() => goTo(1)}
+              className="rounded-xl px-6 py-3 text-sm font-bold transition-all hover:brightness-105"
+              style={{ background: KEBU.orange, color: KEBU.white }}
+            >
+              Get started →
+            </button>
+          )}
+          {step > 0 && step < 6 && (
+            <button
+              type="button"
+              disabled={!canNext()}
+              onClick={() => goTo(step + 1)}
+              className="rounded-xl px-6 py-3 text-sm font-bold transition-all hover:brightness-105 disabled:opacity-40"
+              style={{ background: KEBU.orange, color: KEBU.white }}
+            >
+              Continue →
+            </button>
+          )}
+          {step === 6 && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void finish()}
+              className="rounded-xl px-6 py-3 text-sm font-bold transition-all hover:brightness-105 disabled:opacity-40"
+              style={{ background: KEBU.black, color: KEBU.white }}
+            >
+              {busy ? "Saving…" : "Personalize my Kebu →"}
+            </button>
+          )}
+        </div>
+        {error && (
+          <p className="max-w-xl mx-auto text-xs mt-2" style={{ color: KEBU.red }}>{error}</p>
+        )}
       </div>
-    </AppShell>
+    </div>
   );
 }

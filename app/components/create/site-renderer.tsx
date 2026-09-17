@@ -51,6 +51,7 @@ import "./kebu-scroll-entrance.css";
 import "./kebu-motion-effects.css";
 import { initScrollEntrances, ENTRANCE_MOTION } from "./kebu-scroll-entrance";
 import { KEBU_SITE_ROOT_CLASS } from "@/lib/create/site-responsive";
+import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 import { themeToCssVars } from "@/lib/create/site-aesthetics";
 import { dataModeSiteClass, preferSystemFonts, type DataMode } from "@/lib/create/data-mode";
 import { definitionHasShop } from "@/lib/create/site-shop";
@@ -360,6 +361,7 @@ function SiteNav({
   maxWidth,
   logoAlign,
   layout,
+  navScale,
   resolveHref,
   onNavigate,
   onNavResize,
@@ -374,7 +376,7 @@ function SiteNav({
   padX: number;
   fontPx: number;
   gap: number;
-  maxWidth: number;
+  maxWidth: string | undefined;
   logoAlign: "left" | "center" | "right";
   layout?: "top" | "side" | "hamburger";
   /** Current scale value, passed so the drag handle can compute correctly. */
@@ -431,7 +433,12 @@ function SiteNav({
       <div key={l.label} className="relative">
         <button
           type="button"
-          onClick={() => setOpenGroup(groupOpen ? null : l.label)}
+          onClick={() => {
+            // Mutually exclusive with the mobile drawer: opening a dropdown should never leave the
+            // drawer open underneath it (see kebu-z-layers.ts for why both being open was a real risk).
+            setDrawerOpen(false);
+            setOpenGroup(groupOpen ? null : l.label);
+          }}
           className="kebu-nav-link flex items-center gap-1"
           style={{ fontSize: fontPx }}
         >
@@ -440,10 +447,11 @@ function SiteNav({
         </button>
         {groupOpen && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpenGroup(null)} aria-hidden />
+            <div className="fixed inset-0" style={{ zIndex: Z_LAYERS.dropdownBackdrop }} onClick={() => setOpenGroup(null)} aria-hidden />
             <div
-              className="absolute left-0 top-full z-50 mt-1 overflow-hidden rounded-xl shadow-xl"
+              className="absolute left-0 top-full mt-1 overflow-hidden rounded-xl shadow-xl"
               style={{
+                zIndex: Z_LAYERS.dropdownPanel,
                 background: navBg || "#000",
                 border: "1px solid rgba(255,255,255,0.12)",
                 minWidth: l.children!.length > 4 ? 240 : 180,
@@ -596,8 +604,8 @@ function SiteNav({
       {drawerOpen && (
         <>
           <div
-            className={`fixed inset-0 z-40 ${alwaysHamburger ? "" : "sm:hidden"}`}
-            style={{ background: "rgba(0,0,0,0.35)" }}
+            className={`fixed inset-0 ${alwaysHamburger ? "" : "sm:hidden"}`}
+            style={{ background: "rgba(0,0,0,0.35)", zIndex: Z_LAYERS.drawerBackdrop }}
             onClick={() => setDrawerOpen(false)}
             aria-hidden
           />
@@ -1338,7 +1346,7 @@ export function SiteRenderer({
                         {img ? (
                           <div className="mays-world-moodboard__media" aria-hidden>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={img} alt="" />
+                            <img src={img} alt="" loading="lazy" />
                           </div>
                         ) : null}
                         <div className="mays-world-moodboard__copy">
@@ -1656,7 +1664,7 @@ export function SiteRenderer({
                           productId={item.productId}
                           productName={item.name}
                           priceLabel={item.priceLabel ?? ""}
-                          variants={item.variants}
+                          variants={item.variants as import("@/app/components/create/public-product-variant-picker").ProductVariantOption[] | undefined}
                           commerce={shopCommerce}
                           orderStyle={p.orderStyle ?? "inline"}
                           ctaLabel={p.orderCtaLabel ?? "Place order"}
@@ -1761,7 +1769,7 @@ export function SiteRenderer({
           case "form": {
             const p = section.props as import("@/lib/create/site-forms").SiteFormSectionProps;
             const liveSubForm =
-              mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase)) : undefined;
+              mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase) ?? undefined) : undefined;
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 max-w-3xl mx-auto scroll-mt-20">
                 <EditableText
@@ -1841,8 +1849,7 @@ export function SiteRenderer({
           }
           case "whatsapp": {
             const p = section.props as { label?: string; phone: string; message?: string };
-            const phone = p.phone.replace(/\D/g, "");
-            const href = `https://wa.me/${phone}${p.message ? `?text=${encodeURIComponent(p.message)}` : ""}`;
+            const href = whatsAppOrderHref(p.phone ?? "", p.message ?? "");
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 text-center scroll-mt-20">
                 <a
@@ -1863,7 +1870,7 @@ export function SiteRenderer({
             return wrap(
               <figure key={key} className="kebu-section px-5 max-w-4xl mx-auto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.src} alt={p.alt || ""} className="w-full rounded-2xl" />
+                <img src={p.src} alt={p.alt || ""} className="w-full rounded-2xl" loading="lazy" />
                 {p.caption && <figcaption className="text-xs mt-2 opacity-60">{p.caption}</figcaption>}
               </figure>,
             );
@@ -1878,7 +1885,24 @@ export function SiteRenderer({
             const rawItems = p.items ?? [];
             const items = rawItems.filter((item) => item.src);
             const editingGallery = Boolean(editor?.inlineEdit);
-            if (!items.length && !editingGallery) return null;
+            if (!items.length && !editingGallery) {
+              // No populated images on a LIVE site: don't silently drop the whole section (it breaks
+              // anchor links and makes page structure unpredictable) and don't show editor-only "Empty
+              // slot / Drop photo here" language to a visitor. If there's at least a heading, show an
+              // honest, visitor-appropriate placeholder; only truly empty sections render nothing.
+              const hasHeading = Boolean(p.heading && p.heading.trim());
+              if (!hasHeading) return null;
+              return wrap(
+                <section key={key} id={anchor} className="px-5 py-8 max-w-5xl mx-auto scroll-mt-20 space-y-4">
+                  <h2 className="text-2xl font-bold" style={{ fontFamily: cssFontStack(theme.fontDisplay) }}>
+                    {p.heading}
+                  </h2>
+                  <div className="flex items-center justify-center rounded-xl border border-dashed border-black/15 bg-black/[0.02] py-12 text-center text-sm opacity-60">
+                    Photos coming soon.
+                  </div>
+                </section>,
+              );
+            }
             const layout = p.layout ?? "grid";
             const columns = p.columns ?? 3;
             if (editingGallery && rawItems.some((i) => !i.src)) {
@@ -1927,7 +1951,7 @@ export function SiteRenderer({
                     </h2>
                   ) : null}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={first.src} alt={first.alt || ""} className="w-full rounded-2xl object-cover" />
+                  <img src={first.src} alt={first.alt || ""} className="w-full rounded-2xl object-cover" loading="lazy" />
                 </section>,
               );
             }
@@ -2282,18 +2306,64 @@ export function SiteRenderer({
             );
           }
           case "footer": {
-            const p = section.props as { text?: string; links?: { label: string; href: string }[]; bgColor?: string; textColor?: string };
+            const p = section.props as {
+              text?: string;
+              links?: { label: string; href: string }[];
+              bgColor?: string;
+              textColor?: string;
+              paddingTop?: number;
+              paddingBottom?: number;
+            };
             const hasCustomBg = Boolean(p.bgColor);
-            return (
+            const ptPx = p.paddingTop ?? 32;
+            const pbPx = p.paddingBottom ?? 32;
+
+            function makeFooterDragHandle(which: "top" | "bottom") {
+              if (!editor?.onPatchSection) return null;
+              return (
+                <div
+                  className="absolute left-0 right-0 z-50 flex cursor-ns-resize items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                  style={{
+                    height: 10,
+                    top: which === "top" ? 0 : undefined,
+                    bottom: which === "bottom" ? 0 : undefined,
+                    background: "rgba(44,110,203,0.3)",
+                  }}
+                  title={which === "top" ? "Drag to change top padding" : "Drag to change bottom padding"}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const startY = e.clientY;
+                    const base = which === "top" ? ptPx : pbPx;
+                    function onMove(ev: MouseEvent) {
+                      const delta = (which === "top" ? -1 : 1) * (ev.clientY - startY);
+                      const next = Math.min(200, Math.max(8, Math.round(base + delta)));
+                      editor!.onPatchSection!(sectionId, which === "top" ? { paddingTop: next } : { paddingBottom: next });
+                    }
+                    function onUp() {
+                      window.removeEventListener("mousemove", onMove);
+                      window.removeEventListener("mouseup", onUp);
+                    }
+                    window.addEventListener("mousemove", onMove);
+                    window.addEventListener("mouseup", onUp);
+                  }}
+                />
+              );
+            }
+
+            return wrap(
               <footer
                 key={key}
-                className={`px-4 sm:px-5 py-8 mt-8 text-center text-sm${hasCustomBg ? "" : " opacity-60"}`}
+                className={`relative px-4 sm:px-5 mt-8 text-center text-sm${hasCustomBg ? "" : " opacity-60"}`}
                 style={{
                   borderTop: "1px solid #E8E6DF",
                   background: p.bgColor || undefined,
                   color: p.textColor || undefined,
+                  paddingTop: ptPx,
+                  paddingBottom: pbPx,
                 }}
               >
+                {makeFooterDragHandle("top")}
                 <p>{p.text}</p>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
                   {(p.links ?? []).map((l) => (
@@ -2302,6 +2372,7 @@ export function SiteRenderer({
                     </a>
                   ))}
                 </div>
+                {makeFooterDragHandle("bottom")}
               </footer>
             );
           }

@@ -146,6 +146,7 @@ export function BuilderStudioChrome({
   onPublish,
   onSaveDraft,
   savingDraft,
+  saveLabelColor,
   previewHost,
   pages,
   activePageId,
@@ -168,6 +169,7 @@ export function BuilderStudioChrome({
   onPublish: () => void;
   onSaveDraft?: () => void;
   savingDraft?: boolean;
+  saveLabelColor?: string;
   previewHost?: string;
   pages?: { id: string; title: string; slug: string }[];
   activePageId?: string;
@@ -238,7 +240,10 @@ export function BuilderStudioChrome({
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
         {saveLabel ? (
-          <span className="hidden text-[10px] lg:inline" style={{ color: BUILDER.faint }}>
+          <span
+            className="hidden max-w-[180px] truncate text-[10px] sm:inline"
+            style={{ color: saveLabelColor ?? BUILDER.faint }}
+          >
             {saveLabel}
           </span>
         ) : null}

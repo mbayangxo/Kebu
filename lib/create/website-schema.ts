@@ -118,7 +118,7 @@ const socialLinksSchema = z
   .array(
     z.object({
       label: z.string().trim().max(40),
-      iconUrl: imageUrl,
+      iconUrl: z.preprocess((v) => v ?? "", imageUrl),
       href: safeHref,
     }),
   )
@@ -261,8 +261,9 @@ export const sectionPropsSchemas = {
   "category-tiles": z.object({
     heading: z.string().trim().max(160).optional(),
     columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional().default(4),
-    items: z
-      .array(z.object({
+    items: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z.array(z.object({
         label: z.string().trim().min(1).max(60),
         href: safeHref.default("#"),
         imageUrl: imageUrl.default(""),
@@ -270,6 +271,7 @@ export const sectionPropsSchemas = {
       }))
       .max(12)
       .default([]),
+    ),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
@@ -287,16 +289,19 @@ export const sectionPropsSchemas = {
   }),
   gallery: z.object({
     heading: z.string().trim().max(160).optional(),
-    items: z
-      .array(
-        z.object({
-          src: z.string().trim().max(500),
-          alt: z.string().trim().max(160).default(""),
-          href: safeHref.optional().default(""),
-        }),
-      )
-      .max(24)
-      .default([]),
+    items: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z
+        .array(
+          z.object({
+            src: z.string().trim().max(500),
+            alt: z.string().trim().max(160).default(""),
+            href: safeHref.optional().default(""),
+          }),
+        )
+        .max(24)
+        .default([]),
+    ),
     /**
      * grid = thumbnails · single = one full-width photo · featured = first large + rest grid ·
      * carousel = horizontal scroll strip (LUXORA "Most-Loved Shades" pattern) ·
@@ -320,18 +325,20 @@ export const sectionPropsSchemas = {
     caption: z.string().trim().max(200).optional(),
     /** Custom poster image (uploaded) for the legacy single video. */
     thumbnail: imageUrl.optional().default(""),
-    items: z
-      .array(
-        z.object({
-          src: z.string().trim().max(500).default(""),
-          title: z.string().trim().max(120).optional().default(""),
-          caption: z.string().trim().max(200).optional().default(""),
-          thumbnail: imageUrl.optional().default(""),
-        }),
-      )
-      .max(24)
-      .optional()
-      .default([]),
+    items: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z
+        .array(
+          z.object({
+            src: z.string().trim().max(500).default(""),
+            title: z.string().trim().max(120).optional().default(""),
+            caption: z.string().trim().max(200).optional().default(""),
+            thumbnail: imageUrl.optional().default(""),
+          }),
+        )
+        .max(24)
+        .default([]),
+    ),
     /** grid = thumbnail cards · single = one player · featured = first large + rest as thumbs */
     layout: z.enum(["grid", "single", "featured"]).optional().default("grid"),
     columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().default(2),
@@ -355,18 +362,21 @@ export const sectionPropsSchemas = {
   }),
   events: z.object({
     heading: z.string().trim().max(160).default("Events"),
-    items: z
-      .array(
-        z.object({
-          title: z.string().trim().min(1).max(120),
-          date: z.string().trim().max(40),
-          location: z.string().trim().max(120).optional(),
-          description: z.string().trim().max(500).optional(),
-          ticketUrl: safeHref.optional(),
-        }),
-      )
-      .max(24)
-      .default([]),
+    items: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z
+        .array(
+          z.object({
+            title: z.string().trim().min(1).max(120),
+            date: z.string().trim().max(40),
+            location: z.string().trim().max(120).optional(),
+            description: z.string().trim().max(500).optional(),
+            ticketUrl: safeHref.optional(),
+          }),
+        )
+        .max(24)
+        .default([]),
+    ),
     hidden: z.boolean().optional(),
   }),
   features: z.object({
@@ -377,21 +387,24 @@ export const sectionPropsSchemas = {
     /** Optional full-bleed background image behind the entire features section (image 1 pattern). */
     backgroundImageUrl: imageUrl.optional().default(""),
     background: z.string().trim().max(40).optional(),
-    items: z
-      .array(
-        z.object({
-          title: z.string().trim().max(80),
-          body: z.string().trim().max(240),
-          href: z.string().trim().max(500).optional(),
-          image: imageUrl.optional().default(""),
-          /** Per-item illustration / photo (agency case study pattern — "VELVET THEORY"). */
-          imageUrl: imageUrl.optional().default(""),
-          /** Icon emoji or short label displayed above the title (e.g. "⚡", "🌿", "shield"). */
-          icon: z.string().trim().max(80).optional(),
-        }),
-      )
-      .max(12)
-      .default([]),
+    items: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z
+        .array(
+          z.object({
+            title: z.string().trim().max(80),
+            body: z.string().trim().max(240),
+            href: z.string().trim().max(500).optional(),
+            image: imageUrl.optional().default(""),
+            /** Per-item illustration / photo (agency case study pattern — "VELVET THEORY"). */
+            imageUrl: imageUrl.optional().default(""),
+            /** Icon emoji or short label displayed above the title (e.g. "⚡", "🌿", "shield"). */
+            icon: z.string().trim().max(80).optional(),
+          }),
+        )
+        .max(12)
+        .default([]),
+    ),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
@@ -399,17 +412,14 @@ export const sectionPropsSchemas = {
     heading: z.string().trim().max(160).default("What customers say"),
     /** Filter pill tags grouping review topics — e.g. "Hydration", "Texture & Feel". */
     topics: z.array(z.string().trim().max(60)).max(12).optional().default([]),
-    items: z
-      .array(z.object({
+    items: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z.array(z.object({
         quote: z.string().trim().max(400),
         name: z.string().trim().max(80),
-        /** Short line shown under name — e.g. "Peau mixte · hyperpigmentation — Dakar". */
         role: z.string().trim().max(120).optional(),
-        /** Structured: skin type (Normal, Mixte, Grasse, Sèche, Sensible). */
         skinType: z.string().trim().max(60).optional(),
-        /** Structured: main skin concern. */
         skinConcern: z.string().trim().max(80).optional(),
-        /** Topics this review covers — must match topics array entries for filtering. */
         reviewTopics: z.array(z.string().trim().max(60)).max(6).optional().default([]),
         verified: z.boolean().optional(),
         rating: z.number().int().min(1).max(5).optional(),
@@ -417,14 +427,17 @@ export const sectionPropsSchemas = {
       }))
       .max(24)
       .default([]),
+    ),
     hidden: z.boolean().optional(),
   }),
   faq: z.object({
     heading: z.string().trim().max(160).default("FAQ"),
-    items: z
-      .array(z.object({ question: z.string().trim().max(200), answer: z.string().trim().max(800) }))
-      .max(12)
-      .default([]),
+    items: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z.array(z.object({ question: z.string().trim().max(200), answer: z.string().trim().max(800) }))
+        .max(12)
+        .default([]),
+    ),
     /**
      * Optional "Still need help?" side panel shown next to the FAQ accordion
      * (Layers Beauty / split-FAQ pattern). Rendered as a right-hand panel with background image.
@@ -452,7 +465,9 @@ export const sectionPropsSchemas = {
      */
     orderStyle: z.enum(["inline", "sheet", "card", "minimal"]).optional().default("inline"),
     orderCtaLabel: z.string().trim().max(40).optional().default("Place order"),
-    items: z
+    items: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z
       .array(
         z.object({
           name: z.string().trim().min(1).max(120),
@@ -504,6 +519,7 @@ export const sectionPropsSchemas = {
       )
       .max(24)
       .default([]),
+    ),
     /** Label above the filter chip bar. E.g. "Filtrer par gamme". Shown only when items have filterTags. */
     filterLabel: z.string().trim().max(80).optional(),
     /**
@@ -826,12 +842,11 @@ export const sectionPropsSchemas = {
     imageUrl: imageUrl.default(""),
     imageAlt: z.string().trim().max(160).default(""),
     heading: z.string().trim().max(160).optional(),
-    pins: z
-      .array(z.object({
+    pins: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z.array(z.object({
         id: z.string().trim().min(1).max(40),
-        /** Horizontal position as % of image width. */
         xPct: z.number().min(0).max(100),
-        /** Vertical position as % of image height. */
         yPct: z.number().min(0).max(100),
         label: z.string().trim().max(80),
         description: z.string().trim().max(300).optional(),
@@ -840,6 +855,7 @@ export const sectionPropsSchemas = {
       }))
       .max(12)
       .default([]),
+    ),
     hidden: z.boolean().optional(),
   }),
   /** Customer product reviews widget — Yotpo-style star ratings, submit form, breakdown. */
@@ -858,23 +874,25 @@ export const sectionPropsSchemas = {
     heading: z.string().trim().max(160).optional(),
     minHeight: z.number().int().min(120).max(2400).default(420),
     backgroundImage: imageUrl.optional().default(""),
-    blocks: z
-      .array(
-        z.object({
-          id: z.string().trim().min(1).max(80),
-          text: z.string().trim().max(2000).default(""),
-          x: z.number().min(0).max(100).default(8),
-          y: z.number().min(0).max(100).default(8),
-          width: z.number().min(15).max(100).default(84),
-          fontSize: z.enum(["sm", "md", "lg", "xl", "hero"]).default("md"),
-          align: z.enum(["left", "center", "right"]).default("left"),
-          color: z.string().trim().max(40).optional().default(""),
-          /** Empty / omitted = site display font from Aesthetic Editor. */
-          fontFamily: z.string().trim().max(80).optional().default(""),
-        }),
-      )
-      .max(24)
-      .default([]),
+    blocks: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z
+        .array(
+          z.object({
+            id: z.string().trim().min(1).max(80),
+            text: z.string().trim().max(2000).default(""),
+            x: z.number().min(0).max(100).default(8),
+            y: z.number().min(0).max(100).default(8),
+            width: z.number().min(15).max(100).default(84),
+            fontSize: z.enum(["sm", "md", "lg", "xl", "hero"]).default("md"),
+            align: z.enum(["left", "center", "right"]).default("left"),
+            color: z.string().trim().max(40).optional().default(""),
+            fontFamily: z.string().trim().max(80).optional().default(""),
+          }),
+        )
+        .max(24)
+        .default([]),
+    ),
     hidden: z.boolean().optional(),
   }),
   footer: z.object({
@@ -886,17 +904,19 @@ export const sectionPropsSchemas = {
     bgColor: z.string().trim().max(32).optional(),
     textColor: z.string().trim().max(32).optional(),
     hidden: z.boolean().optional(),
+    paddingTop: z.number().int().min(8).max(200).default(32),
+    paddingBottom: z.number().int().min(8).max(200).default(32),
   }),
   "maylecor-home": z.object({
     artistName: z.string().trim().min(1).max(80),
-    backgroundImage: imageUrl,
-    portraitMain: imageUrl,
-    collageTop: imageUrl,
-    collageMiddle: imageUrl,
-    logoBanner: imageUrl,
-    bottomLeft: imageUrl,
-    bottomRight: imageUrl,
-    logoSmall: imageUrl,
+    backgroundImage: z.preprocess((v) => v ?? "", imageUrl),
+    portraitMain: z.preprocess((v) => v ?? "", imageUrl),
+    collageTop: z.preprocess((v) => v ?? "", imageUrl),
+    collageMiddle: z.preprocess((v) => v ?? "", imageUrl),
+    logoBanner: z.preprocess((v) => v ?? "", imageUrl),
+    bottomLeft: z.preprocess((v) => v ?? "", imageUrl),
+    bottomRight: z.preprocess((v) => v ?? "", imageUrl),
+    logoSmall: z.preprocess((v) => v ?? "", imageUrl),
     ctaLabel: z.string().trim().min(1).max(120),
     musicPageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(40).default("music"),
     homeLogoHref: safeHref.default("#top"),
@@ -907,28 +927,33 @@ export const sectionPropsSchemas = {
   }),
   "maylecor-music": z.object({
     artistName: z.string().trim().min(1).max(80),
-    albumArt: imageUrl,
+    albumArt: z.preprocess((v) => v ?? "", imageUrl),
     homePageSlug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(40).default("home"),
-    tracks: z
-      .array(
-        z.object({
-          id: z.string().trim().min(1).max(40),
-          title: z.string().trim().min(1).max(120),
-          coverUrl: imageUrl.optional().default(""),
-          links: z
-            .array(
-              z.object({
-                platform: z.enum(["spotify", "apple", "youtube", "soundcloud", "other"]),
-                href: safeHref.optional().default(""),
-              }),
-            )
-            .max(8)
-            .default([]),
-        }),
-      )
-      .max(24)
-      .optional()
-      .default([]),
+    tracks: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z
+        .array(
+          z.object({
+            id: z.string().trim().min(1).max(40),
+            title: z.string().trim().min(1).max(120),
+            coverUrl: imageUrl.optional().default(""),
+            links: z.preprocess(
+              (v) => (Array.isArray(v) ? v : []),
+              z
+                .array(
+                  z.object({
+                    platform: z.enum(["spotify", "apple", "youtube", "soundcloud", "other"]),
+                    href: safeHref.optional().default(""),
+                  }),
+                )
+                .max(8)
+                .default([]),
+            ),
+          }),
+        )
+        .max(24)
+        .default([]),
+    ),
     socialLinks: socialLinksSchema,
     ...socialRailFields,
     motionEnabled: z.boolean().optional().default(true),
@@ -938,15 +963,15 @@ export const sectionPropsSchemas = {
     title: z.string().trim().min(1).max(120),
     subtitle: z.string().trim().max(500),
     brandLabel: z.string().trim().max(80).optional(),
-    backgroundLayer: imageUrl,
-    titleLogo: imageUrl,
+    backgroundLayer: z.preprocess((v) => v ?? "", imageUrl),
+    titleLogo: z.preprocess((v) => v ?? "", imageUrl),
     cutoutLeft: z.preprocess((v) => v ?? "", imageUrl),
     cutoutRight: z.preprocess((v) => v ?? "", imageUrl),
     cutoutAccent: z.preprocess((v) => v ?? "", imageUrl),
-    cutoutSparkle: imageUrl.optional().default(""),
-    macbook: imageUrl,
-    sparkleGif: imageUrl.optional().default(""),
-    heroPhoto: imageUrl,
+    cutoutSparkle: z.preprocess((v) => v ?? "", imageUrl),
+    macbook: z.preprocess((v) => v ?? "", imageUrl),
+    sparkleGif: z.preprocess((v) => v ?? "", imageUrl),
+    heroPhoto: z.preprocess((v) => v ?? "", imageUrl),
     accentColor: z.string().trim().max(40).default("#e9006b"),
     /** Steelfish = Russian original; swap to Oswald/Bebas/etc in editor. */
     displayFont: z.string().trim().max(80).optional().default("Steelfish"),
@@ -1005,29 +1030,30 @@ export const sectionPropsSchemas = {
       .optional()
       .default({}),
     /** Built-in cutout keys the founder removed (do not fall back to Russian assets). */
-    hiddenLayers: z.array(z.string().trim().min(1).max(40)).max(20).optional().default([]),
+    hiddenLayers: z.preprocess((v) => (Array.isArray(v) ? v : []), z.array(z.string().trim().min(1).max(40)).max(20).default([])),
     /** Solid accent color only — no photo background. */
     backgroundHidden: z.boolean().optional().default(false),
     /** Extra user cutouts on the hero artboard (drag / upload / delete). */
-    extraCutouts: z
-      .array(
+    extraCutouts: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z
+        .array(
           z.object({
-          id: z.string().trim().min(1).max(40),
-          src: imageUrl,
-          alt: z.string().trim().max(120).optional().default(""),
-          href: safeHref.optional().default(""),
-          topPct: z.number().min(-20).max(110).default(30),
-          leftPct: z.number().min(-20).max(110).default(40),
-          widthPct: z.number().min(4).max(80).default(14),
-          rotate: z.number().min(-45).max(45).optional().default(0),
-          zIndex: z.number().int().min(1).max(40).optional().default(12),
-          /** city = scrolls behind May; figure = stays forward; none = fixed. */
-          parallaxRole: z.enum(["city", "figure", "none"]).optional().default("none"),
-        }),
-      )
-      .max(12)
-      .optional()
-      .default([]),
+            id: z.string().trim().min(1).max(40),
+            src: imageUrl,
+            alt: z.string().trim().max(120).optional().default(""),
+            href: safeHref.optional().default(""),
+            topPct: z.number().min(-20).max(110).default(30),
+            leftPct: z.number().min(-20).max(110).default(40),
+            widthPct: z.number().min(4).max(80).default(14),
+            rotate: z.number().min(-45).max(45).optional().default(0),
+            zIndex: z.number().int().min(1).max(40).optional().default(12),
+            parallaxRole: z.enum(["city", "figure", "none"]).optional().default("none"),
+          }),
+        )
+        .max(12)
+        .default([]),
+    ),
     ctaLabel: z.string().trim().max(80).optional(),
     ctaHref: safeHref.optional(),
     appearance: z.enum(["light", "dark"]).optional(),

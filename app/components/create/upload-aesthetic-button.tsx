@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
+import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 
 type SiteOption = { id: string; title: string };
 
@@ -71,6 +72,18 @@ export function UploadAestheticButton({ sites }: { sites: SiteOption[] }) {
     }
   }
 
+  // A modal with only one dismissal path (the Cancel button) is a single point of failure — add the
+  // two standard ones (outside click, Escape) per docs/product/KEBU-BUILDER-UX-STANDARD.md §3.
+  // Don't dismiss mid-upload, matching the Cancel button's own disabled-while-busy behavior.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, busy]);
+
   if (sites.length === 0) {
     return (
       <Link
@@ -95,15 +108,19 @@ export function UploadAestheticButton({ sites }: { sites: SiteOption[] }) {
       </button>
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.45)" }}
+          className="fixed inset-0 flex items-end sm:items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.45)", zIndex: Z_LAYERS.modalBackdrop }}
           role="dialog"
           aria-modal="true"
           aria-label="Upload new aesthetic"
+          onClick={() => {
+            if (!busy) setOpen(false);
+          }}
         >
           <div
             className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl"
             style={{ border: `2px solid ${KEBU.black}` }}
+            onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
               Upload new aesthetic

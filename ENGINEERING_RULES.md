@@ -152,3 +152,51 @@ E2E (`npm run test:e2e`) runs on push when `KEBU_E2E_BASE_URL` is set.
 | E2E | `tests/**/*.spec.ts` | Full browser journeys (Playwright) |
 
 Write tests in the correct tier. API-heavy features need integration tests, not only unit tests.
+
+---
+
+## 10. Vercel deployment constraints (Hobby plan)
+
+These rules exist because violating them silently blocks ALL deployments — Vercel rejects the
+build before any code runs, with no clear error in the GitHub Actions CI output.
+
+### 10a. Cron job schedules
+Every cron expression in `vercel.json` must run **at most once per day** on the Hobby plan.
+
+```
+✅  "0 6 * * *"    — daily at 06:00 UTC
+❌  "0 * * * *"    — hourly (rejected)
+❌  "0 */2 * * *"  — every 2 hours (rejected)
+```
+
+When upgrading to Pro: tighten `process-email-flows` back to `0 * * * *` and
+`cart-abandonment` back to `0 */2 * * *`.
+
+### 10b. Edge Function bundle size
+Vercel Hobby plan caps each Edge Function at **1 MB** (compressed).
+
+**Rule: never use `export const runtime = "edge"` in any route that imports from
+`lib/create/`, `lib/supabase/`, or any Zod-heavy module.** Those pull in Supabase client +
+Zod + schema definitions which inflate the bundle past 1 MB.
+
+Use `export const runtime = "nodejs"` (the default) for any route that needs Supabase/Zod.
+Reserve `"edge"` only for pure, zero-import middleware or tiny response-rewrite routes.
+
+Current edge-runtime routes: `middleware.ts` only. Everything else is nodejs.
+
+### 10c. React hooks rules
+`useState`, `useEffect`, `useRef`, and all other hooks must be called unconditionally at the
+top level of a component — never inside an `if`, loop, or nested function. The lint gate
+(`react-hooks/rules-of-hooks`) catches this, but the fix must be applied before pushing, not
+after seeing a failed CI run.
+
+### 10d. TypeScript strict
+Run `npm run typecheck` locally before every push. The CI TypeScript gate (`tsc --noEmit`)
+will fail the deployment if there are any errors. Common sources of drift:
+- Function return types changing (e.g. `string | undefined` vs `number`)
+- New optional fields added to shared types
+- Zod schema output types not matching component prop types
+
+### 10e. Duplicate JSX attributes
+A JSX element cannot have two `style={{...}}` (or any other) attributes. Merge them into one.
+TypeScript reports this as `TS17001`; it does not appear in the lint gate, only in typecheck.
