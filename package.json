@@ -16,7 +16,7 @@
     "test:rls": "vitest run 'tests/**/*.rls.test.ts'",
     "test:e2e": "playwright test",
     "ci": "npm run typecheck && npm run lint && npm test && npm run build",
-    "db:apply:business": "node scripts/apply-business-migrations.mjs"
+    "migration:check": "node scripts/check-migration-hygiene.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
