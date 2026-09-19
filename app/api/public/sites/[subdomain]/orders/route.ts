@@ -74,7 +74,7 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Site is not live." }, { status: 404 });
   }
 
-  let { data: product, error: productError } = await admin
+  const { data: product, error: productError } = await admin
     .from("project_products")
     .select("id, project_id, name, price_label, price_xof, upc, sku, track_stock, stock_qty, is_active")
     .eq("id", parsed.data.productId)

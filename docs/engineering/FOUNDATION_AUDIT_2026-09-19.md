@@ -58,3 +58,13 @@ The repository currently contains canonical-looking migrations plus historical m
 - Strengthen E2E coverage beyond the current public-page smoke test, especially checkout/payment/webhook/fulfillment and cross-tenant access.
 - Rework CI E2E triggering so pull-request code is exercised against the corresponding preview environment.
 - Decompose behavior-heavy giant UI modules separately from security/database remediation.
+
+
+## Second foundation pass
+- Production cron and admin-session secrets now reject missing, weak, and obvious placeholder values; privileged endpoints fail closed.
+- The in-process fallback rate limiter is memory-bounded. It remains a local abuse guard, not a substitute for distributed edge enforcement.
+- Builder page, section, product, and custom-domain mutation paths now consistently enforce same-origin checks where audited.
+- Live schema inspection confirmed the modern commerce columns are present. Product/order routes no longer silently retry old schema shapes; migration drift now fails visibly instead of being hidden.
+- Preview E2E is triggered from Vercel deployment_status and checks out the exact deployment SHA. The previous static-base-URL CI path was removed to prevent false green tests against the wrong deployment.
+- Distributed rate limiting/WAF remains an infrastructure configuration item because the connected Vercel surface does not expose a safe write action for firewall rules, and no external Redis dependency is being introduced without an explicit provider decision.
+- Supabase leaked-password protection remains an account-level Auth setting; the connected Supabase surface exposes no Auth-config mutation action.

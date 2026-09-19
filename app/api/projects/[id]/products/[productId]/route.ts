@@ -83,7 +83,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (parsed.data.sortOrder !== undefined) patch.sort_order = parsed.data.sortOrder;
   if (parsed.data.isActive !== undefined) patch.is_active = parsed.data.isActive;
 
-  let { data: product, error } = await supabase
+  const { data: product, error } = await supabase
     .from("project_products")
     .update(patch)
     .eq("id", productId)
