@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { commitShopCheckout } from "@/lib/shop/stock";
 import { getShopPaymentAdapter } from "@/lib/payments/registry";
 import { startShopOrderJokoCheckout } from "@/lib/shop/joko-order";
 import {
@@ -255,6 +256,9 @@ export async function markShopOrderPaidByProviderRef(
   if (order.payment_status === "paid") {
     return { ok: true, orderId: order.id, projectId: order.project_id };
   }
+
+  const committed = await commitShopCheckout(admin, order.id);
+  if (!committed) return { ok: false, error: "Checkout reservation expired or could not be committed." };
 
   const patch: Record<string, unknown> = {
     payment_status: "paid",
