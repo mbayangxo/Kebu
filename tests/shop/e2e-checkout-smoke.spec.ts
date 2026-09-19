@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "playwright/test";
 
 /**
  * Browser/API smoke against the exact Vercel deployment that emitted deployment_status.
