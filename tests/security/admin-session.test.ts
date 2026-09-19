@@ -43,7 +43,6 @@ describe("admin session cookie", () => {
     expect(await verifyAdminSessionToken(token)).toBe(true);
 
     vi.unstubAllEnvs();
-    if (prevNodeEnv !== undefined) process.env.NODE_ENV = prevNodeEnv;
     process.env.ADMIN_PASSWORD = prevPass;
     if (prevSecret === undefined) delete process.env.ADMIN_SESSION_SECRET;
     else process.env.ADMIN_SESSION_SECRET = prevSecret;
