@@ -17,7 +17,7 @@ const fulfillPaidDigitalOrder = vi.fn();
 
 function query(table: string) {
   const state: { patch?: Record<string, unknown> } = {};
-  type QueryChain = { select: () => QueryChain; eq: () => QueryChain; maybeSingle: () => Promise<{ data: Order | null; error: null }>; update: (patch: Record<string, unknown>) => QueryChain; insert: (row: Record<string, unknown>) => Promise<{ error: null }>; then: (resolve: (v: unknown) => void) => Promise<void>; };\n  const chain = {} as QueryChain;\n  Object.assign(chain, {
+  type QueryChain = {\n    select: () => QueryChain;\n    eq: () => QueryChain;\n    maybeSingle: () => Promise<{ data: Order | null; error: null }>;\n    update: (patch: Record<string, unknown>) => QueryChain;\n    insert: (row: Record<string, unknown>) => Promise<{ error: null }>;\n    then: (resolve: (v: unknown) => void) => Promise<void>;\n  };\n  const chain = {} as QueryChain;\n  Object.assign(chain, {
     select: () => chain,
     eq: () => chain,
     maybeSingle: async () => ({ data: table === "shop_orders" ? { ...order } : null, error: null }),
@@ -30,7 +30,7 @@ function query(table: string) {
   };
   return chain;
 }
-const admin: any = { from: (table: string) => query(table), rpc: (...args: unknown[]) => rpc(...args) };
+type AdminMock = {\n  from: (table: string) => ReturnType<typeof query>;\n  rpc: (...args: unknown[]) => ReturnType<typeof rpc>;\n};\nconst admin: AdminMock = { from: (table: string) => query(table), rpc: (...args: unknown[]) => rpc(...args) };
 
 vi.mock("@/lib/opportunity/admin", () => ({ createServiceClient: () => admin }));
 vi.mock("@/lib/shop/digital-downloads", () => ({
