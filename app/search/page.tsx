@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
@@ -69,7 +69,7 @@ export default function SearchPage() {
   </AppShell>;
 }
 
-function Heading({children}:{children:React.ReactNode}) { return <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{color: KEBU.muted}}>{children}</h2>; }
+function Heading({children}:{children:ReactNode}) { return <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{color: KEBU.muted}}>{children}</h2>; }
 function Result({item}:{item:SearchResult}) {
   return <Link href={item.href} className="group flex min-h-20 items-center gap-3 rounded-2xl border bg-white p-4 transition hover:-translate-y-px hover:shadow-sm" style={{borderColor: KEBU.borders.default}}>
     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{background: KEBU.cream, color: item.accent ?? KEBU.black}}><KebuIcon name={item.kind==="opportunity"?"opportunity":item.kind==="design"?"studio":item.kind==="business"?"spaces":item.kind==="site"?"builder":"arrowRight"} size={19}/></span>
