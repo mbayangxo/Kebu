@@ -19,7 +19,7 @@ Therefore repository migration filenames are **not** a trustworthy record of wha
 - `platform_cron_runs` and `shop_checkout_email_otps` have no client policies; this intentionally denies normal Data API access and they are server-owned.
 - No public views were found.
 - The only public `SECURITY DEFINER` function is `handle_new_user()`; EXECUTE is not available to anon, authenticated, or PUBLIC, and its search path is explicitly set.
-- Supabase advisor still reports mutable search paths on `update_updated_at`, `set_updated_at`, and `touch_updated_at`. Fix these in the first reconciled canonical migration rather than creating another disconnected migration-history entry.
+- Reconciled migration `20260919204303_harden_public_database_boundaries` fixed mutable search paths on `update_updated_at`, `set_updated_at`, and `touch_updated_at` and restricted public deployment reads to `status = 'live'`. The live policy/advisor state was re-checked after application.
 - Supabase Auth leaked-password protection is disabled and should be enabled in project Auth settings.
 - Performance advisor reports numerous unindexed foreign keys. Add indexes based on real query paths and measured workload, not mechanically.
 
