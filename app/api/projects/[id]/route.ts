@@ -140,21 +140,23 @@ export async function DELETE(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid project id." }, { status: 400 });
   }
 
-  const access = await assertProjectEditorAccess(supabase, {
-    userId: user.id,
-    email: user.email,
-    projectId: id,
-    select: "id, owner_id",
-    action: "get",
-  });
+  // Whole-project deletion is owner-only. Support/team editor access must never
+  // escalate into destructive account-level authority through the service role.
+  const { data: ownedProject, error: ownerError } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("id", id)
+    .eq("owner_id", user.id)
+    .maybeSingle();
 
-  if (!access) {
+  if (ownerError) {
+    return NextResponse.json({ error: "Could not verify project ownership." }, { status: 500 });
+  }
+  if (!ownedProject) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 
-  const db = dbForProjectAccess(supabase, access.via);
-
-  const { error } = await db.from("projects").delete().eq("id", id);
+  const { error } = await supabase.from("projects").delete().eq("id", id).eq("owner_id", user.id);
 
   if (error) {
     logCreate("projects.delete_failed", { userId: user.id, projectId: id, message: error.message });
