@@ -109,3 +109,69 @@ $$;
 
 revoke all on function public.consume_digital_download(text) from public, anon, authenticated;
 grant execute on function public.consume_digital_download(text) to service_role;
+
+
+create or replace function public.increment_discount_use_atomic(
+  p_discount_id uuid
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  update public.shop_discount_codes
+     set uses_count = uses_count + 1,
+         updated_at = now()
+   where id = p_discount_id
+     and is_active = true
+     and (starts_at is null or starts_at <= now())
+     and (ends_at is null or ends_at >= now())
+     and (max_uses is null or uses_count < max_uses)
+  returning id into v_id;
+  return v_id is not null;
+end;
+$$;
+
+revoke all on function public.increment_discount_use_atomic(uuid) from public, anon, authenticated;
+grant execute on function public.increment_discount_use_atomic(uuid) to service_role;
+
+alter table public.email_flow_enrollments
+  add column if not exists processing_token uuid,
+  add column if not exists processing_started_at timestamptz;
+
+create or replace function public.claim_due_email_flow_enrollments(
+  p_limit integer default 200
+)
+returns setof public.email_flow_enrollments
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token uuid := gen_random_uuid();
+begin
+  return query
+  with candidates as (
+    select e.id
+      from public.email_flow_enrollments e
+     where e.status = 'active'
+       and e.next_step_at <= now()
+       and (e.processing_started_at is null or e.processing_started_at < now() - interval '15 minutes')
+     order by e.next_step_at asc
+     for update skip locked
+     limit least(greatest(p_limit, 1), 200)
+  )
+  update public.email_flow_enrollments e
+     set processing_token = v_token,
+         processing_started_at = now()
+    from candidates c
+   where e.id = c.id
+  returning e.*;
+end;
+$$;
+
+revoke all on function public.claim_due_email_flow_enrollments(integer) from public, anon, authenticated;
+grant execute on function public.claim_due_email_flow_enrollments(integer) to service_role;
