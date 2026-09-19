@@ -5,6 +5,7 @@ import { Nav } from "@/app/components/nav";
 import Link from "next/link";
 import { BRAND_NAMING_FORMULAS, PACKAGING_REQUIREMENTS, TIKTOK_STRATEGIES } from "@/lib/data/branding-playbook";
 import { BRAND_DEEP_DIVES } from "@/lib/data/brand-deep-dives";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 const AFRICAN_COUNTRIES = [
   "Nigeria", "Ghana", "Kenya", "Senegal", "South Africa", "Rwanda", "Morocco",
@@ -245,6 +246,10 @@ Please provide:
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+
+        <div className="mb-6">
+          <AiEngineDisclaimer compact />
+        </div>
 
         {/* Input form */}
         <div className="bg-white border border-border rounded-2xl p-6 mb-6">

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Nav } from "@/app/components/nav";
 import { PantherEyes } from "@/app/components/panther-motif";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 interface Message {
   role: "user" | "assistant";
@@ -105,6 +106,10 @@ Be specific, practical, and direct. When asked about a specific opportunity, pro
           <p className="text-muted text-sm max-w-md mx-auto">
             Ask me anything about African funding, grant applications, tenders, and business compliance. I know all 54 countries.
           </p>
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer compact />
         </div>
 
         {/* Quick prompts — shown when no messages */}

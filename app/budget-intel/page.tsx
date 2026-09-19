@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 export default function BudgetIntelPage() {
   const [country, setCountry] = useState("");
@@ -81,6 +82,10 @@ If specific ${year} budget data is uncertain, use the most recent available and 
             procurement, tenders, and grants that private businesses can bid on — if they know where
             to look. We decode national budgets into actionable business opportunities.
           </p>
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer />
         </div>
 
         {/* Form */}

@@ -5,6 +5,7 @@ import { Nav } from "@/app/components/nav";
 import { useLocale } from "@/app/components/locale-context";
 import { langInstruction } from "@/lib/locale";
 import Link from "next/link";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 const LIFE_GOALS = [
   { id: "house", emoji: "🏠", label: "Build / buy my mother a house" },
@@ -183,6 +184,10 @@ Please give them a complete, personalised life and business plan. Be specific, b
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+
+        <div className="mb-6">
+          <AiEngineDisclaimer compact />
+        </div>
 
         {!submitted ? (
           <div className="space-y-5">

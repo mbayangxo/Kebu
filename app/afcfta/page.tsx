@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 export default function AfcftaPage() {
   const [fromCountry, setFromCountry] = useState("");
@@ -100,6 +101,10 @@ Please provide:
               <p className="text-xs text-ivory/70 mt-1">{label}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer />
         </div>
 
         {/* Form */}

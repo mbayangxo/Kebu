@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 export default function RegulatoryPage() {
   const [businessType, setBusinessType] = useState("");
@@ -86,6 +87,10 @@ Please provide:
             African business — and shows you how to structure operations across borders to stay
             compliant while maximizing advantage.
           </p>
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer />
         </div>
 
         {/* Form */}

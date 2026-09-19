@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 const PROCUREMENT_PORTALS = [
   // Pan-African / UN
@@ -226,6 +227,10 @@ Be specific: name the actual portal, ministry, regulation, or document. Give rea
               <p className="text-xs text-ivory/70 mt-1">{label}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

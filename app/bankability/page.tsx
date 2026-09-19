@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 export default function BankabilityPage() {
   const [country, setCountry] = useState("");
@@ -88,6 +89,10 @@ Please provide:
             and informal records into a bank-ready financial profile — so you can access the credit
             you&apos;ve already earned.
           </p>
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer />
         </div>
 
         {/* Form */}

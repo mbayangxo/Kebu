@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
 import { CAPITAL_TYPES, CAPITAL_WISDOM } from "@/lib/data/capital-intelligence";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 const OUTCOME_COLORS = {
   good: "bg-light-green/10 border-light-green/30 text-mid-green",
@@ -312,6 +313,9 @@ Format your answers conversationally — no bullet points unless listing specifi
             What type of capital fits your business? Should you take this investor&apos;s offer? What should a term sheet say?
             Ask straight — get a straight answer.
           </p>
+          <div className="mb-4">
+            <AiEngineDisclaimer compact />
+          </div>
           <textarea
             value={aiQ}
             onChange={(e) => setAiQ(e.target.value)}
