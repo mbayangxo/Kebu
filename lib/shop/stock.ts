@@ -60,3 +60,30 @@ export async function decrementCartStock(
   }
   return { ok: true };
 }
+
+
+export async function reserveShopCheckout(
+  admin: SupabaseClient,
+  opts: { orderId: string; projectId: string; productId: string; quantity: number; discountId?: string | null },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await admin.rpc("reserve_shop_checkout", {
+    p_order_id: opts.orderId,
+    p_project_id: opts.projectId,
+    p_product_id: opts.productId,
+    p_quantity: opts.quantity,
+    p_discount_id: opts.discountId ?? null,
+    p_ttl_minutes: 20,
+  });
+  if (error || data !== true) return { ok: false, error: "Product or discount is no longer available." };
+  return { ok: true };
+}
+
+export async function commitShopCheckout(admin: SupabaseClient, orderId: string): Promise<boolean> {
+  const { data, error } = await admin.rpc("commit_shop_checkout", { p_order_id: orderId });
+  return !error && data === true;
+}
+
+export async function releaseShopCheckout(admin: SupabaseClient, orderId: string): Promise<void> {
+  if (!orderId) return;
+  await admin.rpc("release_shop_checkout", { p_order_id: orderId });
+}
