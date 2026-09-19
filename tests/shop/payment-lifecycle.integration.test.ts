@@ -36,7 +36,7 @@ function query(table: string) {
       if (table === "shop_orders" && state.patch) Object.assign(order, state.patch);
       return Promise.resolve({ data: null, error: null }).then(resolve);
     },
-  };
+  });
   return chain;
 }
 type AdminMock = {
