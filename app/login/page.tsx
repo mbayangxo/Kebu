@@ -30,34 +30,43 @@ function LoginForm() {
     setError("");
     setEmailConfirmPending(false);
     setResendStatus("idle");
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      if (isEmailNotConfirmed(error.message)) {
-        setEmailConfirmPending(true);
-        setError(
-          "Confirm your email first. Open the link we sent when you signed up, then sign in here."
-        );
-      } else {
-        setError(error.message);
-      }
-      setLoading(false);
-      return;
-    }
-
-    // Confirm cookies landed before navigation — soft client routing can race and show guest UI.
-    if (!data.session) {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        setError("Signed in, but the browser did not keep the session. Disable blockers and try again.");
-        setLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        if (isEmailNotConfirmed(error.message)) {
+          setEmailConfirmPending(true);
+          setError(
+            "Confirm your email first. Open the link we sent when you signed up, then sign in here."
+          );
+        } else {
+          setError(error.message);
+        }
         return;
       }
-    }
 
-    const dest = postAuthDestination(searchParams.get("next"));
-    window.location.assign(dest);
+      // Confirm cookies landed before navigation — soft client routing can race and show guest UI.
+      if (!data.session) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) {
+          setError("Signed in, but the browser did not keep the session. Disable blockers and try again.");
+          return;
+        }
+      }
+
+      const dest = postAuthDestination(searchParams.get("next"));
+      window.location.assign(dest);
+    } catch {
+      setError(
+        "Kebu could not reach the sign-in service. Check your connection and try again. If this keeps happening, contact Kebu support."
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleResendConfirmation() {
