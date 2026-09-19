@@ -34,4 +34,4 @@ jobs:
         run: npm run test:e2e
         env:
           KEBU_E2E_BASE_URL: ${{ github.event.deployment_status.environment_url }}
-          KEBU_E2E_SHOP_SUBDOMAIN: ${{ vars.KEBU_E2E_SHOP_SUBDOMAIN }}
+          KEBU_E2E_SHOP_SUBDOMAIN: ${{ vars.KEBU_E2E_SHOP_SUBDOMAIN || 'kdirection' }}
