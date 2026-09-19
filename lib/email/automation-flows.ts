@@ -193,6 +193,7 @@ export async function processEmailFlows(
       subject,
       html: bodyHtml || `<p>${subject}</p>`,
       text: bodyText || undefined,
+      idempotencyKey: `flow:${enrollment.id}:step:${step.id}`,
     });
 
     if (!ok) {
