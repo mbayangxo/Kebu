@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
-import type { SearchResult } from "@/app/api/me/search/route";
+import type { SearchResult } from "@/lib/search/types";
 
 type Section = { label: string; items: SearchResult[] };
 
