@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest } from "next/server";
 
 // ── IP-based rate limiter ─────────────────────────────────────────────────────
@@ -86,8 +87,11 @@ export function requireCronSecret(req: NextRequest): Response | null {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+  const auth = req.headers.get("authorization") ?? "";
+  const expected = `Bearer ${secret}`;
+  const authDigest = createHash("sha256").update(auth).digest();
+  const expectedDigest = createHash("sha256").update(expected).digest();
+  if (!timingSafeEqual(authDigest, expectedDigest)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
