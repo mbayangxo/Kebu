@@ -15,13 +15,12 @@ import { giftColumnsForInsert, giftPublicPath } from "@/lib/shop/gift-order";
 import { upsertOrderSubscriber } from "@/lib/shop/customers";
 import {
   applyPercentOff,
-  incrementDiscountUse,
   resolveActiveDiscount,
 } from "@/lib/shop/discounts";
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
 import { startShopOrderProviderCheckout } from "@/lib/shop/adapter-checkout";
 import { allocateShopOrderNumber } from "@/lib/shop/codes";
-import { decrementProductStock, restoreProductStock } from "@/lib/shop/stock";
+import { reserveShopCheckout, releaseShopCheckout } from "@/lib/shop/stock";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { notifyShopOwnerOfOrder, resolveOrderChannel } from "@/lib/shop/notify-owner";
@@ -196,13 +195,6 @@ export async function POST(req: Request, { params }: Params) {
   }
   const discount = discountResult.discount;
 
-  // Validate the complete order before mutating inventory. This prevents invalid
-  // discount requests from consuming stock.
-  const stockCheck = await decrementProductStock(svc, sold.id, input.quantity);
-  if (!stockCheck.ok) {
-    return NextResponse.json({ error: stockCheck.error }, { status: 409 });
-  }
-
   const productUpc =
     typeof (sold as { upc?: string | null }).upc === "string"
       ? (sold as { upc: string }).upc
@@ -284,6 +276,17 @@ export async function POST(req: Request, { params }: Params) {
     savedOrderNumber: string | null,
     giftPublicId: string | null = null,
   ) {
+    const reservation = await reserveShopCheckout(svc, {
+      orderId,
+      projectId: dep.project_id,
+      productId: sold.id,
+      quantity: input.quantity,
+      discountId: discount?.id ?? null,
+    });
+    if (!reservation.ok) {
+      await svc.from("shop_orders").delete().eq("id", orderId);
+      throw new Error(reservation.error);
+    }
     const unitXof = soldPriceXof;
     const { error: itemErr } = await svc.from("shop_order_items").insert({
       order_id: orderId,
@@ -304,13 +307,6 @@ export async function POST(req: Request, { params }: Params) {
       logCreate("shop.order_item_failed", { orderId, message: itemErr.message });
     }
 
-    if (discount) {
-      try {
-        await incrementDiscountUse(svc, discount.id);
-      } catch {
-        /* best-effort */
-      }
-    }
     if (customerEmail && projectRow?.business_id) {
       try {
         await upsertOrderSubscriber(svc, {
@@ -600,7 +596,7 @@ export async function POST(req: Request, { params }: Params) {
         return afterOrderSaved(retry.data.id, orderNumber, null);
       }
     }
-    await restoreProductStock(svc, sold.id, input.quantity);
+    await releaseShopCheckout(svc, order?.id ?? "");
     logCreate("shop.order_failed", { subdomain, message: error?.message });
     return NextResponse.json(
       {
