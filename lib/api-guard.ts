@@ -13,6 +13,22 @@ const BUILDER_LIMIT = 120; // saves / publish / settings per IP per window
 const PUBLIC_LIMIT = 180; // public site reads per IP per window
 const AUTH_LIMIT = 20; // login / admin login attempts per IP per window
 const WINDOW_MS = 60_000; // 1 minute
+const MAX_LOCAL_BUCKETS = 10_000;
+
+// Local fallback only. Keep memory bounded even if a warm server instance sees many IPs.
+function pruneExpiredBuckets(now: number): void {
+  if (buckets.size < MAX_LOCAL_BUCKETS) return;
+  for (const [key, bucket] of buckets) {
+    if (now > bucket.resetAt) buckets.delete(key);
+  }
+  // Fail safe for memory: if traffic is extremely high, evict oldest insertion-order
+  // entries. Distributed enforcement belongs at the edge/shared store, not this map.
+  while (buckets.size >= MAX_LOCAL_BUCKETS) {
+    const oldest = buckets.keys().next().value as string | undefined;
+    if (!oldest) break;
+    buckets.delete(oldest);
+  }
+}
 
 function clientKey(req: NextRequest): string {
   return (
@@ -26,6 +42,7 @@ function clientKey(req: NextRequest): string {
 function rateLimit(req: NextRequest, limit: number, bucketSuffix: string): Response | null {
   const key = `${clientKey(req)}:${bucketSuffix}`;
   const now = Date.now();
+  pruneExpiredBuckets(now);
   const bucket = buckets.get(key);
 
   if (!bucket || now > bucket.resetAt) {
@@ -79,9 +96,12 @@ export function authRateLimit(req: Request | NextRequest): Response | null {
 // Production fails closed when the secret is missing. Local dev may run without it.
 export function requireCronSecret(req: NextRequest): Response | null {
   const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) {
+  const invalidProductionSecret =
+    process.env.NODE_ENV === "production" &&
+    (!secret || secret.length < 32 || /^(change_me|replace_|your_|example)/i.test(secret));
+  if (!secret || invalidProductionSecret) {
     if (process.env.NODE_ENV !== "production") return null;
-    console.error("CRON_SECRET is missing in production; refusing privileged cron request.");
+    console.error("CRON_SECRET is missing, weak, or placeholder in production; refusing privileged cron request.");
     return new Response(JSON.stringify({ error: "Cron authentication is not configured." }), {
       status: 503,
       headers: { "Content-Type": "application/json" },
