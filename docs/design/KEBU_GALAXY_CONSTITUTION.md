@@ -4,7 +4,7 @@ Kebu Galaxy is the shared interaction and visual system for signed-in Kebu. It i
 
 ## Product law
 
-**Kebu.com shows Kebu. Inside Kebu shows you.**
+**TheKebu.com shows Kebu. Inside Kebu shows you.**
 
 Signed-in surfaces prioritize the user's real worlds, work, people, opportunities, commerce, files and activity. Never use fabricated activity, random stock portraits, fake metrics or placeholder businesses to make an interface look full.
 
