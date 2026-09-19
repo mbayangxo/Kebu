@@ -4,12 +4,11 @@ export const ADMIN_SESSION_COOKIE = "alkebulan-admin";
 const TTL_MS = 8 * 60 * 60 * 1000;
 
 function sessionSecret(): string {
-  // Prefer dedicated secret; fall back to ADMIN_PASSWORD so existing env still works.
-  return (
-    process.env.ADMIN_SESSION_SECRET?.trim() ||
-    process.env.ADMIN_PASSWORD?.trim() ||
-    ""
-  );
+  const dedicated = process.env.ADMIN_SESSION_SECRET?.trim();
+  if (dedicated) return dedicated;
+  // Production admin cookies must use a key independent from the login password.
+  if (process.env.NODE_ENV === "production") return "";
+  return process.env.ADMIN_PASSWORD?.trim() || "";
 }
 
 /** Signed, expiring session token — stealing the cookie does not reveal ADMIN_PASSWORD. */
@@ -36,7 +35,7 @@ function constantTimeEqual(left: string, right: string): boolean {
 
 export async function createAdminSessionToken(now = Date.now()): Promise<string> {
   const secret = sessionSecret();
-  if (!secret) throw new Error("ADMIN_PASSWORD or ADMIN_SESSION_SECRET required");
+  if (!secret) throw new Error("ADMIN_SESSION_SECRET is required in production");
   const exp = now + TTL_MS;
   const payload = `v1.${exp}`;
   const sig = await sign(payload, secret);
