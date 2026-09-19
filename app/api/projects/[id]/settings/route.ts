@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createHash, createHmac } from "crypto";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
@@ -7,19 +6,11 @@ import { siteSeoSchema } from "@/lib/create/site-seo";
 import { themeSchema } from "@/lib/create/website-schema";
 import { builderRateLimit } from "@/lib/api-guard";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
+import { hashSitePassword, sitePasswordSecret } from "@/lib/create/site-password";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
-
-/** Stable 32-char salt derived from the subdomain, so hash changes when subdomain changes. */
-function sitePasswordHash(subdomain: string, password: string): string {
-  const salt = createHmac("sha256", process.env.NEXTAUTH_SECRET ?? "kebu-site-pw-salt")
-    .update(subdomain)
-    .digest("hex")
-    .slice(0, 32);
-  return createHash("sha256").update(`${salt}:${password}`).digest("hex");
-}
 
 const settingsSchema = z.object({
   subdomain: z
@@ -153,7 +144,14 @@ export async function PATCH(req: Request, { params }: Params) {
       patch.site_password_hash = null;
       patch.site_password_enabled = false;
     } else if (effectiveSubdomain) {
-      patch.site_password_hash = sitePasswordHash(effectiveSubdomain, parsed.data.sitePassword);
+      const secret = sitePasswordSecret();
+      if (!secret) {
+        return NextResponse.json(
+          { error: "Site password authentication is not configured." },
+          { status: 503 },
+        );
+      }
+      patch.site_password_hash = hashSitePassword(effectiveSubdomain, parsed.data.sitePassword, secret);
       patch.site_password_enabled = true;
     }
   }

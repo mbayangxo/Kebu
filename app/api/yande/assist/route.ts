@@ -50,6 +50,10 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+
   let context = "";
   if (user) {
     const { count } = await supabase
@@ -93,7 +97,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ reply: text });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "AI request failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Yande AI request failed", err);
+    return NextResponse.json({ error: "AI request failed." }, { status: 502 });
   }
 }

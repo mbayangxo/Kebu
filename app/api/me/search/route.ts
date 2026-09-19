@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
+import {
+  hasVerifiedAfricanOpportunityAccess,
+  loadAfricanOpportunityEntitlement,
+} from "@/lib/entitlements/african-opportunity-access";
+import type { SearchResult } from "@/lib/search/types";
 
 export const dynamic = "force-dynamic";
-
-export type SearchResult = {
-  id: string;
-  label: string;
-  sublabel?: string;
-  href: string;
-  kind: "site" | "design" | "business" | "opportunity" | "page";
-  accent?: string;
-};
 
 const STATIC_PAGES: SearchResult[] = [
   { id: "p-dashboard",    label: "Your Kebu",          sublabel: "Home dashboard",               href: "/dashboard",             kind: "page" },
@@ -53,16 +49,28 @@ export async function GET(req: Request) {
   const { supabase, user } = auth;
 
   const { searchParams } = new URL(req.url);
-  const q = (searchParams.get("q") ?? "").trim();
+  const q = (searchParams.get("q") ?? "").trim().slice(0, 120);
 
   if (!q) {
     return NextResponse.json({ results: [], pages: STATIC_PAGES.slice(0, 8) });
   }
 
   const lq = q.toLowerCase();
+  const entitlement = await loadAfricanOpportunityEntitlement({
+    supabase,
+    userId: user.id,
+    sync: false,
+  });
+  const opportunitiesQuery = hasVerifiedAfricanOpportunityAccess(entitlement)
+    ? supabase
+        .from("opportunities")
+        .select("id, title, country, type, verified_status, source_name")
+        .or(`title.ilike.%${q}%,summary.ilike.%${q}%,country.ilike.%${q}%`)
+        .limit(6)
+    : Promise.resolve({ data: [], error: null });
 
   // Run DB lookups in parallel
-  const [sitesRes, designsRes, businessesRes] = await Promise.all([
+  const [sitesRes, designsRes, businessesRes, opportunitiesRes] = await Promise.all([
     supabase
       .from("projects")
       .select("id, title, subdomain, project_type")
@@ -80,6 +88,7 @@ export async function GET(req: Request) {
       .select("id, public_kebu_id, legal_name, trading_name")
       .ilike("legal_name", `%${q}%`)
       .limit(4),
+    opportunitiesQuery,
   ]);
 
   const sites: SearchResult[] = (sitesRes.data ?? []).map((s) => ({
@@ -109,6 +118,17 @@ export async function GET(req: Request) {
     accent: "#10B981",
   }));
 
+  const opportunities: SearchResult[] = (opportunitiesRes.data ?? []).map((o) => ({
+    id: `opp-${o.id}`,
+    label: o.title,
+    sublabel: [o.type, o.country, o.source_name].filter(Boolean).join(" · "),
+    href: `/opportunity/${o.id}`,
+    kind: "opportunity" as const,
+    accent: "#FF1F1F",
+    source: "kebu_public" as const,
+    trustLabel: o.verified_status ?? "needs_review",
+  }));
+
   const pages = STATIC_PAGES
     .map((p) => ({ p, s: score(p, lq) }))
     .filter(({ s }) => s > 0)
@@ -116,7 +136,7 @@ export async function GET(req: Request) {
     .slice(0, 6)
     .map(({ p }) => p);
 
-  const results: SearchResult[] = [...sites, ...designs, ...businesses];
+  const results: SearchResult[] = [...sites, ...designs, ...businesses, ...opportunities];
 
   return NextResponse.json({ results, pages });
 }

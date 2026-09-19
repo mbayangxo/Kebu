@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest } from "next/server";
 
 // ── IP-based rate limiter ─────────────────────────────────────────────────────
@@ -75,12 +76,22 @@ export function authRateLimit(req: Request | NextRequest): Response | null {
 }
 
 // Returns a 401 Response if the Authorization header doesn't match CRON_SECRET.
-// Pass through if CRON_SECRET is not set (local dev convenience).
+// Production fails closed when the secret is missing. Local dev may run without it.
 export function requireCronSecret(req: NextRequest): Response | null {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return null;
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret) {
+    if (process.env.NODE_ENV !== "production") return null;
+    console.error("CRON_SECRET is missing in production; refusing privileged cron request.");
+    return new Response(JSON.stringify({ error: "Cron authentication is not configured." }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const auth = req.headers.get("authorization") ?? "";
+  const expected = `Bearer ${secret}`;
+  const authDigest = createHash("sha256").update(auth).digest();
+  const expectedDigest = createHash("sha256").update(expected).digest();
+  if (!timingSafeEqual(authDigest, expectedDigest)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },

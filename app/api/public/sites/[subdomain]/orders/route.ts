@@ -15,13 +15,12 @@ import { giftColumnsForInsert, giftPublicPath } from "@/lib/shop/gift-order";
 import { upsertOrderSubscriber } from "@/lib/shop/customers";
 import {
   applyPercentOff,
-  incrementDiscountUse,
   resolveActiveDiscount,
 } from "@/lib/shop/discounts";
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
 import { startShopOrderProviderCheckout } from "@/lib/shop/adapter-checkout";
 import { allocateShopOrderNumber } from "@/lib/shop/codes";
-import { decrementProductStock, restoreProductStock } from "@/lib/shop/stock";
+import { reserveShopCheckout, releaseShopCheckout } from "@/lib/shop/stock";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { notifyShopOwnerOfOrder, resolveOrderChannel } from "@/lib/shop/notify-owner";
@@ -31,7 +30,6 @@ import {
 } from "@/lib/shop/payment-ledger";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
 import { enrollInFlows } from "@/lib/email/automation-flows";
-import { createDigitalDownload, emailDownloadLink } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
 
@@ -181,11 +179,6 @@ export async function POST(req: Request, { params }: Params) {
 
   const customerEmail = input.customerEmail?.trim().toLowerCase() || null;
 
-  const stockCheck = await decrementProductStock(svc, sold.id, input.quantity);
-  if (!stockCheck.ok) {
-    return NextResponse.json({ error: stockCheck.error }, { status: 409 });
-  }
-
   const { data: projectRow } = await svc
     .from("projects")
     .select("id, country_code, title, owner_id, business_id")
@@ -283,6 +276,17 @@ export async function POST(req: Request, { params }: Params) {
     savedOrderNumber: string | null,
     giftPublicId: string | null = null,
   ) {
+    const reservation = await reserveShopCheckout(svc, {
+      orderId,
+      projectId: dep.project_id,
+      productId: sold.id,
+      quantity: input.quantity,
+      discountId: discount?.id ?? null,
+    });
+    if (!reservation.ok) {
+      await svc.from("shop_orders").delete().eq("id", orderId);
+      throw new Error(reservation.error);
+    }
     const unitXof = soldPriceXof;
     const { error: itemErr } = await svc.from("shop_order_items").insert({
       order_id: orderId,
@@ -303,13 +307,6 @@ export async function POST(req: Request, { params }: Params) {
       logCreate("shop.order_item_failed", { orderId, message: itemErr.message });
     }
 
-    if (discount) {
-      try {
-        await incrementDiscountUse(svc, discount.id);
-      } catch {
-        /* best-effort */
-      }
-    }
     if (customerEmail && projectRow?.business_id) {
       try {
         await upsertOrderSubscriber(svc, {
@@ -334,40 +331,8 @@ export async function POST(req: Request, { params }: Params) {
       });
     }
 
-    // Digital product: create download token + send email
-    try {
-      const { data: digitalProduct } = await svc
-        .from("project_products")
-        .select("id, is_digital, digital_file_path, digital_file_name, digital_dl_limit, digital_expires_hours")
-        .eq("id", sold.id)
-        .maybeSingle();
-
-      if (digitalProduct?.is_digital && digitalProduct.digital_file_path && customerEmail) {
-        const dlResult = await createDigitalDownload(svc, {
-          orderId,
-          projectId: dep.project_id,
-          product: digitalProduct as Parameters<typeof createDigitalDownload>[1]["product"],
-        });
-        if (dlResult.ok) {
-          const downloadUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://kebu.app"}/api/dl/${dlResult.token}`;
-          const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
-          if (fromEmail) {
-            void emailDownloadLink({
-              to: customerEmail,
-              shopName: (projectRow as { title?: string | null })?.title ?? "Kebu",
-              productName: soldName,
-              downloadUrl,
-              expiresAt: new Date(Date.now() + digitalProduct.digital_expires_hours * 60 * 60 * 1000).toISOString(),
-              maxDownloads: digitalProduct.digital_dl_limit,
-              from: fromEmail,
-            });
-          }
-          logCreate("shop.digital_download_created", { orderId, productId: sold.id });
-        }
-      }
-    } catch {
-      /* digital delivery is best-effort — physical order still succeeds */
-    }
+    // Digital products are fulfilled only after a verified payment webhook.
+    // Never mint download credentials while an order is still unpaid.
     try {
       const { upsertShopCustomerAfterOrder } = await import("@/lib/shop/customer-profiles");
       await upsertShopCustomerAfterOrder(svc, {
@@ -631,7 +596,6 @@ export async function POST(req: Request, { params }: Params) {
         return afterOrderSaved(retry.data.id, orderNumber, null);
       }
     }
-    await restoreProductStock(svc, sold.id, input.quantity);
     logCreate("shop.order_failed", { subdomain, message: error?.message });
     return NextResponse.json(
       {
@@ -640,7 +604,6 @@ export async function POST(req: Request, { params }: Params) {
           : error?.message?.includes("is_gift") || error?.message?.includes("recipient_")
             ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
             : "Could not save order.",
-        detail: error?.message,
       },
       { status: 500 },
     );

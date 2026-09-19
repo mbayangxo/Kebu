@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
-import type { SearchResult } from "@/app/api/me/search/route";
+import type { SearchResult } from "@/lib/search/types";
 
 type Section = { label: string; items: SearchResult[] };
 
@@ -340,6 +341,7 @@ export function CommandPaletteTrigger() {
         <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
       </svg>
       Search
+      <Link href="/search" onClick={(e) => e.stopPropagation()} className="text-[9px] font-black uppercase tracking-wider" style={{ color: KEBU.orange }}>Open</Link>
       <kbd
         className="text-[9px] font-bold px-1 py-0.5 rounded"
         style={{ background: "rgba(10,10,10,0.07)", color: KEBU.faint }}
