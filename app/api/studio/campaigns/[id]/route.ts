@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
@@ -58,6 +59,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 

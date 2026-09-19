@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration";
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string; docId: string }> };
 
 export async function DELETE(_req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(_req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
