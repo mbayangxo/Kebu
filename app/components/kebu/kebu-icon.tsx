@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ReactNode, SVGProps } from "react";
 
 export type KebuIconName =
   | "home" | "search" | "universe" | "spaces" | "library" | "create" | "yande"
@@ -7,7 +7,7 @@ export type KebuIconName =
 
 type Props = SVGProps<SVGSVGElement> & { name: KebuIconName; size?: number };
 
-const paths: Record<KebuIconName, React.ReactNode> = {
+const paths: Record<KebuIconName, ReactNode> = {
   home: <><path d="M4 10.2 12 3l8 7.2V20H7v-6h10v6" /><path d="M4 10v10" /></>,
   search: <><circle cx="10.7" cy="10.7" r="6.7" /><path d="m16 16 4.5 4.5" /></>,
   universe: <><circle cx="12" cy="12" r="8.5" /><path d="M3.8 12h16.4M12 3.5c2.7 2.7 3.8 5.5 3.8 8.5S14.7 17.8 12 20.5C9.3 17.8 8.2 15 8.2 12S9.3 6.2 12 3.5Z" /></>,
