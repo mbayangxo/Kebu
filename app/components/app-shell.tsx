@@ -75,21 +75,17 @@ export function AppShell({
         <div className="flex-1 min-w-0 flex flex-col">
           <header
             className="sticky top-0 z-30 md:hidden"
-            style={{ background: KEBU.black, borderBottom: `2px solid ${KEBU.orange}` }}
+            style={{ background: KEBU.white, borderBottom: `1px solid ${KEBU.borders.default}` }}
           >
-            <div
-              className="h-[3px] w-full"
-              style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
-            />
-            <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <BackLink fallbackHref={fallback} variant="onDark" />
+                <BackLink fallbackHref={fallback} variant="strong" />
               </div>
-              <p className="text-sm font-bold truncate text-white flex-1 text-center" style={{ fontFamily: "var(--font-fraunces)" }}>
+              <p className="text-sm font-bold truncate flex-1 text-center" style={{ fontFamily: "var(--font-fraunces)" }}>
                 {title}
               </p>
               <div className="flex items-center gap-2 shrink-0">
-                <KebuAccountCorner onDark />
+                <KebuAccountCorner />
                 <Link href="/" className="shrink-0">
                   <KebuMark size={22} />
                 </Link>
