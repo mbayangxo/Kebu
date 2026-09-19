@@ -14,7 +14,11 @@ type SupportSessionPayload = {
 
 function secret(): string {
   const dedicated = process.env.SUPPORT_SESSION_SECRET?.trim();
-  if (dedicated && (process.env.NODE_ENV !== "production" || dedicated.length >= 32)) return dedicated;
+  if (
+    dedicated &&
+    (process.env.NODE_ENV !== "production" ||
+      (dedicated.length >= 32 && !/^(change_me|replace_|your_|example)/i.test(dedicated)))
+  ) return dedicated;
   if (process.env.NODE_ENV !== "production") return process.env.ADMIN_SESSION_SECRET?.trim() || "dev-support-session-secret";
   return "";
 }
