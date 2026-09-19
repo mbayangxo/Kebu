@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
+import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 import { waveConfigured } from "@/lib/payments/wave-adapter";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +105,7 @@ export async function POST(req: NextRequest) {
         reference,
       }),
     );
+    await fulfillPaidDigitalOrder(admin, retry.orderId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: retry.orderId });
   }
 
@@ -115,5 +117,6 @@ export async function POST(req: NextRequest) {
       reference,
     }),
   );
+  await fulfillPaidDigitalOrder(admin, paid.orderId);
   return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
 }
