@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createAdminSessionToken,
   verifyAdminSessionToken,
@@ -28,7 +28,7 @@ describe("admin session cookie", () => {
     const prevPass = process.env.ADMIN_PASSWORD;
     const prevSecret = process.env.ADMIN_SESSION_SECRET;
     const prevNodeEnv = process.env.NODE_ENV;
-    Object.defineProperty(process.env, "NODE_ENV", { value: "production", writable: true });
+    vi.stubEnv("NODE_ENV", "production");
     process.env.ADMIN_PASSWORD = "legacy-password-must-not-sign-production-cookies";
 
     for (const secret of ["replace_with_long_random_secret", "short"]) {
@@ -42,7 +42,8 @@ describe("admin session cookie", () => {
     const token = await createAdminSessionToken();
     expect(await verifyAdminSessionToken(token)).toBe(true);
 
-    Object.defineProperty(process.env, "NODE_ENV", { value: prevNodeEnv, writable: true });
+    vi.unstubAllEnvs();
+    if (prevNodeEnv !== undefined) process.env.NODE_ENV = prevNodeEnv;
     process.env.ADMIN_PASSWORD = prevPass;
     if (prevSecret === undefined) delete process.env.ADMIN_SESSION_SECRET;
     else process.env.ADMIN_SESSION_SECRET = prevSecret;
