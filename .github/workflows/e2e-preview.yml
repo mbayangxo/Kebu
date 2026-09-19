@@ -33,4 +33,5 @@ jobs:
         run: npm run test:e2e
         env:
           KEBU_E2E_BASE_URL: ${{ github.event.deployment_status.environment_url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           KEBU_E2E_SHOP_SUBDOMAIN: ${{ vars.KEBU_E2E_SHOP_SUBDOMAIN || 'kdirection' }}
