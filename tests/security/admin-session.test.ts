@@ -27,7 +27,6 @@ describe("admin session cookie", () => {
   it("rejects weak or placeholder dedicated secrets in production", async () => {
     const prevPass = process.env.ADMIN_PASSWORD;
     const prevSecret = process.env.ADMIN_SESSION_SECRET;
-    const prevNodeEnv = process.env.NODE_ENV;
     vi.stubEnv("NODE_ENV", "production");
     process.env.ADMIN_PASSWORD = "legacy-password-must-not-sign-production-cookies";
 
