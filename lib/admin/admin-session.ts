@@ -3,9 +3,15 @@ export const ADMIN_SESSION_COOKIE = "alkebulan-admin";
 
 const TTL_MS = 8 * 60 * 60 * 1000;
 
+function isStrongProductionSecret(value: string): boolean {
+  return value.length >= 32 && !/^(change_me|replace_|your_|example)/i.test(value);
+}
+
 function sessionSecret(): string {
   const dedicated = process.env.ADMIN_SESSION_SECRET?.trim();
-  if (dedicated) return dedicated;
+  if (dedicated && (process.env.NODE_ENV !== "production" || isStrongProductionSecret(dedicated))) {
+    return dedicated;
+  }
   // Production admin cookies must use a key independent from the login password.
   if (process.env.NODE_ENV === "production") return "";
   return process.env.ADMIN_PASSWORD?.trim() || "";
