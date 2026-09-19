@@ -3,6 +3,7 @@ import { jokoCheckoutAvailable } from "@/lib/create/site-commerce";
 import { recordPaymentLedgerEvent } from "@/lib/shop/payment-ledger";
 import { xofToCauris } from "@/lib/shop/cauris";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { commitShopCheckout } from "@/lib/shop/stock";
 
 export { jokoCheckoutAvailable };
 
@@ -112,6 +113,9 @@ export async function markShopOrderPaid(
   if (order.payment_status === "paid") {
     return { ok: true, orderId: order.id, projectId: order.project_id };
   }
+
+  const committed = await commitShopCheckout(admin, order.id);
+  if (!committed) return { ok: false, error: "Checkout reservation expired or could not be committed." };
 
   const patch: Record<string, unknown> = {
     payment_status: "paid",
