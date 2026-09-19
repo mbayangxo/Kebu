@@ -17,7 +17,7 @@ const fulfillPaidDigitalOrder = vi.fn();
 
 function query(table: string) {
   const state: { patch?: Record<string, unknown> } = {};
-  const chain: any = {
+  type QueryChain = { select: () => QueryChain; eq: () => QueryChain; maybeSingle: () => Promise<{ data: Order | null; error: null }>; update: (patch: Record<string, unknown>) => QueryChain; insert: (row: Record<string, unknown>) => Promise<{ error: null }>; then: (resolve: (v: unknown) => void) => Promise<void>; };\n  const chain = {} as QueryChain;\n  Object.assign(chain, {
     select: () => chain,
     eq: () => chain,
     maybeSingle: async () => ({ data: table === "shop_orders" ? { ...order } : null, error: null }),
