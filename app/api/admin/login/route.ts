@@ -28,7 +28,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Admin session not configured." }, { status: 503 });
   }
 
-  const res = NextResponse.json({ success: true, next: next || "/admin" });
+  const safeNext =
+    typeof next === "string" &&
+    next.startsWith("/admin") &&
+    !next.startsWith("//") &&
+    !next.includes("\\")
+      ? next
+      : "/admin";
+
+  const res = NextResponse.json({ success: true, next: safeNext });
   res.cookies.set(ADMIN_SESSION_COOKIE, token, adminSessionCookieOptions());
   return res;
 }
