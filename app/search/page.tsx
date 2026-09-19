@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
-import type { SearchResult } from "@/app/api/me/search/route";
+import type { SearchResult } from "@/lib/search/types";
 
 type Payload = { results: SearchResult[]; pages: SearchResult[] };
 const groups: Array<{ kind: SearchResult["kind"]; label: string }> = [
