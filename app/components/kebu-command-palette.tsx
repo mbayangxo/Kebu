@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KEBU } from "@/lib/kebu-brand";
 import type { SearchResult } from "@/app/api/me/search/route";
-import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 
 type Section = { label: string; items: SearchResult[] };
 
