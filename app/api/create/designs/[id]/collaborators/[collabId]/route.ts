@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
@@ -8,6 +9,8 @@ type Params = { params: Promise<{ id: string; collabId: string }> };
 
 /** Revoke collaborator (owner only). */
 export async function DELETE(_req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(_req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

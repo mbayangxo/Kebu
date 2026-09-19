@@ -62,6 +62,9 @@ export async function POST(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -282,6 +285,9 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
+
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
 
   const auth = await requireUser();
   if ("error" in auth) return auth.error;

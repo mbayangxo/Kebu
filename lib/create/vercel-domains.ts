@@ -207,6 +207,53 @@ export async function provisionCustomDomainOnHosting(hostname: string): Promise<
   };
 }
 
+/**
+ * Detach apex + www from Kebu hosting when a customer removes a custom domain.
+ * A 404 is success: the hostname is already absent. If hosting credentials are
+ * not configured (local/dev), database cleanup may still proceed safely.
+ */
+export async function removeCustomDomainFromHosting(hostname: string): Promise<HostingDomainResult> {
+  const token = process.env.VERCEL_TOKEN?.trim();
+  const projectId = process.env.VERCEL_PROJECT_ID?.trim();
+  if (!token || !projectId) {
+    return { ok: true, configured: false, detail: "Hosting cleanup is not configured in this environment." };
+  }
+
+  const apex = hostname.replace(/^www\./, "").toLowerCase();
+  const names = Array.from(new Set([apex, `www.${apex}`]));
+  const errors: string[] = [];
+
+  for (const name of names) {
+    let removed = false;
+    for (const teamId of teamIdCandidates()) {
+      try {
+        const res = await fetch(
+          `${VERCEL_API}/v9/projects/${encodeURIComponent(projectId)}/domains/${encodeURIComponent(name)}${withTeamQuery(teamId)}`,
+          { headers: { Authorization: `Bearer ${token}` }, method: "DELETE" },
+        );
+        if (res.ok || res.status === 404) {
+          removed = true;
+          break;
+        }
+        const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+        errors.push(body.error?.message ?? `${name} (${res.status})`);
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : `${name} removal failed`);
+      }
+    }
+    if (!removed) {
+      return {
+        ok: false,
+        configured: true,
+        detail: "Kebu could not safely detach this domain from hosting. Please try again.",
+        opsHint: errors.join("; "),
+      };
+    }
+  }
+
+  return { ok: true, configured: true, detail: "Hosting detached." };
+}
+
 /** @deprecated Use provisionCustomDomainOnHosting */
 export async function provisionCustomDomainOnVercel(hostname: string): Promise<HostingDomainResult> {
   return provisionCustomDomainOnHosting(hostname);

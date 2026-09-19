@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
 import { maylecorAboutPageSections } from "@/lib/create/maylecor-about-bio";
 import { syncProjectChromeNavFromPages } from "@/lib/create/site-chrome";
@@ -48,6 +49,9 @@ async function assertOwnedProject(
 export async function POST(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
+
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
 
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
@@ -160,6 +164,9 @@ export async function PATCH(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -237,6 +244,9 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
+
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
 
   const auth = await requireUser();
   if ("error" in auth) return auth.error;

@@ -8,6 +8,7 @@ function mkReq(url: string, init?: RequestInit): NextRequest {
 
 const markShopOrderPaidByProviderRef = vi.fn();
 const createServiceClient = vi.fn();
+const fulfillPaidDigitalOrder = vi.fn();
 
 vi.mock("@/lib/shop/adapter-checkout", () => ({
   markShopOrderPaidByProviderRef: (...args: unknown[]) => markShopOrderPaidByProviderRef(...args),
@@ -17,6 +18,10 @@ vi.mock("@/lib/opportunity/admin", () => ({
   createServiceClient: () => createServiceClient(),
 }));
 
+vi.mock("@/lib/shop/digital-downloads", () => ({
+  fulfillPaidDigitalOrder: (...args: unknown[]) => fulfillPaidDigitalOrder(...args),
+}));
+
 import { POST as paystackWebhook } from "@/app/api/webhooks/paystack/route";
 
 describe("shop webhooks (C1)", () => {
@@ -24,6 +29,7 @@ describe("shop webhooks (C1)", () => {
     vi.clearAllMocks();
     process.env.PAYSTACK_SECRET_KEY = "sk_test_kebu";
     createServiceClient.mockReturnValue({});
+    fulfillPaidDigitalOrder.mockResolvedValue(undefined);
     markShopOrderPaidByProviderRef.mockResolvedValue({
       ok: true,
       orderId: "order-1",
@@ -57,6 +63,7 @@ describe("shop webhooks (C1)", () => {
       {},
       expect.objectContaining({ reference: "KEBU-REF-001", provider: "paystack" }),
     );
+    expect(fulfillPaidDigitalOrder).toHaveBeenCalledWith({}, "order-1");
   });
 
   it("rejects invalid Paystack signature", async () => {

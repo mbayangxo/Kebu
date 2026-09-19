@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 
@@ -24,6 +25,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const { id } = await params;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;

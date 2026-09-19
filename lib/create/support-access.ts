@@ -25,6 +25,7 @@ export function logSupportAccess(meta: {
   projectId: string;
   action: string;
   ownerId?: string | null;
+  reason?: string | null;
 }) {
   logCreate("support.project_access", meta);
 }

@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
   let query = service
     .from("projects")
-    .select("id, title, subdomain, status, published_at, updated_at, owner_id, project_type")
+    .select("id, title, subdomain, status, published_at, updated_at, project_type")
     .eq("project_type", "website")
     .order("updated_at", { ascending: false })
     .limit(30);

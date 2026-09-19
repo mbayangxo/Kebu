@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
+import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 import { paypalCaptureOrder, paypalConfigured } from "@/lib/payments/paypal-adapter";
 
 export const dynamic = "force-dynamic";
@@ -139,7 +140,8 @@ export async function POST(req: NextRequest) {
           provider: "paypal",
         });
         if (paid.ok) {
-          return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
+          await fulfillPaidDigitalOrder(admin, paid.orderId);
+  return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
         }
       }
     }
@@ -165,6 +167,7 @@ export async function POST(req: NextRequest) {
         reference,
       }),
     );
+    await fulfillPaidDigitalOrder(admin, retry.orderId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: retry.orderId });
   }
 
@@ -176,5 +179,6 @@ export async function POST(req: NextRequest) {
       reference,
     }),
   );
+  await fulfillPaidDigitalOrder(admin, paid.orderId);
   return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
 }

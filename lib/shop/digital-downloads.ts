@@ -38,8 +38,8 @@ function randomToken(): string {
 }
 
 /**
- * Create a download record after an order is placed.
- * Safe to call idempotently — unique constraint on token handles re-runs.
+ * Create a download record only after verified payment.
+ * Idempotent per order/product: an existing entitlement is reused.
  */
 export async function createDigitalDownload(
   supabase: SupabaseClient,
@@ -52,6 +52,25 @@ export async function createDigitalDownload(
   if (!opts.product.is_digital || !opts.product.digital_file_path) {
     return { ok: false, error: "Product has no digital file." };
   }
+
+  const { data: order } = await supabase
+    .from("shop_orders")
+    .select("id, project_id, payment_status")
+    .eq("id", opts.orderId)
+    .eq("project_id", opts.projectId)
+    .maybeSingle();
+
+  if (!order || order.payment_status !== "paid") {
+    return { ok: false, error: "Order is not paid." };
+  }
+
+  const { data: existing } = await supabase
+    .from("shop_digital_downloads")
+    .select("token")
+    .eq("order_id", opts.orderId)
+    .eq("product_id", opts.product.id)
+    .maybeSingle();
+  if (existing?.token) return { ok: true, token: existing.token as string };
 
   const token = randomToken();
   const expiresAt = new Date(
@@ -74,6 +93,47 @@ export async function createDigitalDownload(
   }
 
   return { ok: true, token };
+}
+
+/** Fulfill a paid digital order. Safe to call repeatedly after duplicate webhooks. */
+export async function fulfillPaidDigitalOrder(
+  supabase: SupabaseClient,
+  orderId: string,
+): Promise<void> {
+  const { data: order } = await supabase
+    .from("shop_orders")
+    .select("id, project_id, product_id, product_name, customer_email, payment_status")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order || order.payment_status !== "paid" || !order.product_id || !order.customer_email) return;
+
+  const { data: product } = await supabase
+    .from("project_products")
+    .select("id, is_digital, digital_file_path, digital_file_name, digital_dl_limit, digital_expires_hours")
+    .eq("id", order.product_id)
+    .maybeSingle();
+  if (!product?.is_digital || !product.digital_file_path) return;
+
+  const created = await createDigitalDownload(supabase, {
+    orderId: order.id,
+    projectId: order.project_id,
+    product: product as DigitalProduct,
+  });
+  if (!created.ok) return;
+
+  const from = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
+  if (!from) return;
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://kebu.app";
+  await emailDownloadLink({
+    to: order.customer_email,
+    shopName: "Kebu",
+    productName: order.product_name || product.digital_file_name || "Digital product",
+    downloadUrl: `${base}/api/dl/${created.token}`,
+    expiresAt: new Date(Date.now() + product.digital_expires_hours * 60 * 60 * 1000).toISOString(),
+    maxDownloads: product.digital_dl_limit,
+    from,
+    idempotencyKey: `digital-download:${order.id}:${product.id}`,
+  });
 }
 
 /** Resolve and validate a download token. Returns null if expired / exhausted / not found. */
@@ -122,6 +182,10 @@ export async function signedDownloadUrl(
   return data.signedUrl;
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"\']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "\'": "&#39;" })[char] ?? char);
+}
+
 /** Email a download link to the buyer. Fire-and-forget friendly. */
 export async function emailDownloadLink(opts: {
   to: string;
@@ -132,6 +196,7 @@ export async function emailDownloadLink(opts: {
   maxDownloads: number;
   from: string;
   fromName?: string;
+  idempotencyKey?: string;
 }): Promise<boolean> {
   const expiryDate = new Date(opts.expiresAt).toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -139,12 +204,16 @@ export async function emailDownloadLink(opts: {
     year: "numeric",
   });
 
+  const safeShopName = escapeHtml(opts.shopName);
+  const safeProductName = escapeHtml(opts.productName);
+  const safeDownloadUrl = escapeHtml(opts.downloadUrl);
+
   const html = `
 <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:24px 16px;color:#0a0a0a">
-  <p style="font-size:15px;font-weight:700;margin:0 0 8px">${opts.shopName}</p>
+  <p style="font-size:15px;font-weight:700;margin:0 0 8px">${safeShopName}</p>
   <h1 style="font-size:22px;font-weight:800;margin:0 0 16px">Votre téléchargement est prêt</h1>
-  <p style="font-size:14px;margin:0 0 24px">Merci pour votre achat de <strong>${opts.productName}</strong>.</p>
-  <a href="${opts.downloadUrl}"
+  <p style="font-size:14px;margin:0 0 24px">Merci pour votre achat de <strong>${safeProductName}</strong>.</p>
+  <a href="${safeDownloadUrl}"
      style="display:inline-block;background:#FF5500;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px;text-decoration:none">
     Télécharger maintenant →
   </a>
@@ -163,5 +232,6 @@ export async function emailDownloadLink(opts: {
     subject: `Votre fichier — ${opts.productName}`,
     html,
     text,
+    idempotencyKey: opts.idempotencyKey,
   });
 }
