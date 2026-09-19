@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
+import {
+  hasVerifiedAfricanOpportunityAccess,
+  loadAfricanOpportunityEntitlement,
+} from "@/lib/entitlements/african-opportunity-access";
+import type { SearchResult } from "@/lib/search/types";
 
 export const dynamic = "force-dynamic";
-
-export type SearchResult = {
-  id: string;
-  label: string;
-  sublabel?: string;
-  href: string;
-  kind: "site" | "design" | "business" | "opportunity" | "page";
-  source?: "kebu_private" | "kebu_public";
-  trustLabel?: string;
-  accent?: string;
-};
 
 const STATIC_PAGES: SearchResult[] = [
   { id: "p-dashboard",    label: "Your Kebu",          sublabel: "Home dashboard",               href: "/dashboard",             kind: "page" },
@@ -62,6 +56,18 @@ export async function GET(req: Request) {
   }
 
   const lq = q.toLowerCase();
+  const entitlement = await loadAfricanOpportunityEntitlement({
+    supabase,
+    userId: user.id,
+    sync: false,
+  });
+  const opportunitiesQuery = hasVerifiedAfricanOpportunityAccess(entitlement)
+    ? supabase
+        .from("opportunities")
+        .select("id, title, country, type, verified_status, source_name")
+        .or(`title.ilike.%${q}%,summary.ilike.%${q}%,country.ilike.%${q}%`)
+        .limit(6)
+    : Promise.resolve({ data: [], error: null });
 
   // Run DB lookups in parallel
   const [sitesRes, designsRes, businessesRes, opportunitiesRes] = await Promise.all([
@@ -82,11 +88,7 @@ export async function GET(req: Request) {
       .select("id, public_kebu_id, legal_name, trading_name")
       .ilike("legal_name", `%${q}%`)
       .limit(4),
-    supabase
-      .from("opportunities")
-      .select("id, title, country, type, verified_status, source_name")
-      .or(`title.ilike.%${q}%,summary.ilike.%${q}%,country.ilike.%${q}%`)
-      .limit(6),
+    opportunitiesQuery,
   ]);
 
   const sites: SearchResult[] = (sitesRes.data ?? []).map((s) => ({
@@ -120,7 +122,7 @@ export async function GET(req: Request) {
     id: `opp-${o.id}`,
     label: o.title,
     sublabel: [o.type, o.country, o.source_name].filter(Boolean).join(" · "),
-    href: `/opportunity/listings/${o.id}`,
+    href: `/opportunity/${o.id}`,
     kind: "opportunity" as const,
     accent: "#FF1F1F",
     source: "kebu_public" as const,

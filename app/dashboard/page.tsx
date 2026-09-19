@@ -130,7 +130,7 @@ export default function KebuHomePage() {
                     <WorldCard title="Personal" subtitle="Your first world" href="/create" accent="linear-gradient(135deg,#141414,#FF6A00,#FF1F1F)" />
                   ) : null}
                   <Link href="/create" className="flex min-w-[150px] items-center justify-center rounded-2xl border text-sm font-semibold transition hover:-translate-y-0.5"
-                    style={{ borderColor: border }} style={{ borderColor: border, color: muted }}>+ New world</Link>
+                    style={{ borderColor: border, color: muted }}>+ New world</Link>
                 </div>
               </section>
 
