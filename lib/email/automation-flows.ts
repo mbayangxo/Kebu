@@ -126,7 +126,7 @@ export async function processEmailFlows(
   if (!due?.length) return result;
 
   // Fetch all referenced flows in one shot
-  const flowIds = [...new Set(due.map((e) => e.flow_id as string))];
+  const flowIds = [...new Set(due.map((e: { flow_id: string }) => e.flow_id as string))];
   const { data: flows } = await supabase
     .from("email_flows")
     .select("id, name, status, from_email, from_name, reply_to")
