@@ -13,6 +13,13 @@ export type ProjectAccessRow = {
 
 export type ProjectAccessVia = "owner" | "support" | "team";
 
+export class ProjectAccessQueryError extends Error {
+  constructor(stage: "owner" | "project" | "membership", message: string) {
+    super(`Project access ${stage} lookup failed: ${message}`);
+    this.name = "ProjectAccessQueryError";
+  }
+}
+
 /** Roles that may operate a linked shop (not viewers / finance-only). */
 export const SHOP_TEAM_ROLES = [
   "founder",
@@ -38,12 +45,16 @@ export async function assertProjectEditorAccess(
   },
 ): Promise<{ project: ProjectAccessRow; via: ProjectAccessVia } | null> {
   const select = opts.select ?? "id, owner_id, title, subdomain, business_id";
-  const { data: owned } = await userClient
+  const { data: owned, error: ownerError } = await userClient
     .from("projects")
     .select(select)
     .eq("id", opts.projectId)
     .eq("owner_id", opts.userId)
     .maybeSingle();
+
+  if (ownerError) {
+    throw new ProjectAccessQueryError("owner", ownerError.message);
+  }
 
   if (owned) {
     return { project: owned as unknown as ProjectAccessRow, via: "owner" };
@@ -55,11 +66,15 @@ export async function assertProjectEditorAccess(
     return null;
   }
 
-  const { data: project } = await service
+  const { data: project, error: projectError } = await service
     .from("projects")
     .select(select)
     .eq("id", opts.projectId)
     .maybeSingle();
+
+  if (projectError) {
+    throw new ProjectAccessQueryError("project", projectError.message);
+  }
 
   if (!project) return null;
 
@@ -68,13 +83,17 @@ export async function assertProjectEditorAccess(
     typeof row.business_id === "string" && row.business_id ? row.business_id : null;
 
   if (businessId) {
-    const { data: member } = await service
+    const { data: member, error: membershipError } = await service
       .from("business_members")
       .select("role")
       .eq("business_id", businessId)
       .eq("user_id", opts.userId)
       .eq("status", "active")
       .maybeSingle();
+
+    if (membershipError) {
+      throw new ProjectAccessQueryError("membership", membershipError.message);
+    }
 
     if (
       member &&

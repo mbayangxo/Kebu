@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 export default function CollectivePage() {
   const [businessType, setBusinessType] = useState("");
@@ -87,6 +88,10 @@ Please provide:
             small businesses can collectively bid on — and win — government contracts worth
             millions that no single SME could access alone.
           </p>
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer />
         </div>
 
         {/* Inspiration strip */}

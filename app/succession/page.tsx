@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 export default function SuccessionPage() {
   const [country, setCountry] = useState("");
@@ -93,6 +94,10 @@ Please provide:
             This engine helps you structure ownership, governance, and wealth transfer so that what
             you built outlasts you — and stays African.
           </p>
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer />
         </div>
 
         {/* Form */}

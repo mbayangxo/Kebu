@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "@/app/components/nav";
+import { AiEngineDisclaimer } from "@/app/components/ai-engine-disclaimer";
 
 interface Layer {
   name: string;
@@ -91,6 +92,10 @@ For each layer, name the specific funder, the realistic amount they could provid
             The Capital Stack Engine designs multi-layer funding architectures — combining grants, concessional
             loans, development finance, and equity in the right order.
           </p>
+        </div>
+
+        <div className="mb-6">
+          <AiEngineDisclaimer />
         </div>
 
         {/* Form */}
