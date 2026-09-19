@@ -38,8 +38,8 @@ function randomToken(): string {
 }
 
 /**
- * Create a download record after an order is placed.
- * Safe to call idempotently — unique constraint on token handles re-runs.
+ * Create a download record only after verified payment.
+ * Idempotent per order/product: an existing entitlement is reused.
  */
 export async function createDigitalDownload(
   supabase: SupabaseClient,
@@ -52,6 +52,25 @@ export async function createDigitalDownload(
   if (!opts.product.is_digital || !opts.product.digital_file_path) {
     return { ok: false, error: "Product has no digital file." };
   }
+
+  const { data: order } = await supabase
+    .from("shop_orders")
+    .select("id, project_id, payment_status")
+    .eq("id", opts.orderId)
+    .eq("project_id", opts.projectId)
+    .maybeSingle();
+
+  if (!order || order.payment_status !== "paid") {
+    return { ok: false, error: "Order is not paid." };
+  }
+
+  const { data: existing } = await supabase
+    .from("shop_digital_downloads")
+    .select("token")
+    .eq("order_id", opts.orderId)
+    .eq("product_id", opts.product.id)
+    .maybeSingle();
+  if (existing?.token) return { ok: true, token: existing.token as string };
 
   const token = randomToken();
   const expiresAt = new Date(
