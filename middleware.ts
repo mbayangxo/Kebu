@@ -9,9 +9,13 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  const scriptPolicy =
+    process.env.NODE_ENV === "production"
+      ? "script-src 'self' 'unsafe-inline'"
+      : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
   response.headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
+    "default-src 'self'; " + scriptPolicy + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
   );
   response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
   if (process.env.NODE_ENV === "production") {
@@ -41,7 +45,7 @@ function csrfBusinessCheck(request: NextRequest): NextResponse | null {
   if (!CSRF_MUTATION_METHODS.has(request.method.toUpperCase())) return null;
 
   const origin = request.headers.get("origin");
-  if (!origin) return null; // non-browser clients / same-origin form posts may omit
+  if (!origin) return NextResponse.json({ error: "Origin required." }, { status: 403 });
 
   const hostHeader = request.headers.get("host") ?? "";
   const requestHost = hostHeader.split(":")[0]?.toLowerCase() ?? "";
