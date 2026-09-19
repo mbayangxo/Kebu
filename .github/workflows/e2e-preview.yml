@@ -11,8 +11,7 @@ jobs:
     name: Exact Vercel preview E2E
     if: >
       github.event.deployment_status.state == 'success' &&
-      github.event.deployment_status.environment_url != '' &&
-      vars.KEBU_E2E_SHOP_SUBDOMAIN != ''
+      github.event.deployment_status.environment_url != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
