@@ -9,6 +9,8 @@ export type SearchResult = {
   sublabel?: string;
   href: string;
   kind: "site" | "design" | "business" | "opportunity" | "page";
+  source?: "kebu_private" | "kebu_public";
+  trustLabel?: string;
   accent?: string;
 };
 
@@ -53,7 +55,7 @@ export async function GET(req: Request) {
   const { supabase, user } = auth;
 
   const { searchParams } = new URL(req.url);
-  const q = (searchParams.get("q") ?? "").trim();
+  const q = (searchParams.get("q") ?? "").trim().slice(0, 120);
 
   if (!q) {
     return NextResponse.json({ results: [], pages: STATIC_PAGES.slice(0, 8) });
@@ -62,7 +64,7 @@ export async function GET(req: Request) {
   const lq = q.toLowerCase();
 
   // Run DB lookups in parallel
-  const [sitesRes, designsRes, businessesRes] = await Promise.all([
+  const [sitesRes, designsRes, businessesRes, opportunitiesRes] = await Promise.all([
     supabase
       .from("projects")
       .select("id, title, subdomain, project_type")
@@ -80,6 +82,11 @@ export async function GET(req: Request) {
       .select("id, public_kebu_id, legal_name, trading_name")
       .ilike("legal_name", `%${q}%`)
       .limit(4),
+    supabase
+      .from("opportunities")
+      .select("id, title, country, type, verified_status, source_name")
+      .or(`title.ilike.%${q}%,summary.ilike.%${q}%,country.ilike.%${q}%`)
+      .limit(6),
   ]);
 
   const sites: SearchResult[] = (sitesRes.data ?? []).map((s) => ({
@@ -109,6 +116,17 @@ export async function GET(req: Request) {
     accent: "#10B981",
   }));
 
+  const opportunities: SearchResult[] = (opportunitiesRes.data ?? []).map((o) => ({
+    id: `opp-${o.id}`,
+    label: o.title,
+    sublabel: [o.type, o.country, o.source_name].filter(Boolean).join(" · "),
+    href: `/opportunity/listings/${o.id}`,
+    kind: "opportunity" as const,
+    accent: "#FF1F1F",
+    source: "kebu_public" as const,
+    trustLabel: o.verified_status ?? "needs_review",
+  }));
+
   const pages = STATIC_PAGES
     .map((p) => ({ p, s: score(p, lq) }))
     .filter(({ s }) => s > 0)
@@ -116,7 +134,7 @@ export async function GET(req: Request) {
     .slice(0, 6)
     .map(({ p }) => p);
 
-  const results: SearchResult[] = [...sites, ...designs, ...businesses];
+  const results: SearchResult[] = [...sites, ...designs, ...businesses, ...opportunities];
 
   return NextResponse.json({ results, pages });
 }
