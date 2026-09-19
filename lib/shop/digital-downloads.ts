@@ -95,6 +95,46 @@ export async function createDigitalDownload(
   return { ok: true, token };
 }
 
+/** Fulfill a paid digital order. Safe to call repeatedly after duplicate webhooks. */
+export async function fulfillPaidDigitalOrder(
+  supabase: SupabaseClient,
+  orderId: string,
+): Promise<void> {
+  const { data: order } = await supabase
+    .from("shop_orders")
+    .select("id, project_id, product_id, product_name, customer_email, payment_status")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order || order.payment_status !== "paid" || !order.product_id || !order.customer_email) return;
+
+  const { data: product } = await supabase
+    .from("project_products")
+    .select("id, is_digital, digital_file_path, digital_file_name, digital_dl_limit, digital_expires_hours")
+    .eq("id", order.product_id)
+    .maybeSingle();
+  if (!product?.is_digital || !product.digital_file_path) return;
+
+  const created = await createDigitalDownload(supabase, {
+    orderId: order.id,
+    projectId: order.project_id,
+    product: product as DigitalProduct,
+  });
+  if (!created.ok) return;
+
+  const from = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
+  if (!from) return;
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://kebu.app";
+  await emailDownloadLink({
+    to: order.customer_email,
+    shopName: "Kebu",
+    productName: order.product_name || product.digital_file_name || "Digital product",
+    downloadUrl: `${base}/api/dl/${created.token}`,
+    expiresAt: new Date(Date.now() + product.digital_expires_hours * 60 * 60 * 1000).toISOString(),
+    maxDownloads: product.digital_dl_limit,
+    from,
+  });
+}
+
 /** Resolve and validate a download token. Returns null if expired / exhausted / not found. */
 export async function resolveDownloadToken(
   supabase: SupabaseClient,
