@@ -182,6 +182,10 @@ export async function signedDownloadUrl(
   return data.signedUrl;
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"\']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "\'": "&#39;" })[char] ?? char);
+}
+
 /** Email a download link to the buyer. Fire-and-forget friendly. */
 export async function emailDownloadLink(opts: {
   to: string;
@@ -200,12 +204,16 @@ export async function emailDownloadLink(opts: {
     year: "numeric",
   });
 
+  const safeShopName = escapeHtml(opts.shopName);
+  const safeProductName = escapeHtml(opts.productName);
+  const safeDownloadUrl = escapeHtml(opts.downloadUrl);
+
   const html = `
 <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:24px 16px;color:#0a0a0a">
-  <p style="font-size:15px;font-weight:700;margin:0 0 8px">${opts.shopName}</p>
+  <p style="font-size:15px;font-weight:700;margin:0 0 8px">${safeShopName}</p>
   <h1 style="font-size:22px;font-weight:800;margin:0 0 16px">Votre téléchargement est prêt</h1>
-  <p style="font-size:14px;margin:0 0 24px">Merci pour votre achat de <strong>${opts.productName}</strong>.</p>
-  <a href="${opts.downloadUrl}"
+  <p style="font-size:14px;margin:0 0 24px">Merci pour votre achat de <strong>${safeProductName}</strong>.</p>
+  <a href="${safeDownloadUrl}"
      style="display:inline-block;background:#FF5500;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px;text-decoration:none">
     Télécharger maintenant →
   </a>
