@@ -8,40 +8,42 @@ import { Skeleton } from "@/app/components/kebu-skeleton";
 import { displayFirstName } from "@/lib/account/user-profile";
 import type { HomeSummary } from "@/lib/account/home-summary";
 import { readStoredWorkspace } from "@/lib/navigation/kebu-workspace";
+import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
+import { KEBU } from "@/lib/kebu-brand";
 
-const orange = "#FF6A00";
-const red = "#FF1F1F";
-const panel = "#111111";
-const border = "rgba(255,255,255,.10)";
-const muted = "rgba(255,255,255,.58)";
+const orange = KEBU.orange;
+const red = KEBU.red;
+const panel = KEBU.white;
+const border = KEBU.borders.default;
+const muted = KEBU.muted;
 
 function Arrow() {
   return <span aria-hidden="true">→</span>;
 }
 
-function Action({ href, label, icon }: { href: string; label: string; icon: string }) {
+function Action({ href, label, icon }: { href: string; label: string; icon: KebuIconName }) {
   return (
     <Link href={href} className="group rounded-2xl border p-3 text-center transition hover:-translate-y-0.5"
       style={{ borderColor: border, background: "rgba(255,255,255,.025)" }}>
       <span className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl text-lg"
         style={{ background: "linear-gradient(145deg,rgba(255,106,0,.22),rgba(255,31,31,.08))", color: orange }}>
-        {icon}
+        <KebuIcon name={icon} size={20} />
       </span>
-      <span className="text-[11px] font-semibold text-white/75">{label}</span>
+      <span className="text-[11px] font-semibold" style={{ color: KEBU.black }}>{label}</span>
     </Link>
   );
 }
 
 function WorldCard({ title, subtitle, href, accent }: { title: string; subtitle: string; href: string; accent: string }) {
   return (
-    <Link href={href} className="group min-w-[185px] flex-1 overflow-hidden rounded-2xl border transition hover:-translate-y-0.5"
+    <Link href={href} className="group min-w-[185px] flex-1 overflow-hidden rounded-2xl border transition hover:-translate-y-0.5 hover:shadow-sm"
       style={{ borderColor: border, background: panel }}>
       <div className="h-20 relative overflow-hidden" style={{ background: accent }}>
         <div className="absolute -right-8 -top-12 h-32 w-32 rotate-45 rounded-[35%] bg-black/45" />
         <div className="absolute -bottom-10 left-7 h-24 w-24 rotate-45 rounded-[35%] bg-black/25" />
       </div>
       <div className="p-3.5">
-        <p className="font-semibold text-white">{title}</p>
+        <p className="font-semibold" style={{ color: KEBU.black }}>{title}</p>
         <p className="mt-0.5 text-[11px]" style={{ color: muted }}>{subtitle}</p>
       </div>
     </Link>
@@ -78,13 +80,13 @@ export default function KebuHomePage() {
 
   return (
     <AppShell title="Home">
-      <div className="min-h-[calc(100vh-60px)] text-white" style={{ background: "#090909" }}>
+      <div className="min-h-[calc(100vh-60px)]" style={{ background: KEBU.bright, color: KEBU.black }}>
         <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8">
           {loading ? (
             <div className="space-y-4">
-              <Skeleton height={56} width="42%" style={{ background: "rgba(255,255,255,.08)" }} />
-              <Skeleton height={132} width="100%" style={{ background: "rgba(255,255,255,.06)" }} />
-              <Skeleton height={300} width="100%" style={{ background: "rgba(255,255,255,.06)" }} />
+              <Skeleton height={56} width="42%" style={{ background: KEBU.cream }} />
+              <Skeleton height={132} width="100%" style={{ background: KEBU.cream }} />
+              <Skeleton height={300} width="100%" style={{ background: KEBU.cream }} />
             </div>
           ) : error ? (
             <div className="rounded-2xl border p-6" style={{ borderColor: "rgba(255,31,31,.35)", background: "rgba(255,31,31,.08)" }}>
@@ -127,8 +129,8 @@ export default function KebuHomePage() {
                   {summary.businesses.length === 0 && summary.sites.length === 0 ? (
                     <WorldCard title="Personal" subtitle="Your first world" href="/create" accent="linear-gradient(135deg,#141414,#FF6A00,#FF1F1F)" />
                   ) : null}
-                  <Link href="/create" className="flex min-w-[150px] items-center justify-center rounded-2xl border text-sm text-white/60 transition hover:text-white"
-                    style={{ borderColor: border }}>+ New world</Link>
+                  <Link href="/create" className="flex min-w-[150px] items-center justify-center rounded-2xl border text-sm font-semibold transition hover:-translate-y-0.5"
+                    style={{ borderColor: border }} style={{ borderColor: border, color: muted }}>+ New world</Link>
                 </div>
               </section>
 
@@ -141,9 +143,9 @@ export default function KebuHomePage() {
                     </div>
                     <div>
                       {summary.updates.length ? summary.updates.slice(0, 5).map((item) => (
-                        <Link key={item.id} href={item.href} className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0 hover:bg-white/[.035]"
+                        <Link key={item.id} href={item.href} className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0 hover:bg-black/[.025]"
                           style={{ borderColor: border }}>
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm" style={{ background: "rgba(255,106,0,.15)", color: orange }}>✦</span>
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(255,85,0,.10)", color: orange }}><KebuIcon name="yande" size={17} /></span>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{item.title}</p>
                             <p className="truncate text-[11px]" style={{ color: muted }}>{item.body}</p>
@@ -196,14 +198,14 @@ export default function KebuHomePage() {
                   <section className="rounded-2xl border p-4" style={{ borderColor: border, background: panel }}>
                     <h2 className="mb-4 font-semibold">Quick actions</h2>
                     <div className="grid grid-cols-4 gap-2">
-                      <Action href="/create/new" label="New site" icon="✦" />
-                      <Action href="/shop" label="Shop" icon="▣" />
-                      <Action href="/studio/new" label="Design" icon="◈" />
-                      <Action href="/opportunity" label="Explore" icon="◎" />
-                      <Action href="/messages" label="Messages" icon="◌" />
-                      <Action href="/business" label="Business" icon="◇" />
-                      <Action href="/studio" label="Studio" icon="✣" />
-                      <Action href="/account" label="More" icon="•••" />
+                      <Action href="/create/new" label="New site" icon="builder" />
+                      <Action href="/shop" label="Shop" icon="commerce" />
+                      <Action href="/studio/new" label="Design" icon="studio" />
+                      <Action href="/opportunity" label="Explore" icon="opportunity" />
+                      <Action href="/messages" label="Messages" icon="message" />
+                      <Action href="/business" label="Business" icon="spaces" />
+                      <Action href="/studio" label="Studio" icon="studio" />
+                      <Action href="/account" label="More" icon="more" />
                     </div>
                   </section>
 
