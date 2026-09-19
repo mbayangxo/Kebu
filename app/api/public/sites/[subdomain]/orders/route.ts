@@ -81,53 +81,6 @@ export async function POST(req: Request, { params }: Params) {
     .eq("project_id", live.project_id)
     .eq("is_active", true)
     .maybeSingle();
-  if (productError && /track_stock|stock_qty/i.test(productError.message ?? "")) {
-    const midStock = await admin
-      .from("project_products")
-      .select("id, project_id, name, price_label, price_xof, upc, sku, is_active")
-      .eq("id", parsed.data.productId)
-      .eq("project_id", live.project_id)
-      .eq("is_active", true)
-      .maybeSingle();
-    product = midStock.data
-      ? { ...midStock.data, track_stock: false, stock_qty: null }
-      : null;
-    productError = midStock.error;
-  }
-  if (productError && /upc|sku/i.test(productError.message ?? "")) {
-    const mid = await admin
-      .from("project_products")
-      .select("id, project_id, name, price_label, price_xof, is_active")
-      .eq("id", parsed.data.productId)
-      .eq("project_id", live.project_id)
-      .eq("is_active", true)
-      .maybeSingle();
-    product = mid.data
-      ? { ...mid.data, upc: null, sku: null, track_stock: false, stock_qty: null }
-      : null;
-    productError = mid.error;
-  }
-  if (productError && /price_xof/i.test(productError.message ?? "")) {
-    const fallback = await admin
-      .from("project_products")
-      .select("id, project_id, name, price_label, is_active")
-      .eq("id", parsed.data.productId)
-      .eq("project_id", live.project_id)
-      .eq("is_active", true)
-      .maybeSingle();
-    product = fallback.data
-      ? {
-          ...fallback.data,
-          price_xof: null,
-          upc: null,
-          sku: null,
-          track_stock: false,
-          stock_qty: null,
-        }
-      : null;
-    productError = fallback.error;
-  }
-
   if (productError || !product) {
     return NextResponse.json({ error: "That product is not for sale on this site." }, { status: 404 });
   }
@@ -303,7 +256,7 @@ export async function POST(req: Request, { params }: Params) {
       line_amount_xof: unitXof != null ? unitXof * input.quantity : null,
       sort_order: 0,
     });
-    if (itemErr && !/does not exist|shop_order_items/i.test(itemErr.message ?? "")) {
+    if (itemErr) {
       logCreate("shop.order_item_failed", { orderId, message: itemErr.message });
     }
 
@@ -515,98 +468,8 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   if (error || !order) {
-    // Channel constraint / column may predate 067 — retry with legacy channel or without.
-    if (
-      error?.message &&
-      /channel|source_detail/i.test(error.message) &&
-      orderChannel !== "whatsapp"
-    ) {
-      const legacyChannel = ["whatsapp", "demo", "web"].includes(orderChannel)
-        ? orderChannel
-        : "web";
-      const retryChannel = await svc
-        .from("shop_orders")
-        .insert({ ...insertBase, channel: legacyChannel })
-        .select("id, order_number, gift_public_id")
-        .single();
-      if (!retryChannel.error && retryChannel.data) {
-        return afterOrderSaved(
-          retryChannel.data.id,
-          (retryChannel.data as { order_number?: string }).order_number ?? orderNumber,
-          typeof (retryChannel.data as { gift_public_id?: string }).gift_public_id === "string"
-            ? (retryChannel.data as { gift_public_id: string }).gift_public_id
-            : null,
-        );
-      }
-      const { channel: _drop, ...withoutChannel } = insertBase;
-      void _drop;
-      const retryNoChannel = await svc
-        .from("shop_orders")
-        .insert(withoutChannel)
-        .select("id, order_number, gift_public_id")
-        .single();
-      if (!retryNoChannel.error && retryNoChannel.data) {
-        return afterOrderSaved(
-          retryNoChannel.data.id,
-          (retryNoChannel.data as { order_number?: string }).order_number ?? orderNumber,
-          typeof (retryNoChannel.data as { gift_public_id?: string }).gift_public_id === "string"
-            ? (retryNoChannel.data as { gift_public_id: string }).gift_public_id
-            : null,
-        );
-      }
-    }
-    // Pre-041/042/044/045/048/059 DBs may lack newer columns — retry without them.
-    if (
-      error?.message &&
-      /payment_preference|customer_email|discount_|order_number|product_upc|product_sku|customer_user_id|is_gift|recipient_|gift_|buyer_country|shipping_/i.test(
-        error.message,
-      )
-    ) {
-      const retry = await svc
-        .from("shop_orders")
-        .insert({
-          project_id: dep.project_id,
-          product_id: sold.id,
-          product_name: soldName,
-          price_label: sold.price_label ?? "",
-          quantity: input.quantity,
-          customer_name: input.customerName,
-          customer_phone: input.customerPhone,
-          customer_note: [
-            input.customerNote ?? "",
-            input.paymentPreference ? `Pay preference: ${input.paymentPreference}` : "",
-            customerEmail ? `Email: ${customerEmail}` : "",
-            discount ? `Discount: ${discount.code} (−${discount.percent_off}%)` : "",
-            productUpc ? `UPC: ${productUpc}` : "",
-            input.isGift
-              ? `Gift for: ${input.recipientName} (${input.recipientPhone})${input.giftMessage ? ` — ${input.giftMessage}` : ""}`
-              : "",
-            orderChannel ? `Channel: ${orderChannel}` : "",
-            `Ref: ${orderNumber}`,
-          ]
-            .filter(Boolean)
-            .join("\n")
-            .slice(0, 400),
-          status: "pending",
-          channel: "whatsapp",
-        })
-        .select("id")
-        .single();
-      if (!retry.error && retry.data) {
-        return afterOrderSaved(retry.data.id, orderNumber, null);
-      }
-    }
     logCreate("shop.order_failed", { subdomain, message: error?.message });
-    return NextResponse.json(
-      {
-        error: error?.message?.includes("does not exist")
-          ? "Orders table missing. Apply APPLY_SHOP_ORDERS.sql in Supabase."
-          : error?.message?.includes("is_gift") || error?.message?.includes("recipient_")
-            ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
-            : "Could not save order.",
-      },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Could not save order." }, { status: 500 });
   }
 
   return afterOrderSaved(

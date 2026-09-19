@@ -4,9 +4,6 @@ import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { builderRateLimit } from "@/lib/api-guard";
 import {
   PRODUCT_SELECT,
-  PRODUCT_SELECT_LEGACY,
-  PRODUCT_SELECT_MID,
-  PRODUCT_SELECT_CODES,
   projectProductSchema,
 } from "@/lib/create/project-products";
 import { assertProjectProductAccess } from "@/lib/create/assert-project-access";
@@ -99,94 +96,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       { error: "That UPC or SKU is already used on another product in this shop." },
       { status: 409 },
     );
-  }
-
-  if (error && /is_subscription|subscription_interval/i.test(error.message ?? "")) {
-    delete patch.is_subscription;
-    delete patch.subscription_interval;
-    const retry = await supabase
-      .from("project_products")
-      .update(patch)
-      .eq("id", productId)
-      .eq("project_id", projectId)
-      .select(PRODUCT_SELECT_CODES)
-      .maybeSingle();
-    product = retry.data
-      ? { ...retry.data, is_subscription: false, subscription_interval: null }
-      : null;
-    error = retry.error;
-  }
-
-  if (error && /track_stock|stock_qty/i.test(error.message ?? "")) {
-    delete patch.track_stock;
-    delete patch.stock_qty;
-    const retry = await supabase
-      .from("project_products")
-      .update(patch)
-      .eq("id", productId)
-      .eq("project_id", projectId)
-      .select(PRODUCT_SELECT_CODES)
-      .maybeSingle();
-    product = retry.data
-      ? {
-          ...retry.data,
-          track_stock: false,
-          stock_qty: null,
-          is_subscription: false,
-          subscription_interval: null,
-        }
-      : null;
-    error = retry.error;
-  }
-
-  if (error && /upc|sku/i.test(error.message ?? "")) {
-    delete patch.upc;
-    delete patch.sku;
-    const retry = await supabase
-      .from("project_products")
-      .update(patch)
-      .eq("id", productId)
-      .eq("project_id", projectId)
-      .select(PRODUCT_SELECT_MID)
-      .maybeSingle();
-    product = retry.data
-      ? {
-          ...retry.data,
-          upc: null,
-          sku: null,
-          track_stock: false,
-          stock_qty: null,
-          is_subscription: false,
-          subscription_interval: null,
-        }
-      : null;
-    error = retry.error;
-  }
-
-  if (error && /price_xof/i.test(error.message ?? "")) {
-    delete patch.price_xof;
-    delete patch.upc;
-    delete patch.sku;
-    const retry = await supabase
-      .from("project_products")
-      .update(patch)
-      .eq("id", productId)
-      .eq("project_id", projectId)
-      .select(PRODUCT_SELECT_LEGACY)
-      .maybeSingle();
-    product = retry.data
-      ? {
-          ...retry.data,
-          price_xof: null,
-          upc: null,
-          sku: null,
-          track_stock: false,
-          stock_qty: null,
-          is_subscription: false,
-          subscription_interval: null,
-        }
-      : null;
-    error = retry.error;
   }
 
   if (error || !product) {
