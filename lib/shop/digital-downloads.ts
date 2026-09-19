@@ -132,6 +132,7 @@ export async function fulfillPaidDigitalOrder(
     expiresAt: new Date(Date.now() + product.digital_expires_hours * 60 * 60 * 1000).toISOString(),
     maxDownloads: product.digital_dl_limit,
     from,
+    idempotencyKey: `digital-download:${order.id}:${product.id}`,
   });
 }
 
@@ -191,6 +192,7 @@ export async function emailDownloadLink(opts: {
   maxDownloads: number;
   from: string;
   fromName?: string;
+  idempotencyKey?: string;
 }): Promise<boolean> {
   const expiryDate = new Date(opts.expiresAt).toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -222,5 +224,6 @@ export async function emailDownloadLink(opts: {
     subject: `Votre fichier — ${opts.productName}`,
     html,
     text,
+    idempotencyKey: opts.idempotencyKey,
   });
 }
