@@ -21,7 +21,8 @@ Therefore repository migration filenames are **not** a trustworthy record of wha
 - The only public `SECURITY DEFINER` function is `handle_new_user()`; EXECUTE is not available to anon, authenticated, or PUBLIC, and its search path is explicitly set.
 - Reconciled migration `20260919204303_harden_public_database_boundaries` fixed mutable search paths on `update_updated_at`, `set_updated_at`, and `touch_updated_at` and restricted public deployment reads to `status = 'live'`. The live policy/advisor state was re-checked after application.
 - Supabase Auth leaked-password protection is disabled and should be enabled in project Auth settings.
-- Performance advisor reports numerous unindexed foreign keys. Add indexes based on real query paths and measured workload, not mechanically.
+- Performance advisor reports numerous unindexed foreign keys. Supabase documents these as performance guidance; add indexes based on real query paths and measured workload, not mechanically. Index-usage inspection confirmed active use of project-owner, verified-domain, live-subdomain, deployment-project, and analytics access paths.
+- Reconciled migration `20260919212918_remove_duplicate_business_public_id_index` removed the redundant `businesses_public_kebu_id_uidx` while preserving the `businesses_public_kebu_id_key` UNIQUE constraint-backed index. The duplicate-index advisor warning was re-checked and cleared.
 
 ## Tenant/domain foundation
 
