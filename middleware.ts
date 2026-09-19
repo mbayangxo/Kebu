@@ -119,7 +119,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const cookie = request.cookies.get(ADMIN_SESSION_COOKIE);
-    if (!verifyAdminSessionToken(cookie?.value)) {
+    if (!(await verifyAdminSessionToken(cookie?.value))) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/login";
       url.searchParams.set("next", pathname);

@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { verifyAdminSessionToken, ADMIN_SESSION_COOKIE } from "@/lib/admin/admin-session";
 
 /** Team-only Kebu Record portal auth (signed session cookie — not the raw password). */
-export function assertAdminCookie(req: Request): boolean {
+export async function assertAdminCookie(req: Request): Promise<boolean> {
   const cookieHeader = req.headers.get("cookie") ?? "";
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${ADMIN_SESSION_COOKIE}=([^;]+)`));
   const raw = match?.[1] ? decodeURIComponent(match[1]) : null;
-  return verifyAdminSessionToken(raw);
+  return await verifyAdminSessionToken(raw);
 }
 
 /** Reject cross-site mutating requests (basic CSRF for cookie auth). */
