@@ -596,7 +596,6 @@ export async function POST(req: Request, { params }: Params) {
         return afterOrderSaved(retry.data.id, orderNumber, null);
       }
     }
-    await releaseShopCheckout(svc, order?.id ?? "");
     logCreate("shop.order_failed", { subdomain, message: error?.message });
     return NextResponse.json(
       {
@@ -605,7 +604,6 @@ export async function POST(req: Request, { params }: Params) {
           : error?.message?.includes("is_gift") || error?.message?.includes("recipient_")
             ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
             : "Could not save order.",
-        detail: error?.message,
       },
       { status: 500 },
     );
