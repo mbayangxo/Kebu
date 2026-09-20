@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 describe("Studio product UI", () => {
   it("keeps discovery, creation, brand, campaigns and library in the Studio home", () => {
     const source = readFileSync(join(process.cwd(), "app/studio/page.tsx"), "utf8");
-    for (const label of ["What will you create today?", "Start creating", "Continue creating", "Studio spaces", "Brand-aware creation", "Your Studio"]) expect(source).toContain(label);
+    for (const label of ["Kebu Studio", "Make the thing.", "Continue where you left off", "Start anywhere", "Brand DNA", "Your Studio"]) expect(source).toContain(label);
     expect(source).toContain("/studio/templates");
     expect(source).toContain("/studio/brand");
     expect(source).toContain("/studio/campaigns");
