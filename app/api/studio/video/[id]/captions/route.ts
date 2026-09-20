@@ -33,6 +33,7 @@ const bodySchema = z.object({
   /** When true and OPENAI_API_KEY set, transcribe soundtrack URL via Whisper */
   useWhisper: z.boolean().optional().default(false),
   expectedUpdatedAt: z.string().datetime().optional(),
+  sourceAudioClipId: z.string().trim().max(40).optional(),
 });
 
 /**
@@ -170,7 +171,8 @@ export async function POST(req: Request, { params }: Params) {
     );
   }
 
-  const next = applyCaptionSegments(composition, segments);
+  if(parsed.data.sourceAudioClipId && !composition.clips.some(c=>c.id===parsed.data.sourceAudioClipId)) return NextResponse.json({error:"Caption source audio clip not found."},{status:400});
+  const next = applyCaptionSegments(composition, segments, parsed.data.sourceAudioClipId ?? null);
   if ("error" in next) {
     return NextResponse.json({ error: next.error }, { status: 400 });
   }

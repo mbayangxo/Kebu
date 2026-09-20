@@ -39,6 +39,7 @@ export function primaryCaptionTrackId(c: StudioComposition): string | null {
 export function applyCaptionSegments(
   c: StudioComposition,
   segments: CaptionSegment[],
+  sourceAudioClipId?: string | null,
 ): StudioComposition | { error: string } {
   const trackId = primaryCaptionTrackId(c);
   if (!trackId) return { error: "No caption track on this project." };
@@ -66,6 +67,7 @@ export function applyCaptionSegments(
     rotation: 0,
     sceneId: null,
     captionText: s.text,
+    sourceAudioClipId: sourceAudioClipId ?? null,
   }));
 
   return studioCompositionSchema.parse({

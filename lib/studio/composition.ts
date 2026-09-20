@@ -77,6 +77,7 @@ export const compositionClipSchema = z.object({
   designHeight: z.number().min(1).max(4096).optional(),
   /** Clips sharing a linkGroupId move together (for linked picture/audio or intentional groups). */
   linkGroupId: z.string().trim().max(40).nullable().optional(),
+  sourceAudioClipId: z.string().trim().max(40).nullable().optional(),
   /** Semantic design payload keeps imported layers editable instead of flattening to page images. */
   designLayer: z.object({
     type: z.enum(["text","rect","ellipse","image","video","line","icon","frame"]),
@@ -117,6 +118,8 @@ export const compositionTrackSchema = z.object({
   kind: z.enum(COMPOSITION_TRACK_KINDS),
   name: z.string().trim().max(80).default("Track"),
   muted: z.boolean().default(false),
+  solo: z.boolean().default(false),
+  volume: z.number().min(0).max(2).default(1),
   locked: z.boolean().default(false),
   order: z.number().int().min(0).max(64).default(0),
 });
@@ -182,6 +185,7 @@ export const studioCompositionSchema = z.object({
   assets: z.array(compositionAssetSchema).max(100).default([]),
   music: compositionMusicAnalysisSchema.nullable().optional(),
   snapToBeats: z.boolean().default(true),
+  masterVolume: z.number().min(0).max(2).default(1),
   markers: z
     .array(
       z.object({

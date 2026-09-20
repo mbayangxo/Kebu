@@ -337,7 +337,7 @@ export default function StudioVideoEditorPage() {
     const xf = clipTransformAtTime(comp, clip, playheadMs);
     el.style.opacity = String(xf.opacity);
     el.style.transform = `translate(${xf.x}px, ${xf.y}px) scale(${xf.scale}) rotate(${xf.rotation}deg)`;
-    el.volume = Math.min(1, xf.volume);
+    el.volume = Math.min(1, effectiveClipVolume(comp,clip.id) * xf.volume);
     el.playbackRate = Math.max(0.1, Math.min(8, clip.speed));
     el.style.filter = cssFilterFromGrade({
       brightness: clip.brightness ?? 0,
@@ -658,7 +658,7 @@ export default function StudioVideoEditorPage() {
             {comp.music.confidence != null ? ` · ${Math.round(comp.music.confidence * 100)}%` : ""}
           </span>
         ) : null}
-        <button type="button" onClick={()=>applyComp(duckMusicUnderVoice(comp))} className="rounded-lg px-2 py-1 text-xs bg-white/10">Duck music</button><button type="button" disabled={!history.length} onClick={undo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
+        <label className="flex items-center gap-1 text-[10px] opacity-70">Master<input aria-label="Master volume" type="range" min="0" max="2" step=".05" value={comp.masterVolume} onChange={e=>applyComp(setMasterVolume(comp,Number(e.target.value)))}/></label><button type="button" onClick={()=>applyComp(duckMusicUnderVoice(comp))} className="rounded-lg px-2 py-1 text-xs bg-white/10">Duck music</button><button type="button" disabled={!history.length} onClick={undo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
           Undo
         </button>
         <button type="button" disabled={!future.length} onClick={redo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
@@ -1129,7 +1129,7 @@ export default function StudioVideoEditorPage() {
 
           {tracks.map((track) => (
             <div key={track.id} className="flex items-stretch gap-1 mb-1">
-              <div className="w-14 shrink-0 text-[9px] font-semibold flex items-center gap-0.5 px-0.5"><span className="min-w-0 flex-1 truncate opacity-60">{track.name}</span><button type="button" title={track.muted?"Unmute":"Mute"} onClick={()=>applyComp(setTrackState(comp,track.id,{muted:!track.muted}))} className={track.muted?"text-amber-300":"opacity-40"}>{track.muted?"M":"m"}</button><button type="button" title={track.locked?"Unlock":"Lock"} onClick={()=>applyComp(setTrackState(comp,track.id,{locked:!track.locked}))} className={track.locked?"text-orange-300":"opacity-40"}>{track.locked?"L":"l"}</button></div>
+              <div className="w-14 shrink-0 text-[9px] font-semibold flex items-center gap-0.5 px-0.5"><span className="min-w-0 flex-1 truncate opacity-60">{track.name}</span>{track.kind==="audio"||track.kind==="music"?<><input aria-label={`${track.name} volume`} className="w-10" type="range" min="0" max="2" step=".1" value={track.volume} onChange={e=>applyComp(setTrackMix(comp,track.id,{volume:Number(e.target.value)}))}/><button type="button" title={track.solo?"Unsolo":"Solo"} onClick={()=>applyComp(setTrackMix(comp,track.id,{solo:!track.solo}))} className={track.solo?"text-emerald-300":"opacity-40"}>S</button></>:null}<button type="button" title={track.muted?"Unmute":"Mute"} onClick={()=>applyComp(setTrackMix(comp,track.id,{muted:!track.muted}))} className={track.muted?"text-amber-300":"opacity-40"}>{track.muted?"M":"m"}</button><button type="button" title={track.locked?"Unlock":"Lock"} onClick={()=>applyComp(setTrackState(comp,track.id,{locked:!track.locked}))} className={track.locked?"text-orange-300":"opacity-40"}>{track.locked?"L":"l"}</button></div>
               <div
                 className="relative h-10 flex-1 rounded bg-black/40 border border-white/5"
                 style={{ width: (totalMs / 1000) * pxPerSec }}
