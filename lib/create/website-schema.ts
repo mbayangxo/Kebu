@@ -1047,7 +1047,7 @@ export const sectionPropsSchemas = {
             leftPct: z.number().min(-20).max(110).default(40),
             widthPct: z.number().min(4).max(80).default(14),
             rotate: z.number().min(-45).max(45).optional().default(0),
-            zIndex: z.number().int().min(1).max(40).optional().default(12),
+            zIndex: z.number().int().min(1).max(80).optional().default(12),
             parallaxRole: z.enum(["city", "figure", "none"]).optional().default("none"),
           }),
         )
