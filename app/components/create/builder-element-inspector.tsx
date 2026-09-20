@@ -54,20 +54,130 @@ export function BuilderElementInspector({
       </div>
 
       {selection.kind === "text" ? (
-        <label className="block text-[11px] font-semibold text-black/65">
-          Text
-          <input
-            className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#2C6ECB]"
-            value={String(sectionProps.title ?? "")}
-            onChange={(event) =>
-              onPatch({
-                title: event.target.value,
-                brandLabel: event.target.value,
-                titleAsText: true,
-              })
-            }
-          />
-        </label>
+        <div className="space-y-3">
+          <label className="block text-[11px] font-semibold text-black/65">
+            Text
+            <input
+              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#2C6ECB]"
+              value={String(sectionProps.title ?? "")}
+              onChange={(event) =>
+                onPatch({
+                  title: event.target.value,
+                  brandLabel: event.target.value,
+                  titleAsText: true,
+                })
+              }
+            />
+          </label>
+
+          <label className="block text-[11px] font-semibold text-black/65">
+            Font
+            <input
+              list="kebu-builder-fonts"
+              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#2C6ECB]"
+              value={String(sectionProps.titleTextFontFamily ?? "Impact")}
+              onChange={(event) => onPatch({ titleTextFontFamily: event.target.value })}
+            />
+            <datalist id="kebu-builder-fonts">
+              <option value="Impact" />
+              <option value="Arial Black" />
+              <option value="Helvetica" />
+              <option value="Georgia" />
+              <option value="Playfair Display" />
+              <option value="Fraunces" />
+              <option value="Oswald" />
+              <option value="Bebas Neue" />
+              <option value="Syne" />
+              <option value="system-ui" />
+            </datalist>
+          </label>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-[11px] font-semibold text-black/65">
+              Font size
+              <input
+                type="number"
+                min="8"
+                max="48"
+                step="1"
+                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                value={Number(sectionProps.titleTextFontSize ?? 14)}
+                onChange={(event) =>
+                  onPatch({
+                    titleTextFontSize: Math.min(48, Math.max(8, Number(event.target.value) || 14)),
+                  })
+                }
+              />
+            </label>
+            <label className="block text-[11px] font-semibold text-black/65">
+              Weight
+              <select
+                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                value={String(sectionProps.titleTextFontWeight ?? 900)}
+                onChange={(event) => onPatch({ titleTextFontWeight: Number(event.target.value) })}
+              >
+                <option value="400">Regular</option>
+                <option value="500">Medium</option>
+                <option value="600">Semibold</option>
+                <option value="700">Bold</option>
+                <option value="800">Extra bold</option>
+                <option value="900">Black</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-[11px] font-semibold text-black/65">
+              Letter spacing
+              <input
+                type="number"
+                min="-0.05"
+                max="0.5"
+                step="0.01"
+                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                value={Number(sectionProps.titleTextLetterSpacing ?? 0.12)}
+                onChange={(event) =>
+                  onPatch({
+                    titleTextLetterSpacing: Math.min(
+                      0.5,
+                      Math.max(-0.05, Number(event.target.value) || 0),
+                    ),
+                  })
+                }
+              />
+            </label>
+            <label className="block text-[11px] font-semibold text-black/65">
+              Line height
+              <input
+                type="number"
+                min="0.8"
+                max="2"
+                step="0.05"
+                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                value={Number(sectionProps.titleTextLineHeight ?? 1.15)}
+                onChange={(event) =>
+                  onPatch({
+                    titleTextLineHeight: Math.min(
+                      2,
+                      Math.max(0.8, Number(event.target.value) || 1.15),
+                    ),
+                  })
+                }
+              />
+            </label>
+          </div>
+
+          <label className="flex items-center justify-between gap-3 text-[11px] font-semibold text-black/65">
+            Text color
+            <input
+              type="color"
+              className="h-9 w-12 cursor-pointer rounded border border-black/10 bg-white p-1"
+              value={String(sectionProps.titleTextColor ?? "#ffffff")}
+              onChange={(event) => onPatch({ titleTextColor: event.target.value })}
+              aria-label="Text color"
+            />
+          </label>
+        </div>
       ) : null}
 
       <label className="block text-[11px] font-semibold text-black/65">
