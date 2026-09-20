@@ -39,6 +39,23 @@ export function BuilderElementInspector({
       ? (sectionProps.layerMotions as Record<string, string>)
       : {};
   const motion = motionMap[storageKey] ?? "none";
+  const positionMap =
+    sectionProps.layerPositions && typeof sectionProps.layerPositions === "object" && !Array.isArray(sectionProps.layerPositions)
+      ? (sectionProps.layerPositions as Record<string, { leftPct?: number; topPct?: number }>)
+      : {};
+  const position = positionMap[storageKey] ?? {};
+  const canPositionLayer =
+    selection.kind === "image" || selection.kind === "cutout" || selection.kind === "text";
+  const patchPosition = (axis: "leftPct" | "topPct", value: number) =>
+    onPatch({
+      layerPositions: {
+        ...positionMap,
+        [storageKey]: {
+          ...position,
+          [axis]: Math.min(110, Math.max(-20, value)),
+        },
+      },
+    });
 
   const responsiveKeys =
     selection.elementId === "titleLogo"
@@ -527,6 +544,41 @@ export function BuilderElementInspector({
           >
             {locked ? "Unlock layer" : "Lock layer"}
           </button>
+        </div>
+      ) : null}
+
+      {canPositionLayer ? (
+        <div className="space-y-2 rounded-xl border border-black/10 bg-black/[0.02] p-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black/45">Position</p>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-[11px] font-semibold text-black/65">
+              X %
+              <input
+                type="number"
+                min="-20"
+                max="110"
+                step="0.5"
+                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                value={Number(position.leftPct ?? 0)}
+                onChange={(event) => patchPosition("leftPct", Number(event.target.value) || 0)}
+              />
+            </label>
+            <label className="block text-[11px] font-semibold text-black/65">
+              Y %
+              <input
+                type="number"
+                min="-20"
+                max="110"
+                step="0.5"
+                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                value={Number(position.topPct ?? 0)}
+                onChange={(event) => patchPosition("topPct", Number(event.target.value) || 0)}
+              />
+            </label>
+          </div>
+          <p className="text-[10px] leading-relaxed text-black/45">
+            Drag on the canvas for visual placement. These values give precise per-device positioning.
+          </p>
         </div>
       ) : null}
 
