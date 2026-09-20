@@ -15,9 +15,9 @@ const AUTH_LIMIT = 20; // login / admin login attempts per IP per window
 const WINDOW_MS = 60_000; // 1 minute
 const MAX_LOCAL_BUCKETS = 10_000;
 
-// Vercel Firewall/edge rate limiting is the production-wide first line of defense.
-// This bounded limiter is a second application-level guard and deliberately fails
-// independently per runtime instead of pretending to be globally distributed.
+// A Vercel Firewall/edge policy is the intended production-wide first line of
+// defense (see docs/security/RATE_LIMITING.md). This bounded limiter remains an
+// independent application guard; it is not globally distributed.
 
 // Local fallback only. Keep memory bounded even if a warm server instance sees many IPs.
 function pruneExpiredBuckets(now: number): void {
