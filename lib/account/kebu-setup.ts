@@ -44,7 +44,7 @@ export const KEBU_PERSONAS = [
 
 export const kebuSetupSchema = z.object({
   intents: z.array(z.enum(KEBU_INTENTS.map((item) => item.id) as [KebuIntentId, ...KebuIntentId[]])).min(1).max(8),
-  tools: z.array(z.enum(KEBU_TOOLS.map((item) => item.id) as [KebuToolId, ...KebuToolId[]])).min(1).max(10),
+  tools: z.array(z.enum(KEBU_TOOLS.map((item) => item.id) as [KebuToolId, ...KebuToolId[]])).min(1).max(20),
   persona: z.enum(KEBU_PERSONAS),
   workspaceName: z.string().trim().max(80).default(""),
   onboardingComplete: z.boolean().default(false),
@@ -81,7 +81,7 @@ export function recommendedToolsForIntents(intents: readonly KebuIntentId[]): Ke
     if (intent === "technology") add("sites", "search");
     if (intent === "explore") add("search", "opportunities", "spaces");
   });
-  return [...set].slice(0, 10);
+  return [...set];
 }
 
 export function toolById(id: KebuToolId) {

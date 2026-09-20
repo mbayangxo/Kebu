@@ -250,7 +250,7 @@ export function KebuCommandPalette() {
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search sites, designs, businesses, pages…"
+              placeholder="Search Kebu — work, tools, sites, designs, opportunities…"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -279,8 +279,8 @@ export function KebuCommandPalette() {
                 </p>
                 <p className="text-xs mt-1" style={{ color: KEBU.faint }}>
                   {query
-                    ? "Try a site name, design title, or business name"
-                    : "Sites, designs, businesses, pages — everything"}
+                    ? "Try a tool, site, design, business, or opportunity"
+                    : "Your work, Kebu tools, businesses and opportunities"}
                 </p>
               </div>
             ) : (
