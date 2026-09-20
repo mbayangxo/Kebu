@@ -58,6 +58,7 @@ const TYPE_PAIRS = [
 ] as const;
 
 const BODY_FONTS = [
+  "Satoshi",
   "Inter",
   "IBM Plex Sans",
   "DM Sans",

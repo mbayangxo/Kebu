@@ -685,14 +685,14 @@ export function LegallyBlondeEditCanvas({
 
         {snapGuide.x ? (
           <div
-            className="pointer-events-none absolute bottom-0 top-0 z-[90] w-px bg-[#2C6ECB]/80"
+            className="pointer-events-none absolute bottom-0 top-0 z-[90] w-px bg-[#FF6A00]/80"
             style={{ left: "50%" }}
             aria-hidden
           />
         ) : null}
         {snapGuide.y ? (
           <div
-            className="pointer-events-none absolute left-0 right-0 z-[90] h-px bg-[#2C6ECB]/80"
+            className="pointer-events-none absolute left-0 right-0 z-[90] h-px bg-[#FF6A00]/80"
             style={{ top: "50%" }}
             aria-hidden
           />
@@ -742,7 +742,7 @@ export function LegallyBlondeEditCanvas({
         <button
           type="button"
           aria-label="Resize hero section height"
-          className="absolute bottom-0 left-1/2 z-[95] h-3 w-20 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-white/80 bg-[#2C6ECB] shadow"
+          className="absolute bottom-0 left-1/2 z-[95] h-3 w-20 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-white/80 bg-[#FF6A00] shadow"
           onMouseDown={(event) => {
             event.preventDefault();
             event.stopPropagation();

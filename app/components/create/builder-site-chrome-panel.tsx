@@ -9,7 +9,6 @@ import {
   GalaxyPanelHeader,
   GalaxySegmentedControl,
 } from "@/app/components/galaxy/editor-primitives";
-import { BUILDER } from "@/lib/create/builder-ui";
 import { clampNavScale, parseNavLayout, parseNavSize } from "@/lib/create/nav-chrome-size";
 import type { SiteChrome } from "@/lib/create/site-chrome";
 
