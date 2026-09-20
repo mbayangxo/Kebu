@@ -18,7 +18,7 @@ export const KEBU_TOOLS = [
   { id: "sites", label: "Sites", href: "/my-sites", icon: "builder", group: "Create" },
   { id: "shop", label: "Shop", href: "/shop", icon: "commerce", group: "Business" },
   { id: "business", label: "Business", href: "/business", icon: "spaces", group: "Business" },
-  { id: "mail", label: "Mail", href: "/email", icon: "message", group: "Connect" },
+  { id: "mail", label: "Email", href: "/email", icon: "message", group: "Connect" },
   { id: "chat", label: "Chat", href: "/messages", icon: "message", group: "Connect" },
   { id: "library", label: "Library", href: "/library", icon: "library", group: "Work" },
   { id: "spaces", label: "Spaces", href: "/spaces", icon: "spaces", group: "Work" },
