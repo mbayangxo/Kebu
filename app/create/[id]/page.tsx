@@ -9,6 +9,8 @@ import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
 import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
+import { BuilderElementInspector } from "@/app/components/create/builder-element-inspector";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { BuilderBlogPanel } from "@/app/components/create/builder-blog-panel";
 import {
@@ -128,6 +130,7 @@ export default function ProjectEditorPage() {
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedElement, setSelectedElement] = useState<BuilderElementSelection | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
   // Ref to the iframe used for mobile/tablet device preview (see below)
@@ -819,13 +822,29 @@ export default function ProjectEditorPage() {
     }
   }
 
-  const canvasEditor = {
-    selectedSectionId,
-    onSelectSection: (id: string) => {
-      setSelectedSectionId(id);
+  function selectSectionForInspector(id: string | null) {
+    setSelectedSectionId(id);
+    setSelectedElement(null);
+    if (id) {
       setSidebarTab("content");
       setLeftPanelOpen(true);
+    }
+  }
+
+  const canvasEditor = {
+    selectedSectionId,
+    selectedElement,
+    onSelectSection: (id: string) => {
+      selectSectionForInspector(id);
       const match = sections.find((s) => s.id === id);
+      if (match) setEditPageId(match.page_id);
+    },
+    onSelectElement: (selection: BuilderElementSelection) => {
+      setSelectedSectionId(selection.sectionId);
+      setSelectedElement(selection);
+      setSidebarTab("content");
+      setLeftPanelOpen(true);
+      const match = sections.find((s) => s.id === selection.sectionId);
       if (match) setEditPageId(match.page_id);
     },
     onPatchSection: updateProps,
@@ -1330,7 +1349,7 @@ export default function ProjectEditorPage() {
                       part="header"
                       chrome={siteChrome}
                       selected={selectedSectionId === CHROME_HEADER_ID}
-                      onSelect={() => setSelectedSectionId(CHROME_HEADER_ID)}
+                      onSelect={() => selectSectionForInspector(CHROME_HEADER_ID)}
                       onPatch={(patch) => updateChromeProps("header", patch)}
                     />
                   ) : (
@@ -1502,7 +1521,7 @@ export default function ProjectEditorPage() {
                 >
                   <button
                     type="button"
-                    onClick={() => setSelectedSectionId(null)}
+                    onClick={() => selectSectionForInspector(null)}
                     className="flex shrink-0 items-center gap-1 text-[12px] font-medium"
                     style={{ color: BUILDER.muted }}
                     aria-label="Back to sections list"
@@ -1514,13 +1533,15 @@ export default function ProjectEditorPage() {
                   </button>
                   <span aria-hidden style={{ color: BUILDER.border, fontSize: 14 }}>›</span>
                   <p className="min-w-0 truncate text-[13px] font-semibold" style={{ color: BUILDER.ink }}>
-                    {selectedSectionId === CHROME_HEADER_ID
-                      ? "Site header"
-                      : selectedSectionId === CHROME_FOOTER_ID
-                        ? "Site footer"
-                        : labelForSectionType(
-                            sections.find((s) => s.id === selectedSectionId)?.section_type ?? "section",
-                          )}
+                    {selectedElement
+                      ? selectedElement.label
+                      : selectedSectionId === CHROME_HEADER_ID
+                        ? "Site header"
+                        : selectedSectionId === CHROME_FOOTER_ID
+                          ? "Site footer"
+                          : labelForSectionType(
+                              sections.find((s) => s.id === selectedSectionId)?.section_type ?? "section",
+                            )}
                   </p>
                 </div>
               ) : (
@@ -1594,7 +1615,7 @@ export default function ProjectEditorPage() {
                           props: s.props as Record<string, unknown>,
                         }))}
                         selectedSectionId={selectedSectionId}
-                        onSelect={(id) => setSelectedSectionId(id)}
+                        onSelect={(id) => selectSectionForInspector(id)}
                         onReorder={(ids) => void reorderSections(ids)}
                         onMoveUp={(id) => void moveSection(id, -1)}
                         onMoveDown={(id) => void moveSection(id, 1)}
@@ -1610,7 +1631,7 @@ export default function ProjectEditorPage() {
                         part="footer"
                         chrome={siteChrome}
                         selected={selectedSectionId === CHROME_FOOTER_ID}
-                        onSelect={() => setSelectedSectionId(CHROME_FOOTER_ID)}
+                        onSelect={() => selectSectionForInspector(CHROME_FOOTER_ID)}
                         onPatch={(patch) => updateChromeProps("footer", patch)}
                       />
                     </BuilderSectionZone>
@@ -1652,7 +1673,22 @@ export default function ProjectEditorPage() {
               )}
 
               {/* Shopify drill-down: section props for the selected section only */}
-              {selectedSectionId && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
+              {selectedElement ? (
+                (() => {
+                  const section = sections.find((s) => s.id === selectedElement.sectionId);
+                  if (!section) return null;
+                  return (
+                    <BuilderElementInspector
+                      selection={selectedElement}
+                      sectionProps={section.props as Record<string, unknown>}
+                      onPatch={(patch) => updateProps(section.id, patch)}
+                      onEditSection={() => setSelectedElement(null)}
+                    />
+                  );
+                })()
+              ) : null}
+
+              {selectedSectionId && !selectedElement && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
                     <div key={section.id} className="pb-2">
                       {/* Section actions — always visible */}
                       <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
