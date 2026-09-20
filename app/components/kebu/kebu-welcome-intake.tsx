@@ -284,7 +284,7 @@ export function KebuWelcomeIntake() {
                 <section>
                   <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>03 · Identity</p>
                   <h2 className="mt-3 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>How should Kebu think about you?</h2>
-                  <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>This changes language and defaults, not what you are allowed to use.</p>
+                  <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>This tunes your starting experience. Your personal work stays separate from any business or team spaces you create later.</p>
                   <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {KEBU_PERSONAS.map((id) => {
                       const active = persona === id;
@@ -292,9 +292,9 @@ export function KebuWelcomeIntake() {
                     })}
                   </div>
                   <label className="mt-8 block">
-                    <span className="text-[10px] font-black uppercase tracking-[.12em]">Name this personal space <span style={{ color: KEBU.muted }}>· optional</span></span>
-                    <input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} placeholder="e.g. May's Kebu, Ndao HQ, School work" className="mt-2 min-h-12 w-full rounded-lg border bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
-                  </label>
+                    <span className="text-[10px] font-black uppercase tracking-[.12em]">Name your Personal space <span style={{ color: KEBU.muted }}>· optional</span></span>
+                    <input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} placeholder="e.g. My Kebu, School work, Creative projects" className="mt-2 min-h-12 w-full rounded-lg border bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
+                  </label><div className="mt-4 rounded-lg border bg-white p-3 text-[11px] leading-relaxed" style={{borderColor:KEBU.borders.default,color:KEBU.muted}}><strong style={{color:KEBU.black}}>Personal is your private starting space.</strong> Businesses and teams get their own spaces, members and data. You can switch between them later without mixing the work.</div>
                 </section>
               ) : null}
 

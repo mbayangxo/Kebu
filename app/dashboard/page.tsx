@@ -10,6 +10,7 @@ import type { HomeSummary } from "@/lib/account/home-summary";
 import { toolById, type KebuToolId } from "@/lib/account/kebu-setup";
 import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
+import { useKebuAccountContext } from "@/app/hooks/use-kebu-account-context";
 
 const orange = KEBU.orange;
 const red = KEBU.red;
@@ -52,6 +53,7 @@ function WorldCard({ title, subtitle, href, accent }: { title: string; subtitle:
 
 export default function KebuHomePage() {
   const router = useRouter();
+  const { context: accountContext } = useKebuAccountContext();
   const [summary, setSummary] = useState<HomeSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +78,7 @@ export default function KebuHomePage() {
   useEffect(() => { void load(); }, [load]);
 
   const first = displayFirstName(summary?.profile.name, summary?.profile.email);
+  const activeSpace = accountContext?.mode === "business" && accountContext.activeBusiness ? accountContext.activeBusiness.name : "Personal";
 
   return (
     <AppShell title="Home">
@@ -99,11 +102,11 @@ export default function KebuHomePage() {
                   <p className="mb-1 text-xs font-medium" style={{ color: muted }}>
                     {new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(new Date())}
                   </p>
-                  <p className="text-[10px] font-semibold tracking-[.08em]" style={{ color: orange }}>Your Kebu</p>
+                  <div className="flex items-center gap-2"><p className="text-[10px] font-semibold tracking-[.08em]" style={{ color: orange }}>Your Kebu</p><span className="rounded-md border px-2 py-0.5 text-[9px] font-semibold" style={{borderColor:border,color:muted}}>{activeSpace} space</span></div>
                   <h1 className="mt-1 max-w-5xl text-3xl font-semibold tracking-[-.035em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>
                     Welcome back, {first}. <span className="font-normal italic">Pick up where you left off.</span>
                   </h1>
-                  <p className="mt-2 text-sm" style={{ color: muted }}>Everything you were working on, organized around the space you are in.</p>
+                  <p className="mt-2 text-sm" style={{ color: muted }}>Everything you were working on, organized around your current space.</p>
                 </div>
                 <Link href={toolById((summary.setup.tools[0] ?? "search") as KebuToolId)?.href ?? "/search"} className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white"
                   style={{ background: "linear-gradient(90deg," + orange + "," + red + ")" }}>
