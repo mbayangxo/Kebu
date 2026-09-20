@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
+import { BusinessMailSetup } from "@/app/components/mail/business-mail-setup";
 
 type Folder = "inbox" | "sent" | "drafts" | "archive" | "spam" | "trash";
 type Mailbox = {
@@ -84,6 +85,9 @@ export default function EmailPage() {
   const [composeAttachments, setComposeAttachments] = useState<Attachment[]>([]);
   const [attachmentBusy, setAttachmentBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mailContext, setMailContext] = useState<"personal" | "business">("personal");
+  const [businessName, setBusinessName] = useState<string | null>(null);
+  const [showBusinessSetup, setShowBusinessSetup] = useState(false);
 
   const activeMailbox = useMemo(() => mailboxes.find((item) => item.id === mailboxId) ?? null, [mailboxes, mailboxId]);
   const selected = useMemo(() => messages.find((item) => item.id === selectedId) ?? null, [messages, selectedId]);
@@ -101,6 +105,9 @@ export default function EmailPage() {
     }
     const list = Array.isArray(data.mailboxes) ? data.mailboxes as Mailbox[] : [];
     setMailboxes(list);
+    setMailContext(data.context === "business" ? "business" : "personal");
+    setBusinessName(typeof data.businessName === "string" ? data.businessName : null);
+    if (data.context !== "business") setShowBusinessSetup(false);
     setMailboxId((current) => current && list.some((item) => item.id === current) ? current : list[0]?.id ?? "");
     setLoading(false);
   }, []);
@@ -325,7 +332,7 @@ export default function EmailPage() {
           <aside className="border-b p-3 lg:border-b-0 lg:border-r" style={{ borderColor: KEBU.borders.default }}>
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Kebu Mail</p>
+                <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>{mailContext === "business" ? (businessName ? businessName + " · Business Mail" : "Business Mail") : "Personal Mail"}</p>
                 <select value={mailboxId} onChange={(event) => setMailboxId(event.target.value)} className="mt-1 w-full max-w-[180px] bg-transparent text-[11px] font-black outline-none">
                   {mailboxes.map((mailbox) => <option key={mailbox.id} value={mailbox.id}>{mailbox.address}</option>)}
                 </select>
@@ -358,9 +365,13 @@ export default function EmailPage() {
             <div className="mt-5 hidden rounded-[14px] bg-black/[.025] p-3 lg:block">
               <p className="text-[9px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.muted }}>Mailbox</p>
               <p className="mt-1 break-all text-[10px] font-bold">{activeMailbox?.address ?? "Provisioning…"}</p>
-              <p className="mt-2 text-[9px] leading-relaxed" style={{ color: KEBU.faint }}>Real Kebu-to-Kebu delivery happens directly. Internet mail confirms only after the configured provider accepts it.</p>
+              <p className="mt-2 text-[9px] leading-relaxed" style={{ color: KEBU.faint }}>{mailContext === "business" ? "This mailbox belongs only to the active Business Kebu. Your personal @kebu.africa mail stays separate." : "This is your personal Kebu mailbox. Business-domain mail only appears after you switch into that Business Kebu."}</p>
             </div>
-            <Link href="/business" className="mt-3 hidden text-[9px] font-black uppercase tracking-wide lg:inline-flex" style={{ color: KEBU.orange }}>Business mail & campaigns →</Link>
+            {mailContext === "business" ? (
+              <button type="button" onClick={() => setShowBusinessSetup((value) => !value)} className="mt-3 hidden text-[9px] font-black uppercase tracking-wide lg:inline-flex" style={{ color: KEBU.orange }}>{showBusinessSetup ? "Back to mailbox ←" : "Business mail settings →"}</button>
+            ) : (
+              <Link href="/business" className="mt-3 hidden text-[9px] font-black uppercase tracking-wide lg:inline-flex" style={{ color: KEBU.orange }}>Switch to a Business Kebu →</Link>
+            )}
           </aside>
 
           <section className="border-b lg:border-b-0 lg:border-r" style={{ borderColor: KEBU.borders.default }}>
@@ -415,7 +426,11 @@ export default function EmailPage() {
           </section>
 
           <main className="min-h-[420px]">
-            {selected && thread ? (
+            {mailContext === "business" && (showBusinessSetup || mailboxes.length === 0) ? (
+              <div className="h-full overflow-y-auto p-5 sm:p-7">
+                <BusinessMailSetup onMailboxCreated={() => { setShowBusinessSetup(false); void loadMailboxes(); }} />
+              </div>
+            ) : selected && thread ? (
               <article className="flex h-full flex-col">
                 <header className="border-b px-5 py-4" style={{ borderColor: KEBU.borders.default }}>
                   <div className="flex items-start justify-between gap-4">
