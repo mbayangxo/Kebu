@@ -4099,24 +4099,6 @@ export default function ProjectEditorPage() {
                     }}
                   />
                 )}
-                {/* Always-visible "+ Add section" strip at the bottom of the canvas */}
-                {canvasDefinition && (
-                  <div className="border-t border-dashed border-black/15 bg-[#FAFAF8] px-4 py-5">
-                    <div className="mx-auto max-w-md">
-                      <AddSectionPicker
-                        pageTitle={
-                          pages.find((p) => p.slug === previewPageSlug)?.title ??
-                          pages.find((p) => p.id === editPageId)?.title ??
-                          "Home"
-                        }
-                        onAdd={async (type) => { await addSection(type); }}
-                      />
-                      <p className="mt-2 text-center text-[11px] text-black/40">
-                        Add sections to make this page longer. Remove a section by clicking it and pressing Remove.
-                      </p>
-                    </div>
-                  </div>
-                )}
                 </div>
               </div>
             </section>
