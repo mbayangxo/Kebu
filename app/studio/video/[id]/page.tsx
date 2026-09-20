@@ -311,7 +311,7 @@ export default function StudioVideoEditorPage() {
     [projectId, title, serverUpdatedAt, userId, businessId, sourceDesignId, loadConflictSnapshot],
   );
 
-  async function useServerConflictVersion() {
+  async function applyServerConflictVersion() {
     if (!conflictServer) return;
     const server = conflictServer;
     compRef.current = server.composition;
@@ -1009,7 +1009,7 @@ export default function StudioVideoEditorPage() {
             <p className="mt-0.5 text-[10px] text-amber-100/70">A newer server version exists. Kebu kept your local composition offline, so nothing has to be silently overwritten.</p>
           </div>
           <div className="flex shrink-0 gap-2">
-            <button type="button" onClick={() => void useServerConflictVersion()} className="rounded-full border border-white/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white">Use server version</button>
+            <button type="button" onClick={() => void applyServerConflictVersion()} className="rounded-full border border-white/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white">Use server version</button>
             <button type="button" onClick={() => void keepLocalConflictVersion()} className="rounded-full bg-[#FF6A00] px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white">Keep my version</button>
           </div>
         </div>
