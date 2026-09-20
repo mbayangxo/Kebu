@@ -42,6 +42,19 @@ const LB_VISUAL_KEYS = [
   "scrollMode",
   "extraCutouts",
   "layerMoves",
+  "layerPositions",
+  "layerScales",
+  "layerZIndex",
+  "hiddenLayers",
+  "titleAsText",
+  "titleTextFontFamily",
+  "titleTextFontSize",
+  "titleTextFontWeight",
+  "titleTextLetterSpacing",
+  "titleTextLineHeight",
+  "titleTextColor",
+  "embeddedFooterPaddingTop",
+  "embeddedFooterPaddingBottom",
 ] as const;
 
 function isBlankUrl(v: unknown): boolean {
@@ -226,12 +239,18 @@ DESIGN PHILOSOPHY:
             ? "MODE A8 Optimize conversion/mobile: Shorten copy, clearer CTAs, WhatsApp/Wave/order paths, mobile-first hierarchy. Prefer fewer words, stronger next actions."
             : "";
 
+  const selectedElementHint = brief.focusElement
+    ? `The user currently selected Builder element "${brief.focusElement.label}" (${brief.focusElement.kind}) in section ${brief.focusElement.sectionId}, element key ${brief.focusElement.elementId}, on ${brief.focusElement.device ?? "desktop"}. Treat that exact selection as the primary scope. Do not redesign unrelated sections unless the instruction explicitly asks for it.`
+    : "";
+
   const focus =
     brief.focusSectionTypes && brief.focusSectionTypes.length > 0
       ? `Focus changes on these section types: ${brief.focusSectionTypes.join(", ")}. Leave other sections mostly intact.`
-      : brief.mode === "page"
-        ? "Focus on the requested page; keep other pages stable."
-        : "Improve clarity, offer strength, and contact readiness across the whole home page.";
+      : brief.focusElement
+        ? "Keep unrelated pages, sections, assets, and layout settings stable. Prefer the smallest structured change that satisfies the request."
+        : brief.mode === "page"
+          ? "Focus on the requested page; keep other pages stable."
+          : "Improve clarity, offer strength, and contact readiness across the whole home page.";
 
   const userInstruction = brief.instruction?.trim()
     ? `User request: ${brief.instruction.trim()}`
@@ -247,6 +266,7 @@ DESIGN PHILOSOPHY:
 
   const userPrompt = `${modeHint}
 ${userInstruction}
+${selectedElementHint}
 ${focus}
 
 Current website JSON:
