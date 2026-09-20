@@ -141,7 +141,7 @@ export function KebuNavShell() {
           return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: active ? KEBU.orange : KEBU.muted }}><KebuIcon name={item.icon} size={19} /><span>{item.label}</span></Link>;
         })}
         <Link href="/create" aria-label="Create" className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ background: createBg }}><KebuIcon name="create" size={19} /></Link>
-        <Link href="/account" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: KEBU.muted }}><KebuIcon name="more" size={19} /><span>More</span></Link>
+        <Link href="/tools" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: KEBU.muted }}><KebuIcon name="more" size={19} /><span>Tools</span></Link>
       </nav>
     </>
   );

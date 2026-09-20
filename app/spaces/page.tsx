@@ -10,8 +10,12 @@ import { KEBU } from "@/lib/kebu-brand";
 
 const CONNECTED = [
   ["Mail", "/email", "message"],
-  ["Chat", "/messages", "message"],
+  ["Chat", "/chat", "message"],
   ["Library", "/library", "library"],
+  ["Docs", "/docs", "work"],
+  ["Tasks", "/tasks", "work"],
+  ["Calendar", "/calendar", "calendar"],
+  ["People", "/people", "people"],
   ["Studio", "/studio", "studio"],
   ["Sites", "/my-sites", "builder"],
   ["Shop", "/shop", "commerce"],
@@ -42,7 +46,7 @@ export default function SpacesPage() {
 
         <section className="py-6">
           <p className="mb-3 text-[9px] font-black uppercase tracking-[.15em]" style={{ color: KEBU.muted }}>Connected tools</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11">
             {CONNECTED.map(([label, href, icon]) => (
               <Link key={label} href={href} className="rounded-[16px] border bg-white p-3 outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }}>
                 <KebuIcon name={icon as KebuIconName} size={18} style={{ color: KEBU.orange }} />
