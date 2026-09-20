@@ -9,6 +9,7 @@ export type BuilderPageRow = {
   slug: string;
   title: string;
   sort_order: number;
+  parent_id?: string | null;
 };
 
 export function BuilderPagesPanel({
@@ -38,6 +39,7 @@ export function BuilderPagesPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editSlug, setEditSlug] = useState("");
+  const [editParentId, setEditParentId] = useState<string>("");
   const [localBusy, setLocalBusy] = useState(false);
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
 
@@ -92,7 +94,7 @@ export function BuilderPagesPanel({
       const res = await fetch(`/api/projects/${projectId}/pages`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageId, title, slug }),
+        body: JSON.stringify({ pageId, title, slug, parentId: editParentId || null }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not update page."); return; }
@@ -245,6 +247,16 @@ export function BuilderPagesPanel({
                     placeholder="slug"
                     disabled={working}
                   />
+                  <label className="block text-[9px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                    Parent page
+                    <select className="mt-1 w-full rounded px-2 py-1 text-xs normal-case font-normal" style={{ border: `1px solid ${BUILDER.border}` }}
+                      value={editParentId} onChange={(e) => setEditParentId(e.target.value)} disabled={working}>
+                      <option value="">Top level</option>
+                      {sorted.filter((candidate) => candidate.id !== p.id).map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>{candidate.title}</option>
+                      ))}
+                    </select>
+                  </label>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -292,7 +304,7 @@ export function BuilderPagesPanel({
                     onClick={() => onSelectPage(p)}
                     title={`/${p.slug}`}
                   >
-                    {p.title}
+                    {p.parent_id ? "↳ " : ""}{p.title}
                   </button>
 
                   {/* Hover actions — inline single row */}
@@ -326,6 +338,7 @@ export function BuilderPagesPanel({
                         setEditingId(p.id);
                         setEditTitle(p.title);
                         setEditSlug(p.slug);
+                        setEditParentId(p.parent_id ?? "");
                         setAdding(false);
                       }}
                       className="px-1 py-1.5 text-[11px] leading-none"
