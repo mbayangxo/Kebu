@@ -80,7 +80,7 @@ export default function StudioVideoEditorPage() {
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const compRef = useRef<StudioComposition | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
-  const soundtrackRef = useRef<HTMLAudioElement>(null);
+  const soundtrackRef = useRef<HTMLAudioElement>(null);\n  const timelineGestureBaseline = useRef<StudioComposition | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -247,6 +247,25 @@ export default function StudioVideoEditorPage() {
     }
     compRef.current = next;
     setComp(next);
+  }
+
+  function beginTimelineGesture() {
+    if (!timelineGestureBaseline.current && compRef.current) {
+      timelineGestureBaseline.current = compRef.current;
+    }
+  }
+
+  function applyTimelineGesture(next: StudioComposition) {
+    compRef.current = next;
+    setComp(next);
+  }
+
+  function commitTimelineGesture() {
+    const baseline = timelineGestureBaseline.current;
+    timelineGestureBaseline.current = null;
+    if (!baseline || !compRef.current || baseline === compRef.current) return;
+    setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), baseline]);
+    setFuture([]);
   }
 
   useEffect(() => {
@@ -1109,17 +1128,22 @@ export default function StudioVideoEditorPage() {
                       selected={clip.id === selectedClipId}
                       locked={track.locked}
                       onSelect={() => setSelectedClipId(clip.id)}
+                      onGestureStart={beginTimelineGesture}
+                      onGestureEnd={commitTimelineGesture}
                       onMove={(startMs) => {
-                        const snapped = maybeSnapTime(comp, Math.max(0, startMs));
-                        const next = updateClip(comp, clip.id, { startMs: snapped });
-                        if (!("error" in next)) applyComp(next);
+                        const snapped = maybeSnapTime(compRef.current ?? comp, Math.max(0, startMs));
+                        const current = compRef.current ?? comp;
+                        const next = updateClip(current, clip.id, { startMs: snapped });
+                        if (!("error" in next)) applyTimelineGesture(next);
                       }}
                       onTrim={(durationMs) => {
-                        const end = maybeSnapTime(comp, clip.startMs + Math.max(200, durationMs));
-                        const next = updateClip(comp, clip.id, {
-                          durationMs: Math.max(200, end - clip.startMs),
+                        const current = compRef.current ?? comp;
+                        const currentClip = current.clips.find((item) => item.id === clip.id) ?? clip;
+                        const end = maybeSnapTime(current, currentClip.startMs + Math.max(200, durationMs));
+                        const next = updateClip(current, clip.id, {
+                          durationMs: Math.max(200, end - currentClip.startMs),
                         });
-                        if (!("error" in next)) applyComp(next);
+                        if (!("error" in next)) applyTimelineGesture(next);
                       }}
                     />
                   ))}
@@ -1153,6 +1177,8 @@ function TimelineClipBlock({
   selected,
   locked,
   onSelect,
+  onGestureStart,
+  onGestureEnd,
   onMove,
   onTrim,
 }: {
@@ -1161,6 +1187,8 @@ function TimelineClipBlock({
   selected: boolean;
   locked: boolean;
   onSelect: () => void;
+  onGestureStart: () => void;
+  onGestureEnd: () => void;
   onMove: (startMs: number) => void;
   onTrim: (durationMs: number) => void;
 }) {
@@ -1180,6 +1208,7 @@ function TimelineClipBlock({
         if (locked || e.button !== 0) return;
         e.stopPropagation();
         onSelect();
+        onGestureStart();
         const mode = (e.target as HTMLElement).dataset.handle === "trim" ? "trim" : "move";
         drag.current = {
           mode,
@@ -1197,6 +1226,11 @@ function TimelineClipBlock({
         else onTrim(drag.current.durationMs + dMs);
       }}
       onPointerUp={() => {
+        if (drag.current) onGestureEnd();
+        drag.current = null;
+      }}
+      onPointerCancel={() => {
+        if (drag.current) onGestureEnd();
         drag.current = null;
       }}
       className={`absolute top-1 bottom-1 rounded px-1 text-[10px] font-semibold truncate cursor-grab active:cursor-grabbing ${
