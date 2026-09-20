@@ -61,6 +61,7 @@ export default function StudioEditorPage() {
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [syncState, setSyncState] = useState<"online" | "offline" | "syncing" | "conflict">("online");
+  const [conflictServer, setConflictServer] = useState<{ doc: CanvasDocument; updatedAt: string } | null>(null);
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exportProjectId, setExportProjectId] = useState("");
@@ -248,6 +249,21 @@ export default function StudioEditorPage() {
         if (res.status === 409 && data.code === "studio_version_conflict") {
           setSaveState("error");
           setSyncState("conflict");
+          try {
+            const latestRes = await fetch("/api/create/designs/" + designId, {
+              credentials: "include",
+              cache: "no-store",
+            });
+            const latest = await latestRes.json().catch(() => ({}));
+            if (latestRes.ok && latest.design?.canvas && typeof latest.design.updated_at === "string") {
+              setConflictServer({
+                doc: parseCanvasDocument(latest.design.canvas, latest.design.design_type as StudioDesignType),
+                updatedAt: latest.design.updated_at,
+              });
+            }
+          } catch {
+            setConflictServer(null);
+          }
           return;
         }
         if (!res.ok || !data.design) {
@@ -289,6 +305,85 @@ export default function StudioEditorPage() {
     },
     [designId, canEdit, design?.business_id, design?.design_type, design?.title, access?.role, serverUpdatedAt, userId],
   );
+
+  async function useServerConflictVersion() {
+    if (!conflictServer || !design) return;
+    const next = conflictServer.doc;
+    setServerUpdatedAt(conflictServer.updatedAt);
+    setDesign((current) => current ? { ...current, canvas: next, updated_at: conflictServer.updatedAt } : current);
+    skipHistory.current = true;
+    docRef.current = next;
+    setDoc(next);
+    setActivePageId(next.pages[0]?.id ?? "");
+    setSelectedLayerIds([]);
+    setHistory([]);
+    setFuture([]);
+    setConflictServer(null);
+    setSyncState("online");
+    setSaveState("saved");
+    if (userId && studioOfflineSupported()) {
+      await putStudioOfflineDraft({
+        userId,
+        designId,
+        designTitle: design.title,
+        canvas: next,
+        designType: design.design_type as StudioDesignType,
+        businessId: design.business_id,
+        accessRole: access?.role ?? null,
+        serverUpdatedAt: conflictServer.updatedAt,
+        savedAt: new Date().toISOString(),
+        dirty: false,
+      }).catch(() => undefined);
+    }
+  }
+
+  async function keepLocalConflictVersion() {
+    if (!conflictServer || !docRef.current || !design || !canEdit) return;
+    setSaveState("saving");
+    setSyncState("syncing");
+    const local = docRef.current;
+    try {
+      const res = await fetch("/api/create/designs/" + designId, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          canvas: local,
+          expectedUpdatedAt: conflictServer.updatedAt,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.design?.updated_at) {
+        setSaveState("error");
+        setSyncState("conflict");
+        setError(data.error ?? "Could not resolve the Studio sync conflict.");
+        return;
+      }
+      const nextUpdatedAt = data.design.updated_at as string;
+      setServerUpdatedAt(nextUpdatedAt);
+      setDesign((current) => current ? { ...current, updated_at: nextUpdatedAt } : current);
+      setConflictServer(null);
+      setSyncState("online");
+      setSaveState("saved");
+      if (userId && studioOfflineSupported()) {
+        await putStudioOfflineDraft({
+          userId,
+          designId,
+          designTitle: design.title,
+          canvas: local,
+          designType: design.design_type as StudioDesignType,
+          businessId: design.business_id,
+          accessRole: access?.role ?? null,
+          serverUpdatedAt: nextUpdatedAt,
+          savedAt: new Date().toISOString(),
+          dirty: false,
+        }).catch(() => undefined);
+      }
+    } catch {
+      setSaveState("error");
+      setSyncState("offline");
+    }
+  }
 
   function applyDoc(next: CanvasDocument, recordHistory: boolean) {
     if (!canEdit) return;
@@ -799,6 +894,37 @@ export default function StudioEditorPage() {
           </button>
         ) : null}
       </header>
+
+      {syncState === "conflict" ? (
+        <div className="border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950">
+          <div className="mx-auto flex max-w-[1500px] flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-black">This design changed somewhere else.</p>
+              <p className="text-[10px] opacity-70">
+                Your local work is still on this device. Choose which version should become the current Studio design.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={!conflictServer}
+                onClick={() => void useServerConflictVersion()}
+                className="rounded-full border border-amber-400 bg-white px-3 py-2 text-[10px] font-black disabled:opacity-40"
+              >
+                Use server version
+              </button>
+              <button
+                type="button"
+                disabled={!conflictServer || !canEdit}
+                onClick={() => void keepLocalConflictVersion()}
+                className="rounded-full bg-black px-3 py-2 text-[10px] font-black text-white disabled:opacity-40"
+              >
+                Keep my version
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showBrandKit ? (
         <div className="px-4 py-3 border-b bg-white shrink-0">
