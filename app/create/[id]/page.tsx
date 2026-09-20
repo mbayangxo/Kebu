@@ -1249,7 +1249,7 @@ export default function ProjectEditorPage() {
         </div>
       ) : null}
 
-      <main className="relative flex min-h-0 flex-1 w-full overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 w-full overflow-hidden pb-[calc(60px+env(safe-area-inset-bottom))] sm:pb-0">
         {loading ? (
           <p className="text-sm p-6" style={{ color: BUILDER.muted }}>
             Loading…
@@ -1295,12 +1295,12 @@ export default function ProjectEditorPage() {
             <aside
               className={`${
                 leftPanelOpen
-                  ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[280px] sm:max-w-[92vw]"
+                  ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[296px] sm:max-w-[92vw]"
                   : "hidden"
               } shrink-0 min-h-0 overflow-y-auto border-r`}
               style={{
-                borderColor: "#E5E5E5",
-                background: "#FAFAFA",
+                borderColor: BUILDER.border,
+                background: BUILDER.surface,
                 // Only matters at the mobile fixed-overlay width (below sm); at sm:relative this is an
                 // ordinary flex sibling and doesn't overlap anything, so a fixed z-index here is harmless.
                 zIndex: leftPanelOpen ? Z_LAYERS.drawerPanel : undefined,
@@ -1311,7 +1311,7 @@ export default function ProjectEditorPage() {
                   is the same dismissal already wired to the rail's toggle-tap behavior. */}
               <div
                 className="sm:hidden sticky top-0 z-10 flex items-center justify-between border-b px-3 py-2.5"
-                style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
+                style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
               >
                 <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
                   Editing
@@ -4000,15 +4000,15 @@ export default function ProjectEditorPage() {
               className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
               style={{
                 background: maylecorRussianLayout
-                  ? "#FFE4F0"
+                  ? "#FFF1F6"
                   : kdirectionLayout
-                    ? "#f5f5f5"
-                    : "#F1F1F1",
+                    ? BUILDER.surfaceMuted
+                    : BUILDER.bg,
               }}
             >
               <div
                 className={`mx-auto flex min-h-0 flex-1 w-full ${
-                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:p-8"
+                  wideCanvas ? "overflow-y-auto p-2 sm:p-3" : "overflow-y-auto items-start p-4 sm:p-8"
                 }`}
               >
                 <div
@@ -4022,9 +4022,10 @@ export default function ProjectEditorPage() {
                           maxWidth: "100%",
                           minHeight: "100%",
                           height: "auto",
-                          border: "none",
-                          borderRadius: 0,
-                          boxShadow: "none",
+                          border: `1px solid ${BUILDER.border}`,
+                          borderRadius: 12,
+                          boxShadow: "0 8px 30px rgba(10,10,10,0.07)",
+                          overflow: "hidden",
                         }
                       : {
                           width: "100%",
@@ -4090,7 +4091,7 @@ export default function ProjectEditorPage() {
         ) : null}
 
         {/* Yande FAB + speed-dial — bottom-right */}
-        <div className="absolute bottom-5 right-5 z-30 flex flex-col items-end gap-2">
+        <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-5">
 
           {/* Speed-dial mini-buttons — open by default on builder load */}
           {yandeDialOpen && !yandeOpen ? (
@@ -4150,10 +4151,13 @@ export default function ProjectEditorPage() {
                 setYandeDialOpen((o) => !o);
               }
             }}
-            className="rounded-full transition-transform hover:scale-105 active:scale-95"
-            style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.18)" }}
+            className="flex min-h-11 items-center gap-2.5 rounded-full border bg-white px-3.5 py-2 pr-5 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            style={{ borderColor: BUILDER.borderStrong, boxShadow: "0 8px 28px rgba(10,10,10,0.14)" }}
           >
-            <YandeMark size={48} />
+            <YandeMark size={30} />
+            <span className="text-[11px] font-bold" style={{ color: BUILDER.ink }}>
+              {yandeOpen ? "Close Yande" : yandeDialOpen ? "Close" : "Ask Yande"}
+            </span>
           </button>
         </div>
 

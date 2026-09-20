@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BackLink } from "@/app/components/back-link";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import { BUILDER } from "@/lib/create/builder-ui";
 import type { BuilderDevice } from "@/lib/create/builder-device";
@@ -24,7 +23,7 @@ export type BuilderStudioTab =
 const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   {
     id: "content",
-    label: "Sections",
+    label: "Build",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
         <path d="M4 6h16M4 12h16M4 18h10" strokeLinecap="round" />
@@ -63,7 +62,7 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   },
   {
     id: "aesthetic",
-    label: "Aesthetic Editor",
+    label: "Design",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
         <path d="M12 3a9 9 0 100 18 4 4 0 010-8h2a3 3 0 100-6h-1" strokeLinejoin="round" />
@@ -74,7 +73,7 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   },
   {
     id: "media",
-    label: "Photos",
+    label: "Assets",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
         <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -85,10 +84,19 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   },
   {
     id: "nav",
-    label: "Nav",
+    label: "Menu",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
         <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "shop",
+    label: "Shop",
+    icon: (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65">
+        <path d="M5 9h14l-1 11H6L5 9zM8 9V7a4 4 0 018 0v2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -107,9 +115,9 @@ export function BuilderStudioRail({
   extras?: ReactNode;
 }) {
   return (
-    <div
-      className="flex w-11 shrink-0 flex-col items-center gap-0.5 border-r py-2"
-      style={{ borderColor: BUILDER.border, background: "#FAFAFA" }}
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(60px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[72px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1.5 sm:py-2"
+      style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
       role="toolbar"
       aria-label="Builder tools"
     >
@@ -123,18 +131,22 @@ export function BuilderStudioRail({
             aria-label={item.label}
             aria-pressed={on}
             onClick={() => onRail(item.id)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg"
+            className="group relative flex h-[58px] min-w-[58px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[54px] sm:min-w-0 sm:w-full"
             style={{
-              background: on ? BUILDER.ink : "transparent",
-              color: on ? "#fff" : BUILDER.muted,
+              background: on ? BUILDER.orangeGlow : "transparent",
+              color: on ? BUILDER.ink : BUILDER.muted,
             }}
           >
+            {on ? (
+              <span className="absolute left-0 top-2 hidden h-8 w-[3px] rounded-r-full bg-[#FF6A00] sm:block" aria-hidden />
+            ) : null}
             {item.icon}
+            <span className="text-[9px] font-semibold leading-none tracking-[-0.01em]">{item.label}</span>
           </button>
         );
       })}
-      {extras ? <div className="mt-auto flex flex-col items-center gap-1 px-0.5 pb-1">{extras}</div> : null}
-    </div>
+      {extras ? <div className="ml-auto hidden flex-col items-center gap-1 px-0.5 pb-1 sm:flex">{extras}</div> : null}
+    </nav>
   );
 }
 
@@ -163,8 +175,6 @@ export function BuilderStudioChrome({
   pages,
   activePageId,
   onPageChange,
-  minimal: _minimal = false,
-  floating: _floating = false,
 }: {
   projectId: string;
   title: string;
@@ -195,27 +205,39 @@ export function BuilderStudioChrome({
 
   return (
     <header
-      className="flex h-11 shrink-0 items-center gap-2 border-b px-2 sm:px-3"
-      style={{ borderColor: "#E5E5E5", background: "#fff" }}
+      className="relative flex h-[58px] shrink-0 items-center gap-2 border-b px-2.5 sm:px-4"
+      style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
     >
-      <BackLink fallbackHref={MY_SITES_HREF} label="Sites" variant="strong" />
+      <Link
+        href={MY_SITES_HREF}
+        aria-label="Back to your Kebu sites"
+        className="mr-1 hidden shrink-0 items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:flex"
+      >
+        <span
+          className="text-[24px] font-black leading-none tracking-[-0.08em]"
+          style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
+        >
+          kebu
+        </span>
+        <span className="h-5 w-px" style={{ background: BUILDER.border }} aria-hidden />
+      </Link>
 
       <div className="flex min-w-0 items-center gap-2">
         <div className="min-w-0">
           <p
-            className="truncate text-[12px] font-semibold leading-tight tracking-tight"
+            className="max-w-[120px] truncate text-[12px] font-bold leading-tight tracking-tight sm:max-w-[190px]"
             style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
             title={title}
           >
             {title}
           </p>
-          <p className="hidden truncate text-[10px] sm:block" style={{ color: BUILDER.faint }}>
+          <p className="hidden max-w-[190px] truncate text-[9px] sm:block" style={{ color: BUILDER.faint }}>
             {host}
           </p>
         </div>
         {draftLabel ? (
           <span
-            className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+            className="hidden shrink-0 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wide md:inline"
             style={{
               background: draftLabel === "Live" ? "#ECFDF3" : "#F4F4F5",
               color: draftLabel === "Live" ? "#166534" : BUILDER.muted,
@@ -228,15 +250,15 @@ export function BuilderStudioChrome({
       </div>
 
       {pages && pages.length > 0 && onPageChange ? (
-        <label className="hidden min-w-0 sm:block">
+        <label className="absolute left-1/2 hidden min-w-0 -translate-x-1/2 md:block">
           <span className="sr-only">Page</span>
           <select
             value={activePageId ?? pages[0]?.id}
             onChange={(e) => onPageChange(e.target.value)}
-            className="max-w-[10rem] truncate rounded-md px-2 py-1.5 text-[11px] font-semibold"
+            className="max-w-[12rem] truncate rounded-full px-3 py-2 text-[11px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
             style={{
               border: "1px solid #E5E5E5",
-              background: "#F4F4F5",
+              background: BUILDER.surfaceMuted,
               color: BUILDER.ink,
             }}
             aria-label="Editing page"
@@ -250,10 +272,10 @@ export function BuilderStudioChrome({
         </label>
       ) : null}
 
-      <div className="ml-auto flex shrink-0 items-center gap-1.5">
+      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
         {saveLabel ? (
           <span
-            className="hidden max-w-[180px] truncate text-[10px] sm:inline"
+            className="hidden max-w-[150px] items-center gap-1.5 truncate text-[10px] lg:flex"
             style={{ color: saveLabelColor ?? BUILDER.faint }}
           >
             {saveLabel}
@@ -261,8 +283,8 @@ export function BuilderStudioChrome({
         ) : null}
 
         <div
-          className="flex shrink-0 items-center gap-0.5 rounded-md p-0.5"
-          style={{ background: "#F4F4F5" }}
+          className="hidden shrink-0 items-center gap-0.5 rounded-full p-0.5 sm:flex"
+          style={{ background: BUILDER.surfaceMuted }}
           role="group"
           aria-label="Preview device"
         >
@@ -280,7 +302,7 @@ export function BuilderStudioChrome({
               aria-label={label}
               aria-pressed={device === id}
               onClick={() => onDevice(id)}
-              className="flex h-7 w-7 items-center justify-center rounded"
+              className="flex h-8 w-8 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
               style={{
                 background: device === id ? "#fff" : "transparent",
                 color: device === id ? BUILDER.ink : BUILDER.muted,
@@ -298,24 +320,28 @@ export function BuilderStudioChrome({
           type="button"
           onClick={onUndo}
           disabled={!canUndo}
-          className="hidden rounded px-1.5 py-1 text-[10px] font-semibold disabled:opacity-30 sm:inline"
+          className="hidden h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25 lg:flex"
           style={{ color: BUILDER.ink }}
+          aria-label="Undo"
+          title="Undo"
         >
-          Undo
+          ↶
         </button>
         <button
           type="button"
           onClick={onRedo}
           disabled={!canRedo}
-          className="hidden rounded px-1.5 py-1 text-[10px] font-semibold disabled:opacity-30 sm:inline"
+          className="hidden h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25 lg:flex"
           style={{ color: BUILDER.ink }}
+          aria-label="Redo"
+          title="Redo"
         >
-          Redo
+          ↷
         </button>
         <Link
           href={`/create/${projectId}/preview`}
-          className="hidden rounded-md px-2 py-1 text-[10px] font-semibold sm:inline"
-          style={{ color: BUILDER.ink, border: `1px solid ${BUILDER.border}` }}
+          className="hidden rounded-full px-3.5 py-2 text-[10px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:inline"
+          style={{ color: BUILDER.ink, border: `1px solid ${BUILDER.borderStrong}`, background: BUILDER.surface }}
         >
           Preview
         </Link>
@@ -324,7 +350,7 @@ export function BuilderStudioChrome({
             type="button"
             onClick={onSaveDraft}
             disabled={savingDraft || publishing}
-            className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-40"
+            className="hidden rounded-full px-3.5 py-2 text-[10px] font-bold disabled:opacity-40 md:inline"
             style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
           >
             {savingDraft ? "…" : "Save draft"}
@@ -334,7 +360,7 @@ export function BuilderStudioChrome({
           type="button"
           onClick={onPublish}
           disabled={publishing}
-          className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-50"
+          className="rounded-full px-4 py-2 text-[10px] font-black tracking-wide shadow-[0_3px_12px_rgba(10,10,10,0.12)] disabled:opacity-50 sm:px-5"
           style={{ background: BUILDER.ink, color: "#fff" }}
         >
           {publishing ? "…" : publishLabel}
