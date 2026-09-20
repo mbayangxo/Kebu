@@ -28,6 +28,7 @@ import {
 } from "@/lib/create/cutout-links";
 import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
 import { cssFontStack } from "@/lib/create/site-theme-fonts";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import "./artist-motion.css";
 import "./legally-blonde-tilda.css";
 
@@ -114,8 +115,10 @@ export type LegallyBlondeHeroProps = {
 
 type EditorHooks = {
   sectionId?: string;
+  selectedElement?: BuilderElementSelection | null;
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
   onSelectSection?: (sectionId: string) => void;
+  onSelectElement?: (selection: BuilderElementSelection) => void;
   onNavigatePage?: (slug: string) => void;
 };
 
@@ -649,7 +652,13 @@ export function LegallyBlondeHeroLayout({
           currentSlug={pageSlug}
           fillCanvas={fillCanvas}
           onPatch={patch}
+          selectedElement={
+            editor?.selectedElement?.sectionId === sectionId ? editor.selectedElement : null
+          }
           onSelectSection={() => editor?.onSelectSection?.(sectionId)}
+          onSelectElement={(element) =>
+            editor?.onSelectElement?.({ ...element, sectionId })
+          }
           onNavigatePage={editor?.onNavigatePage}
         />
       </div>
