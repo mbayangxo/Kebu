@@ -207,7 +207,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
    * attempt. If nothing is pending, this is a genuine no-op — it never claims a save happened when
    * there was nothing to save.
    */
-  async function saveDraftNow() {
+  async function saveDraftNow(): Promise<boolean> {
     Object.keys(saveTimers.current).forEach((id) => {
       clearTimeout(saveTimers.current[id]);
       delete saveTimers.current[id];
@@ -219,7 +219,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
     const pending = Array.from(pendingSavesRef.current);
     if (pending.length === 0) {
       setSaveState("saved"); // explicit confirmation: nothing was pending, all is saved
-      return;
+      return true;
     }
     await Promise.all(
       pending.map((key) => {
@@ -236,6 +236,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
         return Promise.resolve();
       }),
     );
+    return pendingSavesRef.current.size === 0;
   }
 
   // Warn before the user leaves with edits that haven't been CONFIRMED saved yet — covers the 500ms
