@@ -1079,7 +1079,7 @@ export function SiteRenderer({
         const sectionPaddingY = String((section.props as Record<string, unknown>)?.sectionPaddingY ?? "normal");
         const motionPreset = motionExpressive ? ENTRANCE_MOTION[section.type] : undefined;
         const wrap = (node: ReactNode) =>
-          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset, section.props as Record<string, unknown>);
+          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset, section.props as unknown as Parameters<typeof wrapEditorSection>[7]);
         const sectionEl = (() => {
         switch (section.type) {
           case "maylecor-home":
