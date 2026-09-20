@@ -53,6 +53,54 @@ export function BuilderElementInspector({
         </p>
       </div>
 
+      {selection.elementId === "siteFooter" ? (
+        <div className="space-y-3">
+          <p className="text-[11px] leading-relaxed text-black/55">
+            Drag the blue handles on the footer itself, or use these exact spacing values.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-[11px] font-semibold text-black/65">
+              Top spacing
+              <input
+                type="number"
+                min="8"
+                max="160"
+                step="1"
+                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                value={Number(sectionProps.embeddedFooterPaddingTop ?? 20)}
+                onChange={(event) =>
+                  onPatch({
+                    embeddedFooterPaddingTop: Math.min(
+                      160,
+                      Math.max(8, Number(event.target.value) || 20),
+                    ),
+                  })
+                }
+              />
+            </label>
+            <label className="block text-[11px] font-semibold text-black/65">
+              Bottom spacing
+              <input
+                type="number"
+                min="8"
+                max="160"
+                step="1"
+                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                value={Number(sectionProps.embeddedFooterPaddingBottom ?? 20)}
+                onChange={(event) =>
+                  onPatch({
+                    embeddedFooterPaddingBottom: Math.min(
+                      160,
+                      Math.max(8, Number(event.target.value) || 20),
+                    ),
+                  })
+                }
+              />
+            </label>
+          </div>
+        </div>
+      ) : null}
+
       {selection.kind === "text" ? (
         <div className="space-y-3">
           <label className="block text-[11px] font-semibold text-black/65">
@@ -180,6 +228,7 @@ export function BuilderElementInspector({
         </div>
       ) : null}
 
+      {selection.elementId !== "siteFooter" ? (
       <label className="block text-[11px] font-semibold text-black/65">
         Object size
         <div className="mt-1.5 flex items-center gap-2">
@@ -204,7 +253,9 @@ export function BuilderElementInspector({
           />
         </div>
       </label>
+      ) : null}
 
+      {selection.elementId !== "siteFooter" ? (
       <label className="block text-[11px] font-semibold text-black/65">
         Layer depth
         <div className="mt-1.5 flex items-center gap-2">
@@ -229,6 +280,7 @@ export function BuilderElementInspector({
           />
         </div>
       </label>
+      ) : null}
 
       <button
         type="button"
