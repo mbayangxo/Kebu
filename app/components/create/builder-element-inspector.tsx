@@ -6,6 +6,7 @@ import { GalaxyBadge, GalaxyButton, GalaxyInspectorCard } from "@/app/components
 import {
   builderLayerStorageKey,
   patchBuilderLayerPresentation,
+  patchBuilderLayerStack,
   readBuilderLayerPresentation,
 } from "@/lib/create/builder-layer-model";
 
@@ -32,7 +33,12 @@ export function BuilderElementInspector({
 }) {
   const storageKey = builderLayerStorageKey(selection.elementId);
   const presentation = readBuilderLayerPresentation(sectionProps, storageKey);
-  const { scale, zIndex, opacity, rotation, locked } = presentation;
+  const { scale, zIndex, opacity, rotation, locked, hidden } = presentation;
+  const motionMap =
+    sectionProps.layerMotions && typeof sectionProps.layerMotions === "object" && !Array.isArray(sectionProps.layerMotions)
+      ? (sectionProps.layerMotions as Record<string, string>)
+      : {};
+  const motion = motionMap[storageKey] ?? "none";
 
   const responsiveKeys =
     selection.elementId === "titleLogo"
@@ -549,6 +555,58 @@ export function BuilderElementInspector({
           />
         </div>
       </label>
+      ) : null}
+
+      {selection.elementId !== "siteFooter" && selection.elementId !== "heroCanvas" ? (
+        <div className="space-y-3 rounded-xl border border-black/10 bg-black/[0.02] p-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black/45">Arrange</p>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              ["front", "Bring to front"],
+              ["forward", "Bring forward"],
+              ["backward", "Send backward"],
+              ["back", "Send to back"],
+            ] as const).map(([action, label]) => (
+              <button
+                key={action}
+                type="button"
+                className="rounded-lg border border-black/10 bg-white px-2 py-2 text-[11px] font-semibold text-black/65"
+                onClick={() => onPatch(patchBuilderLayerStack(sectionProps, storageKey, action))}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label className="block text-[11px] font-semibold text-black/65">
+            Animation
+            <select
+              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+              value={motion}
+              onChange={(event) =>
+                onPatch({
+                  layerMotions: {
+                    ...motionMap,
+                    [storageKey]: event.target.value,
+                  },
+                })
+              }
+            >
+              <option value="none">None</option>
+              <option value="float">Float</option>
+              <option value="bob">Bob</option>
+              <option value="spin">Spin</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
+            onClick={() =>
+              onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { hidden: !hidden }))
+            }
+          >
+            {hidden ? "Show layer" : "Hide layer"}
+          </button>
+        </div>
       ) : null}
 
       {selection.elementId !== "siteFooter" && selection.elementId !== "heroCanvas" ? (
