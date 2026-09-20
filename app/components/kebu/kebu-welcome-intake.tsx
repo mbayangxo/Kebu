@@ -46,6 +46,7 @@ const INTENT_MARKS: Record<KebuIntentId, string> = {
 };
 
 const TOOL_ICONS: Record<KebuToolId, KebuIconName> = {
+  browser: "search",
   search: "search",
   opportunities: "opportunity",
   studio: "studio",

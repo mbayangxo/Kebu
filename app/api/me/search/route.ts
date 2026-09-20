@@ -13,6 +13,7 @@ type SearchMode = "all" | "sites" | "business" | "designs" | "opportunities";
 
 const STATIC_PAGES: SearchResult[] = [
   { id: "p-dashboard", label: "Your Kebu", sublabel: "Home dashboard", href: "/dashboard", kind: "page" },
+  { id: "p-browser", label: "Browser", sublabel: "Tabs, journeys, bookmarks and reader", href: "/browser", kind: "page" },
   { id: "p-my-sites", label: "My Sites", sublabel: "All your sites", href: "/my-sites", kind: "page" },
   { id: "p-create-new", label: "New site", sublabel: "Start building", href: "/create/new", kind: "page" },
   { id: "p-aesthetics", label: "Aesthetic Gallery", sublabel: "Browse site styles", href: "/create/aesthetics", kind: "page" },

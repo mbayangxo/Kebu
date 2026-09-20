@@ -12,6 +12,7 @@ export const KEBU_INTENTS = [
 ] as const;
 
 export const KEBU_TOOLS = [
+  { id: "browser", label: "Browser", href: "/browser", icon: "search", group: "Discover" },
   { id: "search", label: "Search", href: "/search", icon: "search", group: "Discover" },
   { id: "opportunities", label: "Opportunity OS", href: "/opportunity", icon: "opportunity", group: "Discover" },
   { id: "studio", label: "Studio", href: "/studio", icon: "studio", group: "Create" },
@@ -78,9 +79,9 @@ export function recommendedToolsForIntents(intents: readonly KebuIntentId[]): Ke
     if (intent === "communicate") add("mail", "chat");
     if (intent === "organize") add("spaces", "rooms", "library", "docs", "tasks", "calendar", "chat");
     if (intent === "communicate") add("people");
-    if (intent === "opportunities") add("opportunities", "search");
-    if (intent === "technology") add("sites", "search");
-    if (intent === "explore") add("search", "opportunities", "spaces");
+    if (intent === "opportunities") add("opportunities", "search", "browser");
+    if (intent === "technology") add("sites", "search", "browser");
+    if (intent === "explore") add("browser", "search", "opportunities", "spaces");
   });
   return [...set];
 }
