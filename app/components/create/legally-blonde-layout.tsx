@@ -117,6 +117,7 @@ export type LegallyBlondeHeroProps = {
   titleTextLetterSpacing?: number;
   titleTextLineHeight?: number;
   titleTextColor?: string;
+  sectionMinHeightPx?: number;
   embeddedFooterPaddingTop?: number;
   embeddedFooterPaddingBottom?: number;
 };
