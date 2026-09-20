@@ -828,7 +828,14 @@ export function LegallyBlondeHeroLayout({
       ) : null}
 
       {editing || viewportOnly || !motion ? (
-        <section className="relative mx-auto w-full overflow-hidden lb-viewport-hero" aria-label={props.title}>
+        <section
+          className="relative mx-auto w-full overflow-hidden lb-viewport-hero"
+          aria-label={props.title}
+          style={{
+            height: props.sectionMinHeightPx ? `${props.sectionMinHeightPx}px` : undefined,
+            backgroundColor: props.accentColor || undefined,
+          }}
+        >
           {heroArtboard}
         </section>
       ) : null}
