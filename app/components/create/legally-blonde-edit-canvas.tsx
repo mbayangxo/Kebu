@@ -240,6 +240,7 @@ export function LegallyBlondeEditCanvas({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedExtraId, setSelectedExtraId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
+  const [snapGuide, setSnapGuide] = useState({ x: false, y: false });
 
   useEffect(() => {
     if (!selectedElement) {
@@ -551,6 +552,7 @@ export function LegallyBlondeEditCanvas({
               }}
               baseWidthPct={slot.widthPct}
               scale={scale}
+              onSnapGuide={setSnapGuide}
             />
           );
         })}
@@ -635,9 +637,25 @@ export function LegallyBlondeEditCanvas({
                 }}
                 baseWidthPct={cut.widthPct}
                 scale={scale}
+                onSnapGuide={setSnapGuide}
               />
             );
           })}
+
+        {snapGuide.x ? (
+          <div
+            className="pointer-events-none absolute bottom-0 top-0 z-[90] w-px bg-[#2C6ECB]/80"
+            style={{ left: "50%" }}
+            aria-hidden
+          />
+        ) : null}
+        {snapGuide.y ? (
+          <div
+            className="pointer-events-none absolute left-0 right-0 z-[90] h-px bg-[#2C6ECB]/80"
+            style={{ top: "50%" }}
+            aria-hidden
+          />
+        ) : null}
 
         {parallax ? (
           <div className="pointer-events-none absolute bottom-3 right-3 z-[80] rounded-full bg-black/55 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-white/90">
@@ -778,6 +796,7 @@ function CutoutChip({
   onSendBackward,
   onSendBack,
   onDuplicate,
+  onSnapGuide,
 }: {
   slot: EditableCutoutSlot;
   titleText: string | null;
@@ -822,6 +841,7 @@ function CutoutChip({
   onSendBackward?: () => void;
   onSendBack?: () => void;
   onDuplicate?: () => void;
+  onSnapGuide?: (guide: { x: boolean; y: boolean }) => void;
 }) {
   const moved = useRef(false);
   const [pulsing, setPulsing] = useState(false);
@@ -886,8 +906,17 @@ function CutoutChip({
       const dx = ((ev.clientX - startX) / rect.width) * 100;
       const dy = ((ev.clientY - startY) / rect.height) * 100;
       if (Math.abs(dx) + Math.abs(dy) > 0.6) moved.current = true;
-      lastLeft = Math.min(90, Math.max(-5, originLeft + dx));
-      lastTop = Math.min(90, Math.max(-5, originTop + dy));
+      let nextLeft = Math.min(90, Math.max(-5, originLeft + dx));
+      let nextTop = Math.min(90, Math.max(-5, originTop + dy));
+      const widthPct = (el.getBoundingClientRect().width / rect.width) * 100;
+      const heightPct = (el.getBoundingClientRect().height / rect.height) * 100;
+      const snapX = Math.abs(nextLeft + widthPct / 2 - 50) <= 1.2;
+      const snapY = Math.abs(nextTop + heightPct / 2 - 50) <= 1.2;
+      if (snapX) nextLeft = 50 - widthPct / 2;
+      if (snapY) nextTop = 50 - heightPct / 2;
+      lastLeft = nextLeft;
+      lastTop = nextTop;
+      onSnapGuide?.({ x: snapX, y: snapY });
       el.style.left = `${lastLeft}%`;
       el.style.top = `${lastTop}%`;
     };
@@ -901,6 +930,7 @@ function CutoutChip({
       } catch {
         /* ignore */
       }
+      onSnapGuide?.({ x: false, y: false });
       if (moved.current) {
         onMoved(lastLeft, lastTop);
         return;
