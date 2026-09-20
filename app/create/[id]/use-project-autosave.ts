@@ -57,6 +57,9 @@ export function useProjectAutosave<T extends AutosaveSection>({
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const historyWindows = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Serialize writes per section. A slower request must never arrive after a newer edit and
+  // overwrite it in Supabase. While one request is in flight we retain only the newest snapshot.
+  const sectionWrites = useRef<Record<string, { inFlight: boolean; latest: Record<string, unknown> | null }>>({});
 
   /**
    * Section/chrome saves not yet CONFIRMED successful, keyed "section:<id>" or "chrome:header"/
@@ -68,62 +71,85 @@ export function useProjectAutosave<T extends AutosaveSection>({
   const pendingSavesRef = useRef<Set<string>>(new Set());
 
   async function persistProps(sectionId: string, props: Record<string, unknown>) {
-    const mode = resolveClientDataMode();
-    const offline = !isBrowserOnline() || mode === "offline";
-    if (offline) {
-      enqueueSaveSection({ projectId, sectionId, props });
-      setSaveState("queued");
-      setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setError(null);
+    const slot = sectionWrites.current[sectionId] ?? { inFlight: false, latest: null };
+    sectionWrites.current[sectionId] = slot;
+    if (slot.inFlight) {
+      slot.latest = props;
       return;
     }
-    setSaveState("saving");
+
+    slot.inFlight = true;
+    let snapshot: Record<string, unknown> | null = props;
     try {
-      const res = await fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Kebu-Data-Mode": mode,
-        },
-        body: JSON.stringify({ sectionId, props }),
-      });
-      const bytes = await measureResponseBytes(res);
-      const ev = evaluateKb({ action: "save_section", mode, usedBytes: bytes });
-      setKbSaveNote(ev.summary);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSaveState("error");
-        const issueHint =
-          data?.issues?.fieldErrors && typeof data.issues.fieldErrors === "object"
-            ? Object.entries(data.issues.fieldErrors as Record<string, string[]>)
-                .map(([k, v]) => `${k}: ${(v ?? []).join(", ")}`)
-                .slice(0, 3)
-                .join(" · ")
-            : "";
-        setError(
-          [typeof data.error === "string" ? data.error : "Save failed.", issueHint || data.detail]
-            .filter(Boolean)
-            .join(" — "),
-        );
-        return;
+      while (snapshot) {
+        slot.latest = null;
+        const mode = resolveClientDataMode();
+        const offline = !isBrowserOnline() || mode === "offline";
+        if (offline) {
+          enqueueSaveSection({ projectId, sectionId, props: snapshot });
+          setSaveState("queued");
+          setKbSaveNote("Not saved on server yet — queued until Syncing…");
+          setError(null);
+          break;
+        }
+
+        setSaveState("saving");
+        try {
+          const res = await fetch(`/api/projects/${projectId}/sections`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Kebu-Data-Mode": mode,
+            },
+            body: JSON.stringify({ sectionId, props: snapshot }),
+          });
+          const bytes = await measureResponseBytes(res);
+          const ev = evaluateKb({ action: "save_section", mode, usedBytes: bytes });
+          setKbSaveNote(ev.summary);
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setSaveState("error");
+            const issueHint =
+              data?.issues?.fieldErrors && typeof data.issues.fieldErrors === "object"
+                ? Object.entries(data.issues.fieldErrors as Record<string, string[]>)
+                    .map(([k, v]) => `${k}: ${(v ?? []).join(", ")}`)
+                    .slice(0, 3)
+                    .join(" · ")
+                : "";
+            setError(
+              [typeof data.error === "string" ? data.error : "Save failed.", issueHint || data.detail]
+                .filter(Boolean)
+                .join(" — "),
+            );
+            break;
+          }
+          if (data.section && !slot.latest) {
+            setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, ...data.section } : s)));
+          }
+          setPublishState((prev) =>
+            prev
+              ? { ...prev, hasUnpublishedChanges: true }
+              : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
+          );
+          if (!slot.latest) {
+            pendingSavesRef.current.delete(`section:${sectionId}`);
+            setSaveState(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
+          }
+          setError(null);
+        } catch {
+          enqueueSaveSection({ projectId, sectionId, props: snapshot });
+          setSaveState("queued");
+          setKbSaveNote("Not saved on server yet — queued until Syncing…");
+          setError(null);
+          break;
+        }
+        snapshot = slot.latest;
       }
-      if (data.section) {
-        setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, ...data.section } : s)));
-      }
-      setPublishState((prev) =>
-        prev
-          ? { ...prev, hasUnpublishedChanges: true }
-          : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
-      );
-      pendingSavesRef.current.delete(`section:${sectionId}`);
-      setSaveState(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
-      setError(null);
-    } catch {
-      enqueueSaveSection({ projectId, sectionId, props });
-      setSaveState("queued");
-      setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setError(null);
+    } finally {
+      slot.inFlight = false;
+      // An edit can land after the loop chose to stop (offline/error) but before finally. Keep it
+      // pending; Save draft / the next edit will retry the newest snapshot rather than an old one.
     }
   }
 
