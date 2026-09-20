@@ -1429,6 +1429,7 @@ export default function ProjectEditorPage() {
                       onSelect={() => selectSectionForInspector(CHROME_HEADER_ID)}
                       onPatch={(patch) => updateChromeProps("header", patch)}
                       projectId={projectId}
+                      pages={pages}
                     />
                   ) : (
                     (() => {
@@ -1673,6 +1674,7 @@ export default function ProjectEditorPage() {
                         onSelect={() => setSelectedSectionId(CHROME_HEADER_ID)}
                         onPatch={(patch) => updateChromeProps("header", patch)}
                         projectId={projectId}
+                        pages={pages}
                       />
                     </BuilderSectionZone>
                     <BuilderSectionZone
@@ -1713,6 +1715,7 @@ export default function ProjectEditorPage() {
                         onSelect={() => selectSectionForInspector(CHROME_FOOTER_ID)}
                         onPatch={(patch) => updateChromeProps("footer", patch)}
                         projectId={projectId}
+                        pages={pages}
                       />
                     </BuilderSectionZone>
                   </>

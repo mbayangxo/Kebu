@@ -4,9 +4,17 @@ import { NavLinksEditor, mapNavLinksForEditor } from "@/app/components/create/na
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { NavSizeEditor } from "@/app/components/create/nav-size-editor";
 import { PanelSection } from "@/app/components/create/builder-panel-section";
+import {
+  GalaxyFieldLabel,
+  GalaxyPanelHeader,
+  GalaxySegmentedControl,
+} from "@/app/components/galaxy/editor-primitives";
 import { BUILDER } from "@/lib/create/builder-ui";
 import { clampNavScale, parseNavLayout, parseNavSize } from "@/lib/create/nav-chrome-size";
 import type { SiteChrome } from "@/lib/create/site-chrome";
+
+const INPUT = "min-h-9 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-xs text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15";
+const FONTS = ["Satoshi", "Inter", "DM Sans", "Space Grotesk", "Manrope", "Helvetica", "Georgia", "Playfair Display", "Cormorant Garamond", "Libre Baskerville", "Oswald", "Bebas Neue", "Syne"] as const;
 
 export function BuilderSiteChromePanel({
   part,
@@ -15,6 +23,7 @@ export function BuilderSiteChromePanel({
   onSelect,
   onPatch,
   projectId,
+  pages = [],
 }: {
   part: "header" | "footer";
   chrome: SiteChrome;
@@ -22,19 +31,9 @@ export function BuilderSiteChromePanel({
   onSelect: () => void;
   onPatch: (patch: Record<string, unknown>) => void;
   projectId: string;
+  pages?: Array<{ id: string; slug: string; title: string }>;
 }) {
-  const label =
-    part === "header" ? "Header — brand & menu (all pages)" : "Footer — links & colors (all pages)";
-
-  const headerProps = (chrome.header?.props ?? {
-    brand: "",
-    links: [] as { label: string; href: string }[],
-    navScale: 1,
-    navSize: "comfortable" as const,
-    navLayout: "top" as const,
-    logoAlign: "left" as const,
-    navSticky: true,
-  }) as {
+  const headerProps = (chrome.header?.props ?? {}) as {
     brand?: string;
     links?: Parameters<typeof mapNavLinksForEditor>[0];
     navScale?: number;
@@ -50,8 +49,7 @@ export function BuilderSiteChromePanel({
     fontWeight?: number;
     navStyle?: "standard" | "mega";
   };
-
-  const footerProps = (chrome.footer?.props ?? { text: "", links: [], bgColor: "", textColor: "" }) as {
+  const footerProps = (chrome.footer?.props ?? {}) as {
     text?: string;
     legalName?: string;
     copyrightYear?: number;
@@ -60,324 +58,158 @@ export function BuilderSiteChromePanel({
     bgColor?: string;
     textColor?: string;
   };
-
   const currentYear = new Date().getFullYear();
 
-  return (
-    <div
-      className="rounded-2xl p-3"
-      style={{
-        background: selected ? "#FFF3EB" : "#fff",
-        border: selected ? "2px solid #FF5500" : "1px solid #DDE0F0",
-      }}
-    >
+  if (!selected) {
+    return (
       <button
         type="button"
-        className="mb-2 text-[10px] font-bold uppercase tracking-wider text-left w-full"
-        style={{ color: BUILDER.orange }}
         onClick={onSelect}
+        className="flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-white p-3 text-left outline-none transition hover:border-black/15 hover:shadow-[0_4px_16px_rgba(10,10,10,0.04)] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
       >
-        {label}
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FFF3E8] text-sm font-black text-[#FF6A00]" aria-hidden>{part === "header" ? "H" : "F"}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-black text-black">{part === "header" ? "Site header" : "Site footer"}</span>
+          <span className="mt-0.5 block text-[9px] leading-snug text-black/40">{part === "header" ? "Brand, logo, navigation and menu behavior · all pages" : "Copyright, links, typography and colors · all pages"}</span>
+        </span>
+        <span className="text-black/30" aria-hidden>›</span>
       </button>
+    );
+  }
 
-      {selected && part === "header" ? (
-        <div className="space-y-2">
-          <PanelSection title="Brand & Logo" group="chrome-header">
-            <SectionPhotoField
-              projectId={projectId}
-              label="Logo"
-              value={String(headerProps.logoUrl ?? "")}
-              onChange={(url) => onPatch({ logoUrl: url })}
-            />
-            <label className="block text-[10px] font-bold uppercase tracking-wider" style={{ color: "#5C5348" }}>
-              Logo size
-              <input
-                type="range"
-                min="0.5"
-                max="4"
-                step="0.1"
-                className="mt-1 w-full accent-[#FF5500]"
-                value={Number(headerProps.logoScale ?? 1)}
-                onChange={(e) => onPatch({ logoScale: Number(e.target.value) })}
-              />
-            </label>
-            <input
-              className="w-full text-sm rounded-lg px-2 py-1.5"
-              style={{ border: "1px solid #DDE0F0" }}
-              value={String(headerProps.logoAlt ?? "")}
-              onChange={(e) => onPatch({ logoAlt: e.target.value })}
-              aria-label="Logo alt text"
-              placeholder="Logo description"
-            />
-            <SectionPhotoField
-              projectId={projectId}
-              label="Favicon / site icon"
-              value={String(headerProps.faviconUrl ?? "")}
-              onChange={(url) => onPatch({ faviconUrl: url })}
-            />
-            <input
-              className="w-full text-sm rounded-lg px-2 py-1.5"
-              style={{ border: "1px solid #DDE0F0" }}
-              value={String(headerProps.brand ?? "")}
-              onChange={(e) => onPatch({ brand: e.target.value })}
-              aria-label="Brand name"
-              placeholder="Brand name"
-            />
-            <div className="grid grid-cols-3 gap-1">
-              {(["left", "center", "right"] as const).map((align) => (
-                <button
-                  key={align}
-                  type="button"
-                  className="rounded-lg px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider capitalize"
-                  style={{
-                    background: (headerProps.logoAlign ?? "left") === align ? "#0F0D33" : "#fff",
-                    color: (headerProps.logoAlign ?? "left") === align ? "#fff" : "#0F0D33",
-                    border: "1px solid #DDE0F0",
-                  }}
-                  aria-pressed={(headerProps.logoAlign ?? "left") === align}
-                  onClick={() => onPatch({ logoAlign: align })}
-                >
-                  {align}
-                </button>
-              ))}
-            </div>
-            <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#5C5348" }}>
-                Sticky nav
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={headerProps.navSticky !== false}
-                onClick={() => onPatch({ navSticky: !(headerProps.navSticky !== false) })}
-                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                style={{ background: headerProps.navSticky !== false ? "#FF5500" : "#DDE0F0" }}
-              >
-                <span
-                  className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform"
-                  style={{ transform: headerProps.navSticky !== false ? "translateX(18px)" : "translateX(2px)" }}
-                />
-              </button>
-            </label>
-          </PanelSection>
-          <PanelSection title="Navigation typography" group="chrome-header">
-            <input
-              list="kebu-nav-fonts"
-              className="w-full text-xs rounded px-2 py-1.5"
-              style={{ border: "1px solid #DDE0F0" }}
-              value={headerProps.fontFamily ?? ""}
-              onChange={(e) => onPatch({ fontFamily: e.target.value || undefined })}
-              placeholder="Same as site"
-              aria-label="Navigation font"
-            />
-            <datalist id="kebu-nav-fonts">
-              <option value="Satoshi" />
-              <option value="Inter" />
-              <option value="DM Sans" />
-              <option value="Space Grotesk" />
-              <option value="Manrope" />
-              <option value="Helvetica" />
-              <option value="Georgia" />
-              <option value="Playfair Display" />
-              <option value="Cormorant Garamond" />
-              <option value="Libre Baskerville" />
-              <option value="Oswald" />
-              <option value="Bebas Neue" />
-              <option value="Syne" />
-            </datalist>
-            <select
-              className="mt-2 w-full text-xs rounded px-2 py-1.5"
-              style={{ border: "1px solid #DDE0F0", background: "#fff" }}
-              value={String(headerProps.fontWeight ?? 700)}
-              onChange={(e) => onPatch({ fontWeight: Number(e.target.value) })}
-              aria-label="Navigation font weight"
-            >
-              <option value="400">Regular</option>
-              <option value="500">Medium</option>
-              <option value="600">Semibold</option>
-              <option value="700">Bold</option>
-              <option value="800">Extra bold</option>
-              <option value="900">Black</option>
-            </select>
-          </PanelSection>
-          <PanelSection title="Menu behavior" group="chrome-header">
-            <div className="grid grid-cols-2 gap-1">
-              {(["standard", "mega"] as const).map((style) => (
-                <button key={style} type="button"
-                  className="rounded-lg border border-black/10 px-2 py-2 text-[10px] font-bold capitalize"
-                  style={{ background: (headerProps.navStyle ?? "standard") === style ? "#0F0D33" : "#fff", color: (headerProps.navStyle ?? "standard") === style ? "#fff" : "#0F0D33" }}
-                  onClick={() => onPatch({ navStyle: style })}>
-                  {style === "mega" ? "Mega menu" : "Dropdown"}
-                </button>
-              ))}
-            </div>
-          </PanelSection>
-          <PanelSection title="Nav links" group="chrome-header">
-            <NavLinksEditor
-              links={mapNavLinksForEditor(
-                (headerProps.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
-              )}
-              onChange={(links) => onPatch({ links })}
-            />
-          </PanelSection>
-          <PanelSection title="Nav size" group="chrome-header">
-            <NavSizeEditor
-              scale={clampNavScale(headerProps.navScale, 1)}
-              size={parseNavSize(headerProps.navSize)}
-              layout={parseNavLayout(headerProps.navLayout)}
-              logoAlign={headerProps.logoAlign ?? "left"}
-              onChange={onPatch}
-            />
-          </PanelSection>
-        </div>
-      ) : null}
+  return (
+    <div className="bg-white">
+      <GalaxyPanelHeader
+        eyebrow="Site-wide"
+        title={part === "header" ? "Header & navigation" : "Footer"}
+        description={part === "header" ? "These choices apply across the site. Page-specific content stays untouched." : "Keep the closing area compact, useful, and consistent on every page."}
+      />
 
-      {selected && part === "footer" ? (
-        <div className="space-y-2">
-          <PanelSection title="Copyright" group="chrome-footer">
-            <div className="flex gap-1">
-              <input
-                className="w-16 text-xs rounded px-2 py-1 shrink-0"
-                style={{ border: "1px solid #DDE0F0" }}
-                type="number"
-                value={footerProps.copyrightYear ?? currentYear}
-                onChange={(e) => onPatch({ copyrightYear: parseInt(e.target.value) || currentYear })}
-                aria-label="Copyright year"
-                placeholder="2026"
+      <div className="space-y-2.5 p-3">
+        {part === "header" ? (
+          <>
+            <PanelSection title="Identity" group="chrome-header" defaultOpen>
+              <SectionPhotoField projectId={projectId} label="Logo" value={String(headerProps.logoUrl ?? "")} onChange={(logoUrl) => onPatch({ logoUrl })} />
+              <GalaxyFieldLabel label="Brand name">
+                <input className={INPUT} value={String(headerProps.brand ?? "")} onChange={(event) => onPatch({ brand: event.target.value })} placeholder="Your brand" />
+              </GalaxyFieldLabel>
+              <GalaxyFieldLabel label="Logo description">
+                <input className={INPUT} value={String(headerProps.logoAlt ?? "")} onChange={(event) => onPatch({ logoAlt: event.target.value })} placeholder="Describe the logo for accessibility" />
+              </GalaxyFieldLabel>
+              <GalaxyFieldLabel label={`Logo size · ${Number(headerProps.logoScale ?? 1).toFixed(1)}×`}>
+                <input type="range" min="0.5" max="4" step="0.1" className="mt-2 w-full accent-[#FF6A00]" value={Number(headerProps.logoScale ?? 1)} onChange={(event) => onPatch({ logoScale: Number(event.target.value) })} />
+              </GalaxyFieldLabel>
+              <SectionPhotoField projectId={projectId} label="Favicon / browser icon" value={String(headerProps.faviconUrl ?? "")} onChange={(faviconUrl) => onPatch({ faviconUrl })} />
+              <label className="flex min-h-10 cursor-pointer items-center justify-between rounded-lg bg-black/[0.025] px-2.5">
+                <span>
+                  <span className="block text-[10px] font-bold text-black/65">Sticky navigation</span>
+                  <span className="block text-[8px] text-black/40">Keep the header visible while scrolling.</span>
+                </span>
+                <input type="checkbox" className="accent-[#FF6A00]" checked={headerProps.navSticky !== false} onChange={() => onPatch({ navSticky: !(headerProps.navSticky !== false) })} />
+              </label>
+            </PanelSection>
+
+            <PanelSection title="Layout & size" group="chrome-header">
+              <NavSizeEditor
+                scale={clampNavScale(headerProps.navScale, 1)}
+                size={parseNavSize(headerProps.navSize)}
+                layout={parseNavLayout(headerProps.navLayout)}
+                logoAlign={headerProps.logoAlign ?? "left"}
+                onChange={onPatch}
               />
-              <input
-                className="flex-1 text-xs rounded px-2 py-1"
-                style={{ border: "1px solid #DDE0F0" }}
-                value={footerProps.legalName ?? ""}
-                onChange={(e) => onPatch({ legalName: e.target.value })}
-                aria-label="Legal name"
-                placeholder="Your Business LLC"
-              />
-            </div>
-            <input
-              className="w-full text-sm rounded-lg px-2 py-1.5"
-              style={{ border: "1px solid #DDE0F0" }}
-              value={String(footerProps.text ?? "")}
-              onChange={(e) => onPatch({ text: e.target.value })}
-              aria-label="Footer text (overrides copyright line)"
-              placeholder="Custom text — leave blank to auto-generate"
-            />
-          </PanelSection>
-          <PanelSection title="Font" group="chrome-footer">
-            <select
-              className="w-full text-xs rounded px-2 py-1"
-              style={{ border: "1px solid #DDE0F0", background: "#fff" }}
-              value={footerProps.fontFamily ?? ""}
-              onChange={(e) => onPatch({ fontFamily: e.target.value || undefined })}
-              aria-label="Footer font"
-            >
-              <option value="">Same as site</option>
-              <option value="system-ui, sans-serif">System (clean)</option>
-              <option value="Georgia, serif">Georgia (classic)</option>
-              <option value="'Courier New', monospace">Courier (mono)</option>
-              <option value="'Playfair Display', serif">Playfair (elegant)</option>
-              <option value="'Oswald', sans-serif">Oswald (bold)</option>
-              <option value="'IBM Plex Sans', sans-serif">IBM Plex (modern)</option>
-              <option value="'Satoshi', sans-serif">Satoshi</option>
-              <option value="'Inter', sans-serif">Inter</option>
-              <option value="'DM Sans', sans-serif">DM Sans</option>
-              <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
-              <option value="'Manrope', sans-serif">Manrope</option>
-              <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
-              <option value="'Libre Baskerville', serif">Libre Baskerville</option>
-              <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
-            </select>
-          </PanelSection>
-          <PanelSection title="Colors" group="chrome-footer">
-            <label className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-wider w-16 shrink-0" style={{ color: "#5C5348" }}>Background</span>
-              <input
-                type="color"
-                className="h-7 w-10 cursor-pointer rounded border"
-                style={{ border: "1px solid #DDE0F0" }}
-                value={footerProps.bgColor || "#0a0a0a"}
-                onChange={(e) => onPatch({ bgColor: e.target.value })}
-              />
-              <input
-                className="flex-1 text-xs rounded px-2 py-1"
-                style={{ border: "1px solid #DDE0F0" }}
-                value={footerProps.bgColor || ""}
-                onChange={(e) => onPatch({ bgColor: e.target.value })}
-                placeholder="#0a0a0a"
-              />
-            </label>
-            <label className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-wider w-16 shrink-0" style={{ color: "#5C5348" }}>Text</span>
-              <input
-                type="color"
-                className="h-7 w-10 cursor-pointer rounded border"
-                style={{ border: "1px solid #DDE0F0" }}
-                value={footerProps.textColor || "#ffffff"}
-                onChange={(e) => onPatch({ textColor: e.target.value })}
-              />
-              <input
-                className="flex-1 text-xs rounded px-2 py-1"
-                style={{ border: "1px solid #DDE0F0" }}
-                value={footerProps.textColor || ""}
-                onChange={(e) => onPatch({ textColor: e.target.value })}
-                placeholder="#ffffff"
-              />
-            </label>
-          </PanelSection>
-          <PanelSection title="Links" group="chrome-footer">
-            {(footerProps.links ?? []).map((link, i) => (
-              <div key={i} className="flex gap-1">
-                <input
-                  className="flex-1 text-xs rounded px-2 py-1"
-                  style={{ border: "1px solid #DDE0F0" }}
-                  value={link.label}
-                  placeholder="Label"
-                  onChange={(e) => {
-                    const next = [...(footerProps.links ?? [])];
-                    next[i] = { ...next[i], label: e.target.value };
-                    onPatch({ links: next });
-                  }}
-                />
-                <input
-                  className="flex-1 text-xs rounded px-2 py-1"
-                  style={{ border: "1px solid #DDE0F0" }}
-                  value={link.href}
-                  placeholder="/page"
-                  onChange={(e) => {
-                    const next = [...(footerProps.links ?? [])];
-                    next[i] = { ...next[i], href: e.target.value };
-                    onPatch({ links: next });
-                  }}
-                />
-                <button
-                  type="button"
-                  className="text-xs px-2 rounded"
-                  style={{ border: "1px solid #DDE0F0", color: "#999" }}
-                  onClick={() => {
-                    const next = (footerProps.links ?? []).filter((_, j) => j !== i);
-                    onPatch({ links: next });
-                  }}
-                >
-                  ×
-                </button>
+            </PanelSection>
+
+            <PanelSection title="Typography" group="chrome-header">
+              <GalaxyFieldLabel label="Menu font">
+                <input list="kebu-nav-fonts" className={INPUT} value={headerProps.fontFamily ?? ""} onChange={(event) => onPatch({ fontFamily: event.target.value || undefined })} placeholder="Same as site" />
+                <datalist id="kebu-nav-fonts">{FONTS.map((font) => <option key={font} value={font} />)}</datalist>
+              </GalaxyFieldLabel>
+              <GalaxyFieldLabel label="Weight">
+                <select className={INPUT} value={String(headerProps.fontWeight ?? 700)} onChange={(event) => onPatch({ fontWeight: Number(event.target.value) })}>
+                  <option value="400">Regular · 400</option><option value="500">Medium · 500</option><option value="600">Semibold · 600</option><option value="700">Bold · 700</option><option value="800">Extra bold · 800</option><option value="900">Black · 900</option>
+                </select>
+              </GalaxyFieldLabel>
+              <div className="rounded-xl border border-black/[0.08] bg-[#FAFAF8] p-3">
+                <p className="text-[16px] leading-tight text-black" style={{ fontFamily: headerProps.fontFamily || "inherit", fontWeight: headerProps.fontWeight ?? 700 }}>Home · About · Shop</p>
+                <p className="mt-1 text-[9px] text-black/35">Navigation preview</p>
               </div>
-            ))}
-            {(footerProps.links ?? []).length < 6 && (
-              <button
-                type="button"
-                className="text-[10px] font-bold uppercase tracking-wider"
-                style={{ color: "#FF5500" }}
-                onClick={() => {
-                  const next = [...(footerProps.links ?? []), { label: "", href: "/" }];
-                  onPatch({ links: next });
-                }}
-              >
-                + Add link
-              </button>
-            )}
-          </PanelSection>
-        </div>
-      ) : null}
+            </PanelSection>
+
+            <PanelSection title="Menu behavior" group="chrome-header">
+              <GalaxySegmentedControl
+                label="Nested navigation"
+                value={headerProps.navStyle ?? "standard"}
+                options={[{ value: "standard", label: "Dropdown" }, { value: "mega", label: "Mega menu" }] as const}
+                onChange={(navStyle) => onPatch({ navStyle })}
+              />
+              <p className="text-[9px] leading-relaxed text-black/40">Dropdown keeps groups compact. Mega menu gives larger groups more room when the design supports it.</p>
+            </PanelSection>
+
+            <PanelSection title="Menu links" group="chrome-header">
+              <NavLinksEditor
+                projectId={projectId}
+                pages={pages}
+                links={mapNavLinksForEditor((headerProps.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [])}
+                onChange={(links) => onPatch({ links })}
+              />
+            </PanelSection>
+          </>
+        ) : (
+          <>
+            <PanelSection title="Copyright" group="chrome-footer" defaultOpen>
+              <div className="grid grid-cols-[84px_1fr] gap-2">
+                <GalaxyFieldLabel label="Year">
+                  <input className={INPUT} type="number" value={footerProps.copyrightYear ?? currentYear} onChange={(event) => onPatch({ copyrightYear: parseInt(event.target.value) || currentYear })} />
+                </GalaxyFieldLabel>
+                <GalaxyFieldLabel label="Legal name">
+                  <input className={INPUT} value={footerProps.legalName ?? ""} onChange={(event) => onPatch({ legalName: event.target.value })} placeholder="Your Business LLC" />
+                </GalaxyFieldLabel>
+              </div>
+              <GalaxyFieldLabel label="Custom footer line">
+                <input className={INPUT} value={String(footerProps.text ?? "")} onChange={(event) => onPatch({ text: event.target.value })} placeholder="Leave blank to generate copyright automatically" />
+              </GalaxyFieldLabel>
+            </PanelSection>
+
+            <PanelSection title="Typography & colors" group="chrome-footer">
+              <GalaxyFieldLabel label="Footer font">
+                <input list="kebu-footer-fonts" className={INPUT} value={footerProps.fontFamily ?? ""} onChange={(event) => onPatch({ fontFamily: event.target.value || undefined })} placeholder="Same as site" />
+                <datalist id="kebu-footer-fonts">{FONTS.map((font) => <option key={font} value={font} />)}</datalist>
+              </GalaxyFieldLabel>
+              {([["Background", "bgColor", footerProps.bgColor || "#0a0a0a"], ["Text", "textColor", footerProps.textColor || "#ffffff"]] as const).map(([label, key, value]) => (
+                <GalaxyFieldLabel key={key} label={label}>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <input type="color" className="h-9 w-11 cursor-pointer rounded-lg border border-black/10 bg-white p-1" value={value} onChange={(event) => onPatch({ [key]: event.target.value })} />
+                    <input className={INPUT} value={value} onChange={(event) => onPatch({ [key]: event.target.value })} />
+                  </div>
+                </GalaxyFieldLabel>
+              ))}
+            </PanelSection>
+
+            <PanelSection title="Footer links" group="chrome-footer">
+              <div className="space-y-2">
+                {(footerProps.links ?? []).map((link, index) => (
+                  <div key={index} className="grid grid-cols-[1fr_1fr_28px] gap-1.5">
+                    <input className={INPUT} value={link.label} placeholder="Label" onChange={(event) => {
+                      const links = [...(footerProps.links ?? [])];
+                      links[index] = { ...links[index]!, label: event.target.value };
+                      onPatch({ links });
+                    }} />
+                    <input className={INPUT} value={link.href} placeholder="/page" onChange={(event) => {
+                      const links = [...(footerProps.links ?? [])];
+                      links[index] = { ...links[index]!, href: event.target.value };
+                      onPatch({ links });
+                    }} />
+                    <button type="button" aria-label="Remove footer link" className="rounded-lg text-red-600 hover:bg-red-50" onClick={() => onPatch({ links: (footerProps.links ?? []).filter((_, i) => i !== index) })}>×</button>
+                  </div>
+                ))}
+                {(footerProps.links ?? []).length < 8 ? (
+                  <button type="button" className="min-h-9 w-full rounded-lg border border-black/10 bg-white text-[10px] font-black uppercase tracking-wide text-black/60 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]" onClick={() => onPatch({ links: [...(footerProps.links ?? []), { label: "", href: "/" }] })}>+ Add footer link</button>
+                ) : null}
+              </div>
+            </PanelSection>
+          </>
+        )}
+      </div>
     </div>
   );
 }

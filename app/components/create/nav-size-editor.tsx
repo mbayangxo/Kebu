@@ -5,14 +5,14 @@ import {
   type NavLayoutPreset,
   type NavSizePreset,
 } from "@/lib/create/nav-chrome-size";
+import { GalaxySegmentedControl } from "@/app/components/galaxy/editor-primitives";
 
-const LAYOUT_OPTIONS: { value: NavLayoutPreset; label: string; hint: string }[] = [
-  { value: "top", label: "Top bar", hint: "Horizontal links across the top" },
-  { value: "hamburger", label: "Hamburger ☰", hint: "Menu icon only — opens a drawer on click" },
-  { value: "side", label: "Side nav", hint: "Vertical list pinned to the left" },
+const LAYOUT_OPTIONS: readonly { value: NavLayoutPreset; label: string; hint: string }[] = [
+  { value: "top", label: "Top", hint: "Horizontal navigation" },
+  { value: "hamburger", label: "Menu", hint: "Drawer navigation" },
+  { value: "side", label: "Side", hint: "Vertical navigation" },
 ];
 
-/** Layout + size + logo alignment controls for site navigation. */
 export function NavSizeEditor({
   scale,
   size,
@@ -32,133 +32,80 @@ export function NavSizeEditor({
   }) => void;
 }) {
   return (
-    <div className="space-y-2 rounded-lg p-2" style={{ border: "1px solid #EEE", background: "#FAFAF8" }}>
-      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-        Navigation style
-      </p>
-
-      {/* Layout */}
-      <div className="grid grid-cols-3 gap-1">
-        {LAYOUT_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            title={opt.hint}
-            className="rounded-lg px-1.5 py-2 text-[9px] font-bold uppercase tracking-wide leading-tight"
-            style={{
-              background: layout === opt.value ? "#0F0D33" : "#fff",
-              color: layout === opt.value ? "#fff" : "#0F0D33",
-              border: "1px solid #DDE0F0",
-            }}
-            aria-pressed={layout === opt.value}
-            onClick={() => onChange({ navLayout: opt.value })}
-          >
-            {opt.label}
-          </button>
-        ))}
+    <div className="space-y-4">
+      <div>
+        <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-black/50">Layout</p>
+        <div className="grid grid-cols-3 gap-1.5">
+          {LAYOUT_OPTIONS.map((option) => {
+            const active = layout === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                title={option.hint}
+                aria-pressed={active}
+                className="rounded-xl border px-2 py-2.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                style={{ borderColor: active ? "#FF6A00" : "rgba(0,0,0,.10)", background: active ? "rgba(255,106,0,.08)" : "#fff" }}
+                onClick={() => onChange({ navLayout: option.value })}
+              >
+                <span className="block text-[11px] font-black text-black">{option.label}</span>
+                <span className="mt-0.5 block text-[8px] leading-tight text-black/40">{option.hint}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Logo position — not relevant for side nav */}
-      {layout !== "side" && (
-        <>
-          <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: "#FF5500" }}>
-            Logo position
-          </p>
-          <div className="grid grid-cols-3 gap-1">
-            {(["left", "center", "right"] as const).map((align) => (
-              <button
-                key={align}
-                type="button"
-                className="rounded-lg py-1.5 text-[9px] font-bold uppercase tracking-wide"
-                style={{
-                  background: logoAlign === align ? "#FF5500" : "#fff",
-                  color: logoAlign === align ? "#fff" : "#0F0D33",
-                  border: "1px solid #DDE0F0",
-                }}
-                aria-pressed={logoAlign === align}
-                onClick={() => onChange({ logoAlign: align })}
-              >
-                {align}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      {layout !== "side" ? (
+        <GalaxySegmentedControl
+          label="Logo position"
+          value={logoAlign}
+          options={[
+            { value: "left", label: "Left" },
+            { value: "center", label: "Center" },
+            { value: "right", label: "Right" },
+          ] as const}
+          onChange={(value) => onChange({ logoAlign: value })}
+        />
+      ) : null}
 
-      {/* Nav bar height */}
-      <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: "#FF5500" }}>
-        Nav bar height
-      </p>
-      <p className="text-[9px] leading-relaxed opacity-60">
-        Drag the slider or tap a preset. You can also drag the bottom edge of the nav bar directly on the canvas.
-      </p>
-      <label className="block text-[9px] uppercase tracking-wider text-black/50">
-        Preset
+      <label className="block text-[10px] font-black uppercase tracking-[0.1em] text-black/50">
+        Navigation height
         <select
-          className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
-          style={{ border: "1px solid #DDE0F0" }}
+          className="mt-1.5 min-h-9 w-full rounded-lg border border-black/10 bg-white px-2.5 text-xs font-semibold text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15"
           value={size}
-          onChange={(e) => onChange({ navSize: e.target.value as NavSizePreset })}
+          onChange={(event) => onChange({ navSize: event.target.value as NavSizePreset })}
         >
-          {NAV_SIZE_PRESETS.map((p) => (
-            <option key={p} value={p}>
-              {p === "fullscreen"
-                ? "Full width (edge to edge)"
-                : p === "compact"
-                  ? "Compact (shorter)"
-                  : p === "large"
-                    ? "Large"
-                    : "Comfortable"}
+          {NAV_SIZE_PRESETS.map((preset) => (
+            <option key={preset} value={preset}>
+              {preset === "fullscreen" ? "Full width" : preset === "compact" ? "Compact" : preset === "large" ? "Large" : "Comfortable"}
             </option>
           ))}
         </select>
       </label>
-      <label className="block text-[9px] uppercase tracking-wider text-black/50">
-        Scale ({scale.toFixed(2)}×) — drag smaller or bigger
-        <input
-          type="range"
-          min={0.7}
-          max={2.2}
-          step={0.05}
-          value={scale}
-          className="mt-1 w-full"
-          onChange={(e) => onChange({ navScale: Number(e.target.value) })}
-        />
+
+      <label className="block text-[10px] font-black uppercase tracking-[0.1em] text-black/50">
+        Fine scale
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="range"
+            min={0.7}
+            max={2.2}
+            step={0.05}
+            value={scale}
+            className="min-w-0 flex-1 accent-[#FF6A00]"
+            onChange={(event) => onChange({ navScale: Number(event.target.value) })}
+          />
+          <span className="w-12 text-right text-[10px] font-bold text-black/45">{scale.toFixed(2)}×</span>
+        </div>
       </label>
-      <div className="flex flex-wrap gap-1">
-        <button
-          type="button"
-          className="rounded-full px-2 py-1 text-[9px] font-bold uppercase"
-          style={{ border: "1px solid #DDE0F0" }}
-          onClick={() => onChange({ navScale: 0.85, navSize: "compact" })}
-        >
-          Shorter
-        </button>
-        <button
-          type="button"
-          className="rounded-full px-2 py-1 text-[9px] font-bold uppercase"
-          style={{ border: "1px solid #DDE0F0" }}
-          onClick={() => onChange({ navScale: 1, navSize: "comfortable" })}
-        >
-          Reset
-        </button>
-        <button
-          type="button"
-          className="rounded-full px-2 py-1 text-[9px] font-bold uppercase"
-          style={{ border: "1px solid #DDE0F0" }}
-          onClick={() => onChange({ navScale: 1.35, navSize: "large" })}
-        >
-          Taller
-        </button>
-        <button
-          type="button"
-          className="rounded-full px-2 py-1 text-[9px] font-bold uppercase text-white"
-          style={{ background: "#0F0D33" }}
-          onClick={() => onChange({ navScale: 1.5, navSize: "fullscreen" })}
-        >
-          Full width
-        </button>
+
+      <div className="grid grid-cols-3 gap-1.5">
+        <button type="button" className="min-h-8 rounded-lg border border-black/10 bg-white text-[9px] font-bold" onClick={() => onChange({ navScale: 0.85, navSize: "compact" })}>Smaller</button>
+        <button type="button" className="min-h-8 rounded-lg border border-black/10 bg-white text-[9px] font-bold" onClick={() => onChange({ navScale: 1, navSize: "comfortable" })}>Reset</button>
+        <button type="button" className="min-h-8 rounded-lg border border-black/10 bg-white text-[9px] font-bold" onClick={() => onChange({ navScale: 1.35, navSize: "large" })}>Larger</button>
       </div>
+      <p className="text-[9px] leading-relaxed text-black/40">You can also drag the lower edge of the navigation directly on the canvas.</p>
     </div>
   );
 }
