@@ -1337,6 +1337,7 @@ export default function ProjectEditorPage() {
                     setPreviewPageSlug(p.slug);
                   }}
                   onRefresh={load}
+                  onPagesChange={setPages}
                   onError={setError}
                 />
                 </div>

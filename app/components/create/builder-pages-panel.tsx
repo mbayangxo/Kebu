@@ -19,6 +19,7 @@ export function BuilderPagesPanel({
   busy = false,
   onSelectPage,
   onRefresh,
+  onPagesChange,
   onError,
 }: {
   projectId: string;
@@ -28,6 +29,8 @@ export function BuilderPagesPanel({
   busy?: boolean;
   onSelectPage: (page: BuilderPageRow) => void;
   onRefresh: () => Promise<void>;
+  /** Optimistic local ordering: page movement must never blank/reload the whole Builder. */
+  onPagesChange: (pages: BuilderPageRow[]) => void;
   onError: (message: string | null) => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
@@ -36,6 +39,7 @@ export function BuilderPagesPanel({
   const [editTitle, setEditTitle] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [localBusy, setLocalBusy] = useState(false);
+  const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
 
   const sorted = [...pages].sort((a, b) => a.sort_order - b.sort_order);
   const working = busy || localBusy;
@@ -99,31 +103,58 @@ export function BuilderPagesPanel({
     finally { setLocalBusy(false); }
   }
 
+  async function persistPageOrder(next: BuilderPageRow[], previous: BuilderPageRow[]) {
+    onPagesChange(next);
+    setLocalBusy(true);
+    onError(null);
+    try {
+      const changed = next.filter((page, index) => page.sort_order !== index);
+      const results = await Promise.all(
+        changed.map((page, index) =>
+          fetch(`/api/projects/${projectId}/pages`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pageId: page.id, sortOrder: next.indexOf(page) }),
+          }),
+        ),
+      );
+      if (results.some((res) => !res.ok)) {
+        onPagesChange(previous);
+        onError("Could not reorder pages. Your previous order was restored.");
+        return;
+      }
+      onPagesChange(next.map((page, index) => ({ ...page, sort_order: index })));
+    } catch {
+      onPagesChange(previous);
+      onError("Network error while reordering. Your previous order was restored.");
+    } finally {
+      setLocalBusy(false);
+    }
+  }
+
   async function movePage(pageId: string, direction: "up" | "down") {
     const idx = sorted.findIndex((p) => p.id === pageId);
     if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const a = sorted[idx]!;
-    const b = sorted[swapIdx]!;
-    setLocalBusy(true); onError(null);
-    try {
-      const [resA, resB] = await Promise.all([
-        fetch(`/api/projects/${projectId}/pages`, {
-          method: "PATCH", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageId: a.id, sortOrder: b.sort_order }),
-        }),
-        fetch(`/api/projects/${projectId}/pages`, {
-          method: "PATCH", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageId: b.id, sortOrder: a.sort_order }),
-        }),
-      ]);
-      if (!resA.ok || !resB.ok) { onError("Could not reorder pages."); return; }
-      await onRefresh();
-    } catch { onError("Network error while reordering."); }
-    finally { setLocalBusy(false); }
+    const next = [...sorted];
+    [next[idx], next[swapIdx]] = [next[swapIdx]!, next[idx]!];
+    await persistPageOrder(next.map((page, index) => ({ ...page, sort_order: index })), sorted);
+  }
+
+  async function dropPage(targetPageId: string) {
+    const sourceId = draggedPageId;
+    setDraggedPageId(null);
+    if (!sourceId || sourceId === targetPageId) return;
+    const from = sorted.findIndex((page) => page.id === sourceId);
+    const to = sorted.findIndex((page) => page.id === targetPageId);
+    if (from < 0 || to < 0) return;
+    const next = [...sorted];
+    const [moved] = next.splice(from, 1);
+    if (!moved) return;
+    next.splice(to, 0, moved);
+    await persistPageOrder(next.map((page, index) => ({ ...page, sort_order: index })), sorted);
   }
 
   return (
@@ -173,7 +204,29 @@ export function BuilderPagesPanel({
           const active = p.id === editPageId || p.slug === previewPageSlug;
           const editing = editingId === p.id;
           return (
-            <li key={p.id} style={{ borderBottom: `1px solid ${BUILDER.border}` }}>
+            <li
+              key={p.id}
+              draggable={!working && !editing}
+              onDragStart={(event) => {
+                setDraggedPageId(p.id);
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(event) => {
+                if (!draggedPageId || draggedPageId === p.id) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                void dropPage(p.id);
+              }}
+              onDragEnd={() => setDraggedPageId(null)}
+              style={{
+                borderBottom: `1px solid ${BUILDER.border}`,
+                opacity: draggedPageId === p.id ? 0.45 : 1,
+                cursor: working || editing ? "default" : "grab",
+              }}
+            >
               {editing ? (
                 /* Inline edit form */
                 <div className="px-3 py-2 space-y-1.5" style={{ background: BUILDER.surfaceMuted }}>
@@ -225,6 +278,14 @@ export function BuilderPagesPanel({
                     paddingLeft: active ? "9px" : "12px",
                   }}
                 >
+                  <span
+                    aria-hidden
+                    className="shrink-0 select-none text-[12px]"
+                    style={{ color: BUILDER.muted }}
+                    title="Drag to reorder"
+                  >
+                    ⋮⋮
+                  </span>
                   {/* Page title — clicking selects the page to edit */}
                   <button
                     type="button"
