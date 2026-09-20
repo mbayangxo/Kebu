@@ -996,7 +996,7 @@ export function StudioCanvasEditor({
                         style={{ background: layer.fill }}
                       />
                     ) : layer.type === "line" ? (
-                      <div
+                      <><div
                         className="w-full pointer-events-none absolute left-0"
                         style={{
                           background: layer.fill ?? "#FFFFFF",
@@ -1004,7 +1004,7 @@ export function StudioCanvasEditor({
                           top: "50%",
                           transform: "translateY(-50%)",
                         }}
-                      />
+                      />{layer.text==="→"?<span className="absolute right-[-2px] top-1/2 -translate-y-1/2 text-[22px] leading-none" style={{color:layer.stroke??layer.fill??"#111"}}>›</span>:null}</>
                     ) : layer.type === "frame" ? (
                       <div
                         className="w-full h-full pointer-events-none box-border overflow-hidden relative"
@@ -1446,6 +1446,7 @@ export function StudioCanvasEditor({
                   </label>
                 </div>
               ) : null}
+              {(["rect","ellipse","line","frame","icon"].includes(selected.type))?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Element style</p>{selected.type!=="icon"?<><label className="block font-semibold">Stroke<input type="color" value={selected.stroke??"#111111"} onChange={e=>updateLayer(selected.id,{stroke:e.target.value})} className="mt-1 h-8 w-full"/></label><label className="block font-semibold">Stroke width<input type="range" min="0" max="40" value={selected.strokeWidth??0} onChange={e=>updateLayer(selected.id,{strokeWidth:Number(e.target.value)})} className="w-full"/></label></>:null}{selected.type==="rect"||selected.type==="frame"?<label className="block font-semibold">Corners<input type="range" min="0" max="200" value={selected.cornerRadius??0} onChange={e=>updateLayer(selected.id,{cornerRadius:Number(e.target.value)})} className="w-full"/></label>:null}{selected.type==="line"?<><label className="block font-semibold">Line weight<input type="range" min="2" max="40" value={selected.height} onChange={e=>updateLayer(selected.id,{height:Number(e.target.value)})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{text:selected.text==="→"?"":"→"})} className="rounded-lg border border-black/10 px-2 py-1 text-[10px] font-bold">{selected.text==="→"?"Remove arrow":"Add arrow"}</button></>:null}</div>:null}
               <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Position · size</p>
               <div className="grid grid-cols-2 gap-2">
                 {([

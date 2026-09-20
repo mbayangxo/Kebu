@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushStagedStudioAssets, listStagedStudioAssets, stageStudioAsset } from "@/lib/studio/asset-offline-outbox";
+import { markRecentAsset, readRecentAssets } from "@/lib/studio/recent-assets";
 import { cacheAssetBlob, cacheAssetLibrary, readCachedAssetLibrary, reconcileAssetCache, resolveCachedAssetUrl } from "@/lib/studio/asset-offline-cache";
 
 type UploadRow = {
@@ -31,6 +33,8 @@ export function StudioUploadsLibrary({
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [favoritesOnly,setFavoritesOnly]=useState(false);
+  const [recentOnly,setRecentOnly]=useState(false);
+  const scopeKey=designId?`design:${designId}`:"personal";
   const [offlineIds,setOfflineIds]=useState<Set<string>>(new Set());
   const [kind, setKind] = useState<"all" | UploadRow["kind"]>("all");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -44,9 +48,10 @@ export function StudioUploadsLibrary({
       setError(typeof data.error === "string" ? data.error : "Could not load library.");
       return;
     }
+    await flushStagedStudioAssets(scopeKey).catch(()=>[]);
     const rows=Array.isArray(data.uploads) ? data.uploads : [];
     setUploads(rows);setError(null);void cacheAssetLibrary(rows);void reconcileAssetCache(new Set(rows.map((x:UploadRow)=>x.id)));
-  }, []);
+  }, [scopeKey]);
 
   useEffect(() => {
     void load();
@@ -55,16 +60,17 @@ export function StudioUploadsLibrary({
   const filtered = useMemo(() => uploads.filter((item) => {
     if (kind !== "all" && item.kind !== kind) return false;
     if(favoritesOnly&&!item.favorite)return false;
+    if(recentOnly&&!new Set(readRecentAssets(scopeKey).map(x=>x.id)).has(item.id))return false;
     const q = query.trim().toLowerCase();
     return !q || [item.file_name,item.folder,...(item.tags??[])].filter(Boolean).join(" ").toLowerCase().includes(q);
-  }), [uploads, query, kind, favoritesOnly]);
+  }), [uploads, query, kind, favoritesOnly, recentOnly, scopeKey]);
 
   async function toggleOffline(u:UploadRow){if(offlineIds.has(u.id)){setOfflineIds(ids=>{const n=new Set(ids);n.delete(u.id);return n});return}try{await cacheAssetBlob(u);setOfflineIds(ids=>new Set(ids).add(u.id))}catch(e){setError(e instanceof Error?e.message:"Could not cache asset.")}}
-  async function pickResolved(u:UploadRow){const url=await resolveCachedAssetUrl(u).catch(()=>u.url);if(u.kind==="image")onPickImage(url);if(u.kind==="video")onPickVideo(url)}
+  async function pickResolved(u:UploadRow){markRecentAsset(u.id,scopeKey);const url=await resolveCachedAssetUrl(u).catch(()=>u.url);if(u.kind==="image")onPickImage(url);if(u.kind==="video")onPickVideo(url)}
 
   async function upload(file: File | null) {
     if (!file || readOnly) return;
-    if (typeof navigator !== "undefined" && !navigator.onLine) { setError("Reconnect before uploading new media. Design edits can still save locally."); return; }
+    if (typeof navigator !== "undefined" && !navigator.onLine) { const pending=await stageStudioAsset(scopeKey,file,designId);setError(`Offline · staged ${pending.name}. It will upload after reconnect.`); return; }
     setBusy(true);
     setError(null);
     try {
@@ -116,7 +122,7 @@ export function StudioUploadsLibrary({
         {!readOnly ? <><input ref={fileRef} type="file" className="hidden" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac" onChange={(e)=>void upload(e.target.files?.[0]??null)}/><button type="button" disabled={busy} onClick={()=>fileRef.current?.click()} className="rounded-lg bg-black px-2.5 py-1.5 text-[10px] font-black text-white disabled:opacity-40">{busy?"Uploading…":"Upload +"}</button></>:null}
       </div>
       <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search uploads" className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-xs"/>
-      <div className="flex gap-1 overflow-x-auto"><button type="button" onClick={()=>setFavoritesOnly(v=>!v)} className={`rounded-full px-2.5 py-1 text-[9px] font-bold ${favoritesOnly?"bg-orange-600 text-white":"bg-black/[.04] text-black/55"}`}>★ Saved</button>{(["all","image","video","audio"] as const).map((value)=><button key={value} type="button" onClick={()=>setKind(value)} className={`rounded-full px-2.5 py-1 text-[9px] font-bold capitalize ${kind===value?"bg-black text-white":"bg-black/[.04] text-black/55"}`}>{value}</button>)}</div>
+      <div className="flex gap-1 overflow-x-auto"><button type="button" onClick={()=>setRecentOnly(v=>!v)} className={`rounded-full px-2.5 py-1 text-[9px] font-bold ${recentOnly?"bg-black text-white":"bg-black/[.04] text-black/55"}`}>Recent</button><button type="button" onClick={()=>setFavoritesOnly(v=>!v)} className={`rounded-full px-2.5 py-1 text-[9px] font-bold ${favoritesOnly?"bg-orange-600 text-white":"bg-black/[.04] text-black/55"}`}>★ Saved</button>{(["all","image","video","audio"] as const).map((value)=><button key={value} type="button" onClick={()=>setKind(value)} className={`rounded-full px-2.5 py-1 text-[9px] font-bold capitalize ${kind===value?"bg-black text-white":"bg-black/[.04] text-black/55"}`}>{value}</button>)}</div>
       {error ? <p className="rounded-lg bg-red-50 p-2 text-[10px] text-red-800">{error}</p> : null}
       {filtered.length === 0 ? <div className="rounded-xl border border-dashed border-black/15 p-4 text-center"><p className="text-[10px] font-bold">{uploads.length?"No matching uploads":"Your media library is empty"}</p><p className="mt-1 text-[9px] text-black/45">{uploads.length?"Try another filter.":"Upload once, then reuse it across projects in this Kebu space."}</p></div> :
       <ul className="grid max-h-[360px] grid-cols-2 gap-2 overflow-y-auto pr-1">{filtered.slice(0,visibleCount).map((u)=><li draggable={u.kind!=="audio"} onDragStart={(e)=>{if(u.kind==="audio")return;e.dataTransfer.effectAllowed="copy";e.dataTransfer.setData("application/x-kebu-studio-asset",JSON.stringify(u));onDropAsset?.(u)}} key={u.id} className="group overflow-hidden rounded-xl border border-black/10 bg-white">
