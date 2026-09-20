@@ -41,6 +41,7 @@ import {
   type StudioElementCategory,
 } from "@/lib/studio/elements-pack";
 import { mediaFilterCss } from "@/lib/studio/media-adjustments";
+import { layerMotionAtTime } from "@/lib/studio/layer-motion";
 import { fillFrameWithAsset, mediaLayerFromAsset, type StudioDroppedAsset } from "@/lib/studio/asset-canvas-operations";
 import {
   cssStackForStudioFont,
@@ -883,6 +884,7 @@ export function StudioCanvasEditor({
             >
               {layers.map((layer) => {
                 const selectedOn = selectedSet.has(layer.id);
+                const motion = layerMotionAtTime(layer, previewLocalMs);
                 return (
                   <div
                     key={layer.id}
@@ -892,8 +894,8 @@ export function StudioCanvasEditor({
                       top: layer.y,
                       width: layer.width,
                       height: layer.height,
-                      transform: `rotate(${layer.rotation}deg)`,
-                      opacity: layer.opacity,
+                      transform: `translate(${motion.translateX}px, ${motion.translateY}px) rotate(${layer.rotation}deg) scale(${motion.scale})`,
+                      opacity: layer.opacity * motion.opacityMultiplier,
                       borderRadius: layer.cornerRadius ?? 0,
                       filter:
                         (layer.shadowBlur ?? 0) > 0 || (layer.shadowX ?? 0) !== 0 || (layer.shadowY ?? 0) !== 0
@@ -1119,6 +1121,55 @@ export function StudioCanvasEditor({
                   className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
                 />
               </label></GalaxyInspectorSection>
+              <GalaxyInspectorSection title="Motion">
+                <label className="block font-semibold">
+                  Entrance
+                  <select
+                    value={selected.animationPreset ?? "none"}
+                    onChange={(e) => updateLayer(selected.id, { animationPreset: e.target.value as CanvasLayer["animationPreset"] })}
+                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                  >
+                    <option value="none">None</option>
+                    <option value="fade">Fade</option>
+                    <option value="fade_up">Fade up</option>
+                    <option value="slide_left">Slide from left</option>
+                    <option value="slide_right">Slide from right</option>
+                    <option value="scale">Scale in</option>
+                    <option value="pop">Pop</option>
+                  </select>
+                </label>
+                {(selected.animationPreset ?? "none") !== "none" ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block font-semibold">
+                      Duration ms
+                      <input
+                        type="number"
+                        min={100}
+                        max={5000}
+                        step={50}
+                        value={selected.animationDurationMs ?? 600}
+                        onChange={(e) => updateLayer(selected.id, { animationDurationMs: Math.max(100, Math.min(5000, Number(e.target.value) || 600)) })}
+                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      />
+                    </label>
+                    <label className="block font-semibold">
+                      Delay ms
+                      <input
+                        type="number"
+                        min={0}
+                        max={10000}
+                        step={50}
+                        value={selected.animationDelayMs ?? 0}
+                        onChange={(e) => updateLayer(selected.id, { animationDelayMs: Math.max(0, Math.min(10000, Number(e.target.value) || 0)) })}
+                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      />
+                    </label>
+                  </div>
+                ) : null}
+                <p className="text-[9px] leading-relaxed text-black/45">
+                  Motion previews against the page timeline and follows the design into editable video.
+                </p>
+              </GalaxyInspectorSection>
               {selected.type === "text" ? (<GalaxyInspectorSection title="Typography">
                   <label className="block font-semibold">
                     Text
