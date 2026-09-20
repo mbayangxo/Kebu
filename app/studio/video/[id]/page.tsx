@@ -39,6 +39,7 @@ import { applyAiMusicCommand } from "@/lib/studio/ai-music-edit";
 import { downsamplePeaks, normalizeClipVolume, duckMusicUnderVoice, cutClipsOnBeats, fitSequenceToDuration, setTrackMix, setMasterVolume, effectiveClipVolume } from "@/lib/studio/audio-engine";
 import { deleteClips, moveClips, rippleDeleteClip, linkClips, unlinkClips, linkedClipIds, trimClipEdge, slipClip, setTrackState } from "@/lib/studio/timeline-operations";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { exportStudioComposition } from "@/lib/studio/composition-browser-export";
 import {
   getStudioVideoOfflineDraft,
   putStudioVideoOfflineDraft,
@@ -63,6 +64,8 @@ export default function StudioVideoEditorPage() {
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [sourceDesignId, setSourceDesignId] = useState<string | null>(null);
   const [sourceRefreshBusy, setSourceRefreshBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
   const [playheadMs, setPlayheadMs] = useState(0);
@@ -634,6 +637,44 @@ export default function StudioVideoEditorPage() {
     }
   }
 
+  async function exportVideo() {
+    if (!comp || exportBusy) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setNote("Offline export works only when every media file used by this video is already available to the browser. Reconnect if export cannot load media.");
+    }
+
+    setExportBusy(true);
+    setExportProgress(0);
+    setError(null);
+    setPlaying(false);
+    try {
+      const result = await exportStudioComposition(comp, {
+        scale: 0.5,
+        fps: Math.min(24, comp.frameRate),
+        onProgress(progress) {
+          setExportProgress(Math.round((progress.frame / progress.totalFrames) * 100));
+        },
+      });
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+
+      const url = URL.createObjectURL(result.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = (title.trim() || "kebu-studio-video").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 100) + ".webm";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      setNote(`Video exported · ${(result.durationMs / 1000).toFixed(1)}s · includes timeline visuals and available audio.`);
+    } finally {
+      setExportBusy(false);
+      setExportProgress(0);
+    }
+  }
+
   function undo() {
     setHistory((h) => {
       if (!h.length || !compRef.current) return h;
@@ -752,6 +793,15 @@ export default function StudioVideoEditorPage() {
         </button>
         <button type="button" disabled={!future.length} onClick={redo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
           Redo
+        </button>
+        <button
+          type="button"
+          disabled={exportBusy || saveState === "conflict"}
+          onClick={() => void exportVideo()}
+          className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+          title="Record the current Studio composition to WebM with timeline media and available audio"
+        >
+          {exportBusy ? `Exporting ${exportProgress}%` : "Export video"}
         </button>
         <button
           type="button"
