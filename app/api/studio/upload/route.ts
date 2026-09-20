@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { createServiceClient } from "@/lib/opportunity/admin";
@@ -30,6 +31,9 @@ const AUDIO_TYPES = new Set([
  * Path: {userId}/studio/{designId|misc}/{uuid}.ext
  */
 export async function POST(req: Request) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 

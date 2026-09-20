@@ -12,7 +12,9 @@ type Params = { params: Promise<{ id: string }> };
 const patchSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
   composition: studioCompositionSchema.optional(),
-  editMode: z.enum(["quick_edit", "smart_edit", "full_timeline"]).optional(),\n  /** Optimistic concurrency token: prevents silent cross-tab/device overwrites. */\n  expectedUpdatedAt: z.string().datetime().optional(),
+  editMode: z.enum(["quick_edit", "smart_edit", "full_timeline", "storyboard"]).optional(),
+  /** Optimistic concurrency token: prevents silent cross-tab/device overwrites. */
+  expectedUpdatedAt: z.string().datetime().optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
