@@ -624,7 +624,7 @@ export default function StudioEditorPage() {
         return;
       }
 
-      const sourceImages: Array<{ url: string; name: string; durationMs: number }> = [];
+      const sourceImages: Array<{ url: string; name: string; durationMs: number; pageId: string }> = [];
       for (let index = 0; index < doc.pages.length; index += 1) {
         const page = doc.pages[index]!;
         setExportNote("Preparing page " + (index + 1) + " of " + doc.pages.length + "…");
@@ -673,6 +673,7 @@ export default function StudioEditorPage() {
           url: uploadData.url,
           name: page.name || "Page " + (index + 1),
           durationMs: page.durationMs ?? 3000,
+          pageId: page.id,
         });
       }
 

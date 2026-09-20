@@ -70,6 +70,8 @@ export const compositionClipSchema = z.object({
   y: z.number().min(-4000).max(4000).default(0),
   scale: z.number().min(0.05).max(8).default(1),
   rotation: z.number().min(-360).max(360).default(0),
+  /** Optional live provenance back to an editable Studio design page. */
+  sourceDesignPageId: z.string().trim().max(40).nullable().optional(),
   /** Optional link to storyboard scene */
   sceneId: z.string().trim().max(40).nullable().optional(),
   /** Caption track text (V7) */
@@ -281,7 +283,7 @@ export function addAssetToComposition(
 export function addClipFromAsset(
   c: StudioComposition,
   assetId: string,
-  opts?: { trackId?: string; atMs?: number },
+  opts?: { trackId?: string; atMs?: number; sourceDesignPageId?: string | null },
 ): StudioComposition | { error: string } {
   const asset = c.assets.find((a) => a.id === assetId);
   if (!asset) return { error: "Asset not in project." };
@@ -327,6 +329,7 @@ export function addClipFromAsset(
     scale: 1,
     rotation: 0,
     sceneId: null,
+    sourceDesignPageId: opts?.sourceDesignPageId ?? null,
   };
 
   return studioCompositionSchema.parse({

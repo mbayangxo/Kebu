@@ -26,6 +26,7 @@ const createSchema = z.object({
     url: z.string().url().max(500),
     name: z.string().trim().min(1).max(120).optional(),
     durationMs: z.number().int().min(500).max(30_000).optional().default(3000),
+    pageId: z.string().trim().min(1).max(40).optional(),
   })).max(20).optional(),
 });
 
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
   if (parsed.data.sourceDesignId) {
     let sourceQuery = supabase
       .from("create_designs")
-      .select("id, business_id")
+      .select("id, business_id, canvas")
       .eq("id", parsed.data.sourceDesignId);
     sourceQuery = workspace.activeBusinessId
       ? sourceQuery.eq("business_id", workspace.activeBusinessId)
@@ -97,6 +98,16 @@ export async function POST(req: Request) {
     const { data: sourceDesign } = await sourceQuery.maybeSingle();
     if (!sourceDesign) {
       return NextResponse.json({ error: "That source design is not available in the current Kebu space." }, { status: 403 });
+    }
+    const sourcePageIds = new Set(
+      Array.isArray((sourceDesign.canvas as { pages?: unknown[] } | null)?.pages)
+        ? ((sourceDesign.canvas as { pages: Array<{ id?: unknown }> }).pages)
+            .map((page) => typeof page?.id === "string" ? page.id : null)
+            .filter((id): id is string => Boolean(id))
+        : [],
+    );
+    if ((parsed.data.sourceImages ?? []).some((item) => item.pageId && !sourcePageIds.has(item.pageId))) {
+      return NextResponse.json({ error: "One or more source pages no longer belong to this design." }, { status: 409 });
     }
   }
 
@@ -146,7 +157,7 @@ export async function POST(req: Request) {
       width,
       height,
     });
-    const withClip = addClipFromAsset(composition, assetId, { atMs: cursorMs });
+    const withClip = addClipFromAsset(composition, assetId, { atMs: cursorMs, sourceDesignPageId: source.pageId ?? null });
     if ("error" in withClip) continue;
     composition = withClip;
     const clip = composition.clips[composition.clips.length - 1];
