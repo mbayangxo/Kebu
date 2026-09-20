@@ -31,6 +31,7 @@ import { BuilderBusinessNudge } from "@/app/components/create/builder-business-n
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
 import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
+import { BuilderLayersPanel } from "@/app/components/create/builder-layers-panel";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
@@ -1347,6 +1348,47 @@ export default function ProjectEditorPage() {
                     onUseOnSite={(asset) => void applyMediaAsset(asset)}
                   />
                 </div>
+              )}
+
+              {sidebarTab === "layers" && (
+                (() => {
+                  const hero =
+                    editPageSections.find((section) => section.section_type === "legally-blonde-hero") ??
+                    sections.find((section) => section.section_type === "legally-blonde-hero");
+                  if (!hero) {
+                    return (
+                      <div className="px-4 py-4 text-[11px]" style={{ color: BUILDER.muted }}>
+                        This page does not have a freeform layer canvas yet.
+                      </div>
+                    );
+                  }
+                  const resolvedProps = mergeDeviceAwareSectionProps(
+                    hero.props as Record<string, unknown>,
+                    device,
+                  );
+                  return (
+                    <BuilderLayersPanel
+                      sectionId={hero.id}
+                      props={resolvedProps}
+                      selectedElement={selectedElement}
+                      onSelect={(selection) => {
+                        setSelectedSectionId(selection.sectionId);
+                        setSelectedElement(selection);
+                        setSidebarTab("layers");
+                        setLeftPanelOpen(true);
+                      }}
+                      onPatch={(patch) =>
+                        applyDeviceAwarePatch(
+                          updateProps,
+                          hero.id,
+                          hero.props as Record<string, unknown>,
+                          device,
+                          patch,
+                        )
+                      }
+                    />
+                  );
+                })()
               )}
 
               {sidebarTab === "shop" && (
