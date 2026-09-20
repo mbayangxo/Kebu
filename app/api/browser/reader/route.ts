@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { resolveSafePublicUrl } from "@/lib/browser/url-safety";
 import { requestPinnedReaderTarget } from "@/lib/browser/pinned-reader-request";
+import { browserReaderRateLimit } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 20;
@@ -53,6 +54,8 @@ async function fetchSafe(initial: URL) {
 export async function GET(req: Request) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
+  const limited = browserReaderRateLimit(req, auth.user.id);
+  if (limited) return limited;
   const raw = new URL(req.url).searchParams.get("url");
   if (!raw) return NextResponse.json({ error: "URL required." }, { status: 400 });
   try {

@@ -20,6 +20,13 @@ classes express application-specific limits and provide controlled `429` respons
 | Public site reads | 180 requests/IP | 60 seconds |
 | Login/admin authentication | 20 requests/IP | 60 seconds |
 | Public shop order creation | 20 requests/IP | 60 seconds |
+| Browser Reader | 60 requests/IP; 180 requests/account | 60 seconds; 1 hour |
+| Mail sending | 10 requests/IP; 30 requests/account | 60 seconds; 1 hour |
+
+The account-aware limits above are still per runtime because their counters use
+the same bounded in-memory store. They reduce abuse from a single warm instance
+but are not global quotas. Vercel Firewall and an approved atomic shared store
+remain required before the limits can be described as distributed.
 
 ## Staged Vercel Firewall policy
 

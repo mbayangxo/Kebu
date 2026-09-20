@@ -13,6 +13,7 @@ const BUILDER_LIMIT = 120; // saves / publish / settings per IP per window
 const PUBLIC_LIMIT = 180; // public site reads per IP per window
 const AUTH_LIMIT = 20; // login / admin login attempts per IP per window
 const WINDOW_MS = 60_000; // 1 minute
+const HOUR_MS = 60 * WINDOW_MS;
 const MAX_LOCAL_BUCKETS = 10_000;
 
 // A Vercel Firewall/edge policy is the intended production-wide first line of
@@ -43,14 +44,13 @@ function clientKey(req: NextRequest): string {
 }
 
 // Returns a 429 Response if the IP is over limit, null if allowed.
-function rateLimit(req: NextRequest, limit: number, bucketSuffix: string): Response | null {
-  const key = `${clientKey(req)}:${bucketSuffix}`;
+function consumeBucket(key: string, limit: number, windowMs = WINDOW_MS): Response | null {
   const now = Date.now();
   pruneExpiredBuckets(now);
   const bucket = buckets.get(key);
 
   if (!bucket || now > bucket.resetAt) {
-    buckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
+    buckets.set(key, { count: 1, resetAt: now + windowMs });
     return null;
   }
 
@@ -70,6 +70,24 @@ function rateLimit(req: NextRequest, limit: number, bucketSuffix: string): Respo
 
   bucket.count++;
   return null;
+}
+
+function rateLimit(req: NextRequest, limit: number, bucketSuffix: string): Response | null {
+  return consumeBucket(`${clientKey(req)}:${bucketSuffix}`, limit);
+}
+
+function subjectAndIpRateLimit(
+  req: Request | NextRequest,
+  subject: string,
+  config: { ipLimit: number; subjectLimit: number; suffix: string; subjectWindowMs?: number },
+): Response | null {
+  const ipLimited = rateLimit(req as NextRequest, config.ipLimit, config.suffix);
+  if (ipLimited) return ipLimited;
+  return consumeBucket(
+    `subject:${subject}:${config.suffix}`,
+    config.subjectLimit,
+    config.subjectWindowMs,
+  );
 }
 
 export function aiRateLimit(req: NextRequest): Response | null {
@@ -94,6 +112,26 @@ export function shopOrderRateLimit(req: Request | NextRequest): Response | null 
 /** Login / admin login — stops password guessing from one IP. */
 export function authRateLimit(req: Request | NextRequest): Response | null {
   return rateLimit(req as NextRequest, AUTH_LIMIT, "auth");
+}
+
+/** Authenticated web reader: local per-IP burst and per-account hourly backstop. */
+export function browserReaderRateLimit(req: Request | NextRequest, userId: string): Response | null {
+  return subjectAndIpRateLimit(req, userId, {
+    ipLimit: 60,
+    subjectLimit: 180,
+    subjectWindowMs: HOUR_MS,
+    suffix: "browser-reader",
+  });
+}
+
+/** Authenticated mail send: local per-IP burst and per-account hourly backstop. */
+export function mailSendRateLimit(req: Request | NextRequest, userId: string): Response | null {
+  return subjectAndIpRateLimit(req, userId, {
+    ipLimit: 10,
+    subjectLimit: 30,
+    subjectWindowMs: HOUR_MS,
+    suffix: "mail-send",
+  });
 }
 
 // Returns a 401 Response if the Authorization header doesn't match CRON_SECRET.

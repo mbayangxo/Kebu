@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { sendInternetMail } from "@/lib/mail/provider";
+import { mailSendRateLimit } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ const sendSchema = z.object({
 export async function POST(req: Request) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
+  const limited = mailSendRateLimit(req, auth.user.id);
+  if (limited) return limited;
   const { supabase } = auth;
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON." }, { status: 400 }); }
