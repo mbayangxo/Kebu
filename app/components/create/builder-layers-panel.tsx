@@ -91,11 +91,16 @@ export function BuilderLayersPanel({
       <GalaxyPanelHeader
         eyebrow="Canvas"
         title="Layers"
-        description="Select, arrange, hide, or lock objects without hunting on the canvas."
+        description="See the freeform stack in one place. Select an object, control its depth, visibility, and lock state."
       />
       <div className="space-y-3 p-3">
         {rows.length > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
+          <>
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-black/40">{rows.length} objects</p>
+              <p className="text-[9px] text-black/35">Top rows sit above lower rows</p>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
             {rows.map((row, index) => {
           const active =
             selectedElement?.sectionId === sectionId &&
@@ -109,12 +114,13 @@ export function BuilderLayersPanel({
               return (
             <div
               key={row.elementId}
-              className="flex items-center gap-2 px-2.5 py-2"
+              className="group/layer flex min-h-12 items-center gap-2 px-2.5 py-2"
               style={{
                 borderTop: index === 0 ? undefined : "1px solid rgba(0,0,0,0.06)",
                 background: active ? "rgba(255,106,0,0.08)" : "#fff",
               }}
             >
+              <span aria-hidden className="cursor-grab select-none text-[12px] text-black/25">⋮⋮</span>
               <button
                 type="button"
                 className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
@@ -138,7 +144,7 @@ export function BuilderLayersPanel({
               {isLocked ? <GalaxyBadge>Locked</GalaxyBadge> : null}
 
               <select
-                className="max-w-[92px] rounded-md border border-black/10 bg-white px-1 py-1 text-[9px] font-semibold text-black/55"
+                className="max-w-[88px] rounded-md border border-black/10 bg-white px-1.5 py-1 text-[9px] font-bold text-black/55 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 defaultValue=""
                 aria-label={`Arrange ${row.label}`}
                 onChange={(event) => {
@@ -157,7 +163,7 @@ export function BuilderLayersPanel({
 
               <button
                 type="button"
-                className="rounded-md px-2 py-1 text-[10px] font-semibold text-black/55 hover:bg-black/[0.04]"
+                className="rounded-md px-1.5 py-1 text-[9px] font-bold text-black/50 hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 onClick={() => toggleHidden(row.storageKey)}
                 aria-label={isHidden ? `Show ${row.label}` : `Hide ${row.label}`}
               >
@@ -165,7 +171,7 @@ export function BuilderLayersPanel({
               </button>
               <button
                 type="button"
-                className="rounded-md px-2 py-1 text-[10px] font-semibold text-black/55 hover:bg-black/[0.04]"
+                className="rounded-md px-1.5 py-1 text-[9px] font-bold text-black/50 hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 onClick={() => toggleLocked(row.storageKey)}
                 aria-label={isLocked ? `Unlock ${row.label}` : `Lock ${row.label}`}
               >
@@ -175,6 +181,7 @@ export function BuilderLayersPanel({
               );
             })}
           </div>
+          </>
         ) : (
           <GalaxyEmptyState
             title="No editable layers"

@@ -208,13 +208,13 @@ function wrapEditorSection(
         e.stopPropagation();
         editor.onSelectSection?.(sectionId);
       }}
-      className={`group relative ${effectiveMotion ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
+      className={`group relative ${effectiveMotion ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#FF6A00] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#FF6A00]/45"}`}
       style={{ cursor: "pointer", ...presentationStyle, ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
     >
       {selected && sectionType ? (
         <div
           className="absolute -left-px top-0 z-40 flex items-center gap-1 rounded-br-md px-2 py-0.5 text-[10px] font-semibold tracking-tight text-white shadow-sm"
-          style={{ background: "#2C6ECB" }}
+          style={{ background: "#111111" }}
         >
           <span aria-hidden className="opacity-80">
             ▦
@@ -231,14 +231,14 @@ function wrapEditorSection(
             <>
               <button
                 type="button"
-                className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
+                className="min-h-7 rounded-lg border border-black/10 bg-white/95 px-2 text-[10px] font-bold text-black shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 onClick={() => editor.onMoveSection?.(sectionId, "up")}
               >
                 ↑
               </button>
               <button
                 type="button"
-                className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
+                className="min-h-7 rounded-lg border border-black/10 bg-white/95 px-2 text-[10px] font-bold text-black shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 onClick={() => editor.onMoveSection?.(sectionId, "down")}
               >
                 ↓
@@ -248,7 +248,7 @@ function wrapEditorSection(
           {editor.onDuplicateSection ? (
             <button
               type="button"
-              className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
+              className="min-h-7 rounded-lg border border-black/10 bg-white/95 px-2 text-[10px] font-bold text-black shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
               onClick={() => editor.onDuplicateSection?.(sectionId)}
             >
               Duplicate
@@ -257,7 +257,7 @@ function wrapEditorSection(
           {editor.onDeleteSection ? (
             <button
               type="button"
-              className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold text-red-600 shadow"
+              className="min-h-7 rounded-lg border border-red-200 bg-white/95 px-2 text-[10px] font-bold text-red-600 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
               onClick={() => {
                 if (typeof window !== "undefined" && window.confirm("Remove this section from the page?")) {
                   editor.onDeleteSection?.(sectionId);
@@ -275,7 +275,7 @@ function wrapEditorSection(
           type="button"
           aria-label="Resize section height"
           title="Drag to resize section"
-          className="absolute bottom-0 left-1/2 z-40 h-3 w-24 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-[#2C6ECB]/40 bg-white shadow"
+          className="absolute bottom-0 left-1/2 z-40 flex h-5 w-24 -translate-x-1/2 translate-y-1/2 cursor-ns-resize items-center justify-center rounded-full border border-[#FF6A00]/35 bg-white shadow-md outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -298,6 +298,7 @@ function wrapEditorSection(
             handle.addEventListener("pointerup", onUp, { once: true });
           }}
         >
+          <span aria-hidden className="h-0.5 w-8 rounded-full bg-[#FF6A00]" />
           <span className="sr-only">Resize section</span>
         </button>
       ) : null}

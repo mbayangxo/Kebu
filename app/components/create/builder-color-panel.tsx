@@ -48,6 +48,15 @@ const DISPLAY_FONTS = [
   "serif",
 ] as const;
 
+const TYPE_PAIRS = [
+  { id: "editorial", label: "Editorial", display: "Cormorant Garamond", body: "Satoshi" },
+  { id: "modern", label: "Modern", display: "Syne", body: "Inter" },
+  { id: "warm", label: "Warm", display: "Fraunces", body: "DM Sans" },
+  { id: "classic", label: "Classic", display: "Playfair Display", body: "Libre Baskerville" },
+  { id: "bold", label: "Bold", display: "Bebas Neue", body: "Manrope" },
+  { id: "quiet", label: "Quiet", display: "Libre Baskerville", body: "Source Sans 3" },
+] as const;
+
 const BODY_FONTS = [
   "Inter",
   "IBM Plex Sans",
@@ -157,9 +166,36 @@ export function BuilderTypographyPanel({
 
   return (
     <div className="space-y-4">
-      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
-        Typography
-      </p>
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.12em]" style={{ color: BUILDER.faint }}>
+          Type direction
+        </p>
+        <p className="mt-1 text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+          Start with a pairing, then tune the display and body faces independently.
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          {TYPE_PAIRS.map((pair) => {
+            const active = theme.fontDisplay === pair.display && theme.fontBody === pair.body;
+            return (
+              <button
+                key={pair.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onThemeChange({ fontDisplay: pair.display, fontBody: pair.body })}
+                className="rounded-xl border p-2.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                style={{
+                  borderColor: active ? "#FF6A00" : BUILDER.border,
+                  background: active ? BUILDER.orangeGlow : "#fff",
+                }}
+              >
+                <span className="block text-[15px] leading-none text-black" style={{ fontFamily: `"${pair.display}", serif` }}>Aa</span>
+                <span className="mt-1.5 block text-[9px] font-black uppercase tracking-[0.08em] text-black/65">{pair.label}</span>
+                <span className="mt-0.5 block truncate text-[9px] text-black/40">{pair.display} + {pair.body}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Display / headings font */}
       <div>
@@ -273,7 +309,7 @@ export function BuilderTypographyPanel({
                 key={id}
                 type="button"
                 onClick={() => onThemeChange({ headingScale: id })}
-                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                className="flex-1 rounded-lg py-2 text-[10px] font-black uppercase outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 style={{
                   background: on ? BUILDER.ink : BUILDER.surfaceMuted,
                   color: on ? "#fff" : BUILDER.ink,
@@ -297,7 +333,7 @@ export function BuilderTypographyPanel({
                 key={id}
                 type="button"
                 onClick={() => onThemeChange({ bodySize: id })}
-                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                className="flex-1 rounded-lg py-2 text-[10px] font-black uppercase outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 style={{
                   background: on ? BUILDER.ink : BUILDER.surfaceMuted,
                   color: on ? "#fff" : BUILDER.ink,
@@ -321,7 +357,7 @@ export function BuilderTypographyPanel({
                 key={id}
                 type="button"
                 onClick={() => onThemeChange({ letterSpacing: id })}
-                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                className="flex-1 rounded-lg py-2 text-[10px] font-black uppercase outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 style={{
                   background: on ? BUILDER.ink : BUILDER.surfaceMuted,
                   color: on ? "#fff" : BUILDER.ink,
@@ -345,7 +381,7 @@ export function BuilderTypographyPanel({
                 key={id}
                 type="button"
                 onClick={() => onThemeChange({ spacing: id })}
-                className="flex-1 rounded-lg py-2 text-[10px] font-bold uppercase"
+                className="flex-1 rounded-lg py-2 text-[10px] font-black uppercase outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 style={{
                   background: on ? BUILDER.ink : BUILDER.surfaceMuted,
                   color: on ? "#fff" : BUILDER.ink,

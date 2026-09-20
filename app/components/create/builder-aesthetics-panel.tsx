@@ -7,7 +7,9 @@ import { BuilderColorPanel, BuilderTypographyPanel } from "@/app/components/crea
 import { BuilderPopupPanel } from "@/app/components/create/builder-popup-panel";
 import { SiteAssetsPanel } from "@/app/components/create/site-assets-panel";
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import { GalaxyPanelHeader } from "@/app/components/galaxy/editor-primitives";
 
 function EditorAccordion({
   title,
@@ -24,8 +26,8 @@ function EditorAccordion({
     <div className="overflow-hidden border-b" style={{ borderColor: BUILDER.border }}>
       <button
         type="button"
-        className="flex w-full items-center justify-between px-0 py-3.5 text-left text-[13px] font-semibold"
-        style={{ background: "transparent", color: BUILDER.ink }}
+        className="flex min-h-11 w-full items-center justify-between px-3 py-3 text-left text-[12px] font-black outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6A00]"
+        style={{ background: open ? BUILDER.orangeGlow : "transparent", color: BUILDER.ink }}
         aria-expanded={open}
         onClick={onToggle}
       >
@@ -34,7 +36,7 @@ function EditorAccordion({
           {open ? "▾" : "▸"}
         </span>
       </button>
-      {open ? <div className="space-y-5 pb-5 pt-1">{children}</div> : null}
+      {open ? <div className="space-y-5 px-3 pb-4 pt-3">{children}</div> : null}
     </div>
   );
 }
@@ -135,12 +137,27 @@ export function BuilderAestheticsPanel({
 
   return (
     <div className="space-y-0">
-      <div className="mb-4 border-b pb-4" style={{ borderColor: BUILDER.border }}>
-        <p className="text-[14px] font-semibold" style={{ color: BUILDER.ink }}>
-          Aesthetic Editor
-        </p>
-        <p className="mt-1 text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
-          Customize colors, fonts, and layout for your entire site.
+      <GalaxyPanelHeader
+        eyebrow="Design system"
+        title="Design"
+        description="Shape the visual language of the entire site, then refine individual sections on the canvas."
+        action={
+          <Link
+            href="/create/aesthetics"
+            className="inline-flex min-h-8 items-center rounded-full border border-black/10 bg-white px-2.5 text-[9px] font-black uppercase tracking-wide text-black outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+          >
+            Aesthetics ↗
+          </Link>
+        }
+      />
+      <div className="border-b border-black/[0.07] px-3 py-3">
+        <div className="grid grid-cols-4 overflow-hidden rounded-xl border border-black/[0.08]">
+          {[theme.background, theme.primary, theme.accent, theme.text].map((color, index) => (
+            <span key={`${color}-${index}`} className="h-8" style={{ background: color }} title={color} />
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-black/45">
+          Site-wide choices stay consistent across pages. Section-level overrides remain local.
         </p>
       </div>
 

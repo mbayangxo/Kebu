@@ -33,6 +33,7 @@ import { BuilderEditablePreview } from "@/app/components/create/builder-editable
 import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
 import { BuilderLayersPanel } from "@/app/components/create/builder-layers-panel";
+import { BuilderAppsPanel } from "@/app/components/create/builder-apps-panel";
 import { BuilderVersionHistoryPanel } from "@/app/components/create/builder-version-history-panel";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
@@ -1406,22 +1407,16 @@ export default function ProjectEditorPage() {
                 />
               )}
 
-              {sidebarTab === "shop" && (
-                <div className="px-4 py-5 space-y-4">
-                  <div>
-                    <p className="text-[13px] font-semibold mb-1" style={{ color: BUILDER.ink }}>Shop</p>
-                    <p className="text-[12px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                      Products, orders, and payments live in Kebu Shop — keep the canvas free for the site.
-                    </p>
-                  </div>
-                  <Link
-                    href={`/shop/${projectId}`}
-                    className="inline-flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-[12px] font-semibold"
-                    style={{ background: BUILDER.ink, color: "#fff" }}
-                  >
-                    Open Shop
-                  </Link>
-                </div>
+              {sidebarTab === "apps" && (
+                <BuilderAppsPanel
+                  projectId={projectId}
+                  sectionTypes={editPageSections.map((section) => section.section_type)}
+                  onAdd={async (type) => {
+                    await addSection(type);
+                    setSidebarTab("content");
+                    setLeftPanelOpen(true);
+                  }}
+                />
               )}
 
               {sidebarTab === "nav" && (
