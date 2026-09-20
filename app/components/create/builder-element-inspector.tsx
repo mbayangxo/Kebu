@@ -3,6 +3,11 @@
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { GalaxyBadge, GalaxyButton, GalaxyInspectorCard } from "@/app/components/galaxy/editor-primitives";
+import {
+  builderLayerStorageKey,
+  patchBuilderLayerPresentation,
+  readBuilderLayerPresentation,
+} from "@/lib/create/builder-layer-model";
 
 export function BuilderElementInspector({
   selection,
@@ -25,23 +30,9 @@ export function BuilderElementInspector({
   onResetResponsive: (keys: readonly string[]) => void;
   onAskAi: () => void;
 }) {
-  const storageKey = selection.elementId.startsWith("extra:")
-    ? selection.elementId.slice("extra:".length)
-    : selection.elementId;
-  const scales =
-    (sectionProps.layerScales as Record<string, number> | undefined) ?? {};
-  const zIndexes =
-    (sectionProps.layerZIndex as Record<string, number> | undefined) ?? {};
-  const scale = typeof scales[storageKey] === "number" ? scales[storageKey]! : 1;
-  const zIndex = typeof zIndexes[storageKey] === "number" ? zIndexes[storageKey]! : 10;
-  const opacityMap = (sectionProps.layerOpacity as Record<string, number> | undefined) ?? {};
-  const rotationMap = (sectionProps.layerRotation as Record<string, number> | undefined) ?? {};
-  const lockedLayers = Array.isArray(sectionProps.lockedLayers)
-    ? (sectionProps.lockedLayers as string[])
-    : [];
-  const opacity = typeof opacityMap[storageKey] === "number" ? opacityMap[storageKey]! : 1;
-  const rotation = typeof rotationMap[storageKey] === "number" ? rotationMap[storageKey]! : 0;
-  const locked = lockedLayers.includes(storageKey);
+  const storageKey = builderLayerStorageKey(selection.elementId);
+  const presentation = readBuilderLayerPresentation(sectionProps, storageKey);
+  const { scale, zIndex, opacity, rotation, locked } = presentation;
 
   const responsiveKeys =
     selection.elementId === "titleLogo"
@@ -78,23 +69,11 @@ export function BuilderElementInspector({
                 "lockedLayers",
               ];
 
-  const patchScale = (next: number) => {
-    onPatch({
-      layerScales: {
-        ...scales,
-        [storageKey]: Math.min(3, Math.max(0.15, next)),
-      },
-    });
-  };
+  const patchScale = (next: number) =>
+    onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { scale: next }));
 
-  const patchZ = (next: number) => {
-    onPatch({
-      layerZIndex: {
-        ...zIndexes,
-        [storageKey]: Math.min(80, Math.max(1, Math.round(next))),
-      },
-    });
-  };
+  const patchZ = (next: number) =>
+    onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { zIndex: next }));
 
   return (
     <div className="space-y-4 px-4 py-4">
@@ -479,12 +458,11 @@ export function BuilderElementInspector({
                 step="0.05"
                 value={opacity}
                 onChange={(event) =>
-                  onPatch({
-                    layerOpacity: {
-                      ...opacityMap,
-                      [storageKey]: Math.min(1, Math.max(0, Number(event.target.value))),
-                    },
-                  })
+                  onPatch(
+                    patchBuilderLayerPresentation(sectionProps, storageKey, {
+                      opacity: Number(event.target.value),
+                    }),
+                  )
                 }
               />
               <span className="w-10 text-right text-[11px] text-black/55">
@@ -504,12 +482,11 @@ export function BuilderElementInspector({
                 step="1"
                 value={rotation}
                 onChange={(event) =>
-                  onPatch({
-                    layerRotation: {
-                      ...rotationMap,
-                      [storageKey]: Math.min(180, Math.max(-180, Number(event.target.value))),
-                    },
-                  })
+                  onPatch(
+                    patchBuilderLayerPresentation(sectionProps, storageKey, {
+                      rotation: Number(event.target.value),
+                    }),
+                  )
                 }
               />
               <input
@@ -520,12 +497,11 @@ export function BuilderElementInspector({
                 step="1"
                 value={rotation}
                 onChange={(event) =>
-                  onPatch({
-                    layerRotation: {
-                      ...rotationMap,
-                      [storageKey]: Math.min(180, Math.max(-180, Number(event.target.value) || 0)),
-                    },
-                  })
+                  onPatch(
+                    patchBuilderLayerPresentation(sectionProps, storageKey, {
+                      rotation: Number(event.target.value) || 0,
+                    }),
+                  )
                 }
                 aria-label="Layer rotation"
               />
@@ -536,11 +512,11 @@ export function BuilderElementInspector({
             type="button"
             className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
             onClick={() =>
-              onPatch({
-                lockedLayers: locked
-                  ? lockedLayers.filter((key) => key !== storageKey)
-                  : [...new Set([...lockedLayers, storageKey])],
-              })
+              onPatch(
+                patchBuilderLayerPresentation(sectionProps, storageKey, {
+                  locked: !locked,
+                }),
+              )
             }
           >
             {locked ? "Unlock layer" : "Lock layer"}
