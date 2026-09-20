@@ -43,6 +43,7 @@ import {
 import { mediaFilterCss } from "@/lib/studio/media-adjustments";
 import { layerMotionAtTime } from "@/lib/studio/layer-motion";
 import { fillFrameWithAsset, mediaLayerFromAsset, type StudioDroppedAsset } from "@/lib/studio/asset-canvas-operations";
+import { studioLayerFillCss, STUDIO_BLEND_MODES } from "@/lib/studio/layer-paint";
 import {
   cssStackForStudioFont,
   googleFontsHrefForStudioCatalog,
@@ -896,6 +897,7 @@ export function StudioCanvasEditor({
                       height: layer.height,
                       transform: `translate(${motion.translateX}px, ${motion.translateY}px) rotate(${layer.rotation}deg) scale(${motion.scale})`,
                       opacity: layer.opacity * motion.opacityMultiplier,
+                      mixBlendMode: layer.blendMode && layer.blendMode !== "normal" ? layer.blendMode : undefined,
                       borderRadius: layer.cornerRadius ?? 0,
                       filter:
                         (layer.shadowBlur ?? 0) > 0 || (layer.shadowX ?? 0) !== 0 || (layer.shadowY ?? 0) !== 0
@@ -992,7 +994,7 @@ export function StudioCanvasEditor({
                     ) : layer.type === "ellipse" ? (
                       <div
                         className="w-full h-full rounded-full pointer-events-none"
-                        style={{ background: layer.fill }}
+                        style={{ background: studioLayerFillCss(layer) }}
                       />
                     ) : layer.type === "line" ? (
                       <><div
@@ -1038,7 +1040,7 @@ export function StudioCanvasEditor({
                         {layer.text || "★"}
                       </div>
                     ) : (
-                      <div className="w-full h-full pointer-events-none" style={{ background: layer.fill }} />
+                      <div className="w-full h-full pointer-events-none" style={{ background: studioLayerFillCss(layer) }} />
                     )}
                     {selectedOn && !layer.locked && selectedLayerIds.length === 1 ? (
                       <>
@@ -1313,17 +1315,68 @@ export function StudioCanvasEditor({
                   </div>
                 </GalaxyInspectorSection>
               ) : null}
-              {(selected.type === "rect" || selected.type === "ellipse") && (
-                <label className="block font-semibold">
-                  Fill
-                  <input
-                    type="color"
-                    value={selected.fill ?? "#E05A2B"}
-                    onChange={(e) => updateLayer(selected.id, { fill: e.target.value })}
-                    className="mt-1 w-full h-9 rounded-lg border border-black/10"
-                  />
-                </label>
-              )}
+              {(selected.type === "rect" || selected.type === "ellipse") ? (
+                <GalaxyInspectorSection title="Fill">
+                  <label className="block font-semibold">
+                    Type
+                    <select
+                      value={selected.fillType ?? "solid"}
+                      onChange={(e) => updateLayer(selected.id, { fillType: e.target.value as CanvasLayer["fillType"] })}
+                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    >
+                      <option value="solid">Solid</option>
+                      <option value="linear_gradient">Linear gradient</option>
+                    </select>
+                  </label>
+                  {(selected.fillType ?? "solid") === "solid" ? (
+                    <label className="block font-semibold">
+                      Color
+                      <input
+                        type="color"
+                        value={selected.fill ?? "#E05A2B"}
+                        onChange={(e) => updateLayer(selected.id, { fill: e.target.value })}
+                        className="mt-1 h-9 w-full rounded-lg border border-black/10"
+                      />
+                    </label>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block font-semibold">
+                          From
+                          <input
+                            type="color"
+                            value={selected.gradientFrom ?? selected.fill ?? "#FF6A00"}
+                            onChange={(e) => updateLayer(selected.id, { gradientFrom: e.target.value })}
+                            className="mt-1 h-9 w-full rounded-lg border border-black/10"
+                          />
+                        </label>
+                        <label className="block font-semibold">
+                          To
+                          <input
+                            type="color"
+                            value={selected.gradientTo ?? "#FF1F1F"}
+                            onChange={(e) => updateLayer(selected.id, { gradientTo: e.target.value })}
+                            className="mt-1 h-9 w-full rounded-lg border border-black/10"
+                          />
+                        </label>
+                      </div>
+                      <label className="block font-semibold">
+                        Angle · {Math.round(selected.gradientAngle ?? 135)}°
+                        <input
+                          type="range"
+                          min={-180}
+                          max={180}
+                          step={1}
+                          value={selected.gradientAngle ?? 135}
+                          onChange={(e) => updateLayer(selected.id, { gradientAngle: Number(e.target.value) })}
+                          className="mt-1 w-full"
+                        />
+                      </label>
+                      <div className="h-10 rounded-lg border border-black/10" style={{ background: studioLayerFillCss(selected) }} />
+                    </>
+                  )}
+                </GalaxyInspectorSection>
+              ) : null}
               {selected.type==="frame"?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Frame media</p><p className="text-[10px] opacity-55">{selected.frameMediaUrl?"Drop another image/video to replace it.":"Select this frame, then drag media from the library onto the canvas."}</p>{selected.frameMediaUrl?<><label className="block font-semibold">Horizontal focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalX??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalX:Number(e.target.value)/100})} className="w-full"/></label><label className="block font-semibold">Vertical focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalY??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalY:Number(e.target.value)/100})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{frameMediaUrl:null,frameMediaKind:null,sourceAssetId:null})} className="text-[11px] underline">Remove frame media</button></>:null}</div>:null}
               {brandSpace?<GalaxyInspectorSection title="Brand Space"><div className="space-y-2"><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-black/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-black/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div></GalaxyInspectorSection>:null}
               {selected.type === "image" ? (
@@ -1515,6 +1568,16 @@ export function StudioCanvasEditor({
                 ))}
               </div>
               <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Effects</p>
+              <label className="block font-semibold">
+                Blend
+                <select
+                  value={selected.blendMode ?? "normal"}
+                  onChange={(e) => updateLayer(selected.id, { blendMode: e.target.value as CanvasLayer["blendMode"] })}
+                  className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                >
+                  {STUDIO_BLEND_MODES.map((mode) => <option key={mode} value={mode}>{mode === "normal" ? "Normal" : mode.replace("-", " ")}</option>)}
+                </select>
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block font-semibold">
                   Corner
