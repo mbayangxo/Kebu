@@ -65,10 +65,13 @@ export function designDocumentToComposition(doc: CanvasDocument): StudioComposit
   let cursor=0;
   const clips: CompositionClip[]=[];
   const keyframes: StudioComposition["keyframes"]=[];
+  const transitions: StudioComposition["transitions"]=[];
   const storyboard=[] as StudioComposition["storyboard"];
+  const sceneRepresentativeClipIds: Array<string | null>=[];
   for (let pi=0;pi<doc.pages.length;pi+=1) {
     const page=doc.pages[pi]!, duration=page.durationMs??3000, sceneId=newCompositionId("scene");
     storyboard.push({id:sceneId,name:page.name||`Scene ${pi+1}`,intent:"Editable Kebu design scene",durationMs:duration,order:pi});
+    let representativeClipId: string | null = null;
     for (let li=0;li<page.layers.length;li+=1) {
       const layer=page.layers[li]!;
       const trackId=layer.type==="text"?textTrack.id:visualTrack.id;
@@ -80,9 +83,27 @@ export function designDocumentToComposition(doc: CanvasDocument): StudioComposit
         chromaEnabled:false,chromaColor:"#00FF00",chromaSimilarity:.4,brightness:0,contrast:0,saturation:0,nestedProjectId:null,
       });
       keyframes.push(...designMotionKeyframes(layer,clipId,cursor));
+      if (!representativeClipId) representativeClipId = clipId;
     }
+    sceneRepresentativeClipIds.push(representativeClipId);
     cursor+=duration;
   }
-  c={...c,clips,keyframes,storyboard,music:doc.soundtrack?{bpm:doc.soundtrack.bpm,beatsMs:doc.soundtrack.beatsMs,downbeatsMs:[],sections:[],confidence:doc.soundtrack.confidence,method:"design",soundtrackUrl:doc.soundtrack.url,fileName:doc.soundtrack.fileName,durationMs:doc.soundtrack.durationMs,peaks:[],energyMs:[],energyValues:[],analyzedAt:doc.soundtrack.analyzedAt}:null,snapToBeats:doc.soundtrack?.snapToBeats??true};
+
+  for (let pi=1;pi<doc.pages.length;pi+=1) {
+    const page=doc.pages[pi]!;
+    const kind=page.transitionKind??"cut";
+    const fromClipId=sceneRepresentativeClipIds[pi-1];
+    const toClipId=sceneRepresentativeClipIds[pi];
+    if (kind==="cut"||!fromClipId||!toClipId) continue;
+    transitions.push({
+      id:newCompositionId("trn"),
+      fromClipId,
+      toClipId,
+      kind,
+      durationMs:Math.max(100,Math.min(3000,page.transitionDurationMs??400)),
+    });
+  }
+
+  c={...c,clips,keyframes,transitions,storyboard,music:doc.soundtrack?{bpm:doc.soundtrack.bpm,beatsMs:doc.soundtrack.beatsMs,downbeatsMs:[],sections:[],confidence:doc.soundtrack.confidence,method:"design",soundtrackUrl:doc.soundtrack.url,fileName:doc.soundtrack.fileName,durationMs:doc.soundtrack.durationMs,peaks:[],energyMs:[],energyValues:[],analyzedAt:doc.soundtrack.analyzedAt}:null,snapToBeats:doc.soundtrack?.snapToBeats??true};
   return studioCompositionSchema.parse(c);
 }
