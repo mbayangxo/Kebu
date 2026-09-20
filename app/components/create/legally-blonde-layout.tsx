@@ -807,6 +807,7 @@ export function LegallyBlondeHeroLayout({
       <SiteThemeFonts
         fontDisplay={props.displayFont && props.displayFont !== "Steelfish" ? props.displayFont : "Oswald"}
         fontBody="system-ui"
+        extraFamilies={props.titleTextFontFamily ? [props.titleTextFontFamily] : []}
       />
       <EditableSocialRail
         links={props.socialLinks ?? []}
