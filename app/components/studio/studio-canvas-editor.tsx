@@ -199,6 +199,7 @@ export function StudioCanvasEditor({
   const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "themes" | "brand" | "tools">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"library" | "inspector" | null>(null);
+  const [draggedLayerId, setDraggedLayerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!STUDIO_FONTS_HREF) return;
@@ -549,6 +550,19 @@ export function StudioCanvasEditor({
     onSelectLayers(copies.map((c) => c.id));
   }
 
+  function reorderLayerByDisplayTarget(dragId: string, targetId: string) {
+    if (readOnly || dragId === targetId) return;
+    const display = [...layers].reverse();
+    const from = display.findIndex((layer) => layer.id === dragId);
+    const target = display.findIndex((layer) => layer.id === targetId);
+    if (from < 0 || target < 0) return;
+    const nextDisplay = [...display];
+    const [moved] = nextDisplay.splice(from, 1);
+    const adjustedTarget = from < target ? target - 1 : target;
+    nextDisplay.splice(adjustedTarget, 0, moved!);
+    setPageLayers(nextDisplay.reverse());
+  }
+
   function moveLayerZ(id: string, dir: -1 | 1) {
     const idx = layers.findIndex((l) => l.id === id);
     const next = idx + dir;
@@ -882,11 +896,42 @@ export function StudioCanvasEditor({
               <div className="space-y-2">
                 <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em]">Layers</p><p className="text-[9px] text-white/40">Top layer appears first</p></div><span className="rounded-full bg-white/[.06] px-2 py-1 text-[9px] font-bold">{layers.length}</span></div>
                 <ul className="space-y-1">{[...layers].reverse().map((l) => (
-                  <li key={l.id} className={`group flex items-center rounded-xl border ${selectedSet.has(l.id)?"border-black bg-white text-black":"border-transparent hover:border-white/10 hover:bg-[#17181B]"}`}>
+                  <li
+                    key={l.id}
+                    draggable={!readOnly}
+                    onDragStart={(event) => {
+                      if (readOnly) return;
+                      setDraggedLayerId(l.id);
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/x-kebu-studio-layer", l.id);
+                    }}
+                    onDragOver={(event) => {
+                      if (!readOnly && draggedLayerId && draggedLayerId !== l.id) {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                      }
+                    }}
+                    onDrop={(event) => {
+                      if (readOnly) return;
+                      event.preventDefault();
+                      const source = draggedLayerId || event.dataTransfer.getData("text/x-kebu-studio-layer");
+                      if (source) reorderLayerByDisplayTarget(source, l.id);
+                      setDraggedLayerId(null);
+                    }}
+                    onDragEnd={() => setDraggedLayerId(null)}
+                    className={`group flex items-center rounded-xl border ${selectedSet.has(l.id)?"border-black bg-white text-black":"border-transparent hover:border-white/10 hover:bg-[#17181B]"} ${draggedLayerId===l.id?"opacity-45":""}`}
+                  >
+                    {!readOnly ? <span className="cursor-grab px-1.5 text-[10px] opacity-35" aria-hidden>⋮⋮</span> : null}
                     <button type="button" onClick={(e)=>selectLayer(l,e.shiftKey)} className="min-w-0 flex-1 px-2.5 py-2 text-left">
-                      <span className="block truncate text-[10px] font-bold">{l.name}</span><span className="text-[8px] opacity-45">{l.type}{l.groupId?" · grouped":""}</span>
+                      <span className={`block truncate text-[10px] font-bold ${l.hidden?"line-through opacity-45":""}`}>{l.name}</span>
+                      <span className="text-[8px] opacity-45">{l.type}{l.groupId?" · grouped":""}{l.hidden?" · hidden":""}</span>
                     </button>
-                    {!readOnly?<button type="button" title={l.locked?"Unlock layer":"Lock layer"} onClick={()=>updateLayer(l.id,{locked:!l.locked})} className="mr-1 rounded-lg px-2 py-2 text-[10px] opacity-55 hover:bg-[#17181B]/10">{l.locked?"🔒":"○"}</button>:null}
+                    {!readOnly ? (
+                      <>
+                        <button type="button" title={l.hidden?"Show layer":"Hide layer"} onClick={()=>updateLayer(l.id,{hidden:!l.hidden})} className="rounded-lg px-2 py-2 text-[10px] opacity-55 hover:bg-[#17181B]/10">{l.hidden?"◌":"◉"}</button>
+                        <button type="button" title={l.locked?"Unlock layer":"Lock layer"} onClick={()=>updateLayer(l.id,{locked:!l.locked})} className="mr-1 rounded-lg px-2 py-2 text-[10px] opacity-55 hover:bg-[#17181B]/10">{l.locked?"🔒":"○"}</button>
+                      </>
+                    ) : null}
                   </li>))}
                 </ul>
               </div>
@@ -942,6 +987,7 @@ export function StudioCanvasEditor({
               }}
             >
               {layers.map((layer) => {
+                if (layer.hidden) return null;
                 const selectedOn = selectedSet.has(layer.id);
                 const motion = layerMotionAtTime(layer, previewLocalMs);
                 return (

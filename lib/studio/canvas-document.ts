@@ -28,6 +28,7 @@ export const canvasLayerSchema = z.object({
   rotation: z.number().min(-360).max(360).default(0),
   opacity: z.number().min(0).max(1).default(1),
   locked: z.boolean().optional().default(false),
+  hidden: z.boolean().optional().default(false),
   /** Shared id = group (move/align/delete together) */
   groupId: z.string().trim().max(40).nullable().optional(),
   text: z.string().trim().max(500).optional(),
@@ -979,7 +980,7 @@ export function exportCanvasToPngDataUrl(
   ctx.fillStyle = page.backgroundColor;
   ctx.fillRect(0, 0, page.width, page.height);
   for (const layer of page.layers) {
-    if (layer.opacity <= 0) continue;
+    if (layer.hidden || layer.opacity <= 0) continue;
     ctx.save();
     ctx.globalAlpha = layer.opacity;
     ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
@@ -1062,7 +1063,7 @@ export async function exportCanvasToPngDataUrlAsync(
   const cache = opts?.videoCache;
 
   for (const layer of page.layers) {
-    if (layer.opacity <= 0) continue;
+    if (layer.hidden || layer.opacity <= 0) continue;
     const motion = layerMotionAtTime(layer, pageLocal);
     if (motion.opacityMultiplier <= 0) continue;
     ctx.save();
