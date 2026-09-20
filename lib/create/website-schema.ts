@@ -1062,6 +1062,9 @@ export const sectionPropsSchemas = {
     scrollMode: z.enum(["viewport", "parallax"]).optional().default("parallax"),
     /** false = use titleLogo image (May Lècor circle seal); true = CircularBrandRing text. */
     titleAsText: z.boolean().optional().default(false),
+    /** Embedded May footer spacing; editor can resize this without affecting the hero artboard. */
+    embeddedFooterPaddingTop: z.number().int().min(8).max(160).optional().default(20),
+    embeddedFooterPaddingBottom: z.number().int().min(8).max(160).optional().default(20),
     hidden: z.boolean().optional(),
   }),
   "kdirection-home": z.object({
