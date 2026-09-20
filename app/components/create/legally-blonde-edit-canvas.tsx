@@ -143,6 +143,9 @@ export function LegallyBlondeEditCanvas({
   const motions = (props.layerMotions as Record<string, LayerMotion>) ?? {};
   const layerLinks = (props.layerLinks as Record<string, string>) ?? {};
   const layerZ = (props.layerZIndex as Record<string, number>) ?? {};
+  const layerOpacity = (props.layerOpacity as Record<string, number>) ?? {};
+  const layerRotation = (props.layerRotation as Record<string, number>) ?? {};
+  const lockedLayers = Array.isArray(props.lockedLayers) ? (props.lockedLayers as string[]) : [];
 
   function stepLayer(key: string, delta: -1 | 1) {
     const current = typeof layerZ[key] === "number" ? layerZ[key]! : 10;
@@ -497,6 +500,9 @@ export function LegallyBlondeEditCanvas({
               onLinkChange={(href) => saveLayerLink(slot.key, href)}
               onOpenLink={() => openCutoutLink(layerLinks[slot.key] ?? "")}
               zIndex={typeof layerZ[slot.key] === "number" ? layerZ[slot.key]! : 10}
+              opacity={typeof layerOpacity[slot.key] === "number" ? layerOpacity[slot.key]! : 1}
+              rotation={typeof layerRotation[slot.key] === "number" ? layerRotation[slot.key]! : slot.rotate ?? 0}
+              locked={lockedLayers.includes(slot.key)}
               onBringFront={() => bumpLayer(slot.key, "front")}
               onBringForward={() => stepLayer(slot.key, 1)}
               onSendBackward={() => stepLayer(slot.key, -1)}
@@ -587,6 +593,9 @@ export function LegallyBlondeEditCanvas({
                 }}
                 onOpenLink={() => openCutoutLink(cut.href ?? "")}
                 zIndex={typeof layerZ[cut.id] === "number" ? layerZ[cut.id]! : 10}
+                opacity={typeof layerOpacity[cut.id] === "number" ? layerOpacity[cut.id]! : 1}
+                rotation={typeof layerRotation[cut.id] === "number" ? layerRotation[cut.id]! : cut.rotate ?? 0}
+                locked={lockedLayers.includes(cut.id)}
                 onBringFront={() => bumpLayer(cut.id, "front")}
                 onBringForward={() => stepLayer(cut.id, 1)}
                 onSendBackward={() => stepLayer(cut.id, -1)}
@@ -761,6 +770,9 @@ function CutoutChip({
   onReplaceImage,
   onDelete,
   zIndex = 10,
+  opacity = 1,
+  rotation,
+  locked = false,
   onBringFront,
   onBringForward,
   onSendBackward,
@@ -802,6 +814,9 @@ function CutoutChip({
   onReplaceImage?: () => void;
   onDelete?: () => void;
   zIndex?: number;
+  opacity?: number;
+  rotation?: number;
+  locked?: boolean;
   onBringFront?: () => void;
   onBringForward?: () => void;
   onSendBackward?: () => void;
@@ -819,7 +834,7 @@ function CutoutChip({
     return () => window.removeEventListener("pointerdown", close);
   }, [ctxMenu]);
 
-  const baseRotate = slot.rotate ?? 0;
+  const baseRotate = rotation ?? slot.rotate ?? 0;
   const scrollTransform =
     scrollProgress > 0 && !pauseMotion
       ? cutoutScrollTransform(slot.key, scrollProgress, baseRotate)
@@ -830,6 +845,11 @@ function CutoutChip({
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     const t = e.target as HTMLElement;
     if (t.dataset?.resize === "1" || t.closest?.("[data-resize='1']")) return;
+    if (locked) {
+      e.stopPropagation();
+      onSelect();
+      return;
+    }
     if (t.closest?.("[data-chip-toolbar='1']")) return;
     if (t.closest?.("[data-link-field='1']")) return;
     if (titleEditing && t.closest?.("[data-title-edit='1']")) return;
@@ -908,6 +928,7 @@ function CutoutChip({
     e.stopPropagation();
     e.preventDefault();
     onSelect();
+    if (locked) return;
     const chip = e.currentTarget.parentElement as HTMLElement | null;
     const parent = chip?.offsetParent as HTMLElement | null;
     if (!parent || !chip) return;
@@ -997,6 +1018,7 @@ function CutoutChip({
         userSelect: "none",
         WebkitUserSelect: "none",
         filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.25))",
+        opacity,
         outline: selected || titleEditing ? "2px solid #FF5500" : undefined,
         outlineOffset: 3,
       }}
@@ -1016,6 +1038,7 @@ function CutoutChip({
       tabIndex={0}
       onKeyDown={(event) => {
         if (!selected && !titleEditing) return;
+        if (locked) return;
         if ((event.key === "Delete" || event.key === "Backspace") && onDelete) {
           event.preventDefault();
           onDelete();
@@ -1155,7 +1178,7 @@ function CutoutChip({
       </div>
 
       {/* Shopify-style corner handles — drag with the mouse to make bigger / smaller */}
-      {(selected || titleEditing) ? (
+      {(selected || titleEditing) && !locked ? (
         <>
           <button
             type="button"
