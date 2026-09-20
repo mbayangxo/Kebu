@@ -14,7 +14,7 @@ describe("Studio video persistence safety", () => {
     const page = readFileSync(join(process.cwd(), "app/studio/video/[id]/page.tsx"), "utf8");
     expect(page).toContain('setSaveState("offline")');
     expect(page).toContain("Offline — changes not synced");
-    expect(page).toContain("Sync conflict — reload required");
+    expect(page).toContain("Sync conflict — choose a version");
     expect(page).toContain("expectedUpdatedAt");
   });
 });
