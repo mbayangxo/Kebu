@@ -60,6 +60,7 @@ export default function StudioVideoEditorPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
+  const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [pxPerSec, setPxPerSec] = useState(60);
@@ -1117,9 +1118,7 @@ export default function StudioVideoEditorPage() {
 
           {tracks.map((track) => (
             <div key={track.id} className="flex items-stretch gap-1 mb-1">
-              <div className="w-14 shrink-0 text-[10px] font-semibold opacity-60 flex items-center px-1">
-                {track.name}
-              </div>
+              <div className="w-14 shrink-0 text-[9px] font-semibold flex items-center gap-0.5 px-0.5"><span className="min-w-0 flex-1 truncate opacity-60">{track.name}</span><button type="button" title={track.muted?"Unmute":"Mute"} onClick={()=>applyComp(setTrackState(comp,track.id,{muted:!track.muted}))} className={track.muted?"text-amber-300":"opacity-40"}>{track.muted?"M":"m"}</button><button type="button" title={track.locked?"Unlock":"Lock"} onClick={()=>applyComp(setTrackState(comp,track.id,{locked:!track.locked}))} className={track.locked?"text-orange-300":"opacity-40"}>{track.locked?"L":"l"}</button></div>
               <div
                 className="relative h-10 flex-1 rounded bg-black/40 border border-white/5"
                 style={{ width: (totalMs / 1000) * pxPerSec }}
@@ -1132,26 +1131,14 @@ export default function StudioVideoEditorPage() {
                       key={clip.id}
                       clip={clip}
                       pxPerSec={pxPerSec}
-                      selected={clip.id === selectedClipId}
+                      selected={selectedClipIds.includes(clip.id) || clip.id === selectedClipId}
                       locked={track.locked}
-                      onSelect={() => setSelectedClipId(clip.id)}
+                      onSelect={(additive) => {setSelectedClipId(clip.id);setSelectedClipIds(prev=>additive?(prev.includes(clip.id)?prev.filter(id=>id!==clip.id):[...prev,clip.id]):linkedClipIds(comp,clip.id));}}
                       onGestureStart={beginTimelineGesture}
                       onGestureEnd={commitTimelineGesture}
-                      onMove={(startMs) => {
-                        const snapped = maybeSnapTime(compRef.current ?? comp, Math.max(0, startMs));
-                        const current = compRef.current ?? comp;
-                        const next = updateClip(current, clip.id, { startMs: snapped });
-                        if (!("error" in next)) applyTimelineGesture(next);
-                      }}
-                      onTrim={(durationMs) => {
-                        const current = compRef.current ?? comp;
-                        const currentClip = current.clips.find((item) => item.id === clip.id) ?? clip;
-                        const end = maybeSnapTime(current, currentClip.startMs + Math.max(200, durationMs));
-                        const next = updateClip(current, clip.id, {
-                          durationMs: Math.max(200, end - currentClip.startMs),
-                        });
-                        if (!("error" in next)) applyTimelineGesture(next);
-                      }}
+                      onMove={(startMs) => {const current=compRef.current??comp;const currentClip=current.clips.find(x=>x.id===clip.id)??clip;const ids=selectedClipIds.includes(clip.id)?selectedClipIds:linkedClipIds(current,clip.id);const next=moveClips(current,ids,startMs-currentClip.startMs);if(!("error" in next))applyTimelineGesture(next);}}
+                      onTrim={(edge,deltaMs) => {const current=compRef.current??comp;const next=trimClipEdge(current,clip.id,edge,deltaMs,{ripple:rippleEditing});if(!("error" in next))applyTimelineGesture(next);}}
+                      onSlip={(deltaMs)=>{const current=compRef.current??comp;const next=slipClip(current,clip.id,deltaMs);if(!("error" in next))applyTimelineGesture(next);}}
                     />
                   ))}
               </div>
@@ -1188,18 +1175,20 @@ function TimelineClipBlock({
   onGestureEnd,
   onMove,
   onTrim,
+  onSlip,
 }: {
   clip: CompositionClip;
   pxPerSec: number;
   selected: boolean;
   locked: boolean;
-  onSelect: () => void;
+  onSelect: (additive: boolean) => void;
   onGestureStart: () => void;
   onGestureEnd: () => void;
   onMove: (startMs: number) => void;
-  onTrim: (durationMs: number) => void;
+  onTrim: (edge: "left"|"right", deltaMs: number) => void;
+  onSlip: (deltaMs:number)=>void;
 }) {
-  const drag = useRef<{ mode: "move" | "trim"; originX: number; startMs: number; durationMs: number } | null>(
+  const drag = useRef<{ mode: "move" | "trim-left" | "trim-right" | "slip"; originX: number; startMs: number; durationMs: number } | null>(
     null,
   );
 
@@ -1209,14 +1198,14 @@ function TimelineClipBlock({
       tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
-        onSelect();
+        onSelect(e.metaKey || e.ctrlKey || e.shiftKey);
       }}
       onPointerDown={(e) => {
         if (locked || e.button !== 0) return;
         e.stopPropagation();
-        onSelect();
+        onSelect(e.metaKey || e.ctrlKey || e.shiftKey);
         onGestureStart();
-        const mode = (e.target as HTMLElement).dataset.handle === "trim" ? "trim" : "move";
+        const handle=(e.target as HTMLElement).dataset.handle; const mode=e.altKey?"slip":handle==="trim-left"?"trim-left":handle==="trim-right"?"trim-right":"move";
         drag.current = {
           mode,
           originX: e.clientX,
@@ -1229,8 +1218,7 @@ function TimelineClipBlock({
         if (!drag.current) return;
         const dx = e.clientX - drag.current.originX;
         const dMs = Math.round((dx / pxPerSec) * 1000);
-        if (drag.current.mode === "move") onMove(drag.current.startMs + dMs);
-        else onTrim(drag.current.durationMs + dMs);
+        if(drag.current.mode==="move")onMove(drag.current.startMs+dMs);else if(drag.current.mode==="slip")onSlip(dMs);else onTrim(drag.current.mode==="trim-left"?"left":"right",dMs);
       }}
       onPointerUp={() => {
         if (drag.current) onGestureEnd();
@@ -1253,7 +1241,7 @@ function TimelineClipBlock({
       {(clip.fadeInMs > 0 || clip.fadeOutMs > 0) && (
         <span className="absolute inset-y-0 left-0 w-1 bg-white/40 rounded-l" />
       )}
-      <span data-handle="trim" className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/30" />
+      <span data-handle="trim-left" className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/30" /><span data-handle="trim-right" className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/30" />
     </div>
   );
 }
