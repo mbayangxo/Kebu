@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { mediaFilterCss } from "@/lib/studio/media-adjustments";
+import { layerMotionAtTime } from "@/lib/studio/layer-motion";
 
 export const CANVAS_DOC_VERSION = 2 as const;
 
@@ -1052,12 +1053,15 @@ export async function exportCanvasToPngDataUrlAsync(
 
   for (const layer of page.layers) {
     if (layer.opacity <= 0) continue;
+    const motion = layerMotionAtTime(layer, pageLocal);
+    if (motion.opacityMultiplier <= 0) continue;
     ctx.save();
-    ctx.globalAlpha = layer.opacity;
+    ctx.globalAlpha = layer.opacity * motion.opacityMultiplier;
     const cx = layer.x + layer.width / 2;
     const cy = layer.y + layer.height / 2;
-    ctx.translate(cx, cy);
+    ctx.translate(cx + motion.translateX, cy + motion.translateY);
     ctx.rotate((layer.rotation * Math.PI) / 180);
+    ctx.scale(motion.scale, motion.scale);
     ctx.translate(-cx, -cy);
     applyLayerShadow(ctx, layer);
     const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
