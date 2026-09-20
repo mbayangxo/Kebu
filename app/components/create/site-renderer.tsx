@@ -270,6 +270,37 @@ function wrapEditorSection(
         </div>
       ) : null}
       {children}
+      {selected && editor.onPatchSection && !structural ? (
+        <button
+          type="button"
+          aria-label="Resize section height"
+          title="Drag to resize section"
+          className="absolute bottom-0 left-1/2 z-40 h-3 w-24 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-[#2C6ECB]/40 bg-white shadow"
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const handle = event.currentTarget;
+            handle.setPointerCapture(event.pointerId);
+            const sectionNode = handle.parentElement;
+            const startY = event.clientY;
+            const startHeight = sectionNode?.getBoundingClientRect().height ?? 0;
+            const onMove = (move: PointerEvent) => {
+              if (sectionNode) sectionNode.style.minHeight = `${Math.max(0, startHeight + move.clientY - startY)}px`;
+            };
+            const onUp = (up: PointerEvent) => {
+              handle.releasePointerCapture(up.pointerId);
+              handle.removeEventListener("pointermove", onMove);
+              handle.removeEventListener("pointerup", onUp);
+              const next = Math.round(Math.max(0, startHeight + up.clientY - startY));
+              editor.onPatchSection?.(sectionId, { minHeightPx: Math.min(4000, next) });
+            };
+            handle.addEventListener("pointermove", onMove);
+            handle.addEventListener("pointerup", onUp, { once: true });
+          }}
+        >
+          <span className="sr-only">Resize section</span>
+        </button>
+      ) : null}
     </div>
   );
 }
