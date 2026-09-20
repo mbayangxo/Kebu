@@ -383,14 +383,14 @@ export function BuilderElementInspector({
               Font size
               <input
                 type="number"
-                min="8"
-                max="48"
+                min="6"
+                max="240"
                 step="1"
                 className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={Number(sectionProps.titleTextFontSize ?? 14)}
                 onChange={(event) =>
                   onPatch({
-                    titleTextFontSize: Math.min(48, Math.max(8, Number(event.target.value) || 14)),
+                    titleTextFontSize: Math.min(240, Math.max(6, Number(event.target.value) || 14)),
                   })
                 }
               />

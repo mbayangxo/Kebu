@@ -2215,6 +2215,7 @@ export function SiteRenderer({
                 y: number;
                 width: number;
                 fontSize: "sm" | "md" | "lg" | "xl" | "hero";
+                fontSizePx?: number;
                 align: "left" | "center" | "right";
                 color?: string;
                 fontFamily?: string;
@@ -2247,7 +2248,7 @@ export function SiteRenderer({
                       top: `${block.y}%`,
                       width: `${block.width}%`,
                       textAlign: block.align,
-                      fontSize: fontSizeMap[block.fontSize] ?? fontSizeMap.md,
+                      fontSize: block.fontSizePx ? `${Math.min(240, Math.max(6, block.fontSizePx))}px` : fontSizeMap[block.fontSize] ?? fontSizeMap.md,
                       fontFamily: block.fontFamily
                         ? cssFontStack(block.fontFamily)
                         : cssFontStack(theme.fontDisplay),

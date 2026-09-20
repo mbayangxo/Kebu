@@ -918,6 +918,8 @@ export const sectionPropsSchemas = {
             y: z.number().min(0).max(100).default(8),
             width: z.number().min(15).max(100).default(84),
             fontSize: z.enum(["sm", "md", "lg", "xl", "hero"]).default("md"),
+            /** Exact editor size in px. Preserves old semantic sizes when omitted. */
+            fontSizePx: z.number().min(6).max(240).optional(),
             align: z.enum(["left", "center", "right"]).default("left"),
             color: z.string().trim().max(40).optional().default(""),
             fontFamily: z.string().trim().max(80).optional().default(""),
@@ -1115,7 +1117,7 @@ export const sectionPropsSchemas = {
     titleAsText: z.boolean().optional().default(false),
     /** Typography for the editable name inside the circle. */
     titleTextFontFamily: z.string().trim().max(120).optional().default("Impact"),
-    titleTextFontSize: z.number().min(8).max(48).optional().default(14),
+    titleTextFontSize: z.number().min(6).max(240).optional().default(14),
     titleTextFontWeight: z.number().int().min(400).max(900).optional().default(900),
     titleTextLetterSpacing: z.number().min(-0.05).max(0.5).optional().default(0.12),
     titleTextLineHeight: z.number().min(0.8).max(2).optional().default(1.15),
