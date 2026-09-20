@@ -1,17 +1,20 @@
 "use client";
 
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
+import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 
 export function BuilderElementInspector({
   selection,
   sectionProps,
   onPatch,
   onEditSection,
+  projectId,
 }: {
   selection: BuilderElementSelection;
   sectionProps: Record<string, unknown>;
   onPatch: (patch: Record<string, unknown>) => void;
   onEditSection: () => void;
+  projectId: string;
 }) {
   const storageKey = selection.elementId.startsWith("extra:")
     ? selection.elementId.slice("extra:".length)
@@ -98,6 +101,86 @@ export function BuilderElementInspector({
               />
             </label>
           </div>
+        </div>
+      ) : null}
+
+      {selection.kind === "image" || selection.kind === "cutout" ? (
+        <div className="space-y-3">
+          {selection.elementId.startsWith("extra:") ? (
+            (() => {
+              const extraId = selection.elementId.slice("extra:".length);
+              const extras = Array.isArray(sectionProps.extraCutouts)
+                ? (sectionProps.extraCutouts as Array<Record<string, unknown>>)
+                : [];
+              const index = extras.findIndex((item) => String(item.id ?? "") === extraId);
+              const current = index >= 0 ? extras[index] : null;
+              if (!current) return null;
+              return (
+                <>
+                  <SectionPhotoField
+                    projectId={projectId}
+                    label="Replace cutout"
+                    value={String(current.src ?? "")}
+                    onChange={(url) => {
+                      const next = [...extras];
+                      next[index] = { ...current, src: url };
+                      onPatch({ extraCutouts: next });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-[12px] font-semibold text-red-700"
+                    onClick={() =>
+                      onPatch({
+                        extraCutouts: extras.filter(
+                          (item) => String(item.id ?? "") !== extraId,
+                        ),
+                      })
+                    }
+                  >
+                    Delete cutout
+                  </button>
+                </>
+              );
+            })()
+          ) : (
+            <>
+              <SectionPhotoField
+                projectId={projectId}
+                label={`Replace ${selection.label}`}
+                value={String(sectionProps[storageKey] ?? "")}
+                onChange={(url) => {
+                  const hidden = Array.isArray(sectionProps.hiddenLayers)
+                    ? (sectionProps.hiddenLayers as string[])
+                    : [];
+                  onPatch({
+                    [storageKey]: url,
+                    hiddenLayers: hidden.filter((key) => key !== storageKey),
+                  });
+                }}
+              />
+              <button
+                type="button"
+                className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
+                onClick={() => {
+                  const hidden = Array.isArray(sectionProps.hiddenLayers)
+                    ? (sectionProps.hiddenLayers as string[])
+                    : [];
+                  const isHidden = hidden.includes(storageKey);
+                  onPatch({
+                    hiddenLayers: isHidden
+                      ? hidden.filter((key) => key !== storageKey)
+                      : [...new Set([...hidden, storageKey])],
+                  });
+                }}
+              >
+                {Array.isArray(sectionProps.hiddenLayers) &&
+                (sectionProps.hiddenLayers as string[]).includes(storageKey)
+                  ? "Show layer"
+                  : "Hide layer"}
+              </button>
+            </>
+          )}
         </div>
       ) : null}
 
