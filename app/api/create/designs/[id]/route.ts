@@ -18,6 +18,8 @@ const patchSchema = z.object({
   designType: createDesignSchema.shape.designType.optional(),
   /** Owner-only: move design into a folder, or null to unfile. */
   folderId: z.string().uuid().nullable().optional(),
+  /** Optimistic concurrency token for offline/collaborative editors. */
+  expectedUpdatedAt: z.string().datetime().optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
@@ -74,12 +76,27 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const { data: existing } = await supabase
     .from("create_designs")
-    .select("id, canvas, business_id, design_type, owner_id")
+    .select("id, canvas, business_id, design_type, owner_id, updated_at")
     .eq("id", id)
     .maybeSingle();
 
   if (!existing) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
+  }
+
+  if (
+    parsed.data.expectedUpdatedAt &&
+    existing.updated_at &&
+    new Date(existing.updated_at).toISOString() !== new Date(parsed.data.expectedUpdatedAt).toISOString()
+  ) {
+    return NextResponse.json(
+      {
+        error: "This design changed somewhere else. Your local draft was kept; reload or review the newer server version before overwriting it.",
+        code: "studio_version_conflict",
+        serverUpdatedAt: existing.updated_at,
+      },
+      { status: 409 },
+    );
   }
 
   const patch: Record<string, unknown> = {};
