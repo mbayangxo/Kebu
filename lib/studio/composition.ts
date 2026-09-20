@@ -73,6 +73,8 @@ export const compositionClipSchema = z.object({
   /** Optional live provenance back to an editable Studio design page. */
   sourceDesignPageId: z.string().trim().max(40).nullable().optional(),
   sourceDesignLayerId: z.string().trim().max(40).nullable().optional(),
+  designWidth: z.number().min(1).max(4096).optional(),
+  designHeight: z.number().min(1).max(4096).optional(),
   /** Semantic design payload keeps imported layers editable instead of flattening to page images. */
   designLayer: z.object({
     type: z.enum(["text","rect","ellipse","image","video","line","icon","frame"]),

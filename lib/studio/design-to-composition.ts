@@ -34,7 +34,7 @@ export function designDocumentToComposition(doc: CanvasDocument): StudioComposit
       const trackId=layer.type==="text"?textTrack.id:visualTrack.id;
       clips.push({
         id:newCompositionId("cl"),trackId,name:layer.name,startMs:cursor,durationMs:layer.trimDurationMs?Math.min(duration,layer.trimDurationMs):duration,
-        sourceInMs:layer.trimStartMs??0,speed:1,volume:1,opacity:layer.opacity,fadeInMs:0,fadeOutMs:0,x:layer.x,y:layer.y,scale:1,rotation:layer.rotation,
+        sourceInMs:layer.trimStartMs??0,speed:1,volume:1,opacity:layer.opacity,fadeInMs:0,fadeOutMs:0,x:layer.x,y:layer.y,scale:1,rotation:layer.rotation,designWidth:layer.width,designHeight:layer.height,
         sourceUrl:layer.videoUrl||layer.imageUrl||"",sceneId,sourceDesignPageId:page.id,sourceDesignLayerId:layer.id,designLayer:payload(layer),
         chromaEnabled:false,chromaColor:"#00FF00",chromaSimilarity:.4,brightness:0,contrast:0,saturation:0,nestedProjectId:null,
       });
