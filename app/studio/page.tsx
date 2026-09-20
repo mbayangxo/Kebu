@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StudioGenerationHistory } from "@/app/components/studio/studio-generation-history";
 import { StudioDesignLibrary } from "@/app/components/studio/studio-design-library";
-import { studioRoleLabel, type StudioDesignRole } from "@/lib/studio/design-access";
+import type { StudioDesignRole } from "@/lib/studio/design-access";
 import { KEBU } from "@/lib/kebu-brand";
 import { AppShell } from "@/app/components/app-shell";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
