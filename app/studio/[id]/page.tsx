@@ -74,6 +74,7 @@ export default function StudioEditorPage() {
   const [showCoach, setShowCoach] = useState(true);
   const [packBusy, setPackBusy] = useState(false);
   const [motionBusy, setMotionBusy] = useState(false);
+  const [videoBusy, setVideoBusy] = useState(false);
   const [secondsPerPage, setSecondsPerPage] = useState(2);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [timelinePlaying, setTimelinePlaying] = useState(false);
@@ -509,6 +510,81 @@ export default function StudioEditorPage() {
       );
     } finally {
       setMotionBusy(false);
+    }
+  }
+
+
+  async function turnDesignIntoVideo() {
+    if (!doc || !design || !canEdit || videoBusy) return;
+    setVideoBusy(true);
+    setExportNote("Preparing this design for video…");
+    try {
+      const page = doc.pages.find((item) => item.id === activePageId) ?? doc.pages[0];
+      if (!page) {
+        setExportNote("This design has no page to send to video.");
+        return;
+      }
+
+      let imageDataUrl = await exportCanvasToPngDataUrlAsync(doc, 1, page.id);
+      if (!imageDataUrl) {
+        setExportNote("Could not render the design.");
+        return;
+      }
+      let blob = await fetch(imageDataUrl).then((response) => response.blob());
+      if (blob.size > 5 * 1024 * 1024) {
+        imageDataUrl = await exportCanvasToPngDataUrlAsync(doc, 0.7, page.id);
+        if (!imageDataUrl) {
+          setExportNote("Could not prepare a smaller design snapshot.");
+          return;
+        }
+        blob = await fetch(imageDataUrl).then((response) => response.blob());
+      }
+      if (blob.size > 5 * 1024 * 1024) {
+        setExportNote("This page is too large to turn into video. Reduce large images and try again.");
+        return;
+      }
+
+      const uploadForm = new FormData();
+      uploadForm.set("designId", designId);
+      uploadForm.set(
+        "file",
+        new File([blob], (design.title || "studio-design").slice(0, 80) + ".png", { type: "image/png" }),
+      );
+      const upload = await fetch("/api/studio/upload", {
+        method: "POST",
+        credentials: "include",
+        body: uploadForm,
+      });
+      const uploadData = await upload.json().catch(() => ({}));
+      if (!upload.ok || typeof uploadData.url !== "string") {
+        setExportNote(uploadData.error ?? "Could not store the design snapshot.");
+        return;
+      }
+
+      const ratio = page.width / page.height;
+      const presetId =
+        ratio > 1.35 ? "16:9" : ratio < 0.68 ? "9:16" : ratio > 0.92 && ratio < 1.08 ? "1:1" : "4:5";
+      const created = await fetch("/api/studio/video", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: (design.title || "Studio design") + " video",
+          presetId,
+          sourceDesignId: designId,
+          sourceImageUrl: uploadData.url,
+        }),
+      });
+      const createdData = await created.json().catch(() => ({}));
+      if (!created.ok || !createdData.project?.id) {
+        setExportNote(createdData.error ?? "Could not create the video project.");
+        return;
+      }
+
+      setExportNote("Video project created from this design.");
+      window.location.assign("/studio/video/" + createdData.project.id);
+    } finally {
+      setVideoBusy(false);
     }
   }
 
