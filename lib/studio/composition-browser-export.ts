@@ -83,7 +83,10 @@ function waitForVideo(url: string) {
   });
 }
 
-async function prepareVisuals(composition: StudioComposition) {
+async function prepareVisuals(
+  composition: StudioComposition,
+  resolveMediaUrl: (url: string) => string,
+) {
   const result = new Map<string, PreparedVisual>();
   const urls = [...new Set(composition.clips.map((clip) => clip.sourceUrl).filter(Boolean) as string[])];
 
@@ -94,9 +97,9 @@ async function prepareVisuals(composition: StudioComposition) {
     const designType = clip.designLayer?.type;
     try {
       if (kind === "image" || designType === "image") {
-        result.set(url, { kind: "image", element: await waitForImage(url) });
+        result.set(url, { kind: "image", element: await waitForImage(resolveMediaUrl(url)) });
       } else if (kind === "video" || designType === "video" || trackKindForClip(composition, clip) === "video") {
-        result.set(url, { kind: "video", element: await waitForVideo(url) });
+        result.set(url, { kind: "video", element: await waitForVideo(resolveMediaUrl(url)) });
       }
     } catch {
       // Keep export honest: missing media is detected during render and surfaced.
@@ -321,6 +324,7 @@ async function drawFrame(
 async function prepareAudioGraph(
   composition: StudioComposition,
   visuals: Map<string, PreparedVisual>,
+  resolveMediaUrl: (url: string) => string,
 ) {
   const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioCtor) return null;
@@ -345,7 +349,7 @@ async function prepareAudioGraph(
       const audio = new Audio();
       audio.crossOrigin = "anonymous";
       audio.preload = "auto";
-      audio.src = clip.sourceUrl;
+      audio.src = resolveMediaUrl(clip.sourceUrl);
       element = audio;
     }
 
@@ -418,6 +422,8 @@ export async function exportStudioComposition(
     scale?: number;
     fps?: number;
     onProgress?: (progress: StudioCompositionExportProgress) => void;
+    /** Map canonical remote URLs to cached blob/object URLs for true offline export. */
+    resolveMediaUrl?: (url: string) => string;
   } = {},
 ): Promise<StudioCompositionExportResult> {
   if (typeof document === "undefined" || typeof MediaRecorder === "undefined") {
@@ -442,7 +448,8 @@ export async function exportStudioComposition(
   const ctx = frameCanvas.getContext("2d");
   if (!ctx) return { error: "Could not initialize the composition renderer." };
 
-  const visuals = await prepareVisuals(composition);
+  const resolveMediaUrl = opts.resolveMediaUrl ?? ((url: string) => url);
+  const visuals = await prepareVisuals(composition, resolveMediaUrl);
   const requiredVisualUrls = composition.clips
     .filter((clip) => clip.sourceUrl && (clip.designLayer?.type === "image" || clip.designLayer?.type === "video" || ["video","overlay"].includes(trackKindForClip(composition, clip) ?? "")))
     .map((clip) => clip.sourceUrl as string);
@@ -450,7 +457,7 @@ export async function exportStudioComposition(
   if (missing.length) return { error: "One or more media files could not be loaded for export." };
 
   const stream = canvas.captureStream(fps);
-  const audio = await prepareAudioGraph(composition, visuals);
+  const audio = await prepareAudioGraph(composition, visuals, resolveMediaUrl);
   if (audio) {
     for (const track of audio.destination.stream.getAudioTracks()) stream.addTrack(track);
   }
