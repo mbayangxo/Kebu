@@ -38,10 +38,11 @@ function withDataModeCookie(request: NextRequest, response: NextResponse): NextR
 
 const CSRF_MUTATION_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
-/** Enforce same-origin on all /api/businesses/** mutation requests. */
-function csrfBusinessCheck(request: NextRequest): NextResponse | null {
+/** Enforce same-origin on authenticated account/business browser mutations. */
+function csrfMutationCheck(request: NextRequest): NextResponse | null {
   const { pathname } = request.nextUrl;
-  if (!pathname.startsWith("/api/businesses/")) return null;
+  const protectedMutation = pathname.startsWith("/api/businesses/") || pathname.startsWith("/api/me/");
+  if (!protectedMutation) return null;
   if (!CSRF_MUTATION_METHODS.has(request.method.toUpperCase())) return null;
 
   const origin = request.headers.get("origin");
@@ -69,7 +70,7 @@ function csrfBusinessCheck(request: NextRequest): NextResponse | null {
 }
 
 export async function middleware(request: NextRequest) {
-  const csrfReject = csrfBusinessCheck(request);
+  const csrfReject = csrfMutationCheck(request);
   if (csrfReject) return csrfReject;
 
   const hostname = request.headers.get("host") ?? "";
