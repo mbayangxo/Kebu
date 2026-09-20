@@ -52,6 +52,13 @@ describe("website schema", () => {
       layerOpacity: { titleLogo: 0.8 },
       layerRotation: { titleLogo: 12 },
       lockedLayers: ["titleLogo"],
+      deviceOverrides: {
+        mobile: {
+          titleTextFontSize: 26,
+          layerScales: { titleLogo: 1.35 },
+          sectionMinHeightPx: 860,
+        },
+      },
     };
 
     const result = validateWebsiteDefinition(next);
@@ -72,6 +79,13 @@ describe("website schema", () => {
         layerOpacity: { titleLogo: 0.8 },
         layerRotation: { titleLogo: 12 },
         lockedLayers: ["titleLogo"],
+        deviceOverrides: {
+          mobile: {
+            titleTextFontSize: 26,
+            layerScales: { titleLogo: 1.35 },
+            sectionMinHeightPx: 860,
+          },
+        },
       });
     }
   });
