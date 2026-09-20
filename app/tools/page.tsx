@@ -11,8 +11,8 @@ export default function ToolsPage() {
       <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-7">
         <header className="border-b pb-6" style={{ borderColor: KEBU.borders.default }}>
           <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>All tools</p>
-          <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>Everything in Kebu, without cluttering your home.</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>Your pinned tools stay personal. This is the complete launcher for capabilities that are live today.</p>
+          <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>Everything live in Kebu, without cluttering your home.</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>Your pinned apps stay personal. This launcher only lists capabilities that are actually live.</p>
         </header>
 
         <div className="space-y-8 py-6">

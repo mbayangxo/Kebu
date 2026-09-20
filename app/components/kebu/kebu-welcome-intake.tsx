@@ -56,6 +56,7 @@ const TOOL_ICONS: Record<KebuToolId, KebuIconName> = {
   chat: "message",
   library: "library",
   spaces: "spaces",
+  rooms: "spaces",
   docs: "work",
   tasks: "work",
   calendar: "calendar",
@@ -268,8 +269,8 @@ export function KebuWelcomeIntake() {
               {step === 2 ? (
                 <section>
                   <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>02 · Your Kebu</p>
-                  <h2 className="mt-3 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>Choose what belongs on your desk.</h2>
-                  <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>Recommended tools are already selected. Nothing is permanent.</p>
+                  <h2 className="mt-3 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>Choose what belongs in your Kebu.</h2>
+                  <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>Recommended apps are already selected. Nothing is permanent.</p>
                   <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {KEBU_TOOLS.map((tool) => {
                       const active = tools.includes(tool.id);
