@@ -158,6 +158,48 @@ export function BuilderElementInspector({
         </div>
       ) : null}
 
+      {selection.kind === "background" ? (
+        <div className="space-y-3">
+          <SectionPhotoField
+            projectId={projectId}
+            label="Background image"
+            value={String(sectionProps.backgroundLayer ?? "")}
+            onChange={(url) =>
+              onPatch({
+                backgroundLayer: url,
+                backgroundHidden: false,
+                hiddenLayers: Array.isArray(sectionProps.hiddenLayers)
+                  ? (sectionProps.hiddenLayers as string[]).filter((key) => key !== "backgroundLayer")
+                  : [],
+              })
+            }
+          />
+          <button
+            type="button"
+            className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
+            onClick={() =>
+              onPatch({
+                backgroundHidden: sectionProps.backgroundHidden !== true,
+              })
+            }
+          >
+            {sectionProps.backgroundHidden === true ? "Show background" : "Hide background"}
+          </button>
+          <button
+            type="button"
+            className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-[12px] font-semibold text-red-700"
+            onClick={() =>
+              onPatch({
+                backgroundLayer: "",
+                backgroundHidden: true,
+              })
+            }
+          >
+            Remove background
+          </button>
+        </div>
+      ) : null}
+
       {selection.kind === "image" || selection.kind === "cutout" ? (
         <div className="space-y-3">
           {selection.elementId.startsWith("extra:") ? (
