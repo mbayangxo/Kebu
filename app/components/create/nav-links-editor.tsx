@@ -2,10 +2,13 @@
 
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 
+export type NavGrandchildEdit = { label: string; href: string };
+
 export type NavChildEdit = {
   label: string;
   href: string;
   iconUrl?: string;
+  grandchildren?: NavGrandchildEdit[];
 };
 
 export type NavLinkEdit = {
@@ -26,7 +29,7 @@ export function mapNavLinksForEditor(
     iconUrl?: string;
     showLabel?: boolean;
     multiNav?: boolean;
-    children?: Array<{ label?: string; href?: string; iconUrl?: string }>;
+    children?: Array<{ label?: string; href?: string; iconUrl?: string; grandchildren?: Array<{ label?: string; href?: string }> }>;
   }>,
 ): NavLinkEdit[] {
   return links.map((l) => ({
@@ -40,6 +43,9 @@ export function mapNavLinksForEditor(
           label: String(c.label ?? ""),
           href: String(c.href ?? ""),
           iconUrl: String(c.iconUrl ?? ""),
+          grandchildren: Array.isArray(c.grandchildren)
+            ? c.grandchildren.map((g) => ({ label: String(g.label ?? ""), href: String(g.href ?? "") }))
+            : [],
         }))
       : [],
   }));
@@ -228,6 +234,34 @@ export function NavLinksEditor({
                       onChange={(e) => patchChild(idx, childIdx, { href: e.target.value })}
                     />
                   ) : null}
+                  <div className="space-y-1 border-t border-black/5 pt-1">
+                    {(child.grandchildren ?? []).map((grandchild, grandIdx) => (
+                      <div key={grandIdx} className="grid grid-cols-[1fr_1fr_auto] gap-1">
+                        <input className="min-w-0 rounded border border-black/10 px-1.5 py-1 text-[10px]" value={grandchild.label}
+                          placeholder="Nested label"
+                          onChange={(e) => {
+                            const grandchildren = [...(child.grandchildren ?? [])];
+                            grandchildren[grandIdx] = { ...grandchildren[grandIdx]!, label: e.target.value };
+                            patchChild(idx, childIdx, { grandchildren });
+                          }} />
+                        <input className="min-w-0 rounded border border-black/10 px-1.5 py-1 text-[10px]" value={grandchild.href}
+                          placeholder="/page"
+                          onChange={(e) => {
+                            const grandchildren = [...(child.grandchildren ?? [])];
+                            grandchildren[grandIdx] = { ...grandchildren[grandIdx]!, href: e.target.value };
+                            patchChild(idx, childIdx, { grandchildren });
+                          }} />
+                        <button type="button" className="px-1 text-[10px] text-red-600" aria-label="Remove nested link"
+                          onClick={() => patchChild(idx, childIdx, { grandchildren: (child.grandchildren ?? []).filter((_, i) => i !== grandIdx) })}>×</button>
+                      </div>
+                    ))}
+                    {(child.grandchildren ?? []).length < 8 ? (
+                      <button type="button" className="text-[9px] font-semibold text-[#FF5500]"
+                        onClick={() => patchChild(idx, childIdx, { grandchildren: [...(child.grandchildren ?? []), { label: "", href: "/" }] })}>
+                        + Add nested link
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               ))}
               <button
