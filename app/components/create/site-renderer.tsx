@@ -1244,8 +1244,8 @@ export function SiteRenderer({
                   <nav className="kebu-site-nav__links flex flex-col" style={{ gap: Math.max(10, m.gap * 0.65), fontSize: m.fontPx }}>
                     {p.links.map((l) => {
                       const slug = l.href ? l.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
-                      return onNavigate && slug ? (
-                        <button key={l.label} type="button" onClick={() => editor.onNavigatePage!(slug)} className="kebu-nav-link text-left" style={{ fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined, fontWeight: p.fontWeight }}>
+                      return editor?.onNavigatePage && slug ? (
+                        <button key={l.label} type="button" onClick={() => editor.onNavigatePage?.(slug)} className="kebu-nav-link text-left" style={{ fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined, fontWeight: p.fontWeight }}>
                           {l.label}
                         </button>
                       ) : (
@@ -2496,11 +2496,11 @@ export function SiteRenderer({
                       raw && raw !== "#" && !raw.startsWith("http") && !raw.startsWith("mailto:") && !raw.startsWith("tel:")
                         ? (raw.replace(/^\//, "").split(/[?#]/)[0] || "home")
                         : null;
-                    return onNavigate && slug ? (
+                    return editor?.onNavigatePage && slug ? (
                       <button
                         key={`${l.label}-${l.href}`}
                         type="button"
-                        onClick={() => editor?.onNavigatePage?.(slug)}
+                        onClick={() => editor.onNavigatePage?.(slug)}
                         className="hover:underline"
                         style={{ color: p.textColor ? "inherit" : undefined }}
                       >
