@@ -10,6 +10,7 @@ import {
   emptyStudioComposition,
   newCompositionId,
   studioCompositionSchema,
+  updateClip,
 } from "@/lib/studio/composition";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,11 @@ const createSchema = z.object({
   height: z.number().int().min(200).max(4096).optional(),
   sourceDesignId: z.string().uuid().optional(),
   sourceImageUrl: z.string().url().max(500).optional(),
+  sourceImages: z.array(z.object({
+    url: z.string().url().max(500),
+    name: z.string().trim().min(1).max(120).optional(),
+    durationMs: z.number().int().min(500).max(30_000).optional().default(3000),
+  })).max(20).optional(),
 });
 
 /** List owner's video projects (Phase 1). */
@@ -94,18 +100,26 @@ export async function POST(req: Request) {
     }
   }
 
-  if (parsed.data.sourceImageUrl) {
+  const sourceImages = parsed.data.sourceImages?.length
+    ? parsed.data.sourceImages
+    : parsed.data.sourceImageUrl
+      ? [{ url: parsed.data.sourceImageUrl, name: parsed.data.title + " design", durationMs: 3000 }]
+      : [];
+
+  if (sourceImages.length) {
+    const urls = [...new Set(sourceImages.map((item) => item.url))];
     let uploadQuery = supabase
       .from("studio_uploads")
       .select("id, url, kind, business_id")
-      .eq("url", parsed.data.sourceImageUrl)
+      .in("url", urls)
       .eq("kind", "image");
     uploadQuery = workspace.activeBusinessId
       ? uploadQuery.eq("business_id", workspace.activeBusinessId)
       : uploadQuery.is("business_id", null);
-    const { data: sourceUpload } = await uploadQuery.maybeSingle();
-    if (!sourceUpload) {
-      return NextResponse.json({ error: "The design snapshot is not available in the current Kebu space." }, { status: 403 });
+    const { data: sourceUploads } = await uploadQuery;
+    const allowed = new Set((sourceUploads ?? []).map((item) => item.url));
+    if (urls.some((url) => !allowed.has(url))) {
+      return NextResponse.json({ error: "One or more design snapshots are not available in the current Kebu space." }, { status: 403 });
     }
   }
 
@@ -115,22 +129,45 @@ export async function POST(req: Request) {
   let composition = emptyStudioComposition({
     width,
     height,
-    editMode: parsed.data.sourceDesignId ? "smart_edit" : "full_timeline",
+    editMode: parsed.data.sourceDesignId || sourceImages.length ? "smart_edit" : "full_timeline",
   });
 
-  if (parsed.data.sourceImageUrl) {
+  let cursorMs = 0;
+  for (let index = 0; index < sourceImages.length; index += 1) {
+    const source = sourceImages[index]!;
     const assetId = newCompositionId("asset");
+    const sceneId = newCompositionId("scene");
     composition = addAssetToComposition(composition, {
       id: assetId,
       kind: "image",
-      url: parsed.data.sourceImageUrl,
-      fileName: parsed.data.title + " design",
-      durationMs: 3000,
+      url: source.url,
+      fileName: source.name || "Design page " + (index + 1),
+      durationMs: source.durationMs,
       width,
       height,
     });
-    const withClip = addClipFromAsset(composition, assetId, { atMs: 0 });
-    if (!("error" in withClip)) composition = withClip;
+    const withClip = addClipFromAsset(composition, assetId, { atMs: cursorMs });
+    if ("error" in withClip) continue;
+    composition = withClip;
+    const clip = composition.clips[composition.clips.length - 1];
+    if (clip) {
+      const linked = updateClip(composition, clip.id, { sceneId });
+      if (!("error" in linked)) composition = linked;
+    }
+    composition = {
+      ...composition,
+      storyboard: [
+        ...composition.storyboard,
+        {
+          id: sceneId,
+          name: source.name || "Scene " + (index + 1),
+          intent: "Imported from Kebu Studio design",
+          durationMs: source.durationMs,
+          order: index,
+        },
+      ],
+    };
+    cursorMs += source.durationMs;
   }
 
   const { data: project, error } = await supabase
