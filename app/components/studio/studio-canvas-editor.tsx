@@ -658,7 +658,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !canUndo}
           onClick={() => onUndo?.()}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-black/60 hover:bg-black/[.04] hover:text-black disabled:opacity-25"
         >
           Undo
         </button>
@@ -670,7 +670,7 @@ export function StudioCanvasEditor({
         >
           Redo
         </button>
-        <span className="w-px h-5 bg-black/10" />
+        <span className="mx-1 h-4 w-px bg-black/[.08]" />
         <button
           type="button"
           disabled={readOnly || !selectedLayerIds.length}
@@ -699,7 +699,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !selectedLayerIds.length}
           onClick={deleteSelected}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30" style={{ color: "#8B1E1E" }}
+          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-red-700/70 hover:bg-red-50 hover:text-red-800 disabled:opacity-25"
         >
           Delete
         </button>
@@ -752,7 +752,7 @@ export function StudioCanvasEditor({
         </label>
         <button
           type="button"
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10"
+          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-black/55 hover:bg-black/[.04]"
           onClick={() => {
             const el = boardRef.current;
             if (!el) return;
