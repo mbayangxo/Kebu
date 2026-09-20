@@ -84,7 +84,7 @@ export const compositionClipSchema = z.object({
     text: z.string().max(500).optional(), fontSize: z.number().optional(), fontFamily: z.string().max(80).optional(), fontWeight: z.string().max(20).optional(),
     fontStyle: z.enum(["normal","italic"]).optional(), color: z.string().max(40).optional(), textAlign: z.enum(["left","center","right"]).optional(),
     letterSpacing: z.number().optional(), lineHeight: z.number().optional(), textDecoration: z.enum(["none","underline","line-through"]).optional(), textTransform: z.enum(["none","uppercase","lowercase"]).optional(),
-    fill: z.string().max(40).optional(), stroke: z.string().max(40).optional(), strokeWidth: z.number().optional(), cornerRadius: z.number().optional(),
+    fill: z.string().max(40).optional(), fillType:z.enum(["solid","linear_gradient"]).optional(), gradientFrom:z.string().max(40).optional(), gradientTo:z.string().max(40).optional(), gradientAngle:z.number().optional(), blendMode:z.enum(["normal","multiply","screen","overlay","darken","lighten","soft-light"]).optional(), stroke: z.string().max(40).optional(), strokeWidth: z.number().optional(), cornerRadius: z.number().optional(),
     shadowColor: z.string().max(40).optional(), shadowBlur: z.number().optional(), shadowX: z.number().optional(), shadowY: z.number().optional(),
     imageUrl: z.union([z.literal(""),z.string().url().max(500)]).optional(), videoUrl: z.union([z.literal(""),z.string().url().max(500)]).optional(),
     flipX:z.boolean().optional(),flipY:z.boolean().optional(),objectFit:z.enum(["cover","contain"]).optional(),cropX:z.number().optional(),cropY:z.number().optional(),cropW:z.number().optional(),cropH:z.number().optional(),
