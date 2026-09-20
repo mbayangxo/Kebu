@@ -1,9 +1,28 @@
 {
   "crons": [
-    { "path": "/api/cron/billing-monthly", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/site-health", "schedule": "0 7 * * *" },
-    { "path": "/api/cron/shop-subscriptions", "schedule": "30 6 * * *" },
-    { "path": "/api/cron/review-requests", "schedule": "0 10 * * *" },
-    { "path": "/api/cron/platform-worker", "schedule": "15 6 * * *" }
+    {
+      "path": "/api/cron/billing-monthly",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/site-health",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/shop-subscriptions",
+      "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/review-requests",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/platform-worker",
+      "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/cron/search-index",
+      "schedule": "45 5 * * *"
+    }
   ]
 }
