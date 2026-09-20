@@ -31,7 +31,7 @@ function TemplatePreviewCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`group text-left rounded-2xl border overflow-hidden transition-shadow hover:shadow-md ${
+      className={`group text-left rounded-[18px] border overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md ${
         selected ? "border-orange-500 ring-2 ring-orange-500/40" : "border-black/10 bg-white"
       }`}
     >
@@ -136,12 +136,12 @@ export function StudioTemplateGallery({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search templates (sale, WhatsApp, flyer…)"
+          placeholder="Search themes, styles, industries or formats…"
           className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm"
         />
         <select
@@ -158,7 +158,7 @@ export function StudioTemplateGallery({
         </select>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {STUDIO_TEMPLATE_CATEGORIES.map((c) => (
           <button
             key={c.id}
@@ -174,10 +174,9 @@ export function StudioTemplateGallery({
         ))}
       </div>
 
-      <p className="text-xs opacity-60">
+      <div className="flex items-center justify-between"><p className="text-xs opacity-60">
         {filtered.length} template{filtered.length === 1 ? "" : "s"}
-        {query.trim() ? ` for “${query.trim()}”` : ""}
-      </p>
+        {query.trim() ? ` for “${query.trim()}”` : ""}</p><p className="text-[10px] font-bold uppercase tracking-[.16em] text-black/35">Editable · Brand-ready</p></div>
 
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-black/15 bg-white p-10 text-center">
@@ -196,7 +195,7 @@ export function StudioTemplateGallery({
           </button>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
           {filtered.map((t) => (
             <TemplatePreviewCard
               key={t.id}
@@ -212,7 +211,7 @@ export function StudioTemplateGallery({
       )}
 
       {selected ? (
-        <div className="rounded-3xl border border-black/10 bg-white p-5 space-y-4 sticky bottom-4 shadow-lg">
+        <div className="sticky bottom-4 z-10 space-y-4 rounded-[22px] border border-black/10 bg-[#FFFCF8]/95 p-5 shadow-xl backdrop-blur">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">Use template</p>
             <p className="font-semibold mt-1">{selected.label}</p>

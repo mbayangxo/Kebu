@@ -30,7 +30,9 @@ import { StudioLiveCursors } from "@/app/components/studio/studio-live-cursors";
 import { StudioMediaAdjustmentsPanel } from "@/app/components/studio/studio-media-adjustments-panel";
 import {
   STUDIO_ELEMENTS_PACK,
+  searchStudioElements,
   type StudioElementDef,
+  type StudioElementCategory,
 } from "@/lib/studio/elements-pack";
 import { mediaFilterCss } from "@/lib/studio/media-adjustments";
 import {
@@ -169,6 +171,8 @@ export function StudioCanvasEditor({
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [zoom, setZoom] = useState(45);
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [elementQuery, setElementQuery] = useState("");
+  const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "brand">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -775,103 +779,24 @@ export function StudioCanvasEditor({
               />
             ) : null}
             {leftTab === "elements" ? (
-              <>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50">
-                  {readOnly ? "Elements (view only)" : "Add"}
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => addLayer("text")}
-                    className="rounded-xl border border-black/10 bg-[#FFF8F0] px-2 py-3 text-xs font-bold hover:border-orange-400 disabled:opacity-40"
-                  >
-                    Text
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => addLayer("rect")}
-                    className="rounded-xl border border-black/10 bg-[#FFF8F0] px-2 py-3 text-xs font-bold hover:border-orange-400 disabled:opacity-40"
-                  >
-                    Rectangle
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => addLayer("ellipse")}
-                    className="rounded-xl border border-black/10 bg-[#FFF8F0] px-2 py-3 text-xs font-bold hover:border-orange-400 disabled:opacity-40"
-                  >
-                    Ellipse
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly || uploadBusy}
-                    onClick={() => fileRef.current?.click()}
-                    className="rounded-xl border border-black/10 bg-[#0F0D33] text-white px-2 py-3 text-xs font-bold disabled:opacity-50"
-                  >
-                    {uploadBusy ? "…" : "Image"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly || uploadBusy}
-                    onClick={() => videoFileRef.current?.click()}
-                    className="col-span-2 rounded-xl border border-black/10 bg-[#E05A2B] text-white px-2 py-3 text-xs font-bold disabled:opacity-50"
-                  >
-                    {uploadBusy ? "…" : "Short video"}
-                  </button>
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 pt-2">Lines · Frames</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {STUDIO_ELEMENTS_PACK.filter((e) => e.kind === "line" || e.kind === "frame").map((el) => (
-                    <button
-                      key={el.id}
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => addElement(el)}
-                      className="rounded-xl border border-black/10 bg-white px-2 py-2.5 text-[11px] font-bold hover:border-orange-400 disabled:opacity-40"
-                    >
-                      {el.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 pt-2">Icons</p>
+              <div className="space-y-3">
+                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">{readOnly?"Elements · view only":"Elements"}</p><p className="text-[9px] text-black/40">Shapes, frames, symbols and business graphics</p></div>
+                <input value={elementQuery} onChange={(e)=>setElementQuery(e.target.value)} placeholder="Search elements" className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-xs"/>
+                <div className="flex gap-1 overflow-x-auto">{(["all","lines","frames","symbols","business","social"] as const).map((value)=><button key={value} type="button" onClick={()=>setElementCategory(value)} className={`rounded-full px-2 py-1 text-[9px] font-bold capitalize ${elementCategory===value?"bg-black text-white":"bg-black/[.04] text-black/50"}`}>{value}</button>)}</div>
                 <div className="grid grid-cols-3 gap-2">
-                  {STUDIO_ELEMENTS_PACK.filter((e) => e.kind === "icon").map((el) => (
-                    <button
-                      key={el.id}
-                      type="button"
-                      disabled={readOnly}
-                      title={el.label}
-                      onClick={() => addElement(el)}
-                      className="rounded-xl border border-black/10 bg-[#FFF8F0] px-1 py-2 text-lg hover:border-orange-400 disabled:opacity-40"
-                    >
-                      {el.glyph}
-                    </button>
-                  ))}
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("text")} className="rounded-xl border border-black/10 bg-white px-2 py-3 text-[10px] font-bold">T<br/><span className="font-normal text-black/40">Text</span></button>
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-black/10 bg-white px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-black/40">Shape</span></button>
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-black/10 bg-white px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-black/40">Circle</span></button>
                 </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(e) => void onFilePicked(e.target.files?.[0] ?? null, "image")}
-                />
-                <input
-                  ref={videoFileRef}
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime"
-                  className="hidden"
-                  onChange={(e) => void onFilePicked(e.target.files?.[0] ?? null, "video")}
-                />
-                {uploadError ? <p className="text-[11px]" style={{ color: "#8B1E1E" }}>{uploadError}</p> : null}
-                <p className="text-[10px] leading-relaxed opacity-50">
-                  Elements pack: structured icons, lines, and frames — editable layers, not freehand draw.
-                </p>
-              </>
+                <div className="grid grid-cols-2 gap-2">{searchStudioElements(elementQuery,elementCategory).map((el)=><button key={el.id} type="button" disabled={readOnly} title={el.label} onClick={()=>addElement(el)} className="flex min-h-[70px] flex-col items-center justify-center rounded-xl border border-black/10 bg-white px-2 py-2 text-center hover:border-orange-400 disabled:opacity-40"><span className="text-2xl">{el.glyph ?? (el.kind==="frame"?"□":"━")}</span><span className="mt-1 text-[9px] font-bold">{el.label}</span></button>)}</div>
+                {searchStudioElements(elementQuery,elementCategory).length===0?<p className="rounded-xl border border-dashed border-black/15 p-4 text-center text-[10px] text-black/45">No elements match that search.</p>:null}
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"image")}/>
+                <input ref={videoFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"video")}/>
+              </div>
             ) : leftTab === "uploads" ? (
               <StudioUploadsLibrary
                 readOnly={readOnly}
+                designId={designId}
                 onPickImage={(url) =>
                   addLayer("image", { imageUrl: url, name: "Library", width: 320, height: 320 })
                 }

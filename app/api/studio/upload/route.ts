@@ -170,7 +170,7 @@ export async function POST(req: Request) {
 
   const kind = isVideo ? "video" : isAudio ? "audio" : "image";
   let uploadId: string | null = null;
-  if (kind === "image" || kind === "video") {
+  if (kind === "image" || kind === "video" || kind === "audio") {
     const { data: libraryRow } = await supabase
       .from("studio_uploads")
       .insert({

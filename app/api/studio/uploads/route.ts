@@ -16,7 +16,7 @@ export async function GET() {
     .from("studio_uploads")
     .select("id, kind, url, file_name, mime, byte_size, business_id, owner_id, created_at")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(200);
   query = workspace.activeBusinessId
     ? query.eq("business_id", workspace.activeBusinessId)
     : query.is("business_id", null);
