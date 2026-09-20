@@ -734,6 +734,12 @@ export default function ProjectEditorPage() {
           instruction: improveInstruction.trim() || undefined,
           mode: improveMode === "free" ? undefined : improveMode,
           focusPageSlug: previewPageSlug || undefined,
+          focusElement: selectedElement
+            ? {
+                ...selectedElement,
+                device,
+              }
+            : undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
