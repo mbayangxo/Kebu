@@ -757,9 +757,13 @@ export function LegallyBlondeHeroLayout({
             photo={{
               ...photo,
               widthPct: photo.widthPct * scale,
+              rotate:
+                typeof props.layerRotation?.[photo.id] === "number"
+                  ? props.layerRotation[photo.id]!
+                  : photo.rotate,
               zIndex:
                 typeof props.layerZIndex?.[photo.id] === "number"
-                  ? Math.min(40, props.layerZIndex[photo.id]!)
+                  ? Math.min(80, props.layerZIndex[photo.id]!)
                   : photo.zIndex,
             }}
             editing={editing}
