@@ -1689,6 +1689,7 @@ export default function ProjectEditorPage() {
                     <BuilderElementInspector
                       selection={selectedElement}
                       sectionProps={section.props as Record<string, unknown>}
+                      projectId={projectId}
                       onPatch={(patch) => updateProps(section.id, patch)}
                       onEditSection={() => setSelectedElement(null)}
                     />
