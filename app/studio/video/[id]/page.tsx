@@ -639,10 +639,10 @@ export default function StudioVideoEditorPage() {
               : "Autosave on";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#14121f] text-white">
+    <div className="min-h-screen flex flex-col bg-[#101010] text-white selection:bg-[#FF6A00]/30">
       <audio ref={soundtrackRef} preload="auto" className="hidden" />
-      <header className="shrink-0 border-b border-white/10 px-3 py-2 flex flex-wrap items-center gap-2">
-        <Link href="/studio" className="text-xs underline opacity-60">
+      <header className="shrink-0 border-b border-white/[.08] bg-[#151515] px-3 py-2 flex flex-wrap items-center gap-2">
+        <Link href="/studio" className="rounded-md px-2 py-1 text-[10px] text-white/50 hover:bg-white/[.06] hover:text-white">
           ← Studio
         </Link>
         <input
@@ -678,7 +678,7 @@ export default function StudioVideoEditorPage() {
       {note ? <p className="px-3 py-1 text-xs text-emerald-200/90 bg-emerald-950/30">{note}</p> : null}
 
       <div className="flex flex-1 min-h-0">
-        <aside className="w-[200px] shrink-0 border-r border-white/10 flex flex-col bg-[#1a1828]">
+        <aside className="hidden w-[220px] shrink-0 border-r border-white/[.08] bg-[#151515] lg:flex lg:flex-col">
           <div className="p-2 border-b border-white/10 space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Media</p>
             <input
@@ -917,7 +917,7 @@ export default function StudioVideoEditorPage() {
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0 bg-[#0c0b14]">
+        <main className="flex-1 flex flex-col min-w-0 bg-[#0d0d0d]">
           <div className="flex-1 flex items-center justify-center p-4 min-h-[200px]">
             <div
               className="relative bg-black rounded-lg overflow-hidden shadow-2xl border border-white/10"
@@ -961,10 +961,10 @@ export default function StudioVideoEditorPage() {
           <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-white/10">
             <button
               type="button"
-              className="rounded-lg px-3 py-1 text-xs font-bold bg-white/15"
+              className="grid h-8 w-8 place-items-center rounded-full bg-white text-black text-[10px] font-bold"
               onClick={() => setPlaying((p) => !p)}
             >
-              {playing ? "Pause" : "Play"}
+              {playing ? "Ⅱ" : "▶"}
             </button>
             <span className="text-[11px] font-mono opacity-60">
               {(playheadMs / 1000).toFixed(1)}s / {(totalMs / 1000).toFixed(1)}s
@@ -1001,7 +1001,7 @@ export default function StudioVideoEditorPage() {
           </div>
         </main>
 
-        <aside className="w-[240px] shrink-0 border-l border-white/10 bg-[#1a1828] p-3 overflow-y-auto">
+        <aside className="hidden w-[280px] shrink-0 border-l border-white/[.08] bg-[#151515] p-3 overflow-y-auto xl:block">
           <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-2">Inspector</p>
           {!selected ? (
             <div className="space-y-2 text-[11px] opacity-50 leading-relaxed">
@@ -1083,7 +1083,7 @@ export default function StudioVideoEditorPage() {
         </aside>
       </div>
 
-      <div className="shrink-0 border-t border-white/10 bg-[#12101c] px-2 py-2 space-y-1 max-h-[320px] overflow-auto">
+      <div className="shrink-0 border-t border-white/[.08] bg-[#111] px-2 py-2 space-y-1 max-h-[42vh] overflow-auto">
         <div className="flex items-center gap-2 px-1"><p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Timeline · multi-track · music-aware</p><span className="text-[9px] opacity-40">S split · ⌫ delete · ←/→ nudge · Shift 1s · Alt-drag slip</span><div className="ml-auto flex gap-1"><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=fitSequenceToDuration(comp,selectedClipIds,15000);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Fit 15s</button><button type="button" disabled={selectedClipIds.length<2} onClick={()=>{const n=linkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Link</button><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=unlinkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Unlink</button></div></div>
         <div className="relative" style={{ minWidth: (totalMs / 1000) * pxPerSec + 80 }}>
           <div className="h-5 ml-14 relative border-b border-white/10 mb-1">
@@ -1159,7 +1159,7 @@ export default function StudioVideoEditorPage() {
           ))}
 
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-emerald-400 pointer-events-none z-20"
+            className="absolute top-0 bottom-0 w-px bg-[#FF6A00] pointer-events-none z-20 shadow-[0_0_0_1px_rgba(255,106,0,.08)]"
             style={{ left: 56 + (playheadMs / 1000) * pxPerSec }}
           />
           <input
@@ -1245,9 +1245,8 @@ function TimelineClipBlock({
         if (drag.current) onGestureEnd();
         drag.current = null;
       }}
-      className={`absolute top-1 bottom-1 rounded px-1 text-[10px] font-semibold truncate cursor-grab active:cursor-grabbing ${
-        selected ? "ring-2 ring-orange-400 bg-orange-600/90" : "bg-sky-700/80 hover:bg-sky-600/90"
-      }`}
+      aria-pressed={selected}
+      className={`group absolute top-1 bottom-1 rounded-[5px] px-2 text-[9px] font-semibold truncate cursor-grab outline-none transition-[background,box-shadow] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-[#FF6A00] ${selected ? "bg-[#3a3a3a] ring-1 ring-[#FF6A00] shadow-[inset_3px_0_0_#FF6A00]" : "bg-[#292929] ring-1 ring-white/[.08] hover:bg-[#333]"}` }
       style={{
         left: (clip.startMs / 1000) * pxPerSec,
         width: Math.max(12, (clip.durationMs / 1000) * pxPerSec),
@@ -1260,7 +1259,7 @@ function TimelineClipBlock({
       {(clip.fadeInMs > 0 || clip.fadeOutMs > 0) && (
         <span className="absolute inset-y-0 left-0 w-1 bg-white/40 rounded-l" />
       )}
-      <span data-handle="trim-left" className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/30" /><span data-handle="trim-right" className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/30" />
+      <span data-handle="trim-left" aria-label="Trim clip start" className="absolute left-0 top-1 bottom-1 w-2 cursor-ew-resize rounded-l opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 bg-white/35" /><span data-handle="trim-right" aria-label="Trim clip end" className="absolute right-0 top-1 bottom-1 w-2 cursor-ew-resize rounded-r opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 bg-white/35" />
     </div>
   );
 }
