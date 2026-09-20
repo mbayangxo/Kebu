@@ -14,6 +14,7 @@ import type { BuilderDevice } from "@/lib/create/builder-device";
 export type BuilderStudioTab =
   | "content"
   | "pages"
+  | "layers"
   | "aesthetic"
   | "media"
   | "nav"
@@ -36,6 +37,16 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
         <path d="M6 4h8l4 4v12a1 1 0 01-1 1H6a1 1 0 01-1-1V5a1 1 0 011-1z" strokeLinejoin="round" />
         <path d="M14 4v4h4" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "layers",
+    label: "Layers",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M12 3l8 4-8 4-8-4 8-4z" strokeLinejoin="round" />
+        <path d="M4 12l8 4 8-4M4 17l8 4 8-4" strokeLinejoin="round" />
       </svg>
     ),
   },
