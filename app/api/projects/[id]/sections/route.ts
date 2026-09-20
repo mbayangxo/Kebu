@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
-import { sectionTypeSchema, sectionPropsSchemas } from "@/lib/create/website-schema";
+import { sectionTypeSchema, sectionPropsSchemas, parseSectionProps } from "@/lib/create/website-schema";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
 import { builderRateLimit } from "@/lib/api-guard";
 import {
@@ -100,6 +100,12 @@ export async function POST(req: Request, { params }: Params) {
   if (!propsParsed.success) {
     return NextResponse.json({ error: "Invalid section props.", issues: propsParsed.error.flatten() }, { status: 400 });
   }
+  let storedProps: Record<string, unknown>;
+  try {
+    storedProps = parseSectionProps(type, merged);
+  } catch {
+    return NextResponse.json({ error: "Invalid builder presentation metadata." }, { status: 400 });
+  }
 
   const pageSlug = parsed.data.pageSlug ?? "home";
   const { data: page } = await db
@@ -144,7 +150,7 @@ export async function POST(req: Request, { params }: Params) {
       page_id: page.id,
       section_type: type,
       sort_order: nextOrder,
-      props: propsParsed.data,
+      props: storedProps,
     })
     .select("id, page_id, section_type, sort_order, props, created_at, updated_at")
     .single();
@@ -240,13 +246,19 @@ export async function PATCH(req: Request, { params }: Params) {
     if (!propsParsed.success) {
       return NextResponse.json({ error: "Invalid props.", issues: propsParsed.error.flatten() }, { status: 400 });
     }
-    if (containsUnsafeSiteContent(JSON.stringify(propsParsed.data))) {
+    let storedProps: Record<string, unknown>;
+    try {
+      storedProps = parseSectionProps(type, nextProps);
+    } catch {
+      return NextResponse.json({ error: "Invalid builder presentation metadata." }, { status: 400 });
+    }
+    if (containsUnsafeSiteContent(JSON.stringify(storedProps))) {
       return NextResponse.json(
         { error: "Content blocked for security (scripts or unsafe embeds are not allowed)." },
         { status: 400 },
       );
     }
-    update.props = propsParsed.data;
+    update.props = storedProps;
   }
 
   if (Object.keys(update).length === 0) {
