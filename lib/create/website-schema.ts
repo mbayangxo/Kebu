@@ -1062,6 +1062,13 @@ export const sectionPropsSchemas = {
     scrollMode: z.enum(["viewport", "parallax"]).optional().default("parallax"),
     /** false = use titleLogo image (May Lècor circle seal); true = CircularBrandRing text. */
     titleAsText: z.boolean().optional().default(false),
+    /** Typography for the editable name inside the circle. */
+    titleTextFontFamily: z.string().trim().max(120).optional().default("Impact"),
+    titleTextFontSize: z.number().min(8).max(48).optional().default(14),
+    titleTextFontWeight: z.number().int().min(400).max(900).optional().default(900),
+    titleTextLetterSpacing: z.number().min(-0.05).max(0.5).optional().default(0.12),
+    titleTextLineHeight: z.number().min(0.8).max(2).optional().default(1.15),
+    titleTextColor: z.string().trim().max(40).optional().default("#ffffff"),
     /** Embedded May footer spacing; editor can resize this without affecting the hero artboard. */
     embeddedFooterPaddingTop: z.number().int().min(8).max(160).optional().default(20),
     embeddedFooterPaddingBottom: z.number().int().min(8).max(160).optional().default(20),
