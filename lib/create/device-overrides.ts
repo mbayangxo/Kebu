@@ -80,6 +80,7 @@ export const DEVICE_OVERRIDE_KEYS = {
     "titleTextLetterSpacing",
     "titleTextLineHeight",
     "titleTextColor",
+    "sectionMinHeightPx",
     "embeddedFooterPaddingTop",
     "embeddedFooterPaddingBottom",
     "navDisplay",
