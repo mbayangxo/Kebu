@@ -136,6 +136,8 @@ export function KebuWelcomeIntake() {
     return true;
   }
 
+  const firstTool = KEBU_TOOLS.find((tool) => tool.id === tools[0]);
+
   async function finish() {
     if (busy) return;
     setBusy(true);
@@ -187,7 +189,8 @@ export function KebuWelcomeIntake() {
       }
 
       storeWorkspace("kebu");
-      router.push(nextPath);
+      const destination = editMode || rawNext ? nextPath : (firstTool?.href ?? "/dashboard");
+      router.push(destination);
       router.refresh();
     } catch {
       setError("Network error. Your choices are still on this screen.");
@@ -327,18 +330,18 @@ export function KebuWelcomeIntake() {
               {step === 5 ? (
                 <section>
                   <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>05 · Ready</p>
-                  <h2 className="mt-3 text-5xl font-black leading-[.95] tracking-[-.05em] sm:text-6xl" style={{ fontFamily: "var(--font-fraunces)" }}>Your Kebu is ready to take shape.</h2>
-                  <p className="mt-3 max-w-xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>We will open a personalized home with your selected tools. Website setup only appears if you chose Sites.</p>
-                  <div className="mt-7 rounded-[24px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-                    <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Starting with</p>
+                  <h2 className="mt-3 text-5xl font-black leading-[.95] tracking-[-.05em] sm:text-6xl" style={{ fontFamily: "var(--font-fraunces)" }}>Your Kebu has a starting point.</h2>
+                  <p className="mt-3 max-w-xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>Start with one useful action now. Your Home will keep the rest of your selected tools close without turning setup into a wall of apps.</p>
+                  <div className="mt-7 rounded-xl border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
+                    <p className="text-[9px] font-semibold tracking-[.08em]" style={{ color: KEBU.orange }}>Your starting tools</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {tools.map((id) => {
                         const tool = KEBU_TOOLS.find((candidate) => candidate.id === id);
-                        return tool ? <span key={id} className="rounded-full bg-black px-3 py-2 text-[10px] font-bold text-white">{tool.label}</span> : null;
+                        return tool ? <span key={id} className="rounded-md bg-black px-3 py-2 text-[10px] font-semibold text-white">{tool.label}</span> : null;
                       })}
                     </div>
                   </div>
-                  <button type="button" disabled={busy} onClick={() => void finish()} className="mt-7 rounded-full px-6 py-3 text-sm font-black text-white disabled:opacity-50" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{busy ? "Building your Kebu…" : editMode ? "Save my Kebu →" : "Open my Kebu →"}</button>
+                  <button type="button" disabled={busy} onClick={() => void finish()} className="mt-7 rounded-full px-6 py-3 text-sm font-black text-white disabled:opacity-50" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{busy ? "Saving your Kebu…" : editMode ? "Save my Kebu →" : firstTool ? `Start with ${firstTool.label} →` : "Open my Kebu →"}</button>
                   {error ? <p className="mt-3 text-xs font-semibold" style={{ color: KEBU.red }}>{error}</p> : null}
                 </section>
               ) : null}

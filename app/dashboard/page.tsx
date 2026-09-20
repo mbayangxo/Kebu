@@ -79,6 +79,8 @@ export default function KebuHomePage() {
 
   const first = displayFirstName(summary?.profile.name, summary?.profile.email);
   const activeSpace = accountContext?.mode === "business" && accountContext.activeBusiness ? accountContext.activeBusiness.name : "Personal";
+  const hasWork = Boolean(summary && (summary.sites.length || summary.businesses.length || summary.updates.length));
+  const primaryTool = summary ? toolById((summary.setup.tools[0] ?? "search") as KebuToolId) : null;
 
   return (
     <AppShell title="Home">
@@ -130,12 +132,14 @@ export default function KebuHomePage() {
                       accent="linear-gradient(135deg,#1b0904,#FF6A00 55%,#FF1F1F)" />
                   ))}
                   {summary.businesses.length === 0 && summary.sites.length === 0 ? (
-                    <WorldCard title="Personal" subtitle="Your space" href="/create" accent="linear-gradient(135deg,#141414,#FF6A00,#FF1F1F)" />
+                    <WorldCard title="Personal" subtitle="Your private starting space" href={primaryTool?.href ?? "/search"} accent="linear-gradient(135deg,#141414,#FF6A00,#FF1F1F)" />
                   ) : null}
                   <Link href="/create" className="flex min-w-[150px] items-center justify-center rounded-xl border text-sm font-semibold transition hover:-translate-y-0.5"
                     style={{ borderColor: border, color: muted }}>+ New space</Link>
                 </div>
               </section>
+
+              {!hasWork ? (<section className="mb-6 grid gap-3 border-y py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" style={{borderColor:border}}><div><p className="text-[10px] font-semibold" style={{color:orange}}>START HERE</p><h2 className="mt-1 text-xl font-semibold">Your Home gets useful as you use Kebu.</h2><p className="mt-1 max-w-2xl text-xs leading-relaxed" style={{color:muted}}>Nothing is filled with demo activity. Start with one of the tools you chose and real work will appear here automatically.</p></div><Link href={primaryTool?.href ?? "/search"} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-black px-4 text-xs font-semibold text-white">Open {primaryTool?.label ?? "Search"} →</Link></section>) : null}
 
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.75fr)_340px]">
                 <main className="space-y-4">
