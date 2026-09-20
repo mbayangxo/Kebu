@@ -395,17 +395,31 @@ export function LegallyBlondeEditCanvas({
 
   useEffect(() => {
     if (!parallax) return;
-    const el = scrollerRef.current;
-    if (!el) return;
+    const scene = scrollerRef.current;
+    if (!scene) return;
+    // The Builder must have one natural document scroller. Derive parallax progress from the
+    // scene's position in that viewport instead of creating a nested overflow-y canvas.
+    const scrollParent = (() => {
+      let node: HTMLElement | null = scene.parentElement;
+      while (node) {
+        const overflowY = window.getComputedStyle(node).overflowY;
+        if (overflowY === "auto" || overflowY === "scroll") return node;
+        node = node.parentElement;
+      }
+      return null;
+    })();
     const onScroll = () => {
-      const total = el.scrollHeight - el.clientHeight;
-      setScrollProgress(total > 0 ? Math.min(1, Math.max(0, el.scrollTop / total)) : 0);
+      const rect = scene.getBoundingClientRect();
+      const viewportHeight = scrollParent?.clientHeight ?? window.innerHeight;
+      const travel = Math.max(1, rect.height + viewportHeight);
+      setScrollProgress(Math.min(1, Math.max(0, (viewportHeight - rect.top) / travel)));
     };
     onScroll();
-    el.addEventListener("scroll", onScroll, { passive: true });
+    const target: EventTarget = scrollParent ?? window;
+    target.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
-      el.removeEventListener("scroll", onScroll);
+      target.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
   }, [parallax]);
@@ -779,10 +793,10 @@ export function LegallyBlondeEditCanvas({
       {parallax ? (
         <div
           ref={scrollerRef}
-          className="lb-editor-parallax-scroll relative min-h-0 w-full flex-1 overflow-y-auto overscroll-contain"
+          className="lb-editor-parallax-scroll relative w-full"
         >
           <div className="lb-editor-scroll-scene">
-            <div className="lb-editor-scroll-pin">{artboard}</div>
+            {artboard}
           </div>
         </div>
       ) : (
