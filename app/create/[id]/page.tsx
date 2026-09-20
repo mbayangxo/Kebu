@@ -44,6 +44,7 @@ import {
   type KebuDragAsset,
 } from "@/lib/create/builder-media-drop";
 import { BUILDER_DEVICE_FRAME } from "@/lib/create/builder-device";
+import { applyDeviceAwarePatch, mergeDeviceAwareSectionProps } from "@/lib/create/device-overrides";
 import { projectUsesMaylecorRussianLayout } from "@/lib/create/maylecor-russian-hero";
 import { defaultMaylecorKsendrProps } from "@/lib/create/maylecor-ksendr-defaults";
 import { projectUsesKdirectionLayout } from "@/lib/create/kdirection-local-assets";
@@ -1688,9 +1689,20 @@ export default function ProjectEditorPage() {
                   return (
                     <BuilderElementInspector
                       selection={selectedElement}
-                      sectionProps={section.props as Record<string, unknown>}
+                      sectionProps={mergeDeviceAwareSectionProps(
+                        section.props as Record<string, unknown>,
+                        device,
+                      )}
                       projectId={projectId}
-                      onPatch={(patch) => updateProps(section.id, patch)}
+                      onPatch={(patch) =>
+                        applyDeviceAwarePatch(
+                          updateProps,
+                          section.id,
+                          section.props as Record<string, unknown>,
+                          device,
+                          patch,
+                        )
+                      }
                       onEditSection={() => setSelectedElement(null)}
                     />
                   );
