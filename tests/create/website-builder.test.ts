@@ -54,7 +54,7 @@ describe("website schema", () => {
     const result = validateWebsiteDefinition(next);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      const parsedHero = result.definition.pages
+      const parsedHero = result.data.pages
         .find((p) => p.slug === "home")
         ?.sections.find((section) => section.type === "legally-blonde-hero");
       expect(parsedHero?.props).toMatchObject({
