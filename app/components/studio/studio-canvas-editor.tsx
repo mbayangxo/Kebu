@@ -25,6 +25,7 @@ import {
   snapLayerPosition,
 } from "@/lib/studio/editor-craft";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
+import { StudioBrandSpacePanel } from "@/app/components/studio/studio-brand-space-panel";
 import { StudioThemesPanel } from "@/app/components/studio/studio-themes-panel";
 import { StudioBrandApplyPanel } from "@/app/components/studio/studio-brand-apply-panel";
 import { StudioToolsPanel } from "@/app/components/studio/studio-tools-panel";
@@ -777,6 +778,7 @@ export function StudioCanvasEditor({
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {leftTab === "themes" ? <StudioThemesPanel document={doc} readOnly={readOnly} onApply={onChange}/> : null}
+            {leftTab === "brand" ? <StudioBrandSpacePanel document={doc} readOnly={readOnly} onApply={onChange} onInsertLogo={(url,label)=>addLayer("image",{imageUrl:url,name:label,width:220,height:120,objectFit:"contain"})}/> : null}
             {leftTab === "brand" ? (
               <StudioBrandApplyPanel
                 document={doc}

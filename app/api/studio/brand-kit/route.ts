@@ -8,6 +8,10 @@ import { builderRateLimit } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 
+async function clearDefault(supabase:any,userId:string,businessId:string|null,except?:string){let q=supabase.from("business_brand_kits").update({is_default:false}).eq("is_default",true);q=businessId?q.eq("business_id",businessId):q.is("business_id",null).eq("owner_id",userId);if(except)q=q.neq("id",except);const{error}=await q;if(error)throw error}
+
+
+
 export async function GET(req: Request) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
@@ -66,6 +70,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Brand kit must be saved inside the active Kebu space." }, { status: 409 });
   }
 
+  if(parsed.data.isDefault)await clearDefault(supabase,user.id,workspace.activeBusinessId);
   const { data: kit, error } = await supabase
     .from("business_brand_kits")
     .insert({
@@ -119,6 +124,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Brand kit cannot be moved outside the active Kebu space." }, { status: 409 });
   }
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if(parsed.data.isDefault)await clearDefault(supabase,user.id,workspace.activeBusinessId,parsed.data.id);
   if (parsed.data.name !== undefined) patch.name = parsed.data.name;
   if (parsed.data.logoUrl !== undefined) patch.logo_url = parsed.data.logoUrl;
   if (parsed.data.primaryColor !== undefined) patch.primary_color = parsed.data.primaryColor;
