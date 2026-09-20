@@ -30,6 +30,7 @@ import {
   exportCanvasMotionToWebmBlob,
 } from "@/lib/studio/motion-export";
 import { clipAtTime, pageLocalTimeMs } from "@/lib/studio/timeline";
+import { resizeCanvasDocument } from "@/lib/studio/editor-craft";
 import type { StudioDesignAccess } from "@/lib/studio/design-access";
 import { studioRoleLabel } from "@/lib/studio/design-access";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -76,6 +77,7 @@ export default function StudioEditorPage() {
   const [packBusy, setPackBusy] = useState(false);
   const [motionBusy, setMotionBusy] = useState(false);
   const [videoBusy, setVideoBusy] = useState(false);
+  const [variantBusy, setVariantBusy] = useState(false);
   const [secondsPerPage, setSecondsPerPage] = useState(2);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [timelinePlaying, setTimelinePlaying] = useState(false);
@@ -614,6 +616,36 @@ export default function StudioEditorPage() {
   }
 
 
+  async function createVariant(designType: StudioDesignType) {
+    if (!doc || !design || !canEdit || variantBusy) return;
+    setVariantBusy(true);
+    setExportNote("Creating editable variant…");
+    try {
+      const canvas = resizeCanvasDocument(doc, { designType });
+      const res = await fetch("/api/create/designs", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: (design.title || "Studio design") + " · " + designType.replace(/_/g, " "),
+          designType,
+          businessId: design.business_id,
+          canvas,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.design?.id) {
+        setExportNote(data.error ?? "Could not create variant.");
+        return;
+      }
+      window.location.assign("/studio/" + data.design.id);
+    } catch {
+      setExportNote("Could not create variant. Your original design was not changed.");
+    } finally {
+      setVariantBusy(false);
+    }
+  }
+
   async function turnDesignIntoVideo() {
     if (!doc || !design || !canEdit || videoBusy) return;
     setVideoBusy(true);
@@ -794,6 +826,29 @@ export default function StudioEditorPage() {
           >
             Resize
           </button>
+        ) : null}
+        {canEdit ? (
+          <select
+            aria-label="Create editable size variant"
+            disabled={variantBusy || syncState === "conflict"}
+            defaultValue=""
+            onChange={(e) => {
+              const value = e.target.value as StudioDesignType;
+              if (value) void createVariant(value);
+              e.currentTarget.value = "";
+            }}
+            className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 bg-white disabled:opacity-50"
+          >
+            <option value="">{variantBusy ? "Creating variant…" : "Variant"}</option>
+            <option value="instagram_post">Instagram post</option>
+            <option value="instagram_story">Instagram story</option>
+            <option value="whatsapp_status">WhatsApp status</option>
+            <option value="facebook_post">Facebook post</option>
+            <option value="flyer">Flyer</option>
+            <option value="poster">Poster</option>
+            <option value="banner">Banner</option>
+            <option value="business_card">Business card</option>
+          </select>
         ) : null}
         <button
           type="button"
