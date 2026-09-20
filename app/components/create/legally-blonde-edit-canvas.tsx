@@ -263,19 +263,22 @@ export function LegallyBlondeEditCanvas({
   const [snapGuide, setSnapGuide] = useState({ x: false, y: false });
 
   useEffect(() => {
-    if (!selectedElement) {
-      setSelectedKey(null);
-      setSelectedExtraId(null);
-      setEditingTitle(false);
-      return;
-    }
+    // This canvas only mirrors element selections that belong to it. Section/control selections are
+    // owned by the parent Builder and must not erase the active child while pointer gestures are
+    // still settling; that was the source of the "cutout jumps back to hero" behavior.
+    if (!selectedElement) return;
+    if (selectedElement.kind === "control" || selectedElement.elementId === "heroCanvas") return;
     if (selectedElement.kind === "cutout" && selectedElement.elementId.startsWith("extra:")) {
       setSelectedExtraId(selectedElement.elementId.slice("extra:".length));
       setSelectedKey(null);
+      setEditingTitle(false);
       return;
     }
+    const knownSlot = DEFAULT_SLOTS.some((slot) => slot.key === selectedElement.elementId);
+    if (!knownSlot && selectedElement.kind !== "background") return;
     setSelectedKey(selectedElement.elementId);
     setSelectedExtraId(null);
+    if (selectedElement.elementId !== "titleLogo") setEditingTitle(false);
   }, [selectedElement]);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
