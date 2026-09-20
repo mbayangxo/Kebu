@@ -159,6 +159,46 @@ export function BuilderSiteChromePanel({
               </button>
             </label>
           </PanelSection>
+          <PanelSection title="Navigation typography" group="chrome-header">
+            <input
+              list="kebu-nav-fonts"
+              className="w-full text-xs rounded px-2 py-1.5"
+              style={{ border: "1px solid #DDE0F0" }}
+              value={headerProps.fontFamily ?? ""}
+              onChange={(e) => onPatch({ fontFamily: e.target.value || undefined })}
+              placeholder="Same as site"
+              aria-label="Navigation font"
+            />
+            <datalist id="kebu-nav-fonts">
+              <option value="Satoshi" />
+              <option value="Inter" />
+              <option value="DM Sans" />
+              <option value="Space Grotesk" />
+              <option value="Manrope" />
+              <option value="Helvetica" />
+              <option value="Georgia" />
+              <option value="Playfair Display" />
+              <option value="Cormorant Garamond" />
+              <option value="Libre Baskerville" />
+              <option value="Oswald" />
+              <option value="Bebas Neue" />
+              <option value="Syne" />
+            </datalist>
+            <select
+              className="mt-2 w-full text-xs rounded px-2 py-1.5"
+              style={{ border: "1px solid #DDE0F0", background: "#fff" }}
+              value={String(headerProps.fontWeight ?? 700)}
+              onChange={(e) => onPatch({ fontWeight: Number(e.target.value) })}
+              aria-label="Navigation font weight"
+            >
+              <option value="400">Regular</option>
+              <option value="500">Medium</option>
+              <option value="600">Semibold</option>
+              <option value="700">Bold</option>
+              <option value="800">Extra bold</option>
+              <option value="900">Black</option>
+            </select>
+          </PanelSection>
           <PanelSection title="Nav links" group="chrome-header">
             <NavLinksEditor
               links={mapNavLinksForEditor(
