@@ -40,9 +40,9 @@ const STEPS = [
 ] as const;
 
 const STATS = [
-  { value: "3", label: "live products" },
+  { value: "54", label: "African countries in Explorer" },
   { value: "XOF", label: "mobile money native" },
-  { value: "0%", label: "equity taken" },
+  { value: "1", label: "account across Kebu" },
   { value: "Free", label: "to start building" },
 ] as const;
 
@@ -51,27 +51,6 @@ const WEST_AFRICA = [
   "Guinée", "Niger", "Bénin", "Togo",
   "Ghana", "Nigeria", "Sierra Leone", "Liberia",
   "Mauritanie", "Gambie", "Cap-Vert", "Guinée-Bissau",
-] as const;
-
-const BUILDER_STORIES = [
-  {
-    role: "Recording artist",
-    city: "Dakar",
-    story: "Built a music page with tour dates and streaming links in one afternoon. Published the same day.",
-    tag: "Maylecor aesthetic",
-  },
-  {
-    role: "Fashion designer",
-    city: "Abidjan",
-    story: "Site with WhatsApp order button and mobile money checkout. No code. Clients now order directly.",
-    tag: "Kebu Builder",
-  },
-  {
-    role: "Talent agency",
-    city: "Lagos",
-    story: "Roster pages with portrait-forward layout and a press kit download — ready in an afternoon.",
-    tag: "K-Direction aesthetic",
-  },
 ] as const;
 
 function useScrollReveal() {
@@ -175,7 +154,7 @@ export function KebuOpportunityHome() {
       <section style={{ background: C.orange }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
           <p
-            className="text-[10px] font-bold uppercase tracking-[0.22em] shrink-0"
+            className="text-[10px] font-semibold tracking-[0.08em] shrink-0"
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
             Phase One — live now
@@ -189,7 +168,7 @@ export function KebuOpportunityHome() {
             ))}
           </div>
           <p className="sm:ml-auto text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>
-            No waitlist pages for features that don&apos;t exist yet.
+            See what is available now. New Kebu tools join the same account as they become ready.
           </p>
         </div>
       </section>
@@ -199,7 +178,7 @@ export function KebuOpportunityHome() {
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="kebu-reveal mb-16 max-w-2xl">
             <p
-              className="text-[10px] font-bold uppercase tracking-[0.22em] mb-4"
+              className="text-[10px] font-semibold tracking-[0.08em] mb-4"
               style={{ color: C.orange }}
             >
               How it works
@@ -242,7 +221,7 @@ export function KebuOpportunityHome() {
                   {desc}
                 </p>
                 <span
-                  className="text-xs font-bold uppercase tracking-[0.12em] transition-colors group-hover:text-[#FF5500]"
+                  className="text-xs font-semibold transition-colors group-hover:text-[#FF5500]"
                   style={{ color: C.faint }}
                 >
                   Start here →
@@ -260,7 +239,7 @@ export function KebuOpportunityHome() {
             <div>
               <div className="kebu-reveal mb-10">
                 <p
-                  className="text-[10px] font-bold uppercase tracking-[0.22em] mb-4"
+                  className="text-[10px] font-semibold tracking-[0.08em] mb-4"
                   style={{ color: C.orange }}
                 >
                   Built for Africa
@@ -305,7 +284,7 @@ export function KebuOpportunityHome() {
 
             <div className="kebu-reveal" style={{ transitionDelay: "0.15s" }}>
               <p
-                className="text-[10px] font-bold uppercase tracking-[0.22em] mb-5"
+                className="text-[10px] font-semibold tracking-[0.08em] mb-5"
                 style={{ color: C.faint }}
               >
                 West Africa — our home
@@ -342,7 +321,7 @@ export function KebuOpportunityHome() {
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="kebu-reveal mb-12 max-w-2xl">
             <p
-              className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3"
+              className="text-[10px] font-semibold tracking-[0.08em] mb-3"
               style={{ color: C.red }}
             >
               From the aesthetic gallery
@@ -381,7 +360,7 @@ export function KebuOpportunityHome() {
               </div>
               <div className="p-5" style={{ borderTop: `1px solid ${C.border}` }}>
                 <p
-                  className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1"
+                  className="text-[10px] font-semibold tracking-[0.08em] mb-1"
                   style={{ color: C.red }}
                 >
                   Maylecor
@@ -413,7 +392,7 @@ export function KebuOpportunityHome() {
               </div>
               <div className="p-5" style={{ borderTop: `1px solid ${C.border}` }}>
                 <p
-                  className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1"
+                  className="text-[10px] font-semibold tracking-[0.08em] mb-1"
                   style={{ color: C.red }}
                 >
                   K-Direction
@@ -435,71 +414,6 @@ export function KebuOpportunityHome() {
         </div>
       </section>
 
-      {/* ── Builder stories / use cases ──────────────────────────────────────── */}
-      <section className="py-24 lg:py-32" style={{ background: C.paper }}>
-        <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
-          <div className="kebu-reveal mb-14">
-            <p
-              className="text-[10px] font-bold uppercase tracking-[0.22em] mb-4"
-              style={{ color: C.orange }}
-            >
-              What builders do with it
-            </p>
-            <h2
-              style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, color: C.ink }}
-              className="font-bold text-[clamp(1.75rem,4vw,3rem)]"
-            >
-              Made for the
-              <span style={{ color: C.orange }}> African hustle.</span>
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-5">
-            {BUILDER_STORIES.map(({ role, city, story, tag }, i) => (
-              <div
-                key={role}
-                className="kebu-reveal rounded-xl p-7"
-                style={{
-                  transitionDelay: `${i * 0.1}s`,
-                  background: C.white,
-                  border: `1px solid ${C.border}`,
-                  boxShadow: "0 2px 8px rgba(10,10,10,0.04)",
-                }}
-              >
-                <p
-                  className="text-[10px] font-bold uppercase tracking-[0.18em] mb-4"
-                  style={{ color: C.orange }}
-                >
-                  {tag}
-                </p>
-                <p
-                  className="text-base leading-relaxed mb-6"
-                  style={{ color: C.ink }}
-                >
-                  &ldquo;{story}&rdquo;
-                </p>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                    style={{ background: `${C.orange}18`, color: C.orange }}
-                  >
-                    {role[0]}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold" style={{ color: C.ink }}>
-                      {role}
-                    </p>
-                    <p className="text-[10px]" style={{ color: C.faint }}>
-                      {city}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Yande AI ─────────────────────────────────────────────────────────── */}
       <section className="py-24 lg:py-32" style={{ background: C.paperSoft }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
@@ -509,10 +423,10 @@ export function KebuOpportunityHome() {
                 <YandeMark size={56} />
               </div>
               <p
-                className="text-[10px] font-bold uppercase tracking-[0.22em] mb-3"
+                className="text-[10px] font-semibold tracking-[0.08em] mb-3"
                 style={{ color: C.orange }}
               >
-                Built into every site
+                Built into the Builder
               </p>
               <h2
                 style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05, color: C.ink }}
@@ -535,7 +449,7 @@ export function KebuOpportunityHome() {
               }}
             >
               <p
-                className="text-[10px] font-bold uppercase tracking-[0.18em] mb-4"
+                className="text-[10px] font-semibold tracking-[0.08em] mb-4"
                 style={{ color: C.faint }}
               >
                 What builders actually ask
@@ -593,14 +507,14 @@ export function KebuOpportunityHome() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/opportunity/countries"
-              className="inline-flex items-center justify-center font-bold uppercase tracking-[0.12em] px-10 py-4 text-sm rounded-full transition-all hover:brightness-105"
+              className="inline-flex items-center justify-center font-semibold px-10 py-4 text-sm rounded-lg transition-all hover:brightness-105"
               style={{ background: C.white, color: C.orange }}
             >
               Explore countries
             </Link>
             <Link
               href="/create"
-              className="inline-flex items-center justify-center font-bold uppercase tracking-[0.12em] px-10 py-4 text-sm rounded-full transition-all"
+              className="inline-flex items-center justify-center font-semibold px-10 py-4 text-sm rounded-lg transition-all"
               style={{ background: "transparent", color: C.white, border: "2px solid rgba(255,255,255,0.85)" }}
             >
               Kebu Builder →

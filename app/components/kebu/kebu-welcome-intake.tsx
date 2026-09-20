@@ -221,7 +221,7 @@ export function KebuWelcomeIntake() {
             <div className="w-full max-w-[760px]">
               {step === 0 ? (
                 <section>
-                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>Welcome to Kebu</p>
+                  <p className="text-[10px] font-semibold tracking-[.08em]" style={{ color: KEBU.orange }}>Welcome to Kebu</p>
                   <h1 className="mt-4 max-w-3xl text-5xl font-black leading-[.92] tracking-[-.05em] sm:text-7xl" style={{ fontFamily: "var(--font-fraunces)" }}>
                     One place for your work, <span className="font-normal italic">ideas</span> and life online.
                   </h1>
@@ -234,13 +234,13 @@ export function KebuWelcomeIntake() {
                       </div>
                     ))}
                   </div>
-                  <button type="button" onClick={() => setStep(1)} className="mt-8 rounded-full px-6 py-3 text-sm font-black text-white" style={{ background: KEBU.black }}>Make Kebu mine →</button>
+                  <button type="button" onClick={() => setStep(1)} className="mt-8 rounded-lg px-6 py-3 text-sm font-semibold text-white" style={{ background: KEBU.black }}>Make Kebu mine →</button>
                 </section>
               ) : null}
 
               {step === 1 ? (
                 <section>
-                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>01 · Direction</p>
+                  <p className="text-[10px] font-semibold tracking-[.08em]" style={{ color: KEBU.orange }}>01 · Direction</p>
                   <h2 className="mt-3 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>What should Kebu help you do?</h2>
                   <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>Pick more than one. Kebu will assemble around you.</p>
                   <div className="mt-7 grid gap-2 sm:grid-cols-2">
@@ -263,7 +263,7 @@ export function KebuWelcomeIntake() {
 
               {step === 2 ? (
                 <section>
-                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>02 · Your Kebu</p>
+                  <p className="text-[10px] font-semibold tracking-[.08em]" style={{ color: KEBU.orange }}>02 · Your Kebu</p>
                   <h2 className="mt-3 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>Choose what belongs in your Kebu.</h2>
                   <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>Recommended apps are already selected. Nothing is permanent.</p>
                   <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -285,7 +285,7 @@ export function KebuWelcomeIntake() {
 
               {step === 3 ? (
                 <section>
-                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>03 · Identity</p>
+                  <p className="text-[10px] font-semibold tracking-[.08em]" style={{ color: KEBU.orange }}>03 · Identity</p>
                   <h2 className="mt-3 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>How should Kebu think about you?</h2>
                   <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>This tunes your starting experience. Your personal work stays separate from any business or team spaces you create later.</p>
                   <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -295,7 +295,7 @@ export function KebuWelcomeIntake() {
                     })}
                   </div>
                   <label className="mt-8 block">
-                    <span className="text-[10px] font-black uppercase tracking-[.12em]">Name your Personal space <span style={{ color: KEBU.muted }}>· optional</span></span>
+                    <span className="text-[10px] font-semibold tracking-[.08em]">Name your Personal space <span style={{ color: KEBU.muted }}>· optional</span></span>
                     <input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} placeholder="e.g. My Kebu, School work, Creative projects" className="mt-2 min-h-12 w-full rounded-lg border bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
                   </label><div className="mt-4 rounded-lg border bg-white p-3 text-[11px] leading-relaxed" style={{borderColor:KEBU.borders.default,color:KEBU.muted}}><strong style={{color:KEBU.black}}>Personal is your private starting space.</strong> Businesses and teams get their own spaces, members and data. You can switch between them later without mixing the work.</div>
                 </section>
@@ -303,24 +303,24 @@ export function KebuWelcomeIntake() {
 
               {step === 4 ? (
                 <section>
-                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>04 · Discovery</p>
+                  <p className="text-[10px] font-semibold tracking-[.08em]" style={{ color: KEBU.orange }}>04 · Discovery</p>
                   <h2 className="mt-3 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>Give Search and Opportunity OS a head start.</h2>
                   <p className="mt-2 text-sm" style={{ color: KEBU.muted }}>Optional. Skip anything you do not care about yet.</p>
                   <div className="mt-7">
-                    <p className="text-[10px] font-black uppercase tracking-[.12em]">Interests</p>
+                    <p className="text-[10px] font-semibold tracking-[.08em]">Interests</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {OPPORTUNITY_INTERESTS.map((item) => {
                         const active = interestPaths.includes(item.id);
-                        return <button key={item.id} type="button" onClick={() => setInterestPaths(toggleIn(interestPaths, item.id))} className="rounded-full border px-3 py-2 text-[10px] font-bold" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, background: active ? KEBU.orange : KEBU.white, color: active ? "white" : KEBU.black }}>{item.label}</button>;
+                        return <button key={item.id} type="button" onClick={() => setInterestPaths(toggleIn(interestPaths, item.id))} className="rounded-md border px-3 py-2 text-[10px] font-semibold" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, background: active ? KEBU.orange : KEBU.white, color: active ? "white" : KEBU.black }}>{item.label}</button>;
                       })}
                     </div>
                   </div>
                   <div className="mt-7">
-                    <p className="text-[10px] font-black uppercase tracking-[.12em]">Countries that matter to you</p>
+                    <p className="text-[10px] font-semibold tracking-[.08em]">Countries that matter to you</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {AFRICAN_COUNTRY_OPTIONS.map((country) => {
                         const active = countryCodes.includes(country.code);
-                        return <button key={country.code} type="button" onClick={() => setCountryCodes(toggleIn(countryCodes, country.code))} className="rounded-full border px-3 py-2 text-[10px] font-bold" style={{ borderColor: active ? KEBU.black : KEBU.borders.default, background: active ? KEBU.black : KEBU.white, color: active ? "white" : KEBU.black }}>{country.name}</button>;
+                        return <button key={country.code} type="button" onClick={() => setCountryCodes(toggleIn(countryCodes, country.code))} className="rounded-md border px-3 py-2 text-[10px] font-semibold" style={{ borderColor: active ? KEBU.black : KEBU.borders.default, background: active ? KEBU.black : KEBU.white, color: active ? "white" : KEBU.black }}>{country.name}</button>;
                       })}
                     </div>
                   </div>
@@ -329,7 +329,7 @@ export function KebuWelcomeIntake() {
 
               {step === 5 ? (
                 <section>
-                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>05 · Ready</p>
+                  <p className="text-[10px] font-semibold tracking-[.08em]" style={{ color: KEBU.orange }}>05 · Ready</p>
                   <h2 className="mt-3 text-5xl font-black leading-[.95] tracking-[-.05em] sm:text-6xl" style={{ fontFamily: "var(--font-fraunces)" }}>Your Kebu has a starting point.</h2>
                   <p className="mt-3 max-w-xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>Start with one useful action now. Your Home will keep the rest of your selected tools close without turning setup into a wall of apps.</p>
                   <div className="mt-7 rounded-xl border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
@@ -341,7 +341,7 @@ export function KebuWelcomeIntake() {
                       })}
                     </div>
                   </div>
-                  <button type="button" disabled={busy} onClick={() => void finish()} className="mt-7 rounded-full px-6 py-3 text-sm font-black text-white disabled:opacity-50" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{busy ? "Saving your Kebu…" : editMode ? "Save my Kebu →" : firstTool ? `Start with ${firstTool.label} →` : "Open my Kebu →"}</button>
+                  <button type="button" disabled={busy} onClick={() => void finish()} className="mt-7 rounded-lg px-6 py-3 text-sm font-semibold text-white disabled:opacity-50" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{busy ? "Saving your Kebu…" : editMode ? "Save my Kebu →" : firstTool ? `Start with ${firstTool.label} →` : "Open my Kebu →"}</button>
                   {error ? <p className="mt-3 text-xs font-semibold" style={{ color: KEBU.red }}>{error}</p> : null}
                 </section>
               ) : null}
@@ -350,8 +350,8 @@ export function KebuWelcomeIntake() {
 
           {step > 0 && step < 5 ? (
             <footer className="sticky bottom-0 flex items-center justify-between border-t px-5 py-4 sm:px-8" style={{ borderColor: KEBU.borders.default, background: "rgba(255,252,248,.95)", backdropFilter: "blur(16px)" }}>
-              <button type="button" onClick={() => setStep((current) => Math.max(0, current - 1))} className="rounded-full border px-4 py-2 text-xs font-bold" style={{ borderColor: KEBU.borders.default }}>← Back</button>
-              <button type="button" disabled={!canContinue()} onClick={() => setStep((current) => Math.min(5, current + 1))} className="rounded-full bg-black px-5 py-2.5 text-xs font-black text-white disabled:opacity-35">Continue →</button>
+              <button type="button" onClick={() => setStep((current) => Math.max(0, current - 1))} className="rounded-lg border px-4 py-2 text-xs font-semibold" style={{ borderColor: KEBU.borders.default }}>← Back</button>
+              <button type="button" disabled={!canContinue()} onClick={() => setStep((current) => Math.min(5, current + 1))} className="rounded-lg bg-black px-5 py-2.5 text-xs font-semibold text-white disabled:opacity-35">Continue →</button>
             </footer>
           ) : null}
         </main>
