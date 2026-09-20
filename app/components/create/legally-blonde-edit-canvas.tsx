@@ -28,6 +28,8 @@ import {
   resolveCutoutHref,
 } from "@/lib/create/cutout-links";
 import { parseNavLayout, type NavSizePreset } from "@/lib/create/nav-chrome-size";
+import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
+import { cssFontStack } from "@/lib/create/site-theme-fonts";
 import type { BuilderElementKind, BuilderElementSelection } from "@/lib/create/builder-selection";
 import "./artist-motion.css";
 import "./legally-blonde-tilda.css";
@@ -753,6 +755,12 @@ export function LegallyBlondeEditCanvas({
     <div
       className="relative flex min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]"
     >
+      <SiteThemeFonts
+        fontDisplay={String(props.displayFont ?? "Oswald")}
+        fontBody="system-ui"
+        extraFamilies={[titleTypography.fontFamily]}
+      />
+
       <input
         ref={fileRef}
         type="file"
@@ -1193,7 +1201,9 @@ function CutoutChip({
                     className="w-full bg-transparent text-center uppercase caret-white outline-none"
                     style={{
                       color: titleTypography?.color ?? "#ffffff",
-                      fontFamily: titleTypography?.fontFamily ?? "Impact, Arial Black, Helvetica, sans-serif",
+                      fontFamily: titleTypography?.fontFamily
+                        ? cssFontStack(titleTypography.fontFamily)
+                        : "Impact, Arial Black, Helvetica, sans-serif",
                       fontSize: `${titleTypography?.fontSize ?? 14}px`,
                       fontWeight: titleTypography?.fontWeight ?? 900,
                       letterSpacing: `${titleTypography?.letterSpacing ?? 0.12}em`,
@@ -1222,7 +1232,9 @@ function CutoutChip({
                     lineHeight: titleTypography?.lineHeight ?? 1.15,
                     fontWeight: titleTypography?.fontWeight ?? 900,
                     textShadow: "0 1px 8px rgba(0,0,0,0.55)",
-                    fontFamily: titleTypography?.fontFamily ?? "Impact, Arial Black, Helvetica, sans-serif",
+                    fontFamily: titleTypography?.fontFamily
+                      ? cssFontStack(titleTypography.fontFamily)
+                      : "Impact, Arial Black, Helvetica, sans-serif",
                   }}
                 >
                   {titleText || "MAY LECOR"}
