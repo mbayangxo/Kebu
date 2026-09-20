@@ -52,6 +52,11 @@ import {
 } from "@/app/components/create/data-mode-provider";
 import { useProjectAutosave } from "./use-project-autosave";
 import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
+import {
+  portfolioUpgradeForProject,
+  type EditorProject as Project,
+  type EditorSection as Section,
+} from "./project-editor-load";
 
 /**
  * Code-split the heaviest sidebar/panel views that are hidden behind a tab or a closed-by-default
@@ -100,25 +105,6 @@ function SidebarDetails({ title, children, defaultOpen = true, group }: { title:
     </details>
   );
 }
-
-type Section = {
-  id: string;
-  page_id: string;
-  section_type: string;
-  sort_order: number;
-  props: Record<string, unknown>;
-};
-
-type Project = {
-  id: string;
-  title: string;
-  status: string;
-  description?: string | null;
-  subdomain?: string | null;
-  theme?: WebsiteDefinition["theme"];
-  business_id?: string | null;
-  seo?: SiteSeo | Record<string, unknown> | null;
-};
 
 export default function ProjectEditorPage() {
   const params = useParams<{ id: string }>();
@@ -241,32 +227,9 @@ export default function ProjectEditorPage() {
         return;
       }
       let projectPayload = data;
-      const sectionRows = Array.isArray(data.sections) ? data.sections : [];
-      const desc = typeof data.project?.description === "string" ? data.project.description : "";
-      const needsMaylecorFix =
-        desc.includes("portfolio:maylecor") ||
-        sectionRows.some(
-          (s: { section_type?: string }) =>
-            s.section_type === "legally-blonde-hero" || s.section_type === "maylecor-home",
-        );
-      const needsKdirectionFix =
-        desc.includes("portfolio:kdirection") ||
-        sectionRows.some(
-          (s: { section_type?: string }) =>
-            s.section_type === "kdirection-home" || s.section_type === "kdirection-page",
-        );
-      if (needsMaylecorFix) {
-        const upRes = await fetch(`/api/projects/${projectId}/upgrade-maylecor`, {
-          method: "POST",
-          credentials: "include",
-        });
-        if (upRes.ok) {
-          const res2 = await fetch(`/api/projects/${projectId}`, { credentials: "include" });
-          const data2 = await res2.json().catch(() => ({}));
-          if (res2.ok) projectPayload = data2;
-        }
-      } else if (needsKdirectionFix) {
-        const upRes = await fetch(`/api/projects/${projectId}/upgrade-kdirection`, {
+      const portfolioUpgrade = portfolioUpgradeForProject(data);
+      if (portfolioUpgrade) {
+        const upRes = await fetch(`/api/projects/${projectId}/upgrade-${portfolioUpgrade}`, {
           method: "POST",
           credentials: "include",
         });
