@@ -9,14 +9,14 @@ import {
 
 export type DesignLayerPayload = Pick<CanvasLayer,
   "type"|"text"|"fontSize"|"fontFamily"|"fontWeight"|"fontStyle"|"color"|"textAlign"|"letterSpacing"|"lineHeight"|"textDecoration"|"textTransform"|
-  "fill"|"stroke"|"strokeWidth"|"cornerRadius"|"shadowColor"|"shadowBlur"|"shadowX"|"shadowY"|"imageUrl"|"videoUrl"|"flipX"|"flipY"|
+  "fill"|"fillType"|"gradientFrom"|"gradientTo"|"gradientAngle"|"blendMode"|"stroke"|"strokeWidth"|"cornerRadius"|"shadowColor"|"shadowBlur"|"shadowX"|"shadowY"|"imageUrl"|"videoUrl"|"flipX"|"flipY"|
   "objectFit"|"cropX"|"cropY"|"cropW"|"cropH"|"brightness"|"contrast"|"saturation"|"grayscale"|"blur"|"iconKey"|"frameStyle"|
   "animationPreset"|"animationDurationMs"|"animationDelayMs"
 >;
 
 function payload(layer: CanvasLayer): DesignLayerPayload {
-  const { type,text,fontSize,fontFamily,fontWeight,fontStyle,color,textAlign,letterSpacing,lineHeight,textDecoration,textTransform,fill,stroke,strokeWidth,cornerRadius,shadowColor,shadowBlur,shadowX,shadowY,imageUrl,videoUrl,flipX,flipY,objectFit,cropX,cropY,cropW,cropH,brightness,contrast,saturation,grayscale,blur,iconKey,frameStyle,animationPreset,animationDurationMs,animationDelayMs }=layer;
-  return {type,text,fontSize,fontFamily,fontWeight,fontStyle,color,textAlign,letterSpacing,lineHeight,textDecoration,textTransform,fill,stroke,strokeWidth,cornerRadius,shadowColor,shadowBlur,shadowX,shadowY,imageUrl,videoUrl,flipX,flipY,objectFit,cropX,cropY,cropW,cropH,brightness,contrast,saturation,grayscale,blur,iconKey,frameStyle,animationPreset,animationDurationMs,animationDelayMs};
+  const { type,text,fontSize,fontFamily,fontWeight,fontStyle,color,textAlign,letterSpacing,lineHeight,textDecoration,textTransform,fill,fillType,gradientFrom,gradientTo,gradientAngle,blendMode,stroke,strokeWidth,cornerRadius,shadowColor,shadowBlur,shadowX,shadowY,imageUrl,videoUrl,flipX,flipY,objectFit,cropX,cropY,cropW,cropH,brightness,contrast,saturation,grayscale,blur,iconKey,frameStyle,animationPreset,animationDurationMs,animationDelayMs }=layer;
+  return {type,text,fontSize,fontFamily,fontWeight,fontStyle,color,textAlign,letterSpacing,lineHeight,textDecoration,textTransform,fill,fillType,gradientFrom,gradientTo,gradientAngle,blendMode,stroke,strokeWidth,cornerRadius,shadowColor,shadowBlur,shadowX,shadowY,imageUrl,videoUrl,flipX,flipY,objectFit,cropX,cropY,cropW,cropH,brightness,contrast,saturation,grayscale,blur,iconKey,frameStyle,animationPreset,animationDurationMs,animationDelayMs};
 }
 
 function designMotionKeyframes(layer: CanvasLayer, clipId: string, clipStartMs: number) {
