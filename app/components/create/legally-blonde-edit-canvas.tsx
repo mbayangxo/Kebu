@@ -558,7 +558,7 @@ export function LegallyBlondeEditCanvas({
         })}
 
         {extraCutouts
-          .filter((c) => c.src)
+          .filter((c) => c.src && !hiddenLayers.includes(c.id))
           .map((cut) => {
             const scale = scales[cut.id] ?? 1;
             const pos = positions[cut.id] ?? { leftPct: cut.leftPct, topPct: cut.topPct };
