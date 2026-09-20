@@ -171,8 +171,9 @@ export function StudioCanvasEditor({
     startX: number;
     startY: number;
     orig: CanvasLayer;
-    /** Snapshot of layers when move started (for group move) */
+    /** Snapshot of layers when move started (for group / multi-selection move). */
     origLayers: CanvasLayer[];
+    selectionIds: string[];
   } | null>(null);
   const [pan, setPan] = useState<{
     startX: number;
@@ -275,7 +276,23 @@ export function StudioCanvasEditor({
     }
     if (layer.locked) return;
     e.stopPropagation();
-    selectLayer(layer, e.shiftKey);
+
+    let nextSelection: string[];
+    if (!e.shiftKey && selectedSet.has(layer.id) && selectedLayerIds.length > 1) {
+      // Preserve a marquee / shift multi-selection when the user starts dragging one
+      // of its members. Collapsing here makes multi-select feel broken.
+      nextSelection = expandSelectionWithGroups(layers, selectedLayerIds);
+    } else if (e.shiftKey) {
+      const toggled = selectedSet.has(layer.id)
+        ? selectedLayerIds.filter((id) => id !== layer.id)
+        : [...selectedLayerIds, layer.id];
+      nextSelection = expandSelectionWithGroups(layers, toggled);
+      onSelectLayers(nextSelection);
+    } else {
+      nextSelection = expandSelectionWithGroups(layers, [layer.id]);
+      onSelectLayers(nextSelection);
+    }
+
     if (readOnly) return;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const current = getPage(latestDoc.current, activePageId).layers;
@@ -286,6 +303,7 @@ export function StudioCanvasEditor({
       startY: e.clientY,
       orig: { ...layer },
       origLayers: current.map((l) => ({ ...l })),
+      selectionIds: nextSelection,
     });
   }
 
@@ -339,15 +357,13 @@ export function StudioCanvasEditor({
     const dy = (e.clientY - drag.startY) / displayScale;
     const orig = drag.orig;
     if (drag.mode === "move") {
-      const groupId = orig.groupId;
-      const moveIds = new Set<string>();
-      if (groupId) {
-        for (const l of drag.origLayers) {
-          if (l.groupId === groupId && !l.locked) moveIds.add(l.id);
-        }
-      } else {
-        moveIds.add(drag.layerId);
-      }
+      const moveIds = new Set(
+        drag.selectionIds.filter((id) => {
+          const candidate = drag.origLayers.find((layer) => layer.id === id);
+          return candidate && !candidate.locked && !candidate.hidden;
+        }),
+      );
+      if (!moveIds.size) moveIds.add(drag.layerId);
       const primary = drag.origLayers.find((l) => l.id === drag.layerId)!;
       const snapped = snapLayerPosition(
         primary,
@@ -712,6 +728,18 @@ export function StudioCanvasEditor({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLayerIds, doc, activePageId, onUndo, onRedo, readOnly]);
+
+  const multiSelectionBounds = selectedLayerIds.length > 1
+    ? (() => {
+        const selectedLayers = layers.filter((layer) => selectedSet.has(layer.id) && !layer.hidden);
+        if (selectedLayers.length < 2) return null;
+        const left = Math.min(...selectedLayers.map((layer) => layer.x));
+        const top = Math.min(...selectedLayers.map((layer) => layer.y));
+        const right = Math.max(...selectedLayers.map((layer) => layer.x + layer.width));
+        const bottom = Math.max(...selectedLayers.map((layer) => layer.y + layer.height));
+        return { left, top, width: right - left, height: bottom - top };
+      })()
+    : null;
 
   const canGroup = !readOnly && selectedLayerIds.length >= 2;
   const canUngroup =
@@ -1172,6 +1200,22 @@ export function StudioCanvasEditor({
                   </div>
                 );
               })}
+              {multiSelectionBounds ? (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute z-20 border-2 border-dashed border-[#FF6A00]"
+                  style={{
+                    left: multiSelectionBounds.left,
+                    top: multiSelectionBounds.top,
+                    width: multiSelectionBounds.width,
+                    height: multiSelectionBounds.height,
+                  }}
+                >
+                  <span className="absolute -left-px -top-5 rounded bg-[#FF6A00] px-1.5 py-0.5 text-[8px] font-black text-white">
+                    {selectedLayerIds.length} selected
+                  </span>
+                </div>
+              ) : null}
               {marquee ? (
                 <div
                   aria-hidden
