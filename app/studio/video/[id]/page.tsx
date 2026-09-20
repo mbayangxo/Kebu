@@ -688,6 +688,8 @@ export default function StudioVideoEditorPage() {
   }
 
   const totalMs = compositionDurationMs(comp);
+  const previewWidth = Math.min(360, (comp.width / comp.height) * 280);
+  const previewScale = previewWidth / comp.width;
   const selected = comp.clips.find((c) => c.id === selectedClipId) ?? null;
   const tracks = [...comp.tracks].sort((a, b) => a.order - b.order);
   const peaks = downsamplePeaks(comp.music?.peaks ?? [], 240);
@@ -1009,18 +1011,22 @@ export default function StudioVideoEditorPage() {
             <div
               className="relative bg-black rounded-lg overflow-hidden shadow-2xl border border-white/10"
               style={{
-                width: Math.min(360, (comp.width / comp.height) * 280),
+                width: previewWidth,
                 aspectRatio: `${comp.width} / ${comp.height}`,
               }}
             >
               <video ref={videoPreviewRef} className="absolute inset-0 w-full h-full object-contain transition-opacity" playsInline />
-              {comp.clips.filter((clip) => clip.designLayer && playheadMs >= clip.startMs && playheadMs < clip.startMs + clip.durationMs).map((clip) => {
-                const layer=clip.designLayer!;
-                const style: React.CSSProperties={position:"absolute",left:`${(clip.x/comp.width)*100}%`,top:`${(clip.y/comp.height)*100}%`,width:`${((layer.type==="text"?Math.max(1,200):200)/comp.width)*100}%`,height:"auto",opacity:clip.opacity,transform:`rotate(${clip.rotation}deg) scale(${clip.scale})`,transformOrigin:"top left",color:layer.color??"#fff",background:layer.type==="rect"||layer.type==="ellipse"?(layer.fill??"transparent"):"transparent",borderRadius:layer.type==="ellipse"?"999px":layer.cornerRadius??0,fontFamily:layer.fontFamily,fontWeight:layer.fontWeight,fontStyle:layer.fontStyle,fontSize:layer.fontSize?Math.max(8,layer.fontSize*(360/comp.width)):undefined,textAlign:layer.textAlign};
-                if(layer.type==="image"&&layer.imageUrl)return <img key={clip.id} src={layer.imageUrl} alt="" style={style} className="object-cover"/>;
-                if(layer.type==="video"&&layer.videoUrl)return <video key={clip.id} src={layer.videoUrl} muted playsInline style={style}/>;
-                return <div key={clip.id} style={style}>{layer.type==="text"?layer.text:layer.type==="icon"?layer.text??"✦":""}</div>;
-              })}
+              {comp.clips
+                .filter((clip) => clip.designLayer && playheadMs >= clip.startMs && playheadMs < clip.startMs + clip.durationMs)
+                .map((clip) => (
+                  <SemanticDesignVideoLayer
+                    key={clip.id}
+                    composition={comp}
+                    clip={clip}
+                    playheadMs={playheadMs}
+                    previewScale={previewScale}
+                  />
+                ))}
               {(() => {
                 const capTrack = comp.tracks.find((t) => t.kind === "caption");
                 if (!capTrack) return null;
@@ -1263,6 +1269,168 @@ export default function StudioVideoEditorPage() {
       </div>
     </div>
   );
+}
+
+function semanticMediaFilter(layer: NonNullable<CompositionClip["designLayer"]>) {
+  const brightness = 1 + (layer.brightness ?? 0);
+  const contrast = 1 + (layer.contrast ?? 0);
+  const saturation = 1 + (layer.saturation ?? 0);
+  const grayscale = Math.max(0, Math.min(1, layer.grayscale ?? 0));
+  const blur = Math.max(0, layer.blur ?? 0);
+  return `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) grayscale(${grayscale}) blur(${blur}px)`;
+}
+
+function SemanticDesignVideoLayer({
+  composition,
+  clip,
+  playheadMs,
+  previewScale,
+}: {
+  composition: StudioComposition;
+  clip: CompositionClip;
+  playheadMs: number;
+  previewScale: number;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const layer = clip.designLayer!;
+  const xf = clipTransformAtTime(composition, clip, playheadMs);
+  const width = Math.max(1, clip.designWidth ?? 200) * previewScale;
+  const height = Math.max(1, clip.designHeight ?? (layer.fontSize ?? 48) * 1.4) * previewScale;
+  const cropW = Math.max(0.05, Math.min(1, layer.cropW ?? 1));
+  const cropH = Math.max(0.05, Math.min(1, layer.cropH ?? 1));
+  const cropX = Math.max(0, Math.min(1 - cropW, layer.cropX ?? 0));
+  const cropY = Math.max(0, Math.min(1 - cropH, layer.cropY ?? 0));
+
+  useEffect(() => {
+    if (layer.type !== "video" || !videoRef.current) return;
+    const video = videoRef.current;
+    const localMs = Math.max(0, (playheadMs - clip.startMs) * clip.speed + clip.sourceInMs);
+    const apply = () => {
+      const target = localMs / 1000;
+      if (Math.abs(video.currentTime - target) > 0.12) {
+        try { video.currentTime = target; } catch { /* media can still be loading */ }
+      }
+    };
+    if (video.readyState >= 1) apply();
+    else video.addEventListener("loadedmetadata", apply, { once: true });
+  }, [clip.sourceInMs, clip.speed, clip.startMs, layer.type, playheadMs]);
+
+  const outer: React.CSSProperties = {
+    position: "absolute",
+    left: xf.x * previewScale,
+    top: xf.y * previewScale,
+    width,
+    height,
+    opacity: xf.opacity,
+    transform: `scale(${xf.scale}) rotate(${xf.rotation}deg)`,
+    transformOrigin: "top left",
+    overflow: "hidden",
+    borderRadius: layer.type === "ellipse" ? 9999 : (layer.cornerRadius ?? 0) * previewScale,
+    boxShadow: layer.shadowBlur
+      ? `${(layer.shadowX ?? 0) * previewScale}px ${(layer.shadowY ?? 0) * previewScale}px ${layer.shadowBlur * previewScale}px ${layer.shadowColor ?? "#00000055"}`
+      : undefined,
+    pointerEvents: "none",
+  };
+
+  if (layer.type === "text") {
+    return (
+      <div
+        style={{
+          ...outer,
+          color: layer.color ?? "#FFFFFF",
+          fontFamily: layer.fontFamily,
+          fontWeight: layer.fontWeight,
+          fontStyle: layer.fontStyle,
+          fontSize: Math.max(5, (layer.fontSize ?? 48) * previewScale),
+          lineHeight: layer.lineHeight ?? 1.2,
+          letterSpacing: layer.letterSpacing != null ? layer.letterSpacing * previewScale : undefined,
+          textAlign: layer.textAlign,
+          textDecoration: layer.textDecoration === "none" ? undefined : layer.textDecoration,
+          textTransform: layer.textTransform === "none" ? undefined : layer.textTransform,
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {layer.text}
+      </div>
+    );
+  }
+
+  if (layer.type === "image" && layer.imageUrl) {
+    return (
+      <div style={outer}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={layer.imageUrl}
+          alt=""
+          style={{
+            width: `${100 / cropW}%`,
+            height: `${100 / cropH}%`,
+            maxWidth: "none",
+            marginLeft: `${(-cropX / cropW) * 100}%`,
+            marginTop: `${(-cropY / cropH) * 100}%`,
+            objectFit: "fill",
+            transform: `scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,
+            filter: semanticMediaFilter(layer),
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (layer.type === "video" && layer.videoUrl) {
+    return (
+      <div style={outer}>
+        <video
+          ref={videoRef}
+          src={layer.videoUrl}
+          muted
+          playsInline
+          preload="metadata"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: layer.objectFit ?? "cover",
+            transform: `scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,
+            filter: semanticMediaFilter(layer),
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (layer.type === "ellipse") {
+    return <div style={{ ...outer, background: layer.fill ?? "transparent", border: layer.strokeWidth ? `${layer.strokeWidth * previewScale}px solid ${layer.stroke ?? "#111111"}` : undefined }} />;
+  }
+
+  if (layer.type === "line") {
+    return (
+      <div style={{ ...outer, overflow: "visible" }}>
+        <span
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "50%",
+            height: Math.max(1, (layer.strokeWidth ?? 2) * previewScale),
+            transform: "translateY(-50%)",
+            background: layer.stroke ?? layer.fill ?? "#FFFFFF",
+          }}
+        />
+        {layer.text === "→" ? <span style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-55%)", color: layer.stroke ?? layer.fill ?? "#FFFFFF", fontSize: Math.max(8, 22 * previewScale) }}>›</span> : null}
+      </div>
+    );
+  }
+
+  if (layer.type === "icon") {
+    return <div style={{ ...outer, display: "flex", alignItems: "center", justifyContent: "center", color: layer.color ?? "#FFFFFF", fontSize: Math.max(8, (layer.fontSize ?? 48) * previewScale), fontWeight: 700 }}>{layer.text || "★"}</div>;
+  }
+
+  if (layer.type === "frame") {
+    return <div style={{ ...outer, border: `${Math.max(1, (layer.strokeWidth ?? 4) * previewScale)}px solid ${layer.stroke ?? "#FFFFFF"}`, background: layer.fill ?? "transparent" }} />;
+  }
+
+  return <div style={{ ...outer, background: layer.fill ?? "transparent", border: layer.strokeWidth ? `${layer.strokeWidth * previewScale}px solid ${layer.stroke ?? "#111111"}` : undefined }} />;
 }
 
 function TimelineClipBlock({
