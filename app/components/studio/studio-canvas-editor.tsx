@@ -26,6 +26,7 @@ import {
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
 import { StudioBrandApplyPanel } from "@/app/components/studio/studio-brand-apply-panel";
 import { StudioLiveCursors } from "@/app/components/studio/studio-live-cursors";
+import { StudioMediaAdjustmentsPanel } from "@/app/components/studio/studio-media-adjustments-panel";
 import {
   STUDIO_ELEMENTS_PACK,
   type StudioElementDef,
@@ -1405,6 +1406,10 @@ export function StudioCanvasEditor({
                   >
                     Reset crop
                   </button>
+                  <StudioMediaAdjustmentsPanel
+                    layer={selected}
+                    onChange={(patch) => updateLayer(selected.id, patch)}
+                  />
                 </div>
               ) : null}
               {selected.type === "video" ? (
@@ -1430,6 +1435,10 @@ export function StudioCanvasEditor({
                     Trim controls the source start time on the timeline. Export seeks the clip
                     frame-by-frame (S8b).
                   </p>
+                  <StudioMediaAdjustmentsPanel
+                    layer={selected}
+                    onChange={(patch) => updateLayer(selected.id, patch)}
+                  />
                   <label className="block font-semibold">
                     Trim start (s)
                     <input
