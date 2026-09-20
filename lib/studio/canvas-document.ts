@@ -809,6 +809,122 @@ function paintIconLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
   ctx.fillText(glyph, layer.x + layer.width / 2, layer.y + layer.height / 2);
 }
 
+function applyLayerShadow(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  ctx.shadowColor = layer.shadowColor ?? "rgba(0,0,0,0)";
+  ctx.shadowBlur = layer.shadowBlur ?? 0;
+  ctx.shadowOffsetX = layer.shadowX ?? 0;
+  ctx.shadowOffsetY = layer.shadowY ?? 0;
+}
+
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function transformedLayerText(layer: CanvasLayer): string {
+  const raw = layer.text ?? "";
+  if (layer.textTransform === "uppercase") return raw.toUpperCase();
+  if (layer.textTransform === "lowercase") return raw.toLowerCase();
+  return raw;
+}
+
+function textWidth(ctx: CanvasRenderingContext2D, text: string, letterSpacing: number): number {
+  if (!text) return 0;
+  return ctx.measureText(text).width + Math.max(0, text.length - 1) * letterSpacing;
+}
+
+function paintTextRun(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  letterSpacing: number,
+) {
+  if (!letterSpacing) {
+    ctx.fillText(text, x, y);
+    return;
+  }
+  let cursor = x;
+  for (const char of text) {
+    ctx.fillText(char, cursor, y);
+    cursor += ctx.measureText(char).width + letterSpacing;
+  }
+}
+
+function paintTextLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  const text = transformedLayerText(layer);
+  if (!text) return;
+  const fontSize = layer.fontSize ?? 24;
+  const lineHeight = fontSize * (layer.lineHeight ?? 1.2);
+  const letterSpacing = layer.letterSpacing ?? 0;
+  ctx.fillStyle = layer.color ?? "#FFFFFF";
+  ctx.font = `${layer.fontStyle ?? "normal"} ${layer.fontWeight ?? "400"} ${fontSize}px ${layer.fontFamily ?? "system-ui"}`;
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+
+  const paragraphs = text.split(/\n/);
+  const lines: string[] = [];
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      lines.push("");
+      continue;
+    }
+    let current = words[0]!;
+    for (const word of words.slice(1)) {
+      const candidate = current + " " + word;
+      if (textWidth(ctx, candidate, letterSpacing) <= layer.width) current = candidate;
+      else {
+        lines.push(current);
+        current = word;
+      }
+    }
+    lines.push(current);
+  }
+
+  let y = layer.y + fontSize;
+  for (const line of lines) {
+    if (y > layer.y + layer.height + lineHeight) break;
+    const width = textWidth(ctx, line, letterSpacing);
+    const x =
+      layer.textAlign === "center"
+        ? layer.x + (layer.width - width) / 2
+        : layer.textAlign === "right"
+          ? layer.x + layer.width - width
+          : layer.x;
+    paintTextRun(ctx, line, x, y, letterSpacing);
+
+    if (layer.textDecoration && layer.textDecoration !== "none" && line) {
+      const decorationY =
+        layer.textDecoration === "underline"
+          ? y + Math.max(1, fontSize * 0.08)
+          : y - fontSize * 0.32;
+      ctx.save();
+      ctx.strokeStyle = layer.color ?? "#FFFFFF";
+      ctx.lineWidth = Math.max(1, fontSize * 0.055);
+      ctx.beginPath();
+      ctx.moveTo(x, decorationY);
+      ctx.lineTo(x + width, decorationY);
+      ctx.stroke();
+      ctx.restore();
+    }
+    y += lineHeight;
+  }
+}
+
 export function exportCanvasToPngDataUrl(
   doc: CanvasDocument,
   scale = 1,
@@ -833,9 +949,15 @@ export function exportCanvasToPngDataUrl(
     ctx.translate(cx, cy);
     ctx.rotate((layer.rotation * Math.PI) / 180);
     ctx.translate(-cx, -cy);
+    applyLayerShadow(ctx, layer);
     if (layer.type === "rect") {
       ctx.fillStyle = layer.fill ?? "#E05A2B";
-      ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      if ((layer.cornerRadius ?? 0) > 0) {
+        roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+        ctx.fill();
+      } else {
+        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      }
     } else if (layer.type === "line") {
       paintLineLayer(ctx, layer);
     } else if (layer.type === "frame") {
@@ -856,16 +978,7 @@ export function exportCanvasToPngDataUrl(
       ctx.fillStyle = layer.fill ?? "#E05A2B";
       ctx.fill();
     } else if (layer.type === "text" && layer.text) {
-      ctx.fillStyle = layer.color ?? "#FFFFFF";
-      ctx.font = `${layer.fontWeight ?? "400"} ${layer.fontSize ?? 24}px ${layer.fontFamily ?? "system-ui"}`;
-      ctx.textAlign = (layer.textAlign as CanvasTextAlign) ?? "left";
-      const tx =
-        layer.textAlign === "center"
-          ? layer.x + layer.width / 2
-          : layer.textAlign === "right"
-            ? layer.x + layer.width
-            : layer.x;
-      ctx.fillText(layer.text, tx, layer.y + (layer.fontSize ?? 24));
+      paintTextLayer(ctx, layer);
     }
     ctx.restore();
   }
@@ -916,9 +1029,15 @@ export async function exportCanvasToPngDataUrlAsync(
     ctx.translate(cx, cy);
     ctx.rotate((layer.rotation * Math.PI) / 180);
     ctx.translate(-cx, -cy);
+    applyLayerShadow(ctx, layer);
     if (layer.type === "rect") {
       ctx.fillStyle = layer.fill ?? "#E05A2B";
-      ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      if ((layer.cornerRadius ?? 0) > 0) {
+        roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+        ctx.fill();
+      } else {
+        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      }
     } else if (layer.type === "line") {
       paintLineLayer(ctx, layer);
     } else if (layer.type === "frame") {
@@ -939,20 +1058,15 @@ export async function exportCanvasToPngDataUrlAsync(
       ctx.fillStyle = layer.fill ?? "#E05A2B";
       ctx.fill();
     } else if (layer.type === "text" && layer.text) {
-      ctx.fillStyle = layer.color ?? "#FFFFFF";
-      ctx.font = `${layer.fontWeight ?? "400"} ${layer.fontSize ?? 24}px ${layer.fontFamily ?? "system-ui"}`;
-      ctx.textAlign = (layer.textAlign as CanvasTextAlign) ?? "left";
-      const tx =
-        layer.textAlign === "center"
-          ? layer.x + layer.width / 2
-          : layer.textAlign === "right"
-            ? layer.x + layer.width
-            : layer.x;
-      ctx.fillText(layer.text, tx, layer.y + (layer.fontSize ?? 24));
+      paintTextLayer(ctx, layer);
     } else if (layer.type === "image" && layer.imageUrl) {
       const img = await loadImageElement(layer.imageUrl);
       if (img) {
         ctx.save();
+        if ((layer.cornerRadius ?? 0) > 0) {
+          roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+          ctx.clip();
+        }
         ctx.translate(cx, cy);
         ctx.scale(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1);
         ctx.translate(-cx, -cy);
