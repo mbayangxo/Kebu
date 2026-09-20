@@ -158,6 +158,9 @@ export const compositionAssetSchema = z.object({
   durationMs: z.number().int().min(0).max(600_000).optional().nullable(),
   width: z.number().int().min(0).max(8192).optional().nullable(),
   height: z.number().int().min(0).max(8192).optional().nullable(),
+  peaks: z.array(z.number().min(0).max(1)).max(1200).optional(),
+  provider: z.enum(["upload","rect_sound"]).optional().default("upload"),
+  licenseRef: z.string().trim().max(200).optional().nullable(),
 });
 
 export type CompositionAsset = z.infer<typeof compositionAssetSchema>;

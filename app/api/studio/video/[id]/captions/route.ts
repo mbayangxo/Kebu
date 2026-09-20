@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 import { parseStudioComposition, compositionDurationMs } from "@/lib/studio/composition";
+import { resolveTrustedStudioMedia } from "@/lib/studio/trusted-media";
 import {
   applyCaptionSegments,
   segmentsFromPlainTranscript,
@@ -31,6 +32,7 @@ const bodySchema = z.object({
     .optional(),
   /** When true and OPENAI_API_KEY set, transcribe soundtrack URL via Whisper */
   useWhisper: z.boolean().optional().default(false),
+  expectedUpdatedAt: z.string().datetime().optional(),
 });
 
 /**
@@ -96,12 +98,11 @@ export async function POST(req: Request, { params }: Params) {
       );
     }
 
-    const soundtrackUrl =
-      composition.music?.soundtrackUrl ||
-      composition.clips.find((c) => c.sourceUrl && c.sourceUrl.length > 8)?.sourceUrl;
+    const candidateUrl = composition.music?.soundtrackUrl || composition.clips.find((c) => c.sourceUrl && c.sourceUrl.length > 8)?.sourceUrl;
+    const soundtrackUrl = candidateUrl ? await resolveTrustedStudioMedia(supabase,candidateUrl,workspace.activeBusinessId,user.id) : null;
     if (!soundtrackUrl || typeof soundtrackUrl !== "string") {
       return NextResponse.json(
-        { error: "Add a soundtrack or video clip before Whisper auto captions." },
+        { error: "Auto captions only analyze media uploaded to the active Kebu workspace." },
         { status: 400 },
       );
     }
@@ -178,6 +179,7 @@ export async function POST(req: Request, { params }: Params) {
     .from("studio_video_projects")
     .update({ composition: next, edit_mode: next.editMode })
     .eq("id", id);
+  if (parsed.data.expectedUpdatedAt) updateQuery = updateQuery.eq("updated_at", parsed.data.expectedUpdatedAt);
   updateQuery = workspace.activeBusinessId
     ? updateQuery.eq("business_id", workspace.activeBusinessId)
     : updateQuery.is("business_id", null);
@@ -186,6 +188,7 @@ export async function POST(req: Request, { params }: Params) {
     .maybeSingle();
 
   if (upErr || !updated) {
+    if(parsed.data.expectedUpdatedAt) return NextResponse.json({error:"Video changed before captions were saved.",code:"studio_video_version_conflict"},{status:409});
     return NextResponse.json({ error: "Could not save captions." }, { status: 500 });
   }
 

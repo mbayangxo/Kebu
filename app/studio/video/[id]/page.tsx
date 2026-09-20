@@ -623,7 +623,7 @@ export default function StudioVideoEditorPage() {
   const totalMs = compositionDurationMs(comp);
   const selected = comp.clips.find((c) => c.id === selectedClipId) ?? null;
   const tracks = [...comp.tracks].sort((a, b) => a.order - b.order);
-  const peaks = comp.music?.peaks ?? [];
+  const peaks = downsamplePeaks(comp.music?.peaks ?? [], 240);
   const beats = comp.music?.beatsMs ?? [];
   const saveLabel =
     saveState === "saving"
@@ -658,7 +658,7 @@ export default function StudioVideoEditorPage() {
             {comp.music.confidence != null ? ` · ${Math.round(comp.music.confidence * 100)}%` : ""}
           </span>
         ) : null}
-        <button type="button" disabled={!history.length} onClick={undo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
+        <button type="button" onClick={()=>applyComp(duckMusicUnderVoice(comp))} className="rounded-lg px-2 py-1 text-xs bg-white/10">Duck music</button><button type="button" disabled={!history.length} onClick={undo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
           Undo
         </button>
         <button type="button" disabled={!future.length} onClick={redo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
@@ -1024,6 +1024,7 @@ export default function StudioVideoEditorPage() {
                 const next = updateClip(comp, selected.id, patch);
                 if (!("error" in next)) applyComp(next);
               }}
+              onAudioAction={(action)=>{const next=action==="normalize"?normalizeClipVolume(comp,selected.id):cutClipsOnBeats(comp,selected.id,action==="downbeats");if("error"in next)setError(next.error);else applyComp(next)}}
               onDelete={() => {
                 const track=comp.tracks.find(t=>t.id===selected.trackId); if(track?.locked){setError("Track is locked.");return;}
                 applyComp(deleteClip(comp, selected.id)); setSelectedClipId(null);
@@ -1083,7 +1084,7 @@ export default function StudioVideoEditorPage() {
       </div>
 
       <div className="shrink-0 border-t border-white/10 bg-[#12101c] px-2 py-2 space-y-1 max-h-[320px] overflow-auto">
-        <div className="flex items-center gap-2 px-1"><p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Timeline · multi-track · music-aware</p><span className="text-[9px] opacity-40">S split · ⌫ delete · ←/→ nudge · Shift 1s · Alt-drag slip</span><div className="ml-auto flex gap-1"><button type="button" disabled={selectedClipIds.length<2} onClick={()=>{const n=linkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Link</button><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=unlinkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Unlink</button></div></div>
+        <div className="flex items-center gap-2 px-1"><p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Timeline · multi-track · music-aware</p><span className="text-[9px] opacity-40">S split · ⌫ delete · ←/→ nudge · Shift 1s · Alt-drag slip</span><div className="ml-auto flex gap-1"><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=fitSequenceToDuration(comp,selectedClipIds,15000);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Fit 15s</button><button type="button" disabled={selectedClipIds.length<2} onClick={()=>{const n=linkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Link</button><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=unlinkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Unlink</button></div></div>
         <div className="relative" style={{ minWidth: (totalMs / 1000) * pxPerSec + 80 }}>
           <div className="h-5 ml-14 relative border-b border-white/10 mb-1">
             {Array.from({ length: Math.min(600, Math.ceil(totalMs / Math.max(1000, Math.ceil(totalMs / 600 / 1000) * 1000)) + 1) }).map((_, i) => (
@@ -1150,6 +1151,7 @@ export default function StudioVideoEditorPage() {
                       onTrim={(edge,deltaMs) => {const current=compRef.current??comp;const next=trimClipEdge(current,clip.id,edge,deltaMs,{ripple:rippleEditing});if(!("error" in next))applyTimelineGesture(next);}}
                       onSlip={(deltaMs)=>{const current=compRef.current??comp;const next=slipClip(current,clip.id,deltaMs);if(!("error" in next))applyTimelineGesture(next);}}
                       compKeyframes={comp.keyframes.filter(k=>k.clipId===clip.id).map(k=>k.timeMs)}
+                      wavePeaks={downsamplePeaks(comp.assets.find(a=>a.url===clip.sourceUrl)?.peaks??[],48)}
                     />
                   ))}
               </div>
@@ -1188,6 +1190,7 @@ function TimelineClipBlock({
   onTrim,
   onSlip,
   compKeyframes,
+  wavePeaks,
 }: {
   clip: CompositionClip;
   pxPerSec: number;
@@ -1200,6 +1203,7 @@ function TimelineClipBlock({
   onTrim: (edge: "left"|"right", deltaMs: number) => void;
   onSlip: (deltaMs:number)=>void;
   compKeyframes?: number[];
+  wavePeaks?: number[];
 }) {
   const drag = useRef<{ mode: "move" | "trim-left" | "trim-right" | "slip"; originX: number; startMs: number; durationMs: number } | null>(
     null,
@@ -1251,6 +1255,7 @@ function TimelineClipBlock({
       title={clip.name}
     >
       {clip.name}
+      {wavePeaks?.length?<span className="absolute inset-x-2 bottom-1 flex h-2 items-end gap-px opacity-45 pointer-events-none">{wavePeaks.map((p,i)=><i key={i} className="flex-1 bg-white min-w-px" style={{height:`${Math.max(15,p*100)}%`}}/>)}</span>:null}
       {compKeyframes?.map((time)=><span key={time} title={`Keyframe ${time}ms`} className="absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rotate-45 bg-yellow-200" style={{left:`${Math.max(2,Math.min(96,(time/clip.durationMs)*100))}%`}}/>)}
       {(clip.fadeInMs > 0 || clip.fadeOutMs > 0) && (
         <span className="absolute inset-y-0 left-0 w-1 bg-white/40 rounded-l" />
@@ -1266,6 +1271,7 @@ function ClipInspector({
   onChange,
   onDelete,
   onRippleDelete,
+  onAudioAction,
   onSplit,
   onKeyframe,
   onReactive,
@@ -1276,6 +1282,7 @@ function ClipInspector({
   onChange: (patch: Partial<CompositionClip>) => void;
   onDelete: () => void;
   onRippleDelete: () => void;
+  onAudioAction: (action:"normalize"|"beats"|"downbeats")=>void;
   onSplit: () => void;
   onKeyframe: (property: "opacity" | "scale" | "x" | "y" | "rotation" | "volume", value: number) => void;
   onReactive: (preset: AudioReactivePreset) => void;
