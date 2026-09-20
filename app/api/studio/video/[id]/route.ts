@@ -2,6 +2,7 @@ import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 import { parseStudioComposition, studioCompositionSchema } from "@/lib/studio/composition";
 
 export const dynamic = "force-dynamic";
@@ -19,13 +20,16 @@ export async function GET(_req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  const { data: project, error } = await supabase
+  let query = supabase
     .from("studio_video_projects")
-    .select("id, title, width, height, frame_rate, edit_mode, composition, owner_id, created_at, updated_at")
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .maybeSingle();
+    .select("id, title, width, height, frame_rate, edit_mode, composition, owner_id, business_id, source_design_id, created_at, updated_at")
+    .eq("id", id);
+  query = workspace.activeBusinessId
+    ? query.eq("business_id", workspace.activeBusinessId)
+    : query.is("business_id", null);
+  const { data: project, error } = await query.maybeSingle();
 
   if (error || !project) {
     return NextResponse.json(
@@ -57,6 +61,7 @@ export async function PATCH(req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
   let body: unknown;
   try {
@@ -86,12 +91,15 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   }
 
-  const { data: project, error } = await supabase
+  let updateQuery = supabase
     .from("studio_video_projects")
     .update(patch)
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .select("id, title, width, height, frame_rate, edit_mode, composition, updated_at")
+    .eq("id", id);
+  updateQuery = workspace.activeBusinessId
+    ? updateQuery.eq("business_id", workspace.activeBusinessId)
+    : updateQuery.is("business_id", null);
+  const { data: project, error } = await updateQuery
+    .select("id, title, width, height, frame_rate, edit_mode, composition, business_id, source_design_id, updated_at")
     .maybeSingle();
 
   if (error || !project) {
@@ -113,12 +121,16 @@ export async function DELETE(_req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  const { error } = await supabase
+  let deleteQuery = supabase
     .from("studio_video_projects")
     .delete()
-    .eq("id", id)
-    .eq("owner_id", user.id);
+    .eq("id", id);
+  deleteQuery = workspace.activeBusinessId
+    ? deleteQuery.eq("business_id", workspace.activeBusinessId)
+    : deleteQuery.is("business_id", null);
+  const { error } = await deleteQuery;
 
   if (error) {
     return NextResponse.json({ error: "Could not delete project." }, { status: 500 });
