@@ -6,7 +6,7 @@ import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 
-type Tab = "overview" | "wall" | "tasks" | "calendar" | "links" | "decisions" | "people" | "chat";
+type Tab = "overview" | "wall" | "tasks" | "calendar" | "files" | "links" | "decisions" | "people" | "chat";
 type Room = { id: string; name: string; description: string; room_type: string; business_id: string | null };
 type Item = { id: string; kind: string; title: string; body: string; status: string; due_at: string | null; start_at: string | null };
 type Post = { id: string; author_id: string; body: string; created_at: string };
@@ -15,10 +15,11 @@ type Decision = { id: string; title: string; detail: string; decided_at: string 
 type Member = { user_id: string; role: string; joined_at: string };
 type Profile = { id: string; name: string | null; email: string | null; avatar_url: string | null };
 type Message = { id: string; author_id: string; body: string; created_at: string };
+type RoomFile = { id: string; file_name: string; mime: string; byte_size: number; created_at: string; downloadUrl: string | null };
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "overview", label: "Home" }, { id: "wall", label: "Wall" }, { id: "tasks", label: "Tasks" },
-  { id: "calendar", label: "Calendar" }, { id: "links", label: "Links" }, { id: "people", label: "People" },
+  { id: "calendar", label: "Calendar" }, { id: "files", label: "Files" }, { id: "links", label: "Links" }, { id: "people", label: "People" },
   { id: "decisions", label: "Decisions" }, { id: "chat", label: "Chat" },
 ];
 
@@ -33,6 +34,8 @@ export default function RoomPage() {
   const [date, setDate] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [roomFiles, setRoomFiles] = useState<RoomFile[]>([]);
+  const [fileBusy, setFileBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -45,6 +48,15 @@ export default function RoomPage() {
   }, [id, tab]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (tab !== "files" || !id) return;
+    void (async () => {
+      const res = await fetch("/api/rooms/" + id + "/files", { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.error || "Could not load room files."); return; }
+      setRoomFiles(Array.isArray(data.files) ? data.files : []);
+    })();
+  }, [id, tab]);
 
   const profiles = (payload.profiles ?? []) as Profile[];
   const profileById = useMemo(() => new Map(profiles.map((profile) => [profile.id, profile])), [profiles]);
@@ -70,6 +82,27 @@ export default function RoomPage() {
     if (!res.ok) { setError(data.error || "Could not save."); return; }
     setText(""); setSecondary(""); setDate("");
     await load();
+  }
+
+  async function uploadRoomFile(file: File) {
+    if (!id || fileBusy) return;
+    setFileBusy(true);
+    setError(null);
+    const form = new FormData();
+    form.set("file", file);
+    const res = await fetch("/api/rooms/" + id + "/files", { method: "POST", credentials: "include", body: form });
+    const data = await res.json().catch(() => ({}));
+    setFileBusy(false);
+    if (!res.ok || !data.file) { setError(data.error || "Could not upload file."); return; }
+    setRoomFiles((current) => [data.file, ...current]);
+  }
+
+  async function deleteRoomFile(fileId: string) {
+    if (!id) return;
+    const previous = roomFiles;
+    setRoomFiles((current) => current.filter((file) => file.id !== fileId));
+    const res = await fetch("/api/rooms/" + id + "/files?fileId=" + encodeURIComponent(fileId), { method: "DELETE", credentials: "include" });
+    if (!res.ok) { setRoomFiles(previous); setError("Could not remove file."); }
   }
 
   function composerLabel() {
@@ -111,7 +144,7 @@ export default function RoomPage() {
 
         {error ? <div className="mt-4 rounded-xl border px-4 py-3 text-xs" style={{ borderColor: KEBU.status.errorBorder, background: KEBU.status.errorBg, color: KEBU.status.errorText }}>{error}</div> : null}
 
-        {tab !== "overview" && tab !== "people" ? (
+        {tab !== "overview" && tab !== "people" && tab !== "files" ? (
           <section className="mt-4 rounded-[20px] border bg-white p-3.5" style={{ borderColor: KEBU.borders.default }}>
             <div className="grid gap-2 lg:grid-cols-[1fr_1fr_190px_auto]">
               <input value={text} onChange={(event) => setText(event.target.value)} placeholder={composerLabel()} className="min-h-10 rounded-xl border px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
@@ -142,6 +175,29 @@ export default function RoomPage() {
 
           {tab === "wall" ? <List>{posts.map((post) => <Card key={post.id} title={profileById.get(post.author_id)?.name || "Room member"} meta={new Date(post.created_at).toLocaleString()} body={post.body} />)}</List> : null}
           {tab === "tasks" || tab === "calendar" ? <List>{items.map((item) => <Card key={item.id} title={item.title} meta={(item.kind === "task" ? item.due_at : item.start_at) ? new Date((item.kind === "task" ? item.due_at : item.start_at) || "").toLocaleString() : item.status} body={item.body} />)}</List> : null}
+          {tab === "files" ? (
+            <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Room files</p><h2 className="mt-1 text-lg font-black">Shared private files</h2></div>
+                <label className="cursor-pointer rounded-full bg-black px-4 py-2.5 text-[9px] font-black uppercase tracking-wide text-white">
+                  {fileBusy ? "Uploading…" : "Upload file"}
+                  <input type="file" className="sr-only" disabled={fileBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadRoomFile(file); event.currentTarget.value = ""; }} />
+                </label>
+              </div>
+              <p className="mt-1 text-[9px] leading-relaxed" style={{ color: KEBU.muted }}>Stored in Kebu private storage. Download links are short-lived and only generated for room members.</p>
+              <div className="mt-4 divide-y" style={{ borderColor: KEBU.borders.subtle }}>
+                {roomFiles.map((file) => (
+                  <div key={file.id} className="flex items-center gap-3 py-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]" style={{ background: KEBU.cream, color: KEBU.orange }}><KebuIcon name="library" size={17} /></span>
+                    <div className="min-w-0 flex-1"><p className="truncate text-[11px] font-black">{file.file_name}</p><p className="mt-0.5 text-[8px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{file.mime} · {file.byte_size < 1048576 ? Math.max(1, Math.round(file.byte_size / 1024)) + " KB" : (file.byte_size / 1048576).toFixed(1) + " MB"}</p></div>
+                    {file.downloadUrl ? <a href={file.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full border px-3 py-2 text-[8px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Open</a> : null}
+                    <button type="button" onClick={() => void deleteRoomFile(file.id)} className="px-2 py-2 text-[8px] font-black uppercase tracking-wide text-red-600">Remove</button>
+                  </div>
+                ))}
+                {!roomFiles.length ? <p className="py-8 text-center text-[10px]" style={{ color: KEBU.muted }}>No files in this room yet.</p> : null}
+              </div>
+            </section>
+          ) : null}
           {tab === "links" ? <List>{links.map((link) => <a key={link.id} href={link.url} target="_blank" rel="noreferrer" className="block rounded-[18px] border bg-white p-4 hover:-translate-y-0.5 transition" style={{ borderColor: KEBU.borders.default }}><p className="text-[12px] font-black">{link.label}</p><p className="mt-1 truncate text-[10px]" style={{ color: KEBU.orange }}>{link.url}</p></a>)}</List> : null}
           {tab === "decisions" ? <List>{decisions.map((decision) => <Card key={decision.id} title={decision.title} meta={new Date(decision.decided_at).toLocaleString()} body={decision.detail} />)}</List> : null}
           {tab === "people" ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{members.map((member) => { const p = profileById.get(member.user_id); const name = p?.name || p?.email || "Kebu member"; return <article key={member.user_id} className="rounded-[20px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full text-[11px] font-black text-white" style={{ background: "linear-gradient(135deg,#FF6A00,#FF1F1F)" }}>{name.charAt(0).toUpperCase()}</span><div><p className="text-[12px] font-black">{name}</p><p className="text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{member.role}</p></div></div></article>; })}{!members.length ? <p className="text-[10px]" style={{ color: KEBU.muted }}>No room members loaded.</p> : null}</div> : null}
