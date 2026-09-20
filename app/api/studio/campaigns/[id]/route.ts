@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 import {
   CAMPAIGN_SELECT,
   campaignMoodSchema,
@@ -20,13 +21,16 @@ export async function GET(_req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  const { data, error } = await supabase
+  let campaignQuery = supabase
     .from("studio_campaign_projects")
     .select(CAMPAIGN_SELECT)
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .maybeSingle();
+    .eq("id", id);
+  campaignQuery = workspace.activeBusinessId
+    ? campaignQuery.eq("business_id", workspace.activeBusinessId)
+    : campaignQuery.is("business_id", null);
+  const { data, error } = await campaignQuery.maybeSingle();
 
   if (error || !data) {
     return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
@@ -38,8 +42,8 @@ export async function GET(_req: Request, { params }: Params) {
     const { data: designRows } = await supabase
       .from("create_designs")
       .select("id, title, design_type, updated_at")
-      .eq("owner_id", user.id)
-      .in("id", campaign.design_ids);
+      .in("id", campaign.design_ids)
+      .eq("business_id", campaign.business_id as string);
     designs = designRows ?? [];
   }
 
@@ -52,7 +56,6 @@ const patchSchema = z.object({
   goal: z.string().trim().max(400).optional(),
   status: z.enum(["draft", "active", "launched", "archived"]).optional(),
   brandKitId: z.string().uuid().nullable().optional(),
-  businessId: z.string().uuid().nullable().optional(),
   mood: campaignMoodSchema.partial().optional(),
   designIds: z.array(z.string().uuid()).max(40).optional(),
   videoProjectIds: z.array(z.string().uuid()).max(20).optional(),
@@ -68,6 +71,7 @@ export async function PATCH(req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
   let body: unknown;
   try {
@@ -81,12 +85,14 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid campaign patch." }, { status: 400 });
   }
 
-  const { data: existing } = await supabase
+  let existingQuery = supabase
     .from("studio_campaign_projects")
     .select(CAMPAIGN_SELECT)
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .maybeSingle();
+    .eq("id", id);
+  existingQuery = workspace.activeBusinessId
+    ? existingQuery.eq("business_id", workspace.activeBusinessId)
+    : existingQuery.is("business_id", null);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   if (!existing) {
     return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
@@ -110,16 +116,18 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.goal != null) patch.goal = parsed.data.goal;
   if (parsed.data.status != null) patch.status = parsed.data.status;
   if (parsed.data.brandKitId !== undefined) patch.brand_kit_id = parsed.data.brandKitId;
-  if (parsed.data.businessId !== undefined) patch.business_id = parsed.data.businessId;
   if (parsed.data.mood) patch.mood = nextMood;
   if (parsed.data.designIds) patch.design_ids = parsed.data.designIds;
   if (parsed.data.videoProjectIds) patch.video_project_ids = parsed.data.videoProjectIds;
 
-  const { data: row, error } = await supabase
+  let updateQuery = supabase
     .from("studio_campaign_projects")
     .update(patch)
-    .eq("id", id)
-    .eq("owner_id", user.id)
+    .eq("id", id);
+  updateQuery = workspace.activeBusinessId
+    ? updateQuery.eq("business_id", workspace.activeBusinessId)
+    : updateQuery.is("business_id", null);
+  const { data: row, error } = await updateQuery
     .select(CAMPAIGN_SELECT)
     .single();
 
