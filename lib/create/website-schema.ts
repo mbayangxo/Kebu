@@ -142,6 +142,31 @@ const deviceOverridesSchema = z
   })
   .optional();
 
+/** Builder-owned presentation metadata shared by every section type. */
+export const builderSectionMetaSchema = z.object({
+  sectionPaddingY: z.enum(["tight", "normal", "spacious", "open"]).optional(),
+  minHeightPx: z.number().int().min(0).max(4000).optional(),
+  maxWidthPx: z.number().int().min(320).max(2400).optional(),
+  marginTopPx: z.number().int().min(-400).max(800).optional(),
+  marginBottomPx: z.number().int().min(-400).max(800).optional(),
+  overflow: z.enum(["visible", "hidden", "clip"]).optional(),
+  builderMotion: z.object({
+    preset: z.enum(["none", "fade", "fade-up", "slide-left", "slide-right", "scale"]).default("none"),
+    durationMs: z.number().int().min(100).max(3000).default(500),
+    delayMs: z.number().int().min(0).max(3000).default(0),
+    trigger: z.enum(["load", "scroll"]).default("scroll"),
+  }).optional(),
+}).partial();
+
+export function parseSectionProps<T extends keyof typeof sectionPropsSchemas>(
+  type: T,
+  raw: Record<string, unknown>,
+) {
+  const content = sectionPropsSchemas[type].parse(raw);
+  const meta = builderSectionMetaSchema.parse(raw);
+  return { ...content, ...meta };
+}
+
 export const sectionPropsSchemas = {
   navigation: z.object({
     brand: z.string().trim().min(1).max(80),
