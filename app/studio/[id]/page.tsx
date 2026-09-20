@@ -59,7 +59,7 @@ export default function StudioEditorPage() {
   const [doc, setDoc] = useState<CanvasDocument | null>(null);
   const [activePageId, setActivePageId] = useState<string>("");
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "offline" | "error">("idle");
   const [syncState, setSyncState] = useState<"online" | "offline" | "syncing" | "conflict">("online");
   const [conflictServer, setConflictServer] = useState<{ doc: CanvasDocument; updatedAt: string } | null>(null);
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
@@ -222,7 +222,7 @@ export default function StudioEditorPage() {
       }
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        setSaveState("saved");
+        setSaveState("offline");
         setSyncState("offline");
         return;
       }
@@ -299,7 +299,7 @@ export default function StudioEditorPage() {
         setSaveState("saved");
         setTimeout(() => setSaveState("idle"), 1800);
       } catch {
-        setSaveState("saved");
+        setSaveState("offline");
         setSyncState("offline");
       }
     },
