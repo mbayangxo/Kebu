@@ -108,9 +108,12 @@ export function BuilderPagesPanel({
     setLocalBusy(true);
     onError(null);
     try {
-      const changed = next.filter((page, index) => page.sort_order !== index);
+      const changed = next.filter((page, index) => {
+        const before = previous.find((candidate) => candidate.id === page.id);
+        return !before || before.sort_order !== index;
+      });
       const results = await Promise.all(
-        changed.map((page, index) =>
+        changed.map((page) =>
           fetch(`/api/projects/${projectId}/pages`, {
             method: "PATCH",
             credentials: "include",
