@@ -1,18 +1,9 @@
-import { studioCompositionSchema, type CompositionClip, type StudioComposition } from "@/lib/studio/composition";
-
+import { studioCompositionSchema,type CompositionClip,type StudioComposition } from "@/lib/studio/composition";
 function trackFor(c:StudioComposition,clip:CompositionClip){return c.tracks.find(t=>t.id===clip.trackId)}
-export function moveClipSafely(c:StudioComposition,clipId:string,startMs:number):StudioComposition|{error:string}{
- const clip=c.clips.find(x=>x.id===clipId);if(!clip)return{error:"Clip not found."};if(trackFor(c,clip)?.locked)return{error:"Track is locked."};
- return studioCompositionSchema.parse({...c,clips:c.clips.map(x=>x.id===clipId?{...x,startMs:Math.max(0,Math.round(startMs))}:x)});
-}
-export function trimClipEdge(c:StudioComposition,clipId:string,edge:"left"|"right",deltaMs:number):StudioComposition|{error:string}{
- const clip=c.clips.find(x=>x.id===clipId);if(!clip)return{error:"Clip not found."};if(trackFor(c,clip)?.locked)return{error:"Track is locked."};
- const delta=Math.round(deltaMs),min=200;
- if(edge==="right"){return studioCompositionSchema.parse({...c,clips:c.clips.map(x=>x.id===clipId?{...x,durationMs:Math.max(min,x.durationMs+delta)}:x)})}
- const maxDelta=clip.durationMs-min, applied=Math.max(-clip.startMs,Math.min(maxDelta,delta));
- return studioCompositionSchema.parse({...c,clips:c.clips.map(x=>x.id===clipId?{...x,startMs:x.startMs+applied,durationMs:x.durationMs-applied,sourceInMs:Math.max(0,x.sourceInMs+Math.round(applied*x.speed))}:x)});
-}
-export function setTrackState(c:StudioComposition,trackId:string,patch:{locked?:boolean;muted?:boolean}):StudioComposition{
- return studioCompositionSchema.parse({...c,tracks:c.tracks.map(t=>t.id===trackId?{...t,...patch}:t)});
-}
+function unlocked(c:StudioComposition,clip:CompositionClip){return !trackFor(c,clip)?.locked}
+export function magneticSnapTime(c:StudioComposition,timeMs:number,opts?:{excludeClipId?:string;thresholdMs?:number}){const threshold=opts?.thresholdMs??120;const points=[0,...c.markers.map(m=>m.timeMs),...(c.snapToBeats?(c.music?.beatsMs??[]):[]),...c.clips.filter(x=>x.id!==opts?.excludeClipId).flatMap(x=>[x.startMs,x.startMs+x.durationMs])];let best=Math.max(0,timeMs),dist=threshold+1;for(const p of points){const d=Math.abs(p-timeMs);if(d<dist){dist=d;best=p}}return dist<=threshold?best:Math.max(0,Math.round(timeMs))}
+export function moveClipSafely(c:StudioComposition,clipId:string,startMs:number){const clip=c.clips.find(x=>x.id===clipId);if(!clip)return{error:"Clip not found."};if(!unlocked(c,clip))return{error:"Track is locked."};const snapped=magneticSnapTime(c,startMs,{excludeClipId:clipId});return studioCompositionSchema.parse({...c,clips:c.clips.map(x=>x.id===clipId?{...x,startMs:snapped}:x)})}
+export function trimClipEdge(c:StudioComposition,clipId:string,edge:"left"|"right",deltaMs:number,opts?:{ripple?:boolean}){const clip=c.clips.find(x=>x.id===clipId);if(!clip)return{error:"Clip not found."};if(!unlocked(c,clip))return{error:"Track is locked."};const min=200;let applied=Math.round(deltaMs);if(edge==="right"){const oldEnd=clip.startMs+clip.durationMs;const target=magneticSnapTime(c,oldEnd+applied,{excludeClipId:clipId});applied=Math.max(min-clip.durationMs,target-oldEnd);const clips=c.clips.map(x=>x.id===clipId?{...x,durationMs:x.durationMs+applied}:opts?.ripple&&x.trackId===clip.trackId&&x.startMs>=oldEnd?{...x,startMs:Math.max(0,x.startMs+applied)}:x);return studioCompositionSchema.parse({...c,clips})}const oldStart=clip.startMs;const target=magneticSnapTime(c,oldStart+applied,{excludeClipId:clipId});applied=Math.max(-oldStart,Math.min(clip.durationMs-min,target-oldStart));return studioCompositionSchema.parse({...c,clips:c.clips.map(x=>x.id===clipId?{...x,startMs:x.startMs+applied,durationMs:x.durationMs-applied,sourceInMs:Math.max(0,x.sourceInMs+Math.round(applied*x.speed))}:x)})}
+export function rippleDeleteClip(c:StudioComposition,clipId:string){const clip=c.clips.find(x=>x.id===clipId);if(!clip)return{error:"Clip not found."};if(!unlocked(c,clip))return{error:"Track is locked."};const end=clip.startMs+clip.durationMs;return studioCompositionSchema.parse({...c,clips:c.clips.filter(x=>x.id!==clipId).map(x=>x.trackId===clip.trackId&&x.startMs>=end?{...x,startMs:Math.max(0,x.startMs-clip.durationMs)}:x),keyframes:c.keyframes.filter(k=>k.clipId!==clipId),transitions:c.transitions.filter(t=>t.fromClipId!==clipId&&t.toClipId!==clipId)})}
+export function setTrackState(c:StudioComposition,trackId:string,patch:{locked?:boolean;muted?:boolean}){return studioCompositionSchema.parse({...c,tracks:c.tracks.map(t=>t.id===trackId?{...t,...patch}:t)})}
 export function clipIsAudible(c:StudioComposition,clip:CompositionClip){return !trackFor(c,clip)?.muted}

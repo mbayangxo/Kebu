@@ -63,6 +63,7 @@ export default function StudioVideoEditorPage() {
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [pxPerSec, setPxPerSec] = useState(60);
+  const [rippleEditing, setRippleEditing] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [musicBusy, setMusicBusy] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("cut every 4 beats");
@@ -961,8 +962,9 @@ export default function StudioVideoEditorPage() {
                 checked={comp.snapToBeats}
                 onChange={(e) => applyComp({ ...comp, snapToBeats: e.target.checked })}
               />
-              Snap to beats
+              Magnetic snap
             </label>
+            <label className="flex items-center gap-1 text-[10px] opacity-70"><input type="checkbox" checked={rippleEditing} onChange={(e)=>setRippleEditing(e.target.checked)}/>Ripple edit</label>
             <button
               type="button"
               className="rounded-lg px-2 py-1 text-[10px] font-bold bg-white/10"
@@ -1010,9 +1012,10 @@ export default function StudioVideoEditorPage() {
                 if (!("error" in next)) applyComp(next);
               }}
               onDelete={() => {
-                applyComp(deleteClip(comp, selected.id));
-                setSelectedClipId(null);
+                const track=comp.tracks.find(t=>t.id===selected.trackId); if(track?.locked){setError("Track is locked.");return;}
+                applyComp(deleteClip(comp, selected.id)); setSelectedClipId(null);
               }}
+              onRippleDelete={() => { const next=rippleDeleteClip(comp,selected.id); if("error" in next)setError(next.error); else {applyComp(next);setSelectedClipId(null);} }}
               onSplit={() => {
                 const next = splitClipAt(comp, selected.id, playheadMs);
                 if ("error" in next) setError(next.error);
@@ -1260,6 +1263,7 @@ function ClipInspector({
   playheadLocalMs,
   onChange,
   onDelete,
+  onRippleDelete,
   onSplit,
   onKeyframe,
   onReactive,
@@ -1269,6 +1273,7 @@ function ClipInspector({
   playheadLocalMs: number;
   onChange: (patch: Partial<CompositionClip>) => void;
   onDelete: () => void;
+  onRippleDelete: () => void;
   onSplit: () => void;
   onKeyframe: (property: "opacity" | "scale" | "x" | "y" | "rotation" | "volume", value: number) => void;
   onReactive: (preset: AudioReactivePreset) => void;
