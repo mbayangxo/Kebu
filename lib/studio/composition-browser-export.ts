@@ -47,6 +47,12 @@ function mediaFilter(layer: NonNullable<CompositionClip["designLayer"]>) {
   return `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) grayscale(${grayscale}) blur(${blur}px)`;
 }
 
+function mediaDimensions(media: PreparedVisual) {
+  return media.kind === "image"
+    ? { width: media.element.naturalWidth, height: media.element.naturalHeight }
+    : { width: media.element.videoWidth, height: media.element.videoHeight };
+}
+
 function waitForImage(url: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
@@ -160,8 +166,7 @@ function drawSemanticLayer(
     const cropX = Math.max(0, Math.min(1 - cropW, layer.cropX ?? 0));
     const cropY = Math.max(0, Math.min(1 - cropH, layer.cropY ?? 0));
     const source = media.element;
-    const sourceWidth = media.kind === "image" ? source.naturalWidth : source.videoWidth;
-    const sourceHeight = media.kind === "image" ? source.naturalHeight : source.videoHeight;
+    const { width: sourceWidth, height: sourceHeight } = mediaDimensions(media);
     ctx.drawImage(
       source,
       cropX * sourceWidth,
@@ -290,8 +295,7 @@ async function drawFrame(
     ctx.rotate((xf.rotation * Math.PI) / 180);
     ctx.scale(xf.scale, xf.scale);
     const source = media.element;
-    const sw = media.kind === "image" ? source.naturalWidth : source.videoWidth;
-    const sh = media.kind === "image" ? source.naturalHeight : source.videoHeight;
+    const { width: sw, height: sh } = mediaDimensions(media);
     const ratio = Math.min(composition.width / Math.max(1, sw), composition.height / Math.max(1, sh));
     const width = sw * ratio;
     const height = sh * ratio;
