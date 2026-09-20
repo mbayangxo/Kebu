@@ -204,7 +204,7 @@ export async function PATCH(req: Request, { params }: Params) {
     }
     const { data: projectPages, error: listError } = await supabase
       .from("project_pages")
-      .select("id, project_id, slug, title")
+      .select("id, project_id, slug, title, parent_id")
       .eq("project_id", projectId);
     if (listError) {
       return NextResponse.json({ error: "Could not verify page order.", detail: listError.message }, { status: 500 });
@@ -226,7 +226,7 @@ export async function PATCH(req: Request, { params }: Params) {
       /* best-effort */
     }
     return NextResponse.json({
-      pages: rows.map(({ id, slug, title, sort_order }) => ({ id, slug, title, sort_order })),
+      pages: rows.map(({ id, slug, title, sort_order, parent_id }) => ({ id, slug, title, sort_order, parent_id })),
     });
   }
 
