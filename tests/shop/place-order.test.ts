@@ -57,7 +57,7 @@ describe("shop orders", () => {
   });
 
   it("ships migration 039 with RLS (no public insert)", () => {
-    const sql = readFileSync(join(process.cwd(), "supabase/migrations/039_shop_orders.sql"), "utf8");
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations_archive/legacy/039_shop_orders.sql"), "utf8");
     expect(sql).toContain("create table if not exists public.shop_orders");
     expect(sql).toContain("Owners read shop_orders");
     expect(sql).toContain("enable row level security");

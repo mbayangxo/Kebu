@@ -17,7 +17,7 @@ describe("shopper customer accounts", () => {
 
   it("ships migration 048 with customer_user_id RLS", () => {
     const sql = readFileSync(
-      join(process.cwd(), "supabase/migrations/048_shop_customer_accounts.sql"),
+      join(process.cwd(), "supabase/migrations_archive/legacy/048_shop_customer_accounts.sql"),
       "utf8",
     );
     expect(sql).toContain("customer_user_id");

@@ -16,7 +16,7 @@ describe("product stock", () => {
 
   it("ships migration 047", () => {
     const sql = readFileSync(
-      join(process.cwd(), "supabase/migrations/047_shop_product_stock.sql"),
+      join(process.cwd(), "supabase/migrations_archive/legacy/047_shop_product_stock.sql"),
       "utf8",
     );
     expect(sql).toContain("track_stock");

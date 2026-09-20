@@ -28,7 +28,7 @@ describe("shop customers email capture", () => {
 
   it("ships migration 042 for order email + list source", () => {
     const sql = readFileSync(
-      join(process.cwd(), "supabase/migrations/042_shop_customers_email.sql"),
+      join(process.cwd(), "supabase/migrations_archive/legacy/042_shop_customers_email.sql"),
       "utf8",
     );
     expect(sql).toContain("customer_email");
