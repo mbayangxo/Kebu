@@ -77,6 +77,10 @@ export const canvasLayerSchema = z.object({
   frameFocalX: z.number().min(0).max(1).optional(),
   frameFocalY: z.number().min(0).max(1).optional(),
   sourceAssetId: z.string().trim().max(80).nullable().optional(),
+  /** Non-destructive entrance motion used by Studio preview and design→video conversion. */
+  animationPreset: z.enum(["none","fade","fade_up","slide_left","slide_right","scale","pop"]).optional().default("none"),
+  animationDurationMs: z.number().int().min(100).max(5000).optional().default(600),
+  animationDelayMs: z.number().int().min(0).max(10000).optional().default(0),
 });
 
 export type CanvasLayer = z.infer<typeof canvasLayerSchema>;
