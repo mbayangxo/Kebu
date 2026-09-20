@@ -476,7 +476,7 @@ function SiteNav({
     const hasChildren = l.children && l.children.length > 0;
     if (!hasChildren) {
       const slug = slugFromHref(l.href);
-      return editor?.onNavigatePage && slug ? (
+      return onNavigate && slug ? (
         <button
           key={l.label}
           type="button"
@@ -487,17 +487,7 @@ function SiteNav({
           {l.label}
         </button>
       ) : (
-        <a key={l.label} href={(() => {
-                          const href = (l.href || "").trim();
-                          if (!href || href === "#") return siteBase || "/";
-                          if (href.startsWith("http") || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return href;
-                          if (href.startsWith("/")) {
-                            const base = siteBase.replace(/\/$/, "");
-                            return base ? `${base}${href === "/" ? "" : href}` : href;
-                          }
-                          const base = siteBase.replace(/\/$/, "");
-                          return base ? `${base}/${href}` : `/${href}`;
-                        })()} className="kebu-nav-link" style={{ fontSize: fontPx, fontFamily: fontFamily ? cssFontStack(fontFamily) : undefined, fontWeight }}>
+        <a key={l.label} href={resolveHref(l.href)} className="kebu-nav-link" style={{ fontSize: fontPx, fontFamily: fontFamily ? cssFontStack(fontFamily) : undefined, fontWeight }}>
           {l.label}
         </a>
       );
@@ -582,7 +572,7 @@ function SiteNav({
     const hasChildren = l.children && l.children.length > 0;
     if (!hasChildren) {
       const slug = slugFromHref(l.href);
-      return editor?.onNavigatePage && slug ? (
+      return onNavigate && slug ? (
         <button
           key={l.label}
           type="button"
@@ -1254,7 +1244,7 @@ export function SiteRenderer({
                   <nav className="kebu-site-nav__links flex flex-col" style={{ gap: Math.max(10, m.gap * 0.65), fontSize: m.fontPx }}>
                     {p.links.map((l) => {
                       const slug = l.href ? l.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
-                      return editor?.onNavigatePage && slug ? (
+                      return onNavigate && slug ? (
                         <button key={l.label} type="button" onClick={() => editor.onNavigatePage!(slug)} className="kebu-nav-link text-left" style={{ fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined, fontWeight: p.fontWeight }}>
                           {l.label}
                         </button>
@@ -2506,7 +2496,7 @@ export function SiteRenderer({
                       raw && raw !== "#" && !raw.startsWith("http") && !raw.startsWith("mailto:") && !raw.startsWith("tel:")
                         ? (raw.replace(/^\//, "").split(/[?#]/)[0] || "home")
                         : null;
-                    return editor?.onNavigatePage && slug ? (
+                    return onNavigate && slug ? (
                       <button
                         key={`${l.label}-${l.href}`}
                         type="button"
@@ -2519,7 +2509,17 @@ export function SiteRenderer({
                     ) : (
                       <a
                         key={`${l.label}-${l.href}`}
-                        href={resolveHref(l.href)}
+                        href={(() => {
+                          const href = (l.href || "").trim();
+                          if (!href || href === "#") return siteBase || "/";
+                          if (href.startsWith("http") || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return href;
+                          if (href.startsWith("/")) {
+                            const base = siteBase.replace(/\/$/, "");
+                            return base ? `${base}${href === "/" ? "" : href}` : href;
+                          }
+                          const base = siteBase.replace(/\/$/, "");
+                          return base ? `${base}/${href}` : `/${href}`;
+                        })()}
                         className="hover:underline"
                         style={{ color: p.textColor ? "inherit" : undefined }}
                       >
