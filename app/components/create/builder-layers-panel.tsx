@@ -55,12 +55,16 @@ export function BuilderLayersPanel({
   ];
 
   function toggleHidden(key: string) {
-    const next = hidden.includes(key)
+    const currentlyHidden =
+      key === "backgroundLayer"
+        ? props.backgroundHidden === true || hidden.includes(key)
+        : hidden.includes(key);
+    const next = currentlyHidden
       ? hidden.filter((item) => item !== key)
       : [...new Set([...hidden, key])];
     onPatch({
       hiddenLayers: next,
-      ...(key === "backgroundLayer" ? { backgroundHidden: !hidden.includes(key) } : {}),
+      ...(key === "backgroundLayer" ? { backgroundHidden: !currentlyHidden } : {}),
     });
   }
 
