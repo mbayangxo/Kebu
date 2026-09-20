@@ -12,6 +12,7 @@ export type StudioVideoOfflineDraft = {
   title: string;
   composition: StudioComposition;
   businessId: string | null;
+  sourceDesignId?: string | null;
   serverUpdatedAt: string | null;
   savedAt: string;
   dirty: boolean;
