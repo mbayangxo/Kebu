@@ -268,8 +268,21 @@ export function withSyncedChromeNavLinks(
   brand?: string,
 ): SiteChrome {
   if (!chrome.enabled || !chrome.header) return chrome;
-  const links = navLinksFromPages(pages);
+  const pageLinks = navLinksFromPages(pages);
   const baseProps = chrome.header.props;
+  const existing = Array.isArray(baseProps.links) ? baseProps.links : [];
+  const pageSlugs = new Set(pages.map((page) => page.slug));
+  // Page CRUD should keep simple page links in sync without destroying a founder's custom menu
+  // structure. Preserve nested/mega/external/hash links verbatim; refresh only flat internal links
+  // that clearly correspond to project pages, then append newly-created pages.
+  const customLinks = existing.filter((link) => {
+    if (link.children?.length || link.columnLabel || link.featuredImage) return true;
+    const href = String(link.href ?? "");
+    if (!href.startsWith("/") || href.startsWith("//")) return true;
+    const slug = href.replace(/^\/+|\/+$/g, "") || "home";
+    return !pageSlugs.has(slug);
+  });
+  const links = [...pageLinks, ...customLinks].slice(0, 12);
   const props = sectionPropsSchemas.navigation.parse({
     ...baseProps,
     brand: brand?.trim() || baseProps.brand,
