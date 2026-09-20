@@ -49,6 +49,9 @@ describe("website schema", () => {
       titleTextColor: "#fefefe",
       embeddedFooterPaddingTop: 16,
       embeddedFooterPaddingBottom: 24,
+      layerOpacity: { titleLogo: 0.8 },
+      layerRotation: { titleLogo: 12 },
+      lockedLayers: ["titleLogo"],
     };
 
     const result = validateWebsiteDefinition(next);
@@ -66,6 +69,9 @@ describe("website schema", () => {
         titleTextColor: "#fefefe",
         embeddedFooterPaddingTop: 16,
         embeddedFooterPaddingBottom: 24,
+        layerOpacity: { titleLogo: 0.8 },
+        layerRotation: { titleLogo: 12 },
+        lockedLayers: ["titleLogo"],
       });
     }
   });
