@@ -18,51 +18,31 @@ type FormatCard = {
 };
 
 const FORMATS: FormatCard[] = [
-  { type: "instagram_post",   label: "Instagram post",     sublabel: "1080 × 1080",    href: "/studio/new?type=instagram_post",   aspect: 1,            accent: "#E1306C" },
-  { type: "instagram_story",  label: "Story / Reel",       sublabel: "1080 × 1920",    href: "/studio/new?type=instagram_story",  aspect: 9 / 16,       accent: "#FF5500" },
-  { type: "poster",           label: "Poster",             sublabel: "A3 · print ready", href: "/studio/new?type=poster",          aspect: 900 / 1200,   accent: "#9333EA" },
-  { type: "flyer",            label: "Flyer",              sublabel: "A5 · letterhead",  href: "/studio/new?type=flyer",           aspect: 816 / 1056,   accent: "#0EA5E9" },
-  { type: "business_card",    label: "Business card",      sublabel: "3.5 × 2 in",     href: "/studio/new?type=business_card",    aspect: 1050 / 600,   accent: "#10B981" },
-  { type: "banner",           label: "Banner",             sublabel: "1500 × 500",     href: "/studio/new?type=banner",           aspect: 1500 / 500,   accent: "#F59E0B" },
-  { type: "whatsapp_status",  label: "WhatsApp status",    sublabel: "1080 × 1920",    href: "/studio/new?type=whatsapp_status",  aspect: 9 / 16,       accent: "#25D366" },
-  { type: "social_square",    label: "Social square",      sublabel: "1080 × 1080",    href: "/studio/new?type=social_square",    aspect: 1,            accent: "#6366F1" },
+  { type: "instagram_post", label: "Instagram post", sublabel: "1080 × 1080", href: "/studio/new?type=instagram_post", aspect: 1, accent: "#FF6A00" },
+  { type: "instagram_story", label: "Story / Reel", sublabel: "1080 × 1920", href: "/studio/new?type=instagram_story", aspect: 9 / 16, accent: "#FF1F1F" },
+  { type: "poster", label: "Poster", sublabel: "900 × 1200", href: "/studio/new?type=poster", aspect: 900 / 1200, accent: "#A15CFF" },
+  { type: "flyer", label: "Flyer", sublabel: "816 × 1056", href: "/studio/new?type=flyer", aspect: 816 / 1056, accent: "#0EA5E9" },
+  { type: "business_card", label: "Business card", sublabel: "1050 × 600", href: "/studio/new?type=business_card", aspect: 1050 / 600, accent: "#0E9F6E" },
+  { type: "banner", label: "Banner", sublabel: "1500 × 500", href: "/studio/new?type=banner", aspect: 1500 / 500, accent: "#F4B400" },
+  { type: "whatsapp_status", label: "WhatsApp status", sublabel: "1080 × 1920", href: "/studio/new?type=whatsapp_status", aspect: 9 / 16, accent: "#0E9F6E" },
+  { type: "social_square", label: "Social square", sublabel: "1080 × 1080", href: "/studio/new?type=social_square", aspect: 1, accent: "#111111" },
 ];
 
-function CanvasThumb({ aspect, accent }: { aspect: number; accent: string }) {
-  const w = 100;
-  const h = Math.min(Math.round(w / aspect), 140);
-  const id = accent.replace("#", "");
+function FormatMark({ format }: { format: FormatCard }) {
+  const width = format.aspect > 1.7 ? 78 : format.aspect < .75 ? 44 : 58;
+  const height = Math.max(36, Math.min(68, Math.round(width / format.aspect)));
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: "block", borderRadius: 5 }}>
-      <defs>
-        <linearGradient id={`cg${id}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={accent} stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#050505" stopOpacity="0.97" />
-        </linearGradient>
-      </defs>
-      <rect width={w} height={h} fill={`url(#cg${id})`} />
-      {/* subtle grid */}
-      <line x1={w * 0.33} y1="0" x2={w * 0.33} y2={h} stroke="white" strokeOpacity="0.06" strokeWidth="0.7" />
-      <line x1={w * 0.66} y1="0" x2={w * 0.66} y2={h} stroke="white" strokeOpacity="0.06" strokeWidth="0.7" />
-      <line x1="0" y1={h * 0.33} x2={w} y2={h * 0.33} stroke="white" strokeOpacity="0.06" strokeWidth="0.7" />
-      <line x1="0" y1={h * 0.66} x2={w} y2={h * 0.66} stroke="white" strokeOpacity="0.06" strokeWidth="0.7" />
-      {/* placeholder content */}
-      <rect x="10" y={h * 0.22} width={w * 0.52} height="5" rx="2.5" fill="white" fillOpacity="0.75" />
-      <rect x="10" y={h * 0.36} width={w * 0.35} height="3.5" rx="1.75" fill="white" fillOpacity="0.4" />
-      <rect x="10" y={h * 0.48} width={w * 0.25} height="3.5" rx="1.75" fill="white" fillOpacity="0.28" />
-    </svg>
+    <span className="relative block overflow-hidden rounded-[8px] border border-black/10 shadow-[0_8px_25px_rgba(10,10,10,.07)]" style={{ width, height, background: `linear-gradient(145deg,${format.accent},#101010)` }}>
+      <span className="absolute left-2 top-2 h-1.5 w-6 rounded-full bg-white/80" />
+      <span className="absolute bottom-2 left-2 h-1 w-4 rounded-full bg-white/30" />
+    </span>
   );
 }
 
 export default async function StudioHomePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login?next=/studio");
-  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login?next=/studio");
 
   const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
@@ -87,25 +67,15 @@ export default async function StudioHomePage() {
 
   const [designsResult, collabsResult, videosResult] = await Promise.all([
     ownedDesignQuery,
-    supabase
-      .from("studio_design_collaborators")
-      .select("design_id, role")
-      .eq("user_id", user.id)
-      .eq("status", "active"),
+    supabase.from("studio_design_collaborators").select("design_id, role").eq("user_id", user.id).eq("status", "active"),
     videoQuery,
   ]);
 
   const designs = designsResult.data ?? [];
   const videos = videosResult.data ?? [];
   const collabs = collabsResult.data ?? [];
-
   const sharedIds = collabs.map((c) => c.design_id as string);
-  const roleByDesign = new Map(
-    collabs.map((c) => [
-      c.design_id as string,
-      (c.role === "editor" ? "editor" : "viewer") as StudioDesignRole,
-    ]),
-  );
+  const roleByDesign = new Map(collabs.map((c) => [c.design_id as string, (c.role === "editor" ? "editor" : "viewer") as StudioDesignRole]));
 
   let shared: {
     id: string;
@@ -126,34 +96,161 @@ export default async function StudioHomePage() {
       ? sharedQuery.eq("business_id", workspace.activeBusinessId)
       : sharedQuery.is("business_id", null);
     const { data } = await sharedQuery;
-    shared = (data ?? []).map((d) => ({
-      ...d,
-      accessRole: (roleByDesign.get(d.id) === "editor" ? "editor" : "viewer") as "editor" | "viewer",
+    shared = (data ?? []).map((design) => ({
+      ...design,
+      accessRole: roleByDesign.get(design.id) === "editor" ? "editor" : "viewer",
     }));
   }
 
   const recentDesigns = designs.slice(0, 4);
-  const recentVideos = videos.slice(0, 4);
+  const recentVideos = videos.slice(0, 2);
+  const hasRecent = recentDesigns.length > 0 || recentVideos.length > 0;
 
   return (
     <AppShell title="Studio">
-    <div className="min-h-screen" style={{ background: KEBU.bright }}>
+      <main className="min-h-screen bg-[#FFFCF8] text-black">
+        <section className="grid min-h-[620px] border-b border-black/10 lg:grid-cols-[minmax(0,1.05fr)_minmax(520px,.95fr)]">
+          <div className="flex flex-col justify-between border-b border-black/10 px-5 py-9 sm:px-8 lg:border-b-0 lg:border-r lg:px-12 lg:py-12 xl:px-16">
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-[10px] font-black uppercase tracking-[.25em]" style={{ color: KEBU.orange }}>Kebu Studio</p>
+                <span className="h-1 w-1 rounded-full bg-black/20" />
+                <p className="text-[9px] font-black uppercase tracking-[.14em] text-black/35">{workspace.mode === "business" ? "Business Kebu" : "Personal Kebu"}</p>
+              </div>
+              <h1 className="mt-5 max-w-4xl text-[clamp(3.6rem,7vw,8.4rem)] font-black leading-[.82] tracking-[-.07em]" style={{ fontFamily: "var(--font-fraunces)" }}>
+                Make the thing.<br /><span className="font-normal italic">Then make it move.</span>
+              </h1>
+              <p className="mt-7 max-w-2xl text-sm leading-6 text-black/50 sm:text-base">
+                Design, video, music intelligence, brand systems and campaigns in one creative space. Personal work stays personal. Business work stays with that business.
+              </p>
 
-      <div className="border-b border-black/10 bg-[#FFFCF8]"><div className="mx-auto max-w-[1440px] px-5 py-7 lg:px-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><div><p className="mb-2 text-[10px] font-black uppercase tracking-[.28em]" style={{color:KEBU.orange}}>Kebu Studio</p><h1 className="text-3xl font-black tracking-[-.04em] lg:text-4xl">What will you create today?</h1><p className="mt-2 max-w-2xl text-sm text-black/55">Design, video, brand and campaign work in one place — scoped to {workspace.mode === "business" ? "this Business Kebu" : "your Personal Kebu"} so personal and business creative work never silently mix.</p></div><div className="flex gap-2"><Link href="/studio/templates" className="rounded-xl border border-black/10 bg-white px-4 py-2.5 text-xs font-bold">Browse themes</Link><Link href="/studio/new" className="rounded-xl bg-black px-4 py-2.5 text-xs font-black text-white">Create design <span style={{color:KEBU.orange}}>＋</span></Link></div></div>
-        <div className="mt-6 flex max-w-3xl items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3"><span>⌕</span><span className="text-sm text-black/45">Search your designs, themes, formats and assets</span><span className="ml-auto hidden rounded-md bg-black/[.04] px-2 py-1 text-[10px] font-bold text-black/45 sm:block">⌘ K</span></div>
-      </div></div>
-      <main className="mx-auto max-w-[1440px] space-y-10 px-5 py-7 lg:px-8">
-        <section><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-black">Start creating</h2><Link href="/studio/new" className="text-xs font-bold text-black/50">Custom size →</Link></div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-10">{FORMATS.slice(0,8).map((f)=><Link key={f.type} href={f.href} className="group min-w-0"><div className="flex h-[82px] items-center justify-center rounded-2xl border border-black/10 bg-white transition group-hover:-translate-y-0.5 group-hover:border-black/25"><CanvasThumb aspect={f.aspect} accent={f.accent}/></div><p className="mt-2 truncate text-[11px] font-bold">{f.label}</p></Link>)}<Link href="/studio/video/new" className="group min-w-0"><div className="flex h-[82px] items-center justify-center rounded-2xl border border-black/10 bg-white"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-white">▶</span></div><p className="mt-2 text-[11px] font-bold">Video</p></Link><Link href="/studio/new?tab=ai" className="group min-w-0"><div className="flex h-[82px] items-center justify-center rounded-2xl border border-black/10 bg-white"><span className="flex h-10 w-10 items-center justify-center rounded-xl text-xl font-black text-white" style={{background:`linear-gradient(135deg,${KEBU.orange},${KEBU.red})`}}>✦</span></div><p className="mt-2 text-[11px] font-bold">Kebu AI</p></Link></div>
+              <div className="mt-7 flex flex-wrap gap-2">
+                <Link href="/studio/new" className="rounded-full bg-black px-5 py-3 text-[10px] font-black uppercase tracking-[.13em] text-white">Create something <span style={{ color: KEBU.orange }}>＋</span></Link>
+                <Link href="/studio/video/new" className="rounded-full border border-black/10 bg-white px-5 py-3 text-[10px] font-black uppercase tracking-[.13em]">Start video</Link>
+                <Link href="/studio/templates" className="rounded-full border border-black/10 bg-white px-5 py-3 text-[10px] font-black uppercase tracking-[.13em]">Explore themes</Link>
+              </div>
+            </div>
+
+            <div className="mt-10 grid grid-cols-4 gap-2">
+              {[
+                ["/templates/maylecor/portrait.jpg", "Portrait"],
+                ["/templates/legally-blonde/hero-photo.png", "Editorial"],
+                ["/templates/kdirection/portrait.jpg", "Artist"],
+                ["/templates/maylecor/city-skyline.png", "City"],
+              ].map(([src, alt], index) => (
+                <div key={src} className={"relative overflow-hidden rounded-[18px] bg-black " + (index === 0 ? "col-span-2 min-h-[210px]" : "min-h-[210px]")}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col bg-white">
+            <div className="border-b border-black/10 px-5 py-5 sm:px-7 lg:px-8">
+              <p className="text-[9px] font-black uppercase tracking-[.16em] text-black/35">Start anywhere</p>
+              <h2 className="mt-1 text-2xl font-black tracking-[-.035em]" style={{ fontFamily: "var(--font-fraunces)" }}>Pick a format. The editor opens.</h2>
+            </div>
+            <div className="grid flex-1 sm:grid-cols-2">
+              {FORMATS.map((format, index) => (
+                <Link key={format.type} href={format.href} className="group flex min-h-[126px] items-center gap-4 border-b border-black/10 px-5 py-4 transition hover:bg-[#FFFCF8] sm:px-6 sm:[&:nth-child(odd)]:border-r">
+                  <FormatMark format={format} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[12px] font-black">{format.label}</span>
+                    <span className="mt-1 block text-[9px] text-black/40">{format.sublabel}</span>
+                    <span className="mt-4 block text-[9px] font-black uppercase tracking-wide opacity-0 transition group-hover:opacity-100" style={{ color: KEBU.orange }}>Create →</span>
+                  </span>
+                  <span className="text-black/15">0{index + 1}</span>
+                </Link>
+              ))}
+            </div>
+            <div className="grid border-t border-black/10 sm:grid-cols-2">
+              <Link href="/studio/new?tab=ai" className="min-h-[150px] bg-black p-5 text-white">
+                <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/35">Kebu AI</p>
+                <p className="mt-7 text-xl font-black">Start with an idea.</p>
+                <p className="mt-2 max-w-xs text-[10px] leading-relaxed text-white/45">Describe the outcome. Get an editable direction, not a dead image.</p>
+              </Link>
+              <Link href="/studio/brand" className="min-h-[150px] bg-[#EEE8E1] p-5">
+                <p className="text-[9px] font-black uppercase tracking-[.16em] text-black/35">Brand DNA</p>
+                <p className="mt-7 text-xl font-black">Make it unmistakably yours.</p>
+                <p className="mt-2 max-w-xs text-[10px] leading-relaxed text-black/45">Logo, color, type, voice and reusable creative rules.</p>
+              </Link>
+            </div>
+          </div>
         </section>
-        <section className="grid gap-4 lg:grid-cols-[1.45fr_.55fr]"><div className="overflow-hidden rounded-[24px] bg-black p-6 text-white lg:p-8"><div className="grid min-h-[210px] gap-6 sm:grid-cols-[1fr_240px] sm:items-center"><div><span className="text-[10px] font-black uppercase tracking-[.24em]" style={{color:KEBU.orange}}>Brand-aware creation</span><h2 className="mt-3 max-w-xl text-3xl font-black leading-[.98] tracking-[-.045em]">Create with your brand, not around it.</h2><p className="mt-3 max-w-lg text-sm leading-6 text-white/55">Your Brand DNA, themes and business assets stay available while you design. Start blank, from a theme, or ask Kebu AI.</p><div className="mt-5 flex gap-2"><Link href="/studio/brand" className="rounded-xl bg-white px-4 py-2.5 text-xs font-black text-black">Open Brand DNA</Link><Link href="/studio/campaigns" className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold">Campaigns</Link></div></div><div className="relative hidden h-[170px] overflow-hidden rounded-[22px] bg-[#17110D] sm:block"><div className="absolute -right-8 -top-12 h-48 w-48 rotate-[28deg] rounded-[44px]" style={{background:`linear-gradient(135deg,${KEBU.orange},${KEBU.red},#220500)`}}/><div className="absolute bottom-5 left-5 text-[10px] font-black uppercase tracking-[.25em] text-white/75">Ideas<br/>Businesses<br/>Opportunities<br/><span style={{color:KEBU.orange}}>All yours.</span></div></div></div></div><div className="rounded-[24px] border border-black/10 bg-white p-5"><p className="text-[10px] font-black uppercase tracking-[.22em] text-black/40">Studio spaces</p><div className="mt-4 space-y-1">{[["/studio/templates","Themes","Complete visual systems"],["/studio/brand","Brand","Logos, colors, type and voice"],["/studio/campaigns","Campaigns","Connected creative sets"],["/studio/video/new","Video","Timeline, sound and motion"]].map(([href,label,desc])=><Link key={href} href={href} className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-black/[.035]"><span className="h-8 w-1 rounded-full" style={{background:KEBU.orange}}/><span className="min-w-0 flex-1"><span className="block text-xs font-black">{label}</span><span className="block truncate text-[10px] text-black/45">{desc}</span></span><span className="text-black/30">→</span></Link>)}</div></div></section>
-        {recentDesigns.length > 0 || recentVideos.length > 0 ? <section><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-black">Continue creating</h2><span className="text-[11px] font-semibold text-black/40">{designs.length} designs · {videos.length} videos</span></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">{recentDesigns.map((d)=>{const fmt=FORMATS.find((f)=>f.type===d.design_type);return <Link key={"design-"+d.id} href={`/studio/${d.id}`} className="group min-w-0"><div className="flex h-[150px] items-center justify-center rounded-2xl border border-black/10 bg-white group-hover:border-black/25"><CanvasThumb aspect={fmt?.aspect??1} accent={fmt?.accent??KEBU.orange}/></div><p className="mt-2 truncate text-xs font-bold">{d.title}</p><p className="mt-.5 text-[10px] capitalize text-black/40">{d.design_type.replace(/_/g," ")}</p></Link>})}{recentVideos.slice(0,Math.max(0,6-recentDesigns.length)).map((v)=>{const aspect=v.width/Math.max(1,v.height);return <Link key={"video-"+v.id} href={`/studio/video/${v.id}`} className="group min-w-0"><div className="relative flex h-[150px] items-center justify-center overflow-hidden rounded-2xl border border-black/10 bg-black group-hover:border-black/25"><CanvasThumb aspect={aspect} accent="#FF6A00"/><span className="absolute flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[12px] text-black shadow">▶</span></div><p className="mt-2 truncate text-xs font-bold">{v.title}</p><p className="mt-.5 text-[10px] capitalize text-black/40">video · {v.edit_mode.replace(/_/g," ")}</p></Link>})}</div></section>:null}
-        {videos.length > 0 ? <section><div className="mb-4 flex items-center justify-between"><div><h2 className="text-sm font-black">Video projects</h2><p className="mt-0.5 text-[10px] text-black/40">Timeline, captions, sound, motion, linked design sources and offline media.</p></div><Link href="/studio/video/new" className="text-xs font-bold text-black/50">New video →</Link></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{videos.slice(0,8).map((v)=><Link key={v.id} href={`/studio/video/${v.id}`} className="rounded-2xl border border-black/10 bg-white p-4 transition hover:-translate-y-0.5 hover:border-black/25"><div className="flex items-center justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-black text-white">▶</span><span className="text-[9px] font-black uppercase tracking-wide text-black/35">{v.width}×{v.height}</span></div><p className="mt-5 truncate text-sm font-black">{v.title}</p><p className="mt-1 text-[10px] capitalize text-black/45">{v.edit_mode.replace(/_/g," ")}{v.source_design_id?" · linked design":""}</p></Link>)}</div></section> : null}
-        <section><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-black">Your Studio</h2><p className="hidden text-[11px] text-black/40 sm:block">Personal, business and shared work stay separated.</p></div><StudioDesignLibrary initialOwned={designs} initialShared={shared}/></section>
-        <details className="rounded-2xl border border-black/10 bg-white p-4"><summary className="cursor-pointer text-xs font-black">AI generation history</summary><div className="pt-4"><StudioGenerationHistory/></div></details>
+
+        {hasRecent ? (
+          <section className="border-b border-black/10 px-5 py-9 sm:px-8 lg:px-12 xl:px-16">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Continue where you left off</p>
+                <h2 className="mt-2 text-3xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Your active work.</h2>
+              </div>
+              <span className="text-[10px] font-bold text-black/35">{designs.length} designs · {videos.length} videos</span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              {recentDesigns.map((design, index) => {
+                const format = FORMATS.find((item) => item.type === design.design_type);
+                return (
+                  <Link key={design.id} href={`/studio/${design.id}`} className="group">
+                    <div className="relative h-[220px] overflow-hidden rounded-[20px] border border-black/10 bg-white">
+                      <div className="absolute inset-4 rounded-[14px]" style={{ background: `linear-gradient(145deg,${format?.accent ?? KEBU.orange},#111)` }} />
+                      <div className="absolute bottom-7 left-7 right-7">
+                        <span className="block h-2 w-2/3 rounded-full bg-white/80" />
+                        <span className="mt-2 block h-1.5 w-1/3 rounded-full bg-white/35" />
+                      </div>
+                      <span className="absolute right-3 top-3 text-[9px] font-black text-black/25">0{index + 1}</span>
+                    </div>
+                    <p className="mt-2 truncate text-[11px] font-black">{design.title}</p>
+                    <p className="mt-1 text-[9px] capitalize text-black/35">{design.design_type.replaceAll("_", " ")}</p>
+                  </Link>
+                );
+              })}
+
+              {recentVideos.map((video) => (
+                <Link key={video.id} href={`/studio/video/${video.id}`} className="group">
+                  <div className="relative h-[220px] overflow-hidden rounded-[20px] bg-black">
+                    <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 70% 20%,rgba(255,106,0,.95),transparent 34%),linear-gradient(160deg,#111,#000)" }} />
+                    <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-black">▶</span>
+                  </div>
+                  <p className="mt-2 truncate text-[11px] font-black">{video.title}</p>
+                  <p className="mt-1 text-[9px] capitalize text-black/35">video · {video.edit_mode.replaceAll("_", " ")}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="grid border-b border-black/10 lg:grid-cols-4">
+          {[
+            ["/studio/templates", "Themes", "Complete visual worlds, not one-off cards."],
+            ["/studio/brand", "Brand", "Logos, colors, typography and voice."],
+            ["/studio/campaigns", "Campaigns", "Connected creative sets across formats."],
+            ["/studio/video/new", "Video", "Timeline, captions, sound and motion."],
+          ].map(([href, label, description], index) => (
+            <Link key={href} href={href} className="group min-h-[190px] border-b border-black/10 p-6 transition hover:bg-white lg:border-b-0 lg:border-r">
+              <span className="text-[9px] font-black text-black/20">0{index + 1}</span>
+              <h3 className="mt-8 text-xl font-black">{label}</h3>
+              <p className="mt-2 max-w-xs text-[10px] leading-relaxed text-black/45">{description}</p>
+              <span className="mt-5 block text-[9px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>Open →</span>
+            </Link>
+          ))}
+        </section>
+
+        <section className="px-5 py-9 sm:px-8 lg:px-12 xl:px-16">
+          <div className="mb-5">
+            <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Your Studio</p>
+            <h2 className="mt-2 text-3xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Everything you have made here.</h2>
+          </div>
+          <StudioDesignLibrary initialOwned={designs} initialShared={shared} />
+          <details className="mt-8 border-t border-black/10 pt-5">
+            <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[.14em] text-black/40">AI generation history</summary>
+            <div className="pt-5"><StudioGenerationHistory /></div>
+          </details>
+        </section>
       </main>
-    </div>
     </AppShell>
   );
 }
