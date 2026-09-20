@@ -147,6 +147,24 @@ export function LegallyBlondeEditCanvas({
   const layerRotation = (props.layerRotation as Record<string, number>) ?? {};
   const lockedLayers = Array.isArray(props.lockedLayers) ? (props.lockedLayers as string[]) : [];
 
+  function toggleLayerLocked(key: string) {
+    onPatch({
+      lockedLayers: lockedLayers.includes(key)
+        ? lockedLayers.filter((item) => item !== key)
+        : [...new Set([...lockedLayers, key])],
+    });
+  }
+
+  function hideLayer(key: string) {
+    onPatch({
+      hiddenLayers: [...new Set([...hiddenLayers, key])],
+      ...(key === "backgroundLayer" ? { backgroundHidden: true } : {}),
+    });
+    setSelectedKey(null);
+    setSelectedExtraId(null);
+    setEditingTitle(false);
+  }
+
   function stepLayer(key: string, delta: -1 | 1) {
     const current = typeof layerZ[key] === "number" ? layerZ[key]! : 10;
     const next = Math.min(80, Math.max(1, current + delta));
@@ -509,6 +527,8 @@ export function LegallyBlondeEditCanvas({
               onSendBackward={() => stepLayer(slot.key, -1)}
               onSendBack={() => bumpLayer(slot.key, "back")}
               onDuplicate={() => duplicateLayer(slot.key, slot)}
+              onToggleLock={() => toggleLayerLocked(slot.key)}
+              onHide={() => hideLayer(slot.key)}
               onSelect={() => {
                 setSelectedKey(slot.key);
                 setSelectedExtraId(null);
@@ -603,6 +623,8 @@ export function LegallyBlondeEditCanvas({
                 onSendBackward={() => stepLayer(cut.id, -1)}
                 onSendBack={() => bumpLayer(cut.id, "back")}
                 onDuplicate={() => duplicateLayer(cut.id, cut)}
+                onToggleLock={() => toggleLayerLocked(cut.id)}
+                onHide={() => hideLayer(cut.id)}
                 onSelect={() => {
                   setSelectedExtraId(cut.id);
                   setSelectedKey(null);
@@ -796,6 +818,8 @@ function CutoutChip({
   onSendBackward,
   onSendBack,
   onDuplicate,
+  onToggleLock,
+  onHide,
   onSnapGuide,
 }: {
   slot: EditableCutoutSlot;
@@ -841,6 +865,8 @@ function CutoutChip({
   onSendBackward?: () => void;
   onSendBack?: () => void;
   onDuplicate?: () => void;
+  onToggleLock?: () => void;
+  onHide?: () => void;
   onSnapGuide?: (guide: { x: boolean; y: boolean }) => void;
 }) {
   const moved = useRef(false);
@@ -1116,6 +1142,14 @@ function CutoutChip({
           ) : null}
           {onDuplicate ? (
             <CtxItem onClick={() => { onDuplicate(); setCtxMenu(null); }}>Duplicate</CtxItem>
+          ) : null}
+          {onToggleLock ? (
+            <CtxItem onClick={() => { onToggleLock(); setCtxMenu(null); }}>
+              {locked ? "Unlock" : "Lock"}
+            </CtxItem>
+          ) : null}
+          {onHide ? (
+            <CtxItem onClick={() => { onHide(); setCtxMenu(null); }}>Hide</CtxItem>
           ) : null}
           {onBringFront ? (
             <CtxItem onClick={() => { onBringFront(); setCtxMenu(null); }}>Bring to Front</CtxItem>
