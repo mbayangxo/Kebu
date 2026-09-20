@@ -136,7 +136,16 @@ export function StudioUploadsLibrary({
           {u.kind==="image"?<img src={u.url} alt="" className="h-20 w-full object-cover"/>:u.kind==="video"?<div className="flex h-20 items-center justify-center bg-black text-[10px] font-black text-white">▶ VIDEO</div>:<div className="flex h-20 items-center justify-center bg-[#FFF2E8] text-[10px] font-black">♫ AUDIO</div>}
           <div className="flex items-center gap-1 px-2 py-1.5"><p className="min-w-0 flex-1 truncate text-[9px] font-semibold">{u.file_name||u.kind}</p><span aria-hidden className="text-xs">{u.favorite?"★":"☆"}</span></div>{u.tags?.length?<p className="truncate px-2 pb-1 text-[8px] text-black/35">{u.tags.join(" · ")}</p>:null}
         </button>
-        {!readOnly?<button type="button" disabled={busy} onClick={()=>void remove(u.id)} className="w-full border-t border-black/5 py-1 text-[9px] text-black/35 hover:text-red-700">Remove from library</button><div className="flex gap-1 border-t border-black/5 p-1"><button type="button" onClick={()=>void toggleOffline(u)} className="rounded px-1 text-[8px] text-black/45">{offlineIds.has(u.id)?"✓ Offline":"↓ Offline"}</button><button type="button" onClick={()=>{const folder=prompt("Folder name",u.folder??"");if(folder!==null)void patchAsset(u.id,{folder:folder.trim()||null})}} className="flex-1 rounded py-1 text-[8px] text-black/45 hover:bg-black/[.03]">{u.folder||"Folder"}</button><button type="button" onClick={()=>{const tags=prompt("Tags, separated by commas",(u.tags??[]).join(", "));if(tags!==null)void patchAsset(u.id,{tags:tags.split(",").map(x=>x.trim()).filter(Boolean)})}} className="flex-1 rounded py-1 text-[8px] text-black/45 hover:bg-black/[.03]">Tags</button></div>:null}
+        {!readOnly ? (
+          <>
+            <button type="button" disabled={busy} onClick={()=>void remove(u.id)} className="w-full border-t border-black/5 py-1 text-[9px] text-black/35 hover:text-red-700">Remove from library</button>
+            <div className="flex gap-1 border-t border-black/5 p-1">
+              <button type="button" onClick={()=>void toggleOffline(u)} className="rounded px-1 text-[8px] text-black/45">{offlineIds.has(u.id)?"✓ Offline":"↓ Offline"}</button>
+              <button type="button" onClick={()=>{const folder=prompt("Folder name",u.folder??"");if(folder!==null)void patchAsset(u.id,{folder:folder.trim()||null})}} className="flex-1 rounded py-1 text-[8px] text-black/45 hover:bg-black/[.03]">{u.folder||"Folder"}</button>
+              <button type="button" onClick={()=>{const tags=prompt("Tags, separated by commas",(u.tags??[]).join(", "));if(tags!==null)void patchAsset(u.id,{tags:tags.split(",").map(x=>x.trim()).filter(Boolean)})}} className="flex-1 rounded py-1 text-[8px] text-black/45 hover:bg-black/[.03]">Tags</button>
+            </div>
+          </>
+        ) : null}
       </li>)}{filtered.length>visibleCount?<li className="col-span-2"><button type="button" onClick={()=>setVisibleCount(v=>v+60)} className="w-full rounded-xl border border-black/10 py-2 text-[10px] font-bold">Show more</button></li>:null}</ul>}
     </div>
   );
