@@ -428,7 +428,7 @@ export function LegallyBlondeEditCanvas({
           setSelectedKey(null);
           setSelectedExtraId(null);
           setEditingTitle(false);
-          onSelectSection?.();
+          selectElement("backgroundLayer", "background", "Background");
         }}
         onDoubleClick={(e) => {
           if (e.target !== e.currentTarget) return;
