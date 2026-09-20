@@ -72,6 +72,11 @@ export const canvasLayerSchema = z.object({
   /** Elements pack (S19) */
   iconKey: z.string().trim().max(40).optional(),
   frameStyle: z.enum(["corner", "rounded", "polaroid"]).optional(),
+  frameMediaKind: z.enum(["image","video"]).nullable().optional(),
+  frameMediaUrl: z.union([z.literal(""),z.string().trim().url().max(500)]).nullable().optional(),
+  frameFocalX: z.number().min(0).max(1).optional(),
+  frameFocalY: z.number().min(0).max(1).optional(),
+  sourceAssetId: z.string().trim().max(80).nullable().optional(),
 });
 
 export type CanvasLayer = z.infer<typeof canvasLayerSchema>;

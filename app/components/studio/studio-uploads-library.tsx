@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cacheAssetBlob, cacheAssetLibrary, readCachedAssetLibrary, reconcileAssetCache, resolveCachedAssetUrl } from "@/lib/studio/asset-offline-cache";
 
 type UploadRow = {
   id: string;
@@ -30,20 +31,21 @@ export function StudioUploadsLibrary({
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [favoritesOnly,setFavoritesOnly]=useState(false);
+  const [offlineIds,setOfflineIds]=useState<Set<string>>(new Set());
   const [kind, setKind] = useState<"all" | UploadRow["kind"]>("all");
   const fileRef = useRef<HTMLInputElement>(null);
   const [visibleCount,setVisibleCount]=useState(60);
 
   const load = useCallback(async () => {
-    if (typeof navigator !== "undefined" && !navigator.onLine) { setError("Offline · reconnect to refresh the workspace media library."); return; }
+    if (typeof navigator !== "undefined" && !navigator.onLine) { const cached=await readCachedAssetLibrary().catch(()=>[]);setUploads(cached as UploadRow[]);setError(cached.length?"Offline · showing cached workspace assets.":"Offline · no cached workspace assets yet."); return; }
     const res = await fetch("/api/studio/uploads", { credentials: "include" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       setError(typeof data.error === "string" ? data.error : "Could not load library.");
       return;
     }
-    setUploads(Array.isArray(data.uploads) ? data.uploads : []);
-    setError(null);
+    const rows=Array.isArray(data.uploads) ? data.uploads : [];
+    setUploads(rows);setError(null);void cacheAssetLibrary(rows);void reconcileAssetCache(new Set(rows.map((x:UploadRow)=>x.id)));
   }, []);
 
   useEffect(() => {
@@ -56,6 +58,9 @@ export function StudioUploadsLibrary({
     const q = query.trim().toLowerCase();
     return !q || [item.file_name,item.folder,...(item.tags??[])].filter(Boolean).join(" ").toLowerCase().includes(q);
   }), [uploads, query, kind, favoritesOnly]);
+
+  async function toggleOffline(u:UploadRow){if(offlineIds.has(u.id)){setOfflineIds(ids=>{const n=new Set(ids);n.delete(u.id);return n});return}try{await cacheAssetBlob(u);setOfflineIds(ids=>new Set(ids).add(u.id))}catch(e){setError(e instanceof Error?e.message:"Could not cache asset.")}}
+  async function pickResolved(u:UploadRow){const url=await resolveCachedAssetUrl(u).catch(()=>u.url);if(u.kind==="image")onPickImage(url);if(u.kind==="video")onPickVideo(url)}
 
   async function upload(file: File | null) {
     if (!file || readOnly) return;
@@ -115,11 +120,11 @@ export function StudioUploadsLibrary({
       {error ? <p className="rounded-lg bg-red-50 p-2 text-[10px] text-red-800">{error}</p> : null}
       {filtered.length === 0 ? <div className="rounded-xl border border-dashed border-black/15 p-4 text-center"><p className="text-[10px] font-bold">{uploads.length?"No matching uploads":"Your media library is empty"}</p><p className="mt-1 text-[9px] text-black/45">{uploads.length?"Try another filter.":"Upload once, then reuse it across projects in this Kebu space."}</p></div> :
       <ul className="grid max-h-[360px] grid-cols-2 gap-2 overflow-y-auto pr-1">{filtered.slice(0,visibleCount).map((u)=><li draggable={u.kind!=="audio"} onDragStart={(e)=>{if(u.kind==="audio")return;e.dataTransfer.effectAllowed="copy";e.dataTransfer.setData("application/x-kebu-studio-asset",JSON.stringify(u));onDropAsset?.(u)}} key={u.id} className="group overflow-hidden rounded-xl border border-black/10 bg-white">
-        <button type="button" disabled={readOnly || u.kind==="audio"} className="w-full text-left disabled:opacity-60" onClick={()=>u.kind==="video"?onPickVideo(u.url):u.kind==="image"?onPickImage(u.url):undefined}>
+        <button type="button" disabled={readOnly || u.kind==="audio"} className="w-full text-left disabled:opacity-60" onClick={()=>void pickResolved(u)}>
           {u.kind==="image"?<img src={u.url} alt="" className="h-20 w-full object-cover"/>:u.kind==="video"?<div className="flex h-20 items-center justify-center bg-black text-[10px] font-black text-white">▶ VIDEO</div>:<div className="flex h-20 items-center justify-center bg-[#FFF2E8] text-[10px] font-black">♫ AUDIO</div>}
           <div className="flex items-center gap-1 px-2 py-1.5"><p className="min-w-0 flex-1 truncate text-[9px] font-semibold">{u.file_name||u.kind}</p><button type="button" aria-label={u.favorite?"Unfavorite":"Favorite"} onClick={(e)=>{e.stopPropagation();void patchAsset(u.id,{favorite:!u.favorite})}} className="text-xs">{u.favorite?"★":"☆"}</button></div>{u.tags?.length?<p className="truncate px-2 pb-1 text-[8px] text-black/35">{u.tags.join(" · ")}</p>:null}
         </button>
-        {!readOnly?<button type="button" disabled={busy} onClick={()=>void remove(u.id)} className="w-full border-t border-black/5 py-1 text-[9px] text-black/35 hover:text-red-700">Remove from library</button><div className="flex gap-1 border-t border-black/5 p-1"><button type="button" onClick={()=>{const folder=prompt("Folder name",u.folder??"");if(folder!==null)void patchAsset(u.id,{folder:folder.trim()||null})}} className="flex-1 rounded py-1 text-[8px] text-black/45 hover:bg-black/[.03]">{u.folder||"Folder"}</button><button type="button" onClick={()=>{const tags=prompt("Tags, separated by commas",(u.tags??[]).join(", "));if(tags!==null)void patchAsset(u.id,{tags:tags.split(",").map(x=>x.trim()).filter(Boolean)})}} className="flex-1 rounded py-1 text-[8px] text-black/45 hover:bg-black/[.03]">Tags</button></div>:null}
+        {!readOnly?<button type="button" disabled={busy} onClick={()=>void remove(u.id)} className="w-full border-t border-black/5 py-1 text-[9px] text-black/35 hover:text-red-700">Remove from library</button><div className="flex gap-1 border-t border-black/5 p-1"><button type="button" onClick={()=>void toggleOffline(u)} className="rounded px-1 text-[8px] text-black/45">{offlineIds.has(u.id)?"✓ Offline":"↓ Offline"}</button><button type="button" onClick={()=>{const folder=prompt("Folder name",u.folder??"");if(folder!==null)void patchAsset(u.id,{folder:folder.trim()||null})}} className="flex-1 rounded py-1 text-[8px] text-black/45 hover:bg-black/[.03]">{u.folder||"Folder"}</button><button type="button" onClick={()=>{const tags=prompt("Tags, separated by commas",(u.tags??[]).join(", "));if(tags!==null)void patchAsset(u.id,{tags:tags.split(",").map(x=>x.trim()).filter(Boolean)})}} className="flex-1 rounded py-1 text-[8px] text-black/45 hover:bg-black/[.03]">Tags</button></div>:null}
       </li>)}{filtered.length>visibleCount?<li className="col-span-2"><button type="button" onClick={()=>setVisibleCount(v=>v+60)} className="w-full rounded-xl border border-black/10 py-2 text-[10px] font-bold">Show more</button></li>:null}</ul>}
     </div>
   );
