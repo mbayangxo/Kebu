@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { mediaFilterCss } from "@/lib/studio/media-adjustments";
 import { layerMotionAtTime } from "@/lib/studio/layer-motion";
+import { applyStudioCanvasFill, studioCanvasCompositeOperation } from "@/lib/studio/layer-paint";
 
 export const CANVAS_DOC_VERSION = 2 as const;
 
@@ -981,6 +982,7 @@ export function exportCanvasToPngDataUrl(
     if (layer.opacity <= 0) continue;
     ctx.save();
     ctx.globalAlpha = layer.opacity;
+    ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
     const cx = layer.x + layer.width / 2;
     const cy = layer.y + layer.height / 2;
     ctx.translate(cx, cy);
@@ -990,7 +992,7 @@ export function exportCanvasToPngDataUrl(
     const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
     if (mediaFilter) ctx.filter = mediaFilter;
     if (layer.type === "rect") {
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
       if ((layer.cornerRadius ?? 0) > 0) {
         roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
         ctx.fill();
@@ -1014,7 +1016,7 @@ export function exportCanvasToPngDataUrl(
         0,
         Math.PI * 2,
       );
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
       ctx.fill();
     } else if (layer.type === "text" && layer.text) {
       paintTextLayer(ctx, layer);
@@ -1065,6 +1067,7 @@ export async function exportCanvasToPngDataUrlAsync(
     if (motion.opacityMultiplier <= 0) continue;
     ctx.save();
     ctx.globalAlpha = layer.opacity * motion.opacityMultiplier;
+    ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
     const cx = layer.x + layer.width / 2;
     const cy = layer.y + layer.height / 2;
     ctx.translate(cx + motion.translateX, cy + motion.translateY);
@@ -1075,7 +1078,7 @@ export async function exportCanvasToPngDataUrlAsync(
     const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
     if (mediaFilter) ctx.filter = mediaFilter;
     if (layer.type === "rect") {
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
       if ((layer.cornerRadius ?? 0) > 0) {
         roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
         ctx.fill();
@@ -1099,7 +1102,7 @@ export async function exportCanvasToPngDataUrlAsync(
         0,
         Math.PI * 2,
       );
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
       ctx.fill();
     } else if (layer.type === "text" && layer.text) {
       paintTextLayer(ctx, layer);
