@@ -103,7 +103,7 @@ export function KebuOpportunityHome() {
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section
-        className="relative min-h-[94svh] overflow-hidden flex flex-col justify-center"
+        className="relative min-h-[82svh] overflow-hidden flex flex-col justify-center"
         style={{ background: C.paper }}
       >
         <div
@@ -117,7 +117,7 @@ export function KebuOpportunityHome() {
           aria-hidden
         />
 
-        <div className="relative max-w-[1400px] mx-auto w-full px-5 sm:px-8 lg:px-16 py-24 lg:py-36">
+        <div className="relative max-w-[1400px] mx-auto w-full px-5 sm:px-8 lg:px-16 py-20 lg:py-28">
           <div className="kebu-landing-rise mb-8 inline-flex">
             <KebuMark size={72} />
           </div>
@@ -126,20 +126,20 @@ export function KebuOpportunityHome() {
             className="kebu-landing-rise kebu-landing-rise-delay font-black uppercase leading-[0.83] tracking-tight mb-6"
             style={{
               fontFamily: "var(--font-fraunces)",
-              fontSize: "clamp(3.4rem,12vw,9rem)",
+              fontSize: "clamp(3.4rem,10vw,8rem)",
               color: C.ink,
             }}
           >
-            Build your
+            Build what’s
             <br />
-            <span style={{ color: C.orange }}>hustle.</span>
+            <span style={{ color: C.orange }}>yours.</span>
           </h1>
 
           <p
             className="kebu-landing-rise kebu-landing-rise-delay-2 text-[clamp(1.05rem,2.4vw,1.3rem)] max-w-xl mb-10 leading-relaxed"
             style={{ color: C.muted }}
           >
-            Find the opportunity. Create your business. Build and publish a real site — all in one place. Made for Africa.
+            Create, work, sell, communicate and find opportunities in one place — built for African creators, students and businesses.
           </p>
 
           <div className="kebu-landing-rise kebu-landing-rise-delay-3">
@@ -151,13 +151,13 @@ export function KebuOpportunityHome() {
           </div>
 
           <div
-            className="kebu-landing-rise mt-12 flex flex-wrap gap-2.5"
+            className="kebu-landing-rise mt-10 flex flex-wrap gap-2"
             style={{ animationDelay: "0.5s" }}
           >
             {["Free to start", "No code required", "XOF & mobile money", "WhatsApp checkout"].map((chip) => (
               <span
                 key={chip}
-                className="text-[10px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 rounded-full"
+                className="text-[10px] font-semibold px-3 py-1.5 rounded-md"
                 style={{
                   background: C.white,
                   color: C.muted,
@@ -195,7 +195,7 @@ export function KebuOpportunityHome() {
       </section>
 
       {/* ── Three moves / steps ──────────────────────────────────────────────── */}
-      <section className="py-24 lg:py-32" style={{ background: C.paperSoft }}>
+      <section className="py-20 lg:py-24" style={{ background: C.paperSoft }}>
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8">
           <div className="kebu-reveal mb-16 max-w-2xl">
             <p
@@ -218,7 +218,7 @@ export function KebuOpportunityHome() {
               <Link
                 key={num}
                 href={href}
-                className="kebu-reveal group block rounded-3xl p-8 transition-colors hover:shadow-md"
+                className="kebu-reveal group block rounded-xl p-8 transition-colors hover:shadow-md"
                 style={{
                   transitionDelay: `${i * 0.1}s`,
                   background: C.white,
@@ -278,7 +278,7 @@ export function KebuOpportunityHome() {
                 {STATS.map(({ value, label }, i) => (
                   <div
                     key={label}
-                    className="kebu-reveal rounded-2xl p-6"
+                    className="kebu-reveal rounded-xl p-6"
                     style={{
                       transitionDelay: `${i * 0.1}s`,
                       background: C.white,
@@ -362,7 +362,7 @@ export function KebuOpportunityHome() {
           <div className="grid sm:grid-cols-2 gap-5">
             <Link
               href="/create/aesthetics"
-              className="kebu-reveal group block rounded-3xl overflow-hidden transition-transform hover:-translate-y-1"
+              className="kebu-reveal group block rounded-xl overflow-hidden transition-transform hover:-translate-y-1"
               style={{
                 background: "#FFE4F0",
                 border: `1px solid ${C.border}`,
@@ -394,7 +394,7 @@ export function KebuOpportunityHome() {
 
             <Link
               href="/create/aesthetics"
-              className="kebu-reveal group block rounded-3xl overflow-hidden transition-transform hover:-translate-y-1"
+              className="kebu-reveal group block rounded-xl overflow-hidden transition-transform hover:-translate-y-1"
               style={{
                 transitionDelay: "0.08s",
                 background: "#170006",
@@ -458,7 +458,7 @@ export function KebuOpportunityHome() {
             {BUILDER_STORIES.map(({ role, city, story, tag }, i) => (
               <div
                 key={role}
-                className="kebu-reveal rounded-3xl p-7"
+                className="kebu-reveal rounded-xl p-7"
                 style={{
                   transitionDelay: `${i * 0.1}s`,
                   background: C.white,
@@ -526,7 +526,7 @@ export function KebuOpportunityHome() {
             </div>
 
             <div
-              className="kebu-reveal rounded-3xl p-6"
+              className="kebu-reveal rounded-xl p-6"
               style={{
                 transitionDelay: "0.12s",
                 background: C.white,

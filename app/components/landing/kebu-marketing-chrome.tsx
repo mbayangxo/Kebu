@@ -34,16 +34,16 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
   return (
     <header className="sticky top-0 z-50 backdrop-blur-md" style={{ background: "rgba(255,251,247,0.92)" }}>
       <div
-        className="h-[4px] w-full"
+        className="h-[3px] w-full"
         style={{ background: `linear-gradient(90deg, ${C.red}, ${C.orange}, ${C.orangeLight})` }}
       />
       <nav style={{ borderBottom: `1px solid ${C.border}` }}>
-        <div className="max-w-[1400px] mx-auto px-5 sm:px-8 h-[68px] flex items-center justify-between gap-4">
+        <div className="max-w-[1400px] mx-auto px-5 sm:px-8 h-[62px] flex items-center justify-between gap-4">
           <Link href="/" className="flex-shrink-0">
             <KebuWordmark size={36} dark />
           </Link>
 
-          <div className="hidden lg:flex items-center gap-6 text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <div className="hidden lg:flex items-center gap-5 text-[11px] font-semibold tracking-[0.02em]">
             {KEBU_MARKETING_NAV.map(({ label, href }) => (
               <Link
                 key={href}
@@ -59,7 +59,7 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/create"
-              className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border"
+              className="hidden sm:inline-flex text-[10px] font-semibold px-3 py-1.5 rounded-md border"
               style={{ borderColor: C.border, color: C.muted }}
             >
               Builder
@@ -67,7 +67,7 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
             <KebuAuthHeaderCTA orange={C.orange} white={C.white} />
             <button
               type="button"
-              className="lg:hidden rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
+              className="lg:hidden rounded-md border px-2.5 py-1.5 text-[10px] font-semibold"
               style={{ borderColor: C.border, color: C.muted }}
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}

@@ -34,16 +34,7 @@ const PERSONA_LABELS: Record<(typeof KEBU_PERSONAS)[number], string> = {
   personal: "Just me",
 };
 
-const INTENT_MARKS: Record<KebuIntentId, string> = {
-  create: "✦",
-  business: "↗",
-  build_online: "◫",
-  communicate: "◌",
-  organize: "⌘",
-  opportunities: "✺",
-  technology: "⌁",
-  explore: "◎",
-};
+const INTENT_ICONS: Record<KebuIntentId, KebuIconName> = { create:"studio", business:"spaces", build_online:"builder", communicate:"message", organize:"work", opportunities:"opportunity", technology:"search", explore:"search" };
 
 const TOOL_ICONS: Record<KebuToolId, KebuIconName> = {
   browser: "search",
@@ -211,9 +202,9 @@ export function KebuWelcomeIntake() {
 
   return (
     <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
-      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_360px]">
         <main className="flex min-h-screen flex-col">
-          <header className="flex h-16 items-center justify-between border-b px-5 sm:px-8" style={{ borderColor: KEBU.borders.default }}>
+          <header className="flex h-14 items-center justify-between border-b px-5 sm:px-8" style={{ borderColor: KEBU.borders.default }}>
             <Link href="/" aria-label="Kebu home"><KebuWordmark size={27} dark /></Link>
             <div className="flex items-center gap-2">
               {Array.from({ length: totalSteps + 1 }, (_, index) => (
@@ -232,10 +223,10 @@ export function KebuWelcomeIntake() {
                     One place for your work, <span className="font-normal italic">ideas</span> and life online.
                   </h1>
                   <p className="mt-5 max-w-xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>Kebu is not a website-builder signup. Start with what you need today. Add the rest when it becomes useful.</p>
-                  <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="mt-8 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                     {["Create", "Work", "Sell", "Discover"].map((word, index) => (
-                      <div key={word} className="rounded-[18px] border bg-white p-3" style={{ borderColor: KEBU.borders.default }}>
-                        <span className="text-lg" style={{ color: index % 2 ? KEBU.red : KEBU.orange }}>✦</span>
+                      <div key={word} className="rounded-xl border bg-white p-3" style={{ borderColor: KEBU.borders.default }}>
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md" style={{ color: index % 2 ? KEBU.red : KEBU.orange, background: KEBU.cream }}><KebuIcon name={index===0?"studio":index===1?"work":index===2?"commerce":"opportunity"} size={15}/></span>
                         <p className="mt-5 text-[11px] font-black uppercase tracking-[.12em]">{word}</p>
                       </div>
                     ))}
@@ -253,9 +244,9 @@ export function KebuWelcomeIntake() {
                     {KEBU_INTENTS.map((intent) => {
                       const active = intents.includes(intent.id);
                       return (
-                        <button key={intent.id} type="button" aria-pressed={active} onClick={() => chooseIntent(intent.id)} className="group min-h-[118px] rounded-[20px] border p-4 text-left outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[#FF6A00]" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, background: active ? "rgba(255,106,0,.075)" : KEBU.white }}>
+                        <button key={intent.id} type="button" aria-pressed={active} onClick={() => chooseIntent(intent.id)} className="group min-h-[104px] rounded-xl border p-3.5 text-left outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[#FF6A00]" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, background: active ? "rgba(255,106,0,.075)" : KEBU.white }}>
                           <div className="flex items-start justify-between gap-3">
-                            <span className="text-xl font-black" style={{ color: active ? KEBU.orange : KEBU.black }}>{INTENT_MARKS[intent.id]}</span>
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ color: active ? "white" : KEBU.black, background: active ? KEBU.orange : KEBU.cream }}><KebuIcon name={INTENT_ICONS[intent.id]} size={16}/></span>
                             <span className="flex h-5 w-5 items-center justify-center rounded-full border text-[10px]" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, background: active ? KEBU.orange : "transparent", color: "white" }}>{active ? "✓" : ""}</span>
                           </div>
                           <p className="mt-5 text-sm font-black">{intent.label}</p>
@@ -277,7 +268,7 @@ export function KebuWelcomeIntake() {
                       const active = tools.includes(tool.id);
                       const suggested = recommended.includes(tool.id);
                       return (
-                        <button key={tool.id} type="button" aria-pressed={active} onClick={() => setTools(toggleIn(tools, tool.id))} className="relative min-h-[126px] rounded-[18px] border bg-white p-3.5 text-left outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[#FF6A00]" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, boxShadow: active ? "0 7px 24px rgba(255,106,0,.08)" : "none" }}>
+                        <button key={tool.id} type="button" aria-pressed={active} onClick={() => setTools(toggleIn(tools, tool.id))} className="relative min-h-[126px] rounded-xl border bg-white p-3.5 text-left outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[#FF6A00]" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, boxShadow: active ? "0 7px 24px rgba(255,106,0,.08)" : "none" }}>
                           {suggested ? <span className="absolute right-2.5 top-2.5 rounded-full bg-[#FFF0E5] px-2 py-1 text-[8px] font-black uppercase tracking-wide text-[#FF6A00]">For you</span> : null}
                           <span className="flex h-9 w-9 items-center justify-center rounded-[11px]" style={{ background: active ? KEBU.orange : KEBU.cream, color: active ? "white" : KEBU.black }}><KebuIcon name={TOOL_ICONS[tool.id]} size={18} /></span>
                           <p className="mt-5 text-[12px] font-black">{tool.label}</p>
@@ -297,12 +288,12 @@ export function KebuWelcomeIntake() {
                   <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {KEBU_PERSONAS.map((id) => {
                       const active = persona === id;
-                      return <button key={id} type="button" aria-pressed={active} onClick={() => setPersona(id)} className="rounded-[18px] border p-4 text-left text-[12px] font-black outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, background: active ? "rgba(255,106,0,.075)" : KEBU.white }}>{PERSONA_LABELS[id]}</button>;
+                      return <button key={id} type="button" aria-pressed={active} onClick={() => setPersona(id)} className="rounded-xl border p-4 text-left text-[12px] font-black outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]" style={{ borderColor: active ? KEBU.orange : KEBU.borders.default, background: active ? "rgba(255,106,0,.075)" : KEBU.white }}>{PERSONA_LABELS[id]}</button>;
                     })}
                   </div>
                   <label className="mt-8 block">
                     <span className="text-[10px] font-black uppercase tracking-[.12em]">Name this personal space <span style={{ color: KEBU.muted }}>· optional</span></span>
-                    <input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} placeholder="e.g. May's Kebu, Ndao HQ, School work" className="mt-2 min-h-12 w-full rounded-[16px] border bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
+                    <input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} placeholder="e.g. May's Kebu, Ndao HQ, School work" className="mt-2 min-h-12 w-full rounded-lg border bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
                   </label>
                 </section>
               ) : null}
