@@ -22,6 +22,10 @@ export const KEBU_TOOLS = [
   { id: "chat", label: "Chat", href: "/messages", icon: "message", group: "Connect" },
   { id: "library", label: "Library", href: "/library", icon: "library", group: "Work" },
   { id: "spaces", label: "Spaces", href: "/spaces", icon: "spaces", group: "Work" },
+  { id: "docs", label: "Docs", href: "/docs", icon: "work", group: "Work" },
+  { id: "tasks", label: "Tasks", href: "/tasks", icon: "work", group: "Work" },
+  { id: "calendar", label: "Calendar", href: "/calendar", icon: "calendar", group: "Work" },
+  { id: "people", label: "People", href: "/people", icon: "people", group: "Connect" },
 ] as const;
 
 export type KebuIntentId = (typeof KEBU_INTENTS)[number]["id"];
@@ -71,7 +75,8 @@ export function recommendedToolsForIntents(intents: readonly KebuIntentId[]): Ke
     if (intent === "business") add("business", "shop", "mail");
     if (intent === "build_online") add("sites", "library");
     if (intent === "communicate") add("mail", "chat");
-    if (intent === "organize") add("spaces", "library", "chat");
+    if (intent === "organize") add("spaces", "library", "docs", "tasks", "calendar", "chat");
+    if (intent === "communicate") add("people");
     if (intent === "opportunities") add("opportunities", "search");
     if (intent === "technology") add("sites", "search");
     if (intent === "explore") add("search", "opportunities", "spaces");
