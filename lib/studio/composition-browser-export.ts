@@ -134,7 +134,7 @@ function drawSemanticLayer(
 
   ctx.save();
   ctx.globalAlpha = opacity;
-  ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
+    ctx.globalCompositeOperation = studioCanvasCompositeOperation(undefined);
   ctx.translate(xf.x, xf.y);
   ctx.rotate((xf.rotation * Math.PI) / 180);
   ctx.scale(xf.scale, xf.scale);
