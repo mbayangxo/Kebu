@@ -182,6 +182,14 @@ export function StudioCanvasEditor({
   } | null>(null);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [spaceHeld, setSpaceHeld] = useState(false);
+  const [marquee, setMarquee] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+    additive: boolean;
+    baseSelected: string[];
+  } | null>(null);
   const [zoom, setZoom] = useState(45);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [elementQuery, setElementQuery] = useState("");
@@ -295,6 +303,29 @@ export function StudioCanvasEditor({
   }
 
   function pointerMove(e: React.PointerEvent) {
+    if (marquee) {
+      const rect = artboardRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const currentX = Math.max(0, Math.min(page.width, (e.clientX - rect.left) / displayScale));
+      const currentY = Math.max(0, Math.min(page.height, (e.clientY - rect.top) / displayScale));
+      const left = Math.min(marquee.startX, currentX);
+      const right = Math.max(marquee.startX, currentX);
+      const top = Math.min(marquee.startY, currentY);
+      const bottom = Math.max(marquee.startY, currentY);
+      const hitIds = layers
+        .filter((layer) => {
+          const layerRight = layer.x + layer.width;
+          const layerBottom = layer.y + layer.height;
+          return layerRight >= left && layer.x <= right && layerBottom >= top && layer.y <= bottom;
+        })
+        .map((layer) => layer.id);
+      const ids = marquee.additive
+        ? [...new Set([...marquee.baseSelected, ...hitIds])]
+        : hitIds;
+      setMarquee((current) => current ? { ...current, currentX, currentY } : current);
+      onSelectLayers(expandSelectionWithGroups(layers, ids));
+      return;
+    }
     if (pan) {
       setPanOffset({
         x: pan.origX + (e.clientX - pan.startX),
@@ -378,12 +409,36 @@ export function StudioCanvasEditor({
   }
 
   function pointerUp() {
+    if (marquee) {
+      setMarquee(null);
+      return;
+    }
     if (drag) {
       onChange(latestDoc.current);
     }
     setDrag(null);
     setSnapGuides({ v: null, h: null });
     setPan(null);
+  }
+
+  function beginMarquee(e: React.PointerEvent<HTMLDivElement>) {
+    if (spaceHeld || pan || e.button !== 0) return;
+    if (e.target !== e.currentTarget) return;
+    const rect = artboardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const startX = Math.max(0, Math.min(page.width, (e.clientX - rect.left) / displayScale));
+    const startY = Math.max(0, Math.min(page.height, (e.clientY - rect.top) / displayScale));
+    setMarquee({
+      startX,
+      startY,
+      currentX: startX,
+      currentY: startY,
+      additive: e.shiftKey,
+      baseSelected: e.shiftKey ? [...selectedLayerIds] : [],
+    });
+    if (!e.shiftKey) onSelectLayers([]);
   }
 
   function copySelected() {
@@ -878,6 +933,7 @@ export function StudioCanvasEditor({
             />
             <div
               className="absolute inset-0"
+              onPointerDown={beginMarquee}
               style={{
                 width: page.width,
                 height: page.height,
@@ -1026,7 +1082,7 @@ export function StudioCanvasEditor({
                               }
                         }
                       >
-                        {layer.frameMediaUrl && layer.frameMediaKind==="image" ? <img src={resolveMediaUrl(layer.frameMediaUrl)} alt="" className="absolute inset-0 h-full w-full" style={{objectFit:"cover",objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameMediaUrl && layer.frameMediaKind==="video" ? <video src={layer.frameMediaUrl} muted playsInline className="absolute inset-0 h-full w-full object-cover" style={{objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameStyle === "polaroid" ? <div className="w-full h-full" style={{ background: "#E8E4DC" }} /> : null}
+                        {layer.frameMediaUrl && layer.frameMediaKind==="image" ? <img src={resolveMediaUrl(layer.frameMediaUrl)} alt="" className="absolute inset-0 h-full w-full" style={{objectFit:"cover",objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameMediaUrl && layer.frameMediaKind==="video" ? <video src={resolveMediaUrl(layer.frameMediaUrl)} muted playsInline className="absolute inset-0 h-full w-full object-cover" style={{objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameStyle === "polaroid" ? <div className="w-full h-full" style={{ background: "#E8E4DC" }} /> : null}
                         <div className="absolute inset-0" style={{border:`${layer.strokeWidth??6}px solid ${layer.stroke??"#fff"}`,borderRadius:layer.frameStyle==="rounded"?20:0}}/>
                       </div>
                     ) : layer.type === "icon" ? (
@@ -1070,6 +1126,18 @@ export function StudioCanvasEditor({
                   </div>
                 );
               })}
+              {marquee ? (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute z-30 border border-[#FF6A00] bg-[#FF6A00]/10"
+                  style={{
+                    left: Math.min(marquee.startX, marquee.currentX),
+                    top: Math.min(marquee.startY, marquee.currentY),
+                    width: Math.abs(marquee.currentX - marquee.startX),
+                    height: Math.abs(marquee.currentY - marquee.startY),
+                  }}
+                />
+              ) : null}
               {snapGuides.v != null ? (
                 <div
                   className="absolute top-0 bottom-0 w-px bg-pink-500 pointer-events-none z-20"
