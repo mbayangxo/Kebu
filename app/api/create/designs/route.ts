@@ -23,13 +23,6 @@ type DesignListRow = {
   updated_at: string;
 };
 
-function scopeOwnedQuery(
-  query: ReturnType<Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>["from"]>,
-  businessId: string | null,
-) {
-  return businessId ? query.eq("business_id", businessId) : query.is("business_id", null);
-}
-
 /** List Studio designs for the currently active Personal or Business Kebu space. */
 export async function GET() {
   const auth = await requireUser();
