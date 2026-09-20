@@ -28,6 +28,7 @@ import {
   resolveCutoutHref,
 } from "@/lib/create/cutout-links";
 import { parseNavLayout, type NavSizePreset } from "@/lib/create/nav-chrome-size";
+import type { BuilderElementKind, BuilderElementSelection } from "@/lib/create/builder-selection";
 import "./artist-motion.css";
 import "./legally-blonde-tilda.css";
 
@@ -112,7 +113,9 @@ export function LegallyBlondeEditCanvas({
   currentSlug = "home",
   fillCanvas = true,
   onPatch,
+  selectedElement,
   onSelectSection,
+  onSelectElement,
   onNavigatePage,
 }: {
   props: Record<string, unknown>;
@@ -121,7 +124,9 @@ export function LegallyBlondeEditCanvas({
   currentSlug?: string;
   fillCanvas?: boolean;
   onPatch: (patch: Record<string, unknown>) => void;
+  selectedElement?: BuilderElementSelection | null;
   onSelectSection?: () => void;
+  onSelectElement?: (element: Omit<BuilderElementSelection, "sectionId">) => void;
   onNavigatePage?: (slug: string) => void;
 }) {
   const hiddenLayers = Array.isArray(props.hiddenLayers)
@@ -174,6 +179,22 @@ export function LegallyBlondeEditCanvas({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedExtraId, setSelectedExtraId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
+
+  useEffect(() => {
+    if (!selectedElement) {
+      setSelectedKey(null);
+      setSelectedExtraId(null);
+      setEditingTitle(false);
+      return;
+    }
+    if (selectedElement.kind === "cutout" && selectedElement.elementId.startsWith("extra:")) {
+      setSelectedExtraId(selectedElement.elementId.slice("extra:".length));
+      setSelectedKey(null);
+      return;
+    }
+    setSelectedKey(selectedElement.elementId);
+    setSelectedExtraId(null);
+  }, [selectedElement]);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -319,6 +340,10 @@ export function LegallyBlondeEditCanvas({
     }
   }, [editingTitle]);
 
+  function selectElement(elementId: string, kind: BuilderElementKind, label: string) {
+    onSelectElement?.({ elementId, kind, label });
+  }
+
   function defaultMotion(key: string): LayerMotion {
     const preset = MAYLECOR_DEFAULT_LAYER_MOTIONS[key as keyof typeof MAYLECOR_DEFAULT_LAYER_MOTIONS];
     if (preset) return preset;
@@ -421,13 +446,17 @@ export function LegallyBlondeEditCanvas({
               onSelect={() => {
                 setSelectedKey(slot.key);
                 setSelectedExtraId(null);
-                onSelectSection?.();
+                selectElement(
+                  slot.key,
+                  slot.key === "titleLogo" && titleAsText ? "text" : "image",
+                  slot.label,
+                );
               }}
               onStartTitleEdit={() => {
                 setSelectedKey(slot.key);
                 setEditingTitle(true);
                 onPatch({ titleAsText: true });
-                onSelectSection?.();
+                selectElement(slot.key, "text", slot.label);
               }}
               onEndTitleEdit={() => setEditingTitle(false)}
               onTitleChange={(v) => onPatch({ title: v, brandLabel: v, titleAsText: true })}
@@ -505,7 +534,7 @@ export function LegallyBlondeEditCanvas({
                   setSelectedExtraId(cut.id);
                   setSelectedKey(null);
                   setEditingTitle(false);
-                  onSelectSection?.();
+                  selectElement(`extra:${cut.id}`, "cutout", cut.alt || "Cutout");
                 }}
                 onReplaceImage={() => openUpload({ kind: "extra", id: cut.id })}
                 onDelete={() => {
