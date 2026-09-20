@@ -52,6 +52,7 @@ export default function EmailPage() {
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const activeMailbox = useMemo(() => mailboxes.find((item) => item.id === mailboxId) ?? null, [mailboxes, mailboxId]);
@@ -123,6 +124,24 @@ export default function EmailPage() {
     setSelectedId(null);
   }
 
+  async function saveDraft() {
+    if (!mailboxId || sending) return;
+    setSending(true);
+    setError(null);
+    const split = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
+    const res = await fetch("/api/mail/messages", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mailboxId, id: draftId ?? undefined, to: split(to), cc: split(cc), subject, text: body }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok || !data.draft) { setError(data.error || "Draft was not saved."); return; }
+    setDraftId(data.draft.id);
+    if (folder === "drafts") await loadMessages();
+  }
+
   async function send() {
     if (!mailboxId || !to.trim() || sending) return;
     setSending(true);
@@ -141,6 +160,7 @@ export default function EmailPage() {
       return;
     }
     setCompose(false);
+    setDraftId(null);
     setTo("");
     setCc("");
     setSubject("");
@@ -150,6 +170,7 @@ export default function EmailPage() {
 
   function reply(message: Message) {
     setCompose(true);
+    setDraftId(null);
     setTo(message.from_address);
     setCc("");
     setSubject(message.subject.toLowerCase().startsWith("re:") ? message.subject : "Re: " + message.subject);
@@ -170,7 +191,7 @@ export default function EmailPage() {
               </div>
             </div>
 
-            <button type="button" onClick={() => setCompose(true)} disabled={!mailboxId} className="mb-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] text-xs font-black text-white disabled:opacity-35" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>
+            <button type="button" onClick={() => { setDraftId(null); setTo(""); setCc(""); setSubject(""); setBody(""); setCompose(true); }} disabled={!mailboxId} className="mb-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] text-xs font-black text-white disabled:opacity-35" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>
               <KebuIcon name="create" size={16} /> Compose
             </button>
 
@@ -205,7 +226,19 @@ export default function EmailPage() {
                 const active = selectedId === message.id;
                 const counterpart = message.direction === "inbound" ? message.from_address : message.to_addresses.join(", ");
                 return (
-                  <button key={message.id} type="button" onClick={() => void openMessage(message)} className="w-full border-b px-3.5 py-3 text-left outline-none transition hover:bg-black/[.02] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.subtle, background: active ? "rgba(255,106,0,.06)" : !message.read_at && message.folder === "inbox" ? "rgba(255,106,0,.025)" : undefined }}>
+                  <button key={message.id} type="button" onClick={() => {
+                        if (message.folder === "drafts") {
+                          setSelectedId(message.id);
+                          setDraftId(message.id);
+                          setTo(message.to_addresses.join(", "));
+                          setCc(message.cc_addresses.join(", "));
+                          setSubject(message.subject);
+                          setBody(message.body_text);
+                          setCompose(true);
+                        } else {
+                          void openMessage(message);
+                        }
+                      }} className="w-full border-b px-3.5 py-3 text-left outline-none transition hover:bg-black/[.02] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.subtle, background: active ? "rgba(255,106,0,.06)" : !message.read_at && message.folder === "inbox" ? "rgba(255,106,0,.025)" : undefined }}>
                     <div className="flex items-start gap-2">
                       <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: !message.read_at && message.folder === "inbox" ? KEBU.orange : "transparent" }} />
                       <span className="min-w-0 flex-1">
@@ -262,7 +295,10 @@ export default function EmailPage() {
               <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={12} placeholder="Write your email…" className="w-full resize-y px-1 py-3 text-sm leading-relaxed outline-none" />
               <div className="flex items-center justify-between gap-3 pt-2">
                 <p className="text-[9px] leading-relaxed" style={{ color: KEBU.muted }}>Send only confirms after the provider or Kebu internal delivery accepts the message.</p>
-                <button type="button" disabled={!to.trim() || sending} onClick={() => void send()} className="rounded-full px-5 py-2.5 text-xs font-black text-white disabled:opacity-40" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{sending ? "Sending…" : "Send →"}</button>
+                <div className="flex items-center gap-2">
+                  <button type="button" disabled={sending} onClick={() => void saveDraft()} className="rounded-full border px-4 py-2.5 text-[9px] font-black uppercase tracking-wide disabled:opacity-40" style={{ borderColor: KEBU.borders.default }}>{sending ? "Saving…" : draftId ? "Save draft" : "Save draft"}</button>
+                  <button type="button" disabled={!to.trim() || sending} onClick={() => void send()} className="rounded-full px-5 py-2.5 text-xs font-black text-white disabled:opacity-40" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{sending ? "Working…" : "Send →"}</button>
+                </div>
               </div>
             </div>
           </section>
