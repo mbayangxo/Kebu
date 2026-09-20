@@ -41,8 +41,11 @@ import { deleteClips, moveClips, rippleDeleteClip, linkClips, unlinkClips, linke
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { exportStudioComposition } from "@/lib/studio/composition-browser-export";
 import {
+  cacheRemoteStudioMedia,
+  getCachedStudioVideoMedia,
   getStudioVideoOfflineDraft,
   putStudioVideoOfflineDraft,
+  studioOfflineMediaKey,
   studioVideoOfflineSupported,
 } from "@/lib/studio/video-offline-drafts";
 
@@ -66,6 +69,8 @@ export default function StudioVideoEditorPage() {
   const [sourceRefreshBusy, setSourceRefreshBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [offlineCacheBusy, setOfflineCacheBusy] = useState(false);
+  const [offlineMediaUrls, setOfflineMediaUrls] = useState<Record<string, string>>({});
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
   const [playheadMs, setPlayheadMs] = useState(0);
@@ -91,6 +96,31 @@ export default function StudioVideoEditorPage() {
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const soundtrackRef = useRef<HTMLAudioElement>(null);
   const timelineGestureBaseline = useRef<StudioComposition | null>(null);
+  const offlineObjectUrls = useRef<string[]>([]);
+
+  const replaceOfflineObjectUrls = useCallback((next: Record<string, string>) => {
+    for (const url of offlineObjectUrls.current) URL.revokeObjectURL(url);
+    offlineObjectUrls.current = Object.values(next).filter((url) => url.startsWith("blob:"));
+    setOfflineMediaUrls(next);
+  }, []);
+
+  const hydrateOfflineMedia = useCallback(async (uid: string, composition: StudioComposition) => {
+    if (!studioVideoOfflineSupported()) return;
+    const canonical = [...new Set([
+      ...composition.assets.map((asset) => asset.url),
+      ...composition.clips.map((clip) => clip.sourceUrl).filter((url): url is string => Boolean(url)),
+      ...(composition.music?.soundtrackUrl ? [composition.music.soundtrackUrl] : []),
+    ])];
+    const pairs = await Promise.all(canonical.map(async (url) => {
+      const cached = await getCachedStudioVideoMedia(studioOfflineMediaKey(uid, projectId, url)).catch(() => null);
+      return cached ? [url, URL.createObjectURL(cached.blob)] as const : null;
+    }));
+    replaceOfflineObjectUrls(Object.fromEntries(pairs.filter((pair): pair is readonly [string, string] => Boolean(pair))));
+  }, [projectId, replaceOfflineObjectUrls]);
+
+  useEffect(() => () => {
+    for (const url of offlineObjectUrls.current) URL.revokeObjectURL(url);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -132,6 +162,7 @@ export default function StudioVideoEditorPage() {
       setFuture([]);
       setSaveState(hasDirtyLocal ? "offline" : "idle");
       setError(null);
+      if (nextUserId) void hydrateOfflineMedia(nextUserId, initialComposition);
     } catch {
       if (!studioVideoOfflineSupported()) {
         setError("You are offline and this video is not available locally yet.");
@@ -161,11 +192,12 @@ export default function StudioVideoEditorPage() {
         setFuture([]);
         setSaveState("offline");
         setError(null);
+        void hydrateOfflineMedia(offlineUserId, local.composition);
       } catch {
         setError("Could not open the offline Studio video draft.");
       }
     }
-  }, [projectId]);
+  }, [projectId, hydrateOfflineMedia]);
 
   useEffect(() => {
     void load();
@@ -342,7 +374,8 @@ export default function StudioVideoEditorPage() {
       el.load();
       return;
     }
-    if (el.src !== clip.sourceUrl) el.src = clip.sourceUrl;
+    const resolvedClipUrl = offlineMediaUrls[clip.sourceUrl] ?? clip.sourceUrl;
+    if (el.src !== resolvedClipUrl) el.src = resolvedClipUrl;
     const local = (playheadMs - clip.startMs) * clip.speed + clip.sourceInMs;
     const xf = clipTransformAtTime(comp, clip, playheadMs);
     el.style.opacity = String(xf.opacity);
@@ -361,13 +394,14 @@ export default function StudioVideoEditorPage() {
     }
     if (playing) void el.play().catch(() => undefined);
     else el.pause();
-  }, [comp, playheadMs, playing]);
+  }, [comp, playheadMs, playing, offlineMediaUrls]);
 
   useEffect(() => {
     const audio = soundtrackRef.current;
     const url = comp?.music?.soundtrackUrl;
     if (!audio || !url) return;
-    if (audio.src !== url) audio.src = url;
+    const resolvedUrl = offlineMediaUrls[url] ?? url;
+    if (audio.src !== resolvedUrl) audio.src = resolvedUrl;
     try {
       if (Math.abs(audio.currentTime * 1000 - playheadMs) > 180) {
         audio.currentTime = playheadMs / 1000;
@@ -377,7 +411,7 @@ export default function StudioVideoEditorPage() {
     }
     if (playing) void audio.play().catch(() => undefined);
     else audio.pause();
-  }, [comp?.music?.soundtrackUrl, playheadMs, playing]);
+  }, [comp?.music?.soundtrackUrl, playheadMs, playing, offlineMediaUrls]);
 
   useEffect(() => {
     function onTimelineKey(e: KeyboardEvent) {
@@ -637,6 +671,41 @@ export default function StudioVideoEditorPage() {
     }
   }
 
+  async function cacheProjectOffline() {
+    if (!comp || !userId || offlineCacheBusy) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setNote("Reconnect once to cache this project's media for offline editing.");
+      return;
+    }
+
+    setOfflineCacheBusy(true);
+    setError(null);
+    const canonical = [...new Set([
+      ...comp.assets.map((asset) => asset.url),
+      ...comp.clips.map((clip) => clip.sourceUrl).filter((url): url is string => Boolean(url)),
+      ...(comp.music?.soundtrackUrl ? [comp.music.soundtrackUrl] : []),
+    ])];
+
+    let cached = 0;
+    let skipped = 0;
+    for (const url of canonical) {
+      try {
+        await cacheRemoteStudioMedia(userId, projectId, url);
+        cached += 1;
+      } catch {
+        skipped += 1;
+      }
+    }
+
+    await hydrateOfflineMedia(userId, comp);
+    setOfflineCacheBusy(false);
+    setNote(
+      skipped
+        ? `Offline cache updated · ${cached} media saved · ${skipped} could not be cached (large or unavailable).`
+        : `Available offline · ${cached} media file${cached === 1 ? "" : "s"} cached on this device.`,
+    );
+  }
+
   async function exportVideo() {
     if (!comp || exportBusy) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -653,6 +722,9 @@ export default function StudioVideoEditorPage() {
         fps: Math.min(24, comp.frameRate),
         onProgress(progress) {
           setExportProgress(Math.round((progress.frame / progress.totalFrames) * 100));
+        },
+        resolveMediaUrl(url) {
+          return offlineMediaUrls[url] ?? url;
         },
       });
       if ("error" in result) {
@@ -793,6 +865,15 @@ export default function StudioVideoEditorPage() {
         </button>
         <button type="button" disabled={!future.length} onClick={redo} className="rounded-lg px-2 py-1 text-xs bg-white/10 disabled:opacity-30">
           Redo
+        </button>
+        <button
+          type="button"
+          disabled={offlineCacheBusy || !userId}
+          onClick={() => void cacheProjectOffline()}
+          className="rounded-full border border-white/15 px-3 py-1.5 text-[10px] font-bold text-white/70 disabled:opacity-40"
+          title="Cache project media on this device for low-bandwidth and offline editing"
+        >
+          {offlineCacheBusy ? "Caching…" : Object.keys(offlineMediaUrls).length ? `Offline · ${Object.keys(offlineMediaUrls).length}` : "Make offline"}
         </button>
         <button
           type="button"
@@ -1075,6 +1156,7 @@ export default function StudioVideoEditorPage() {
                     clip={clip}
                     playheadMs={playheadMs}
                     previewScale={previewScale}
+                    resolveMediaUrl={(url) => offlineMediaUrls[url] ?? url}
                   />
                 ))}
               {(() => {
@@ -1335,11 +1417,13 @@ function SemanticDesignVideoLayer({
   clip,
   playheadMs,
   previewScale,
+  resolveMediaUrl,
 }: {
   composition: StudioComposition;
   clip: CompositionClip;
   playheadMs: number;
   previewScale: number;
+  resolveMediaUrl: (url: string) => string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const layer = clip.designLayer!;
@@ -1411,7 +1495,7 @@ function SemanticDesignVideoLayer({
       <div style={outer}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={layer.imageUrl}
+          src={resolveMediaUrl(layer.imageUrl)}
           alt=""
           style={{
             width: `${100 / cropW}%`,
@@ -1433,7 +1517,7 @@ function SemanticDesignVideoLayer({
       <div style={outer}>
         <video
           ref={videoRef}
-          src={layer.videoUrl}
+          src={resolveMediaUrl(layer.videoUrl)}
           muted
           playsInline
           preload="metadata"
