@@ -4,6 +4,7 @@ import {
   type CompositionClip,
   type StudioComposition,
 } from "@/lib/studio/composition";
+import { applyStudioCanvasFill, studioCanvasCompositeOperation } from "@/lib/studio/layer-paint";
 import {
   clipTransformAtTime,
   transitionOpacityBoost,
@@ -133,6 +134,7 @@ function drawSemanticLayer(
 
   ctx.save();
   ctx.globalAlpha = opacity;
+  ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
   ctx.translate(xf.x, xf.y);
   ctx.rotate((xf.rotation * Math.PI) / 180);
   ctx.scale(xf.scale, xf.scale);
@@ -181,7 +183,7 @@ function drawSemanticLayer(
     ctx.restore();
     ctx.filter = "none";
   } else if (layer.type === "ellipse") {
-    ctx.fillStyle = layer.fill ?? "transparent";
+    applyStudioCanvasFill(ctx, layer, { x: 0, y: 0, width, height });
     ctx.beginPath();
     ctx.ellipse(width / 2, height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -198,7 +200,7 @@ function drawSemanticLayer(
     ctx.lineTo(width, height / 2);
     ctx.stroke();
   } else {
-    ctx.fillStyle = layer.fill ?? "transparent";
+    applyStudioCanvasFill(ctx, layer, { x: 0, y: 0, width, height });
     const radius = Math.min(width / 2, height / 2, layer.cornerRadius ?? 0);
     if (radius > 0 && "roundRect" in ctx) {
       ctx.beginPath();
@@ -291,6 +293,7 @@ async function drawFrame(
     const opacity = Math.max(0, Math.min(1, xf.opacity * transitionOpacityBoost(composition, clip.id, timeMs)));
     ctx.save();
     ctx.globalAlpha = opacity;
+  ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
     ctx.translate(composition.width / 2 + xf.x, composition.height / 2 + xf.y);
     ctx.rotate((xf.rotation * Math.PI) / 180);
     ctx.scale(xf.scale, xf.scale);
