@@ -7,7 +7,7 @@ import { AppShell } from "@/app/components/app-shell";
 import { Skeleton } from "@/app/components/kebu-skeleton";
 import { displayFirstName } from "@/lib/account/user-profile";
 import type { HomeSummary } from "@/lib/account/home-summary";
-import { readStoredWorkspace } from "@/lib/navigation/kebu-workspace";
+import { toolById, type KebuToolId } from "@/lib/account/kebu-setup";
 import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 
@@ -64,8 +64,7 @@ export default function KebuHomePage() {
       const data = (await res.json().catch(() => ({}))) as { summary?: HomeSummary; error?: string };
       if (res.status === 401) { router.replace("/login?next=/dashboard"); return; }
       if (!res.ok || !data.summary) { setError(data.error ?? "Could not load your Kebu."); return; }
-      if (data.summary.personalization?.needsIntake) { router.replace("/welcome?next=/dashboard"); return; }
-      if (!readStoredWorkspace()) { router.replace("/start?next=/dashboard"); return; }
+      if (!data.summary.setup?.onboardingComplete) { router.replace("/welcome?next=/dashboard"); return; }
       setSummary(data.summary);
     } catch {
       setError("Network error. Retry.");
@@ -100,21 +99,22 @@ export default function KebuHomePage() {
                   <p className="mb-1 text-xs font-medium" style={{ color: muted }}>
                     {new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(new Date())}
                   </p>
-                  <h1 className="text-4xl font-semibold tracking-[-.035em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>
-                    Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {first}.
+                  <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: orange }}>Your Kebu</p>
+                  <h1 className="mt-2 text-4xl font-semibold tracking-[-.04em] sm:text-6xl" style={{ fontFamily: "var(--font-fraunces)" }}>
+                    Welcome back, {first}. <span className="font-normal italic">Pick up where you left off.</span>
                   </h1>
-                  <p className="mt-2 text-sm" style={{ color: muted }}>Here’s what’s happening across your Kebu.</p>
+                  <p className="mt-2 text-sm" style={{ color: muted }}>Your tools, spaces, work and opportunities — together.</p>
                 </div>
-                <Link href="/create" className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white"
-                  style={{ background: `linear-gradient(90deg,${orange},${red})` }}>
-                  + Create
+                <Link href={toolById((summary.setup.tools[0] ?? "search") as KebuToolId)?.href ?? "/search"} className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white"
+                  style={{ background: "linear-gradient(90deg," + orange + "," + red + ")" }}>
+                  Continue →
                 </Link>
               </header>
 
               <section className="mb-6">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-sm font-semibold">Your worlds</h2>
-                  <Link href="/business" className="text-xs" style={{ color: muted }}>Manage <Arrow /></Link>
+                  <Link href="/spaces" className="text-xs" style={{ color: muted }}>Open Spaces <Arrow /></Link>
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-1">
                   {summary.businesses.map((business) => (
@@ -198,14 +198,10 @@ export default function KebuHomePage() {
                   <section className="rounded-2xl border p-4" style={{ borderColor: border, background: panel }}>
                     <h2 className="mb-4 font-semibold">Quick actions</h2>
                     <div className="grid grid-cols-4 gap-2">
-                      <Action href="/create/new" label="New site" icon="builder" />
-                      <Action href="/shop" label="Shop" icon="commerce" />
-                      <Action href="/studio/new" label="Design" icon="studio" />
-                      <Action href="/opportunity" label="Explore" icon="opportunity" />
-                      <Action href="/messages" label="Messages" icon="message" />
-                      <Action href="/business" label="Business" icon="spaces" />
-                      <Action href="/studio" label="Studio" icon="studio" />
-                      <Action href="/account" label="More" icon="more" />
+                      {summary.setup.tools.slice(0, 8).map((id) => {
+                        const tool = toolById(id as KebuToolId);
+                        return tool ? <Action key={id} href={tool.href} label={tool.label} icon={tool.icon as KebuIconName} /> : null;
+                      })}
                     </div>
                   </section>
 
@@ -226,6 +222,13 @@ export default function KebuHomePage() {
                         <p className="truncate text-xs" style={{ color: muted }}>{summary.profile.email}</p>
                       </div>
                     </div>
+                  </section>
+
+                  <section className="rounded-2xl border p-4" style={{ borderColor: border, background: panel }}>
+                    <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: orange }}>Your setup</p>
+                    <p className="mt-2 text-sm font-black capitalize">{summary.setup.persona}</p>
+                    <p className="mt-1 text-[10px] leading-relaxed" style={{ color: muted }}>{summary.setup.intents.map((intent) => intent.replace("_", " ")).join(" · ")}</p>
+                    <Link href="/welcome?edit=1" className="mt-3 inline-flex text-[10px] font-black uppercase tracking-wide" style={{ color: orange }}>Edit my Kebu →</Link>
                   </section>
 
                   <section className="relative min-h-48 overflow-hidden rounded-2xl border p-5" style={{ borderColor: border, background: "linear-gradient(145deg,#170804,#0b0b0b 60%)" }}>
