@@ -36,6 +36,8 @@ import {
   type AudioReactivePreset,
 } from "@/lib/studio/keyframes";
 import { applyAiMusicCommand } from "@/lib/studio/ai-music-edit";
+import { downsamplePeaks, normalizeClipVolume, duckMusicUnderVoice, cutClipsOnBeats, fitSequenceToDuration, setTrackMix, setMasterVolume, effectiveClipVolume } from "@/lib/studio/audio-engine";
+import { deleteClips, moveClips, rippleDeleteClip, linkClips, unlinkClips, linkedClipIds, trimClipEdge, slipClip, setTrackState } from "@/lib/studio/timeline-operations";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   getStudioVideoOfflineDraft,
@@ -416,6 +418,7 @@ export default function StudioVideoEditorPage() {
         url: data.url,
         fileName: file.name.slice(0, 200),
         durationMs: kind === "image" ? 3000 : null,
+        provider: "upload",
       };
       let next = addAssetToComposition(comp, asset);
       const placed = addClipFromAsset(next, asset.id, { atMs: playheadMs });

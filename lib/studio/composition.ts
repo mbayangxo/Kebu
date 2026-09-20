@@ -167,6 +167,7 @@ export const compositionAssetSchema = z.object({
 });
 
 export type CompositionAsset = z.infer<typeof compositionAssetSchema>;
+export type CompositionAssetInput = z.input<typeof compositionAssetSchema>;
 
 /**
  * Full composition document (Phase 1+).
@@ -297,10 +298,11 @@ export function compositionDurationMs(c: StudioComposition): number {
 
 export function addAssetToComposition(
   c: StudioComposition,
-  asset: CompositionAsset,
+  asset: CompositionAssetInput,
 ): StudioComposition {
-  if (c.assets.some((a) => a.id === asset.id || a.url === asset.url)) return c;
-  return { ...c, assets: [...c.assets, asset].slice(0, 100) };
+  const normalized = compositionAssetSchema.parse(asset);
+  if (c.assets.some((a) => a.id === normalized.id || a.url === normalized.url)) return c;
+  return { ...c, assets: [...c.assets, normalized].slice(0, 100) };
 }
 
 /** Place media on the first matching unlocked track at end (or playhead). */
@@ -596,6 +598,7 @@ export function attachSoundtrack(
     url: opts.url,
     fileName: opts.fileName ?? "soundtrack",
     durationMs: opts.analysis.durationMs,
+    provider: "upload",
   };
   next = addAssetToComposition(next, asset);
 

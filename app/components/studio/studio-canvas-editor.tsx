@@ -184,7 +184,7 @@ export function StudioCanvasEditor({
   const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [brandSpace,setBrandSpace]=useState<BrandSpace|null>(null);
-  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "brand" | "tools">("elements");
+  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "themes" | "brand" | "tools">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"library" | "inspector" | null>(null);
 

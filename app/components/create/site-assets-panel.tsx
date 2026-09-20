@@ -163,7 +163,7 @@ export function SiteAssetsPanel({
       </div>
 
       {loading ? <GalaxyStatus tone="neutral">Loading assets…</GalaxyStatus> : null}
-      {error ? <GalaxyStatus tone="danger">{error}</GalaxyStatus> : null}
+      {error ? <GalaxyStatus tone="error">{error}</GalaxyStatus> : null}
 
       {visible.length > 0 ? (
         <div className="grid grid-cols-2 gap-2">

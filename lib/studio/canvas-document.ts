@@ -665,6 +665,18 @@ export function defaultCanvasDocument(
 }
 
 /** Accept legacy flat / v1 / v2 documents → always v2. */
+/** Backward-compatible blank-square helper retained for older Studio callers/tests. */
+export function emptyCanvasDocument(opts: { width: number; height: number }): CanvasDocument {
+  const doc = defaultCanvasDocument("instagram_post");
+  const page = doc.pages[0]!;
+  return canvasDocumentSchema.parse({
+    ...doc,
+    width: opts.width,
+    height: opts.height,
+    pages: [{ ...page, width: opts.width, height: opts.height }],
+  });
+}
+
 export function parseCanvasDocument(
   raw: unknown,
   designType: StudioDesignType = "poster",
