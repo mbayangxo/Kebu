@@ -369,6 +369,8 @@ function SiteNav({
   resolveHref,
   onNavigate,
   onNavResize,
+  fontFamily,
+  fontWeight,
 }: {
   brand: string;
   brandEl: ReactNode;
@@ -389,6 +391,8 @@ function SiteNav({
   onNavigate?: (slug: string) => void;
   /** Editor-only: callback for nav drag-resize handle at bottom of bar. */
   onNavResize?: (newScale: number) => void;
+  fontFamily?: string;
+  fontWeight?: number;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -422,12 +426,12 @@ function SiteNav({
           type="button"
           onClick={() => handleNav(l.href)}
           className="kebu-nav-link"
-          style={{ fontSize: fontPx }}
+          style={{ fontSize: fontPx, fontFamily: fontFamily ? cssFontStack(fontFamily) : undefined, fontWeight }}
         >
           {l.label}
         </button>
       ) : (
-        <a key={l.label} href={resolveHref(l.href)} className="kebu-nav-link" style={{ fontSize: fontPx }}>
+        <a key={l.label} href={resolveHref(l.href)} className="kebu-nav-link" style={{ fontSize: fontPx, fontFamily: fontFamily ? cssFontStack(fontFamily) : undefined, fontWeight }}>
           {l.label}
         </a>
       );
@@ -444,7 +448,7 @@ function SiteNav({
             setOpenGroup(groupOpen ? null : l.label);
           }}
           className="kebu-nav-link flex items-center gap-1"
-          style={{ fontSize: fontPx }}
+          style={{ fontSize: fontPx, fontFamily: fontFamily ? cssFontStack(fontFamily) : undefined, fontWeight }}
         >
           {l.label}
           <span aria-hidden style={{ fontSize: "0.65em", opacity: 0.6, transform: groupOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s", display: "inline-block" }}>▾</span>
@@ -1207,6 +1211,8 @@ export function SiteRenderer({
                 navScale={m.scale}
                 resolveHref={resolveNavHref}
                 onNavigate={editor?.onNavigatePage}
+                fontFamily={p.fontFamily}
+                fontWeight={p.fontWeight}
                 onNavResize={
                   editor?.onPatchSection
                     ? (newScale) => patchNav({ navScale: newScale })
