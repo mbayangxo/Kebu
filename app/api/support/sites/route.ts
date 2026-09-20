@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
-import { isSupportAdminEmail } from "@/lib/create/support-access";
+import { resolveSupportAuthorization } from "@/lib/create/support-access";
 import { createServiceClient } from "@/lib/opportunity/admin";
 
 export const dynamic = "force-dynamic";
@@ -14,14 +14,12 @@ export async function GET(req: Request) {
   if ("error" in auth) return auth.error;
   const { user } = auth;
 
-  if (!isSupportAdminEmail(user.email)) {
-    return NextResponse.json({ error: "Support access denied." }, { status: 403 });
-  }
-
   const service = createServiceClient();
   if (!service) {
     return NextResponse.json({ error: "Service client not configured." }, { status: 503 });
   }
+  const authorization = await resolveSupportAuthorization(service, user).catch(() => null);
+  if (!authorization) return NextResponse.json({ error: "Support access denied." }, { status: 403 });
 
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();

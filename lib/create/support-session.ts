@@ -1,13 +1,17 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { createServiceClient } from "@/lib/opportunity/admin";
+import { recordPrivilegedAudit, type StaffRole } from "@/lib/create/support-access";
 
 export const SUPPORT_SESSION_COOKIE = "kebu-support-session";
 const TTL_MS = 30 * 60 * 1000;
 
 type SupportSessionPayload = {
-  v: 1;
+  v: 2;
+  sessionId: string;
   userId: string;
   projectId: string;
+  role: StaffRole;
   reason: string;
   exp: number;
 };
@@ -30,15 +34,19 @@ function sign(encoded: string, key: string): string {
 export function createSupportSessionToken(input: {
   userId: string;
   projectId: string;
+  sessionId: string;
+  role: StaffRole;
   reason: string;
   now?: number;
 }): string {
   const key = secret();
   if (!key) throw new Error("SUPPORT_SESSION_SECRET is required in production");
   const payload: SupportSessionPayload = {
-    v: 1,
+    v: 2,
+    sessionId: input.sessionId,
     userId: input.userId,
     projectId: input.projectId,
+    role: input.role,
     reason: input.reason.trim().slice(0, 240),
     exp: (input.now ?? Date.now()) + TTL_MS,
   };
@@ -63,7 +71,8 @@ export function verifySupportSessionToken(
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as SupportSessionPayload;
     if (
-      payload.v !== 1 ||
+      payload.v !== 2 ||
+      !payload.sessionId ||
       payload.userId !== expected.userId ||
       payload.projectId !== expected.projectId ||
       !payload.reason ||
@@ -81,7 +90,32 @@ export async function currentSupportSession(expected: {
   projectId: string;
 }): Promise<SupportSessionPayload | null> {
   const store = await cookies();
-  return verifySupportSessionToken(store.get(SUPPORT_SESSION_COOKIE)?.value, expected);
+  const payload = verifySupportSessionToken(store.get(SUPPORT_SESSION_COOKIE)?.value, expected);
+  if (!payload) return null;
+  const service = createServiceClient();
+  if (!service) return null;
+  const { data: session } = await service
+    .from("support_access_sessions")
+    .select("id, status, staff_user_id, project_id, staff_role, expires_at")
+    .eq("id", payload.sessionId)
+    .maybeSingle();
+  if (
+    !session || session.status !== "active" || session.staff_user_id !== payload.userId ||
+    session.project_id !== payload.projectId || session.staff_role !== payload.role
+  ) return null;
+  if (new Date(session.expires_at).getTime() <= Date.now()) {
+    await service.from("support_access_sessions").update({ status: "expired", ended_at: new Date().toISOString() }).eq("id", payload.sessionId).eq("status", "active");
+    await recordPrivilegedAudit(service, {
+      actorUserId: payload.userId,
+      actorRole: payload.role,
+      action: "support.session_expired",
+      projectId: payload.projectId,
+      supportSessionId: payload.sessionId,
+      reason: payload.reason,
+    });
+    return null;
+  }
+  return payload;
 }
 
 export function supportSessionCookieOptions() {

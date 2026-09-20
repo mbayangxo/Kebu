@@ -15,6 +15,8 @@ describe("support session", () => {
     const token = createSupportSessionToken({
       userId: "staff-1",
       projectId: "project-1",
+      sessionId: "session-1",
+      role: "support",
       reason: "Customer requested help with navigation",
       now,
     });
@@ -27,7 +29,7 @@ describe("support session", () => {
   it("expires automatically", () => {
     process.env.SUPPORT_SESSION_SECRET = "support-session-secret-that-is-long-enough-for-tests";
     const now = Date.now();
-    const token = createSupportSessionToken({ userId: "staff-1", projectId: "project-1", reason: "Ticket 42", now });
+    const token = createSupportSessionToken({ userId: "staff-1", projectId: "project-1", sessionId: "session-1", role: "support", reason: "Ticket 42", now });
     expect(verifySupportSessionToken(token, { userId: "staff-1", projectId: "project-1" }, now + 31 * 60 * 1000)).toBeNull();
   });
 });
