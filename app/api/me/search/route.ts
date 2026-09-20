@@ -5,6 +5,7 @@ import {
   loadAfricanOpportunityEntitlement,
 } from "@/lib/entitlements/african-opportunity-access";
 import type { SearchResult } from "@/lib/search/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -44,71 +45,73 @@ const STATIC_PAGES: SearchResult[] = [
 
 function score(item: SearchResult, q: string): number {
   const lq = q.toLowerCase();
-  const ll = item.label.toLowerCase();
-  const ls = (item.sublabel ?? "").toLowerCase();
-  if (ll === lq) return 100;
-  if (ll.startsWith(lq)) return 80;
-  if (ll.includes(lq)) return 60;
-  if (ls.includes(lq)) return 40;
-  return 0;
-}
-
-export async function GET(req: Request) {
-  const auth = await requireUser();
-  if ("error" in auth) return auth.error;
-  const { supabase, user } = auth;
-
-  const { searchParams } = new URL(req.url);
-  const q = (searchParams.get("q") ?? "").trim().slice(0, 120);
-
-  if (!q) {
-    return NextResponse.json({ results: [], pages: STATIC_PAGES.slice(0, 8) });
-  }
-
-  const lq = q.toLowerCase();
   const entitlement = await loadAfricanOpportunityEntitlement({
     supabase,
     userId: user.id,
     sync: false,
   });
-  const opportunitiesQuery = hasVerifiedAfricanOpportunityAccess(entitlement)
-    ? supabase
-        .from("opportunities")
-        .select("id, title, country, type, verified_status, source_name")
-        .or(`title.ilike.%${q}%,summary.ilike.%${q}%,country.ilike.%${q}%`)
-        .limit(6)
-    : Promise.resolve({ data: [], error: null });
+  const canSeeOpportunityIndex = hasVerifiedAfricanOpportunityAccess(entitlement);
 
-  // Run DB lookups in parallel
-  const [sitesRes, designsRes, businessesRes, opportunitiesRes] = await Promise.all([
-    supabase
-      .from("projects")
-      .select("id, title, subdomain, project_type")
-      .or(`owner_id.eq.${user.id},user_id.eq.${user.id}`)
-      .ilike("title", `%${q}%`)
-      .limit(6),
-    supabase
-      .from("create_designs")
-      .select("id, title, design_type")
-      .eq("owner_id", user.id)
-      .ilike("title", `%${q}%`)
-      .limit(6),
-    supabase
-      .from("businesses")
-      .select("id, public_kebu_id, legal_name, trading_name")
-      .ilike("legal_name", `%${q}%`)
-      .limit(4),
-    opportunitiesQuery,
+  const wantsSites = mode === "all" || mode === "sites";
+  const wantsBusiness = mode === "all" || mode === "business";
+  const wantsDesigns = mode === "all" || mode === "designs";
+  const wantsOpportunities = (mode === "all" || mode === "opportunities") && canSeeOpportunityIndex;
+
+  const indexedPromise = wantsSites || wantsOpportunities
+    ? (async () => {
+        const admin = createAdminClient();
+        let query = admin
+          .from("search_documents")
+          .select("id, mode, entity_type, entity_id, title, summary, source_url, source_name, trust_label, fetched_at")
+          .textSearch("search_vector", q, { type: "websearch", config: "simple" })
+          .limit(20);
+        if (mode === "sites") query = query.eq("mode", "sites");
+        if (mode === "opportunities") query = query.eq("mode", "opportunities");
+        if (!canSeeOpportunityIndex) query = query.eq("access_scope", "public");
+        const { data } = await query;
+        return data ?? [];
+      })()
+    : Promise.resolve([]);
+
+  const [indexedRows, designsRes, businessesRes] = await Promise.all([
+    indexedPromise,
+    wantsDesigns
+      ? supabase.from("create_designs").select("id, title, design_type").eq("owner_id", user.id).ilike("title", `%${q}%`).limit(8)
+      : Promise.resolve({ data: [], error: null }),
+    wantsBusiness
+      ? (async () => {
+          const { data: memberships } = await supabase
+            .from("business_members")
+            .select("business_id")
+            .eq("user_id", user.id)
+            .eq("status", "active");
+          const ids = (memberships ?? []).map((row) => row.business_id);
+          if (!ids.length) return { data: [], error: null };
+          return supabase
+            .from("businesses")
+            .select("id, public_kebu_id, legal_name, trading_name")
+            .in("id", ids)
+            .or(`legal_name.ilike.%${q}%,trading_name.ilike.%${q}%`)
+            .limit(8);
+        })()
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const sites: SearchResult[] = (sitesRes.data ?? []).map((s) => ({
-    id: `site-${s.id}`,
-    label: s.title ?? "Untitled site",
-    sublabel: s.subdomain ? `${s.subdomain}.kebu.co` : (s.project_type === "store" ? "Store" : "Site"),
-    href: s.project_type === "store" ? `/shop/${s.id}` : `/my-sites/${s.id}`,
-    kind: "site" as const,
-    accent: "#FF5500",
-  }));
+  const indexed: SearchResult[] = indexedRows
+    .filter((row) => row.mode !== "opportunities" || canSeeOpportunityIndex)
+    .map((row) => ({
+      id: `index-${row.id}`,
+      label: row.title,
+      sublabel: row.summary || row.source_name || undefined,
+      href: row.mode === "opportunities" ? `/opportunity/${row.entity_id}` : row.source_url || `/sites/${row.entity_id}`,
+      kind: row.mode === "opportunities" ? "opportunity" as const : "site" as const,
+      accent: row.mode === "opportunities" ? "#FF1F1F" : "#FF6A00",
+      source: row.mode === "opportunities" ? "kebu_public" as const : "kebu_public" as const,
+      trustLabel: row.trust_label || undefined,
+      sourceUrl: row.source_url || undefined,
+      sourceName: row.source_name || undefined,
+      fetchedAt: row.fetched_at || undefined,
+    }));
 
   const designs: SearchResult[] = (designsRes.data ?? []).map((d) => ({
     id: `design-${d.id}`,
@@ -117,6 +120,8 @@ export async function GET(req: Request) {
     href: `/studio/${d.id}`,
     kind: "design" as const,
     accent: "#9333EA",
+    source: "kebu_private" as const,
+    sourceName: "Your Kebu Studio",
   }));
 
   const businesses: SearchResult[] = (businessesRes.data ?? []).map((b) => ({
@@ -126,18 +131,11 @@ export async function GET(req: Request) {
     href: `/business/${b.id}`,
     kind: "business" as const,
     accent: "#10B981",
+    source: "kebu_private" as const,
+    sourceName: "Your Kebu businesses",
   }));
 
-  const opportunities: SearchResult[] = (opportunitiesRes.data ?? []).map((o) => ({
-    id: `opp-${o.id}`,
-    label: o.title,
-    sublabel: [o.type, o.country, o.source_name].filter(Boolean).join(" · "),
-    href: `/opportunity/${o.id}`,
-    kind: "opportunity" as const,
-    accent: "#FF1F1F",
-    source: "kebu_public" as const,
-    trustLabel: o.verified_status ?? "needs_review",
-  }));
+  const results: SearchResult[] = [...indexed, ...designs, ...businesses];
 
   const pages = STATIC_PAGES
     .map((p) => ({ p, s: score(p, lq) }))
@@ -146,7 +144,5 @@ export async function GET(req: Request) {
     .slice(0, 6)
     .map(({ p }) => p);
 
-  const results: SearchResult[] = [...sites, ...designs, ...businesses, ...opportunities];
-
-  return NextResponse.json({ results, pages });
+  return NextResponse.json({ results, pages, mode, opportunityAccess: canSeeOpportunityIndex });
 }

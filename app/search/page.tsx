@@ -7,7 +7,15 @@ import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 import type { SearchResult } from "@/lib/search/types";
 
-type Payload = { results: SearchResult[]; pages: SearchResult[] };
+type SearchMode = "all" | "sites" | "business" | "designs" | "opportunities";
+type Payload = { results: SearchResult[]; pages: SearchResult[]; mode?: SearchMode; opportunityAccess?: boolean };
+const MODES: Array<{ id: SearchMode; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "sites", label: "Sites" },
+  { id: "business", label: "My businesses" },
+  { id: "designs", label: "My designs" },
+  { id: "opportunities", label: "Opportunities" },
+];
 const groups: Array<{ kind: SearchResult["kind"]; label: string }> = [
   { kind: "business", label: "Businesses" }, { kind: "opportunity", label: "Opportunities" },
   { kind: "site", label: "Sites & stores" }, { kind: "design", label: "Designs" },
@@ -16,6 +24,7 @@ const groups: Array<{ kind: SearchResult["kind"]; label: string }> = [
 export default function SearchPage() {
   const [q, setQ] = useState("");
   const [data, setData] = useState<Payload>({ results: [], pages: [] });
+  const [mode, setMode] = useState<SearchMode>("all");
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const abort = useRef<AbortController | null>(null);
@@ -26,7 +35,7 @@ export default function SearchPage() {
       const controller = new AbortController(); abort.current = controller;
       setLoading(true); setFailed(false);
       try {
-        const r = await fetch(`/api/me/search?q=${encodeURIComponent(q)}`, { credentials: "include", signal: controller.signal });
+        const r = await fetch(`/api/me/search?q=${encodeURIComponent(q)}&mode=${encodeURIComponent(mode)}`, { credentials: "include", signal: controller.signal });
         if (!r.ok) throw new Error("search");
         setData(await r.json());
       } catch (e) {
@@ -34,7 +43,7 @@ export default function SearchPage() {
       } finally { if (!controller.signal.aborted) setLoading(false); }
     }, q ? 180 : 0);
     return () => clearTimeout(timer);
-  }, [q]);
+  }, [q, mode]);
 
   return <AppShell title="Search">
     <main className="min-h-[calc(100vh-60px)] px-4 py-8 sm:px-8 lg:px-12" style={{ background: KEBU.bright, color: KEBU.black }}>
@@ -45,6 +54,11 @@ export default function SearchPage() {
           <p className="mt-3 max-w-xl text-sm" style={{ color: KEBU.muted }}>Search your Kebu and the trusted Kebu corpus. Results are real records, not generated answers.</p>
         </header>
 
+        <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+          {MODES.map((item) => (
+            <button key={item.id} type="button" onClick={() => setMode(item.id)} className="shrink-0 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-wide" style={{ borderColor: mode === item.id ? KEBU.black : KEBU.borders.default, background: mode === item.id ? KEBU.black : KEBU.white, color: mode === item.id ? KEBU.white : KEBU.muted }}>{item.label}</button>
+          ))}
+        </div>
         <div className="sticky top-16 z-20 mb-8 flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm" style={{ borderColor: KEBU.borders.strong }}>
           <KebuIcon name="search" size={22} style={{ color: loading ? KEBU.orange : KEBU.black }} />
           <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search businesses, opportunities, sites, designs…" aria-label="Search Kebu" className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none sm:text-lg" />
@@ -73,7 +87,7 @@ function Heading({children}:{children:ReactNode}) { return <h2 className="mb-3 t
 function Result({item}:{item:SearchResult}) {
   return <Link href={item.href} className="group flex min-h-20 items-center gap-3 rounded-2xl border bg-white p-4 transition hover:-translate-y-px hover:shadow-sm" style={{borderColor: KEBU.borders.default}}>
     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{background: KEBU.cream, color: item.accent ?? KEBU.black}}><KebuIcon name={item.kind==="opportunity"?"opportunity":item.kind==="design"?"studio":item.kind==="business"?"spaces":item.kind==="site"?"builder":"arrowRight"} size={19}/></span>
-    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{item.label}</span>{item.sublabel?<span className="block truncate text-xs" style={{color:KEBU.muted}}>{item.sublabel}</span>:null}{item.trustLabel?<span className="mt-1 block text-[9px] font-bold uppercase tracking-wider" style={{color: item.trustLabel==="verified"?KEBU.status.successText:KEBU.faint}}>{item.trustLabel.replaceAll("_"," ")}</span>:null}</span>
+    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{item.label}</span>{item.sublabel?<span className="block truncate text-xs" style={{color:KEBU.muted}}>{item.sublabel}</span>:null}{item.sourceName?<span className="mt-1 block truncate text-[9px]" style={{color:KEBU.faint}}>Source: {item.sourceName}</span>:null}{item.trustLabel?<span className="mt-1 block text-[9px] font-bold uppercase tracking-wider" style={{color: item.trustLabel==="verified"?KEBU.status.successText:KEBU.faint}}>{item.trustLabel.replaceAll("_"," ")}</span>:null}</span>
     <KebuIcon name="arrowRight" size={16} style={{color:KEBU.faint}}/>
   </Link>;
 }

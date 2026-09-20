@@ -7,4 +7,7 @@ export type SearchResult = {
   source?: "kebu_private" | "kebu_public";
   trustLabel?: string;
   accent?: string;
+  sourceUrl?: string;
+  sourceName?: string;
+  fetchedAt?: string;
 };
