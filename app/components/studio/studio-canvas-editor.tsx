@@ -21,6 +21,7 @@ import {
   clipboardPayloadFromLayers,
   layersFromClipboardPayload,
   normalizeCrop,
+  nudgeLayersWithinArtboard,
   snapLayerPosition,
 } from "@/lib/studio/editor-craft";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
@@ -604,7 +605,7 @@ export function StudioCanvasEditor({
         const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
         const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
         const ids = new Set(expandSelectionWithGroups(layers, selectedLayerIds));
-        setPageLayers(layers.map((l) => (ids.has(l.id) && !l.locked ? { ...l, x: l.x + dx, y: l.y + dy } : l)));
+        setPageLayers(nudgeLayersWithinArtboard(layers, [...ids], dx, dy, { width: page.width, height: page.height }));
       } else if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         deleteSelected();

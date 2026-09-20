@@ -152,3 +152,48 @@ export function resizeCanvasDocument(
 
   return mirrorPageToDocument({ ...doc, pages, width, height }, pages[0]!);
 }
+
+
+export type StudioLayerBounds = { left: number; top: number; right: number; bottom: number; width: number; height: number };
+
+export function selectionBounds(layers: CanvasLayer[], selectedIds: string[]): StudioLayerBounds | null {
+  const ids = new Set(expandSelectionWithGroupsSafe(layers, selectedIds));
+  const selected = layers.filter((layer) => ids.has(layer.id));
+  if (!selected.length) return null;
+  const left = Math.min(...selected.map((layer) => layer.x));
+  const top = Math.min(...selected.map((layer) => layer.y));
+  const right = Math.max(...selected.map((layer) => layer.x + layer.width));
+  const bottom = Math.max(...selected.map((layer) => layer.y + layer.height));
+  return { left, top, right, bottom, width: right - left, height: bottom - top };
+}
+
+function expandSelectionWithGroupsSafe(layers: CanvasLayer[], selectedIds: string[]): string[] {
+  const ids = new Set(selectedIds);
+  const groups = new Set(
+    layers.filter((layer) => ids.has(layer.id) && layer.groupId).map((layer) => layer.groupId as string),
+  );
+  for (const layer of layers) if (layer.groupId && groups.has(layer.groupId)) ids.add(layer.id);
+  return [...ids];
+}
+
+/** Move a selection without moving locked layers and keep the unlocked selection inside the artboard. */
+export function nudgeLayersWithinArtboard(
+  layers: CanvasLayer[],
+  selectedIds: string[],
+  dx: number,
+  dy: number,
+  artboard: { width: number; height: number },
+): CanvasLayer[] {
+  const expanded = new Set(expandSelectionWithGroupsSafe(layers, selectedIds));
+  const movable = layers.filter((layer) => expanded.has(layer.id) && !layer.locked);
+  if (!movable.length) return layers;
+  const bounds = selectionBounds(movable, movable.map((layer) => layer.id));
+  if (!bounds) return layers;
+  const safeDx = Math.max(-bounds.left, Math.min(dx, artboard.width - bounds.right));
+  const safeDy = Math.max(-bounds.top, Math.min(dy, artboard.height - bounds.bottom));
+  return layers.map((layer) =>
+    expanded.has(layer.id) && !layer.locked
+      ? { ...layer, x: layer.x + safeDx, y: layer.y + safeDy }
+      : layer,
+  );
+}
