@@ -6,78 +6,139 @@ import { useEffect, useMemo, useState } from "react";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
 import { KebuWorldSwitcher } from "@/app/components/kebu/kebu-world-switcher";
-import { KEBU_TOOLS, parseKebuSetup, toolById, type KebuToolId } from "@/lib/account/kebu-setup";
 import { KEBU } from "@/lib/kebu-brand";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 
-type Item = { label: string; href: string; icon: KebuIconName; prefixes?: string[]; badge?: "messages" };
+type ChildItem = {
+  label: string;
+  href: string;
+  icon: KebuIconName;
+  prefixes?: string[];
+  badge?: "messages";
+};
 
-const CORE: Item[] = [
-  { label: "Home", href: "/dashboard", icon: "home" },
-  { label: "Search", href: "/search", icon: "search" },
-  { label: "Spaces", href: "/spaces", icon: "spaces" },
-  { label: "Opportunities", href: "/opportunity", icon: "opportunity" },
+type NavGroup = {
+  id: string;
+  label: string;
+  icon: KebuIconName;
+  children: ChildItem[];
+};
+
+const GROUPS: NavGroup[] = [
+  {
+    id: "create",
+    label: "Create",
+    icon: "create",
+    children: [
+      { label: "Studio", href: "/studio", icon: "studio" },
+      { label: "Sites", href: "/my-sites", icon: "builder", prefixes: ["/my-sites", "/create"] },
+      { label: "New site", href: "/create/new", icon: "create" },
+    ],
+  },
+  {
+    id: "business",
+    label: "Business",
+    icon: "spaces",
+    children: [
+      { label: "Business home", href: "/business", icon: "spaces", prefixes: ["/business", "/b2b", "/ka-score"] },
+      { label: "Shop", href: "/shop", icon: "commerce" },
+    ],
+  },
+  {
+    id: "work",
+    label: "Work",
+    icon: "work",
+    children: [
+      { label: "Spaces", href: "/spaces", icon: "spaces" },
+      { label: "Rooms", href: "/rooms", icon: "spaces" },
+      { label: "Library", href: "/library", icon: "library" },
+      { label: "Docs", href: "/docs", icon: "work" },
+      { label: "Tasks", href: "/tasks", icon: "work" },
+      { label: "Calendar", href: "/calendar", icon: "calendar" },
+      { label: "People", href: "/people", icon: "people" },
+    ],
+  },
+  {
+    id: "connect",
+    label: "Connect",
+    icon: "message",
+    children: [
+      { label: "Mail", href: "/email", icon: "message" },
+      { label: "Chat", href: "/chat", icon: "message", badge: "messages" },
+      { label: "Customer messages", href: "/messages", icon: "message" },
+    ],
+  },
+  {
+    id: "discover",
+    label: "Discover",
+    icon: "search",
+    children: [
+      { label: "Search", href: "/search", icon: "search" },
+      { label: "Browser", href: "/browser", icon: "search" },
+      { label: "Opportunity OS", href: "/opportunity", icon: "opportunity" },
+    ],
+  },
 ];
 
-function isOn(path: string, item: Item) {
+function itemActive(path: string, item: ChildItem) {
   const prefixes = item.prefixes ?? [item.href];
   return prefixes.some((prefix) => path === prefix || path.startsWith(prefix + "/"));
 }
 
-function NavItem({ item, path, count = 0 }: { item: Item; path: string; count?: number }) {
-  const active = isOn(path, item);
+function groupActive(path: string, group: NavGroup) {
+  return group.children.some((item) => itemActive(path, item));
+}
+
+function activeGroupId(path: string) {
+  return GROUPS.find((group) => groupActive(path, group))?.id ?? null;
+}
+
+function ChildLink({ item, path, count = 0 }: { item: ChildItem; path: string; count?: number }) {
+  const active = itemActive(path, item);
   return (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className="group flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-[12px] font-bold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+      className="flex min-h-9 items-center gap-2 rounded-lg px-2.5 text-[11px] font-semibold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
       style={{ background: active ? "rgba(255,106,0,.08)" : "transparent", color: active ? KEBU.black : KEBU.muted }}
     >
-      <span className="relative flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: active ? KEBU.black : "transparent", color: active ? KEBU.orange : "currentColor" }}>
-        <KebuIcon name={item.icon} size={17} />
-      </span>
+      <KebuIcon name={item.icon} size={14} style={{ color: active ? KEBU.orange : "currentColor" }} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {count > 0 ? <span className="rounded-full px-1.5 py-0.5 text-[9px] font-black text-white" style={{ background: KEBU.orange }}>{count > 99 ? "99+" : count}</span> : null}
+      {count > 0 ? <span className="rounded-full px-1.5 py-0.5 text-[8px] font-black text-white" style={{ background: KEBU.orange }}>{count > 99 ? "99+" : count}</span> : null}
     </Link>
   );
-}
-
-function toolItem(id: KebuToolId): Item | null {
-  const tool = toolById(id);
-  if (!tool) return null;
-  const prefixes =
-    id === "sites" ? ["/my-sites", "/create"] :
-    id === "business" ? ["/business", "/b2b", "/ka-score"] :
-    undefined;
-  return { label: tool.label, href: tool.href, icon: tool.icon as KebuIconName, prefixes, badge: id === "chat" ? "messages" : undefined };
 }
 
 export function KebuNavShell() {
   const path = usePathname();
   const [messages, setMessages] = useState(0);
-  const [toolIds, setToolIds] = useState<KebuToolId[]>([]);
-  const [launcherOpen, setLauncherOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(() => activeGroupId(path));
+
+  useEffect(() => {
+    const active = activeGroupId(path);
+    if (active) setOpenGroup(active);
+  }, [path]);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      fetch("/api/messages/unread-count", { credentials: "include" }).then((res) => res.ok ? res.json() : null),
-      fetch("/api/me/kebu-setup", { credentials: "include" }).then((res) => res.ok ? res.json() : null),
-    ]).then(([messageData, setupData]) => {
-      if (cancelled) return;
-      if (typeof messageData?.count === "number") setMessages(messageData.count);
-      const setup = parseKebuSetup(setupData?.setup);
-      setToolIds(setup.tools);
-    }).catch(() => {});
+    fetch("/api/messages/unread-count", { credentials: "include" })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!cancelled && typeof data?.count === "number") setMessages(data.count);
+      })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
-  const pinned = useMemo(() => {
-    const unique = toolIds.filter((id) => !["search", "opportunities", "spaces"].includes(id));
-    return unique.slice(0, 6).map(toolItem).filter((item): item is Item => Boolean(item));
-  }, [toolIds]);
+  const currentGroup = useMemo(() => GROUPS.find((group) => group.id === openGroup) ?? null, [openGroup]);
 
-  if (path === "/" || isMarketingPath(path) || path.startsWith("/login") || path.startsWith("/signup") || path.startsWith("/welcome")) return null;
+  if (
+    path === "/" ||
+    isMarketingPath(path) ||
+    path.startsWith("/login") ||
+    path.startsWith("/signup") ||
+    path.startsWith("/welcome")
+  ) return null;
 
   const createBg = "linear-gradient(135deg," + KEBU.orange + "," + KEBU.red + ")";
 
@@ -89,7 +150,7 @@ export function KebuNavShell() {
             <KebuMark size={27} />
             <span className="text-xs font-black uppercase tracking-[.2em]">Kebu</span>
           </Link>
-          <Link href="/create" aria-label="Create" className="flex h-8 w-8 items-center justify-center rounded-full text-white" style={{ background: createBg }}>
+          <Link href="/create/new" aria-label="Create" className="flex h-8 w-8 items-center justify-center rounded-full text-white" style={{ background: createBg }}>
             <KebuIcon name="create" size={17} />
           </Link>
         </div>
@@ -97,36 +158,62 @@ export function KebuNavShell() {
         <KebuWorldSwitcher />
 
         <nav className="flex-1 overflow-y-auto px-2 pb-4">
-          <div className="space-y-0.5">{CORE.map((item) => <NavItem key={item.href} item={item} path={path} />)}</div>
+          <Link
+            href="/dashboard"
+            className="flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-[12px] font-bold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+            style={{ background: path === "/dashboard" ? "rgba(255,106,0,.08)" : "transparent", color: path === "/dashboard" ? KEBU.black : KEBU.muted }}
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: path === "/dashboard" ? KEBU.black : "transparent", color: path === "/dashboard" ? KEBU.orange : "currentColor" }}>
+              <KebuIcon name="home" size={17} />
+            </span>
+            <span>Home</span>
+          </Link>
 
-          {pinned.length ? (
-            <>
-              <p className="px-3 pb-2 pt-6 text-[9px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.faint }}>Your tools</p>
-              <div className="space-y-0.5">{pinned.map((item) => <NavItem key={item.href} item={item} path={path} count={item.badge === "messages" ? messages : 0} />)}</div>
-            </>
-          ) : null}
+          <div className="mt-2 space-y-0.5">
+            {GROUPS.map((group) => {
+              const active = groupActive(path, group);
+              const open = openGroup === group.id;
+              return (
+                <div key={group.id}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenGroup((current) => current === group.id ? null : group.id)}
+                    aria-expanded={open}
+                    className="flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 text-left text-[12px] font-bold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                    style={{ background: active ? "rgba(255,106,0,.05)" : "transparent", color: active ? KEBU.black : KEBU.muted }}
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: active ? KEBU.black : "transparent", color: active ? KEBU.orange : "currentColor" }}>
+                      <KebuIcon name={group.icon} size={17} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{group.label}</span>
+                    <span className="text-[9px] opacity-45">{open ? "▴" : "▾"}</span>
+                  </button>
 
-          <button
-            type="button"
-            onClick={() => setLauncherOpen((open) => !open)}
-            aria-expanded={launcherOpen}
-            className="mt-2 flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 text-[12px] font-bold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                  {open ? (
+                    <div className="ml-8 mt-0.5 space-y-0.5 border-l pl-2" style={{ borderColor: KEBU.borders.subtle }}>
+                      {group.children.map((item) => (
+                        <ChildLink key={item.href + item.label} item={item} path={path} count={item.badge === "messages" ? messages : 0} />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
+          <Link
+            href="/tools"
+            className="mt-3 flex min-h-10 items-center gap-3 rounded-xl px-2.5 text-[11px] font-semibold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
             style={{ color: KEBU.muted }}
           >
-            <span className="flex h-8 w-8 items-center justify-center"><KebuIcon name="more" size={18} /></span>
-            <span>All tools</span>
-            <span className="ml-auto text-[9px]">{launcherOpen ? "▴" : "▾"}</span>
-          </button>
+            <span className="flex h-8 w-8 items-center justify-center"><KebuIcon name="more" size={17} /></span>
+            <span>All apps</span>
+          </Link>
 
-          {launcherOpen ? (
-            <div className="mt-2 grid grid-cols-2 gap-1 rounded-[16px] border bg-[#FFFCF8] p-2" style={{ borderColor: KEBU.borders.default }}>
-              {KEBU_TOOLS.map((tool) => (
-                <Link key={tool.id} href={tool.href} onClick={() => setLauncherOpen(false)} className="rounded-xl p-2 text-left text-[10px] font-bold hover:bg-white">
-                  <KebuIcon name={tool.icon as KebuIconName} size={15} className="mb-1.5" style={{ color: KEBU.orange }} />
-                  {tool.label}
-                </Link>
-              ))}
-            </div>
+          {currentGroup ? (
+            <p className="px-3 pt-5 text-[9px] leading-relaxed" style={{ color: KEBU.faint }}>
+              Only the {currentGroup.label.toLowerCase()} children are open. Other sections stay tucked away until you need them.
+            </p>
           ) : null}
         </nav>
 
@@ -136,12 +223,11 @@ export function KebuNavShell() {
       </aside>
 
       <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(62px+env(safe-area-inset-bottom))] items-start justify-around border-t bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur md:hidden" style={{ borderColor: KEBU.borders.default }} aria-label="Primary navigation">
-        {[CORE[0], CORE[1], CORE[2]].map((item) => {
-          const active = isOn(path, item);
-          return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: active ? KEBU.orange : KEBU.muted }}><KebuIcon name={item.icon} size={19} /><span>{item.label}</span></Link>;
-        })}
-        <Link href="/create" aria-label="Create" className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ background: createBg }}><KebuIcon name="create" size={19} /></Link>
-        <Link href="/tools" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: KEBU.muted }}><KebuIcon name="more" size={19} /><span>Tools</span></Link>
+        <Link href="/dashboard" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/dashboard" ? KEBU.orange : KEBU.muted }}><KebuIcon name="home" size={19} /><span>Home</span></Link>
+        <Link href="/studio" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/studio") ? KEBU.orange : KEBU.muted }}><KebuIcon name="studio" size={19} /><span>Create</span></Link>
+        <Link href="/business" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/business") || path.startsWith("/shop") ? KEBU.orange : KEBU.muted }}><KebuIcon name="spaces" size={19} /><span>Business</span></Link>
+        <Link href="/create/new" aria-label="New" className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ background: createBg }}><KebuIcon name="create" size={19} /></Link>
+        <Link href="/tools" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: KEBU.muted }}><KebuIcon name="more" size={19} /><span>Apps</span></Link>
       </nav>
     </>
   );
