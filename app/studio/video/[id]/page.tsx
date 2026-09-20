@@ -369,6 +369,18 @@ export default function StudioVideoEditorPage() {
     else audio.pause();
   }, [comp?.music?.soundtrackUrl, playheadMs, playing]);
 
+  useEffect(() => {
+    function onTimelineKey(e: KeyboardEvent) {
+      const target=e.target as HTMLElement|null;
+      if(target?.closest("input,textarea,select,[contenteditable=true]")||!compRef.current)return;
+      const current=compRef.current, ids=selectedClipIds.length?selectedClipIds:(selectedClipId?[selectedClipId]:[]);
+      if((e.key==="Delete"||e.key==="Backspace")&&ids.length){e.preventDefault();const next=deleteClips(current,ids);if("error"in next)setError(next.error);else{applyComp(next);setSelectedClipId(null);setSelectedClipIds([])}}
+      if((e.key==="ArrowLeft"||e.key==="ArrowRight")&&ids.length){e.preventDefault();const next=moveClips(current,ids,(e.key==="ArrowLeft"?-1:1)*(e.shiftKey?1000:100));if("error"in next)setError(next.error);else applyComp(next)}
+      if(e.key.toLowerCase()==="s"&&selectedClipId){e.preventDefault();const next=splitClipAt(current,selectedClipId,playheadMs);if("error"in next)setError(next.error);else applyComp(next)}
+    }
+    window.addEventListener("keydown",onTimelineKey);return()=>window.removeEventListener("keydown",onTimelineKey);
+  },[selectedClipId,selectedClipIds,playheadMs]);
+
   function setPlayhead(ms: number, fromUser = true) {
     if (!comp) return;
     let next = Math.max(0, Math.min(ms, compositionDurationMs(comp)));
@@ -1071,17 +1083,15 @@ export default function StudioVideoEditorPage() {
       </div>
 
       <div className="shrink-0 border-t border-white/10 bg-[#12101c] px-2 py-2 space-y-1 max-h-[320px] overflow-auto">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 px-1">
-          Timeline · multi-track · music-aware
-        </p>
+        <div className="flex items-center gap-2 px-1"><p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Timeline · multi-track · music-aware</p><span className="text-[9px] opacity-40">S split · ⌫ delete · ←/→ nudge · Shift 1s · Alt-drag slip</span><div className="ml-auto flex gap-1"><button type="button" disabled={selectedClipIds.length<2} onClick={()=>{const n=linkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Link</button><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=unlinkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Unlink</button></div></div>
         <div className="relative" style={{ minWidth: (totalMs / 1000) * pxPerSec + 80 }}>
           <div className="h-5 ml-14 relative border-b border-white/10 mb-1">
-            {Array.from({ length: Math.ceil(totalMs / 1000) + 1 }).map((_, i) => (
-              <span key={i} className="absolute text-[9px] opacity-40 font-mono" style={{ left: i * pxPerSec }}>
-                {i}s
+            {Array.from({ length: Math.min(600, Math.ceil(totalMs / Math.max(1000, Math.ceil(totalMs / 600 / 1000) * 1000)) + 1) }).map((_, i) => (
+              <span key={i} className="absolute text-[9px] opacity-40 font-mono" style={{ left: i * pxPerSec * Math.max(1, Math.ceil(totalMs / 600 / 1000)) }}>
+                {i * Math.max(1, Math.ceil(totalMs / 600 / 1000))}s
               </span>
             ))}
-            {beats.map((b) => (
+            {beats.filter((_,i)=>beats.length<=1200||i%Math.ceil(beats.length/1200)===0).map((b) => (
               <span
                 key={`b-${b}`}
                 className="absolute top-0 bottom-0 w-px bg-emerald-400/40"
@@ -1139,6 +1149,7 @@ export default function StudioVideoEditorPage() {
                       onMove={(startMs) => {const current=compRef.current??comp;const currentClip=current.clips.find(x=>x.id===clip.id)??clip;const ids=selectedClipIds.includes(clip.id)?selectedClipIds:linkedClipIds(current,clip.id);const next=moveClips(current,ids,startMs-currentClip.startMs);if(!("error" in next))applyTimelineGesture(next);}}
                       onTrim={(edge,deltaMs) => {const current=compRef.current??comp;const next=trimClipEdge(current,clip.id,edge,deltaMs,{ripple:rippleEditing});if(!("error" in next))applyTimelineGesture(next);}}
                       onSlip={(deltaMs)=>{const current=compRef.current??comp;const next=slipClip(current,clip.id,deltaMs);if(!("error" in next))applyTimelineGesture(next);}}
+                      compKeyframes={comp.keyframes.filter(k=>k.clipId===clip.id).map(k=>k.timeMs)}
                     />
                   ))}
               </div>
@@ -1176,6 +1187,7 @@ function TimelineClipBlock({
   onMove,
   onTrim,
   onSlip,
+  compKeyframes,
 }: {
   clip: CompositionClip;
   pxPerSec: number;
@@ -1187,6 +1199,7 @@ function TimelineClipBlock({
   onMove: (startMs: number) => void;
   onTrim: (edge: "left"|"right", deltaMs: number) => void;
   onSlip: (deltaMs:number)=>void;
+  compKeyframes?: number[];
 }) {
   const drag = useRef<{ mode: "move" | "trim-left" | "trim-right" | "slip"; originX: number; startMs: number; durationMs: number } | null>(
     null,
@@ -1238,6 +1251,7 @@ function TimelineClipBlock({
       title={clip.name}
     >
       {clip.name}
+      {compKeyframes?.map((time)=><span key={time} title={`Keyframe ${time}ms`} className="absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rotate-45 bg-yellow-200" style={{left:`${Math.max(2,Math.min(96,(time/clip.durationMs)*100))}%`}}/>)}
       {(clip.fadeInMs > 0 || clip.fadeOutMs > 0) && (
         <span className="absolute inset-y-0 left-0 w-1 bg-white/40 rounded-l" />
       )}
