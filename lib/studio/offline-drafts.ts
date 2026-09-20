@@ -8,6 +8,7 @@ export type StudioOfflineDraft = {
   key: string;
   userId: string;
   designId: string;
+  designTitle: string;
   canvas: CanvasDocument;
   designType: StudioDesignType;
   serverUpdatedAt: string | null;
