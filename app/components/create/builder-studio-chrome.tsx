@@ -3,8 +3,21 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
-import { BUILDER } from "@/lib/create/builder-ui";
 import type { BuilderDevice } from "@/lib/create/builder-device";
+import { KebuMark } from "@/app/components/kebu-mark";
+import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
+
+const ECOSYSTEM: Array<{ label: string; href: string; icon: KebuIconName }> = [
+  { label: "Home", href: "/home", icon: "home" },
+  { label: "Search", href: "/search", icon: "search" },
+  { label: "Universe", href: "/universe", icon: "universe" },
+  { label: "Spaces", href: "/spaces", icon: "spaces" },
+  { label: "Library", href: "/library", icon: "library" },
+  { label: "Studio", href: "/studio", icon: "studio" },
+  { label: "Builder", href: "/create", icon: "builder" },
+  { label: "Work", href: "/work", icon: "work" },
+  { label: "Opportunities", href: "/opportunity", icon: "opportunity" },
+];
 
 /**
  * Vertical rail — customize THIS site (Shopify theme-settings depth).
@@ -119,8 +132,7 @@ export function BuilderStudioRail({
 }) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(60px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[72px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1.5 sm:py-2"
-      style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
+      className="kebu-builder-tool-rail fixed inset-x-0 bottom-0 z-50 flex h-[calc(60px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[72px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1.5 sm:py-2"
       role="toolbar"
       aria-label="Builder tools"
     >
@@ -136,8 +148,8 @@ export function BuilderStudioRail({
             onClick={() => onRail(item.id)}
             className="group relative flex h-[58px] min-w-[58px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[54px] sm:min-w-0 sm:w-full"
             style={{
-              background: on ? BUILDER.orangeGlow : "transparent",
-              color: on ? BUILDER.ink : BUILDER.muted,
+              background: on ? "linear-gradient(145deg, rgba(255,106,0,.32), rgba(255,31,31,.16))" : "transparent",
+              color: on ? "var(--kb-editor-text)" : "var(--kb-editor-muted)",
             }}
           >
             {on ? (
@@ -149,6 +161,49 @@ export function BuilderStudioRail({
         );
       })}
       {extras ? <div className="ml-auto hidden flex-col items-center gap-1 px-0.5 pb-1 sm:flex">{extras}</div> : null}
+    </nav>
+  );
+}
+
+export function BuilderEcosystemRail() {
+  return (
+    <nav
+      className="kebu-builder-ecosystem-rail hidden w-[68px] shrink-0 flex-col border-r py-2 xl:flex"
+      aria-label="Kebu apps"
+    >
+      <div className="flex flex-1 flex-col items-center gap-1.5">
+        {ECOSYSTEM.map((item) => {
+          const active = item.icon === "builder";
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={item.label}
+              aria-current={active ? "page" : undefined}
+              className="group relative flex h-[52px] w-[58px] flex-col items-center justify-center gap-1 rounded-[12px] outline-none transition focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+              style={{
+                color: active ? "var(--kb-editor-text)" : "var(--kb-editor-muted)",
+                background: active
+                  ? "linear-gradient(145deg, rgba(255,106,0,.5), rgba(255,31,31,.24))"
+                  : "transparent",
+              }}
+            >
+              <KebuIcon name={item.icon} size={18} />
+              <span className="text-[8px] font-bold leading-none">{item.label}</span>
+              {active ? <span className="absolute right-0 h-7 w-[2px] rounded-l bg-[#FF6A00]" /> : null}
+            </Link>
+          );
+        })}
+      </div>
+      <Link
+        href="/tools"
+        className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+        style={{ color: "var(--kb-editor-muted)" }}
+        aria-label="More Kebu apps"
+        title="More"
+      >
+        <KebuIcon name="more" size={19} />
+      </Link>
     </nav>
   );
 }
@@ -208,33 +263,28 @@ export function BuilderStudioChrome({
 
   return (
     <header
-      className="relative flex h-[58px] shrink-0 items-center gap-2 border-b px-2.5 sm:px-4"
-      style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
+      className="kebu-builder-topbar relative flex h-[64px] shrink-0 items-center gap-2 border-b px-2.5 sm:px-4"
     >
       <Link
         href={MY_SITES_HREF}
         aria-label="Back to your Kebu sites"
-        className="mr-1 hidden shrink-0 items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:flex"
+        className="mr-1 hidden shrink-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:flex"
       >
-        <span
-          className="text-[24px] font-black leading-none tracking-[-0.08em]"
-          style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
-        >
-          kebu
-        </span>
-        <span className="h-5 w-px" style={{ background: BUILDER.border }} aria-hidden />
+        <KebuMark size={30} className="kebu-builder-mark" />
+        <span className="text-[15px] font-black tracking-[-0.035em]">Kebu Builder</span>
+        <span className="h-5 w-px" style={{ background: "var(--kb-editor-border)" }} aria-hidden />
       </Link>
 
       <div className="flex min-w-0 items-center gap-2">
         <div className="min-w-0">
           <p
             className="max-w-[120px] truncate text-[12px] font-bold leading-tight tracking-tight sm:max-w-[190px]"
-            style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
+            style={{ color: "var(--kb-editor-text)", fontFamily: "var(--font-jost), system-ui, sans-serif" }}
             title={title}
           >
             {title}
           </p>
-          <p className="hidden max-w-[190px] truncate text-[9px] sm:block" style={{ color: BUILDER.faint }}>
+          <p className="hidden max-w-[190px] truncate text-[9px] sm:block" style={{ color: "var(--kb-editor-faint)" }}>
             {host}
           </p>
         </div>
@@ -242,9 +292,9 @@ export function BuilderStudioChrome({
           <span
             className="hidden shrink-0 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wide md:inline"
             style={{
-              background: draftLabel === "Live" ? "#ECFDF3" : "#F4F4F5",
-              color: draftLabel === "Live" ? "#166534" : BUILDER.muted,
-              border: `1px solid ${draftLabel === "Live" ? "#BBF7D0" : "#E8E8EA"}`,
+              background: draftLabel === "Live" ? "rgba(34,197,94,.12)" : "rgba(255,255,255,.08)",
+              color: draftLabel === "Live" ? "#86EFAC" : "#D4D4D8",
+              border: `1px solid ${draftLabel === "Live" ? "rgba(34,197,94,.25)" : "rgba(255,255,255,.1)"}`,
             }}
           >
             {draftLabel}
@@ -259,11 +309,7 @@ export function BuilderStudioChrome({
             value={activePageId ?? pages[0]?.id}
             onChange={(e) => onPageChange(e.target.value)}
             className="max-w-[12rem] truncate rounded-full px-3 py-2 text-[11px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
-            style={{
-              border: "1px solid #E5E5E5",
-              background: BUILDER.surfaceMuted,
-              color: BUILDER.ink,
-            }}
+            style={{ border: "1px solid var(--kb-editor-border)", background: "var(--kb-editor-control)", color: "var(--kb-editor-text)" }}
             aria-label="Editing page"
           >
             {pages.map((p) => (
@@ -279,15 +325,16 @@ export function BuilderStudioChrome({
         {saveLabel ? (
           <span
             className="hidden max-w-[150px] items-center gap-1.5 truncate text-[10px] lg:flex"
-            style={{ color: saveLabelColor ?? BUILDER.faint }}
+            style={{ color: saveLabelColor ?? "var(--kb-editor-muted)" }}
           >
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden />
             {saveLabel}
           </span>
         ) : null}
 
         <div
           className="hidden shrink-0 items-center gap-0.5 rounded-full p-0.5 sm:flex"
-          style={{ background: BUILDER.surfaceMuted }}
+          style={{ background: "var(--kb-editor-control)", border: "1px solid var(--kb-editor-border)" }}
           role="group"
           aria-label="Preview device"
         >
@@ -307,9 +354,9 @@ export function BuilderStudioChrome({
               onClick={() => onDevice(id)}
               className="flex h-8 w-8 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
               style={{
-                background: device === id ? "#fff" : "transparent",
-                color: device === id ? BUILDER.ink : BUILDER.muted,
-                boxShadow: device === id ? "0 0 0 1px #E5E5E5" : "none",
+                background: device === id ? "#FF8C73" : "transparent",
+                color: device === id ? "#0A0A0A" : "var(--kb-editor-muted)",
+                boxShadow: "none",
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -324,7 +371,7 @@ export function BuilderStudioChrome({
           onClick={onUndo}
           disabled={!canUndo}
           className="hidden h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25 lg:flex"
-          style={{ color: BUILDER.ink }}
+          style={{ color: "var(--kb-editor-text)" }}
           aria-label="Undo"
           title="Undo"
         >
@@ -335,7 +382,7 @@ export function BuilderStudioChrome({
           onClick={onRedo}
           disabled={!canRedo}
           className="hidden h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25 lg:flex"
-          style={{ color: BUILDER.ink }}
+          style={{ color: "var(--kb-editor-text)" }}
           aria-label="Redo"
           title="Redo"
         >
@@ -344,7 +391,7 @@ export function BuilderStudioChrome({
         <Link
           href={`/create/${projectId}/preview`}
           className="hidden rounded-full px-3.5 py-2 text-[10px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:inline"
-          style={{ color: BUILDER.ink, border: `1px solid ${BUILDER.borderStrong}`, background: BUILDER.surface }}
+          style={{ color: "var(--kb-editor-text)", border: "1px solid var(--kb-editor-border-strong)", background: "var(--kb-editor-surface)" }}
         >
           Preview
         </Link>
@@ -354,9 +401,9 @@ export function BuilderStudioChrome({
             onClick={onSaveDraft}
             disabled={savingDraft || publishing}
             className="hidden rounded-full px-3.5 py-2 text-[10px] font-bold disabled:opacity-40 md:inline"
-            style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+            style={{ border: "1px solid var(--kb-editor-border)", color: "var(--kb-editor-text)", background: "var(--kb-editor-control)" }}
           >
-            {savingDraft ? "…" : "Save draft"}
+            {savingDraft ? "…" : "Save"}
           </button>
         ) : null}
         <button
@@ -364,7 +411,7 @@ export function BuilderStudioChrome({
           onClick={onPublish}
           disabled={publishing}
           className="rounded-full px-4 py-2 text-[10px] font-black tracking-wide shadow-[0_3px_12px_rgba(10,10,10,0.12)] disabled:opacity-50 sm:px-5"
-          style={{ background: BUILDER.ink, color: "#fff" }}
+          style={{ background: "linear-gradient(135deg, #FF9B82, #FF6A5C)", color: "#0A0A0A" }}
         >
           {publishing ? "…" : publishLabel}
         </button>

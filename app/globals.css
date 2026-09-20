@@ -50,6 +50,52 @@
   --foreground: var(--ink);
 }
 
+/* Builder is light-first and follows the operating-system night preference. */
+.kebu-builder-theme {
+  --kb-editor-shell: #fffcf8;
+  --kb-editor-surface: #ffffff;
+  --kb-editor-control: #f4f1ed;
+  --kb-editor-stage: #eee8e1;
+  --kb-editor-text: #0a0a0a;
+  --kb-editor-muted: #626262;
+  --kb-editor-faint: #8a8a8a;
+  --kb-editor-border: rgba(10, 10, 10, 0.11);
+  --kb-editor-border-strong: rgba(10, 10, 10, 0.2);
+  color-scheme: light;
+}
+
+.kebu-builder-topbar,
+.kebu-builder-tool-rail,
+.kebu-builder-ecosystem-rail {
+  color: var(--kb-editor-text);
+  background: color-mix(in srgb, var(--kb-editor-surface) 94%, transparent);
+  border-color: var(--kb-editor-border);
+  backdrop-filter: blur(18px);
+}
+
+.kebu-builder-mark {
+  color: #0a0a0a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .kebu-builder-theme {
+    --kb-editor-shell: #09090a;
+    --kb-editor-surface: #111113;
+    --kb-editor-control: #1a1a1d;
+    --kb-editor-stage: #171719;
+    --kb-editor-text: #fff8f2;
+    --kb-editor-muted: #a1a1aa;
+    --kb-editor-faint: #77777f;
+    --kb-editor-border: rgba(255, 255, 255, 0.1);
+    --kb-editor-border-strong: rgba(255, 255, 255, 0.18);
+    color-scheme: dark;
+  }
+
+  .kebu-builder-mark {
+    color: #fff3e8;
+  }
+}
+
 @theme inline {
   /* Green */
   --color-deep-green: var(--deep-green);

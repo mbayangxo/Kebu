@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
+import { BuilderEcosystemRail, BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
 import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
@@ -1017,8 +1017,8 @@ export default function ProjectEditorPage() {
   return (
     <DataModeProvider>
     <div
-      className="relative flex h-dvh flex-col overflow-hidden"
-      style={{ background: BUILDER.bg, color: BUILDER.ink }}
+      className="kebu-builder-theme relative flex h-dvh flex-col overflow-hidden"
+      style={{ background: "var(--kb-editor-shell)", color: "var(--kb-editor-text)" }}
     >
       <BuilderStudioChrome
         projectId={projectId}
@@ -1264,6 +1264,7 @@ export default function ProjectEditorPage() {
           </div>
         ) : (
           <>
+            <BuilderEcosystemRail />
             <BuilderStudioRail
               railTab={sidebarTab}
               panelOpen={leftPanelOpen}
@@ -3997,11 +3998,7 @@ export default function ProjectEditorPage() {
             <section
               className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
               style={{
-                background: maylecorRussianLayout
-                  ? "#FFF1F6"
-                  : kdirectionLayout
-                    ? BUILDER.surfaceMuted
-                    : BUILDER.bg,
+                background: "var(--kb-editor-stage)",
               }}
             >
               <div
@@ -4020,9 +4017,9 @@ export default function ProjectEditorPage() {
                           maxWidth: "100%",
                           minHeight: "100%",
                           height: "auto",
-                          border: `1px solid ${BUILDER.border}`,
-                          borderRadius: 12,
-                          boxShadow: "0 8px 30px rgba(10,10,10,0.07)",
+                          border: "1px solid var(--kb-editor-border)",
+                          borderRadius: 10,
+                          boxShadow: "0 18px 55px rgba(0,0,0,0.35)",
                           overflow: "hidden",
                         }
                       : {
