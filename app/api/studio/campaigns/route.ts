@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 import {
   CAMPAIGN_SELECT,
   campaignProjectSchema,
@@ -14,13 +15,17 @@ export async function GET() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("studio_campaign_projects")
     .select(CAMPAIGN_SELECT)
-    .eq("owner_id", user.id)
     .order("updated_at", { ascending: false })
     .limit(48);
+  query = workspace.activeBusinessId
+    ? query.eq("business_id", workspace.activeBusinessId)
+    : query.is("business_id", null);
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json(
@@ -60,11 +65,36 @@ export async function POST(req: Request) {
   }
 
   const d = parsed.data;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
+  if (d.businessId !== undefined && (d.businessId ?? null) !== workspace.activeBusinessId) {
+    return NextResponse.json(
+      { error: "Campaigns can only be created inside the current Kebu space." },
+      { status: 409 },
+    );
+  }
+
+  if (d.brandKitId) {
+    let kitQuery = supabase
+      .from("business_brand_kits")
+      .select("id, business_id")
+      .eq("id", d.brandKitId);
+    kitQuery = workspace.activeBusinessId
+      ? kitQuery.eq("business_id", workspace.activeBusinessId)
+      : kitQuery.is("business_id", null);
+    const { data: kit } = await kitQuery.maybeSingle();
+    if (!kit) {
+      return NextResponse.json(
+        { error: "That Brand DNA kit does not belong to the current Kebu space." },
+        { status: 403 },
+      );
+    }
+  }
+
   const { data: row, error } = await supabase
     .from("studio_campaign_projects")
     .insert({
       owner_id: user.id,
-      business_id: d.businessId ?? null,
+      business_id: workspace.activeBusinessId,
       brand_kit_id: d.brandKitId ?? null,
       title: d.title,
       brief: d.brief,
