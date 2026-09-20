@@ -2,6 +2,7 @@
 
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
+import { GalaxyBadge, GalaxyButton, GalaxyInspectorCard } from "@/app/components/galaxy/editor-primitives";
 
 export function BuilderElementInspector({
   selection,
@@ -97,23 +98,20 @@ export function BuilderElementInspector({
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="rounded-xl border border-black/10 bg-white p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-black/45">
-          Selected {selection.kind}
-        </p>
-        <p className="mt-1 text-sm font-semibold text-black">{selection.label}</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-black/50">
+      <GalaxyInspectorCard
+        eyebrow={`Selected ${selection.kind}`}
+        title={selection.label}
+        meta={
+          device !== "desktop" ? (
+            <GalaxyBadge>
+              {responsiveOverrideActive ? `${device} override` : "Inherited"}
+            </GalaxyBadge>
+          ) : null
+        }
+      >
+        <p className="text-[11px] leading-relaxed text-black/50">
           Only controls for this object are shown here. Click another object to switch context.
         </p>
-          </div>
-          {device !== "desktop" ? (
-            <span className="shrink-0 rounded-full bg-black/[0.05] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-black/55">
-              {responsiveOverrideActive ? `${device} override` : "Inherited"}
-            </span>
-          ) : null}
-        </div>
         {device !== "desktop" && responsiveOverrideActive ? (
           <button
             type="button"
@@ -123,7 +121,7 @@ export function BuilderElementInspector({
             Reset this object to desktop
           </button>
         ) : null}
-      </div>
+      </GalaxyInspectorCard>
 
       {selection.elementId === "heroCanvas" ? (
         <div className="space-y-3">
@@ -605,20 +603,10 @@ export function BuilderElementInspector({
       ) : null}
 
       <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          className="rounded-lg bg-[#0F0D33] px-3 py-2 text-[12px] font-semibold text-white hover:opacity-90"
-          onClick={onAskAi}
-        >
+        <GalaxyButton variant="primary" onClick={onAskAi}>
           Ask Yande
-        </button>
-        <button
-          type="button"
-          className="rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70 hover:bg-black/[0.03]"
-          onClick={onEditSection}
-        >
-          Edit section
-        </button>
+        </GalaxyButton>
+        <GalaxyButton onClick={onEditSection}>Edit section</GalaxyButton>
       </div>
     </div>
   );
