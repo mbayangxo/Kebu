@@ -14,7 +14,8 @@ describe("Studio product UI", () => {
   it("uses a compact non-wrapping editor command surface", () => {
     const page = readFileSync(join(process.cwd(), "app/studio/[id]/page.tsx"), "utf8");
     const canvas = readFileSync(join(process.cwd(), "app/components/studio/studio-canvas-editor.tsx"), "utf8");
-    expect(page).toContain("overflow-x-auto whitespace-nowrap");
+    expect(page).toContain("overflow-x-auto");
+    expect(page).toContain("border-white/[.06]");
     expect(canvas).toContain("overflow-x-auto whitespace-nowrap");
     expect(canvas).toContain('md:w-[268px]');
   });
