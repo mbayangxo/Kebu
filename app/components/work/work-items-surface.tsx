@@ -36,7 +36,7 @@ export function WorkItemsSurface({ kind }: { kind: WorkItemKind }) {
   const load = useCallback(async (context?: AccountWorkspaceContext | null) => {
     setError(null);
     try {
-      const active = context ?? workspace;
+      const active = context ?? null;
       const params = new URLSearchParams({ kind });
       if (active?.activeBusinessId) params.set("businessId", active.activeBusinessId);
       else params.set("personal", "1");
@@ -48,7 +48,7 @@ export function WorkItemsSurface({ kind }: { kind: WorkItemKind }) {
     } catch {
       setError("Network error.");
     }
-  }, [copy.title, kind, workspace]);
+  }, [copy.title, kind]);
 
   useEffect(() => {
     let cancelled = false;
