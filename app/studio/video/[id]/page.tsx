@@ -271,6 +271,7 @@ export default function StudioVideoEditorPage() {
             title: effectiveTitle,
             composition: next,
             businessId,
+            sourceDesignId,
             serverUpdatedAt: nextUpdatedAt,
             savedAt: new Date().toISOString(),
             dirty: false,
@@ -283,7 +284,7 @@ export default function StudioVideoEditorPage() {
         setSaveState("offline");
       }
     },
-    [projectId, title, serverUpdatedAt, userId, businessId],
+    [projectId, title, serverUpdatedAt, userId, businessId, sourceDesignId],
   );
 
   function applyComp(next: StudioComposition, recordHistory = true) {
