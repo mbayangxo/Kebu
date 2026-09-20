@@ -732,16 +732,19 @@ export function LegallyBlondeEditCanvas({
             selectElement("heroCanvas", "control", "Hero section");
             const startY = event.clientY;
             const startHeight = sectionMinHeightPx;
+            const artboardEl = event.currentTarget.parentElement as HTMLElement | null;
+            let finalHeight = startHeight;
             const onMove = (moveEvent: MouseEvent) => {
-              const next = Math.min(
+              finalHeight = Math.min(
                 1800,
                 Math.max(360, Math.round(startHeight + (moveEvent.clientY - startY))),
               );
-              onPatch({ sectionMinHeightPx: next });
+              if (artboardEl) artboardEl.style.minHeight = `${finalHeight}px`;
             };
             const onUp = () => {
               window.removeEventListener("mousemove", onMove);
               window.removeEventListener("mouseup", onUp);
+              if (finalHeight !== startHeight) onPatch({ sectionMinHeightPx: finalHeight });
             };
             window.addEventListener("mousemove", onMove);
             window.addEventListener("mouseup", onUp);
@@ -1030,9 +1033,9 @@ function CutoutChip({
             : 0;
       const delta = Math.abs(signed) > Math.abs(signedY) ? signed : signedY;
       const nextW = Math.min(70, Math.max(6, startW + delta));
-      const nextScale = nextW / Math.max(1, baseWidthPct);
-      onScaled(Math.min(3, Math.max(0.15, Number(nextScale.toFixed(3)))));
 
+      // Keep pointer movement entirely local to the canvas. Persist once on pointer-up so resizing
+      // never waits on React state, autosave, Supabase, or a parent re-render.
       // Anchor opposite corner when resizing from NW/NE/SW
       if (corner === "nw" || corner === "sw") {
         const dw = nextW - startW;

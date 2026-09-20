@@ -873,7 +873,7 @@ export function SiteRenderer({
           color: "#111",
           minHeight: mode === "preview" ? "100%" : "100vh",
           ...(editingPreview
-            ? { height: "100%", display: "flex", flexDirection: "column" as const }
+            ? { display: "flex", flexDirection: "column" as const }
             : {}),
         }
       : hasKdirection
@@ -1003,8 +1003,10 @@ export function SiteRenderer({
         const key = section.id ?? `${section.type}-${idx}`;
         const sectionId = section.id ?? key;
         const anchor = sectionAnchor(section);
+        // Published single-screen themes may intentionally fill the viewport. The editor must
+        // remain a normal document: its content can grow, scroll, and expose the footer below it.
         const fillViewport =
-          STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
+          !editingPreview && STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
         const sectionPaddingY = String((section.props as Record<string, unknown>)?.sectionPaddingY ?? "normal");
         const motionPreset = motionExpressive ? ENTRANCE_MOTION[section.type] : undefined;
         const wrap = (node: ReactNode) =>
@@ -2782,7 +2784,7 @@ export function SiteRenderer({
     <div
       ref={rootRef}
       className={`${rootClass} relative${sideNav ? " md:flex md:flex-row md:items-stretch" : ""}${
-        editingPreview && legallyBlondeOnly ? " flex h-full min-h-0 flex-col" : ""
+        editingPreview && legallyBlondeOnly ? " flex min-h-full flex-col" : ""
       }`}
       data-kebu-button={theme.buttonStyle ?? "solid"}
       style={{

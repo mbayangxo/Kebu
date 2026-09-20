@@ -55,6 +55,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [kbSaveNote, setKbSaveNote] = useState<string | null>(null);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const historyWindows = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
@@ -189,7 +190,16 @@ export function useProjectAutosave<T extends AutosaveSection>({
     pendingSavesRef.current.add(`section:${sectionId}`);
     setSaveState("unsaved");
     setSections((prev) => {
-      pushHistory(prev);
+      // One undo snapshot per continuous edit gesture instead of one snapshot for every slider /
+      // pointer event. This keeps drag/resize/typing responsive and makes Undo meaningful.
+      if (!historyWindows.current[sectionId]) {
+        pushHistory(prev);
+      } else {
+        clearTimeout(historyWindows.current[sectionId]);
+      }
+      historyWindows.current[sectionId] = setTimeout(() => {
+        delete historyWindows.current[sectionId];
+      }, 700);
       const next = prev.map((s) => (s.id === sectionId ? { ...s, props: { ...s.props, ...patch } } : s));
       const merged = next.find((s) => s.id === sectionId)?.props ?? patch;
       if (saveTimers.current[sectionId]) clearTimeout(saveTimers.current[sectionId]);
@@ -258,6 +268,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
     const timers = saveTimers.current;
     return () => {
       Object.values(timers).forEach(clearTimeout);
+      Object.values(historyWindows.current).forEach(clearTimeout);
       if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
     };
   }, []);
