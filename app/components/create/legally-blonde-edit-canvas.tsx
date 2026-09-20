@@ -933,6 +933,28 @@ function CutoutChip({
       }}
       role="button"
       tabIndex={0}
+      onKeyDown={(event) => {
+        if (!selected && !titleEditing) return;
+        if ((event.key === "Delete" || event.key === "Backspace") && onDelete) {
+          event.preventDefault();
+          onDelete();
+          return;
+        }
+        const step = event.shiftKey ? 5 : 1;
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          onMoved(Math.max(-5, leftPct - step), topPct);
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          onMoved(Math.min(90, leftPct + step), topPct);
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          onMoved(leftPct, Math.max(-5, topPct - step));
+        } else if (event.key === "ArrowDown") {
+          event.preventDefault();
+          onMoved(leftPct, Math.min(90, topPct + step));
+        }
+      }}
       aria-label={
         titleText !== null
           ? "Drag to move · corners to resize · click to type"
@@ -1078,16 +1100,7 @@ function CutoutChip({
             onPointerDown={(e) => onCornerResize(e, "se")}
           />
         </>
-      ) : (
-        <button
-          type="button"
-          data-resize="1"
-          aria-label={`Scale ${slot.label}`}
-          className="absolute -bottom-1 -right-1 z-40 h-4 w-4 cursor-nwse-resize rounded-sm border-2 border-white bg-[#FF5500]/80 shadow"
-          style={{ touchAction: "none" }}
-          onPointerDown={(e) => onCornerResize(e, "se")}
-        />
-      )}
+      ) : null}
     </div>
   );
 }
