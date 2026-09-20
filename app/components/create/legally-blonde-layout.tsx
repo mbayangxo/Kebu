@@ -111,6 +111,12 @@ export type LegallyBlondeHeroProps = {
   scrollMode?: "viewport" | "parallax";
   /** Replace spinning Russian logo circle with editable brand text around the circle. */
   titleAsText?: boolean;
+  titleTextFontFamily?: string;
+  titleTextFontSize?: number;
+  titleTextFontWeight?: number;
+  titleTextLetterSpacing?: number;
+  titleTextLineHeight?: number;
+  titleTextColor?: string;
 };
 
 type EditorHooks = {
@@ -388,11 +394,39 @@ function renderLayer(
         tabIndex={editable ? 0 : undefined}
         aria-label={props.title}
       >
-        <CircularBrandRing
-          text={props.title || "YOUR BRAND"}
-          color={props.accentColor || "#E9006B"}
-          spinning={opts.motion && !opts.editing && customMotion === "spin"}
-        />
+        <div className="relative">
+          <CircularBrandRing
+            text={props.title || "YOUR BRAND"}
+            color={props.accentColor || "#E9006B"}
+            spinning={opts.motion && !opts.editing && customMotion === "spin"}
+          />
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-[22%]">
+            <p
+              className="w-full break-words text-center uppercase"
+              style={{
+                color: props.titleTextColor || "#ffffff",
+                fontFamily:
+                  props.titleTextFontFamily || "Impact, Arial Black, Helvetica, sans-serif",
+                fontSize: `${Math.min(48, Math.max(8, Number(props.titleTextFontSize ?? 14)))}px`,
+                fontWeight: Math.min(
+                  900,
+                  Math.max(400, Number(props.titleTextFontWeight ?? 900)),
+                ),
+                letterSpacing: `${Math.min(
+                  0.5,
+                  Math.max(-0.05, Number(props.titleTextLetterSpacing ?? 0.12)),
+                )}em`,
+                lineHeight: Math.min(
+                  2,
+                  Math.max(0.8, Number(props.titleTextLineHeight ?? 1.15)),
+                ),
+                textShadow: "0 1px 8px rgba(0,0,0,0.55)",
+              }}
+            >
+              {props.title || "MAY LECOR"}
+            </p>
+          </div>
+        </div>
         {linkOverlay(props.title || "Open link")}
       </div>
     );
