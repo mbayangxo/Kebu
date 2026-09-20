@@ -17,6 +17,11 @@ export type StudioElementDef = {
 
 /** Curated, offline-safe Elements catalog. Definitions are structured data, never arbitrary SVG/HTML. */
 export const STUDIO_ELEMENTS_PACK: StudioElementDef[] = [
+  {id:"line-arrow",kind:"line",category:"lines",label:"Arrow line",tags:["arrow","direction"],glyph:"→",defaults:{width:260,height:6,fill:"#111111",strokeWidth:6,name:"Arrow line",text:"→"}},
+  {id:"frame-circle",kind:"frame",category:"frames",label:"Circle frame",tags:["photo","circle","avatar"],frameStyle:"rounded",defaults:{width:240,height:240,fill:"transparent",stroke:"#111111",strokeWidth:4,cornerRadius:999,name:"Circle frame",frameStyle:"rounded"}},
+  {id:"icon-chat",kind:"icon",category:"social",label:"Chat",tags:["message","community","social"],glyph:"◰",defaults:{width:72,height:72,color:"#111111",name:"Chat",iconKey:"chat",text:"◰",fontSize:56}},
+  {id:"icon-calendar",kind:"icon",category:"business",label:"Calendar",tags:["date","event","business"],glyph:"▣",defaults:{width:72,height:72,color:"#111111",name:"Calendar",iconKey:"calendar",text:"▣",fontSize:56}},
+
   {id:"icon-cowrie",kind:"icon",category:"culture",label:"Cowrie",tags:["africa","cowrie","heritage","money"],glyph:"◒",defaults:{width:72,height:72,color:"#E05A2B",name:"Cowrie",iconKey:"cowrie",text:"◒",fontSize:58}},
   {id:"icon-sun",kind:"icon",category:"culture",label:"Sahel sun",tags:["africa","sun","sahel"],glyph:"☀",defaults:{width:72,height:72,color:"#F0A21A",name:"Sahel sun",iconKey:"sun",text:"☀",fontSize:58}},
 

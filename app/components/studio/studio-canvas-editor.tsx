@@ -36,6 +36,7 @@ import {
   type StudioElementCategory,
 } from "@/lib/studio/elements-pack";
 import { mediaFilterCss } from "@/lib/studio/media-adjustments";
+import { fillFrameWithAsset, mediaLayerFromAsset, type StudioDroppedAsset } from "@/lib/studio/asset-canvas-operations";
 import {
   cssStackForStudioFont,
   googleFontsHrefForStudioCatalog,
@@ -463,6 +464,8 @@ export function StudioCanvasEditor({
     });
   }
 
+  function placeDroppedAsset(asset:StudioDroppedAsset,clientX?:number,clientY?:number){if(readOnly)return;const frame=selected?.type==="frame"?selected:null;if(frame){const next=fillFrameWithAsset(frame,asset);setPageLayers(layers.map(l=>l.id===frame.id?next:l));onSelectLayers([frame.id]);return}const rect=artboardRef.current?.getBoundingClientRect();const x=rect&&clientX!=null?(clientX-rect.left)/displayScale:page.width/2,y=rect&&clientY!=null?(clientY-rect.top)/displayScale:page.height/2;const layer=mediaLayerFromAsset(asset,x,y,{width:page.width,height:page.height},newLayerId());setPageLayers([...layers,layer]);onSelectLayers([layer.id])}
+
   function deleteSelected() {
     if (!selectedLayerIds.length) return;
     const ids = new Set(expandSelectionWithGroups(layers, selectedLayerIds));
@@ -809,6 +812,7 @@ export function StudioCanvasEditor({
                 onPickImage={(url) =>
                   addLayer("image", { imageUrl: url, name: "Library", width: 320, height: 320 })
                 }
+                onDropAsset={()=>undefined}
                 onPickVideo={(url) =>
                   addLayer("video", {
                     videoUrl: url,
@@ -837,6 +841,8 @@ export function StudioCanvasEditor({
         {/* Center canvas */}
         <div
           ref={boardRef}
+          onDragOver={(e)=>{if(e.dataTransfer.types.includes("application/x-kebu-studio-asset")){e.preventDefault();e.dataTransfer.dropEffect="copy"}}}
+          onDrop={(e)=>{const raw=e.dataTransfer.getData("application/x-kebu-studio-asset");if(!raw)return;e.preventDefault();try{const a=JSON.parse(raw) as {kind:string;url:string;file_name?:string;width?:number|null;height?:number|null};if(a.kind==="image"||a.kind==="video")placeDroppedAsset({kind:a.kind,url:a.url,name:a.file_name,width:a.width,height:a.height},e.clientX,e.clientY)}catch{setUploadError("That asset could not be placed.")}}}
           className={`min-w-0 flex-1 overflow-hidden p-3 sm:p-6 flex justify-center items-start relative ${
             spaceHeld || pan ? "cursor-grab" : ""
           } ${pan ? "cursor-grabbing" : ""}`}
