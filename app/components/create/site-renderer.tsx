@@ -2339,6 +2339,9 @@ export function SiteRenderer({
               textColor?: string;
               paddingTop?: number;
               paddingBottom?: number;
+              fontFamily?: string;
+              legalName?: string;
+              copyrightYear?: number;
             };
             const hasCustomBg = Boolean(p.bgColor);
             const ptPx = p.paddingTop ?? 32;
@@ -2387,17 +2390,43 @@ export function SiteRenderer({
                   color: p.textColor || undefined,
                   paddingTop: ptPx,
                   paddingBottom: pbPx,
+                  fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined,
                 }}
               >
                 {makeFooterDragHandle("top")}
-                <p>{p.text}</p>
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
-                  {(p.links ?? []).map((l) => (
-                    <a key={l.label} href={l.href} style={{ color: p.textColor ? "inherit" : undefined }}>
-                      {l.label}
-                    </a>
-                  ))}
-                </div>
+                <p>
+                  {p.text ||
+                    `© ${p.copyrightYear ?? new Date().getFullYear()} ${p.legalName || definition.name || ""}`.trim()}
+                </p>
+                <nav className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2" aria-label="Footer navigation">
+                  {(p.links ?? []).map((l) => {
+                    const raw = (l.href || "").trim();
+                    const slug =
+                      raw && raw !== "#" && !raw.startsWith("http") && !raw.startsWith("mailto:") && !raw.startsWith("tel:")
+                        ? (raw.replace(/^\//, "").split(/[?#]/)[0] || "home")
+                        : null;
+                    return onNavigate && slug ? (
+                      <button
+                        key={`${l.label}-${l.href}`}
+                        type="button"
+                        onClick={() => onNavigate(slug)}
+                        className="hover:underline"
+                        style={{ color: p.textColor ? "inherit" : undefined }}
+                      >
+                        {l.label}
+                      </button>
+                    ) : (
+                      <a
+                        key={`${l.label}-${l.href}`}
+                        href={resolveHref(l.href)}
+                        className="hover:underline"
+                        style={{ color: p.textColor ? "inherit" : undefined }}
+                      >
+                        {l.label}
+                      </a>
+                    );
+                  })}
+                </nav>
                 {makeFooterDragHandle("bottom")}
               </footer>
             );

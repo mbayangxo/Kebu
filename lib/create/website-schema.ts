@@ -173,7 +173,7 @@ export const sectionPropsSchemas = {
     navSize: z.enum(["compact", "comfortable", "large", "fullscreen"]).optional().default("comfortable"),
     navScale: z.number().min(0.7).max(2.2).optional().default(1),
     /** Top bar (regular) or left side rail. */
-    navLayout: z.enum(["top", "side"]).optional().default("top"),
+    navLayout: z.enum(["top", "side", "hamburger"]).optional().default("top"),
     /** Logo / brand alignment inside the nav bar. */
     logoAlign: z.enum(["left", "center", "right"]).optional().default("left"),
     /** Whether the nav bar sticks to the top on scroll. */
@@ -903,6 +903,9 @@ export const sectionPropsSchemas = {
       .default([]),
     bgColor: z.string().trim().max(32).optional(),
     textColor: z.string().trim().max(32).optional(),
+    fontFamily: z.string().trim().max(120).optional(),
+    legalName: z.string().trim().max(120).optional(),
+    copyrightYear: z.number().int().min(1900).max(2200).optional(),
     hidden: z.boolean().optional(),
     paddingTop: z.number().int().min(8).max(200).default(32),
     paddingBottom: z.number().int().min(8).max(200).default(32),

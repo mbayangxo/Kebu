@@ -131,6 +131,7 @@ export function BuilderSiteChromePanel({
               scale={clampNavScale(headerProps.navScale, 1)}
               size={parseNavSize(headerProps.navSize)}
               layout={parseNavLayout(headerProps.navLayout)}
+              logoAlign={headerProps.logoAlign ?? "left"}
               onChange={onPatch}
             />
           </PanelSection>
@@ -183,6 +184,14 @@ export function BuilderSiteChromePanel({
               <option value="'Playfair Display', serif">Playfair (elegant)</option>
               <option value="'Oswald', sans-serif">Oswald (bold)</option>
               <option value="'IBM Plex Sans', sans-serif">IBM Plex (modern)</option>
+              <option value="'Satoshi', sans-serif">Satoshi</option>
+              <option value="'Inter', sans-serif">Inter</option>
+              <option value="'DM Sans', sans-serif">DM Sans</option>
+              <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
+              <option value="'Manrope', sans-serif">Manrope</option>
+              <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
+              <option value="'Libre Baskerville', serif">Libre Baskerville</option>
+              <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
             </select>
           </PanelSection>
           <PanelSection title="Colors" group="chrome-footer">
