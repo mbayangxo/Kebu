@@ -287,11 +287,21 @@ export function withSyncedChromeNavLinks(
   // structure. Preserve nested/mega/external/hash links verbatim; refresh only flat internal links
   // that clearly correspond to project pages, then append newly-created pages.
   const customLinks = existing.filter((link) => {
-    if (link.children?.length || link.columnLabel || link.featuredImage) return true;
+    if (link.columnLabel || link.featuredImage) return true;
     const href = String(link.href ?? "");
     if (!href.startsWith("/") || href.startsWith("//")) return true;
     const slug = href.replace(/^\/+|\/+$/g, "") || "home";
-    return !pageSlugs.has(slug);
+    if (!pageSlugs.has(slug)) return true;
+    // A nested link is considered generated only when its parent and every child map to real
+    // project pages. Mixed/external/custom trees remain founder-owned and are never overwritten.
+    if (link.children?.length) {
+      return !link.children.every((child) => {
+        const childHref = String(child.href ?? "");
+        if (!childHref.startsWith("/") || childHref.startsWith("//")) return false;
+        return pageSlugs.has(childHref.replace(/^\/+|\/+$/g, "") || "home");
+      });
+    }
+    return false;
   });
   const links = [...pageLinks, ...customLinks].slice(0, 12);
   const props = sectionPropsSchemas.navigation.parse({
