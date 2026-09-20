@@ -39,7 +39,7 @@ import { applyAiMusicCommand } from "@/lib/studio/ai-music-edit";
 
 const HISTORY_CAP = 40;
 
-type SaveState = "idle" | "saving" | "saved" | "error";
+type SaveState = "idle" | "saving" | "saved" | "offline" | "conflict" | "error";
 
 /** Full Timeline: multi-track + music-aware V1 → keyframes V2 → AI music edit V3. */
 export default function StudioVideoEditorPage() {
@@ -50,6 +50,7 @@ export default function StudioVideoEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -82,6 +83,7 @@ export default function StudioVideoEditorPage() {
     }
     setTitle(data.project.title);
     setComp(data.project.composition);
+    setServerUpdatedAt(typeof data.project.updated_at === "string" ? data.project.updated_at : null);
     compRef.current = data.project.composition;
     setHistory([]);
     setFuture([]);
@@ -107,24 +109,42 @@ export default function StudioVideoEditorPage() {
 
   const persist = useCallback(
     async (next: StudioComposition, nextTitle?: string) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setSaveState("offline");
+        return;
+      }
       setSaveState("saving");
-      const res = await fetch(`/api/studio/video/${projectId}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          composition: next,
-          title: nextTitle ?? title,
-        }),
-      });
-      if (res.ok) {
+      try {
+        const res = await fetch(`/api/studio/video/${projectId}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            composition: next,
+            title: nextTitle ?? title,
+            expectedUpdatedAt: serverUpdatedAt ?? undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409 && data.code === "studio_video_version_conflict") {
+          setSaveState("conflict");
+          setError("This video changed in another tab or device. Reload the newer version before overwriting it.");
+          return;
+        }
+        if (!res.ok || !data.project) {
+          setSaveState("error");
+          setError(typeof data.error === "string" ? data.error : "Could not save video project.");
+          return;
+        }
+        setServerUpdatedAt(typeof data.project.updated_at === "string" ? data.project.updated_at : serverUpdatedAt);
         setSaveState("saved");
+        setError(null);
         setTimeout(() => setSaveState("idle"), 1600);
-      } else {
-        setSaveState("error");
+      } catch {
+        setSaveState("offline");
       }
     },
-    [projectId, title],
+    [projectId, title, serverUpdatedAt],
   );
 
   function applyComp(next: StudioComposition, recordHistory = true) {
@@ -465,9 +485,13 @@ export default function StudioVideoEditorPage() {
       ? "Saving…"
       : saveState === "saved"
         ? "Saved"
-        : saveState === "error"
-          ? "Save failed"
-          : "Autosave on";
+        : saveState === "offline"
+          ? "Offline — changes not synced"
+          : saveState === "conflict"
+            ? "Sync conflict — reload required"
+            : saveState === "error"
+              ? "Save failed"
+              : "Autosave on";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#14121f] text-white">

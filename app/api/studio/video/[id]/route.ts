@@ -12,7 +12,7 @@ type Params = { params: Promise<{ id: string }> };
 const patchSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
   composition: studioCompositionSchema.optional(),
-  editMode: z.enum(["quick_edit", "smart_edit", "full_timeline"]).optional(),
+  editMode: z.enum(["quick_edit", "smart_edit", "full_timeline"]).optional(),\n  /** Optimistic concurrency token: prevents silent cross-tab/device overwrites. */\n  expectedUpdatedAt: z.string().datetime().optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
@@ -73,6 +73,33 @@ export async function PATCH(req: Request, { params }: Params) {
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid update." }, { status: 400 });
+  }
+
+  if (parsed.data.expectedUpdatedAt) {
+    let currentQuery = supabase
+      .from("studio_video_projects")
+      .select("updated_at")
+      .eq("id", id);
+    currentQuery = workspace.activeBusinessId
+      ? currentQuery.eq("business_id", workspace.activeBusinessId)
+      : currentQuery.is("business_id", null);
+    const { data: current } = await currentQuery.maybeSingle();
+    if (!current) {
+      return NextResponse.json({ error: "Project not found." }, { status: 404 });
+    }
+    if (
+      current.updated_at &&
+      new Date(current.updated_at).toISOString() !== new Date(parsed.data.expectedUpdatedAt).toISOString()
+    ) {
+      return NextResponse.json(
+        {
+          error: "This video changed somewhere else. Your local edit was kept; review the newer server version before overwriting it.",
+          code: "studio_video_version_conflict",
+          serverUpdatedAt: current.updated_at,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const patch: Record<string, unknown> = {};
