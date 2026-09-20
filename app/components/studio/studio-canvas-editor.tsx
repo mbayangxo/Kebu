@@ -92,13 +92,15 @@ function TimelineVideo({
 const FONT_OPTIONS = studioFontFamilies();
 const STUDIO_FONTS_HREF = googleFontsHrefForStudioCatalog();
 
-const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string }[] = [
+const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string; minSelection?: number }[] = [
   { mode: "left", label: "L", title: "Align left" },
   { mode: "center-x", label: "C", title: "Align center" },
   { mode: "right", label: "R", title: "Align right" },
   { mode: "top", label: "T", title: "Align top" },
   { mode: "center-y", label: "M", title: "Align middle" },
   { mode: "bottom", label: "B", title: "Align bottom" },
+  { mode: "distribute-h", label: "↔", title: "Distribute horizontally", minSelection: 3 },
+  { mode: "distribute-v", label: "↕", title: "Distribute vertically", minSelection: 3 },
 ];
 
 /**
@@ -168,6 +170,7 @@ export function StudioCanvasEditor({
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "brand">("elements");
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!STUDIO_FONTS_HREF) return;
@@ -688,7 +691,7 @@ export function StudioCanvasEditor({
             key={t.mode}
             type="button"
             title={t.title}
-            disabled={!canAlign}
+            disabled={!canAlign || selectedLayerIds.length < (t.minSelection ?? 1)}
             onClick={() => applyAlign(t.mode)}
             className="rounded-lg w-7 h-7 text-[11px] font-bold border border-black/10 disabled:opacity-30"
           >
@@ -972,6 +975,12 @@ export function StudioCanvasEditor({
                       pointerDown(e, layer, "move");
                     }}
                     onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
+                      if (readOnly || layer.type !== "text") return;
+                      e.stopPropagation();
+                      onSelectLayers([layer.id]);
+                      setEditingTextId(layer.id);
+                    }}
                   >
                     {layer.type === "text" ? (
                       <p
@@ -987,8 +996,33 @@ export function StudioCanvasEditor({
                           textDecoration: layer.textDecoration ?? "none",
                           textTransform: layer.textTransform === "none" ? undefined : layer.textTransform,
                           margin: 0,
-                          pointerEvents: "none",
+                          pointerEvents: editingTextId === layer.id ? "auto" : "none",
+                          cursor: editingTextId === layer.id ? "text" : undefined,
+                          outline: "none",
+                          whiteSpace: "pre-wrap",
                           wordBreak: "break-word",
+                        }}
+                        contentEditable={editingTextId === layer.id}
+                        suppressContentEditableWarning
+                        onPointerDown={(e) => {
+                          if (editingTextId === layer.id) e.stopPropagation();
+                        }}
+                        onInput={(e) => {
+                          if (editingTextId !== layer.id) return;
+                          updateLayer(layer.id, { text: e.currentTarget.innerText.slice(0, 500) }, true);
+                        }}
+                        onBlur={() => {
+                          if (editingTextId !== layer.id) return;
+                          onChange(latestDoc.current);
+                          setEditingTextId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (editingTextId !== layer.id) return;
+                          e.stopPropagation();
+                          if (e.key === "Escape" || ((e.metaKey || e.ctrlKey) && e.key === "Enter")) {
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                          }
                         }}
                       >
                         {layer.text}
