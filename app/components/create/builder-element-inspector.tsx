@@ -9,12 +9,18 @@ export function BuilderElementInspector({
   onPatch,
   onEditSection,
   projectId,
+  device,
+  responsiveOverrideActive,
+  onResetResponsive,
 }: {
   selection: BuilderElementSelection;
   sectionProps: Record<string, unknown>;
   onPatch: (patch: Record<string, unknown>) => void;
   onEditSection: () => void;
   projectId: string;
+  device: "desktop" | "tablet" | "mobile";
+  responsiveOverrideActive: boolean;
+  onResetResponsive: (keys: readonly string[]) => void;
 }) {
   const storageKey = selection.elementId.startsWith("extra:")
     ? selection.elementId.slice("extra:".length)
@@ -33,6 +39,41 @@ export function BuilderElementInspector({
   const opacity = typeof opacityMap[storageKey] === "number" ? opacityMap[storageKey]! : 1;
   const rotation = typeof rotationMap[storageKey] === "number" ? rotationMap[storageKey]! : 0;
   const locked = lockedLayers.includes(storageKey);
+
+  const responsiveKeys =
+    selection.elementId === "titleLogo"
+      ? [
+          "title",
+          "titleAsText",
+          "titleTextFontFamily",
+          "titleTextFontSize",
+          "titleTextFontWeight",
+          "titleTextLetterSpacing",
+          "titleTextLineHeight",
+          "titleTextColor",
+          "layerScales",
+          "layerZIndex",
+          "layerOpacity",
+          "layerRotation",
+          "layerPositions",
+          "lockedLayers",
+        ]
+      : selection.elementId === "heroCanvas"
+        ? ["sectionMinHeightPx"]
+        : selection.elementId === "siteFooter"
+          ? ["embeddedFooterPaddingTop", "embeddedFooterPaddingBottom"]
+          : selection.kind === "background"
+            ? ["backgroundLayer", "backgroundHidden"]
+            : [
+                "extraCutouts",
+                "layerScales",
+                "layerZIndex",
+                "layerOpacity",
+                "layerRotation",
+                "layerPositions",
+                "hiddenLayers",
+                "lockedLayers",
+              ];
 
   const patchScale = (next: number) => {
     onPatch({
@@ -55,6 +96,8 @@ export function BuilderElementInspector({
   return (
     <div className="space-y-4 px-4 py-4">
       <div className="rounded-xl border border-black/10 bg-white p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-black/45">
           Selected {selection.kind}
         </p>
@@ -62,6 +105,22 @@ export function BuilderElementInspector({
         <p className="mt-1 text-[11px] leading-relaxed text-black/50">
           Only controls for this object are shown here. Click another object to switch context.
         </p>
+          </div>
+          {device !== "desktop" ? (
+            <span className="shrink-0 rounded-full bg-black/[0.05] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-black/55">
+              {responsiveOverrideActive ? `${device} override` : "Inherited"}
+            </span>
+          ) : null}
+        </div>
+        {device !== "desktop" && responsiveOverrideActive ? (
+          <button
+            type="button"
+            className="mt-3 text-[11px] font-semibold text-[#2C6ECB] hover:underline"
+            onClick={() => onResetResponsive(responsiveKeys)}
+          >
+            Reset this object to desktop
+          </button>
+        ) : null}
       </div>
 
       {selection.elementId === "heroCanvas" ? (
