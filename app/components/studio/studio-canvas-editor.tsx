@@ -1120,7 +1120,6 @@ export function StudioCanvasEditor({
                 />
               </label></GalaxyInspectorSection>
               {selected.type === "text" ? (<GalaxyInspectorSection title="Typography">
-                <>
                   <label className="block font-semibold">
                     Text
                     <textarea
