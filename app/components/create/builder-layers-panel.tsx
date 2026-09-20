@@ -2,6 +2,7 @@
 
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { GalaxyBadge, GalaxyButton } from "@/app/components/galaxy/editor-primitives";
+import { patchBuilderLayerStack } from "@/lib/create/builder-layer-model";
 
 type LayerRow = {
   elementId: string;
@@ -130,6 +131,24 @@ export function BuilderLayersPanel({
               </button>
 
               {isLocked ? <GalaxyBadge>Locked</GalaxyBadge> : null}
+
+              <select
+                className="max-w-[92px] rounded-md border border-black/10 bg-white px-1 py-1 text-[9px] font-semibold text-black/55"
+                defaultValue=""
+                aria-label={`Arrange ${row.label}`}
+                onChange={(event) => {
+                  const action = event.target.value as "front" | "forward" | "backward" | "back" | "";
+                  if (!action) return;
+                  onPatch(patchBuilderLayerStack(props, row.storageKey, action));
+                  event.currentTarget.value = "";
+                }}
+              >
+                <option value="">Arrange</option>
+                <option value="front">Bring to front</option>
+                <option value="forward">Bring forward</option>
+                <option value="backward">Send backward</option>
+                <option value="back">Send to back</option>
+              </select>
 
               <button
                 type="button"

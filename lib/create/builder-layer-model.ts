@@ -92,3 +92,25 @@ export function patchBuilderLayerPresentation(
 
   return next;
 }
+
+
+/** Relative stacking actions used by the canvas context menu and Layers panel. */
+export type BuilderLayerStackAction = "front" | "forward" | "backward" | "back";
+
+export function patchBuilderLayerStack(
+  props: Record<string, unknown>,
+  storageKey: string,
+  action: BuilderLayerStackAction,
+): Record<string, unknown> {
+  const zIndexes = numberMap(props, "layerZIndex");
+  const current = typeof zIndexes[storageKey] === "number" ? zIndexes[storageKey]! : 10;
+  const values = Object.values(zIndexes).filter((value): value is number => Number.isFinite(value));
+  const min = values.length ? Math.min(...values, 1) : 1;
+  const max = values.length ? Math.max(...values, 10) : 10;
+  const next =
+    action === "front" ? Math.min(80, max + 1) :
+    action === "forward" ? Math.min(80, current + 1) :
+    action === "backward" ? Math.max(1, current - 1) :
+    Math.max(1, min - 1);
+  return patchBuilderLayerPresentation(props, storageKey, { zIndex: next });
+}

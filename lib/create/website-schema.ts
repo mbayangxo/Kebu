@@ -178,6 +178,14 @@ export const sectionPropsSchemas = {
     logoAlign: z.enum(["left", "center", "right"]).optional().default("left"),
     /** Whether the nav bar sticks to the top on scroll. */
     navSticky: z.boolean().optional().default(true),
+    /** Uploaded brand mark and site identity. */
+    logoUrl: imageUrl.optional().default(""),
+    logoAlt: z.string().trim().max(120).optional().default(""),
+    logoScale: z.number().min(0.5).max(4).optional().default(1),
+    faviconUrl: imageUrl.optional().default(""),
+    /** Header typography can intentionally differ from the site body. */
+    fontFamily: z.string().trim().max(120).optional(),
+    fontWeight: z.number().int().min(100).max(900).optional(),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
