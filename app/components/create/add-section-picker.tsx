@@ -151,6 +151,7 @@ export function AddSectionPicker({
             {options.map((opt) => {
               const isAdding = adding === opt.type;
               const icon = SECTION_ICONS[opt.type] ?? "□";
+              const appBlock = builderAppForSection(opt.type);
               return (
                 <li key={opt.type} style={{ borderBottom: `1px solid ${BUILDER.border}` }}>
                   <button

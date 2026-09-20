@@ -1677,6 +1677,7 @@ export default function ProjectEditorPage() {
                         selected={selectedSectionId === CHROME_HEADER_ID}
                         onSelect={() => setSelectedSectionId(CHROME_HEADER_ID)}
                         onPatch={(patch) => updateChromeProps("header", patch)}
+                        projectId={projectId}
                       />
                     </BuilderSectionZone>
                     <BuilderSectionZone

@@ -476,7 +476,7 @@ function SiteNav({
     const hasChildren = l.children && l.children.length > 0;
     if (!hasChildren) {
       const slug = slugFromHref(l.href);
-      return onNavigate && slug ? (
+      return editor?.onNavigatePage && slug ? (
         <button
           key={l.label}
           type="button"
@@ -487,7 +487,17 @@ function SiteNav({
           {l.label}
         </button>
       ) : (
-        <a key={l.label} href={resolveHref(l.href)} className="kebu-nav-link" style={{ fontSize: fontPx, fontFamily: fontFamily ? cssFontStack(fontFamily) : undefined, fontWeight }}>
+        <a key={l.label} href={(() => {
+                          const href = (l.href || "").trim();
+                          if (!href || href === "#") return siteBase || "/";
+                          if (href.startsWith("http") || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return href;
+                          if (href.startsWith("/")) {
+                            const base = siteBase.replace(/\/$/, "");
+                            return base ? `${base}${href === "/" ? "" : href}` : href;
+                          }
+                          const base = siteBase.replace(/\/$/, "");
+                          return base ? `${base}/${href}` : `/${href}`;
+                        })()} className="kebu-nav-link" style={{ fontSize: fontPx, fontFamily: fontFamily ? cssFontStack(fontFamily) : undefined, fontWeight }}>
           {l.label}
         </a>
       );
@@ -572,7 +582,7 @@ function SiteNav({
     const hasChildren = l.children && l.children.length > 0;
     if (!hasChildren) {
       const slug = slugFromHref(l.href);
-      return onNavigate && slug ? (
+      return editor?.onNavigatePage && slug ? (
         <button
           key={l.label}
           type="button"
@@ -2487,7 +2497,7 @@ export function SiteRenderer({
                 {makeFooterDragHandle("top")}
                 <p>
                   {p.text ||
-                    `© ${p.copyrightYear ?? new Date().getFullYear()} ${p.legalName || definition.name || ""}`.trim()}
+                    `© ${p.copyrightYear ?? new Date().getFullYear()} ${p.legalName || definition.title || ""}`.trim()}
                 </p>
                 <nav className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2" aria-label="Footer navigation">
                   {(p.links ?? []).map((l) => {
@@ -2496,11 +2506,11 @@ export function SiteRenderer({
                       raw && raw !== "#" && !raw.startsWith("http") && !raw.startsWith("mailto:") && !raw.startsWith("tel:")
                         ? (raw.replace(/^\//, "").split(/[?#]/)[0] || "home")
                         : null;
-                    return onNavigate && slug ? (
+                    return editor?.onNavigatePage && slug ? (
                       <button
                         key={`${l.label}-${l.href}`}
                         type="button"
-                        onClick={() => onNavigate(slug)}
+                        onClick={() => editor?.onNavigatePage?.(slug)}
                         className="hover:underline"
                         style={{ color: p.textColor ? "inherit" : undefined }}
                       >
