@@ -9,6 +9,7 @@ import { KebuOfflineBanner } from "@/app/components/kebu-offline-banner";
 import { KebuCommandPalette, CommandPaletteTrigger } from "@/app/components/kebu-command-palette";
 import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
+import { KebuNotifications } from "@/app/components/kebu/kebu-notifications";
 import { DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
@@ -85,6 +86,7 @@ export function AppShell({
                 {title}
               </p>
               <div className="flex items-center gap-2 shrink-0">
+                <KebuNotifications />
                 <KebuAccountCorner />
                 <Link href="/" className="shrink-0">
                   <KebuMark size={22} />
@@ -112,6 +114,7 @@ export function AppShell({
             <div className="flex items-center gap-3 shrink-0">
               <CommandPaletteTrigger />
               {actions}
+              <KebuNotifications />
               <KebuAccountCorner />
             </div>
           </div>
