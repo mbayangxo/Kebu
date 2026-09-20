@@ -679,6 +679,11 @@ export default function ProjectEditorPage() {
     setPublishing(true);
     setError(null);
     try {
+      const draftSaved = await saveDraftNow();
+      if (!draftSaved) {
+        setError("Kebu could not confirm your latest draft is saved yet. Fix the save issue, then publish again.");
+        return;
+      }
       await persistSiteSettings(subdomainInput.trim(), seoSettings);
       const res = await fetch(`/api/projects/${projectId}/publish`, {
         method: "POST",
