@@ -178,6 +178,10 @@ export function LegallyBlondeEditCanvas({
     color: String(props.titleTextColor ?? "#ffffff"),
   };
   const parallax = props.scrollMode !== "viewport";
+  const sectionMinHeightPx = Math.min(
+    1800,
+    Math.max(360, Number(props.sectionMinHeightPx ?? 720)),
+  );
   const extraCutouts = Array.isArray(props.extraCutouts)
     ? (props.extraCutouts as ExtraCut[])
     : [];
@@ -360,12 +364,9 @@ export function LegallyBlondeEditCanvas({
 
   const artboard = (
       <div
-        className={
-          fillCanvas
-            ? "relative h-full min-h-0 w-full flex-1 overflow-hidden"
-            : "relative min-h-[72vh] w-full overflow-hidden"
-        }
+        className="relative w-full flex-1 overflow-hidden"
         style={{
+          minHeight: sectionMinHeightPx,
           backgroundColor: String(props.accentColor ?? "#E9006B"),
           backgroundImage: bg ? `url(${bg})` : "none",
           backgroundSize: "cover",
@@ -617,17 +618,39 @@ export function LegallyBlondeEditCanvas({
             {toast}
           </div>
         ) : null}
+
+        <button
+          type="button"
+          aria-label="Resize hero section height"
+          className="absolute bottom-0 left-1/2 z-[95] h-3 w-20 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-white/80 bg-[#2C6ECB] shadow"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            selectElement("heroCanvas", "control", "Hero section");
+            const startY = event.clientY;
+            const startHeight = sectionMinHeightPx;
+            const onMove = (moveEvent: MouseEvent) => {
+              const next = Math.min(
+                1800,
+                Math.max(360, Math.round(startHeight + (moveEvent.clientY - startY))),
+              );
+              onPatch({ sectionMinHeightPx: next });
+            };
+            const onUp = () => {
+              window.removeEventListener("mousemove", onMove);
+              window.removeEventListener("mouseup", onUp);
+            };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp);
+          }}
+        />
       </div>
   );
 
   return (
     /* Fill the builder main pane edge-to-edge (Shopify-style) — no aspect-ratio strip. */
     <div
-      className={
-        fillCanvas
-          ? "relative flex h-full min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]"
-          : "relative flex min-h-[72vh] w-full flex-col bg-[#FFE4F0]"
-      }
+      className="relative flex min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]"
     >
       <input
         ref={fileRef}
