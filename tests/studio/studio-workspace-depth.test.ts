@@ -18,7 +18,7 @@ describe("Studio workspace depth", () => {
   it("keeps optimistic concurrency and explicit conflict resolution in the video editor", () => {
     const editor = readFileSync(join(root, "app/studio/video/[id]/page.tsx"), "utf8");
     expect(editor).toContain("studio_video_version_conflict");
-    expect(editor).toContain("useServerConflictVersion");
+    expect(editor).toContain("applyServerConflictVersion");
     expect(editor).toContain("keepLocalConflictVersion");
     expect(editor).toContain("expectedUpdatedAt: conflictServer.updatedAt");
   });
