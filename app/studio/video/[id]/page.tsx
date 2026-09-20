@@ -36,6 +36,12 @@ import {
   type AudioReactivePreset,
 } from "@/lib/studio/keyframes";
 import { applyAiMusicCommand } from "@/lib/studio/ai-music-edit";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
+import {
+  getStudioVideoOfflineDraft,
+  putStudioVideoOfflineDraft,
+  studioVideoOfflineSupported,
+} from "@/lib/studio/video-offline-drafts";
 
 const HISTORY_CAP = 40;
 
@@ -51,6 +57,8 @@ export default function StudioVideoEditorPage() {
   const [note, setNote] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [businessId, setBusinessId] = useState<string | null>(null);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -75,18 +83,75 @@ export default function StudioVideoEditorPage() {
   const soundtrackRef = useRef<HTMLAudioElement>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/studio/video/${projectId}`, { credentials: "include" });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : "Project not found.");
-      return;
+    try {
+      const res = await fetch(`/api/studio/video/${projectId}`, { credentials: "include", cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Project not found.");
+        return;
+      }
+
+      const supabase = createBrowserSupabaseClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const nextUserId = sessionData.session?.user.id ?? null;
+      const serverComposition = data.project.composition as StudioComposition;
+      const nextUpdatedAt = typeof data.project.updated_at === "string" ? data.project.updated_at : null;
+      const nextBusinessId = typeof data.project.business_id === "string" ? data.project.business_id : null;
+      let initialComposition = serverComposition;
+      let initialTitle = data.project.title as string;
+      let hasDirtyLocal = false;
+
+      if (nextUserId && studioVideoOfflineSupported()) {
+        const local = await getStudioVideoOfflineDraft(nextUserId, projectId).catch(() => null);
+        if (local?.dirty) {
+          initialComposition = local.composition;
+          initialTitle = local.title;
+          hasDirtyLocal = true;
+        }
+      }
+
+      setUserId(nextUserId);
+      setBusinessId(nextBusinessId);
+      setTitle(initialTitle);
+      setComp(initialComposition);
+      setServerUpdatedAt(nextUpdatedAt);
+      compRef.current = initialComposition;
+      setHistory([]);
+      setFuture([]);
+      setSaveState(hasDirtyLocal ? "offline" : "idle");
+      setError(null);
+    } catch {
+      if (!studioVideoOfflineSupported()) {
+        setError("You are offline and this video is not available locally yet.");
+        return;
+      }
+      try {
+        const supabase = createBrowserSupabaseClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const offlineUserId = sessionData.session?.user.id ?? null;
+        if (!offlineUserId) {
+          setError("Reconnect to verify your Kebu account before opening an offline Studio video.");
+          return;
+        }
+        const local = await getStudioVideoOfflineDraft(offlineUserId, projectId);
+        if (!local) {
+          setError("You are offline and this video has not been saved on this device yet.");
+          return;
+        }
+        setUserId(offlineUserId);
+        setBusinessId(local.businessId);
+        setTitle(local.title);
+        setComp(local.composition);
+        compRef.current = local.composition;
+        setServerUpdatedAt(local.serverUpdatedAt);
+        setHistory([]);
+        setFuture([]);
+        setSaveState("offline");
+        setError(null);
+      } catch {
+        setError("Could not open the offline Studio video draft.");
+      }
     }
-    setTitle(data.project.title);
-    setComp(data.project.composition);
-    setServerUpdatedAt(typeof data.project.updated_at === "string" ? data.project.updated_at : null);
-    compRef.current = data.project.composition;
-    setHistory([]);
-    setFuture([]);
   }, [projectId]);
 
   useEffect(() => {
@@ -109,6 +174,21 @@ export default function StudioVideoEditorPage() {
 
   const persist = useCallback(
     async (next: StudioComposition, nextTitle?: string) => {
+      const effectiveTitle = nextTitle ?? title;
+      const savedAt = new Date().toISOString();
+      if (userId && studioVideoOfflineSupported()) {
+        await putStudioVideoOfflineDraft({
+          userId,
+          projectId,
+          title: effectiveTitle,
+          composition: next,
+          businessId,
+          serverUpdatedAt,
+          savedAt,
+          dirty: true,
+        }).catch(() => undefined);
+      }
+
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         setSaveState("offline");
         return;
@@ -121,14 +201,14 @@ export default function StudioVideoEditorPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             composition: next,
-            title: nextTitle ?? title,
+            title: effectiveTitle,
             expectedUpdatedAt: serverUpdatedAt ?? undefined,
           }),
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 409 && data.code === "studio_video_version_conflict") {
           setSaveState("conflict");
-          setError("This video changed in another tab or device. Reload the newer version before overwriting it.");
+          setError("This video changed in another tab or device. Your local draft is safe; reload to review the newer version.");
           return;
         }
         if (!res.ok || !data.project) {
@@ -136,7 +216,20 @@ export default function StudioVideoEditorPage() {
           setError(typeof data.error === "string" ? data.error : "Could not save video project.");
           return;
         }
-        setServerUpdatedAt(typeof data.project.updated_at === "string" ? data.project.updated_at : serverUpdatedAt);
+        const nextUpdatedAt = typeof data.project.updated_at === "string" ? data.project.updated_at : serverUpdatedAt;
+        setServerUpdatedAt(nextUpdatedAt);
+        if (userId && studioVideoOfflineSupported()) {
+          await putStudioVideoOfflineDraft({
+            userId,
+            projectId,
+            title: effectiveTitle,
+            composition: next,
+            businessId,
+            serverUpdatedAt: nextUpdatedAt,
+            savedAt: new Date().toISOString(),
+            dirty: false,
+          }).catch(() => undefined);
+        }
         setSaveState("saved");
         setError(null);
         setTimeout(() => setSaveState("idle"), 1600);
@@ -144,7 +237,7 @@ export default function StudioVideoEditorPage() {
         setSaveState("offline");
       }
     },
-    [projectId, title, serverUpdatedAt],
+    [projectId, title, serverUpdatedAt, userId, businessId],
   );
 
   function applyComp(next: StudioComposition, recordHistory = true) {
@@ -166,6 +259,24 @@ export default function StudioVideoEditorPage() {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
   }, [comp, persist]);
+
+  useEffect(() => {
+    function onOnline() {
+      if (!compRef.current || saveState === "conflict") return;
+      void persist(compRef.current);
+    }
+    function onOffline() {
+      setSaveState("offline");
+    }
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    if (!navigator.onLine) setSaveState("offline");
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [persist, saveState]);
+
 
   useEffect(() => {
     if (!playing || !comp) return;
