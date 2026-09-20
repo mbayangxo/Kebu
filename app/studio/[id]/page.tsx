@@ -150,9 +150,10 @@ export default function StudioEditorPage() {
         }
 
         setUserId(offlineUserId);
+        const offlineRole = local.accessRole ?? "viewer";
         setAccess({
-          role: "owner",
-          canEdit: true,
+          role: offlineRole,
+          canEdit: offlineRole === "owner" || offlineRole === "editor",
           canDelete: false,
           canShare: false,
         } as StudioDesignAccess);
@@ -160,7 +161,7 @@ export default function StudioEditorPage() {
           id: designId,
           title: local.designTitle || "Offline Studio design",
           design_type: local.designType,
-          business_id: null,
+          business_id: local.businessId ?? null,
           canvas: local.canvas,
           updated_at: local.serverUpdatedAt ?? local.savedAt,
         });
@@ -211,6 +212,8 @@ export default function StudioEditorPage() {
           designTitle: design?.title ?? "Studio design",
           canvas,
           designType: effectiveType,
+          businessId: design?.business_id ?? null,
+          accessRole: access?.role ?? null,
           serverUpdatedAt,
           savedAt,
           dirty: true,
@@ -268,6 +271,8 @@ export default function StudioEditorPage() {
             designTitle: design?.title ?? "Studio design",
             canvas,
             designType: effectiveType,
+            businessId: design?.business_id ?? null,
+            accessRole: access?.role ?? null,
             serverUpdatedAt: nextUpdatedAt,
             savedAt: new Date().toISOString(),
             dirty: false,
@@ -282,7 +287,7 @@ export default function StudioEditorPage() {
         setSyncState("offline");
       }
     },
-    [designId, canEdit, design?.design_type, design?.title, serverUpdatedAt, userId],
+    [designId, canEdit, design?.business_id, design?.design_type, design?.title, access?.role, serverUpdatedAt, userId],
   );
 
   function applyDoc(next: CanvasDocument, recordHistory: boolean) {
