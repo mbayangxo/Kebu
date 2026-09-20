@@ -30,6 +30,7 @@ import {
   STUDIO_ELEMENTS_PACK,
   type StudioElementDef,
 } from "@/lib/studio/elements-pack";
+import { mediaFilterCss } from "@/lib/studio/media-adjustments";
 import {
   cssStackForStudioFont,
   googleFontsHrefForStudioCatalog,
@@ -49,10 +50,12 @@ function TimelineVideo({
   url,
   trimStartMs,
   pageLocalMs,
+  filterCss,
 }: {
   url: string;
   trimStartMs: number;
   pageLocalMs: number;
+  filterCss?: string;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -77,6 +80,7 @@ function TimelineVideo({
       ref={ref}
       src={url}
       className="w-full h-full object-cover pointer-events-none"
+      style={{ filter: filterCss }}
       muted
       playsInline
       preload="auto"
@@ -1004,6 +1008,7 @@ export function StudioCanvasEditor({
                               marginTop: `${(-crop.y / crop.h) * 100}%`,
                               objectFit: "fill" as const,
                               transform: `scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,
+                              filter: mediaFilterCss(layer),
                             };
                           })()}
                         />
@@ -1013,6 +1018,7 @@ export function StudioCanvasEditor({
                         url={layer.videoUrl}
                         trimStartMs={layer.trimStartMs ?? 0}
                         pageLocalMs={previewLocalMs}
+                        filterCss={mediaFilterCss(layer)}
                       />
                     ) : layer.type === "ellipse" ? (
                       <div
