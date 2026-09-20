@@ -48,6 +48,7 @@ export function BuilderSiteChromePanel({
     faviconUrl?: string;
     fontFamily?: string;
     fontWeight?: number;
+    navStyle?: "standard" | "mega";
   };
 
   const footerProps = (chrome.footer?.props ?? { text: "", links: [], bgColor: "", textColor: "" }) as {
@@ -198,6 +199,18 @@ export function BuilderSiteChromePanel({
               <option value="800">Extra bold</option>
               <option value="900">Black</option>
             </select>
+          </PanelSection>
+          <PanelSection title="Menu behavior" group="chrome-header">
+            <div className="grid grid-cols-2 gap-1">
+              {(["standard", "mega"] as const).map((style) => (
+                <button key={style} type="button"
+                  className="rounded-lg border border-black/10 px-2 py-2 text-[10px] font-bold capitalize"
+                  style={{ background: (headerProps.navStyle ?? "standard") === style ? "#0F0D33" : "#fff", color: (headerProps.navStyle ?? "standard") === style ? "#fff" : "#0F0D33" }}
+                  onClick={() => onPatch({ navStyle: style })}>
+                  {style === "mega" ? "Mega menu" : "Dropdown"}
+                </button>
+              ))}
+            </div>
           </PanelSection>
           <PanelSection title="Nav links" group="chrome-header">
             <NavLinksEditor
