@@ -54,6 +54,18 @@ Security is implemented per slice, not deferred. **Nothing is “unhackable”**
 - `tests/security/admin-session.test.ts` — signed admin cookie + origin guard  
 - `tests/create/support-access.test.ts` — support allowlist  
 
+## Automated repository security
+
+`.github/workflows/security.yml` runs CodeQL on protected development branches,
+pull requests to `main`, and a weekly schedule. Pull requests also run GitHub
+dependency review and reject newly introduced high/critical vulnerable
+dependencies. `.github/dependabot.yml` proposes bounded weekly npm and GitHub
+Actions updates.
+
+GitHub secret scanning and push protection are repository settings rather than
+workflow files. Their live state must be verified in GitHub before they are
+reported as active.
+
 ## Reporting
 
 Production incidents: document in `docs/decisions/` as ADR + fix + regression test.
