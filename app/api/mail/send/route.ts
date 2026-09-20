@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/create/auth";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { sendInternetMail, type MailProviderAttachment } from "@/lib/mail/provider";
 import { canonicalAddress, mailThreadIdentity } from "@/lib/mail/threading";
+import { assertMailboxSendAccess } from "@/lib/mail/business-mail";
 
 export const dynamic = "force-dynamic";
 
@@ -108,13 +109,13 @@ export async function POST(req: Request) {
   const to = parsed.data.to.map(canonicalAddress);
   const cc = parsed.data.cc.map(canonicalAddress);
 
-  const { data: mailbox } = await supabase
-    .from("mailboxes")
-    .select("id, address, display_name")
-    .eq("id", parsed.data.mailboxId)
-    .eq("is_active", true)
-    .maybeSingle();
-  if (!mailbox) return NextResponse.json({ error: "Mailbox not available." }, { status: 403 });
+  const mailbox = await assertMailboxSendAccess(supabase, user.id, parsed.data.mailboxId);
+  if (!mailbox) {
+    return NextResponse.json(
+      { error: "You do not have permission to send from this mailbox." },
+      { status: 403 },
+    );
+  }
 
   let draft: {
     id: string;
@@ -328,6 +329,19 @@ export async function POST(req: Request) {
 
     internalDelivered += 1;
   }
+
+  await supabase.from("mail_audit_events").insert({
+    mailbox_id: mailbox.id,
+    business_id: mailbox.business_id ?? null,
+    actor_user_id: user.id,
+    event_type: "mail.sent",
+    metadata: {
+      recipientCount: allRecipientAddresses.length,
+      externalRecipientCount: externalTo.length + externalCc.length,
+      attachmentCount: attachmentRows.length,
+      threadId: senderThreadId,
+    },
+  });
 
   return NextResponse.json({
     ok: true,
