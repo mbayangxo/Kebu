@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { BUILDER } from "@/lib/create/builder-ui";
+import { useBuilderAccordion } from "@/app/components/create/use-builder-accordion";
 
 export function PanelSection({
   title,
@@ -14,10 +15,12 @@ export function PanelSection({
   defaultOpen?: boolean;
   group?: string;
 }) {
+  const { open, setAccordionOpen } = useBuilderAccordion(group, defaultOpen);
+
   return (
     <details
-      open={defaultOpen}
-      name={group}
+      open={open}
+      onToggle={(event) => setAccordionOpen(event.currentTarget.open)}
       className="group/ps overflow-hidden"
       style={{ border: `1px solid ${BUILDER.border}`, borderRadius: 10 }}
     >
