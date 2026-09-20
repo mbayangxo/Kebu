@@ -748,7 +748,7 @@ export function LegallyBlondeHeroLayout({
         }),
       )}
       {extraCutouts
-        .filter((c) => c.src)
+        .filter((c) => c.src && !(props.hiddenLayers ?? []).includes(c.id))
         .map((photo) => {
           const scale = props.layerScales?.[photo.id] ?? 1;
           return (
@@ -861,7 +861,7 @@ export function LegallyBlondeHeroLayout({
                 }),
               )}
               {extraCutouts
-                .filter((c) => c.src)
+                .filter((c) => c.src && !(props.hiddenLayers ?? []).includes(c.id))
                 .map((photo) => {
                   const scale = props.layerScales?.[photo.id] ?? 1;
                   return (
