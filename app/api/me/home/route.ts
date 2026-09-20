@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/opportunity/admin";
 import { rowToOpportunityProfile } from "@/lib/opportunity/intake-schema";
 import { toPersonalizationSummary } from "@/lib/account/kebu-personalization";
 import { ensureAfriqueIdForUser } from "@/lib/afrique-id/ensure-afrique-id";
+import { parseKebuSetup } from "@/lib/account/kebu-setup";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +18,11 @@ export async function GET() {
 
   const { data: profileRow } = await supabase
     .from("user_profiles")
-    .select("id, name, email, avatar_url, residence_country")
+    .select("id, name, email, avatar_url, residence_country, kebu_setup")
     .eq("id", user.id)
     .maybeSingle();
+
+  const setup = parseKebuSetup(profileRow?.kebu_setup);
 
   const profile = profileRow
     ? rowToMeProfile(profileRow)
@@ -337,6 +340,7 @@ export async function GET() {
       exploreHref: personalization.needsIntake ? "/welcome?next=/opportunity" : "/opportunity",
     },
     personalization,
+    setup,
     updates: updates.slice(0, 12),
   };
 
