@@ -56,6 +56,7 @@ import { themeToCssVars } from "@/lib/create/site-aesthetics";
 import { dataModeSiteClass, preferSystemFonts, type DataMode } from "@/lib/create/data-mode";
 import { definitionHasShop } from "@/lib/create/site-shop";
 import { labelForSectionType } from "@/lib/create/builder-section-catalog";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { BuilderInlineSectionDivider } from "@/app/components/create/builder-inline-section-divider";
 import "./kebu-site-responsive.css";
 
@@ -115,10 +116,12 @@ function sectionAnchor(section: { id?: string; type: string }): string | undefin
 
 export type SiteRendererEditor = {
   selectedSectionId?: string | null;
+  selectedElement?: BuilderElementSelection | null;
   inlineEdit?: boolean;
   /** Force desktop/tablet/phone layout while editing in the builder. */
   editDevice?: import("@/lib/create/builder-device").BuilderDevice;
   onSelectSection?: (sectionId: string) => void;
+  onSelectElement?: (selection: BuilderElementSelection) => void;
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock?: (sectionId: string, blockId: string, x: number, y: number) => void;
   /** Switch the builder preview to another site page (keeps you in the editor). */
