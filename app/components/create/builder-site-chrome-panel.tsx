@@ -64,14 +64,14 @@ export function BuilderSiteChromePanel({
       <button
         type="button"
         onClick={onSelect}
-        className="flex w-full items-center gap-3 rounded-xl border border-black/[0.08] bg-white p-3 text-left outline-none transition hover:border-black/15 hover:shadow-[0_4px_16px_rgba(10,10,10,0.04)] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+        className="flex w-full items-center gap-2.5 rounded-lg border border-black/[0.08] bg-white p-2.5 text-left outline-none transition hover:border-black/15 hover:bg-black/[.015] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FFF3E8] text-sm font-black text-[#FF6A00]" aria-hidden>{part === "header" ? "H" : "F"}</span>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#FFF3E8] text-[11px] font-bold text-[#C95000]" aria-hidden>{part === "header" ? "H" : "F"}</span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[11px] font-black text-black">{part === "header" ? "Site header" : "Site footer"}</span>
+          <span className="block text-[11px] font-semibold text-black">{part === "header" ? "Site header" : "Site footer"}</span>
           <span className="mt-0.5 block text-[9px] leading-snug text-black/40">{part === "header" ? "Brand, logo, navigation and menu behavior · all pages" : "Copyright, links, typography and colors · all pages"}</span>
         </span>
-        <span className="text-black/30" aria-hidden>›</span>
+        <span className="text-black/30" aria-hidden>→</span>
       </button>
     );
   }
@@ -128,7 +128,7 @@ export function BuilderSiteChromePanel({
                   <option value="400">Regular · 400</option><option value="500">Medium · 500</option><option value="600">Semibold · 600</option><option value="700">Bold · 700</option><option value="800">Extra bold · 800</option><option value="900">Black · 900</option>
                 </select>
               </GalaxyFieldLabel>
-              <div className="rounded-xl border border-black/[0.08] bg-[#FAFAF8] p-3">
+              <div className="rounded-lg border border-black/[0.07] bg-[#FAFAF8] p-2.5">
                 <p className="text-[16px] leading-tight text-black" style={{ fontFamily: headerProps.fontFamily || "inherit", fontWeight: headerProps.fontWeight ?? 700 }}>Home · About · Shop</p>
                 <p className="mt-1 text-[9px] text-black/35">Navigation preview</p>
               </div>
