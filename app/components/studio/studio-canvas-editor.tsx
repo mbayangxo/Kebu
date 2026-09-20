@@ -24,6 +24,8 @@ import {
   nudgeLayersWithinArtboard,
   snapLayerPosition,
 } from "@/lib/studio/editor-craft";
+import { GalaxyToolRail } from "@/app/components/galaxy/editor-primitives";
+import { StudioIcon } from "@/app/components/studio/studio-icons";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
 import type { BrandSpace } from "@/lib/studio/brand-space";
 import { StudioBrandSpacePanel } from "@/app/components/studio/studio-brand-space-panel";
@@ -99,6 +101,8 @@ function TimelineVideo({
 
 const FONT_OPTIONS = studioFontFamilies();
 const STUDIO_FONTS_HREF = googleFontsHrefForStudioCatalog();
+
+const STUDIO_RAIL=[{id:"elements",label:"Elements",icon:<StudioIcon name="elements"/>},{id:"layers",label:"Layers",icon:<StudioIcon name="layers"/>},{id:"uploads",label:"Media",icon:<StudioIcon name="uploads"/>},{id:"themes",label:"Themes",icon:<StudioIcon name="themes"/>},{id:"brand",label:"Brand",icon:<StudioIcon name="brand"/>},{id:"tools",label:"Tools",icon:<StudioIcon name="tools"/>}];
 
 const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string; minSelection?: number }[] = [
   { mode: "left", label: "L", title: "Align left" },
@@ -764,21 +768,7 @@ export function StudioCanvasEditor({
         <div className="absolute bottom-4 left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-2xl border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black">Add & layers</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white">Inspector</button></div>
         {/* Left: Elements / Layers */}
         <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-black/10 bg-[#FFFCF8] shadow-2xl md:static md:flex md:w-[268px] md:shrink-0 md:rounded-none md:border-y-0 md:border-l-0 md:shadow-none`}>
-          <div className="grid grid-cols-6 border-b border-black/10">
-            {(["elements", "layers", "uploads", "themes", "brand", "tools"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setLeftTab(t)}
-                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider ${
-                  leftTab === t ? "border-b-2 border-orange-600 text-orange-700" : "opacity-50"
-                }`}
-              >
-                {t === "uploads" ? "Media" : t === "brand" ? "Brand" : t}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <GalaxyToolRail items={STUDIO_RAIL} value={leftTab} onChange={(id)=>setLeftTab(id as typeof leftTab)}/><div className="flex-1 overflow-y-auto p-3 space-y-3">
             {leftTab === "themes" ? <StudioThemesPanel document={doc} readOnly={readOnly} onApply={onChange}/> : null}
             {leftTab === "brand" ? <StudioBrandSpacePanel document={doc} readOnly={readOnly} onApply={onChange} onBrandSpace={setBrandSpace} onInsertLogo={(url,label)=>addLayer("image",{imageUrl:url,name:label,width:220,height:120,objectFit:"contain"})}/> : null}
             {leftTab === "brand" ? (
