@@ -5,6 +5,10 @@ import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
 import { BUILDER } from "@/lib/create/builder-ui";
 import {
+  GalaxyEmptyState,
+  GalaxyPanelHeader,
+} from "@/app/components/galaxy/editor-primitives";
+import {
   KEBU_ASSET_DRAG_MIME,
   type KebuDragAsset,
 } from "@/lib/create/builder-media-drop";
@@ -81,13 +85,19 @@ export function SiteAssetsPanel({
   });
 
   return (
-    <div className="space-y-3">
+    <div>
+      <GalaxyPanelHeader
+        eyebrow="Library"
+        title="Assets"
+        description="Upload once, then reuse photos, video, and audio across this site."
+      />
+      <div className="space-y-3 p-3">
       {/* Upload section — collapsed by default to keep library front-and-center */}
       <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BUILDER.border}` }}>
         <button
           type="button"
-          className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-wider"
-          style={{ color: BUILDER.ink, background: "#FAFAF8" }}
+          className="flex min-h-10 w-full items-center justify-between px-3 py-2 text-[10px] font-black uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+          style={{ color: BUILDER.ink, background: BUILDER.surfaceMuted }}
           onClick={() => setUploadExpanded((v) => !v)}
         >
           <span>+ Upload new file</span>
@@ -138,10 +148,10 @@ export function SiteAssetsPanel({
           <button
             key={id}
             type="button"
-            className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+            className="min-h-8 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
             style={{
-              background: filter === id ? BUILDER.ink : "#fff",
-              color: filter === id ? "#fff" : BUILDER.muted,
+              background: filter === id ? BUILDER.orangeGlow : "#fff",
+              color: filter === id ? BUILDER.ink : BUILDER.muted,
               border: `1px solid ${BUILDER.border}`,
             }}
             onClick={() => setFilter(id)}
@@ -204,10 +214,12 @@ export function SiteAssetsPanel({
           })}
         </div>
       ) : !loading ? (
-        <p className="text-[10px] opacity-50 text-center py-4">
-          No files yet — upload one above.
-        </p>
+        <GalaxyEmptyState
+          title="Your library is empty"
+          detail="Upload a photo, video, logo, or song above. It will stay available for this site."
+        />
       ) : null}
+      </div>
     </div>
   );
 }

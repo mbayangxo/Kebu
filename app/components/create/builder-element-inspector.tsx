@@ -117,7 +117,7 @@ export function BuilderElementInspector({
         {device !== "desktop" && responsiveOverrideActive ? (
           <button
             type="button"
-            className="mt-3 text-[11px] font-semibold text-[#2C6ECB] hover:underline"
+            className="mt-3 text-[11px] font-bold text-[#FF6A00] hover:underline"
             onClick={() => onResetResponsive(responsiveKeys)}
           >
             Reset this object to desktop
@@ -134,7 +134,7 @@ export function BuilderElementInspector({
             Section height
             <div className="mt-1.5 flex items-center gap-2">
               <input
-                className="min-w-0 flex-1 accent-[#2C6ECB]"
+                className="min-w-0 flex-1 accent-[#FF6A00]"
                 type="range"
                 min="360"
                 max="1800"
@@ -346,7 +346,7 @@ export function BuilderElementInspector({
           <label className="block text-[11px] font-semibold text-black/65">
             Text
             <input
-              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#2C6ECB]"
+              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15"
               value={String(sectionProps.title ?? "")}
               onChange={(event) =>
                 onPatch({
@@ -362,7 +362,7 @@ export function BuilderElementInspector({
             Font
             <input
               list="kebu-builder-fonts"
-              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#2C6ECB]"
+              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15"
               value={String(sectionProps.titleTextFontFamily ?? "Impact")}
               onChange={(event) => onPatch({ titleTextFontFamily: event.target.value })}
             />
@@ -474,7 +474,7 @@ export function BuilderElementInspector({
             Opacity
             <div className="mt-1.5 flex items-center gap-2">
               <input
-                className="min-w-0 flex-1 accent-[#2C6ECB]"
+                className="min-w-0 flex-1 accent-[#FF6A00]"
                 type="range"
                 min="0"
                 max="1"
@@ -498,7 +498,7 @@ export function BuilderElementInspector({
             Rotation
             <div className="mt-1.5 flex items-center gap-2">
               <input
-                className="min-w-0 flex-1 accent-[#2C6ECB]"
+                className="min-w-0 flex-1 accent-[#FF6A00]"
                 type="range"
                 min="-180"
                 max="180"
@@ -587,7 +587,7 @@ export function BuilderElementInspector({
         Object size
         <div className="mt-1.5 flex items-center gap-2">
           <input
-            className="min-w-0 flex-1 accent-[#2C6ECB]"
+            className="min-w-0 flex-1 accent-[#FF6A00]"
             type="range"
             min="0.15"
             max="3"
@@ -666,7 +666,7 @@ export function BuilderElementInspector({
         Layer depth
         <div className="mt-1.5 flex items-center gap-2">
           <input
-            className="min-w-0 flex-1 accent-[#2C6ECB]"
+            className="min-w-0 flex-1 accent-[#FF6A00]"
             type="range"
             min="1"
             max="80"

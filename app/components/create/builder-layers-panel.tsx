@@ -1,7 +1,12 @@
 "use client";
 
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
-import { GalaxyBadge, GalaxyButton } from "@/app/components/galaxy/editor-primitives";
+import {
+  GalaxyBadge,
+  GalaxyButton,
+  GalaxyEmptyState,
+  GalaxyPanelHeader,
+} from "@/app/components/galaxy/editor-primitives";
 import { patchBuilderLayerStack } from "@/lib/create/builder-layer-model";
 
 type LayerRow = {
@@ -82,16 +87,16 @@ export function BuilderLayersPanel({
   }
 
   return (
-    <div className="space-y-3 px-3 py-3">
-      <div>
-        <p className="text-[13px] font-semibold text-black">Layers</p>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-black/50">
-          Select, hide, or lock objects without hunting for them on the canvas.
-        </p>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
-        {rows.map((row, index) => {
+    <div>
+      <GalaxyPanelHeader
+        eyebrow="Canvas"
+        title="Layers"
+        description="Select, arrange, hide, or lock objects without hunting on the canvas."
+      />
+      <div className="space-y-3 p-3">
+        {rows.length > 0 ? (
+          <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
+            {rows.map((row, index) => {
           const active =
             selectedElement?.sectionId === sectionId &&
             selectedElement.elementId === row.elementId;
@@ -101,18 +106,18 @@ export function BuilderLayersPanel({
               : hidden.includes(row.storageKey);
           const isLocked = locked.includes(row.storageKey);
 
-          return (
+              return (
             <div
               key={row.elementId}
               className="flex items-center gap-2 px-2.5 py-2"
               style={{
                 borderTop: index === 0 ? undefined : "1px solid rgba(0,0,0,0.06)",
-                background: active ? "#F3F6FF" : "#fff",
+                background: active ? "rgba(255,106,0,0.08)" : "#fff",
               }}
             >
               <button
                 type="button"
-                className="min-w-0 flex-1 text-left"
+                className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 onClick={() =>
                   onSelect({
                     sectionId,
@@ -167,23 +172,30 @@ export function BuilderLayersPanel({
                 {isLocked ? "Unlock" : "Lock"}
               </button>
             </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        ) : (
+          <GalaxyEmptyState
+            title="No editable layers"
+            detail="Select a freeform section on the canvas to see and arrange its objects."
+          />
+        )}
 
-      <GalaxyButton
-        className="w-full"
-        onClick={() =>
-          onSelect({
-            sectionId,
-            elementId: "heroCanvas",
-            kind: "control",
-            label: "Hero section",
-          })
-        }
-      >
-        Edit section height
-      </GalaxyButton>
+        <GalaxyButton
+          className="w-full"
+          onClick={() =>
+            onSelect({
+              sectionId,
+              elementId: "heroCanvas",
+              kind: "control",
+              label: "Hero section",
+            })
+          }
+        >
+          Edit section height
+        </GalaxyButton>
+      </div>
     </div>
   );
 }

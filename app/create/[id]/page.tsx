@@ -1345,7 +1345,7 @@ export default function ProjectEditorPage() {
               ) : null}
 
               {sidebarTab === "media" && (
-                <div className="px-4 py-4">
+                <div>
                   <SiteAssetsPanel
                     projectId={projectId}
                     onUseOnSite={(asset) => void applyMediaAsset(asset)}

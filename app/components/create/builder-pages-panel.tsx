@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BUILDER } from "@/lib/create/builder-ui";
 import { isValidPageSlug, normalizePageSlug } from "@/lib/create/builder-pages";
+import { GalaxyPanelHeader } from "@/app/components/galaxy/editor-primitives";
 
 export type BuilderPageRow = {
   id: string;
@@ -159,19 +160,20 @@ export function BuilderPagesPanel({
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: BUILDER.border }}>
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: BUILDER.muted }}>Pages</p>
-        <button
+      <GalaxyPanelHeader
+        eyebrow="Structure"
+        title="Pages"
+        description="Choose what you are editing, organize hierarchy, and control page URLs."
+        action={<button
           type="button"
           disabled={working}
           onClick={() => { setAdding((v) => !v); setEditingId(null); }}
-          className="text-[10px] font-bold"
+          className="min-h-8 rounded-full px-2.5 text-[9px] font-black uppercase tracking-wide outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] disabled:opacity-40"
           style={{ color: BUILDER.orange }}
         >
           {adding ? "Cancel" : "+ New page"}
-        </button>
-      </div>
+        </button>}
+      />
 
       {/* Add page form */}
       {adding ? (
