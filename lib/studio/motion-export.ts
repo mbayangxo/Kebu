@@ -93,6 +93,15 @@ export async function exportCanvasMotionToWebmBlob(
     const at = pageLocalTimeMs(working, globalMs);
     if (!at) break;
 
+    const currentPage = getPage(working, at.clip.pageId);
+    const transitionKind = currentPage.transitionKind ?? "cut";
+    const transitionDurationMs = Math.max(0, currentPage.transitionDurationMs ?? 400);
+    const clipIndex = clips.findIndex((clip) => clip.pageId === at.clip.pageId);
+    const transitionProgress =
+      clipIndex > 0 && transitionKind !== "cut" && transitionDurationMs > 0 && at.localMs < transitionDurationMs
+        ? Math.max(0, Math.min(1, at.localMs / transitionDurationMs))
+        : null;
+
     const dataUrl = await exportCanvasToPngDataUrlAsync(working, scale, at.clip.pageId, {
       pageLocalTimeMs: at.localMs,
       videoCache,
@@ -108,8 +117,34 @@ export async function exportCanvasMotionToWebmBlob(
       stream.getTracks().forEach((t) => t.stop());
       return { error: "Could not load rendered frame." };
     }
+
     ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
+
+    if (transitionProgress != null) {
+      const previousClip = clips[clipIndex - 1]!;
+      const previousUrl = await exportCanvasToPngDataUrlAsync(working, scale, previousClip.pageId, {
+        pageLocalTimeMs: Math.max(0, previousClip.durationMs - 1),
+        videoCache,
+      });
+      const previous = previousUrl ? await loadDataUrlImage(previousUrl) : null;
+      if (previous) {
+        if (transitionKind === "slide") {
+          ctx.globalAlpha = 1;
+          ctx.drawImage(previous, -width * transitionProgress, 0, width, height);
+          ctx.drawImage(img, width * (1 - transitionProgress), 0, width, height);
+        } else {
+          ctx.globalAlpha = 1 - transitionProgress;
+          ctx.drawImage(previous, 0, 0, width, height);
+          ctx.globalAlpha = transitionProgress;
+          ctx.drawImage(img, 0, 0, width, height);
+          ctx.globalAlpha = 1;
+        }
+      } else {
+        ctx.drawImage(img, 0, 0, width, height);
+      }
+    } else {
+      ctx.drawImage(img, 0, 0, width, height);
+    }
     await sleep(frameInterval);
   }
 
