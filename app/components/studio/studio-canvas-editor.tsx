@@ -36,7 +36,14 @@ import {
   studioFontFamilies,
 } from "@/lib/studio/fonts-catalog";
 
-type DragMode = "move" | "resize-se" | null;
+type DragMode =
+  | "move"
+  | "resize-nw"
+  | "resize-ne"
+  | "resize-sw"
+  | "resize-se"
+  | "rotate"
+  | null;
 
 function TimelineVideo({
   url,
@@ -300,15 +307,45 @@ export function StudioCanvasEditor({
         return { ...l, x: src.x + adjX, y: src.y + adjY };
       });
       setPageLayers(nextLayers, true);
-    } else if (drag.mode === "resize-se") {
-      updateLayer(
-        drag.layerId,
-        {
-          width: Math.max(24, orig.width + dx),
-          height: Math.max(24, orig.height + dy),
-        },
-        true,
-      );
+    } else if (drag.mode === "rotate") {
+      const artboardBox = artboardRef.current?.getBoundingClientRect();
+      if (!artboardBox) return;
+      const cx = artboardBox.left + (orig.x + orig.width / 2) * displayScale;
+      const cy = artboardBox.top + (orig.y + orig.height / 2) * displayScale;
+      const startAngle = Math.atan2(drag.startY - cy, drag.startX - cx);
+      const nextAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+      const degrees = orig.rotation + ((nextAngle - startAngle) * 180) / Math.PI;
+      const snapped = e.shiftKey ? Math.round(degrees / 15) * 15 : degrees;
+      updateLayer(drag.layerId, { rotation: Math.max(-360, Math.min(360, snapped)) }, true);
+    } else if (drag.mode?.startsWith("resize-")) {
+      let x = orig.x;
+      let y = orig.y;
+      let width = orig.width;
+      let height = orig.height;
+      const min = 24;
+      if (drag.mode.includes("e")) width = Math.max(min, orig.width + dx);
+      if (drag.mode.includes("s")) height = Math.max(min, orig.height + dy);
+      if (drag.mode.includes("w")) {
+        const nextWidth = Math.max(min, orig.width - dx);
+        x = orig.x + (orig.width - nextWidth);
+        width = nextWidth;
+      }
+      if (drag.mode.includes("n")) {
+        const nextHeight = Math.max(min, orig.height - dy);
+        y = orig.y + (orig.height - nextHeight);
+        height = nextHeight;
+      }
+      if (e.shiftKey) {
+        const ratio = orig.width / Math.max(1, orig.height);
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          height = Math.max(min, width / ratio);
+          if (drag.mode.includes("n")) y = orig.y + (orig.height - height);
+        } else {
+          width = Math.max(min, height * ratio);
+          if (drag.mode.includes("w")) x = orig.x + (orig.width - width);
+        }
+      }
+      updateLayer(drag.layerId, { x, y, width, height }, true);
     }
   }
 
@@ -386,8 +423,13 @@ export function StudioCanvasEditor({
       fontSize: 32,
       fontFamily: "Fraunces",
       fontWeight: "700",
+      fontStyle: "normal",
       color: "#FFFFFF",
       textAlign: "left",
+      letterSpacing: 0,
+      lineHeight: 1.2,
+      textDecoration: "none",
+      textTransform: "none",
       fill: type === "frame" ? "transparent" : "#E05A2B",
       ...extras,
     };
@@ -912,6 +954,11 @@ export function StudioCanvasEditor({
                       height: layer.height,
                       transform: `rotate(${layer.rotation}deg)`,
                       opacity: layer.opacity,
+                      borderRadius: layer.cornerRadius ?? 0,
+                      filter:
+                        (layer.shadowBlur ?? 0) > 0 || (layer.shadowX ?? 0) !== 0 || (layer.shadowY ?? 0) !== 0
+                          ? `drop-shadow(${layer.shadowX ?? 0}px ${layer.shadowY ?? 0}px ${layer.shadowBlur ?? 0}px ${layer.shadowColor ?? "#00000055"})`
+                          : undefined,
                       cursor: spaceHeld ? "grab" : layer.locked ? "not-allowed" : "move",
                       pointerEvents: spaceHeld ? "none" : "auto",
                     }}
@@ -927,10 +974,14 @@ export function StudioCanvasEditor({
                           fontSize: layer.fontSize,
                           fontFamily: cssStackForStudioFont(layer.fontFamily ?? "system-ui"),
                           fontWeight: layer.fontWeight,
+                          fontStyle: layer.fontStyle ?? "normal",
                           color: layer.color,
                           textAlign: layer.textAlign,
+                          letterSpacing: layer.letterSpacing != null ? `${layer.letterSpacing}px` : undefined,
+                          lineHeight: layer.lineHeight ?? 1.2,
+                          textDecoration: layer.textDecoration ?? "none",
+                          textTransform: layer.textTransform === "none" ? undefined : layer.textTransform,
                           margin: 0,
-                          lineHeight: 1.2,
                           pointerEvents: "none",
                           wordBreak: "break-word",
                         }}
@@ -1016,10 +1067,27 @@ export function StudioCanvasEditor({
                       <div className="w-full h-full pointer-events-none" style={{ background: layer.fill }} />
                     )}
                     {selectedOn && !layer.locked && selectedLayerIds.length === 1 ? (
-                      <div
-                        className="absolute -right-1.5 -bottom-1.5 h-3.5 w-3.5 rounded-sm bg-orange-500 cursor-se-resize"
-                        onPointerDown={(e) => pointerDown(e, layer, "resize-se")}
-                      />
+                      <>
+                        {([
+                          ["-left-1.5 -top-1.5 cursor-nw-resize", "resize-nw"],
+                          ["-right-1.5 -top-1.5 cursor-ne-resize", "resize-ne"],
+                          ["-left-1.5 -bottom-1.5 cursor-sw-resize", "resize-sw"],
+                          ["-right-1.5 -bottom-1.5 cursor-se-resize", "resize-se"],
+                        ] as const).map(([classes, mode]) => (
+                          <div
+                            key={mode}
+                            className={`absolute ${classes} h-3.5 w-3.5 rounded-sm border border-white bg-orange-500`}
+                            onPointerDown={(e) => pointerDown(e, layer, mode)}
+                          />
+                        ))}
+                        <div className="absolute left-1/2 -top-8 h-6 w-px -translate-x-1/2 bg-orange-500" />
+                        <button
+                          type="button"
+                          aria-label="Rotate layer"
+                          className="absolute left-1/2 -top-11 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-white bg-orange-500 cursor-grab"
+                          onPointerDown={(e) => pointerDown(e, layer, "rotate")}
+                        />
+                      </>
                     ) : null}
                   </div>
                 );
@@ -1144,6 +1212,85 @@ export function StudioCanvasEditor({
                       <option value="right">Right</option>
                     </select>
                   </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block font-semibold">
+                      Weight
+                      <select
+                        value={selected.fontWeight ?? "400"}
+                        onChange={(e) => updateLayer(selected.id, { fontWeight: e.target.value })}
+                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      >
+                        <option value="300">Light</option>
+                        <option value="400">Regular</option>
+                        <option value="500">Medium</option>
+                        <option value="600">Semi bold</option>
+                        <option value="700">Bold</option>
+                        <option value="800">Extra bold</option>
+                        <option value="900">Black</option>
+                      </select>
+                    </label>
+                    <label className="block font-semibold">
+                      Style
+                      <select
+                        value={selected.fontStyle ?? "normal"}
+                        onChange={(e) => updateLayer(selected.id, { fontStyle: e.target.value as "normal" | "italic" })}
+                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="italic">Italic</option>
+                      </select>
+                    </label>
+                    <label className="block font-semibold">
+                      Letter space
+                      <input
+                        type="number"
+                        min={-20}
+                        max={100}
+                        step={0.5}
+                        value={selected.letterSpacing ?? 0}
+                        onChange={(e) => updateLayer(selected.id, { letterSpacing: Number(e.target.value) })}
+                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      />
+                    </label>
+                    <label className="block font-semibold">
+                      Line height
+                      <input
+                        type="number"
+                        min={0.6}
+                        max={3}
+                        step={0.05}
+                        value={selected.lineHeight ?? 1.2}
+                        onChange={(e) => updateLayer(selected.id, { lineHeight: Number(e.target.value) })}
+                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block font-semibold">
+                      Decoration
+                      <select
+                        value={selected.textDecoration ?? "none"}
+                        onChange={(e) => updateLayer(selected.id, { textDecoration: e.target.value as "none" | "underline" | "line-through" })}
+                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      >
+                        <option value="none">None</option>
+                        <option value="underline">Underline</option>
+                        <option value="line-through">Strike</option>
+                      </select>
+                    </label>
+                    <label className="block font-semibold">
+                      Case
+                      <select
+                        value={selected.textTransform ?? "none"}
+                        onChange={(e) => updateLayer(selected.id, { textTransform: e.target.value as "none" | "uppercase" | "lowercase" })}
+                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      >
+                        <option value="none">As typed</option>
+                        <option value="uppercase">UPPERCASE</option>
+                        <option value="lowercase">lowercase</option>
+                      </select>
+                    </label>
+                  </div>
                 </>
               ) : null}
               {(selected.type === "rect" || selected.type === "ellipse") && (
@@ -1317,6 +1464,81 @@ export function StudioCanvasEditor({
                   </label>
                 </div>
               ) : null}
+              <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Position · size</p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["X", "x", selected.x],
+                  ["Y", "y", selected.y],
+                  ["Width", "width", selected.width],
+                  ["Height", "height", selected.height],
+                ] as const).map(([label, key, value]) => (
+                  <label key={key} className="block font-semibold">
+                    {label}
+                    <input
+                      type="number"
+                      value={Math.round(value * 10) / 10}
+                      onChange={(e) => updateLayer(selected.id, { [key]: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Effects</p>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block font-semibold">
+                  Corner
+                  <input
+                    type="number"
+                    min={0}
+                    max={1000}
+                    value={selected.cornerRadius ?? 0}
+                    onChange={(e) => updateLayer(selected.id, { cornerRadius: Math.max(0, Number(e.target.value)) })}
+                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                  />
+                </label>
+                <label className="block font-semibold">
+                  Shadow blur
+                  <input
+                    type="number"
+                    min={0}
+                    max={200}
+                    value={selected.shadowBlur ?? 0}
+                    onChange={(e) => updateLayer(selected.id, { shadowBlur: Math.max(0, Number(e.target.value)) })}
+                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                  />
+                </label>
+                <label className="block font-semibold">
+                  Shadow X
+                  <input
+                    type="number"
+                    min={-200}
+                    max={200}
+                    value={selected.shadowX ?? 0}
+                    onChange={(e) => updateLayer(selected.id, { shadowX: Number(e.target.value) })}
+                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                  />
+                </label>
+                <label className="block font-semibold">
+                  Shadow Y
+                  <input
+                    type="number"
+                    min={-200}
+                    max={200}
+                    value={selected.shadowY ?? 0}
+                    onChange={(e) => updateLayer(selected.id, { shadowY: Number(e.target.value) })}
+                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                  />
+                </label>
+              </div>
+              <label className="block font-semibold">
+                Shadow color
+                <input
+                  type="color"
+                  value={(selected.shadowColor ?? "#000000").slice(0, 7)}
+                  onChange={(e) => updateLayer(selected.id, { shadowColor: e.target.value })}
+                  className="mt-1 h-9 w-full rounded-lg border border-black/10"
+                />
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block font-semibold">
                   Opacity
