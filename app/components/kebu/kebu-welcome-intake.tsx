@@ -56,6 +56,10 @@ const TOOL_ICONS: Record<KebuToolId, KebuIconName> = {
   chat: "message",
   library: "library",
   spaces: "spaces",
+  docs: "work",
+  tasks: "work",
+  calendar: "calendar",
+  people: "people",
 };
 
 function toggleIn<T extends string>(items: T[], value: T): T[] {
