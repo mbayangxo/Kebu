@@ -5,7 +5,10 @@ import { builderRateLimit } from "@/lib/api-guard";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 import {
   VIDEO_ASPECT_PRESETS,
+  addAssetToComposition,
+  addClipFromAsset,
   emptyStudioComposition,
+  newCompositionId,
   studioCompositionSchema,
 } from "@/lib/studio/composition";
 
@@ -17,6 +20,7 @@ const createSchema = z.object({
   width: z.number().int().min(200).max(4096).optional(),
   height: z.number().int().min(200).max(4096).optional(),
   sourceDesignId: z.string().uuid().optional(),
+  sourceImageUrl: z.string().url().max(500).optional(),
 });
 
 /** List owner's video projects (Phase 1). */
@@ -90,14 +94,44 @@ export async function POST(req: Request) {
     }
   }
 
+  if (parsed.data.sourceImageUrl) {
+    let uploadQuery = supabase
+      .from("studio_uploads")
+      .select("id, url, kind, business_id")
+      .eq("url", parsed.data.sourceImageUrl)
+      .eq("kind", "image");
+    uploadQuery = workspace.activeBusinessId
+      ? uploadQuery.eq("business_id", workspace.activeBusinessId)
+      : uploadQuery.is("business_id", null);
+    const { data: sourceUpload } = await uploadQuery.maybeSingle();
+    if (!sourceUpload) {
+      return NextResponse.json({ error: "The design snapshot is not available in the current Kebu space." }, { status: 403 });
+    }
+  }
+
   const preset = VIDEO_ASPECT_PRESETS.find((p) => p.id === parsed.data.presetId) ?? VIDEO_ASPECT_PRESETS[0]!;
   const width = parsed.data.width ?? preset.width;
   const height = parsed.data.height ?? preset.height;
-  const composition = emptyStudioComposition({
+  let composition = emptyStudioComposition({
     width,
     height,
-    editMode: "full_timeline",
+    editMode: parsed.data.sourceDesignId ? "smart_edit" : "full_timeline",
   });
+
+  if (parsed.data.sourceImageUrl) {
+    const assetId = newCompositionId("asset");
+    composition = addAssetToComposition(composition, {
+      id: assetId,
+      kind: "image",
+      url: parsed.data.sourceImageUrl,
+      fileName: parsed.data.title + " design",
+      durationMs: 3000,
+      width,
+      height,
+    });
+    const withClip = addClipFromAsset(composition, assetId, { atMs: 0 });
+    if (!("error" in withClip)) composition = withClip;
+  }
 
   const { data: project, error } = await supabase
     .from("studio_video_projects")
