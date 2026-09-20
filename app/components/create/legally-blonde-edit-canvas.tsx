@@ -169,6 +169,14 @@ export function LegallyBlondeEditCanvas({
   const titleAsText = props.titleAsText === true;
   const title = String(props.title ?? "MAY LECOR");
   const accent = String(props.accentColor ?? "#E9006B");
+  const titleTypography = {
+    fontFamily: String(props.titleTextFontFamily ?? "Impact"),
+    fontSize: Math.min(48, Math.max(8, Number(props.titleTextFontSize ?? 14))),
+    fontWeight: Math.min(900, Math.max(400, Number(props.titleTextFontWeight ?? 900))),
+    letterSpacing: Math.min(0.5, Math.max(-0.05, Number(props.titleTextLetterSpacing ?? 0.12))),
+    lineHeight: Math.min(2, Math.max(0.8, Number(props.titleTextLineHeight ?? 1.15))),
+    color: String(props.titleTextColor ?? "#ffffff"),
+  };
   const parallax = props.scrollMode !== "viewport";
   const extraCutouts = Array.isArray(props.extraCutouts)
     ? (props.extraCutouts as ExtraCut[])
@@ -429,6 +437,7 @@ export function LegallyBlondeEditCanvas({
               titleEditing={isTitle && editingTitle}
               titleInputRef={titleFieldRef}
               accentColor={accent}
+              titleTypography={titleTypography}
               selected={selectedKey === slot.key}
               leftPct={pos.leftPct}
               topPct={pos.topPct}
@@ -654,6 +663,7 @@ function CutoutChip({
   titleEditing,
   titleInputRef,
   accentColor,
+  titleTypography,
   selected,
   leftPct,
   topPct,
@@ -684,6 +694,14 @@ function CutoutChip({
   titleEditing: boolean;
   titleInputRef?: React.RefObject<HTMLInputElement | null>;
   accentColor: string;
+  titleTypography?: {
+    fontFamily: string;
+    fontSize: number;
+    fontWeight: number;
+    letterSpacing: number;
+    lineHeight: number;
+    color: string;
+  };
   selected: boolean;
   leftPct: number;
   topPct: number;
@@ -973,8 +991,16 @@ function CutoutChip({
                   <input
                     ref={titleInputRef}
                     autoFocus
-                    className="w-full bg-transparent text-center text-[11px] font-black uppercase tracking-[0.14em] text-white caret-white outline-none sm:text-sm"
-                    style={{ textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}
+                    className="w-full bg-transparent text-center uppercase caret-white outline-none"
+                    style={{
+                      color: titleTypography?.color ?? "#ffffff",
+                      fontFamily: titleTypography?.fontFamily ?? "Impact, Arial Black, Helvetica, sans-serif",
+                      fontSize: `${titleTypography?.fontSize ?? 14}px`,
+                      fontWeight: titleTypography?.fontWeight ?? 900,
+                      letterSpacing: `${titleTypography?.letterSpacing ?? 0.12}em`,
+                      lineHeight: titleTypography?.lineHeight ?? 1.15,
+                      textShadow: "0 1px 8px rgba(0,0,0,0.55)",
+                    }}
                     value={titleText}
                     placeholder="YOUR NAME"
                     aria-label="Type your name"
@@ -991,11 +1017,13 @@ function CutoutChip({
                 <p
                   className="pointer-events-none w-full break-words text-center font-black uppercase text-white"
                   style={{
-                    fontSize: "clamp(6px, 11%, 11px)",
-                    letterSpacing: "0.12em",
-                    lineHeight: 1.15,
+                    color: titleTypography?.color ?? "#ffffff",
+                    fontSize: `${titleTypography?.fontSize ?? 14}px`,
+                    letterSpacing: `${titleTypography?.letterSpacing ?? 0.12}em`,
+                    lineHeight: titleTypography?.lineHeight ?? 1.15,
+                    fontWeight: titleTypography?.fontWeight ?? 900,
                     textShadow: "0 1px 8px rgba(0,0,0,0.55)",
-                    fontFamily: "Impact, Arial Black, Helvetica, sans-serif",
+                    fontFamily: titleTypography?.fontFamily ?? "Impact, Arial Black, Helvetica, sans-serif",
                   }}
                 >
                   {titleText || "MAY LECOR"}
