@@ -1,9 +1,17 @@
+export type MailProviderAttachment = {
+  filename: string;
+  contentBase64: string;
+  contentType?: string;
+};
+
 export type MailSendInput = {
   from: string;
   to: string[];
   cc?: string[];
   subject: string;
   text: string;
+  attachments?: MailProviderAttachment[];
+  replyTo?: string[];
 };
 
 export type MailSendResult =
@@ -27,6 +35,12 @@ export async function sendInternetMail(input: MailSendInput): Promise<MailSendRe
         cc: input.cc ?? [],
         subject: input.subject,
         text: input.text,
+        reply_to: input.replyTo ?? [],
+        attachments: (input.attachments ?? []).map((attachment) => ({
+          filename: attachment.filename,
+          content: attachment.contentBase64,
+          content_type: attachment.contentType,
+        })),
       }),
     });
     const body = await response.json().catch(() => ({})) as { id?: string; message?: string };
