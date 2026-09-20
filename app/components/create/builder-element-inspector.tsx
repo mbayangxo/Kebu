@@ -99,7 +99,7 @@ export function BuilderElementInspector({
     onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { zIndex: next }));
 
   return (
-    <div className="space-y-4 px-4 py-4">
+    <div className="space-y-3 px-3 py-3">
       <GalaxyInspectorCard
         eyebrow={`Selected ${selection.kind}`}
         title={selection.label}
@@ -111,16 +111,14 @@ export function BuilderElementInspector({
           ) : null
         }
       >
-        <p className="text-[11px] leading-relaxed text-black/50">
-          Only controls for this object are shown here. Click another object to switch context.
-        </p>
+        <p className="text-[10px] leading-relaxed text-black/45">Editing only this object.</p>
         {device !== "desktop" && responsiveOverrideActive ? (
           <button
             type="button"
-            className="mt-3 text-[11px] font-bold text-[#FF6A00] hover:underline"
+            className="mt-2 rounded-md px-2 py-1 text-[10px] font-semibold text-[#C95000] hover:bg-[#FFF2E8]"
             onClick={() => onResetResponsive(responsiveKeys)}
           >
-            Reset this object to desktop
+            Reset responsive changes
           </button>
         ) : null}
       </GalaxyInspectorCard>
@@ -150,7 +148,7 @@ export function BuilderElementInspector({
                 }
               />
               <input
-                className="w-[76px] rounded-lg border border-black/15 bg-white px-2 py-1.5 text-right text-xs"
+                className="w-[76px] rounded-md border border-black/10 bg-white px-2 py-1.5 text-right text-xs"
                 type="number"
                 min="360"
                 max="1800"
@@ -184,7 +182,7 @@ export function BuilderElementInspector({
                 min="8"
                 max="160"
                 step="1"
-                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={Number(sectionProps.embeddedFooterPaddingTop ?? 20)}
                 onChange={(event) =>
                   onPatch({
@@ -203,7 +201,7 @@ export function BuilderElementInspector({
                 min="8"
                 max="160"
                 step="1"
-                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={Number(sectionProps.embeddedFooterPaddingBottom ?? 20)}
                 onChange={(event) =>
                   onPatch({
@@ -237,7 +235,7 @@ export function BuilderElementInspector({
           />
           <button
             type="button"
-            className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
+            className="w-full rounded-md border border-black/10 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
             onClick={() =>
               onPatch({
                 backgroundHidden: sectionProps.backgroundHidden !== true,
@@ -248,7 +246,7 @@ export function BuilderElementInspector({
           </button>
           <button
             type="button"
-            className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-[12px] font-semibold text-red-700"
+            className="w-full rounded-md border border-red-100 bg-white px-3 py-2 text-[12px] font-semibold text-red-700"
             onClick={() =>
               onPatch({
                 backgroundLayer: "",
@@ -286,7 +284,7 @@ export function BuilderElementInspector({
                   />
                   <button
                     type="button"
-                    className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-[12px] font-semibold text-red-700"
+                    className="w-full rounded-md border border-red-100 bg-white px-3 py-2 text-[12px] font-semibold text-red-700"
                     onClick={() =>
                       onPatch({
                         extraCutouts: extras.filter(
@@ -318,7 +316,7 @@ export function BuilderElementInspector({
               />
               <button
                 type="button"
-                className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
+                className="w-full rounded-md border border-black/10 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
                 onClick={() => {
                   const hidden = Array.isArray(sectionProps.hiddenLayers)
                     ? (sectionProps.hiddenLayers as string[])
@@ -346,7 +344,7 @@ export function BuilderElementInspector({
           <label className="block text-[11px] font-semibold text-black/65">
             Text
             <input
-              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15"
+              className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15"
               value={String(sectionProps.title ?? "")}
               onChange={(event) =>
                 onPatch({
@@ -362,7 +360,7 @@ export function BuilderElementInspector({
             Font
             <input
               list="kebu-builder-fonts"
-              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15"
+              className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15"
               value={String(sectionProps.titleTextFontFamily ?? "Impact")}
               onChange={(event) => onPatch({ titleTextFontFamily: event.target.value })}
             />
@@ -388,7 +386,7 @@ export function BuilderElementInspector({
                 min="8"
                 max="48"
                 step="1"
-                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={Number(sectionProps.titleTextFontSize ?? 14)}
                 onChange={(event) =>
                   onPatch({
@@ -400,7 +398,7 @@ export function BuilderElementInspector({
             <label className="block text-[11px] font-semibold text-black/65">
               Weight
               <select
-                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={String(sectionProps.titleTextFontWeight ?? 900)}
                 onChange={(event) => onPatch({ titleTextFontWeight: Number(event.target.value) })}
               >
@@ -422,7 +420,7 @@ export function BuilderElementInspector({
                 min="-0.05"
                 max="0.5"
                 step="0.01"
-                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={Number(sectionProps.titleTextLetterSpacing ?? 0.12)}
                 onChange={(event) =>
                   onPatch({
@@ -441,7 +439,7 @@ export function BuilderElementInspector({
                 min="0.8"
                 max="2"
                 step="0.05"
-                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={Number(sectionProps.titleTextLineHeight ?? 1.15)}
                 onChange={(event) =>
                   onPatch({
@@ -513,7 +511,7 @@ export function BuilderElementInspector({
                 }
               />
               <input
-                className="w-[62px] rounded-lg border border-black/15 bg-white px-2 py-1.5 text-right text-xs"
+                className="w-[62px] rounded-md border border-black/10 bg-white px-2 py-1.5 text-right text-xs"
                 type="number"
                 min="-180"
                 max="180"
@@ -533,7 +531,7 @@ export function BuilderElementInspector({
 
           <button
             type="button"
-            className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
+            className="w-full rounded-md border border-black/10 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
             onClick={() =>
               onPatch(
                 patchBuilderLayerPresentation(sectionProps, storageKey, {
@@ -558,7 +556,7 @@ export function BuilderElementInspector({
                 min="-20"
                 max="110"
                 step="0.5"
-                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={Number(position.leftPct ?? 0)}
                 onChange={(event) => patchPosition("leftPct", Number(event.target.value) || 0)}
               />
@@ -570,7 +568,7 @@ export function BuilderElementInspector({
                 min="-20"
                 max="110"
                 step="0.5"
-                className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+                className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
                 value={Number(position.topPct ?? 0)}
                 onChange={(event) => patchPosition("topPct", Number(event.target.value) || 0)}
               />
@@ -596,7 +594,7 @@ export function BuilderElementInspector({
             onChange={(event) => patchScale(Number(event.target.value))}
           />
           <input
-            className="w-[68px] rounded-lg border border-black/15 bg-white px-2 py-1.5 text-right text-xs"
+            className="w-[68px] rounded-md border border-black/10 bg-white px-2 py-1.5 text-right text-xs"
             type="number"
             min="0.15"
             max="3"
@@ -632,7 +630,7 @@ export function BuilderElementInspector({
           <label className="block text-[11px] font-semibold text-black/65">
             Animation
             <select
-              className="mt-1.5 w-full rounded-lg border border-black/15 bg-white px-2.5 py-2 text-sm text-black"
+              className="mt-1.5 w-full rounded-md border border-black/10 bg-white px-2.5 py-2 text-sm text-black"
               value={motion}
               onChange={(event) =>
                 onPatch({
@@ -651,7 +649,7 @@ export function BuilderElementInspector({
           </label>
           <button
             type="button"
-            className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
+            className="w-full rounded-md border border-black/10 bg-white px-3 py-2 text-[12px] font-semibold text-black/70"
             onClick={() =>
               onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { hidden: !hidden }))
             }
@@ -675,7 +673,7 @@ export function BuilderElementInspector({
             onChange={(event) => patchZ(Number(event.target.value))}
           />
           <input
-            className="w-[58px] rounded-lg border border-black/15 bg-white px-2 py-1.5 text-right text-xs"
+            className="w-[58px] rounded-md border border-black/10 bg-white px-2 py-1.5 text-right text-xs"
             type="number"
             min="1"
             max="80"

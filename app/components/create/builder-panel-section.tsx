@@ -21,16 +21,16 @@ export function PanelSection({
     <details
       open={open}
       onToggle={(event) => setAccordionOpen(event.currentTarget.open)}
-      className="group/ps overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-[0_1px_2px_rgba(10,10,10,0.02)]"
+      className="group/ps border-b border-black/[0.07] bg-white"
     >
       <summary
-        className="flex min-h-10 cursor-pointer list-none items-center justify-between px-3 py-2.5 select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6A00]"
-        style={{ background: BUILDER.surfaceMuted, color: BUILDER.ink }}
+        className="flex min-h-9 cursor-pointer list-none items-center justify-between px-1 py-2 select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6A00]"
+        style={{ background: "#fff", color: BUILDER.ink }}
       >
-        <span className="text-[10px] font-black uppercase tracking-[0.1em]">{title}</span>
-        <span className="text-[8px] text-[#ABABAB] transition-transform group-open/ps:rotate-180" aria-hidden>▼</span>
+        <span className="text-[10px] font-semibold">{title}</span>
+        <svg className="h-3 w-3 text-black/35 transition-transform group-open/ps:rotate-180" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </summary>
-      <div className="space-y-3 px-3 pb-3.5 pt-3">{children}</div>
+      <div className="space-y-3 px-1 pb-3 pt-1">{children}</div>
     </details>
   );
 }
