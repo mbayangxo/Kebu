@@ -1,6 +1,7 @@
 "use client";
 
 import { NavLinksEditor, mapNavLinksForEditor } from "@/app/components/create/nav-links-editor";
+import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { NavSizeEditor } from "@/app/components/create/nav-size-editor";
 import { PanelSection } from "@/app/components/create/builder-panel-section";
 import { BUILDER } from "@/lib/create/builder-ui";
@@ -13,12 +14,14 @@ export function BuilderSiteChromePanel({
   selected,
   onSelect,
   onPatch,
+  projectId,
 }: {
   part: "header" | "footer";
   chrome: SiteChrome;
   selected: boolean;
   onSelect: () => void;
   onPatch: (patch: Record<string, unknown>) => void;
+  projectId: string;
 }) {
   const label =
     part === "header" ? "Header — brand & menu (all pages)" : "Footer — links & colors (all pages)";
@@ -39,6 +42,12 @@ export function BuilderSiteChromePanel({
     navLayout?: string;
     logoAlign?: "left" | "center" | "right";
     navSticky?: boolean;
+    logoUrl?: string;
+    logoAlt?: string;
+    logoScale?: number;
+    faviconUrl?: string;
+    fontFamily?: string;
+    fontWeight?: number;
   };
 
   const footerProps = (chrome.footer?.props ?? { text: "", links: [], bgColor: "", textColor: "" }) as {
@@ -73,6 +82,38 @@ export function BuilderSiteChromePanel({
       {selected && part === "header" ? (
         <div className="space-y-2">
           <PanelSection title="Brand & Logo" group="chrome-header">
+            <SectionPhotoField
+              projectId={projectId}
+              label="Logo"
+              value={String(headerProps.logoUrl ?? "")}
+              onChange={(url) => onPatch({ logoUrl: url })}
+            />
+            <label className="block text-[10px] font-bold uppercase tracking-wider" style={{ color: "#5C5348" }}>
+              Logo size
+              <input
+                type="range"
+                min="0.5"
+                max="4"
+                step="0.1"
+                className="mt-1 w-full accent-[#FF5500]"
+                value={Number(headerProps.logoScale ?? 1)}
+                onChange={(e) => onPatch({ logoScale: Number(e.target.value) })}
+              />
+            </label>
+            <input
+              className="w-full text-sm rounded-lg px-2 py-1.5"
+              style={{ border: "1px solid #DDE0F0" }}
+              value={String(headerProps.logoAlt ?? "")}
+              onChange={(e) => onPatch({ logoAlt: e.target.value })}
+              aria-label="Logo alt text"
+              placeholder="Logo description"
+            />
+            <SectionPhotoField
+              projectId={projectId}
+              label="Favicon / site icon"
+              value={String(headerProps.faviconUrl ?? "")}
+              onChange={(url) => onPatch({ faviconUrl: url })}
+            />
             <input
               className="w-full text-sm rounded-lg px-2 py-1.5"
               style={{ border: "1px solid #DDE0F0" }}
