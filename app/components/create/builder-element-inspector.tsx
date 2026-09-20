@@ -12,6 +12,7 @@ export function BuilderElementInspector({
   device,
   responsiveOverrideActive,
   onResetResponsive,
+  onAskAi,
 }: {
   selection: BuilderElementSelection;
   sectionProps: Record<string, unknown>;
@@ -21,6 +22,7 @@ export function BuilderElementInspector({
   device: "desktop" | "tablet" | "mobile";
   responsiveOverrideActive: boolean;
   onResetResponsive: (keys: readonly string[]) => void;
+  onAskAi: () => void;
 }) {
   const storageKey = selection.elementId.startsWith("extra:")
     ? selection.elementId.slice("extra:".length)
@@ -602,13 +604,22 @@ export function BuilderElementInspector({
       </label>
       ) : null}
 
-      <button
-        type="button"
-        className="w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70 hover:bg-black/[0.03]"
-        onClick={onEditSection}
-      >
-        Edit whole section
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          className="rounded-lg bg-[#0F0D33] px-3 py-2 text-[12px] font-semibold text-white hover:opacity-90"
+          onClick={onAskAi}
+        >
+          Ask Yande
+        </button>
+        <button
+          type="button"
+          className="rounded-lg border border-black/15 bg-white px-3 py-2 text-[12px] font-semibold text-black/70 hover:bg-black/[0.03]"
+          onClick={onEditSection}
+        >
+          Edit section
+        </button>
+      </div>
     </div>
   );
 }
