@@ -57,6 +57,7 @@ import { dataModeSiteClass, preferSystemFonts, type DataMode } from "@/lib/creat
 import { definitionHasShop } from "@/lib/create/site-shop";
 import { labelForSectionType } from "@/lib/create/builder-section-catalog";
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
+import { builderDeviceFromWidth, type BuilderDevice } from "@/lib/create/builder-device";
 import { BuilderInlineSectionDivider } from "@/app/components/create/builder-inline-section-divider";
 import "./kebu-site-responsive.css";
 
@@ -800,6 +801,16 @@ export function SiteRenderer({
   dataMode?: DataMode;
 }) {
   const theme = definition.theme;
+  const [liveDevice, setLiveDevice] = useState<BuilderDevice>("desktop");
+  useEffect(() => {
+    if (editor?.editDevice) return;
+    const update = () => setLiveDevice(builderDeviceFromWidth(window.innerWidth));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [editor?.editDevice]);
+  const activeDevice = editor?.editDevice ?? liveDevice;
+
   /** Opt-in richer motion for aesthetics that specifically declare it — no-op for every other template. */
   const motionExpressive = theme.motion === "expressive";
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -1038,7 +1049,7 @@ export function SiteRenderer({
             );
           case "legally-blonde-hero": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const resolved = mergeDeviceAwareSectionProps(raw, device);
             return wrap(
               <LegallyBlondeHeroLayout
@@ -1065,7 +1076,7 @@ export function SiteRenderer({
           }
           case "navigation": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               brand: String(readDeviceOverride(raw, device, "brand") ?? ""),
               links: (raw.links as { label: string; href: string; children?: { label: string; href: string }[] }[] | undefined) ?? [],
@@ -1178,7 +1189,7 @@ export function SiteRenderer({
           }
           case "hero": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? ""),
               subheading: String(readDeviceOverride(raw, device, "subheading") ?? ""),
@@ -1277,7 +1288,7 @@ export function SiteRenderer({
           }
           case "text": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: readDeviceOverride(raw, device, "heading") as string | undefined,
               body: String(readDeviceOverride(raw, device, "body") ?? ""),
@@ -1311,7 +1322,7 @@ export function SiteRenderer({
           }
           case "features": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const layout = (raw.layout as "grid" | "moodboard" | undefined) ?? "grid";
             const heading = String(readDeviceOverride(raw, device, "heading") ?? "Features");
             const items =
@@ -1509,7 +1520,7 @@ export function SiteRenderer({
           }
           case "faq": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const heading = String(readDeviceOverride(raw, device, "heading") ?? "FAQ");
             const items =
               (readDeviceOverride(raw, device, "items") as
@@ -1561,7 +1572,7 @@ export function SiteRenderer({
           }
           case "products": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Products"),
               layout: raw.layout as "grid" | "grid-dense" | "list" | "featured" | undefined,
@@ -2460,7 +2471,7 @@ export function SiteRenderer({
           }
           case "editorial-hero": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Your headline here"),
               subheading: String(readDeviceOverride(raw, device, "subheading") ?? ""),
@@ -2536,7 +2547,7 @@ export function SiteRenderer({
           }
           case "split": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Your heading"),
               body: String(readDeviceOverride(raw, device, "body") ?? ""),
