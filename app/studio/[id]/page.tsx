@@ -708,6 +708,17 @@ export default function StudioEditorPage() {
         >
           {motionBusy ? "Recording…" : "Export timeline"}
         </button>
+        {canEdit ? (
+          <button
+            type="button"
+            disabled={videoBusy || syncState === "conflict"}
+            onClick={() => void turnDesignIntoVideo()}
+            className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
+            title="Create an editable Studio Video project from the active page"
+          >
+            {videoBusy ? "Preparing video…" : "Turn into video"}
+          </button>
+        ) : null}
         <label className="flex items-center gap-1 text-[10px] font-semibold opacity-60" title="Applies to pages without a custom duration">
           default s/page
           <input
