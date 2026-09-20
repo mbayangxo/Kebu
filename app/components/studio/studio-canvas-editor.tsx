@@ -105,9 +105,9 @@ const STUDIO_FONTS_HREF = googleFontsHrefForStudioCatalog();
 const STUDIO_RAIL=[{id:"elements",label:"Elements",icon:<StudioIcon name="elements"/>},{id:"layers",label:"Layers",icon:<StudioIcon name="layers"/>},{id:"uploads",label:"Media",icon:<StudioIcon name="uploads"/>},{id:"themes",label:"Themes",icon:<StudioIcon name="themes"/>},{id:"brand",label:"Brand",icon:<StudioIcon name="brand"/>},{id:"tools",label:"Tools",icon:<StudioIcon name="tools"/>}];
 
 const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string; minSelection?: number }[] = [
-  { mode: "left", label: "L", title: "Align left" },
-  { mode: "center-x", label: "C", title: "Align center" },
-  { mode: "right", label: "R", title: "Align right" },
+  { mode: "left", label: "left", title: "Align left" },
+  { mode: "center-x", label: "center", title: "Align center" },
+  { mode: "right", label: "right", title: "Align right" },
   { mode: "top", label: "T", title: "Align top" },
   { mode: "center-y", label: "M", title: "Align middle" },
   { mode: "bottom", label: "B", title: "Align bottom" },
@@ -711,9 +711,10 @@ export function StudioCanvasEditor({
             title={t.title}
             disabled={!canAlign || selectedLayerIds.length < (t.minSelection ?? 1)}
             onClick={() => applyAlign(t.mode)}
-            className="rounded-lg w-7 h-7 text-[11px] font-bold border border-black/10 disabled:opacity-30"
+            aria-label={t.title}
+            className="rounded-lg w-8 h-8 text-[11px] font-bold border border-black/10 bg-white hover:bg-black/[.035] focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-30"
           >
-            {t.label}
+            {t.mode==="left"||t.mode==="center-x"||t.mode==="right"?<StudioIcon name={`align-${t.label}` as "align-left"|"align-center"|"align-right"} className="mx-auto h-4 w-4"/>:t.label}
           </button>
         ))}
         <span className="w-px h-5 bg-black/10" />
@@ -745,7 +746,7 @@ export function StudioCanvasEditor({
             max={120}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-28"
+            className="w-20 lg:w-28"
           />
           <span className="w-10 tabular-nums">{zoom}%</span>
         </label>
@@ -765,7 +766,7 @@ export function StudioCanvasEditor({
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <div className="absolute bottom-4 left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-2xl border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black">Add & layers</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white">Inspector</button></div>
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-[14px] border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white">Inspector</button></div>
         {/* Left: Elements / Layers */}
         <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-black/10 bg-[#FFFCF8] shadow-2xl md:static md:flex md:w-[268px] md:shrink-0 md:rounded-none md:border-y-0 md:border-l-0 md:shadow-none`}>
           <GalaxyToolRail items={STUDIO_RAIL} value={leftTab} onChange={(id)=>setLeftTab(id as typeof leftTab)}/><div className="flex-1 overflow-y-auto p-3 space-y-3">
