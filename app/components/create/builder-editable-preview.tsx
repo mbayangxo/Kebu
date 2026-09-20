@@ -12,10 +12,13 @@ import {
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { useDataMode } from "@/app/components/create/data-mode-provider";
 import { useRef, useState } from "react";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 
 export type BuilderEditorState = {
   selectedSectionId: string | null;
+  selectedElement?: BuilderElementSelection | null;
   onSelectSection: (sectionId: string) => void;
+  onSelectElement?: (selection: BuilderElementSelection) => void;
   onPatchSection: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => void;
   /** Switch the builder preview to another site page (keeps you in the editor). */
