@@ -61,6 +61,8 @@ export default function StudioVideoEditorPage() {
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [sourceDesignId, setSourceDesignId] = useState<string | null>(null);
+  const [sourceRefreshBusy, setSourceRefreshBusy] = useState(false);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
   const [playheadMs, setPlayheadMs] = useState(0);
@@ -102,6 +104,7 @@ export default function StudioVideoEditorPage() {
       const serverComposition = data.project.composition as StudioComposition;
       const nextUpdatedAt = typeof data.project.updated_at === "string" ? data.project.updated_at : null;
       const nextBusinessId = typeof data.project.business_id === "string" ? data.project.business_id : null;
+      const nextSourceDesignId = typeof data.project.source_design_id === "string" ? data.project.source_design_id : null;
       let initialComposition = serverComposition;
       let initialTitle = data.project.title as string;
       let hasDirtyLocal = false;
@@ -117,6 +120,7 @@ export default function StudioVideoEditorPage() {
 
       setUserId(nextUserId);
       setBusinessId(nextBusinessId);
+      setSourceDesignId(nextSourceDesignId);
       setTitle(initialTitle);
       setComp(initialComposition);
       setServerUpdatedAt(nextUpdatedAt);
@@ -145,6 +149,7 @@ export default function StudioVideoEditorPage() {
         }
         setUserId(offlineUserId);
         setBusinessId(local.businessId);
+        setSourceDesignId(null);
         setTitle(local.title);
         setComp(local.composition);
         compRef.current = local.composition;
@@ -570,6 +575,65 @@ export default function StudioVideoEditorPage() {
     setNote(`Nested sequence “${data.project.title}” placed on timeline.`);
   }
 
+  async function refreshLinkedDesign() {
+    if (!sourceDesignId || !comp || sourceRefreshBusy) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setNote("Reconnect before refreshing the linked design. Your current video remains available offline.");
+      return;
+    }
+
+    setSourceRefreshBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/studio/video/${projectId}/refresh-source-design`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expectedUpdatedAt: serverUpdatedAt ?? undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 409 && data.code === "studio_video_version_conflict") {
+        setSaveState("conflict");
+        setError(data.error || "This video changed somewhere else. Reload before refreshing the linked design.");
+        return;
+      }
+      if (!res.ok || !data.project?.composition) {
+        setError(typeof data.error === "string" ? data.error : "Could not refresh the linked design.");
+        return;
+      }
+
+      const next = data.project.composition as StudioComposition;
+      applyComp(next);
+      const nextUpdatedAt = typeof data.project.updated_at === "string" ? data.project.updated_at : serverUpdatedAt;
+      setServerUpdatedAt(nextUpdatedAt);
+      setSaveState("saved");
+
+      if (userId && studioVideoOfflineSupported()) {
+        await putStudioVideoOfflineDraft({
+          userId,
+          projectId,
+          title,
+          composition: next,
+          businessId,
+          serverUpdatedAt: nextUpdatedAt,
+          savedAt: new Date().toISOString(),
+          dirty: false,
+        }).catch(() => undefined);
+      }
+
+      const summary = data.summary as { updated?: number; added?: number; removed?: number; scenes?: number } | undefined;
+      setNote(
+        `Linked design refreshed · ${summary?.updated ?? 0} updated · ${summary?.added ?? 0} added · ${summary?.removed ?? 0} removed · ${summary?.scenes ?? 0} scenes.`,
+      );
+      setTimeout(() => setSaveState("idle"), 1600);
+    } finally {
+      setSourceRefreshBusy(false);
+    }
+  }
+
   function undo() {
     setHistory((h) => {
       if (!h.length || !compRef.current) return h;
@@ -655,6 +719,26 @@ export default function StudioVideoEditorPage() {
           className="bg-transparent font-display font-bold text-sm min-w-[140px] flex-1 border-b border-transparent focus:border-orange-500 outline-none"
         />
         <span className="text-[10px] uppercase tracking-wider opacity-50">{saveLabel}</span>
+        {sourceDesignId ? (
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/studio/${sourceDesignId}`}
+              className="rounded-md border border-white/10 px-2 py-1 text-[9px] font-bold text-white/60 hover:bg-white/[.06] hover:text-white"
+              title="Open the editable source design"
+            >
+              Source design
+            </Link>
+            <button
+              type="button"
+              disabled={sourceRefreshBusy || saveState === "conflict"}
+              onClick={() => void refreshLinkedDesign()}
+              className="rounded-md border border-orange-400/25 bg-orange-500/10 px-2 py-1 text-[9px] font-bold text-orange-200 disabled:opacity-40"
+              title="Refresh semantic design layers without flattening or replacing video-specific timing and motion"
+            >
+              {sourceRefreshBusy ? "Refreshing…" : "Refresh design"}
+            </button>
+          </div>
+        ) : null}
         {comp.music?.bpm ? (
           <span className="text-[10px] font-mono text-emerald-300/90">
             {comp.music.bpm} BPM
