@@ -119,7 +119,7 @@ export function BuilderStudioRail({
 }) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(60px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[72px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1.5 sm:py-2"
+      className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(58px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[64px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1 sm:py-1.5"
       style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
       role="toolbar"
       aria-label="Builder tools"
@@ -134,7 +134,7 @@ export function BuilderStudioRail({
             aria-label={item.label}
             aria-pressed={on}
             onClick={() => onRail(item.id)}
-            className="group relative flex h-[58px] min-w-[58px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[54px] sm:min-w-0 sm:w-full"
+            className="group relative flex h-[58px] min-w-[58px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[50px] sm:min-w-0 sm:w-full"
             style={{
               background: on ? BUILDER.orangeGlow : "transparent",
               color: on ? BUILDER.ink : BUILDER.muted,
@@ -208,16 +208,16 @@ export function BuilderStudioChrome({
 
   return (
     <header
-      className="relative flex h-[58px] shrink-0 items-center gap-2 border-b px-2.5 sm:px-4"
+      className="relative flex h-[52px] shrink-0 items-center gap-1.5 border-b px-2.5 sm:px-3"
       style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
     >
       <Link
         href={MY_SITES_HREF}
         aria-label="Back to your Kebu sites"
-        className="mr-1 hidden shrink-0 items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:flex"
+        className="mr-1 hidden shrink-0 items-center gap-1.5 rounded-md px-1 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:flex"
       >
         <span
-          className="text-[24px] font-black leading-none tracking-[-0.08em]"
+          className="text-[20px] font-black leading-none tracking-[-0.08em]"
           style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
         >
           kebu
@@ -228,7 +228,7 @@ export function BuilderStudioChrome({
       <div className="flex min-w-0 items-center gap-2">
         <div className="min-w-0">
           <p
-            className="max-w-[120px] truncate text-[12px] font-bold leading-tight tracking-tight sm:max-w-[190px]"
+            className="max-w-[120px] truncate text-[11px] font-bold leading-tight tracking-tight sm:max-w-[190px]"
             style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
             title={title}
           >
@@ -258,7 +258,7 @@ export function BuilderStudioChrome({
           <select
             value={activePageId ?? pages[0]?.id}
             onChange={(e) => onPageChange(e.target.value)}
-            className="max-w-[12rem] truncate rounded-full px-3 py-2 text-[11px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+            className="max-w-[12rem] truncate rounded-md px-2.5 py-1.5 text-[10px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
             style={{
               border: "1px solid #E5E5E5",
               background: BUILDER.surfaceMuted,
@@ -305,7 +305,7 @@ export function BuilderStudioChrome({
               aria-label={label}
               aria-pressed={device === id}
               onClick={() => onDevice(id)}
-              className="flex h-8 w-8 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+              className="flex h-7 w-7 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
               style={{
                 background: device === id ? "#fff" : "transparent",
                 color: device === id ? BUILDER.ink : BUILDER.muted,
