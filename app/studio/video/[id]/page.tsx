@@ -183,7 +183,7 @@ export default function StudioVideoEditorPage() {
         }
         setUserId(offlineUserId);
         setBusinessId(local.businessId);
-        setSourceDesignId(null);
+        setSourceDesignId(local.sourceDesignId ?? null);
         setTitle(local.title);
         setComp(local.composition);
         compRef.current = local.composition;
@@ -228,6 +228,7 @@ export default function StudioVideoEditorPage() {
           title: effectiveTitle,
           composition: next,
           businessId,
+          sourceDesignId,
           serverUpdatedAt,
           savedAt,
           dirty: true,
@@ -655,6 +656,7 @@ export default function StudioVideoEditorPage() {
           title,
           composition: next,
           businessId,
+          sourceDesignId,
           serverUpdatedAt: nextUpdatedAt,
           savedAt: new Date().toISOString(),
           dirty: false,
