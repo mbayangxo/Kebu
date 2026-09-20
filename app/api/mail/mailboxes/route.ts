@@ -1,38 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { personalMailboxCandidates } from "@/lib/mail/address";
+import { loadActiveBusinessMailContext } from "@/lib/mail/business-mail";
 
 export const dynamic = "force-dynamic";
-
-async function activeBusinessForUser(
-  supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
-  userId: string,
-) {
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("active_business_id")
-    .eq("id", userId)
-    .maybeSingle();
-
-  const businessId = profile?.active_business_id ?? null;
-  if (!businessId) return null;
-
-  const { data: membership } = await supabase
-    .from("business_members")
-    .select("business_id")
-    .eq("business_id", businessId)
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .maybeSingle();
-
-  return membership ? businessId : null;
-}
 
 export async function GET() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
-  const activeBusinessId = await activeBusinessForUser(supabase, user.id);
+  const context = await loadActiveBusinessMailContext(supabase, user.id);
+  const activeBusinessId = context.businessId;
 
   let mailboxQuery = supabase
     .from("mailboxes")
@@ -57,12 +35,15 @@ export async function GET() {
     return NextResponse.json({
       context: "business",
       businessId: activeBusinessId,
+      businessName: context.businessName,
+      role: context.role,
+      canManage: context.canManage,
       mailboxes: existing ?? [],
     });
   }
 
   if ((existing ?? []).some((mailbox) => mailbox.mailbox_type === "personal")) {
-    return NextResponse.json({ context: "personal", businessId: null, mailboxes: existing ?? [] });
+    return NextResponse.json({ context: "personal", businessId: null, businessName: null, role: null, canManage: false, mailboxes: existing ?? [] });
   }
 
   const { data: profile } = await supabase
@@ -100,5 +81,5 @@ export async function GET() {
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: "Could not load mailboxes." }, { status: 500 });
-  return NextResponse.json({ context: "personal", businessId: null, mailboxes: mailboxes ?? [] });
+  return NextResponse.json({ context: "personal", businessId: null, businessName: null, role: null, canManage: false, mailboxes: mailboxes ?? [] });
 }
