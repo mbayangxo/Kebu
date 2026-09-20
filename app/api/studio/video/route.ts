@@ -13,6 +13,8 @@ import {
   studioCompositionSchema,
   updateClip,
 } from "@/lib/studio/composition";
+import { parseCanvasDocument } from "@/lib/studio/canvas-document";
+import { designDocumentToComposition } from "@/lib/studio/design-to-composition";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +92,7 @@ export async function POST(req: Request) {
   }
 
   const workspace = await loadActiveWorkspaceScope(supabase, user.id);
+  let sourceDesignCanvas: unknown = null;
 
   if (parsed.data.sourceDesignId) {
     let sourceQuery = supabase
@@ -103,6 +106,7 @@ export async function POST(req: Request) {
     if (!sourceDesign) {
       return NextResponse.json({ error: "That source design is not available in the current Kebu space." }, { status: 403 });
     }
+    sourceDesignCanvas = sourceDesign.canvas;
     const sourcePageIds = new Set(
       Array.isArray((sourceDesign.canvas as { pages?: unknown[] } | null)?.pages)
         ? ((sourceDesign.canvas as { pages: Array<{ id?: unknown }> }).pages)
@@ -141,15 +145,20 @@ export async function POST(req: Request) {
   const preset = VIDEO_ASPECT_PRESETS.find((p) => p.id === parsed.data.presetId) ?? VIDEO_ASPECT_PRESETS[0]!;
   const width = parsed.data.width ?? preset.width;
   const height = parsed.data.height ?? preset.height;
-  let composition = emptyStudioComposition({
-    width,
-    height,
-    editMode: parsed.data.sourceDesignId || sourceImages.length ? "smart_edit" : "full_timeline",
-  });
+  let composition = sourceDesignCanvas
+    ? designDocumentToComposition(parseCanvasDocument(sourceDesignCanvas))
+    : emptyStudioComposition({
+        width,
+        height,
+        editMode: sourceImages.length ? "smart_edit" : "full_timeline",
+      });
 
+  // Semantic design layers are primary. Snapshots remain only as backward-compatible fallback
+  // when a caller supplies images without a source design document.
+  const snapshotFallback = sourceDesignCanvas ? [] : sourceImages;
   let cursorMs = 0;
-  for (let index = 0; index < sourceImages.length; index += 1) {
-    const source = sourceImages[index]!;
+  for (let index = 0; index < snapshotFallback.length; index += 1) {
+    const source = snapshotFallback[index]!;
     const assetId = newCompositionId("asset");
     const sceneId = newCompositionId("scene");
     composition = addAssetToComposition(composition, {

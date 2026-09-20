@@ -80,7 +80,8 @@ export default function StudioVideoEditorPage() {
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const compRef = useRef<StudioComposition | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
-  const soundtrackRef = useRef<HTMLAudioElement>(null);\n  const timelineGestureBaseline = useRef<StudioComposition | null>(null);
+  const soundtrackRef = useRef<HTMLAudioElement>(null);
+  const timelineGestureBaseline = useRef<StudioComposition | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -911,11 +912,14 @@ export default function StudioVideoEditorPage() {
                 aspectRatio: `${comp.width} / ${comp.height}`,
               }}
             >
-              <video
-                ref={videoPreviewRef}
-                className="absolute inset-0 w-full h-full object-contain transition-opacity"
-                playsInline
-              />
+              <video ref={videoPreviewRef} className="absolute inset-0 w-full h-full object-contain transition-opacity" playsInline />
+              {comp.clips.filter((clip) => clip.designLayer && playheadMs >= clip.startMs && playheadMs < clip.startMs + clip.durationMs).map((clip) => {
+                const layer=clip.designLayer!;
+                const style: React.CSSProperties={position:"absolute",left:`${(clip.x/comp.width)*100}%`,top:`${(clip.y/comp.height)*100}%`,width:`${((layer.type==="text"?Math.max(1,200):200)/comp.width)*100}%`,height:"auto",opacity:clip.opacity,transform:`rotate(${clip.rotation}deg) scale(${clip.scale})`,transformOrigin:"top left",color:layer.color??"#fff",background:layer.type==="rect"||layer.type==="ellipse"?(layer.fill??"transparent"):"transparent",borderRadius:layer.type==="ellipse"?"999px":layer.cornerRadius??0,fontFamily:layer.fontFamily,fontWeight:layer.fontWeight,fontStyle:layer.fontStyle,fontSize:layer.fontSize?Math.max(8,layer.fontSize*(360/comp.width)):undefined,textAlign:layer.textAlign};
+                if(layer.type==="image"&&layer.imageUrl)return <img key={clip.id} src={layer.imageUrl} alt="" style={style} className="object-cover"/>;
+                if(layer.type==="video"&&layer.videoUrl)return <video key={clip.id} src={layer.videoUrl} muted playsInline style={style}/>;
+                return <div key={clip.id} style={style}>{layer.type==="text"?layer.text:layer.type==="icon"?layer.text??"✦":""}</div>;
+              })}
               {(() => {
                 const capTrack = comp.tracks.find((t) => t.kind === "caption");
                 if (!capTrack) return null;
