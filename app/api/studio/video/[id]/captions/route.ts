@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 import { parseStudioComposition, compositionDurationMs } from "@/lib/studio/composition";
 import {
   applyCaptionSegments,
@@ -36,6 +38,8 @@ const bodySchema = z.object({
  * Honest: Whisper only when OPENAI_API_KEY is configured; otherwise transcript/segments required.
  */
 export async function POST(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -43,6 +47,7 @@ export async function POST(req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
   let body: unknown;
   try {
@@ -56,12 +61,14 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid caption input." }, { status: 400 });
   }
 
-  const { data: project, error } = await supabase
+  let projectQuery = supabase
     .from("studio_video_projects")
-    .select("id, composition")
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .maybeSingle();
+    .select("id, composition, business_id")
+    .eq("id", id);
+  projectQuery = workspace.activeBusinessId
+    ? projectQuery.eq("business_id", workspace.activeBusinessId)
+    : projectQuery.is("business_id", null);
+  const { data: project, error } = await projectQuery.maybeSingle();
 
   if (error || !project) {
     return NextResponse.json({ error: "Video project not found." }, { status: 404 });
@@ -167,13 +174,16 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: next.error }, { status: 400 });
   }
 
-  const { data: updated, error: upErr } = await supabase
+  let updateQuery = supabase
     .from("studio_video_projects")
     .update({ composition: next, edit_mode: next.editMode })
-    .eq("id", id)
-    .eq("owner_id", user.id)
+    .eq("id", id);
+  updateQuery = workspace.activeBusinessId
+    ? updateQuery.eq("business_id", workspace.activeBusinessId)
+    : updateQuery.is("business_id", null);
+  const { data: updated, error: upErr } = await updateQuery
     .select("id, title, width, height, frame_rate, edit_mode, composition, updated_at")
-    .single();
+    .maybeSingle();
 
   if (upErr || !updated) {
     return NextResponse.json({ error: "Could not save captions." }, { status: 500 });
