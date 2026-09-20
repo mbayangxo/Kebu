@@ -7,6 +7,7 @@ import {
   BUILDER_SECTION_CATEGORIES,
   type BuilderSectionCategory,
 } from "@/lib/create/builder-section-catalog";
+import { builderAppForSection } from "@/lib/create/builder-block-registry";
 
 const SECTION_ICONS: Record<string, string> = {
   "announcement-bar": "📢",
@@ -186,7 +187,7 @@ export function AddSectionPicker({
                         className="block text-[11px] font-semibold leading-tight truncate"
                         style={{ color: BUILDER.ink }}
                       >
-                        {isAdding ? "Adding…" : opt.label}
+                        {isAdding ? "Adding…" : opt.label}{appBlock ? <span className="ml-1 rounded bg-black/5 px-1 py-0.5 text-[8px] uppercase tracking-wide">App</span> : null}
                       </span>
                       <span
                         className="block text-[10px] leading-snug truncate"
