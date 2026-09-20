@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mediaFilterCss } from "@/lib/studio/media-adjustments";
 
 export const CANVAS_DOC_VERSION = 2 as const;
 
@@ -62,6 +63,12 @@ export const canvasLayerSchema = z.object({
   cropY: z.number().min(0).max(1).optional(),
   cropW: z.number().min(0.05).max(1).optional(),
   cropH: z.number().min(0.05).max(1).optional(),
+  /** Non-destructive image/video adjustments. Neutral = 1/1/1/0/0. */
+  brightness: z.number().min(0).max(2).optional(),
+  contrast: z.number().min(0).max(2).optional(),
+  saturation: z.number().min(0).max(3).optional(),
+  grayscale: z.number().min(0).max(1).optional(),
+  blur: z.number().min(0).max(40).optional(),
   /** Elements pack (S19) */
   iconKey: z.string().trim().max(40).optional(),
   frameStyle: z.enum(["corner", "rounded", "polaroid"]).optional(),
@@ -950,6 +957,8 @@ export function exportCanvasToPngDataUrl(
     ctx.rotate((layer.rotation * Math.PI) / 180);
     ctx.translate(-cx, -cy);
     applyLayerShadow(ctx, layer);
+    const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
+    if (mediaFilter) ctx.filter = mediaFilter;
     if (layer.type === "rect") {
       ctx.fillStyle = layer.fill ?? "#E05A2B";
       if ((layer.cornerRadius ?? 0) > 0) {
@@ -1030,6 +1039,8 @@ export async function exportCanvasToPngDataUrlAsync(
     ctx.rotate((layer.rotation * Math.PI) / 180);
     ctx.translate(-cx, -cy);
     applyLayerShadow(ctx, layer);
+    const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
+    if (mediaFilter) ctx.filter = mediaFilter;
     if (layer.type === "rect") {
       ctx.fillStyle = layer.fill ?? "#E05A2B";
       if ((layer.cornerRadius ?? 0) > 0) {
