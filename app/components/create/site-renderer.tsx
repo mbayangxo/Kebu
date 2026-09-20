@@ -134,6 +134,14 @@ export type SiteRendererEditor = {
   onAddSectionAfter?: (type: string, afterSectionId: string | null) => void | Promise<void>;
 };
 
+const BUILDER_MOTION_VARIANTS: Record<string, { initial: { opacity?: number; x?: number; y?: number; scale?: number }; animate: { opacity?: number; x?: number; y?: number; scale?: number } }> = {
+  fade: { initial: { opacity: 0 }, animate: { opacity: 1 } },
+  "fade-up": { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 } },
+  "slide-left": { initial: { opacity: 0, x: 36 }, animate: { opacity: 1, x: 0 } },
+  "slide-right": { initial: { opacity: 0, x: -36 }, animate: { opacity: 1, x: 0 } },
+  scale: { initial: { opacity: 0, scale: 0.97 }, animate: { opacity: 1, scale: 1 } },
+};
+
 const SECTION_PAD_MAP: Record<string, string> = {
   tight: "1rem",
   normal: "3.5rem",
@@ -153,26 +161,9 @@ function wrapEditorSection(
   motionPreset?: string,
   presentation?: { minHeightPx?: number; maxWidthPx?: number; marginTopPx?: number; marginBottomPx?: number; overflow?: string; builderMotion?: { preset?: string; durationMs?: number; delayMs?: number } },
 ): ReactNode {
-  if (!editor || !sectionId) {
-    const padStyle =
-      sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
-        ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
-        : undefined;
-    if (motionPreset) {
-      return (
-        <div className="kebu-entrance" data-motion={motionPreset} style={padStyle}>
-          {children}
-        </div>
-      );
-    }
-    if (padStyle) {
-      return <div style={padStyle}>{children}</div>;
-    }
-    return children;
-  }
-  const selected = editor.selectedSectionId === sectionId;
   const ownMotion = presentation?.builderMotion?.preset;
   const effectiveMotion = ownMotion && ownMotion !== "none" ? ownMotion : motionPreset;
+  const variant = effectiveMotion ? BUILDER_MOTION_VARIANTS[effectiveMotion] : undefined;
   const presentationStyle: React.CSSProperties = {
     minHeight: presentation?.minHeightPx ? `${presentation.minHeightPx}px` : undefined,
     maxWidth: presentation?.maxWidthPx ? `${presentation.maxWidthPx}px` : undefined,
@@ -181,9 +172,29 @@ function wrapEditorSection(
     marginTop: presentation?.marginTopPx ? `${presentation.marginTopPx}px` : undefined,
     marginBottom: presentation?.marginBottomPx ? `${presentation.marginBottomPx}px` : undefined,
     overflow: presentation?.overflow as React.CSSProperties["overflow"],
-    animationDuration: presentation?.builderMotion?.durationMs ? `${presentation.builderMotion.durationMs}ms` : undefined,
-    animationDelay: presentation?.builderMotion?.delayMs ? `${presentation.builderMotion.delayMs}ms` : undefined,
   };
+  const padStyle = sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
+    ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
+    : {};
+  if (!editor || !sectionId) {
+    if (variant) {
+      return (
+        <fx.div
+          initial={variant.initial}
+          whileInView={variant.animate}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: (presentation?.builderMotion?.durationMs ?? 500) / 1000, delay: (presentation?.builderMotion?.delayMs ?? 0) / 1000 }}
+          style={{ ...presentationStyle, ...padStyle }}
+        >
+          {children}
+        </fx.div>
+      );
+    }
+    return Object.keys(presentationStyle).some((key) => presentationStyle[key as keyof React.CSSProperties] !== undefined) || Object.keys(padStyle).length
+      ? <div style={{ ...presentationStyle, ...padStyle }}>{children}</div>
+      : children;
+  }
+  const selected = editor.selectedSectionId === sectionId;
   const structural = sectionType ? STRUCTURAL_SECTION_TYPES.has(sectionType) : false;
   const showToolbar = Boolean(
     editor.onDuplicateSection || editor.onDeleteSection || editor.onMoveSection,
