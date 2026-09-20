@@ -354,7 +354,6 @@ export function KebuOpportunityHome() {
                   alt="Maylecor aesthetic template — artist portrait with a New York City skyline collage"
                   fill
                   sizes="(min-width: 640px) 50vw, 100vw"
-                  unoptimized
                   className="object-contain object-bottom p-4"
                 />
               </div>

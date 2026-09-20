@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { requireUser } from "@/lib/create/auth";
 import { rowToMeProfile } from "@/lib/account/user-profile";
 import type { HomeSummary, HomeUpdate } from "@/lib/account/home-summary";
@@ -9,6 +10,13 @@ import { ensureAfriqueIdForUser } from "@/lib/afrique-id/ensure-afrique-id";
 import { parseKebuSetup } from "@/lib/account/kebu-setup";
 
 export const dynamic = "force-dynamic";
+
+const loadCountriesLive = unstable_cache(async () => {
+  const admin = createServiceClient();
+  if (!admin) return 0;
+  const { count } = await admin.from("country_profiles").select("country_code", { count: "exact", head: true }).eq("publish_status", "published");
+  return count ?? 0;
+}, ["home-countries-live"], { revalidate: 300 });
 
 /** Aggregated signed-in home — real DB data only. */
 export async function GET() {
@@ -157,15 +165,7 @@ export async function GET() {
   const { count: designCount } = await designQuery;
   if (designCount != null) createDesigns = designCount;
 
-  let countriesLive = 0;
-  const admin = createServiceClient();
-  if (admin) {
-    const { count } = await admin
-      .from("country_profiles")
-      .select("country_code", { count: "exact", head: true })
-      .eq("publish_status", "published");
-    if (count != null) countriesLive = count;
-  }
+  const countriesLive = await loadCountriesLive();
 
   const storeProducts = sites.reduce((n, s) => n + s.productCount, 0);
   const sitesPublished = sites.filter((s) => s.status === "published").length;
