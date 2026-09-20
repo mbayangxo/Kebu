@@ -138,6 +138,7 @@ export function StudioCanvasEditor({
   businessId = null,
   liveCursorsUserId = null,
   liveCursorsLabel = "You",
+  resolveMediaUrl = (url) => url,
 }: {
   designId: string;
   document: CanvasDocument;
@@ -158,6 +159,7 @@ export function StudioCanvasEditor({
   businessId?: string | null;
   liveCursorsUserId?: string | null;
   liveCursorsLabel?: string;
+  resolveMediaUrl?: (url: string) => string;
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const artboardRef = useRef<HTMLDivElement>(null);
@@ -967,7 +969,7 @@ export function StudioCanvasEditor({
                       <div className="w-full h-full overflow-hidden pointer-events-none">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={layer.imageUrl}
+                          src={resolveMediaUrl(layer.imageUrl)}
                           alt=""
                           style={(() => {
                             const crop = normalizeCrop(layer);
@@ -986,7 +988,7 @@ export function StudioCanvasEditor({
                       </div>
                     ) : layer.type === "video" && layer.videoUrl ? (
                       <TimelineVideo
-                        url={layer.videoUrl}
+                        url={resolveMediaUrl(layer.videoUrl)}
                         trimStartMs={layer.trimStartMs ?? 0}
                         pageLocalMs={previewLocalMs}
                         filterCss={mediaFilterCss(layer)}
@@ -1024,7 +1026,7 @@ export function StudioCanvasEditor({
                               }
                         }
                       >
-                        {layer.frameMediaUrl && layer.frameMediaKind==="image" ? <img src={layer.frameMediaUrl} alt="" className="absolute inset-0 h-full w-full" style={{objectFit:"cover",objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameMediaUrl && layer.frameMediaKind==="video" ? <video src={layer.frameMediaUrl} muted playsInline className="absolute inset-0 h-full w-full object-cover" style={{objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameStyle === "polaroid" ? <div className="w-full h-full" style={{ background: "#E8E4DC" }} /> : null}
+                        {layer.frameMediaUrl && layer.frameMediaKind==="image" ? <img src={resolveMediaUrl(layer.frameMediaUrl)} alt="" className="absolute inset-0 h-full w-full" style={{objectFit:"cover",objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameMediaUrl && layer.frameMediaKind==="video" ? <video src={layer.frameMediaUrl} muted playsInline className="absolute inset-0 h-full w-full object-cover" style={{objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameStyle === "polaroid" ? <div className="w-full h-full" style={{ background: "#E8E4DC" }} /> : null}
                         <div className="absolute inset-0" style={{border:`${layer.strokeWidth??6}px solid ${layer.stroke??"#fff"}`,borderRadius:layer.frameStyle==="rounded"?20:0}}/>
                       </div>
                     ) : layer.type === "icon" ? (
@@ -1384,7 +1386,7 @@ export function StudioCanvasEditor({
                   {selected.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={selected.imageUrl}
+                      src={resolveMediaUrl(selected.imageUrl)}
                       alt=""
                       className="w-full rounded-lg border max-h-28"
                       style={{
@@ -1484,7 +1486,7 @@ export function StudioCanvasEditor({
                 <div className="space-y-2">
                   {selected.videoUrl ? (
                     <video
-                      src={selected.videoUrl}
+                      src={resolveMediaUrl(selected.videoUrl)}
                       className="w-full rounded-lg border object-cover max-h-28"
                       muted
                       controls

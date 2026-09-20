@@ -35,8 +35,12 @@ import type { StudioDesignAccess } from "@/lib/studio/design-access";
 import { studioRoleLabel } from "@/lib/studio/design-access";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
+  cacheRemoteStudioDesignMedia,
+  getCachedStudioDesignMedia,
   getStudioOfflineDraft,
+  pruneStudioDesignMediaCache,
   putStudioOfflineDraft,
+  studioDesignOfflineMediaKey,
   studioOfflineSupported,
 } from "@/lib/studio/offline-drafts";
 
@@ -84,12 +88,69 @@ export default function StudioEditorPage() {
   const soundtrackAudioRef = useRef<HTMLAudioElement | null>(null);
   const [history, setHistory] = useState<CanvasDocument[]>([]);
   const [future, setFuture] = useState<CanvasDocument[]>([]);
+  const [offlineMediaUrls, setOfflineMediaUrls] = useState<Record<string, string>>({});
+  const offlineObjectUrls = useRef<string[]>([]);
   const skipHistory = useRef(false);
   const dragBaseline = useRef<CanvasDocument | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const docRef = useRef<CanvasDocument | null>(null);
 
   const canEdit = access?.canEdit !== false;
+
+  const replaceOfflineObjectUrls = useCallback((next: Record<string, string>) => {
+    for (const url of offlineObjectUrls.current) URL.revokeObjectURL(url);
+    offlineObjectUrls.current = Object.values(next).filter((url) => url.startsWith("blob:"));
+    setOfflineMediaUrls(next);
+  }, []);
+
+  const mediaUrlsForDocument = useCallback((canvas: CanvasDocument) => {
+    const urls = new Set<string>();
+    for (const canvasPage of canvas.pages) {
+      for (const layer of canvasPage.layers) {
+        if (layer.imageUrl) urls.add(layer.imageUrl);
+        if (layer.videoUrl) urls.add(layer.videoUrl);
+        if (layer.frameMediaUrl) urls.add(layer.frameMediaUrl);
+      }
+    }
+    if (canvas.soundtrack?.url) urls.add(canvas.soundtrack.url);
+    return [...urls];
+  }, []);
+
+  const hydrateOfflineMedia = useCallback(async (uid: string, canvas: CanvasDocument, cacheMissing = false) => {
+    if (!studioOfflineSupported()) return;
+    const urls = mediaUrlsForDocument(canvas);
+    const rows = await Promise.all(urls.map(async (url) => {
+      const key = studioDesignOfflineMediaKey(uid, designId, url);
+      let cached = await getCachedStudioDesignMedia(key).catch(() => null);
+      if (!cached && cacheMissing && typeof navigator !== "undefined" && navigator.onLine) {
+        try {
+          await cacheRemoteStudioDesignMedia(uid, designId, url);
+          cached = await getCachedStudioDesignMedia(key);
+        } catch {
+          cached = null;
+        }
+      }
+      return cached ? [url, URL.createObjectURL(cached.blob)] as const : null;
+    }));
+    replaceOfflineObjectUrls(Object.fromEntries(rows.filter((row): row is readonly [string, string] => Boolean(row))));
+    if (cacheMissing) await pruneStudioDesignMediaCache(uid, designId).catch(() => undefined);
+  }, [designId, mediaUrlsForDocument, replaceOfflineObjectUrls]);
+
+  const resolveMediaUrl = useCallback((url: string) => offlineMediaUrls[url] ?? url, [offlineMediaUrls]);
+
+  const documentWithResolvedMedia = useCallback((canvas: CanvasDocument): CanvasDocument => ({
+    ...canvas,
+    soundtrack: canvas.soundtrack ? { ...canvas.soundtrack, url: resolveMediaUrl(canvas.soundtrack.url) } : canvas.soundtrack,
+    pages: canvas.pages.map((canvasPage) => ({
+      ...canvasPage,
+      layers: canvasPage.layers.map((layer) => ({
+        ...layer,
+        imageUrl: layer.imageUrl ? resolveMediaUrl(layer.imageUrl) : layer.imageUrl,
+        videoUrl: layer.videoUrl ? resolveMediaUrl(layer.videoUrl) : layer.videoUrl,
+        frameMediaUrl: layer.frameMediaUrl ? resolveMediaUrl(layer.frameMediaUrl) : layer.frameMediaUrl,
+      })),
+    })),
+  }), [resolveMediaUrl]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -132,6 +193,7 @@ export default function StudioEditorPage() {
       setSelectedLayerIds([]);
       setHistory([]);
       setFuture([]);
+      if (nextUserId) void hydrateOfflineMedia(nextUserId, initialDoc, true);
     } catch {
       if (!studioOfflineSupported()) {
         setError("You are offline and this design is not available locally yet.");
@@ -177,11 +239,18 @@ export default function StudioEditorPage() {
         setHistory([]);
         setFuture([]);
         setSyncState("offline");
+        void hydrateOfflineMedia(offlineUserId, local.canvas, false);
       } catch {
         setError("Could not open the offline Studio draft.");
       }
     }
-  }, [designId]);
+  }, [designId, hydrateOfflineMedia]);
+
+  useEffect(() => {
+    return () => {
+      for (const url of offlineObjectUrls.current) URL.revokeObjectURL(url);
+    };
+  }, []);
 
   useEffect(() => {
     void load();
@@ -501,7 +570,8 @@ export default function StudioEditorPage() {
 
   /** Keep soundtrack audio in sync with playhead (S8c-lite). */
   useEffect(() => {
-    const url = doc?.soundtrack?.url;
+    const canonicalUrl = doc?.soundtrack?.url;
+    const url = canonicalUrl ? resolveMediaUrl(canonicalUrl) : undefined;
     if (!url) {
       soundtrackAudioRef.current?.pause();
       return;
@@ -526,7 +596,7 @@ export default function StudioEditorPage() {
     } else {
       audio.pause();
     }
-  }, [doc?.soundtrack?.url, playheadMs, timelinePlaying, doc]);
+  }, [doc?.soundtrack?.url, playheadMs, timelinePlaying, doc, resolveMediaUrl]);
 
   useEffect(() => {
     return () => {
@@ -538,7 +608,7 @@ export default function StudioEditorPage() {
   async function downloadPng() {
     if (!doc || !design) return;
     setExportNote("Rendering PNG…");
-    const dataUrl = await exportCanvasToPngDataUrlAsync(doc, 1, activePageId || undefined);
+    const dataUrl = await exportCanvasToPngDataUrlAsync(documentWithResolvedMedia(doc), 1, activePageId || undefined);
     if (!dataUrl) {
       setExportNote("Could not render PNG.");
       return;
@@ -552,7 +622,7 @@ export default function StudioEditorPage() {
     setPackBusy(true);
     setExportNote("Building ZIP of all pages…");
     try {
-      const result = await exportCanvasPagesZipBlob(doc, 1);
+      const result = await exportCanvasPagesZipBlob(documentWithResolvedMedia(doc), 1);
       if ("error" in result) {
         setExportNote(result.error);
         return;
@@ -569,7 +639,7 @@ export default function StudioEditorPage() {
     setPackBusy(true);
     setExportNote("Building PDF…");
     try {
-      const result = await exportCanvasPagesPdfBlob(doc, 0.75);
+      const result = await exportCanvasPagesPdfBlob(documentWithResolvedMedia(doc), 0.75);
       if ("error" in result) {
         setExportNote(result.error);
         return;
@@ -598,7 +668,7 @@ export default function StudioEditorPage() {
     const secs = estimateTimelineDurationSeconds(doc);
     setExportNote(`Recording timeline (~${secs.toFixed(1)}s) with video seek…`);
     try {
-      const result = await exportCanvasMotionToWebmBlob(doc, {
+      const result = await exportCanvasMotionToWebmBlob(documentWithResolvedMedia(doc), {
         scale: 0.5,
         fps: 15,
       });
@@ -661,14 +731,15 @@ export default function StudioEditorPage() {
         const page = doc.pages[index]!;
         setExportNote("Preparing page " + (index + 1) + " of " + doc.pages.length + "…");
 
-        let imageDataUrl = await exportCanvasToPngDataUrlAsync(doc, 1, page.id);
+        const exportDoc = documentWithResolvedMedia(doc);
+        let imageDataUrl = await exportCanvasToPngDataUrlAsync(exportDoc, 1, page.id);
         if (!imageDataUrl) {
           setExportNote("Could not render page " + (index + 1) + ".");
           return;
         }
         let blob = await fetch(imageDataUrl).then((response) => response.blob());
         if (blob.size > 5 * 1024 * 1024) {
-          imageDataUrl = await exportCanvasToPngDataUrlAsync(doc, 0.7, page.id);
+          imageDataUrl = await exportCanvasToPngDataUrlAsync(exportDoc, 0.7, page.id);
           if (!imageDataUrl) {
             setExportNote("Could not prepare a smaller snapshot for page " + (index + 1) + ".");
             return;
@@ -1128,6 +1199,7 @@ export default function StudioEditorPage() {
         liveCursorsLabel={access?.role === "owner" ? "Owner" : access?.role === "editor" ? "Editor" : "Viewer"}
         businessId={design.business_id}
         previewLocalMs={pageLocalTimeMs(doc, playheadMs)?.localMs ?? 0}
+        resolveMediaUrl={resolveMediaUrl}
       />
       <StudioTimelinePanel
         designId={designId}
