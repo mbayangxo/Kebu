@@ -54,6 +54,7 @@ import {
 } from "@/app/components/create/data-mode-provider";
 import { useProjectAutosave } from "./use-project-autosave";
 import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
+import { useBuilderAccordion } from "@/app/components/create/use-builder-accordion";
 import {
   portfolioUpgradeForProject,
   type EditorProject as Project,
@@ -92,8 +93,15 @@ const YandeAssistant = dynamic(
 );
 
 function SidebarDetails({ title, children, defaultOpen = true, group }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean; group?: string }) {
+  const { open, setAccordionOpen } = useBuilderAccordion(group, defaultOpen);
+
   return (
-    <details open={defaultOpen} name={group} className="group border-b" style={{ borderColor: "#E5E5E5" }}>
+    <details
+      open={open}
+      onToggle={(event) => setAccordionOpen(event.currentTarget.open)}
+      className="group border-b"
+      style={{ borderColor: "#E5E5E5" }}
+    >
       <summary
         className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 select-none"
         style={{ background: "#F7F7F7" }}
