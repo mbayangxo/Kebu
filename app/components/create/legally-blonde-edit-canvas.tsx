@@ -99,6 +99,7 @@ type ExtraCut = {
   leftPct: number;
   widthPct: number;
   rotate?: number;
+  zIndex?: number;
 };
 
 type UploadTarget =
@@ -142,6 +143,51 @@ export function LegallyBlondeEditCanvas({
   const motions = (props.layerMotions as Record<string, LayerMotion>) ?? {};
   const layerLinks = (props.layerLinks as Record<string, string>) ?? {};
   const layerZ = (props.layerZIndex as Record<string, number>) ?? {};
+
+  function stepLayer(key: string, delta: -1 | 1) {
+    const current = typeof layerZ[key] === "number" ? layerZ[key]! : 10;
+    const next = Math.min(80, Math.max(1, current + delta));
+    const extras = extraCutouts.map((cut) =>
+      cut.id === key ? { ...cut, zIndex: next } : cut,
+    );
+    onPatch({
+      layerZIndex: { ...layerZ, [key]: next },
+      ...(extras.some((cut) => cut.id === key) ? { extraCutouts: extras } : {}),
+    });
+  }
+
+  function duplicateLayer(key: string, source: EditableCutoutSlot | ExtraCut) {
+    const nextId = `dup-${Date.now()}`;
+    const position = positions[key] ?? {
+      leftPct: source.leftPct,
+      topPct: source.topPct,
+    };
+    const currentScale = scales[key] ?? 1;
+    const duplicate: ExtraCut = {
+      id: nextId,
+      src: source.src,
+      alt: `${"label" in source ? source.label : source.alt || "Cutout"} copy`,
+      href: "href" in source ? source.href : layerLinks[key] ?? "",
+      leftPct: Math.min(90, position.leftPct + 3),
+      topPct: Math.min(90, position.topPct + 3),
+      widthPct: Math.max(4, source.widthPct * currentScale),
+      rotate: source.rotate ?? 0,
+      zIndex: Math.min(80, (typeof layerZ[key] === "number" ? layerZ[key]! : 10) + 1),
+    };
+    onPatch({
+      extraCutouts: [...extraCutouts, duplicate],
+      layerScales: { ...scales, [nextId]: 1 },
+      layerZIndex: { ...layerZ, [nextId]: duplicate.zIndex ?? 11 },
+      layerPositions: {
+        ...positions,
+        [nextId]: { leftPct: duplicate.leftPct, topPct: duplicate.topPct },
+      },
+    });
+    setSelectedExtraId(nextId);
+    setSelectedKey(null);
+    setEditingTitle(false);
+    selectElement(`extra:${nextId}`, "cutout", duplicate.alt || "Cutout copy");
+  }
 
   function bumpLayer(key: string, dir: "front" | "back") {
     // Collect z-indexes of ALL other layers so we can truly move to front/back
@@ -452,7 +498,10 @@ export function LegallyBlondeEditCanvas({
               onOpenLink={() => openCutoutLink(layerLinks[slot.key] ?? "")}
               zIndex={typeof layerZ[slot.key] === "number" ? layerZ[slot.key]! : 10}
               onBringFront={() => bumpLayer(slot.key, "front")}
+              onBringForward={() => stepLayer(slot.key, 1)}
+              onSendBackward={() => stepLayer(slot.key, -1)}
               onSendBack={() => bumpLayer(slot.key, "back")}
+              onDuplicate={() => duplicateLayer(slot.key, slot)}
               onSelect={() => {
                 setSelectedKey(slot.key);
                 setSelectedExtraId(null);
@@ -539,7 +588,10 @@ export function LegallyBlondeEditCanvas({
                 onOpenLink={() => openCutoutLink(cut.href ?? "")}
                 zIndex={typeof layerZ[cut.id] === "number" ? layerZ[cut.id]! : 10}
                 onBringFront={() => bumpLayer(cut.id, "front")}
+                onBringForward={() => stepLayer(cut.id, 1)}
+                onSendBackward={() => stepLayer(cut.id, -1)}
                 onSendBack={() => bumpLayer(cut.id, "back")}
+                onDuplicate={() => duplicateLayer(cut.id, cut)}
                 onSelect={() => {
                   setSelectedExtraId(cut.id);
                   setSelectedKey(null);
@@ -710,7 +762,10 @@ function CutoutChip({
   onDelete,
   zIndex = 10,
   onBringFront,
+  onBringForward,
+  onSendBackward,
   onSendBack,
+  onDuplicate,
 }: {
   slot: EditableCutoutSlot;
   titleText: string | null;
@@ -748,7 +803,10 @@ function CutoutChip({
   onDelete?: () => void;
   zIndex?: number;
   onBringFront?: () => void;
+  onBringForward?: () => void;
+  onSendBackward?: () => void;
   onSendBack?: () => void;
+  onDuplicate?: () => void;
 }) {
   const moved = useRef(false);
   const [pulsing, setPulsing] = useState(false);
@@ -1003,8 +1061,17 @@ function CutoutChip({
           {href.trim() ? (
             <CtxItem onClick={() => { onOpenLink?.(); setCtxMenu(null); }}>Open link</CtxItem>
           ) : null}
+          {onDuplicate ? (
+            <CtxItem onClick={() => { onDuplicate(); setCtxMenu(null); }}>Duplicate</CtxItem>
+          ) : null}
           {onBringFront ? (
             <CtxItem onClick={() => { onBringFront(); setCtxMenu(null); }}>Bring to Front</CtxItem>
+          ) : null}
+          {onBringForward ? (
+            <CtxItem onClick={() => { onBringForward(); setCtxMenu(null); }}>Bring Forward</CtxItem>
+          ) : null}
+          {onSendBackward ? (
+            <CtxItem onClick={() => { onSendBackward(); setCtxMenu(null); }}>Send Backward</CtxItem>
           ) : null}
           {onSendBack ? (
             <CtxItem onClick={() => { onSendBack(); setCtxMenu(null); }}>Send to Back</CtxItem>
