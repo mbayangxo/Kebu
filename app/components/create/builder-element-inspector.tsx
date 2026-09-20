@@ -2,6 +2,7 @@
 
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
+import { PanelSection } from "@/app/components/create/builder-panel-section";
 import { GalaxyBadge, GalaxyButton, GalaxyInspectorCard } from "@/app/components/galaxy/editor-primitives";
 import {
   builderLayerStorageKey,
@@ -340,7 +341,7 @@ export function BuilderElementInspector({
       ) : null}
 
       {selection.kind === "text" ? (
-        <div className="space-y-3">
+        <PanelSection title="Typography" defaultOpen group="builder-element-inspector">
           <label className="block text-[11px] font-semibold text-black/65">
             Text
             <input
@@ -463,11 +464,11 @@ export function BuilderElementInspector({
               aria-label="Text color"
             />
           </label>
-        </div>
+        </PanelSection>
       ) : null}
 
       {selection.elementId !== "siteFooter" && selection.elementId !== "heroCanvas" ? (
-        <div className="space-y-3">
+        <PanelSection title="Appearance" group="builder-element-inspector">
           <label className="block text-[11px] font-semibold text-black/65">
             Opacity
             <div className="mt-1.5 flex items-center gap-2">
@@ -542,12 +543,11 @@ export function BuilderElementInspector({
           >
             {locked ? "Unlock layer" : "Lock layer"}
           </button>
-        </div>
+        </PanelSection>
       ) : null}
 
       {canPositionLayer ? (
-        <div className="space-y-2 rounded-xl border border-black/10 bg-black/[0.02] p-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black/45">Position</p>
+        <PanelSection title="Position" group="builder-element-inspector">
           <div className="grid grid-cols-2 gap-2">
             <label className="block text-[11px] font-semibold text-black/65">
               X %
@@ -577,39 +577,40 @@ export function BuilderElementInspector({
           <p className="text-[10px] leading-relaxed text-black/45">
             Drag on the canvas for visual placement. These values give precise per-device positioning.
           </p>
-        </div>
+        </PanelSection>
       ) : null}
 
       {selection.elementId !== "siteFooter" && selection.elementId !== "heroCanvas" ? (
-      <label className="block text-[11px] font-semibold text-black/65">
-        Object size
-        <div className="mt-1.5 flex items-center gap-2">
-          <input
-            className="min-w-0 flex-1 accent-[#FF6A00]"
-            type="range"
-            min="0.15"
-            max="3"
-            step="0.05"
-            value={scale}
-            onChange={(event) => patchScale(Number(event.target.value))}
-          />
-          <input
-            className="w-[68px] rounded-md border border-black/10 bg-white px-2 py-1.5 text-right text-xs"
-            type="number"
-            min="0.15"
-            max="3"
-            step="0.05"
-            value={Number(scale.toFixed(2))}
-            onChange={(event) => patchScale(Number(event.target.value))}
-            aria-label="Object scale"
-          />
-        </div>
-      </label>
+        <PanelSection title="Size" group="builder-element-inspector">
+          <label className="block text-[11px] font-semibold text-black/65">
+            Object size
+            <div className="mt-1.5 flex items-center gap-2">
+              <input
+                className="min-w-0 flex-1 accent-[#FF6A00]"
+                type="range"
+                min="0.15"
+                max="3"
+                step="0.05"
+                value={scale}
+                onChange={(event) => patchScale(Number(event.target.value))}
+              />
+              <input
+                className="w-[68px] rounded-md border border-black/10 bg-white px-2 py-1.5 text-right text-xs"
+                type="number"
+                min="0.15"
+                max="3"
+                step="0.05"
+                value={Number(scale.toFixed(2))}
+                onChange={(event) => patchScale(Number(event.target.value))}
+                aria-label="Object scale"
+              />
+            </div>
+          </label>
+        </PanelSection>
       ) : null}
 
       {selection.elementId !== "siteFooter" && selection.elementId !== "heroCanvas" ? (
-        <div className="space-y-3 rounded-xl border border-black/10 bg-black/[0.02] p-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black/45">Arrange</p>
+        <PanelSection title="Arrange & motion" group="builder-element-inspector">
           <div className="grid grid-cols-2 gap-2">
             {([
               ["front", "Bring to front"],
@@ -656,10 +657,11 @@ export function BuilderElementInspector({
           >
             {hidden ? "Show layer" : "Hide layer"}
           </button>
-        </div>
+        </PanelSection>
       ) : null}
 
       {selection.elementId !== "siteFooter" && selection.elementId !== "heroCanvas" ? (
+      <PanelSection title="Layer depth" group="builder-element-inspector">
       <label className="block text-[11px] font-semibold text-black/65">
         Layer depth
         <div className="mt-1.5 flex items-center gap-2">
@@ -684,6 +686,7 @@ export function BuilderElementInspector({
           />
         </div>
       </label>
+      </PanelSection>
       ) : null}
 
       <div className="grid grid-cols-2 gap-2">
