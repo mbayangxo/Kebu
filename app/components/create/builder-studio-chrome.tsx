@@ -92,16 +92,6 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
       </svg>
     ),
   },
-  {
-    id: "shop",
-    label: "Shop",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-        <path d="M6 7h12l-1 12H7L6 7z" strokeLinejoin="round" />
-        <path d="M9 7V5a3 3 0 016 0v2" strokeLinecap="round" />
-      </svg>
-    ),
-  },
 ];
 
 /** Vertical icon rail — Shopify theme-editor style (not horizontal tabs). */
