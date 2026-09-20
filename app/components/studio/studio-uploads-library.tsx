@@ -122,7 +122,8 @@ export function StudioUploadsLibrary({
 
   return (
     <div className="space-y-3">
-      <GalaxyPanelHeader eyebrow="Studio" title="Media" description="Upload once, reuse everywhere in this Kebu space." action={!readOnly?:null}/><div className="flex items-center justify-between gap-2">
+      <GalaxyPanelHeader eyebrow="Studio" title="Media" description="Upload once, reuse everywhere in this Kebu space." />
+      <div className="flex items-center justify-between gap-2">
         <div><p className="text-[10px] font-black uppercase tracking-[.18em]">Uploads</p><p className="text-[9px] text-black/40">Current Kebu space</p></div>
         {!readOnly ? <><input ref={fileRef} type="file" className="hidden" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac" onChange={(e)=>void upload(e.target.files?.[0]??null)}/><button type="button" disabled={busy} onClick={()=>fileRef.current?.click()} className="rounded-lg bg-black px-2.5 py-1.5 text-[10px] font-black text-white disabled:opacity-40">{busy?"Uploading…":"Upload +"}</button></>:null}
       </div>
