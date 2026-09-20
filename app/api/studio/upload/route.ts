@@ -3,6 +3,7 @@ import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -43,12 +44,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Expected multipart form data." }, { status: 400 });
   }
 
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
   const designId = String(form.get("designId") ?? "").trim();
+  let uploadBusinessId = workspace.activeBusinessId;
+
   if (designId && /^[0-9a-f-]{36}$/i.test(designId)) {
     const access = await resolveStudioDesignAccess(supabase, { designId, userId: user.id });
     if (!access?.canEdit) {
       return NextResponse.json({ error: "Design not found or view-only." }, { status: 404 });
     }
+    const { data: designScope } = await supabase
+      .from("create_designs")
+      .select("business_id")
+      .eq("id", designId)
+      .maybeSingle();
+    if (!designScope) {
+      return NextResponse.json({ error: "Design not found." }, { status: 404 });
+    }
+    const designBusinessId = designScope.business_id ?? null;
+    if (designBusinessId !== workspace.activeBusinessId) {
+      return NextResponse.json(
+        { error: "Switch to the Kebu space that owns this design before uploading media." },
+        { status: 409 },
+      );
+    }
+    uploadBusinessId = designBusinessId;
   }
 
   const file = form.get("file");
@@ -157,6 +177,7 @@ export async function POST(req: Request) {
         file_name: file.name?.slice(0, 200) || null,
         mime: mime || null,
         byte_size: file.size,
+        business_id: uploadBusinessId,
       })
       .select("id")
       .maybeSingle();
