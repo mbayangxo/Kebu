@@ -8,6 +8,7 @@ import {
   replaceWebsiteDefinition,
 } from "@/lib/create/persist-site";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
+import { recordProjectFlow } from "@/lib/platform/flow-events";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,18 @@ export async function POST(req: Request, { params }: Params) {
     projectId,
     sourceVersionNumber: version.version_number,
     newVersionNumber: restored.versionNumber,
+  });
+  await recordProjectFlow({
+    eventType: "website.version_restored",
+    projectId,
+    actorUserId: user.id,
+    idempotencyKey: `website.version_restored:${projectId}:${restored.versionNumber}`,
+    payload: { sourceVersionNumber: version.version_number, newVersionNumber: restored.versionNumber },
+    notification: {
+      title: "Draft restored",
+      body: `Version ${version.version_number} was restored safely. Publish separately when ready.`,
+      actionUrl: `/create/${projectId}`,
+    },
   });
 
   return NextResponse.json({
