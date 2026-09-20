@@ -831,7 +831,13 @@ export function SiteRenderer({
   const hasKdirection = page.sections.some(
     (s) => s.type === "kdirection-home" || s.type === "kdirection-page",
   );
-  const motionHero = findMotionHeroProps(definition);
+  const motionHeroRaw = findMotionHeroProps(definition);
+  const motionHero = motionHeroRaw
+    ? (mergeDeviceAwareSectionProps(
+        motionHeroRaw as unknown as Record<string, unknown>,
+        activeDevice,
+      ) as unknown as LegallyBlondeHeroProps)
+    : null;
   const motionHeroSectionId =
     definition.pages
       .flatMap((candidatePage) => candidatePage.sections)
