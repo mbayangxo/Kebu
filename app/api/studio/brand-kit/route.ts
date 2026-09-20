@@ -79,6 +79,7 @@ export async function POST(req: Request) {
       text_color: parsed.data.textColor,
       font_display: parsed.data.fontDisplay,
       font_body: parsed.data.fontBody,
+      logos:parsed.data.logos,color_roles:parsed.data.colorRoles,typography_roles:parsed.data.typographyRoles,imagery_rules:parsed.data.imageryRules,voice_rules:parsed.data.voiceRules,approved_asset_ids:parsed.data.approvedAssetIds,is_default:parsed.data.isDefault,
     })
     .select(BRAND_KIT_SELECT)
     .single();
@@ -126,6 +127,7 @@ export async function PATCH(req: Request) {
   if (parsed.data.textColor !== undefined) patch.text_color = parsed.data.textColor;
   if (parsed.data.fontDisplay !== undefined) patch.font_display = parsed.data.fontDisplay;
   if (parsed.data.fontBody !== undefined) patch.font_body = parsed.data.fontBody;
+  if(parsed.data.logos!==undefined)patch.logos=parsed.data.logos;if(parsed.data.colorRoles!==undefined)patch.color_roles=parsed.data.colorRoles;if(parsed.data.typographyRoles!==undefined)patch.typography_roles=parsed.data.typographyRoles;if(parsed.data.imageryRules!==undefined)patch.imagery_rules=parsed.data.imageryRules;if(parsed.data.voiceRules!==undefined)patch.voice_rules=parsed.data.voiceRules;if(parsed.data.approvedAssetIds!==undefined)patch.approved_asset_ids=parsed.data.approvedAssetIds;if(parsed.data.isDefault!==undefined)patch.is_default=parsed.data.isDefault;
   if (parsed.data.businessId !== undefined) patch.business_id = parsed.data.businessId;
 
   let updateQuery = supabase
