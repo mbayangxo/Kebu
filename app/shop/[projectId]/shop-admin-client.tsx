@@ -160,7 +160,7 @@ export default function ShopAdminPage() {
   const bc = breadcrumb(tab, sub);
 
   return (
-    <AppShell title={title}>
+    <AppShell title={title} immersive>
       <div className="shop-layout">
 
         {/* ── Left sidebar nav ── */}
@@ -185,15 +185,15 @@ export default function ShopAdminPage() {
               )}
             </div>
             <div className="shop-topbar-actions">
-              <ShopStoreSwitcher currentProjectId={projectId} currentTitle={title} />
-              <ShopNotificationsBell projectId={projectId} />
               <Link
-                href="/shop"
+                href={businessId ? `/business/${businessId}` : "/business"}
                 className="kb-btn-ghost"
                 style={{ fontSize: "0.75rem", padding: "0.4rem 0.875rem" }}
               >
-                All shops
+                ← Back
               </Link>
+              <ShopStoreSwitcher currentProjectId={projectId} currentTitle={title} />
+              <ShopNotificationsBell projectId={projectId} />
               <Link
                 href={`/create/${projectId}`}
                 className="kb-btn-primary"

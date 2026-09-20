@@ -44,11 +44,13 @@ export function AppShell({
   children,
   portfolioSites = [],
   actions,
+  immersive = false,
 }: {
   title: string;
   children: React.ReactNode;
   portfolioSites?: PortfolioNavSite[];
   actions?: React.ReactNode;
+  immersive?: boolean;
 }) {
   const pathname = usePathname();
   const publicSurface =
@@ -62,6 +64,18 @@ export function AppShell({
   }
 
   const fallback = fallbackForPath(pathname);
+
+  if (immersive) {
+    return (
+      <DataModeProvider>
+        <KebuOfflineBanner />
+        <KebuCommandPalette />
+        <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
+          {children}
+        </div>
+      </DataModeProvider>
+    );
+  }
 
   return (
     <DataModeProvider>
