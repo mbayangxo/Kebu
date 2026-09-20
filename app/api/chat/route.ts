@@ -24,6 +24,8 @@ export async function GET(req: Request) {
   const { supabase } = auth;
   const url = new URL(req.url);
   const channelId = url.searchParams.get("channelId");
+  const businessId = url.searchParams.get("businessId");
+  const personal = url.searchParams.get("personal") === "1";
 
   if (channelId) {
     if (!/^[0-9a-f-]{36}$/i.test(channelId)) return NextResponse.json({ error: "Invalid channel." }, { status: 400 });
@@ -44,11 +46,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ messages: data ?? [], profiles });
   }
 
-  const { data, error } = await supabase
+  let channelsQuery = supabase
     .from("space_channels")
     .select("id, created_by, business_id, name, created_at, updated_at")
     .order("updated_at", { ascending: false })
     .limit(100);
+  if (businessId) channelsQuery = channelsQuery.eq("business_id", businessId);
+  else if (personal) channelsQuery = channelsQuery.is("business_id", null);
+  const { data, error } = await channelsQuery;
   if (error) return NextResponse.json({ error: error.message.includes("space_channels") ? "Apply space chat migration." : "Could not load chat." }, { status: 500 });
   return NextResponse.json({ channels: data ?? [] });
 }

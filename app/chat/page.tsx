@@ -49,21 +49,21 @@ export default function ChatPage() {
 
   const loadChannels = useCallback(async () => {
     setError(null);
-    const [channelsRes, workspaceRes] = await Promise.all([
-      fetch("/api/chat", { credentials: "include" }),
-      fetch("/api/me/workspace", { credentials: "include" }),
-    ]);
-    const [channelsData, workspaceData] = await Promise.all([
-      channelsRes.json().catch(() => ({})),
-      workspaceRes.json().catch(() => ({})),
-    ]);
+    const workspaceRes = await fetch("/api/me/workspace", { credentials: "include" });
+    const workspaceData = await workspaceRes.json().catch(() => ({}));
+    const context = workspaceRes.ok && workspaceData.context ? workspaceData.context as AccountWorkspaceContext : null;
+    setWorkspace(context);
+    const params = new URLSearchParams();
+    if (context?.activeBusinessId) params.set("businessId", context.activeBusinessId);
+    else params.set("personal", "1");
+    const channelsRes = await fetch("/api/chat?" + params.toString(), { credentials: "include" });
+    const channelsData = await channelsRes.json().catch(() => ({}));
     if (!channelsRes.ok) {
       setError(channelsData.error || "Could not load chat.");
       return;
     }
     const list = Array.isArray(channelsData.channels) ? channelsData.channels as Channel[] : [];
     setChannels(list);
-    if (workspaceRes.ok && workspaceData.context) setWorkspace(workspaceData.context);
     setSelectedId((current) => current && list.some((channel) => channel.id === current) ? current : list[0]?.id ?? null);
   }, []);
 

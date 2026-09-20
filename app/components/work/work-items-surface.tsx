@@ -5,6 +5,7 @@ import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 import type { WorkItemKind, WorkItemRow } from "@/lib/work/items";
+import type { AccountWorkspaceContext } from "@/lib/account/workspace-context";
 
 const COPY: Record<WorkItemKind, { eyebrow: string; title: string; description: string; noun: string }> = {
   task: { eyebrow: "Work", title: "Tasks", description: "Small, clear next steps across your personal and business spaces.", noun: "task" },
@@ -29,20 +30,45 @@ export function WorkItemsSurface({ kind }: { kind: WorkItemKind }) {
   const [dateValue, setDateValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [workspace, setWorkspace] = useState<AccountWorkspaceContext | null>(null);
+  const [workspaceReady, setWorkspaceReady] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (context?: AccountWorkspaceContext | null) => {
     setError(null);
     try {
-      const res = await fetch("/api/work/items?kind=" + kind, { credentials: "include" });
+      const active = context ?? workspace;
+      const params = new URLSearchParams({ kind });
+      if (active?.activeBusinessId) params.set("businessId", active.activeBusinessId);
+      else params.set("personal", "1");
+      const res = await fetch("/api/work/items?" + params.toString(), { credentials: "include" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setError(data.error || "Could not load " + copy.title.toLowerCase() + "."); return; }
       setItems(Array.isArray(data.items) ? data.items : []);
+      setSelectedId(null);
     } catch {
       setError("Network error.");
     }
-  }, [copy.title, kind]);
+  }, [copy.title, kind, workspace]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/me/workspace", { credentials: "include" })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (cancelled) return;
+        const context = data?.context ?? null;
+        setWorkspace(context);
+        setWorkspaceReady(true);
+        void load(context);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWorkspaceReady(true);
+          void load(null);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [load]);
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId]);
 
@@ -55,6 +81,7 @@ export function WorkItemsSurface({ kind }: { kind: WorkItemKind }) {
       title: title.trim(),
       body,
       status: kind === "doc" ? "draft" : "open",
+      businessId: workspace?.activeBusinessId ?? null,
     };
     if (kind === "task" && dateValue) payload.dueAt = new Date(dateValue).toISOString();
     if (kind === "event" && dateValue) {
@@ -112,12 +139,14 @@ export function WorkItemsSurface({ kind }: { kind: WorkItemKind }) {
       <div className="mx-auto max-w-[1380px] px-4 py-6 sm:px-7">
         <header className="flex flex-col justify-between gap-4 border-b pb-6 sm:flex-row sm:items-end" style={{ borderColor: KEBU.borders.default }}>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>{copy.eyebrow}</p>
+            <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>{copy.eyebrow} · {workspace?.activeBusiness?.name ?? "Personal Kebu"}</p>
             <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>{copy.title}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>{copy.description}</p>
           </div>
           <button type="button" onClick={() => setCreating(true)} className="rounded-full px-5 py-2.5 text-xs font-black text-white" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>+ New {copy.noun}</button>
         </header>
+
+        {!workspaceReady ? <div className="mt-4 text-xs" style={{ color: KEBU.muted }}>Loading current space…</div> : null}
 
         {error ? <div className="mt-4 rounded-xl border px-4 py-3 text-xs font-semibold" style={{ borderColor: KEBU.status.errorBorder, background: KEBU.status.errorBg, color: KEBU.status.errorText }}>{error}</div> : null}
 

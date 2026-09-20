@@ -19,7 +19,9 @@ export async function GET(req: Request) {
 
   if (kindParsed.success) query = query.eq("kind", kindParsed.data);
   const businessId = url.searchParams.get("businessId");
+  const personal = url.searchParams.get("personal") === "1";
   if (businessId) query = query.eq("business_id", businessId);
+  else if (personal) query = query.is("business_id", null);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message.includes("workspace_items") ? "Apply workspace items migration." : "Could not load work items." }, { status: 500 });
