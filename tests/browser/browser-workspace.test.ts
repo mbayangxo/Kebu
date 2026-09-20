@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { isPrivateIp } from "@/lib/browser/url-safety";
+import { createPinnedRequestOptions } from "@/lib/browser/pinned-reader-request";
 
 describe("Kebu Browser workspace", () => {
   it("blocks private and loopback IP ranges", () => {
@@ -12,6 +13,18 @@ describe("Kebu Browser workspace", () => {
     expect(isPrivateIp("::1")).toBe(true);
     expect(isPrivateIp("8.8.8.8")).toBe(false);
     expect(isPrivateIp("1.1.1.1")).toBe(false);
+  });
+
+  it("pins reader connections to the validated public address", () => {
+    const options = createPinnedRequestOptions({
+      url: new URL("https://example.com/story?q=kebu"),
+      addresses: [{ address: "93.184.216.34", family: 4 }],
+    });
+
+    expect(options.hostname).toBe("93.184.216.34");
+    expect(options.servername).toBe("example.com");
+    expect(options.headers).toMatchObject({ Host: "example.com" });
+    expect(options.path).toBe("/story?q=kebu");
   });
 
   it("persists journeys tabs bookmarks and history behind RLS", () => {

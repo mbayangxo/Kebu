@@ -1,6 +1,11 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
+export type SafePublicTarget = {
+  url: URL;
+  addresses: Array<{ address: string; family: 4 | 6 }>;
+};
+
 function isPrivateV4(ip: string): boolean {
   const parts = ip.split(".").map(Number);
   if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true;
@@ -28,18 +33,31 @@ export function isPrivateIp(ip: string): boolean {
   return true;
 }
 
-export async function assertSafePublicUrl(input: string): Promise<URL> {
+export async function resolveSafePublicUrl(input: string): Promise<SafePublicTarget> {
   const url = new URL(input);
   if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Only http and https URLs are supported.");
   if (url.username || url.password) throw new Error("Credential-bearing URLs are not allowed.");
+  const expectedPort = url.protocol === "https:" ? "443" : "80";
+  if (url.port && url.port !== expectedPort) throw new Error("Reader only supports standard web ports.");
   const host = url.hostname;
   if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) throw new Error("Private hosts are not allowed.");
 
   if (isIP(host)) {
     if (isPrivateIp(host)) throw new Error("Private network addresses are not allowed.");
+    return { url, addresses: [{ address: host, family: isIP(host) as 4 | 6 }] };
   } else {
     const addresses = await lookup(host, { all: true, verbatim: true });
     if (!addresses.length || addresses.some((entry) => isPrivateIp(entry.address))) throw new Error("URL resolves to a private network.");
+    return {
+      url,
+      addresses: addresses.map((entry) => ({
+        address: entry.address,
+        family: entry.family as 4 | 6,
+      })),
+    };
   }
-  return url;
+}
+
+export async function assertSafePublicUrl(input: string): Promise<URL> {
+  return (await resolveSafePublicUrl(input)).url;
 }
