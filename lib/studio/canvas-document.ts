@@ -95,6 +95,9 @@ export const canvasPageSchema = z.object({
   layers: z.array(canvasLayerSchema).max(64).default([]),
   /** How long this page stays on the timeline (S8b) */
   durationMs: z.number().int().min(500).max(30_000).optional(),
+  /** Transition into this page when played/exported as motion. */
+  transitionKind: z.enum(["cut","fade","dissolve","slide"]).optional(),
+  transitionDurationMs: z.number().int().min(0).max(3000).optional(),
 });
 
 export type CanvasPage = z.infer<typeof canvasPageSchema>;
@@ -225,7 +228,7 @@ export function getPage(doc: CanvasDocument, pageId: string | null | undefined):
 export function updatePage(
   doc: CanvasDocument,
   pageId: string,
-  patch: Partial<Pick<CanvasPage, "name" | "width" | "height" | "backgroundColor" | "layers" | "durationMs">>,
+  patch: Partial<Pick<CanvasPage, "name" | "width" | "height" | "backgroundColor" | "layers" | "durationMs" | "transitionKind" | "transitionDurationMs">>,
 ): CanvasDocument {
   const pages = doc.pages.map((p) => (p.id === pageId ? { ...p, ...patch } : p));
   const active = pages.find((p) => p.id === pageId) ?? pages[0]!;
