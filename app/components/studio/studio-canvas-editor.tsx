@@ -26,6 +26,7 @@ import {
 } from "@/lib/studio/editor-craft";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
 import { StudioBrandApplyPanel } from "@/app/components/studio/studio-brand-apply-panel";
+import { StudioToolsPanel } from "@/app/components/studio/studio-tools-panel";
 import { StudioLiveCursors } from "@/app/components/studio/studio-live-cursors";
 import { StudioMediaAdjustmentsPanel } from "@/app/components/studio/studio-media-adjustments-panel";
 import {
@@ -174,7 +175,7 @@ export function StudioCanvasEditor({
   const [elementQuery, setElementQuery] = useState("");
   const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "brand">("elements");
+  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "brand" | "tools">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -753,9 +754,9 @@ export function StudioCanvasEditor({
 
       <div className="flex flex-1 min-h-0">
         {/* Left: Elements / Layers */}
-        <aside className="w-[240px] shrink-0 border-r border-black/10 bg-[#FFFCF8] flex flex-col">
-          <div className="grid grid-cols-4 border-b border-black/10">
-            {(["elements", "layers", "uploads", "brand"] as const).map((t) => (
+        <aside className="w-[268px] shrink-0 border-r border-black/10 bg-[#FFFCF8] flex flex-col">
+          <div className="grid grid-cols-5 border-b border-black/10">
+            {(["elements", "layers", "uploads", "brand", "tools"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -764,7 +765,7 @@ export function StudioCanvasEditor({
                   leftTab === t ? "border-b-2 border-orange-600 text-orange-700" : "opacity-50"
                 }`}
               >
-                {t === "uploads" ? "Library" : t === "brand" ? "Look" : t}
+                {t === "uploads" ? "Media" : t === "brand" ? "Brand" : t}
               </button>
             ))}
           </div>
@@ -777,6 +778,12 @@ export function StudioCanvasEditor({
                 readOnly={readOnly}
                 onApply={(next) => onChange(next)}
               />
+            ) : null}
+            {leftTab === "tools" ? (
+              <StudioToolsPanel readOnly={readOnly} onAction={(action) => {
+                if (action === "text") addLayer("text");
+                else setLeftTab(action);
+              }} />
             ) : null}
             {leftTab === "elements" ? (
               <div className="space-y-3">
@@ -810,23 +817,17 @@ export function StudioCanvasEditor({
                 }
               />
             ) : (
-              <ul className="space-y-1">
-                {[...layers].reverse().map((l) => (
-                  <li key={l.id}>
-                    <button
-                      type="button"
-                      onClick={(e) => selectLayer(l, e.shiftKey)}
-                      className={`w-full text-left rounded-lg px-2 py-1.5 text-xs ${
-                        selectedSet.has(l.id) ? "bg-[#0F0D33] text-white" : "hover:bg-black/5"
-                      }`}
-                    >
-                      <span className="font-semibold">{l.name}</span>
-                      <span className="opacity-50 ml-1">· {l.type}</span>
-                      {l.groupId ? <span className="opacity-40 ml-1">⊞</span> : null}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em]">Layers</p><p className="text-[9px] text-black/40">Top layer appears first</p></div><span className="rounded-full bg-black/[.05] px-2 py-1 text-[9px] font-bold">{layers.length}</span></div>
+                <ul className="space-y-1">{[...layers].reverse().map((l) => (
+                  <li key={l.id} className={`group flex items-center rounded-xl border ${selectedSet.has(l.id)?"border-black bg-black text-white":"border-transparent hover:border-black/10 hover:bg-white"}`}>
+                    <button type="button" onClick={(e)=>selectLayer(l,e.shiftKey)} className="min-w-0 flex-1 px-2.5 py-2 text-left">
+                      <span className="block truncate text-[10px] font-bold">{l.name}</span><span className="text-[8px] opacity-45">{l.type}{l.groupId?" · grouped":""}</span>
                     </button>
-                  </li>
-                ))}
-              </ul>
+                    {!readOnly?<button type="button" title={l.locked?"Unlock layer":"Lock layer"} onClick={()=>updateLayer(l.id,{locked:!l.locked})} className="mr-1 rounded-lg px-2 py-2 text-[10px] opacity-55 hover:bg-white/10">{l.locked?"🔒":"○"}</button>:null}
+                  </li>))}
+                </ul>
+              </div>
             )}
           </div>
         </aside>
@@ -1076,10 +1077,8 @@ export function StudioCanvasEditor({
         </div>
 
         {/* Right: Properties */}
-        <aside className="w-[260px] shrink-0 border-l border-black/10 bg-white overflow-y-auto p-4 space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">
-            Properties{readOnly ? " · view only" : ""}
-          </p>
+        <aside className="w-[288px] shrink-0 border-l border-black/10 bg-white overflow-y-auto p-4 space-y-3">
+          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-black/10 bg-white/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-black/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p></div>
           <fieldset disabled={readOnly} className="space-y-3 border-0 p-0 m-0 min-w-0 disabled:opacity-70">
           {selectedLayerIds.length > 1 ? (
             <p className="text-xs opacity-60">

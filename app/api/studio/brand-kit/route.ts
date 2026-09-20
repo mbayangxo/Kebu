@@ -3,6 +3,7 @@ import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { BRAND_KIT_SELECT, brandKitSchema } from "@/lib/studio/brand-kit";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -12,17 +13,20 @@ export async function GET(req: Request) {
   const { supabase, user } = auth;
 
   const url = new URL(req.url);
-  const businessId = url.searchParams.get("businessId");
+  const requestedBusinessId = url.searchParams.get("businessId");
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
+  if (requestedBusinessId && requestedBusinessId !== workspace.activeBusinessId) {
+    return NextResponse.json({ error: "Switch to the Kebu space that owns this brand kit." }, { status: 409 });
+  }
 
   let query = supabase
     .from("business_brand_kits")
     .select(BRAND_KIT_SELECT)
-    .eq("owner_id", user.id)
     .order("updated_at", { ascending: false });
 
-  if (businessId) {
-    query = query.eq("business_id", businessId);
-  }
+  query = workspace.activeBusinessId
+    ? query.eq("business_id", workspace.activeBusinessId)
+    : query.is("business_id", null).eq("owner_id", user.id);
 
   const { data: kits, error } = await query;
 
@@ -50,9 +54,13 @@ export async function POST(req: Request) {
     body = {};
   }
 
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
   const parsed = brandKitSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
+  }
+  if ((parsed.data.businessId ?? null) !== workspace.activeBusinessId) {
+    return NextResponse.json({ error: "Brand kit must be saved inside the active Kebu space." }, { status: 409 });
   }
 
   const { data: kit, error } = await supabase
@@ -97,6 +105,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
   const parsed = patchKitSchema.safeParse(body);
   if (!parsed.success || !parsed.data.id) {
     return NextResponse.json({ error: "Brand kit id required." }, { status: 400 });
@@ -113,11 +122,14 @@ export async function PATCH(req: Request) {
   if (parsed.data.fontBody !== undefined) patch.font_body = parsed.data.fontBody;
   if (parsed.data.businessId !== undefined) patch.business_id = parsed.data.businessId;
 
-  const { data: kit, error } = await supabase
+  let updateQuery = supabase
     .from("business_brand_kits")
     .update(patch)
-    .eq("id", parsed.data.id)
-    .eq("owner_id", user.id)
+    .eq("id", parsed.data.id);
+  updateQuery = workspace.activeBusinessId
+    ? updateQuery.eq("business_id", workspace.activeBusinessId)
+    : updateQuery.is("business_id", null).eq("owner_id", user.id);
+  const { data: kit, error } = await updateQuery
     .select(BRAND_KIT_SELECT)
     .single();
 

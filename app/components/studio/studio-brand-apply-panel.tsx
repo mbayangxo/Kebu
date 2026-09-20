@@ -3,156 +3,25 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BrandKitRow } from "@/lib/studio/brand-kit";
 import type { CanvasDocument } from "@/lib/studio/canvas-document";
-import {
-  applyAestheticToCanvas,
-  applyBrandKitToCanvas,
-} from "@/lib/studio/brand-apply";
+import { applyAestheticToCanvas, applyBrandKitToCanvas } from "@/lib/studio/brand-apply";
 import { STUDIO_FONTS_CATALOG } from "@/lib/studio/fonts-catalog";
 
-type AestheticChip = {
-  id: string;
-  name: string;
-  tagline: string;
-  accent: string;
-  background: string;
-};
+type AestheticChip={id:string;name:string;tagline:string;accent:string;background:string};
 
-/**
- * Apply saved brand kit or site aesthetic look onto the open canvas design.
- */
-export function StudioBrandApplyPanel({
-  document: doc,
-  pageId,
-  businessId,
-  onApply,
-  readOnly,
-}: {
-  document: CanvasDocument;
-  pageId: string;
-  businessId?: string | null;
-  onApply: (next: CanvasDocument) => void;
-  readOnly?: boolean;
-}) {
-  const [kits, setKits] = useState<BrandKitRow[]>([]);
-  const [aesthetics, setAesthetics] = useState<AestheticChip[]>([]);
-  const [note, setNote] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    const q = businessId ? `?businessId=${businessId}` : "";
-    const [kitRes, fontRes] = await Promise.all([
-      fetch(`/api/studio/brand-kit${q}`, { credentials: "include" }),
-      fetch("/api/studio/fonts", { credentials: "include" }),
-    ]);
-    const kitData = await kitRes.json().catch(() => ({}));
-    const fontData = await fontRes.json().catch(() => ({}));
-    if (kitRes.ok) setKits((kitData.kits ?? []) as BrandKitRow[]);
-    if (fontRes.ok) setAesthetics((fontData.aesthetics ?? []) as AestheticChip[]);
-  }, [businessId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  async function applyKit(kit: BrandKitRow) {
-    if (readOnly) return;
-    setBusy(true);
-    setNote(null);
-    try {
-      onApply(applyBrandKitToCanvas(doc, kit, pageId));
-      setNote(`Applied “${kit.name}” to this design.`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function applyLook(id: string, name: string) {
-    if (readOnly) return;
-    setBusy(true);
-    setNote(null);
-    try {
-      onApply(applyAestheticToCanvas(doc, id, pageId));
-      setNote(`Applied “${name}” aesthetic.`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="space-y-4 text-xs">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">Fonts</p>
-        <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
-          {STUDIO_FONTS_CATALOG.slice(0, 8).map((f) => (
-            <div
-              key={f.id}
-              className="rounded-lg border border-black/10 px-2 py-1.5"
-              style={{ fontFamily: f.stack }}
-              title={f.role}
-            >
-              <span className="font-semibold">{f.label}</span>
-            </div>
-          ))}
-        </div>
-        <p className="mt-1 opacity-50">Full catalog in text layer → Font.</p>
-      </div>
-
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">
-          Brand kits
-        </p>
-        {kits.length === 0 ? (
-          <p className="opacity-60">Save a brand kit in Brand panel, then apply it here.</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {kits.map((k) => (
-              <li key={k.id}>
-                <button
-                  type="button"
-                  disabled={busy || readOnly}
-                  onClick={() => void applyKit(k)}
-                  className="w-full flex items-center gap-2 rounded-lg border border-black/10 px-2 py-2 text-left hover:border-orange-400 disabled:opacity-40"
-                >
-                  <span
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{ background: k.accent_color }}
-                  />
-                  <span className="font-semibold truncate">{k.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">
-          Aesthetic looks
-        </p>
-        <ul className="space-y-1.5">
-          {aesthetics.map((a) => (
-            <li key={a.id}>
-              <button
-                type="button"
-                disabled={busy || readOnly}
-                onClick={() => applyLook(a.id, a.name)}
-                className="w-full flex items-center gap-2 rounded-lg border border-black/10 px-2 py-2 text-left hover:border-orange-400 disabled:opacity-40"
-              >
-                <span
-                  className="w-6 h-6 rounded-md shrink-0 border border-black/10"
-                  style={{ background: `linear-gradient(135deg, ${a.background}, ${a.accent})` }}
-                />
-                <span>
-                  <span className="block font-semibold">{a.name}</span>
-                  <span className="block opacity-50 truncate">{a.tagline}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {note ? <p className="text-orange-700 font-semibold">{note}</p> : null}
-    </div>
-  );
+export function StudioBrandApplyPanel({document:doc,pageId,businessId,onApply,readOnly}:{document:CanvasDocument;pageId:string;businessId?:string|null;onApply:(next:CanvasDocument)=>void;readOnly?:boolean}) {
+ const [kits,setKits]=useState<BrandKitRow[]>([]); const [aesthetics,setAesthetics]=useState<AestheticChip[]>([]);
+ const [note,setNote]=useState<string|null>(null); const [error,setError]=useState<string|null>(null); const [busy,setBusy]=useState(false);
+ const load=useCallback(async()=>{setError(null);const q=businessId?`?businessId=${businessId}`:"";try{const [kr,fr]=await Promise.all([fetch(`/api/studio/brand-kit${q}`,{credentials:"include"}),fetch("/api/studio/fonts",{credentials:"include"})]);const kd=await kr.json().catch(()=>({}));const fd=await fr.json().catch(()=>({}));if(!kr.ok){setError(typeof kd.error==="string"?kd.error:"Could not load brand system.");return}setKits(kd.kits??[]);if(fr.ok)setAesthetics(fd.aesthetics??[])}catch{setError("Brand styles are unavailable offline. Your current design is still editable.")}},[businessId]);
+ useEffect(()=>{void load()},[load]);
+ function applyKit(k:BrandKitRow){if(readOnly)return;setBusy(true);onApply(applyBrandKitToCanvas(doc,k,pageId));setNote(`Applied ${k.name}. Every layer remains editable.`);setBusy(false)}
+ function applyLook(a:AestheticChip){if(readOnly)return;setBusy(true);onApply(applyAestheticToCanvas(doc,a.id,pageId));setNote(`Applied ${a.name} look.`);setBusy(false)}
+ return <div className="space-y-5 text-xs">
+  <div><p className="text-[10px] font-black uppercase tracking-[.18em]">Brand</p><p className="mt-1 text-[9px] text-black/45">{businessId?"Business Kebu brand system":"Personal Kebu styles"} · editable, never flattened</p></div>
+  {error?<div className="rounded-xl bg-red-50 p-2.5 text-[10px] text-red-800">{error}<button onClick={()=>void load()} className="ml-2 underline">Retry</button></div>:null}
+  <section><div className="mb-2 flex items-center justify-between"><p className="text-[10px] font-bold uppercase tracking-wider text-black/45">Brand kits</p><a href="/studio/brand" className="text-[9px] font-bold underline">Manage DNA</a></div>
+  {kits.length===0?<div className="rounded-xl border border-dashed border-black/15 p-3"><p className="font-bold">No brand kit in this space</p><p className="mt-1 text-[9px] text-black/45">Save colors, typography, logo and creative rules once, then reuse them everywhere.</p></div>:<div className="space-y-2">{kits.map(k=><button key={k.id} disabled={busy||readOnly} onClick={()=>applyKit(k)} className="w-full rounded-xl border border-black/10 bg-white p-3 text-left hover:border-orange-400 disabled:opacity-40"><div className="flex items-center justify-between"><span className="font-bold">{k.name}</span><div className="flex -space-x-1">{[k.primary_color,k.accent_color,k.background_color,k.text_color].map((c,i)=><span key={i} className="h-4 w-4 rounded-full border border-white" style={{background:c}}/>)}</div></div><div className="mt-2 flex gap-2 text-[9px] text-black/45"><span style={{fontFamily:k.font_display}}>Heading</span><span>·</span><span style={{fontFamily:k.font_body}}>Body</span></div></button>)}</div>}</section>
+  <section><p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-black/45">Looks</p><div className="grid grid-cols-2 gap-2">{aesthetics.map(a=><button key={a.id} disabled={busy||readOnly} onClick={()=>applyLook(a)} className="overflow-hidden rounded-xl border border-black/10 text-left disabled:opacity-40"><div className="h-12" style={{background:`linear-gradient(135deg,${a.background},${a.accent})`}}/><div className="p-2"><p className="text-[10px] font-bold">{a.name}</p><p className="truncate text-[8px] text-black/40">{a.tagline}</p></div></button>)}</div></section>
+  <section><p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-black/45">Type system</p><div className="grid grid-cols-2 gap-1.5">{STUDIO_FONTS_CATALOG.slice(0,8).map(f=><div key={f.id} className="rounded-lg bg-black/[.035] px-2 py-2" style={{fontFamily:f.stack}}><span className="font-semibold">{f.label}</span></div>)}</div></section>
+  {note?<p className="rounded-xl bg-orange-50 p-2.5 text-[10px] font-semibold text-orange-800">{note}</p>:null}
+ </div>
 }
