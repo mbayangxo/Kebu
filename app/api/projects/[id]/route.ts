@@ -46,7 +46,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { data: pages, error: pagesError } = await db
     .from("project_pages")
-    .select("id, slug, title, sort_order, created_at, updated_at")
+    .select("id, slug, title, sort_order, parent_id, created_at, updated_at")
     .eq("project_id", id)
     .order("sort_order", { ascending: true });
 
