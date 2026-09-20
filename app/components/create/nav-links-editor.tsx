@@ -89,7 +89,7 @@ export function NavLinksEditor({
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-black/50">Menu structure</p>
+        <p className="text-[10px] font-semibold text-black/55">Menu structure</p>
         <p className="mt-1 text-[10px] leading-relaxed text-black/45">
           Drag top-level items to reorder. Nest pages for dropdowns and deeper navigation.
         </p>
@@ -109,13 +109,13 @@ export function NavLinksEditor({
                 setDraggedIndex(null);
               }}
               onDragEnd={() => setDraggedIndex(null)}
-              className="rounded-xl border border-black/[0.09] bg-white p-2.5 shadow-[0_1px_2px_rgba(10,10,10,0.02)]"
+              className="rounded-lg border border-black/[0.08] bg-white p-2.5 transition-colors focus-within:border-black/20"
               style={{ opacity: draggedIndex === index ? 0.5 : 1 }}
             >
               <div className="flex items-center gap-2">
-                <span className="cursor-grab select-none text-sm text-black/25" title="Drag to reorder">⋮⋮</span>
+                <span className="cursor-grab select-none text-black/25" title="Drag to reorder" aria-hidden><svg className="h-4 w-3" viewBox="0 0 12 16" fill="currentColor"><circle cx="3" cy="4" r="1"/><circle cx="9" cy="4" r="1"/><circle cx="3" cy="8" r="1"/><circle cx="9" cy="8" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="9" cy="12" r="1"/></svg></span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-black text-black">{link.label || "Untitled link"}</p>
+                  <p className="truncate text-[11px] font-semibold text-black">{link.label || "Untitled link"}</p>
                   <p className="truncate text-[9px] text-black/40">{link.href || "No destination yet"}</p>
                 </div>
                 <button type="button" className="rounded-md px-1.5 py-1 text-[9px] font-bold text-red-600 hover:bg-red-50" onClick={() => onChange(links.filter((_, i) => i !== index))}>Remove</button>
@@ -158,7 +158,7 @@ export function NavLinksEditor({
                         return (
                           <div key={childIndex} className="rounded-lg border border-black/[0.07] bg-white p-2">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-[9px] font-black uppercase tracking-wide text-black/35">Level 2 · {childIndex + 1}</span>
+                              <span className="text-[9px] font-semibold text-black/35">Level 2 · {childIndex + 1}</span>
                               <button type="button" className="text-[9px] font-bold text-red-600" onClick={() => patchLink(index, { children: (link.children ?? []).filter((_, i) => i !== childIndex) })}>Remove</button>
                             </div>
                             {pages.length ? (
@@ -202,7 +202,7 @@ export function NavLinksEditor({
                                 </div>
                               ))}
                               {(child.grandchildren ?? []).length < 8 ? (
-                                <button type="button" className="text-[9px] font-black uppercase tracking-wide text-[#FF6A00]" onClick={() => patchChild(index, childIndex, { grandchildren: [...(child.grandchildren ?? []), { label: "", href: "/" }] })}>+ Add level 3 link</button>
+                                <button type="button" className="text-[9px] font-semibold text-[#FF6A00]" onClick={() => patchChild(index, childIndex, { grandchildren: [...(child.grandchildren ?? []), { label: "", href: "/" }] })}>+ Add level 3 link</button>
                               ) : null}
                             </div>
                           </div>
