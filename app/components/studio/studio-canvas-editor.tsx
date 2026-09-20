@@ -25,6 +25,7 @@ import {
   snapLayerPosition,
 } from "@/lib/studio/editor-craft";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
+import type { BrandSpace } from "@/lib/studio/brand-space";
 import { StudioBrandSpacePanel } from "@/app/components/studio/studio-brand-space-panel";
 import { StudioThemesPanel } from "@/app/components/studio/studio-themes-panel";
 import { StudioBrandApplyPanel } from "@/app/components/studio/studio-brand-apply-panel";
@@ -178,6 +179,7 @@ export function StudioCanvasEditor({
   const [elementQuery, setElementQuery] = useState("");
   const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [brandSpace,setBrandSpace]=useState<BrandSpace|null>(null);
   const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "brand" | "tools">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"library" | "inspector" | null>(null);
@@ -778,7 +780,7 @@ export function StudioCanvasEditor({
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {leftTab === "themes" ? <StudioThemesPanel document={doc} readOnly={readOnly} onApply={onChange}/> : null}
-            {leftTab === "brand" ? <StudioBrandSpacePanel document={doc} readOnly={readOnly} onApply={onChange} onInsertLogo={(url,label)=>addLayer("image",{imageUrl:url,name:label,width:220,height:120,objectFit:"contain"})}/> : null}
+            {leftTab === "brand" ? <StudioBrandSpacePanel document={doc} readOnly={readOnly} onApply={onChange} onBrandSpace={setBrandSpace} onInsertLogo={(url,label)=>addLayer("image",{imageUrl:url,name:label,width:220,height:120,objectFit:"contain"})}/> : null}
             {leftTab === "brand" ? (
               <StudioBrandApplyPanel
                 document={doc}
@@ -810,7 +812,7 @@ export function StudioCanvasEditor({
                 <input ref={videoFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"video")}/>
               </div>
             ) : leftTab === "uploads" ? (
-              <StudioUploadsLibrary
+              <StudioUploadsLibrary approvedAssetIds={brandSpace?.approvedAssetIds??[]}
                 readOnly={readOnly}
                 designId={designId}
                 onPickImage={(url) =>
@@ -1282,6 +1284,7 @@ export function StudioCanvasEditor({
                 </label>
               )}
               {selected.type==="frame"?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Frame media</p><p className="text-[10px] opacity-55">{selected.frameMediaUrl?"Drop another image/video to replace it.":"Select this frame, then drag media from the library onto the canvas."}</p>{selected.frameMediaUrl?<><label className="block font-semibold">Horizontal focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalX??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalX:Number(e.target.value)/100})} className="w-full"/></label><label className="block font-semibold">Vertical focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalY??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalY:Number(e.target.value)/100})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{frameMediaUrl:null,frameMediaKind:null,sourceAssetId:null})} className="text-[11px] underline">Remove frame media</button></>:null}</div>:null}
+              {brandSpace?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Brand Space</p><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-black/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-black/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div>:null}
               {selected.type === "image" ? (
                 <div className="space-y-2">
                   {selected.imageUrl ? (

@@ -18,6 +18,7 @@ export function StudioBrandKitPanel({ businessId }: { businessId?: string | null
     textColor: "#0F0D33",
     fontDisplay: "Fraunces",
     fontBody: "system-ui",
+    logos: [] as {label:string;url:string}[], colorRoles:{} as Record<string,string>, typographyRoles:{} as Record<string,string>, imageryRules:{direction:"",avoid:[] as string[]}, voiceRules:{voice:"",do:[] as string[],dont:[] as string[]}, approvedAssetIds:[] as string[], isDefault:false,
   });
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export function StudioBrandKitPanel({ businessId }: { businessId?: string | null
       textColor: kit.text_color,
       fontDisplay: kit.font_display,
       fontBody: kit.font_body,
+      logos:kit.logos??[],colorRoles:kit.color_roles??{},typographyRoles:kit.typography_roles??{},imageryRules:(kit.imagery_rules as any)??{direction:"",avoid:[]},voiceRules:(kit.voice_rules as any)??{voice:"",do:[],dont:[]},approvedAssetIds:kit.approved_asset_ids??[],isDefault:Boolean(kit.is_default),
     });
   }
 
@@ -74,7 +76,7 @@ export function StudioBrandKitPanel({ businessId }: { businessId?: string | null
                 backgroundColor: form.backgroundColor,
                 textColor: form.textColor,
                 fontDisplay: form.fontDisplay,
-                fontBody: form.fontBody,
+                fontBody: form.fontBody,logos:form.logos,colorRoles:form.colorRoles,typographyRoles:form.typographyRoles,imageryRules:form.imageryRules,voiceRules:form.voiceRules,approvedAssetIds:form.approvedAssetIds,isDefault:form.isDefault,
               }
             : {
                 name: form.name,
@@ -85,7 +87,7 @@ export function StudioBrandKitPanel({ businessId }: { businessId?: string | null
                 textColor: form.textColor,
                 fontDisplay: form.fontDisplay,
                 fontBody: form.fontBody,
-                businessId: businessId ?? null,
+                businessId: businessId ?? null,logos:form.logos,colorRoles:form.colorRoles,typographyRoles:form.typographyRoles,imageryRules:form.imageryRules,voiceRules:form.voiceRules,approvedAssetIds:form.approvedAssetIds,isDefault:form.isDefault,
               },
         ),
       });
@@ -192,7 +194,7 @@ export function StudioBrandKitPanel({ businessId }: { businessId?: string | null
             ))}
           </select>
         </label>
-      </div>
+        <label className="text-xs sm:col-span-2">Imagery direction<textarea value={form.imageryRules.direction} onChange={e=>setForm(f=>({...f,imageryRules:{...f.imageryRules,direction:e.target.value}}))} className="mt-1 w-full rounded-lg border p-2" placeholder="Photography, illustration and composition direction"/></label><label className="text-xs sm:col-span-2">Brand voice<textarea value={form.voiceRules.voice} onChange={e=>setForm(f=>({...f,voiceRules:{...f.voiceRules,voice:e.target.value}}))} className="mt-1 w-full rounded-lg border p-2" placeholder="How this brand should sound"/></label><label className="flex items-center gap-2 text-xs sm:col-span-2"><input type="checkbox" checked={form.isDefault} onChange={e=>setForm(f=>({...f,isDefault:e.target.checked}))}/>Use as default Brand Space</label>      </div>
       <button
         type="button"
         disabled={busy}
