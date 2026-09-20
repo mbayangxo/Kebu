@@ -10,6 +10,7 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
 import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
 import { BuilderElementInspector } from "@/app/components/create/builder-element-inspector";
+import { BuilderSectionLayoutPanel } from "@/app/components/create/builder-section-layout-panel";
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { BuilderBlogPanel } from "@/app/components/create/builder-blog-panel";
@@ -3983,76 +3984,10 @@ export default function ProjectEditorPage() {
                       )}
                       </SidebarDetails>
                       <SidebarDetails title="Layout & Visibility" defaultOpen={false} group="section-inspector">
-                        {/* Section vertical spacing control */}
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
-                            Section height
-                          </p>
-                          <div className="flex gap-1">
-                            {(["tight", "normal", "spacious", "open"] as const).map((id) => {
-                              const on = (section.props.sectionPaddingY ?? "normal") === id;
-                              return (
-                                <button
-                                  key={id}
-                                  type="button"
-                                  onClick={() => updateProps(section.id, { sectionPaddingY: id })}
-                                  className="flex-1 rounded py-1 text-[9px] font-bold uppercase"
-                                  style={{
-                                    background: on ? BUILDER.ink : BUILDER.surfaceMuted,
-                                    color: on ? "#fff" : BUILDER.muted,
-                                    border: `1px solid ${BUILDER.border}`,
-                                  }}
-                                >
-                                  {id}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            ["minHeightPx", "Min height", 0, 4000],
-                            ["maxWidthPx", "Max width", 320, 2400],
-                            ["marginTopPx", "Top margin", -400, 800],
-                            ["marginBottomPx", "Bottom margin", -400, 800],
-                          ].map(([key, label, min, max]) => (
-                            <label key={String(key)} className="text-[10px] font-semibold text-black/60">
-                              {String(label)}
-                              <input type="number" min={Number(min)} max={Number(max)}
-                                className="mt-1 w-full rounded border border-black/10 px-2 py-1.5 text-xs"
-                                value={Number(section.props[String(key)] ?? (key === "maxWidthPx" ? 1200 : 0))}
-                                onChange={(e) => updateProps(section.id, { [String(key)]: Math.min(Number(max), Math.max(Number(min), Number(e.target.value) || 0)) })} />
-                            </label>
-                          ))}
-                        </div>
-                        <label className="block text-[10px] font-semibold text-black/60">
-                          Overflow
-                          <select className="mt-1 w-full rounded border border-black/10 bg-white px-2 py-1.5 text-xs"
-                            value={String(section.props.overflow ?? "visible")}
-                            onChange={(e) => updateProps(section.id, { overflow: e.target.value })}>
-                            <option value="visible">Visible</option><option value="hidden">Hidden</option><option value="clip">Clip</option>
-                          </select>
-                        </label>
-                        <div className="space-y-2 border-t border-black/5 pt-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Motion</p>
-                          <select className="w-full rounded border border-black/10 bg-white px-2 py-1.5 text-xs"
-                            value={String((section.props.builderMotion as { preset?: string } | undefined)?.preset ?? "none")}
-                            onChange={(e) => updateProps(section.id, { builderMotion: { ...((section.props.builderMotion as object | undefined) ?? {}), preset: e.target.value, durationMs: Number((section.props.builderMotion as { durationMs?: number } | undefined)?.durationMs ?? 500), delayMs: Number((section.props.builderMotion as { delayMs?: number } | undefined)?.delayMs ?? 0), trigger: "scroll" } })}>
-                            <option value="none">None</option><option value="fade">Fade</option><option value="fade-up">Fade up</option><option value="slide-left">Slide left</option><option value="slide-right">Slide right</option><option value="scale">Soft scale</option>
-                          </select>
-                          <div className="grid grid-cols-2 gap-2">
-                            <label className="text-[10px] font-semibold text-black/60">Duration ms<input type="number" min="100" max="3000" step="50" className="mt-1 w-full rounded border border-black/10 px-2 py-1.5 text-xs" value={Number((section.props.builderMotion as { durationMs?: number } | undefined)?.durationMs ?? 500)} onChange={(e) => updateProps(section.id, { builderMotion: { preset: String((section.props.builderMotion as { preset?: string } | undefined)?.preset ?? "none"), durationMs: Number(e.target.value), delayMs: Number((section.props.builderMotion as { delayMs?: number } | undefined)?.delayMs ?? 0), trigger: "scroll" } })} /></label>
-                            <label className="text-[10px] font-semibold text-black/60">Delay ms<input type="number" min="0" max="3000" step="50" className="mt-1 w-full rounded border border-black/10 px-2 py-1.5 text-xs" value={Number((section.props.builderMotion as { delayMs?: number } | undefined)?.delayMs ?? 0)} onChange={(e) => updateProps(section.id, { builderMotion: { preset: String((section.props.builderMotion as { preset?: string } | undefined)?.preset ?? "none"), durationMs: Number((section.props.builderMotion as { durationMs?: number } | undefined)?.durationMs ?? 500), delayMs: Number(e.target.value), trigger: "scroll" } })} /></label>
-                          </div>
-                        </div>
-                        <label className="flex items-center gap-2 text-[11px]">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(section.props.hidden)}
-                            onChange={(e) => updateProps(section.id, { hidden: e.target.checked })}
-                          />
-                          Hide section
-                        </label>
+                        <BuilderSectionLayoutPanel
+                          props={section.props}
+                          onPatch={(patch) => updateProps(section.id, patch)}
+                        />
                       </SidebarDetails>
                     </div>
                   ))}
