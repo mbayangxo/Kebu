@@ -21,9 +21,7 @@ export function StudioMediaAdjustmentsPanel({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 pt-2">
-        Adjust
-      </p>
+      <div className="flex items-center justify-between pt-1"><p className="text-[10px] font-bold text-black/55">Adjust</p><button type="button" className="rounded-md px-1.5 py-1 text-[9px] text-black/40 hover:bg-black/[.04] hover:text-black" onClick={()=>onChange({brightness:1,contrast:1,saturation:1,grayscale:0,blur:0})}>Reset</button></div>
       {CONTROLS.map((control) => {
         const raw = layer[control.key] as number | undefined;
         const value = raw ?? control.neutral;
@@ -54,21 +52,7 @@ export function StudioMediaAdjustmentsPanel({
           </label>
         );
       })}
-      <button
-        type="button"
-        className="text-[11px] underline"
-        onClick={() =>
-          onChange({
-            brightness: 1,
-            contrast: 1,
-            saturation: 1,
-            grayscale: 0,
-            blur: 0,
-          })
-        }
-      >
-        Reset adjustments
-      </button>
+
     </div>
   );
 }
