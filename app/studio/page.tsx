@@ -5,6 +5,7 @@ import { StudioGenerationHistory } from "@/app/components/studio/studio-generati
 import { StudioDesignLibrary } from "@/app/components/studio/studio-design-library";
 import { studioRoleLabel, type StudioDesignRole } from "@/lib/studio/design-access";
 import { KEBU } from "@/lib/kebu-brand";
+import { AppShell } from "@/app/components/app-shell";
 
 type FormatCard = {
   type: string;
@@ -111,6 +112,7 @@ export default async function StudioHomePage() {
   const recentDesigns = designs.slice(0, 4);
 
   return (
+    <AppShell title="Studio">
     <div className="min-h-screen" style={{ background: KEBU.bright }}>
 
       {/* ── Hero ──────────────────────────────────────────────────── */}
@@ -408,5 +410,6 @@ export default async function StudioHomePage() {
         ) : null}
       </div>
     </div>
+    </AppShell>
   );
 }
