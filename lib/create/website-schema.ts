@@ -1293,6 +1293,16 @@ export const aiImproveBriefSchema = z.object({
     .optional(),
   /** Target page slug for A6 generate/rewrite on one page. */
   focusPageSlug: z.string().trim().max(80).optional(),
+  /** Optional exact Builder selection so Yande can operate on the thing the user clicked. */
+  focusElement: z
+    .object({
+      sectionId: z.string().trim().min(1).max(120),
+      elementId: z.string().trim().min(1).max(120),
+      kind: z.enum(["text", "image", "cutout", "background", "control"]),
+      label: z.string().trim().min(1).max(120),
+      device: z.enum(["desktop", "tablet", "mobile"]).optional(),
+    })
+    .optional(),
 });
 
 export type AiImproveBrief = z.infer<typeof aiImproveBriefSchema>;
