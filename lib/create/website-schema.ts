@@ -1090,6 +1090,7 @@ export const sectionPropsSchemas = {
     embeddedFooterPaddingTop: z.number().int().min(8).max(160).optional().default(20),
     embeddedFooterPaddingBottom: z.number().int().min(8).max(160).optional().default(20),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "kdirection-home": z.object({
     brandLine1: z.string().trim().max(12).default("K"),
