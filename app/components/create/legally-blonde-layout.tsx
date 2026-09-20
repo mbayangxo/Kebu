@@ -101,6 +101,9 @@ export type LegallyBlondeHeroProps = {
   layerLinks?: Record<string, string>;
   /** Paint order for built-in slots + extras (1 = back, 80 = front). Survives publish. */
   layerZIndex?: Record<string, number>;
+  layerOpacity?: Record<string, number>;
+  layerRotation?: Record<string, number>;
+  lockedLayers?: string[];
   hiddenLayers?: string[];
   /** When true, hero shows solid accent color — no photo background. */
   backgroundHidden?: boolean;
@@ -283,6 +286,14 @@ function renderLayer(
   if (move && (move.dx || move.dy)) {
     transformParts.push(`translate3d(${move.dx}px, ${move.dy}px, 0)`);
   }
+  const rotationKey = scaleKey || layer.id;
+  const rotation =
+    typeof props.layerRotation?.[rotationKey] === "number"
+      ? props.layerRotation[rotationKey]!
+      : undefined;
+  if (rotation !== undefined && rotation !== 0) {
+    transformParts.push(`rotate(${rotation}deg)`);
+  }
   // Skip scroll offset for layers with a looping CSS animation — the animation's keyframe
   // transform would override style.transform, making the scroll offset invisible.
   const hasLoopAnim = opts.motion && !opts.editing && (() => {
@@ -318,6 +329,10 @@ function renderLayer(
     cursor: editable ? "grab" : !opts.editing && layerHref ? "pointer" : undefined,
     outline: opts.selected ? "2px solid #FF5500" : undefined,
     outlineOffset: opts.selected ? 4 : undefined,
+    opacity:
+      typeof props.layerOpacity?.[scaleKey || layer.id] === "number"
+        ? props.layerOpacity?.[scaleKey || layer.id]
+        : baseStyle.opacity,
     zIndex: (() => {
       if (opts.selected) return 50;
       const fromMap =
@@ -493,6 +508,7 @@ function ExtraCutoutItem({
   onMoved,
   scrollProgress = 0,
   motion = false,
+  opacity = 1,
 }: {
   photo: ExtraCutout;
   editing: boolean;
@@ -503,6 +519,7 @@ function ExtraCutoutItem({
   onMoved: (topPct: number, leftPct: number) => void;
   scrollProgress?: number;
   motion?: boolean;
+  opacity?: number;
 }) {
   const dragging = useRef(false);
   const role = photo.parallaxRole ?? (photo.id.includes("city") ? "city" : "none");
@@ -566,6 +583,7 @@ function ExtraCutoutItem({
         pointerEvents: editing || Boolean(photo.href) ? "auto" : "none",
         position: "absolute",
         willChange: parallaxY ? "transform" : undefined,
+        opacity,
       }}
       onPointerDown={onPointerDown}
       onClick={(e) => {
@@ -760,6 +778,7 @@ export function LegallyBlondeHeroLayout({
               patch({ extraCutouts: next });
             }}
             scrollProgress={scrollProgress}
+            opacity={typeof props.layerOpacity?.[photo.id] === "number" ? props.layerOpacity[photo.id]! : 1}
             motion={editing ? false : motion}
           />
           );
@@ -840,9 +859,13 @@ export function LegallyBlondeHeroLayout({
                       photo={{
                         ...photo,
                         widthPct: photo.widthPct * scale,
+                        rotate:
+                          typeof props.layerRotation?.[photo.id] === "number"
+                            ? props.layerRotation[photo.id]!
+                            : photo.rotate,
                         zIndex:
                           typeof props.layerZIndex?.[photo.id] === "number"
-                            ? Math.min(40, props.layerZIndex[photo.id]!)
+                            ? Math.min(80, props.layerZIndex[photo.id]!)
                             : photo.zIndex,
                       }}
                       editing={false}
@@ -852,6 +875,7 @@ export function LegallyBlondeHeroLayout({
                       onSelect={() => undefined}
                       onMoved={() => undefined}
                       scrollProgress={scrollProgress}
+                      opacity={typeof props.layerOpacity?.[photo.id] === "number" ? props.layerOpacity[photo.id]! : 1}
                       motion={motion}
                     />
                   );
