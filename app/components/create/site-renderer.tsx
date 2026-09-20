@@ -151,6 +151,7 @@ function wrapEditorSection(
   sectionPaddingY?: string,
   /** Scroll-entrance preset ("fade-up" / "fade-in" / ...) — only set when theme.motion === "expressive". */
   motionPreset?: string,
+  presentation?: { minHeightPx?: number; maxWidthPx?: number; marginTopPx?: number; marginBottomPx?: number; overflow?: string; builderMotion?: { preset?: string; durationMs?: number; delayMs?: number } },
 ): ReactNode {
   if (!editor || !sectionId) {
     const padStyle =
@@ -170,6 +171,19 @@ function wrapEditorSection(
     return children;
   }
   const selected = editor.selectedSectionId === sectionId;
+  const ownMotion = presentation?.builderMotion?.preset;
+  const effectiveMotion = ownMotion && ownMotion !== "none" ? ownMotion : motionPreset;
+  const presentationStyle: React.CSSProperties = {
+    minHeight: presentation?.minHeightPx ? `${presentation.minHeightPx}px` : undefined,
+    maxWidth: presentation?.maxWidthPx ? `${presentation.maxWidthPx}px` : undefined,
+    marginLeft: presentation?.maxWidthPx ? "auto" : undefined,
+    marginRight: presentation?.maxWidthPx ? "auto" : undefined,
+    marginTop: presentation?.marginTopPx ? `${presentation.marginTopPx}px` : undefined,
+    marginBottom: presentation?.marginBottomPx ? `${presentation.marginBottomPx}px` : undefined,
+    overflow: presentation?.overflow as React.CSSProperties["overflow"],
+    animationDuration: presentation?.builderMotion?.durationMs ? `${presentation.builderMotion.durationMs}ms` : undefined,
+    animationDelay: presentation?.builderMotion?.delayMs ? `${presentation.builderMotion.delayMs}ms` : undefined,
+  };
   const structural = sectionType ? STRUCTURAL_SECTION_TYPES.has(sectionType) : false;
   const showToolbar = Boolean(
     editor.onDuplicateSection || editor.onDeleteSection || editor.onMoveSection,
@@ -178,13 +192,13 @@ function wrapEditorSection(
   return (
     <div
       data-section-id={sectionId}
-      data-motion={motionPreset || undefined}
+      data-motion={effectiveMotion || undefined}
       onClick={(e) => {
         e.stopPropagation();
         editor.onSelectSection?.(sectionId);
       }}
-      className={`group relative ${motionPreset ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
-      style={{ cursor: "pointer", ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
+      className={`group relative ${effectiveMotion ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
+      style={{ cursor: "pointer", ...presentationStyle, ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
     >
       {selected && sectionType ? (
         <div
@@ -1023,7 +1037,7 @@ export function SiteRenderer({
         const sectionPaddingY = String((section.props as Record<string, unknown>)?.sectionPaddingY ?? "normal");
         const motionPreset = motionExpressive ? ENTRANCE_MOTION[section.type] : undefined;
         const wrap = (node: ReactNode) =>
-          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset);
+          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset, section.props as Record<string, unknown>);
         const sectionEl = (() => {
         switch (section.type) {
           case "maylecor-home":
