@@ -1069,6 +1069,8 @@ export const sectionPropsSchemas = {
     titleTextLetterSpacing: z.number().min(-0.05).max(0.5).optional().default(0.12),
     titleTextLineHeight: z.number().min(0.8).max(2).optional().default(1.15),
     titleTextColor: z.string().trim().max(40).optional().default("#ffffff"),
+    /** Natural editor/published hero height; can be overridden per device. */
+    sectionMinHeightPx: z.number().int().min(360).max(1800).optional().default(720),
     /** Embedded May footer spacing; editor can resize this without affecting the hero artboard. */
     embeddedFooterPaddingTop: z.number().int().min(8).max(160).optional().default(20),
     embeddedFooterPaddingBottom: z.number().int().min(8).max(160).optional().default(20),
