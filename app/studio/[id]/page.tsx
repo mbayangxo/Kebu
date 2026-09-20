@@ -617,51 +617,67 @@ export default function StudioEditorPage() {
   async function turnDesignIntoVideo() {
     if (!doc || !design || !canEdit || videoBusy) return;
     setVideoBusy(true);
-    setExportNote("Preparing this design for video…");
+    setExportNote("Preparing design pages for video…");
     try {
-      const page = doc.pages.find((item) => item.id === activePageId) ?? doc.pages[0];
-      if (!page) {
+      if (!doc.pages.length) {
         setExportNote("This design has no page to send to video.");
         return;
       }
 
-      let imageDataUrl = await exportCanvasToPngDataUrlAsync(doc, 1, page.id);
-      if (!imageDataUrl) {
-        setExportNote("Could not render the design.");
-        return;
-      }
-      let blob = await fetch(imageDataUrl).then((response) => response.blob());
-      if (blob.size > 5 * 1024 * 1024) {
-        imageDataUrl = await exportCanvasToPngDataUrlAsync(doc, 0.7, page.id);
+      const sourceImages: Array<{ url: string; name: string; durationMs: number }> = [];
+      for (let index = 0; index < doc.pages.length; index += 1) {
+        const page = doc.pages[index]!;
+        setExportNote("Preparing page " + (index + 1) + " of " + doc.pages.length + "…");
+
+        let imageDataUrl = await exportCanvasToPngDataUrlAsync(doc, 1, page.id);
         if (!imageDataUrl) {
-          setExportNote("Could not prepare a smaller design snapshot.");
+          setExportNote("Could not render page " + (index + 1) + ".");
           return;
         }
-        blob = await fetch(imageDataUrl).then((response) => response.blob());
-      }
-      if (blob.size > 5 * 1024 * 1024) {
-        setExportNote("This page is too large to turn into video. Reduce large images and try again.");
-        return;
+        let blob = await fetch(imageDataUrl).then((response) => response.blob());
+        if (blob.size > 5 * 1024 * 1024) {
+          imageDataUrl = await exportCanvasToPngDataUrlAsync(doc, 0.7, page.id);
+          if (!imageDataUrl) {
+            setExportNote("Could not prepare a smaller snapshot for page " + (index + 1) + ".");
+            return;
+          }
+          blob = await fetch(imageDataUrl).then((response) => response.blob());
+        }
+        if (blob.size > 5 * 1024 * 1024) {
+          setExportNote("Page " + (index + 1) + " is too large to turn into video. Reduce large images and try again.");
+          return;
+        }
+
+        const uploadForm = new FormData();
+        uploadForm.set("designId", designId);
+        uploadForm.set(
+          "file",
+          new File(
+            [blob],
+            (design.title || "studio-design").slice(0, 64) + "-page-" + (index + 1) + ".png",
+            { type: "image/png" },
+          ),
+        );
+        const upload = await fetch("/api/studio/upload", {
+          method: "POST",
+          credentials: "include",
+          body: uploadForm,
+        });
+        const uploadData = await upload.json().catch(() => ({}));
+        if (!upload.ok || typeof uploadData.url !== "string") {
+          setExportNote(uploadData.error ?? "Could not store page " + (index + 1) + ".");
+          return;
+        }
+
+        sourceImages.push({
+          url: uploadData.url,
+          name: page.name || "Page " + (index + 1),
+          durationMs: page.durationMs ?? 3000,
+        });
       }
 
-      const uploadForm = new FormData();
-      uploadForm.set("designId", designId);
-      uploadForm.set(
-        "file",
-        new File([blob], (design.title || "studio-design").slice(0, 80) + ".png", { type: "image/png" }),
-      );
-      const upload = await fetch("/api/studio/upload", {
-        method: "POST",
-        credentials: "include",
-        body: uploadForm,
-      });
-      const uploadData = await upload.json().catch(() => ({}));
-      if (!upload.ok || typeof uploadData.url !== "string") {
-        setExportNote(uploadData.error ?? "Could not store the design snapshot.");
-        return;
-      }
-
-      const ratio = page.width / page.height;
+      const firstPage = doc.pages[0]!;
+      const ratio = firstPage.width / firstPage.height;
       const presetId =
         ratio > 1.35 ? "16:9" : ratio < 0.68 ? "9:16" : ratio > 0.92 && ratio < 1.08 ? "1:1" : "4:5";
       const created = await fetch("/api/studio/video", {
@@ -672,7 +688,7 @@ export default function StudioEditorPage() {
           title: (design.title || "Studio design") + " video",
           presetId,
           sourceDesignId: designId,
-          sourceImageUrl: uploadData.url,
+          sourceImages,
         }),
       });
       const createdData = await created.json().catch(() => ({}));
@@ -681,7 +697,11 @@ export default function StudioEditorPage() {
         return;
       }
 
-      setExportNote("Video project created from this design.");
+      setExportNote(
+        sourceImages.length === 1
+          ? "Video project created from this design."
+          : "Video storyboard created from all " + sourceImages.length + " design pages.",
+      );
       window.location.assign("/studio/video/" + createdData.project.id);
     } finally {
       setVideoBusy(false);
