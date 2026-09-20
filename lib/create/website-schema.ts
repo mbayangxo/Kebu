@@ -1029,6 +1029,21 @@ export const sectionPropsSchemas = {
       .record(z.string().trim().min(1).max(40), z.number().int().min(1).max(80))
       .optional()
       .default({}),
+    /** Per-layer opacity (0 = invisible, 1 = fully visible). */
+    layerOpacity: z
+      .record(z.string().trim().min(1).max(40), z.number().min(0).max(1))
+      .optional()
+      .default({}),
+    /** Per-layer rotation override in degrees. */
+    layerRotation: z
+      .record(z.string().trim().min(1).max(40), z.number().min(-180).max(180))
+      .optional()
+      .default({}),
+    /** Layers that remain visible but cannot be moved/resized until unlocked. */
+    lockedLayers: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z.array(z.string().trim().min(1).max(40)).max(32).default([]),
+    ),
     /** Built-in cutout keys the founder removed (do not fall back to Russian assets). */
     hiddenLayers: z.preprocess((v) => (Array.isArray(v) ? v : []), z.array(z.string().trim().min(1).max(40)).max(20).default([])),
     /** Solid accent color only — no photo background. */
