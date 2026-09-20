@@ -1090,7 +1090,12 @@ export function SiteRenderer({
               links: (raw.links as { label: string; href: string; children?: { label: string; href: string }[] }[] | undefined) ?? [],
               navScale: raw.navScale as number | undefined,
               navSize: raw.navSize as "compact" | "comfortable" | "large" | "fullscreen" | undefined,
-              navLayout: raw.navLayout as "top" | "side" | undefined,
+              navLayout: raw.navLayout as "top" | "side" | "hamburger" | undefined,
+              logoUrl: String(raw.logoUrl ?? ""),
+              logoAlt: String(raw.logoAlt ?? raw.brand ?? ""),
+              logoScale: Math.min(4, Math.max(0.5, Number(raw.logoScale ?? 1))),
+              fontFamily: String(raw.fontFamily ?? ""),
+              fontWeight: Number(raw.fontWeight ?? 700),
               logoAlign: (raw.logoAlign as "left" | "center" | "right" | undefined) ?? "left",
               navSticky: raw.navSticky !== false,
             };
@@ -1110,11 +1115,26 @@ export function SiteRenderer({
               const base = siteBase.replace(/\/$/, "");
               return base ? `${base}/${h}` : `/${h}`;
             };
-            const brandEl = (
+            const brandEl = p.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.logoUrl}
+                alt={p.logoAlt || p.brand || "Site logo"}
+                className="kebu-site-nav__logo block max-w-none object-contain"
+                style={{
+                  height: Math.max(24, Math.round(m.brandPx * 1.75 * p.logoScale)),
+                  width: "auto",
+                }}
+              />
+            ) : (
               <EditableText
                 tag="span"
-                className="kebu-site-nav__brand font-bold tracking-wide"
-                style={{ fontSize: m.brandPx }}
+                className="kebu-site-nav__brand tracking-wide"
+                style={{
+                  fontSize: m.brandPx,
+                  fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined,
+                  fontWeight: p.fontWeight,
+                }}
                 value={p.brand}
                 editor={editor}
                 onChange={(brand) => patchNav({ brand })}
@@ -1156,11 +1176,11 @@ export function SiteRenderer({
                     {p.links.map((l) => {
                       const slug = l.href ? l.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
                       return editor?.onNavigatePage && slug ? (
-                        <button key={l.label} type="button" onClick={() => editor.onNavigatePage!(slug)} className="kebu-nav-link text-left">
+                        <button key={l.label} type="button" onClick={() => editor.onNavigatePage!(slug)} className="kebu-nav-link text-left" style={{ fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined, fontWeight: p.fontWeight }}>
                           {l.label}
                         </button>
                       ) : (
-                        <a key={l.label} href={resolveNavHref(l.href)} className="kebu-nav-link">{l.label}</a>
+                        <a key={l.label} href={resolveNavHref(l.href)} className="kebu-nav-link" style={{ fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined, fontWeight: p.fontWeight }}>{l.label}</a>
                       );
                     })}
                   </nav>
