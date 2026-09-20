@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { emptyCanvasDocument, newLayerId, updatePage } from "@/lib/studio/canvas-document";
+import { defaultCanvasDocument, newLayerId, updatePage } from "@/lib/studio/canvas-document";
 import { designDocumentToComposition } from "@/lib/studio/design-to-composition";
 import { syncSourceDesignIntoComposition } from "@/lib/studio/source-design-sync";
 
 describe("Studio source design sync", () => {
   it("refreshes semantic design payload while preserving video timing and motion", () => {
-    let source = emptyCanvasDocument({ designType: "instagram_post" });
+    let source = defaultCanvasDocument("instagram_post");
     const page = source.pages[0]!;
     const layerId = newLayerId();
     source = updatePage(source, page.id, {
@@ -58,7 +58,7 @@ describe("Studio source design sync", () => {
   });
 
   it("adds new source layers and removes deleted linked layers without touching unrelated clips", () => {
-    let source = emptyCanvasDocument({ designType: "instagram_post" });
+    let source = defaultCanvasDocument("instagram_post");
     const page = source.pages[0]!;
     const firstId = newLayerId();
     source = updatePage(source, page.id, {
