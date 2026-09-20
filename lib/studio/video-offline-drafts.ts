@@ -84,3 +84,46 @@ export function studioOfflineMediaKey(userId:string,projectId:string,url:string)
 export async function removeCachedStudioVideoMedia(key:string){const db=await openDb();try{await new Promise<void>((resolve,reject)=>{const tx=db.transaction(MEDIA_STORE,"readwrite");tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.objectStore(MEDIA_STORE).delete(key)})}finally{db.close()}}
 export async function resolveStudioMediaObjectUrl(userId:string,projectId:string,url:string){const row=await getCachedStudioVideoMedia(studioOfflineMediaKey(userId,projectId,url));return row?URL.createObjectURL(row.blob):url}
 export async function cacheRemoteStudioMedia(userId:string,projectId:string,url:string){const res=await fetch(url,{credentials:"omit"});if(!res.ok)throw new Error("Could not cache Studio media.");const blob=await res.blob();if(blob.size>25*1024*1024)throw new Error("Media is too large for offline cache.");const key=studioOfflineMediaKey(userId,projectId,url);await cacheStudioVideoMedia({key,userId,projectId,url,blob,cachedAt:new Date().toISOString()});return key}
+
+
+export async function listCachedStudioVideoMedia(userId: string, projectId: string): Promise<StudioOfflineMedia[]> {
+  const db = await openDb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(MEDIA_STORE, "readonly");
+      const request = tx.objectStore(MEDIA_STORE).getAll();
+      request.onerror = () => reject(request.error ?? new Error("Could not inspect Studio offline media."));
+      request.onsuccess = () => resolve(
+        ((request.result as StudioOfflineMedia[] | undefined) ?? [])
+          .filter((row) => row.userId === userId && row.projectId === projectId)
+          .sort((a, b) => a.cachedAt.localeCompare(b.cachedAt)),
+      );
+    });
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Keep offline Studio useful without letting one project silently consume
+ * unbounded browser storage. Oldest media is pruned first; the editable
+ * composition draft itself is never removed here.
+ */
+export async function pruneStudioVideoMediaCache(
+  userId: string,
+  projectId: string,
+  maxBytes = 150 * 1024 * 1024,
+): Promise<{ removed: number; bytesRemaining: number }> {
+  const rows = await listCachedStudioVideoMedia(userId, projectId);
+  let total = rows.reduce((sum, row) => sum + row.blob.size, 0);
+  if (total <= maxBytes) return { removed: 0, bytesRemaining: total };
+
+  let removed = 0;
+  for (const row of rows) {
+    if (total <= maxBytes) break;
+    await removeCachedStudioVideoMedia(row.key);
+    total -= row.blob.size;
+    removed += 1;
+  }
+  return { removed, bytesRemaining: Math.max(0, total) };
+}

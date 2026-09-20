@@ -45,6 +45,7 @@ import {
   getCachedStudioVideoMedia,
   getStudioVideoOfflineDraft,
   putStudioVideoOfflineDraft,
+  pruneStudioVideoMediaCache,
   studioOfflineMediaKey,
   studioVideoOfflineSupported,
 } from "@/lib/studio/video-offline-drafts";
@@ -63,6 +64,7 @@ export default function StudioVideoEditorPage() {
   const [note, setNote] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
+  const [conflictServer, setConflictServer] = useState<{ composition: StudioComposition; title: string; updatedAt: string } | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [sourceDesignId, setSourceDesignId] = useState<string | null>(null);
@@ -217,6 +219,27 @@ export default function StudioVideoEditorPage() {
       .catch(() => undefined);
   }, [projectId]);
 
+  const loadConflictSnapshot = useCallback(async () => {
+    try {
+      const latestRes = await fetch(`/api/studio/video/${projectId}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const latest = await latestRes.json().catch(() => ({}));
+      if (!latestRes.ok || !latest.project?.composition || typeof latest.project.updated_at !== "string") {
+        setError("A newer Studio video exists, but Kebu could not load it for comparison.");
+        return;
+      }
+      setConflictServer({
+        composition: latest.project.composition as StudioComposition,
+        title: typeof latest.project.title === "string" ? latest.project.title : title,
+        updatedAt: latest.project.updated_at,
+      });
+    } catch {
+      setError("A newer Studio video exists, but Kebu could not load it while offline.");
+    }
+  }, [projectId, title]);
+
   const persist = useCallback(
     async (next: StudioComposition, nextTitle?: string) => {
       const effectiveTitle = nextTitle ?? title;
@@ -254,7 +277,8 @@ export default function StudioVideoEditorPage() {
         const data = await res.json().catch(() => ({}));
         if (res.status === 409 && data.code === "studio_video_version_conflict") {
           setSaveState("conflict");
-          setError("This video changed in another tab or device. Your local draft is safe; reload to review the newer version.");
+          setError("This video changed in another tab or device. Your local draft is safe. Choose which version to keep.");
+          void loadConflictSnapshot();
           return;
         }
         if (!res.ok || !data.project) {
@@ -284,8 +308,86 @@ export default function StudioVideoEditorPage() {
         setSaveState("offline");
       }
     },
-    [projectId, title, serverUpdatedAt, userId, businessId, sourceDesignId],
+    [projectId, title, serverUpdatedAt, userId, businessId, sourceDesignId, loadConflictSnapshot],
   );
+
+  async function useServerConflictVersion() {
+    if (!conflictServer) return;
+    const server = conflictServer;
+    compRef.current = server.composition;
+    setComp(server.composition);
+    setTitle(server.title);
+    setServerUpdatedAt(server.updatedAt);
+    setHistory([]);
+    setFuture([]);
+    setSelectedClipId(null);
+    setSelectedClipIds([]);
+    setConflictServer(null);
+    setSaveState("saved");
+    setError(null);
+    if (userId && studioVideoOfflineSupported()) {
+      await putStudioVideoOfflineDraft({
+        userId,
+        projectId,
+        title: server.title,
+        composition: server.composition,
+        businessId,
+        sourceDesignId,
+        serverUpdatedAt: server.updatedAt,
+        savedAt: new Date().toISOString(),
+        dirty: false,
+      }).catch(() => undefined);
+    }
+    if (userId) void hydrateOfflineMedia(userId, server.composition);
+    setTimeout(() => setSaveState("idle"), 1600);
+  }
+
+  async function keepLocalConflictVersion() {
+    if (!conflictServer || !compRef.current) return;
+    const local = compRef.current;
+    setSaveState("saving");
+    try {
+      const res = await fetch(`/api/studio/video/${projectId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          composition: local,
+          title,
+          expectedUpdatedAt: conflictServer.updatedAt,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.project?.updated_at) {
+        setSaveState("conflict");
+        setError(typeof data.error === "string" ? data.error : "Could not resolve the Studio video conflict.");
+        if (res.status === 409) void loadConflictSnapshot();
+        return;
+      }
+      const nextUpdatedAt = data.project.updated_at as string;
+      setServerUpdatedAt(nextUpdatedAt);
+      setConflictServer(null);
+      setSaveState("saved");
+      setError(null);
+      if (userId && studioVideoOfflineSupported()) {
+        await putStudioVideoOfflineDraft({
+          userId,
+          projectId,
+          title,
+          composition: local,
+          businessId,
+          sourceDesignId,
+          serverUpdatedAt: nextUpdatedAt,
+          savedAt: new Date().toISOString(),
+          dirty: false,
+        }).catch(() => undefined);
+      }
+      setTimeout(() => setSaveState("idle"), 1600);
+    } catch {
+      setSaveState("conflict");
+      setError("Reconnect to resolve this Studio video conflict. Your local draft remains on this device.");
+    }
+  }
 
   function applyComp(next: StudioComposition, recordHistory = true) {
     if (recordHistory && compRef.current) {
@@ -636,7 +738,8 @@ export default function StudioVideoEditorPage() {
 
       if (res.status === 409 && data.code === "studio_video_version_conflict") {
         setSaveState("conflict");
-        setError(data.error || "This video changed somewhere else. Reload before refreshing the linked design.");
+        setError(data.error || "This video changed somewhere else. Choose which version to keep before refreshing the linked design.");
+        void loadConflictSnapshot();
         return;
       }
       if (!res.ok || !data.project?.composition) {
@@ -700,12 +803,13 @@ export default function StudioVideoEditorPage() {
       }
     }
 
+    const pruned = await pruneStudioVideoMediaCache(userId, projectId).catch(() => ({ removed: 0, bytesRemaining: 0 }));
     await hydrateOfflineMedia(userId, comp);
     setOfflineCacheBusy(false);
     setNote(
       skipped
-        ? `Offline cache updated · ${cached} media saved · ${skipped} could not be cached (large or unavailable).`
-        : `Available offline · ${cached} media file${cached === 1 ? "" : "s"} cached on this device.`,
+        ? `Offline cache updated · ${cached} media saved · ${skipped} could not be cached (large or unavailable)${pruned.removed ? ` · ${pruned.removed} older cached file${pruned.removed === 1 ? "" : "s"} pruned` : ""}.`
+        : `Available offline · ${cached} media file${cached === 1 ? "" : "s"} cached on this device${pruned.removed ? ` · ${pruned.removed} older cached file${pruned.removed === 1 ? "" : "s"} pruned` : ""}.`,
     );
   }
 
@@ -818,7 +922,7 @@ export default function StudioVideoEditorPage() {
         : saveState === "offline"
           ? "Offline — changes not synced"
           : saveState === "conflict"
-            ? "Sync conflict — reload required"
+            ? "Sync conflict — choose a version"
             : saveState === "error"
               ? "Save failed"
               : "Autosave on";
@@ -889,14 +993,27 @@ export default function StudioVideoEditorPage() {
         </button>
         <button
           type="button"
+          disabled={saveState === "conflict"}
           onClick={() => void persist(comp)}
-          className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
+          className="rounded-full px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
           style={{ background: "#E05A2B" }}
         >
           Save now
         </button>
       </header>
 
+      {conflictServer ? (
+        <div className="flex flex-col gap-2 border-b border-amber-300/20 bg-amber-950/40 px-3 py-2 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-black uppercase tracking-[.14em] text-amber-200">Studio sync conflict</p>
+            <p className="mt-0.5 text-[10px] text-amber-100/70">A newer server version exists. Kebu kept your local composition offline, so nothing has to be silently overwritten.</p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button type="button" onClick={() => void useServerConflictVersion()} className="rounded-full border border-white/15 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white">Use server version</button>
+            <button type="button" onClick={() => void keepLocalConflictVersion()} className="rounded-full bg-[#FF6A00] px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white">Keep my version</button>
+          </div>
+        </div>
+      ) : null}
       {error ? <p className="px-3 py-1 text-xs text-red-300 bg-red-950/40">{error}</p> : null}
       {note ? <p className="px-3 py-1 text-xs text-emerald-200/90 bg-emerald-950/30">{note}</p> : null}
 
