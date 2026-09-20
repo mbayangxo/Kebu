@@ -52,7 +52,7 @@ export function StudioBrandKitPanel({ businessId }: { businessId?: string | null
       textColor: kit.text_color,
       fontDisplay: kit.font_display,
       fontBody: kit.font_body,
-      logos:kit.logos??[],colorRoles:kit.color_roles??{},typographyRoles:kit.typography_roles??{},imageryRules:(kit.imagery_rules as any)??{direction:"",avoid:[]},voiceRules:(kit.voice_rules as any)??{voice:"",do:[],dont:[]},approvedAssetIds:kit.approved_asset_ids??[],isDefault:Boolean(kit.is_default),
+      logos:kit.logos??[],colorRoles:kit.color_roles??{},typographyRoles:kit.typography_roles??{},imageryRules:(kit.imagery_rules as {direction:string;avoid:string[]}|null)??{direction:"",avoid:[]},voiceRules:(kit.voice_rules as {voice:string;do:string[];dont:string[]}|null)??{voice:"",do:[],dont:[]},approvedAssetIds:kit.approved_asset_ids??[],isDefault:Boolean(kit.is_default),
     });
   }
 

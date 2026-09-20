@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
@@ -8,7 +9,7 @@ import { builderRateLimit } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 
-async function clearDefault(supabase:any,userId:string,businessId:string|null,except?:string){let q=supabase.from("business_brand_kits").update({is_default:false}).eq("is_default",true);q=businessId?q.eq("business_id",businessId):q.is("business_id",null).eq("owner_id",userId);if(except)q=q.neq("id",except);const{error}=await q;if(error)throw error}
+async function clearDefault(supabase:SupabaseClient,userId:string,businessId:string|null,except?:string){let q=supabase.from("business_brand_kits").update({is_default:false}).eq("is_default",true);q=businessId?q.eq("business_id",businessId):q.is("business_id",null).eq("owner_id",userId);if(except)q=q.neq("id",except);const{error}=await q;if(error)throw error}
 
 
 
