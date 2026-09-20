@@ -1758,6 +1758,12 @@ export default function ProjectEditorPage() {
                           ),
                         )
                       }
+                      onAskAi={() => {
+                        setImproveInstruction(`Update only ${selectedElement.label}. `);
+                        setImproveMode("free");
+                        setYandeOpen(true);
+                        setYandeDialOpen(false);
+                      }}
                       onPatch={(patch) =>
                         applyDeviceAwarePatch(
                           updateProps,
