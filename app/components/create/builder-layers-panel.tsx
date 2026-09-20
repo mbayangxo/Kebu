@@ -43,7 +43,11 @@ export function BuilderLayersPanel({
       if (row.storageKey === "backgroundLayer") return true;
       if (row.storageKey === "titleLogo" && props.titleAsText === true) return true;
       return Boolean(String(props[row.storageKey] ?? "").trim());
-    }),
+    }).map((row) =>
+      row.storageKey === "titleLogo" && props.titleAsText !== true
+        ? { ...row, kind: "image" as const, label: "Name circle image" }
+        : row,
+    ),
     ...extras
       .filter((item) => item.id && item.src)
       .map((item) => ({
