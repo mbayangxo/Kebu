@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
@@ -45,6 +46,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 

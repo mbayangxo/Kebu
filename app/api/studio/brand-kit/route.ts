@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { BRAND_KIT_SELECT, brandKitSchema } from "@/lib/studio/brand-kit";
@@ -36,6 +37,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -81,6 +84,8 @@ const patchKitSchema = brandKitSchema.partial().extend({
 });
 
 export async function PATCH(req: Request) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
