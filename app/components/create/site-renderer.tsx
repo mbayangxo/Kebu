@@ -821,6 +821,10 @@ export function SiteRenderer({
     (s) => s.type === "kdirection-home" || s.type === "kdirection-page",
   );
   const motionHero = findMotionHeroProps(definition);
+  const motionHeroSectionId =
+    definition.pages
+      .flatMap((candidatePage) => candidatePage.sections)
+      .find((candidateSection) => candidateSection.type === "legally-blonde-hero")?.id ?? null;
   const emailPopup = findEmailPopup(definition);
   const motionSite = motionHero !== null;
   const activeSlug = pageSlug && pageSlug !== "home" ? pageSlug : "home";
@@ -2732,6 +2736,26 @@ export function SiteRenderer({
           accentColor={motionHero.accentColor}
           socialLinks={motionHero.socialLinks}
           siteBase={siteBase}
+          paddingTop={motionHero.embeddedFooterPaddingTop ?? 20}
+          paddingBottom={motionHero.embeddedFooterPaddingBottom ?? 20}
+          editing={editingPreview}
+          selected={editor?.selectedElement?.elementId === "siteFooter"}
+          onSelect={
+            editingPreview && editor?.onSelectElement && motionHeroSectionId
+              ? () =>
+                  editor.onSelectElement?.({
+                    sectionId: motionHeroSectionId,
+                    elementId: "siteFooter",
+                    kind: "control",
+                    label: "Footer",
+                  })
+              : undefined
+          }
+          onResize={
+            editingPreview && editor?.onPatchSection && motionHeroSectionId
+              ? (patch) => editor.onPatchSection?.(motionHeroSectionId, patch)
+              : undefined
+          }
         />
       ) : null}
     </>
