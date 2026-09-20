@@ -19,11 +19,9 @@ export function roleAllows(role: ProjectRole | null, capability: ProjectCapabili
 export async function getProjectRole(
   supabase: SupabaseClient,
   projectId: string,
-  userId: string,
 ): Promise<ProjectRole | null> {
   const { data, error } = await supabase.rpc("project_access_role", {
     p_project_id: projectId,
-    p_user_id: userId,
   });
   if (error || !data || !["owner", "admin", "editor", "viewer"].includes(String(data))) return null;
   return data as ProjectRole;
@@ -32,10 +30,9 @@ export async function getProjectRole(
 export async function requireProjectCapability(
   supabase: SupabaseClient,
   projectId: string,
-  userId: string,
   capability: ProjectCapability,
 ): Promise<{ ok: true; role: ProjectRole } | { ok: false; status: 403 | 404 }> {
-  const role = await getProjectRole(supabase, projectId, userId);
+  const role = await getProjectRole(supabase, projectId);
   if (!role) return { ok: false, status: 404 };
   if (!roleAllows(role, capability)) return { ok: false, status: 403 };
   return { ok: true, role };
