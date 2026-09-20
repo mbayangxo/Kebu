@@ -36,24 +36,37 @@ export function portfolioUpgradeForProject(payload: unknown): PortfolioUpgrade {
   };
   const description =
     typeof data.project?.description === "string" ? data.project.description : "";
-  const sectionTypes = Array.isArray(data.sections)
-    ? data.sections.map((section) => section.section_type)
-    : [];
+  const sections = Array.isArray(data.sections) ? data.sections : [];
+  const sectionTypes = sections.map((section) => section.section_type);
+  const maylecorHero = sections.find((section) => section.section_type === "legally-blonde-hero") as
+    | { props?: Record<string, unknown> }
+    | undefined;
+  const kdirectionHome = sections.find((section) => section.section_type === "kdirection-home") as
+    | { props?: Record<string, unknown> }
+    | undefined;
+
+  // Portfolio upgrades are migrations, not a normal part of opening Builder. Once the modern
+  // editor fields exist, never POST an upgrade + refetch on every visit; that was a major source
+  // of the long "Loading…" screen on portfolio sites.
+  const maylecorAlreadyModern =
+    maylecorHero?.props &&
+    ("sectionMinHeightPx" in maylecorHero.props || "layerPositions" in maylecorHero.props);
+  const kdirectionAlreadyModern =
+    kdirectionHome?.props &&
+    ("collagePhotos" in kdirectionHome.props || "navScale" in kdirectionHome.props);
 
   if (
-    description.includes("portfolio:maylecor") ||
-    sectionTypes.some(
-      (type) => type === "legally-blonde-hero" || type === "maylecor-home",
-    )
+    !maylecorAlreadyModern &&
+    (description.includes("portfolio:maylecor") ||
+      sectionTypes.some((type) => type === "legally-blonde-hero" || type === "maylecor-home"))
   ) {
     return "maylecor";
   }
 
   if (
-    description.includes("portfolio:kdirection") ||
-    sectionTypes.some(
-      (type) => type === "kdirection-home" || type === "kdirection-page",
-    )
+    !kdirectionAlreadyModern &&
+    (description.includes("portfolio:kdirection") ||
+      sectionTypes.some((type) => type === "kdirection-home" || type === "kdirection-page"))
   ) {
     return "kdirection";
   }
