@@ -31,8 +31,7 @@ create table if not exists public.shop_digital_downloads (
 
 -- Fast lookup by token (only among non-expired rows — partial avoids stale entries hogging index)
 create index if not exists shop_digital_downloads_token_idx
-  on public.shop_digital_downloads (token)
-  where expires_at > now();
+  on public.shop_digital_downloads (token);
 
 create index if not exists shop_digital_downloads_order_idx
   on public.shop_digital_downloads (order_id);

@@ -1,7 +1,7 @@
 -- Migration 092: Fashion template seed
 -- Idempotent upsert for the Mode / Fashion template
 
-INSERT INTO site_templates (slug, name, category, description, is_public, created_at, updated_at)
+INSERT INTO site_templates (slug, name, category, description, is_active, created_at, updated_at)
 VALUES (
   'fashion',
   'Mode / Fashion',
@@ -15,5 +15,5 @@ ON CONFLICT (slug) DO UPDATE SET
   name        = EXCLUDED.name,
   category    = EXCLUDED.category,
   description = EXCLUDED.description,
-  is_public   = EXCLUDED.is_public,
+  is_active   = EXCLUDED.is_active,
   updated_at  = now();
