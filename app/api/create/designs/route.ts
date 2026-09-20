@@ -164,7 +164,14 @@ export async function POST(req: Request) {
     .single();
 
   if (error || !design) {
-    return NextResponse.json({ error: "Could not create design." }, { status: 500 });
+    const code = error?.code ?? "";
+    const message =
+      code === "23514"
+        ? "This design format is not enabled in Studio yet."
+        : code === "42501"
+          ? "You do not have permission to create in this Kebu space."
+          : "Could not create design.";
+    return NextResponse.json({ error: message, code: code || undefined }, { status: 500 });
   }
 
   await recalculateReadinessForBusiness(supabase, businessId);
