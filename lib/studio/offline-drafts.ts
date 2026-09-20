@@ -1,4 +1,5 @@
 import type { CanvasDocument, StudioDesignType } from "@/lib/studio/canvas-document";
+import type { StudioDesignRole } from "@/lib/studio/design-access";
 
 const DB_NAME = "kebu-studio-offline";
 const DB_VERSION = 1;
@@ -11,6 +12,10 @@ export type StudioOfflineDraft = {
   designTitle: string;
   canvas: CanvasDocument;
   designType: StudioDesignType;
+  /** Preserve Personal Kebu vs Business Kebu while offline. */
+  businessId?: string | null;
+  /** Last server-verified design role; never upgrade a user to owner just because they are offline. */
+  accessRole?: StudioDesignRole | null;
   serverUpdatedAt: string | null;
   savedAt: string;
   dirty: boolean;
