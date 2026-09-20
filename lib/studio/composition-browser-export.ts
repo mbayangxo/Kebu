@@ -293,7 +293,6 @@ async function drawFrame(
     const opacity = Math.max(0, Math.min(1, xf.opacity * transitionOpacityBoost(composition, clip.id, timeMs)));
     ctx.save();
     ctx.globalAlpha = opacity;
-  ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
     ctx.translate(composition.width / 2 + xf.x, composition.height / 2 + xf.y);
     ctx.rotate((xf.rotation * Math.PI) / 180);
     ctx.scale(xf.scale, xf.scale);
