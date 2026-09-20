@@ -63,7 +63,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
   });
   // Serialize writes per section. A slower request must never arrive after a newer edit and
   // overwrite it in Supabase. While one request is in flight we retain only the newest snapshot.
-  const sectionWrites = useRef<Record<string, { inFlight: boolean; latest: Record<string, unknown> | null }>>({});
+  const sectionWrites = useRef<Record<string, { inFlight: boolean; latest: Record<string, unknown> | null; waiters: Array<(ok: boolean) => void> }>>({});
 
   /**
    * Section/chrome saves not yet CONFIRMED successful, keyed "section:<id>" or "chrome:header"/
@@ -74,15 +74,16 @@ export function useProjectAutosave<T extends AutosaveSection>({
    */
   const pendingSavesRef = useRef<Set<string>>(new Set());
 
-  async function persistProps(sectionId: string, props: Record<string, unknown>) {
-    const slot = sectionWrites.current[sectionId] ?? { inFlight: false, latest: null };
+  async function persistProps(sectionId: string, props: Record<string, unknown>): Promise<boolean> {
+    const slot = sectionWrites.current[sectionId] ?? { inFlight: false, latest: null, waiters: [] };
     sectionWrites.current[sectionId] = slot;
     if (slot.inFlight) {
       slot.latest = props;
-      return;
+      return new Promise<boolean>((resolve) => slot.waiters.push(resolve));
     }
 
     slot.inFlight = true;
+    let ok = true;
     let snapshot: Record<string, unknown> | null = props;
     try {
       while (snapshot) {
@@ -94,6 +95,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
           setSaveState("queued");
           setKbSaveNote("Not saved on server yet — queued until Syncing…");
           setError(null);
+          ok = false;
           break;
         }
 
@@ -126,6 +128,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
                 .filter(Boolean)
                 .join(" — "),
             );
+            ok = false;
             break;
           }
           if (data.section && !slot.latest) {
@@ -146,15 +149,19 @@ export function useProjectAutosave<T extends AutosaveSection>({
           setSaveState("queued");
           setKbSaveNote("Not saved on server yet — queued until Syncing…");
           setError(null);
+          ok = false;
           break;
         }
         snapshot = slot.latest;
       }
     } finally {
       slot.inFlight = false;
+      const waiters = slot.waiters.splice(0);
+      waiters.forEach((resolve) => resolve(ok && !slot.latest));
       // An edit can land after the loop chose to stop (offline/error) but before finally. Keep it
       // pending; Save draft / the next edit will retry the newest snapshot rather than an old one.
     }
+    return ok && !slot.latest;
   }
 
   async function persistChrome(part: "header" | "footer", props: Record<string, unknown>): Promise<boolean> {
