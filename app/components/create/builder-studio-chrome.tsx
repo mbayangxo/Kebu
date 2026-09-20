@@ -15,6 +15,7 @@ export type BuilderStudioTab =
   | "content"
   | "pages"
   | "layers"
+  | "versions"
   | "aesthetic"
   | "media"
   | "nav"
@@ -47,6 +48,16 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
         <path d="M12 3l8 4-8 4-8-4 8-4z" strokeLinejoin="round" />
         <path d="M4 12l8 4 8-4M4 17l8 4 8-4" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "versions",
+    label: "History",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M4 12a8 8 0 108-8 8.5 8.5 0 00-6 2.5L4 8.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M4 4v4.5h4.5M12 8v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
