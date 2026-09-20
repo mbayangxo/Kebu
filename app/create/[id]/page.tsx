@@ -32,6 +32,7 @@ import { BuilderEditablePreview } from "@/app/components/create/builder-editable
 import { BuilderSectionListDnd } from "@/app/components/create/builder-section-list-dnd";
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
 import { BuilderLayersPanel } from "@/app/components/create/builder-layers-panel";
+import { BuilderVersionHistoryPanel } from "@/app/components/create/builder-version-history-panel";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
@@ -1389,6 +1390,18 @@ export default function ProjectEditorPage() {
                     />
                   );
                 })()
+              )}
+
+              {sidebarTab === "versions" && (
+                <BuilderVersionHistoryPanel
+                  projectId={projectId}
+                  onRestored={async () => {
+                    setSelectedElement(null);
+                    setSelectedSectionId(null);
+                    await load();
+                  }}
+                  onError={setError}
+                />
               )}
 
               {sidebarTab === "shop" && (
