@@ -629,9 +629,9 @@ export function StudioCanvasEditor({
   const canAlign = !readOnly && selectedLayerIds.length >= 1;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7.5rem)] min-h-[520px] bg-[#E8E6E1]">
+    <div className="flex flex-col h-[calc(100vh-7.5rem)] min-h-[520px] bg-[#F1F0ED]">
       {/* Top tool strip */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-black/10 bg-white px-3 py-2 shrink-0">
+      <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap border-b border-black/10 bg-[#FFFCF8] px-3 py-1.5 shrink-0">
         {readOnly ? (
           <span className="rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
             View only
@@ -749,8 +749,8 @@ export function StudioCanvasEditor({
 
       <div className="flex flex-1 min-h-0">
         {/* Left: Elements / Layers */}
-        <aside className="w-[220px] shrink-0 border-r border-black/10 bg-white flex flex-col">
-          <div className="flex border-b border-black/10">
+        <aside className="w-[240px] shrink-0 border-r border-black/10 bg-[#FFFCF8] flex flex-col">
+          <div className="grid grid-cols-4 border-b border-black/10">
             {(["elements", "layers", "uploads", "brand"] as const).map((t) => (
               <button
                 key={t}

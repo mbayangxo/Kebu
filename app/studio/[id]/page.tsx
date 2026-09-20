@@ -803,12 +803,12 @@ export default function StudioEditorPage() {
                 : "Autosave on";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#E8E6E1]">
-      <header className="border-b border-black/10 bg-white px-3 py-2.5 flex flex-wrap items-center gap-2 shrink-0 z-10">
-        <Link href="/studio" className="text-xs underline opacity-60 px-1">
+    <div className="min-h-screen flex flex-col bg-[#F3F1ED]">
+      <header className="border-b border-black/10 bg-[#FFFCF8] px-3 py-2 flex items-center gap-1.5 shrink-0 z-20 overflow-x-auto whitespace-nowrap">
+        <Link href="/studio" className="text-xs font-black px-2 no-underline">
           ← Studio
         </Link>
-        <h1 className="font-display text-base font-bold flex-1 min-w-[120px] truncate">{design.title}</h1>
+        <h1 className="text-sm font-black flex-1 min-w-[160px] truncate tracking-[-.02em]">{design.title}</h1>
         <span className="text-[10px] font-semibold uppercase tracking-wider opacity-50">{saveLabel}</span>
         <button
           type="button"
@@ -955,7 +955,7 @@ export default function StudioEditorPage() {
             }
           }}
           className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
-          style={{ background: "#E05A2B" }}
+          style={{ background: "#FF6A00" }}
         >
           Share
         </button>
