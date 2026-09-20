@@ -1,7 +1,7 @@
 import type { CanvasLayer } from "@/lib/studio/canvas-document";
 
 export type StudioElementKind = "line" | "icon" | "frame";
-export type StudioElementCategory = "shapes" | "lines" | "frames" | "symbols" | "business" | "social";
+export type StudioElementCategory = "shapes" | "lines" | "frames" | "symbols" | "business" | "social" | "culture";
 
 export type StudioElementDef = {
   id: string;
@@ -17,6 +17,9 @@ export type StudioElementDef = {
 
 /** Curated, offline-safe Elements catalog. Definitions are structured data, never arbitrary SVG/HTML. */
 export const STUDIO_ELEMENTS_PACK: StudioElementDef[] = [
+  {id:"icon-cowrie",kind:"icon",category:"culture",label:"Cowrie",tags:["africa","cowrie","heritage","money"],glyph:"◒",defaults:{width:72,height:72,color:"#E05A2B",name:"Cowrie",iconKey:"cowrie",text:"◒",fontSize:58}},
+  {id:"icon-sun",kind:"icon",category:"culture",label:"Sahel sun",tags:["africa","sun","sahel"],glyph:"☀",defaults:{width:72,height:72,color:"#F0A21A",name:"Sahel sun",iconKey:"sun",text:"☀",fontSize:58}},
+
 
   { id: "line-vertical", kind: "line", category: "lines", label: "Vertical line", tags: ["divider","vertical"], defaults: { width: 4, height: 280, fill: "#111111", name: "Vertical line", strokeWidth: 4 } },
   { id: "line-accent", kind: "line", category: "lines", label: "Accent bar", tags: ["bar","accent"], defaults: { width: 180, height: 18, fill: "#FF6A00", name: "Accent bar", strokeWidth: 18 } },

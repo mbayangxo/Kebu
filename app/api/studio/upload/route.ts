@@ -5,6 +5,7 @@ import { builderRateLimit } from "@/lib/api-guard";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
+import { sniffStudioMedia } from "@/lib/studio/media-signature";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +133,8 @@ export async function POST(req: Request) {
   const path = `${user.id}/studio/${folder}/${crypto.randomUUID()}.${ext}`;
 
   const bytes = new Uint8Array(await file.arrayBuffer());
+  const detected=sniffStudioMedia(bytes,mime);if(!detected)return NextResponse.json({error:"File contents do not match a supported media format."},{status:400});
+  if((isImage&&!detected.startsWith("image/"))||(isVideo&&!detected.startsWith("video/"))||(isAudio&&!detected.startsWith("audio/")))return NextResponse.json({error:"File contents do not match the selected media type."},{status:400});
   let uploadClient = supabase;
   try {
     const service = createServiceClient();
