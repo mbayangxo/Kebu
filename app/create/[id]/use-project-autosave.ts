@@ -56,7 +56,11 @@ export function useProjectAutosave<T extends AutosaveSection>({
   const [kbSaveNote, setKbSaveNote] = useState<string | null>(null);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const historyWindows = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chromeSaveTimers = useRef<Partial<Record<"header" | "footer", ReturnType<typeof setTimeout>>>>({});
+  const chromeWrites = useRef<Record<"header" | "footer", { inFlight: boolean; latest: Record<string, unknown> | null; waiters: Array<(ok: boolean) => void> }>>({
+    header: { inFlight: false, latest: null, waiters: [] },
+    footer: { inFlight: false, latest: null, waiters: [] },
+  });
   // Serialize writes per section. A slower request must never arrive after a newer edit and
   // overwrite it in Supabase. While one request is in flight we retain only the newest snapshot.
   const sectionWrites = useRef<Record<string, { inFlight: boolean; latest: Record<string, unknown> | null }>>({});
@@ -153,44 +157,60 @@ export function useProjectAutosave<T extends AutosaveSection>({
     }
   }
 
-  async function persistChrome(part: "header" | "footer", props: Record<string, unknown>) {
-    const mode = resolveClientDataMode();
-    const offline = !isBrowserOnline() || mode === "offline";
-    if (offline) {
-      setSaveState("queued");
-      setKbSaveNote("Site header/footer queued until Syncing…");
-      return;
+  async function persistChrome(part: "header" | "footer", props: Record<string, unknown>): Promise<boolean> {
+    const slot = chromeWrites.current[part];
+    if (slot.inFlight) {
+      slot.latest = props;
+      return new Promise<boolean>((resolve) => slot.waiters.push(resolve));
     }
-    setSaveState("saving");
+    slot.inFlight = true;
+    let snapshot: Record<string, unknown> | null = props;
+    let ok = true;
     try {
-      const body = part === "header" ? { header: props } : { footer: props };
-      const res = await fetch(`/api/projects/${projectId}/site-chrome`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "X-Kebu-Data-Mode": mode },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSaveState("error");
-        setError(typeof data.error === "string" ? data.error : "Could not save site header/footer.");
-        return;
+      while (snapshot) {
+        slot.latest = null;
+        const mode = resolveClientDataMode();
+        if (!isBrowserOnline() || mode === "offline") {
+          setSaveState("queued"); setKbSaveNote("Site header/footer queued until Syncing…"); ok = false; break;
+        }
+        setSaveState("saving");
+        try {
+          const res = await fetch(`/api/projects/${projectId}/site-chrome`, {
+            method: "PATCH", credentials: "include",
+            headers: { "Content-Type": "application/json", "X-Kebu-Data-Mode": mode },
+            body: JSON.stringify(part === "header" ? { header: snapshot } : { footer: snapshot }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setSaveState("error");
+            setError(typeof data.error === "string" ? data.error : "Could not save site header/footer.");
+            ok = false; break;
+          }
+          if (data.siteChrome && !slot.latest) {
+            const confirmed = parseSiteChrome(data.siteChrome);
+            setSiteChrome((current) => {
+              const base = current ?? parseSiteChrome(null);
+              const confirmedProps = part === "header" ? confirmed.header?.props : confirmed.footer?.props;
+              return confirmedProps ? patchSiteChromePart(base, part, confirmedProps as Record<string, unknown>) : base;
+            });
+          }
+          setPublishState((prev) => prev ? { ...prev, hasUnpublishedChanges: true } : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null });
+          if (!slot.latest) {
+            pendingSavesRef.current.delete(`chrome:${part}`);
+            setSaveState(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
+          }
+          setError(null);
+        } catch {
+          setSaveState("queued"); setKbSaveNote("Site header/footer queued until Syncing…"); ok = false; break;
+        }
+        snapshot = slot.latest;
       }
-      if (data.siteChrome) {
-        setSiteChrome(parseSiteChrome(data.siteChrome));
-      }
-      setPublishState((prev) =>
-        prev
-          ? { ...prev, hasUnpublishedChanges: true }
-          : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
-      );
-      pendingSavesRef.current.delete(`chrome:${part}`);
-      setSaveState(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
-      setError(null);
-    } catch {
-      setSaveState("queued");
-      setKbSaveNote("Site header/footer queued until Syncing…");
+    } finally {
+      slot.inFlight = false;
+      const waiters = slot.waiters.splice(0);
+      waiters.forEach((resolve) => resolve(ok && !slot.latest));
     }
+    return ok && !slot.latest;
   }
 
   function updateChromeProps(part: "header" | "footer", patch: Record<string, unknown>) {
@@ -199,8 +219,10 @@ export function useProjectAutosave<T extends AutosaveSection>({
     setSiteChrome((prev) => {
       const base = prev ?? parseSiteChrome(null);
       const next = patchSiteChromePart({ ...base, enabled: true }, part, patch);
-      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
-      chromeSaveTimer.current = setTimeout(() => {
+      const timer = chromeSaveTimers.current[part];
+      if (timer) clearTimeout(timer);
+      chromeSaveTimers.current[part] = setTimeout(() => {
+        delete chromeSaveTimers.current[part];
         const props = part === "header" ? next.header?.props : next.footer?.props;
         if (props) void persistChrome(part, props as Record<string, unknown>);
       }, 500);
@@ -248,10 +270,11 @@ export function useProjectAutosave<T extends AutosaveSection>({
       clearTimeout(saveTimers.current[id]);
       delete saveTimers.current[id];
     });
-    if (chromeSaveTimer.current) {
-      clearTimeout(chromeSaveTimer.current);
-      chromeSaveTimer.current = null;
-    }
+    (["header", "footer"] as const).forEach((part) => {
+      const timer = chromeSaveTimers.current[part];
+      if (timer) clearTimeout(timer);
+      delete chromeSaveTimers.current[part];
+    });
     const pending = Array.from(pendingSavesRef.current);
     if (pending.length === 0) {
       setSaveState("saved"); // explicit confirmation: nothing was pending, all is saved
@@ -295,7 +318,8 @@ export function useProjectAutosave<T extends AutosaveSection>({
     return () => {
       Object.values(timers).forEach(clearTimeout);
       Object.values(historyWindows.current).forEach(clearTimeout);
-      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
+      Object.values(chromeSaveTimers.current).forEach((timer) => timer && clearTimeout(timer));
+      chromeSaveTimers.current = {};
     };
   }, []);
 
