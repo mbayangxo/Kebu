@@ -26,6 +26,7 @@ const patchPageSchema = z.union([
     title: z.string().trim().min(1).max(120).optional(),
     slug: slugSchema.optional(),
     sortOrder: z.number().int().min(0).optional(),
+    parentId: z.string().uuid().nullable().optional(),
   }),
   z.object({
     order: z.array(z.string().uuid()).min(1).max(12),
@@ -105,7 +106,7 @@ export async function POST(req: Request, { params }: Params) {
       title: parsed.data.title,
       sort_order: nextOrder,
     })
-    .select("id, slug, title, sort_order")
+    .select("id, slug, title, sort_order, parent_id")
     .single();
 
   if (pageError || !page) {
@@ -255,19 +256,27 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.title) updates.title = parsed.data.title;
   if (parsed.data.slug) updates.slug = parsed.data.slug;
   if (parsed.data.sortOrder !== undefined) updates.sort_order = parsed.data.sortOrder;
+  if (parsed.data.parentId !== undefined) {
+    if (parsed.data.parentId === parsed.data.pageId) return NextResponse.json({ error: "A page cannot be its own parent." }, { status: 400 });
+    if (parsed.data.parentId) {
+      const { data: parent } = await supabase.from("project_pages").select("id").eq("id", parsed.data.parentId).eq("project_id", projectId).maybeSingle();
+      if (!parent) return NextResponse.json({ error: "Parent page not found in this site." }, { status: 400 });
+    }
+    updates.parent_id = parsed.data.parentId;
+  }
 
   const { data: updated, error } = await supabase
     .from("project_pages")
     .update(updates)
     .eq("id", parsed.data.pageId)
-    .select("id, slug, title, sort_order")
+    .select("id, slug, title, sort_order, parent_id")
     .single();
 
   if (error || !updated) {
     return NextResponse.json({ error: "Could not update page.", detail: error?.message }, { status: 500 });
   }
 
-  if (parsed.data.title || parsed.data.slug || parsed.data.sortOrder !== undefined) {
+  if (parsed.data.title || parsed.data.slug || parsed.data.sortOrder !== undefined || parsed.data.parentId !== undefined) {
     try {
       await syncProjectChromeNavFromPages(supabase as never, projectId);
     } catch {
