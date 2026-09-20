@@ -648,9 +648,9 @@ export function StudioCanvasEditor({
   const canAlign = !readOnly && selectedLayerIds.length >= 1;
 
   return (
-    <div className="relative flex h-[calc(100dvh-7.5rem)] min-h-[480px] flex-col bg-[#EEEDEA]">
+    <div className="relative flex h-[calc(100dvh-6.5rem)] min-h-[520px] flex-col bg-[#111214] text-white">
       {/* Top tool strip */}
-      <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap border-b border-black/[.07] bg-[#FFFCF8] px-3 py-1.5 shrink-0">
+      <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap border-b border-white/[.08] bg-[#101113] px-3 py-1.5 shrink-0">
         {readOnly ? (
           <span className="rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
             View only
@@ -660,7 +660,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !canUndo}
           onClick={() => onUndo?.()}
-          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-black/60 hover:bg-black/[.04] hover:text-black disabled:opacity-25"
+          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-white/60 hover:bg-[#17181B]/[.06] hover:text-white disabled:opacity-25"
         >
           Undo
         </button>
@@ -668,7 +668,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !canRedo}
           onClick={() => onRedo?.()}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Redo
         </button>
@@ -677,7 +677,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !selectedLayerIds.length}
           onClick={copySelected}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Copy
         </button>
@@ -685,7 +685,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly}
           onClick={pasteLayers}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Paste
         </button>
@@ -693,7 +693,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !selectedLayerIds.length}
           onClick={duplicateSelected}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           <span className="inline-flex items-center gap-1"><StudioIcon name="duplicate" className="h-3.5 w-3.5" />Duplicate</span>
         </button>
@@ -714,7 +714,7 @@ export function StudioCanvasEditor({
             disabled={!canAlign || selectedLayerIds.length < (t.minSelection ?? 1)}
             onClick={() => applyAlign(t.mode)}
             aria-label={t.title}
-            className="rounded-lg w-8 h-8 text-[11px] font-bold border border-black/10 bg-white hover:bg-black/[.035] focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-30"
+            className="rounded-lg w-8 h-8 text-[11px] font-bold border border-white/10 bg-[#17181B] hover:bg-black/[.035] focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-30"
           >
             {t.mode==="left"||t.mode==="center-x"||t.mode==="right"?<StudioIcon name={`align-${t.label}` as "align-left"|"align-center"|"align-right"} className="mx-auto h-4 w-4"/>:t.label}
           </button>
@@ -724,7 +724,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={!canGroup}
           onClick={applyGroup}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Group
         </button>
@@ -732,7 +732,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={!canUngroup}
           onClick={applyUngroup}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Ungroup
         </button>
@@ -754,7 +754,7 @@ export function StudioCanvasEditor({
         </label>
         <button
           type="button"
-          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-black/55 hover:bg-black/[.04]"
+          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-white/55 hover:bg-[#17181B]/[.06]"
           onClick={() => {
             const el = boardRef.current;
             if (!el) return;
@@ -768,9 +768,9 @@ export function StudioCanvasEditor({
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-[14px] border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-[14px] border border-white/10 bg-[#151619]/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
         {/* Left: Elements / Layers */}
-        <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-black/10 bg-[#FFFCF8] shadow-2xl md:static md:flex md:w-[268px] md:shrink-0 md:rounded-none md:border-y-0 md:border-l-0 md:shadow-none`}>
+        <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-2xl md:static md:flex md:w-[268px] md:shrink-0 md:rounded-none md:border-y-0 md:border-l-0 md:shadow-none`}>
           <GalaxyToolRail items={STUDIO_RAIL} value={leftTab} onChange={(id)=>setLeftTab(id as typeof leftTab)}/><div className="flex-1 overflow-y-auto p-3 space-y-3">
             {leftTab === "themes" ? <StudioThemesPanel document={doc} readOnly={readOnly} onApply={onChange}/> : null}
             {leftTab === "brand" ? <StudioBrandSpacePanel document={doc} readOnly={readOnly} onApply={onChange} onBrandSpace={setBrandSpace} onInsertLogo={(url,label)=>addLayer("image",{imageUrl:url,name:label,width:220,height:120,objectFit:"contain"})}/> : null}
@@ -791,16 +791,16 @@ export function StudioCanvasEditor({
             ) : null}
             {leftTab === "elements" ? (
               <div className="space-y-3">
-                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">{readOnly?"Elements · view only":"Elements"}</p><p className="text-[9px] text-black/40">Shapes, frames, symbols and business graphics</p></div>
-                <input value={elementQuery} onChange={(e)=>setElementQuery(e.target.value)} placeholder="Search elements" className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-xs"/>
-                <div className="flex gap-1 overflow-x-auto">{(["all","lines","frames","symbols","business","social","culture"] as const).map((value)=><button key={value} type="button" onClick={()=>setElementCategory(value)} className={`rounded-full px-2 py-1 text-[9px] font-bold capitalize ${elementCategory===value?"bg-black text-white":"bg-black/[.04] text-black/50"}`}>{value}</button>)}</div>
+                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">{readOnly?"Elements · view only":"Elements"}</p><p className="text-[9px] text-white/40">Shapes, frames, symbols and business graphics</p></div>
+                <input value={elementQuery} onChange={(e)=>setElementQuery(e.target.value)} placeholder="Search elements" className="w-full rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-xs"/>
+                <div className="flex gap-1 overflow-x-auto">{(["all","lines","frames","symbols","business","social","culture"] as const).map((value)=><button key={value} type="button" onClick={()=>setElementCategory(value)} className={`rounded-full px-2 py-1 text-[9px] font-bold capitalize ${elementCategory===value?"bg-white text-black":"bg-white/[.05] text-white/50"}`}>{value}</button>)}</div>
                 <div className="grid grid-cols-3 gap-2">
-                  <button type="button" disabled={readOnly} onClick={()=>addLayer("text")} className="rounded-xl border border-black/10 bg-white px-2 py-3 text-[10px] font-bold">T<br/><span className="font-normal text-black/40">Text</span></button>
-                  <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-black/10 bg-white px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-black/40">Shape</span></button>
-                  <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-black/10 bg-white px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-black/40">Circle</span></button>
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("text")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">T<br/><span className="font-normal text-white/40">Text</span></button>
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-white/40">Shape</span></button>
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-white/40">Circle</span></button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">{searchStudioElements(elementQuery,elementCategory).map((el)=><button key={el.id} type="button" disabled={readOnly} title={el.label} onClick={()=>addElement(el)} className="flex min-h-[70px] flex-col items-center justify-center rounded-xl border border-black/10 bg-white px-2 py-2 text-center hover:border-orange-400 disabled:opacity-40"><span className="text-2xl">{el.glyph ?? (el.kind==="frame"?"□":"━")}</span><span className="mt-1 text-[9px] font-bold">{el.label}</span></button>)}</div>
-                {searchStudioElements(elementQuery,elementCategory).length===0?<p className="rounded-xl border border-dashed border-black/15 p-4 text-center text-[10px] text-black/45">No elements match that search.</p>:null}
+                <div className="grid grid-cols-2 gap-2">{searchStudioElements(elementQuery,elementCategory).map((el)=><button key={el.id} type="button" disabled={readOnly} title={el.label} onClick={()=>addElement(el)} className="flex min-h-[70px] flex-col items-center justify-center rounded-xl border border-white/10 bg-[#17181B] px-2 py-2 text-center hover:border-orange-400 disabled:opacity-40"><span className="text-2xl">{el.glyph ?? (el.kind==="frame"?"□":"━")}</span><span className="mt-1 text-[9px] font-bold">{el.label}</span></button>)}</div>
+                {searchStudioElements(elementQuery,elementCategory).length===0?<p className="rounded-xl border border-dashed border-black/15 p-4 text-center text-[10px] text-white/45">No elements match that search.</p>:null}
                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"image")}/>
                 <input ref={videoFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"video")}/>
               </div>
@@ -823,13 +823,13 @@ export function StudioCanvasEditor({
               />
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em]">Layers</p><p className="text-[9px] text-black/40">Top layer appears first</p></div><span className="rounded-full bg-black/[.05] px-2 py-1 text-[9px] font-bold">{layers.length}</span></div>
+                <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em]">Layers</p><p className="text-[9px] text-white/40">Top layer appears first</p></div><span className="rounded-full bg-white/[.06] px-2 py-1 text-[9px] font-bold">{layers.length}</span></div>
                 <ul className="space-y-1">{[...layers].reverse().map((l) => (
-                  <li key={l.id} className={`group flex items-center rounded-xl border ${selectedSet.has(l.id)?"border-black bg-black text-white":"border-transparent hover:border-black/10 hover:bg-white"}`}>
+                  <li key={l.id} className={`group flex items-center rounded-xl border ${selectedSet.has(l.id)?"border-black bg-white text-black":"border-transparent hover:border-white/10 hover:bg-[#17181B]"}`}>
                     <button type="button" onClick={(e)=>selectLayer(l,e.shiftKey)} className="min-w-0 flex-1 px-2.5 py-2 text-left">
                       <span className="block truncate text-[10px] font-bold">{l.name}</span><span className="text-[8px] opacity-45">{l.type}{l.groupId?" · grouped":""}</span>
                     </button>
-                    {!readOnly?<button type="button" title={l.locked?"Unlock layer":"Lock layer"} onClick={()=>updateLayer(l.id,{locked:!l.locked})} className="mr-1 rounded-lg px-2 py-2 text-[10px] opacity-55 hover:bg-white/10">{l.locked?"🔒":"○"}</button>:null}
+                    {!readOnly?<button type="button" title={l.locked?"Unlock layer":"Lock layer"} onClick={()=>updateLayer(l.id,{locked:!l.locked})} className="mr-1 rounded-lg px-2 py-2 text-[10px] opacity-55 hover:bg-[#17181B]/10">{l.locked?"🔒":"○"}</button>:null}
                   </li>))}
                 </ul>
               </div>
@@ -1085,8 +1085,8 @@ export function StudioCanvasEditor({
         </div>
 
         {/* Right: Properties */}
-        <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-black/10 bg-white p-4 shadow-2xl md:static md:block md:w-[288px] md:shrink-0 md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none space-y-3`}>
-          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-black/10 bg-white/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-black/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p></div>
+        <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-white/10 bg-[#17181B] p-4 shadow-2xl md:static md:block md:w-[288px] md:shrink-0 md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none space-y-3`}>
+          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p></div>
           <fieldset disabled={readOnly} className="space-y-3 border-0 p-0 m-0 min-w-0 disabled:opacity-70">
           {selectedLayerIds.length > 1 ? (
             <p className="text-xs opacity-60">
@@ -1106,7 +1106,7 @@ export function StudioCanvasEditor({
                     if (readOnly) return;
                     onChange(updatePage(doc, activePageId, { backgroundColor: e.target.value }));
                   }}
-                  className="mt-1 w-full h-10 rounded-lg border border-black/10 disabled:opacity-50"
+                  className="mt-1 w-full h-10 rounded-lg border border-white/10 disabled:opacity-50"
                 />
               </label>
               <p className="text-[10px] opacity-50">
@@ -1120,7 +1120,7 @@ export function StudioCanvasEditor({
                 <input
                   value={selected.name}
                   onChange={(e) => updateLayer(selected.id, { name: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                  className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                 />
               </label></GalaxyInspectorSection>
               <GalaxyInspectorSection title="Motion">
@@ -1129,7 +1129,7 @@ export function StudioCanvasEditor({
                   <select
                     value={selected.animationPreset ?? "none"}
                     onChange={(e) => updateLayer(selected.id, { animationPreset: e.target.value as CanvasLayer["animationPreset"] })}
-                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                   >
                     <option value="none">None</option>
                     <option value="fade">Fade</option>
@@ -1151,7 +1151,7 @@ export function StudioCanvasEditor({
                         step={50}
                         value={selected.animationDurationMs ?? 600}
                         onChange={(e) => updateLayer(selected.id, { animationDurationMs: Math.max(100, Math.min(5000, Number(e.target.value) || 600)) })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       />
                     </label>
                     <label className="block font-semibold">
@@ -1163,12 +1163,12 @@ export function StudioCanvasEditor({
                         step={50}
                         value={selected.animationDelayMs ?? 0}
                         onChange={(e) => updateLayer(selected.id, { animationDelayMs: Math.max(0, Math.min(10000, Number(e.target.value) || 0)) })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       />
                     </label>
                   </div>
                 ) : null}
-                <p className="text-[9px] leading-relaxed text-black/45">
+                <p className="text-[9px] leading-relaxed text-white/45">
                   Motion previews against the page timeline and follows the design into editable video.
                 </p>
               </GalaxyInspectorSection>
@@ -1179,7 +1179,7 @@ export function StudioCanvasEditor({
                       value={selected.text ?? ""}
                       onChange={(e) => updateLayer(selected.id, { text: e.target.value })}
                       rows={3}
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     />
                   </label>
                   <label className="block font-semibold">
@@ -1187,7 +1187,7 @@ export function StudioCanvasEditor({
                     <select
                       value={selected.fontFamily ?? "system-ui"}
                       onChange={(e) => updateLayer(selected.id, { fontFamily: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     >
                       {FONT_OPTIONS.map((f) => (
                         <option key={f} value={f}>
@@ -1205,7 +1205,7 @@ export function StudioCanvasEditor({
                         max={200}
                         value={selected.fontSize ?? 24}
                         onChange={(e) => updateLayer(selected.id, { fontSize: Number(e.target.value) })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       />
                     </label>
                     <label className="block font-semibold">
@@ -1214,7 +1214,7 @@ export function StudioCanvasEditor({
                         type="color"
                         value={selected.color ?? "#ffffff"}
                         onChange={(e) => updateLayer(selected.id, { color: e.target.value })}
-                        className="mt-1 w-full h-9 rounded-lg border border-black/10"
+                        className="mt-1 w-full h-9 rounded-lg border border-white/10"
                       />
                     </label>
                   </div>
@@ -1227,7 +1227,7 @@ export function StudioCanvasEditor({
                           textAlign: e.target.value as "left" | "center" | "right",
                         })
                       }
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     >
                       <option value="left">Left</option>
                       <option value="center">Center</option>
@@ -1240,7 +1240,7 @@ export function StudioCanvasEditor({
                       <select
                         value={selected.fontWeight ?? "400"}
                         onChange={(e) => updateLayer(selected.id, { fontWeight: e.target.value })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       >
                         <option value="300">Light</option>
                         <option value="400">Regular</option>
@@ -1256,7 +1256,7 @@ export function StudioCanvasEditor({
                       <select
                         value={selected.fontStyle ?? "normal"}
                         onChange={(e) => updateLayer(selected.id, { fontStyle: e.target.value as "normal" | "italic" })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       >
                         <option value="normal">Normal</option>
                         <option value="italic">Italic</option>
@@ -1271,7 +1271,7 @@ export function StudioCanvasEditor({
                         step={0.5}
                         value={selected.letterSpacing ?? 0}
                         onChange={(e) => updateLayer(selected.id, { letterSpacing: Number(e.target.value) })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       />
                     </label>
                     <label className="block font-semibold">
@@ -1283,7 +1283,7 @@ export function StudioCanvasEditor({
                         step={0.05}
                         value={selected.lineHeight ?? 1.2}
                         onChange={(e) => updateLayer(selected.id, { lineHeight: Number(e.target.value) })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       />
                     </label>
                   </div>
@@ -1293,7 +1293,7 @@ export function StudioCanvasEditor({
                       <select
                         value={selected.textDecoration ?? "none"}
                         onChange={(e) => updateLayer(selected.id, { textDecoration: e.target.value as "none" | "underline" | "line-through" })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       >
                         <option value="none">None</option>
                         <option value="underline">Underline</option>
@@ -1305,7 +1305,7 @@ export function StudioCanvasEditor({
                       <select
                         value={selected.textTransform ?? "none"}
                         onChange={(e) => updateLayer(selected.id, { textTransform: e.target.value as "none" | "uppercase" | "lowercase" })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       >
                         <option value="none">As typed</option>
                         <option value="uppercase">UPPERCASE</option>
@@ -1322,7 +1322,7 @@ export function StudioCanvasEditor({
                     <select
                       value={selected.fillType ?? "solid"}
                       onChange={(e) => updateLayer(selected.id, { fillType: e.target.value as CanvasLayer["fillType"] })}
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     >
                       <option value="solid">Solid</option>
                       <option value="linear_gradient">Linear gradient</option>
@@ -1335,7 +1335,7 @@ export function StudioCanvasEditor({
                         type="color"
                         value={selected.fill ?? "#E05A2B"}
                         onChange={(e) => updateLayer(selected.id, { fill: e.target.value })}
-                        className="mt-1 h-9 w-full rounded-lg border border-black/10"
+                        className="mt-1 h-9 w-full rounded-lg border border-white/10"
                       />
                     </label>
                   ) : (
@@ -1347,7 +1347,7 @@ export function StudioCanvasEditor({
                             type="color"
                             value={selected.gradientFrom ?? selected.fill ?? "#FF6A00"}
                             onChange={(e) => updateLayer(selected.id, { gradientFrom: e.target.value })}
-                            className="mt-1 h-9 w-full rounded-lg border border-black/10"
+                            className="mt-1 h-9 w-full rounded-lg border border-white/10"
                           />
                         </label>
                         <label className="block font-semibold">
@@ -1356,7 +1356,7 @@ export function StudioCanvasEditor({
                             type="color"
                             value={selected.gradientTo ?? "#FF1F1F"}
                             onChange={(e) => updateLayer(selected.id, { gradientTo: e.target.value })}
-                            className="mt-1 h-9 w-full rounded-lg border border-black/10"
+                            className="mt-1 h-9 w-full rounded-lg border border-white/10"
                           />
                         </label>
                       </div>
@@ -1372,13 +1372,13 @@ export function StudioCanvasEditor({
                           className="mt-1 w-full"
                         />
                       </label>
-                      <div className="h-10 rounded-lg border border-black/10" style={{ background: studioLayerFillCss(selected) }} />
+                      <div className="h-10 rounded-lg border border-white/10" style={{ background: studioLayerFillCss(selected) }} />
                     </>
                   )}
                 </GalaxyInspectorSection>
               ) : null}
               {selected.type==="frame"?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Frame media</p><p className="text-[10px] opacity-55">{selected.frameMediaUrl?"Drop another image/video to replace it.":"Select this frame, then drag media from the library onto the canvas."}</p>{selected.frameMediaUrl?<><label className="block font-semibold">Horizontal focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalX??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalX:Number(e.target.value)/100})} className="w-full"/></label><label className="block font-semibold">Vertical focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalY??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalY:Number(e.target.value)/100})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{frameMediaUrl:null,frameMediaKind:null,sourceAssetId:null})} className="text-[11px] underline">Remove frame media</button></>:null}</div>:null}
-              {brandSpace?<GalaxyInspectorSection title="Brand Space"><div className="space-y-2"><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-black/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-black/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div></GalaxyInspectorSection>:null}
+              {brandSpace?<GalaxyInspectorSection title="Brand Space"><div className="space-y-2"><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-white/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-white/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div></GalaxyInspectorSection>:null}
               {selected.type === "image" ? (
                 <div className="space-y-2">
                   {selected.imageUrl ? (
@@ -1404,14 +1404,14 @@ export function StudioCanvasEditor({
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="rounded-lg border border-black/10 px-2 py-1 text-[11px] font-semibold"
+                      className="rounded-lg border border-white/10 px-2 py-1 text-[11px] font-semibold"
                       onClick={() => updateLayer(selected.id, { flipX: !selected.flipX })}
                     >
                       Flip H
                     </button>
                     <button
                       type="button"
-                      className="rounded-lg border border-black/10 px-2 py-1 text-[11px] font-semibold"
+                      className="rounded-lg border border-white/10 px-2 py-1 text-[11px] font-semibold"
                       onClick={() => updateLayer(selected.id, { flipY: !selected.flipY })}
                     >
                       Flip V
@@ -1426,7 +1426,7 @@ export function StudioCanvasEditor({
                           objectFit: e.target.value as "cover" | "contain",
                         })
                       }
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     >
                       <option value="cover">Cover</option>
                       <option value="contain">Contain</option>
@@ -1520,7 +1520,7 @@ export function StudioCanvasEditor({
                           trimStartMs: Math.round(Math.max(0, Number(e.target.value) || 0) * 1000),
                         })
                       }
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     />
                   </label>
                   <label className="block font-semibold">
@@ -1542,12 +1542,12 @@ export function StudioCanvasEditor({
                           trimDurationMs: v === "" ? null : Math.round(Math.max(0.1, Number(v)) * 1000),
                         });
                       }}
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     />
                   </label>
                 </div>
               ) : null}
-              {(["rect","ellipse","line","frame","icon"].includes(selected.type))?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Element style</p>{selected.type!=="icon"?<><label className="block font-semibold">Stroke<input type="color" value={selected.stroke??"#111111"} onChange={e=>updateLayer(selected.id,{stroke:e.target.value})} className="mt-1 h-8 w-full"/></label><label className="block font-semibold">Stroke width<input type="range" min="0" max="40" value={selected.strokeWidth??0} onChange={e=>updateLayer(selected.id,{strokeWidth:Number(e.target.value)})} className="w-full"/></label></>:null}{selected.type==="rect"||selected.type==="frame"?<label className="block font-semibold">Corners<input type="range" min="0" max="200" value={selected.cornerRadius??0} onChange={e=>updateLayer(selected.id,{cornerRadius:Number(e.target.value)})} className="w-full"/></label>:null}{selected.type==="line"?<><label className="block font-semibold">Line weight<input type="range" min="2" max="40" value={selected.height} onChange={e=>updateLayer(selected.id,{height:Number(e.target.value)})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{text:selected.text==="→"?"":"→"})} className="rounded-lg border border-black/10 px-2 py-1 text-[10px] font-bold">{selected.text==="→"?"Remove arrow":"Add arrow"}</button></>:null}</div>:null}
+              {(["rect","ellipse","line","frame","icon"].includes(selected.type))?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Element style</p>{selected.type!=="icon"?<><label className="block font-semibold">Stroke<input type="color" value={selected.stroke??"#111111"} onChange={e=>updateLayer(selected.id,{stroke:e.target.value})} className="mt-1 h-8 w-full"/></label><label className="block font-semibold">Stroke width<input type="range" min="0" max="40" value={selected.strokeWidth??0} onChange={e=>updateLayer(selected.id,{strokeWidth:Number(e.target.value)})} className="w-full"/></label></>:null}{selected.type==="rect"||selected.type==="frame"?<label className="block font-semibold">Corners<input type="range" min="0" max="200" value={selected.cornerRadius??0} onChange={e=>updateLayer(selected.id,{cornerRadius:Number(e.target.value)})} className="w-full"/></label>:null}{selected.type==="line"?<><label className="block font-semibold">Line weight<input type="range" min="2" max="40" value={selected.height} onChange={e=>updateLayer(selected.id,{height:Number(e.target.value)})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{text:selected.text==="→"?"":"→"})} className="rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold">{selected.text==="→"?"Remove arrow":"Add arrow"}</button></>:null}</div>:null}
               <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Position · size</p>
               <div className="grid grid-cols-2 gap-2">
                 {([
@@ -1562,7 +1562,7 @@ export function StudioCanvasEditor({
                       type="number"
                       value={Math.round(value * 10) / 10}
                       onChange={(e) => updateLayer(selected.id, { [key]: Number(e.target.value) })}
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     />
                   </label>
                 ))}
@@ -1573,7 +1573,7 @@ export function StudioCanvasEditor({
                 <select
                   value={selected.blendMode ?? "normal"}
                   onChange={(e) => updateLayer(selected.id, { blendMode: e.target.value as CanvasLayer["blendMode"] })}
-                  className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                  className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                 >
                   {STUDIO_BLEND_MODES.map((mode) => <option key={mode} value={mode}>{mode === "normal" ? "Normal" : mode.replace("-", " ")}</option>)}
                 </select>
@@ -1587,7 +1587,7 @@ export function StudioCanvasEditor({
                     max={1000}
                     value={selected.cornerRadius ?? 0}
                     onChange={(e) => updateLayer(selected.id, { cornerRadius: Math.max(0, Number(e.target.value)) })}
-                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                   />
                 </label>
                 <label className="block font-semibold">
@@ -1598,7 +1598,7 @@ export function StudioCanvasEditor({
                     max={200}
                     value={selected.shadowBlur ?? 0}
                     onChange={(e) => updateLayer(selected.id, { shadowBlur: Math.max(0, Number(e.target.value)) })}
-                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                   />
                 </label>
                 <label className="block font-semibold">
@@ -1609,7 +1609,7 @@ export function StudioCanvasEditor({
                     max={200}
                     value={selected.shadowX ?? 0}
                     onChange={(e) => updateLayer(selected.id, { shadowX: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                   />
                 </label>
                 <label className="block font-semibold">
@@ -1620,7 +1620,7 @@ export function StudioCanvasEditor({
                     max={200}
                     value={selected.shadowY ?? 0}
                     onChange={(e) => updateLayer(selected.id, { shadowY: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                   />
                 </label>
               </div>
@@ -1630,7 +1630,7 @@ export function StudioCanvasEditor({
                   type="color"
                   value={(selected.shadowColor ?? "#000000").slice(0, 7)}
                   onChange={(e) => updateLayer(selected.id, { shadowColor: e.target.value })}
-                  className="mt-1 h-9 w-full rounded-lg border border-black/10"
+                  className="mt-1 h-9 w-full rounded-lg border border-white/10"
                 />
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -1653,7 +1653,7 @@ export function StudioCanvasEditor({
                     max={360}
                     value={selected.rotation ?? 0}
                     onChange={(e) => updateLayer(selected.id, { rotation: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                   />
                 </label>
               </div>
@@ -1679,7 +1679,7 @@ export function StudioCanvasEditor({
       </div>
 
       {/* Bottom page strip */}
-      <div className="shrink-0 border-t border-black/10 bg-white px-3 py-2 flex flex-wrap items-center gap-2">
+      <div className="shrink-0 border-t border-white/10 bg-[#101113] px-3 py-2 flex flex-wrap items-center gap-2">
         <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 mr-1">Pages</span>
         {doc.pages.map((p, i) => (
           <button
@@ -1692,7 +1692,7 @@ export function StudioCanvasEditor({
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold border ${
               p.id === activePageId
                 ? "border-orange-500 bg-[#FFF8F0] text-orange-800"
-                : "border-black/10 hover:bg-black/5"
+                : "border-white/10 hover:bg-white/[.06]"
             }`}
           >
             {p.name || `Page ${i + 1}`}
@@ -1703,7 +1703,7 @@ export function StudioCanvasEditor({
           type="button"
           onClick={addPage}
           disabled={readOnly || doc.pages.length >= 20}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Add page
         </button>
@@ -1711,7 +1711,7 @@ export function StudioCanvasEditor({
           type="button"
           onClick={duplicatePage}
           disabled={readOnly || doc.pages.length >= 20}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Duplicate page
         </button>
@@ -1719,7 +1719,7 @@ export function StudioCanvasEditor({
           type="button"
           onClick={() => removePage(activePageId)}
           disabled={readOnly || doc.pages.length <= 1}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30" style={{ color: "#8B1E1E" }}
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30" style={{ color: "#8B1E1E" }}
         >
           Delete page
         </button>

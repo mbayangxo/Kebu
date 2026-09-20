@@ -783,7 +783,7 @@ export default function StudioEditorPage() {
   }
 
   if (!doc || !design || !access) {
-    return <div className="min-h-screen flex items-center justify-center text-muted">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-[#0B0B0C] text-white/45">Loading…</div>;
   }
 
   const saveLabel = !canEdit
@@ -803,17 +803,58 @@ export default function StudioEditorPage() {
                 : "Autosave on";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F3F1ED]">
-      <header className="border-b border-black/10 bg-[#FFFCF8] px-3 py-2 flex items-center gap-1.5 shrink-0 z-20 overflow-x-auto whitespace-nowrap">
-        <Link href="/studio" className="text-xs font-black px-2 no-underline">
-          ← Studio
-        </Link>
-        <h1 className="text-sm font-black flex-1 min-w-[160px] truncate tracking-[-.02em]">{design.title}</h1>
-        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-50">{saveLabel}</span>
+    <div className="min-h-screen flex flex-col bg-[#0B0B0C] text-white">
+      <header className="shrink-0 z-30 border-b border-white/10 bg-[#0B0B0C]">
+        <div className="flex h-14 items-center gap-4 px-3 sm:px-5">
+          <Link href="/studio" className="shrink-0 text-xl font-black tracking-[-.06em] no-underline">
+            <span className="text-[#FF6A00]">K</span>EBU
+          </Link>
+          <nav className="hidden items-center gap-4 text-[10px] font-bold text-white/60 lg:flex">
+            <Link href="/studio" className="text-white">Studio</Link>
+            <Link href="/studio" className="hover:text-white">Design</Link>
+            <Link href="/studio/video" className="hover:text-white">Video</Link>
+            <Link href="/studio?tab=audio" className="hover:text-white">Audio</Link>
+            <Link href="/studio/templates" className="hover:text-white">Templates</Link>
+            <Link href="/studio/brand" className="hover:text-white">Brand</Link>
+          </nav>
+          <div className="mx-auto hidden max-w-xl flex-1 lg:block">
+            <div className="flex h-9 items-center rounded-xl border border-white/10 bg-white/[.035] px-3 text-[10px] text-white/40">
+              Search templates, elements, or your files…
+              <span className="ml-auto rounded-md border border-white/10 px-1.5 py-0.5 text-[8px]">⌘ K</span>
+            </div>
+          </div>
+          <span className="ml-auto text-[9px] font-bold uppercase tracking-[.12em] text-white/40 lg:ml-0">{saveLabel}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setShowShare((v) => !v);
+              if (!showShare) {
+                setShowVersions(false);
+                setShowComments(false);
+              }
+            }}
+            className="rounded-xl border border-white/10 bg-white/[.05] px-4 py-2 text-[10px] font-black text-white"
+          >
+            Share
+          </button>
+          {canEdit ? (
+            <button
+              type="button"
+              onClick={() => doc && void persist(doc)}
+              className="rounded-xl px-4 py-2 text-[10px] font-black text-white"
+              style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}
+            >
+              Save
+            </button>
+          ) : null}
+        </div>
+        <div className="flex min-h-12 items-center gap-2 overflow-x-auto border-t border-white/[.06] px-3 sm:px-5">
+          <Link href="/studio" className="rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wide text-white/45 hover:bg-white/[.05]">← Projects</Link>
+          <h1 className="min-w-[160px] max-w-sm flex-1 truncate text-[12px] font-black tracking-[-.02em] text-white">{design.title}</h1>
         <button
           type="button"
           onClick={() => setShowBrandKit((v) => !v)}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10"
+          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
         >
           Brand
         </button>
@@ -821,7 +862,7 @@ export default function StudioEditorPage() {
           <button
             type="button"
             onClick={() => setShowResize(true)}
-            className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10"
+            className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
             title="Change artboard size"
           >
             Resize
@@ -837,7 +878,7 @@ export default function StudioEditorPage() {
               if (value) void createVariant(value);
               e.currentTarget.value = "";
             }}
-            className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 bg-white disabled:opacity-50"
+            className="rounded-lg border border-white/10 bg-[#171719] px-3 py-1.5 text-[9px] font-black text-white/70 disabled:opacity-50"
           >
             <option value="">{variantBusy ? "Creating variant…" : "Variant"}</option>
             <option value="instagram_post">Instagram post</option>
@@ -853,7 +894,7 @@ export default function StudioEditorPage() {
         <button
           type="button"
           onClick={() => void downloadPng()}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10"
+          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
         >
           Download PNG
         </button>
@@ -895,7 +936,7 @@ export default function StudioEditorPage() {
             {videoBusy ? "Preparing video…" : "Turn into video"}
           </button>
         ) : null}
-        <label className="flex items-center gap-1 text-[10px] font-semibold opacity-60" title="Applies to pages without a custom duration">
+        <label className="flex items-center gap-1 text-[9px] font-semibold text-white/35" title="Applies to pages without a custom duration">
           default s/page
           <input
             type="number"
@@ -916,7 +957,7 @@ export default function StudioEditorPage() {
                 });
               }
             }}
-            className="w-12 rounded border border-black/10 px-1 py-0.5 text-xs"
+            className="w-12 rounded border border-white/10 bg-[#171719] px-1 py-0.5 text-[9px] text-white"
           />
         </label>
         <button
@@ -928,7 +969,7 @@ export default function StudioEditorPage() {
               setShowComments(false);
             }
           }}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 bg-white"
+          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
         >
           Versions
         </button>
@@ -941,34 +982,11 @@ export default function StudioEditorPage() {
               setShowVersions(false);
             }
           }}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 bg-white"
+          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
         >
           Comments
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setShowShare((v) => !v);
-            if (!showShare) {
-              setShowVersions(false);
-              setShowComments(false);
-            }
-          }}
-          className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
-          style={{ background: "#FF6A00" }}
-        >
-          Share
-        </button>
-        {canEdit ? (
-          <button
-            type="button"
-            onClick={() => doc && void persist(doc)}
-            className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
-            style={{ background: "#0F0D33" }}
-          >
-            Save now
-          </button>
-        ) : null}
+      </div>
       </header>
 
       {syncState === "conflict" ? (
