@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { GalaxyButton } from "@/app/components/galaxy/editor-primitives";
+import { GalaxyButton, GalaxyEmptyState, GalaxyStatus } from "@/app/components/galaxy/editor-primitives";
 
 type WebsiteVersion = {
   id: string;
@@ -84,11 +84,11 @@ export function BuilderVersionHistoryPanel({
       </div>
 
       {loading ? (
-        <p className="text-[11px] text-black/50">Loading versions…</p>
+        <GalaxyStatus tone="neutral">Loading versions…</GalaxyStatus>
       ) : versions.length === 0 ? (
-        <p className="text-[11px] text-black/50">No versions saved yet.</p>
+        <GalaxyEmptyState title="No saved versions yet" detail="Kebu will show recoverable draft checkpoints here as you work." />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
+        <div className="overflow-hidden rounded-lg border border-black/[.08] bg-white">
           {versions.map((version, index) => (
             <div
               key={version.id}

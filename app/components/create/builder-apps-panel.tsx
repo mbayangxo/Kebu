@@ -9,16 +9,9 @@ import {
   GalaxyPanelHeader,
 } from "@/app/components/galaxy/editor-primitives";
 import { BUILDER } from "@/lib/create/builder-ui";
+import { StudioIcon } from "@/app/components/studio/studio-icons";
 
-const APP_MARKS: Record<string, string> = {
-  newsletter: "✉",
-  form: "▤",
-  map: "⌖",
-  whatsapp: "◉",
-  joko: "◈",
-  audio: "♫",
-  video: "▶",
-};
+const APP_ICON: Record<string, "elements" | "uploads"> = { newsletter:"elements", form:"elements", map:"elements", whatsapp:"elements", joko:"elements", audio:"uploads", video:"uploads" };
 
 export function BuilderAppsPanel({
   projectId,
@@ -38,9 +31,9 @@ export function BuilderAppsPanel({
         title="Apps & blocks"
         description="Add useful capabilities to this site. Every block uses the same real Kebu save, responsive, and publish pipeline."
       />
-      <div className="space-y-4 p-3">
-        <div className="rounded-xl border border-black/[0.08] bg-[#FFF9F4] p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#FF6A00]">How it works</p>
+      <div className="space-y-3 p-3">
+        <div className="rounded-lg border border-black/[0.07] bg-[#FFF9F4] p-2.5">
+          <p className="text-[10px] font-semibold text-[#C95000]">How it works</p>
           <p className="mt-1 text-[11px] leading-relaxed text-black/55">
             Add a block to the current page, then configure it in Build. Nothing here is a fake install or a local-only widget.
           </p>
@@ -53,19 +46,19 @@ export function BuilderAppsPanel({
               return (
                 <article
                   key={app.type}
-                  className="group rounded-xl border border-black/[0.08] bg-white p-3 transition-[border-color,box-shadow] hover:border-black/15 hover:shadow-[0_4px_16px_rgba(10,10,10,0.05)]"
+                  className="group rounded-lg border border-black/[0.08] bg-white p-2.5 transition-colors hover:border-black/20"
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] text-[17px] font-black"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                       style={{ background: BUILDER.orangeGlow, color: BUILDER.ink }}
                       aria-hidden
                     >
-                      {APP_MARKS[app.type] ?? "＋"}
+                      <StudioIcon name={APP_ICON[app.type] ?? "elements"} className="h-4 w-4"/>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <h3 className="text-[12px] font-black tracking-[-0.015em] text-black">{app.label}</h3>
+                        <h3 className="text-[11px] font-semibold text-black">{app.label}</h3>
                         <GalaxyBadge>{app.app?.provider === "kebu" ? "Kebu" : "Connection"}</GalaxyBadge>
                         {alreadyOnSite ? <GalaxyBadge>On site</GalaxyBadge> : null}
                       </div>
@@ -88,7 +81,7 @@ export function BuilderAppsPanel({
         )}
 
         <div className="border-t border-black/[0.07] pt-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-black/40">Commerce lives in Kebu Shop</p>
+          <p className="text-[10px] font-semibold text-black/45">Commerce lives in Kebu Shop</p>
           <p className="mt-1 text-[10px] leading-relaxed text-black/50">
             Manage products, orders, customers, inventory, and payments outside the canvas.
           </p>
