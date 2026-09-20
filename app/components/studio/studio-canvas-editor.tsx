@@ -24,7 +24,7 @@ import {
   nudgeLayersWithinArtboard,
   snapLayerPosition,
 } from "@/lib/studio/editor-craft";
-import { GalaxyToolRail } from "@/app/components/galaxy/editor-primitives";
+import { GalaxyEmptyState, GalaxyInspectorSection, GalaxyToolRail } from "@/app/components/galaxy/editor-primitives";
 import { StudioIcon } from "@/app/components/studio/studio-icons";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
 import type { BrandSpace } from "@/lib/studio/brand-space";
@@ -1090,7 +1090,7 @@ export function StudioCanvasEditor({
           ) : null}
           {!selected ? (
             <div className="space-y-3">
-              <p className="text-xs opacity-60">Select a layer, or edit the page background.</p>
+              <GalaxyEmptyState title="Nothing selected" detail="Select something on the canvas to edit it, or adjust the page itself below." />
               <label className="block text-xs font-semibold">
                 Background
                 <input
@@ -1109,16 +1109,16 @@ export function StudioCanvasEditor({
               </p>
             </div>
           ) : (
-            <div className="space-y-3 text-xs">
-              <label className="block font-semibold">
+            <div className="space-y-0 text-xs">
+              <GalaxyInspectorSection title="Layer"><label className="block font-semibold">
                 Name
                 <input
                   value={selected.name}
                   onChange={(e) => updateLayer(selected.id, { name: e.target.value })}
                   className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
                 />
-              </label>
-              {selected.type === "text" ? (
+              </label></GalaxyInspectorSection>
+              {selected.type === "text" ? (<GalaxyInspectorSection title="Typography">
                 <>
                   <label className="block font-semibold">
                     Text
@@ -1260,7 +1260,7 @@ export function StudioCanvasEditor({
                       </select>
                     </label>
                   </div>
-                </>
+                </GalaxyInspectorSection>
               ) : null}
               {(selected.type === "rect" || selected.type === "ellipse") && (
                 <label className="block font-semibold">
@@ -1274,7 +1274,7 @@ export function StudioCanvasEditor({
                 </label>
               )}
               {selected.type==="frame"?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Frame media</p><p className="text-[10px] opacity-55">{selected.frameMediaUrl?"Drop another image/video to replace it.":"Select this frame, then drag media from the library onto the canvas."}</p>{selected.frameMediaUrl?<><label className="block font-semibold">Horizontal focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalX??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalX:Number(e.target.value)/100})} className="w-full"/></label><label className="block font-semibold">Vertical focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalY??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalY:Number(e.target.value)/100})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{frameMediaUrl:null,frameMediaKind:null,sourceAssetId:null})} className="text-[11px] underline">Remove frame media</button></>:null}</div>:null}
-              {brandSpace?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Brand Space</p><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-black/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-black/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div>:null}
+              {brandSpace?<GalaxyInspectorSection title="Brand Space"><div className="space-y-2"><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-black/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-black/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div></GalaxyInspectorSection>:null}
               {selected.type === "image" ? (
                 <div className="space-y-2">
                   {selected.imageUrl ? (
