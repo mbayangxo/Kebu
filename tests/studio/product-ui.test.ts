@@ -16,6 +16,6 @@ describe("Studio product UI", () => {
     const canvas = readFileSync(join(process.cwd(), "app/components/studio/studio-canvas-editor.tsx"), "utf8");
     expect(page).toContain("overflow-x-auto whitespace-nowrap");
     expect(canvas).toContain("overflow-x-auto whitespace-nowrap");
-    expect(canvas).toContain('w-[240px]');
+    expect(canvas).toContain('md:w-[268px]');
   });
 });

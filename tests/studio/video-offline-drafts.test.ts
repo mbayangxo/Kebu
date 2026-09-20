@@ -15,7 +15,7 @@ describe("Studio video offline drafts", () => {
     const page = readFileSync(join(process.cwd(), "app/studio/video/[id]/page.tsx"), "utf8");
     expect(page).toContain("dirty: true");
     expect(page).toContain("dirty: false");
-    expect(page.indexOf("dirty: true")).toBeLessThan(page.indexOf('fetch(`/api/studio/video/'));
+    const persist=page.slice(page.indexOf("const persist = useCallback"));expect(persist.indexOf("dirty: true")).toBeLessThan(persist.indexOf('fetch(`/api/studio/video/'));
   });
 
   it("replays the current local composition on reconnect through conflict-protected persistence", () => {

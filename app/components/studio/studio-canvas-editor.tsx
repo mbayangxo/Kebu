@@ -646,9 +646,9 @@ export function StudioCanvasEditor({
   const canAlign = !readOnly && selectedLayerIds.length >= 1;
 
   return (
-    <div className="relative flex h-[calc(100dvh-7.5rem)] min-h-[480px] flex-col bg-[#F1F0ED]">
+    <div className="relative flex h-[calc(100dvh-7.5rem)] min-h-[480px] flex-col bg-[#EEEDEA]">
       {/* Top tool strip */}
-      <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap border-b border-black/10 bg-[#FFFCF8] px-3 py-1.5 shrink-0">
+      <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap border-b border-black/[.07] bg-[#FFFCF8] px-3 py-1.5 shrink-0">
         {readOnly ? (
           <span className="rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
             View only
@@ -693,7 +693,7 @@ export function StudioCanvasEditor({
           onClick={duplicateSelected}
           className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
         >
-          Duplicate
+          <span className="inline-flex items-center gap-1"><StudioIcon name="duplicate" className="h-3.5 w-3.5" />Duplicate</span>
         </button>
         <button
           type="button"
@@ -701,7 +701,7 @@ export function StudioCanvasEditor({
           onClick={deleteSelected}
           className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-red-700/70 hover:bg-red-50 hover:text-red-800 disabled:opacity-25"
         >
-          Delete
+          <span className="inline-flex items-center gap-1"><StudioIcon name="trash" className="h-3.5 w-3.5" />Delete</span>
         </button>
         <span className="w-px h-5 bg-black/10" />
         {ALIGN_TOOLS.map((t) => (
@@ -766,7 +766,7 @@ export function StudioCanvasEditor({
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-[14px] border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white">Inspector</button></div>
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-[14px] border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
         {/* Left: Elements / Layers */}
         <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-black/10 bg-[#FFFCF8] shadow-2xl md:static md:flex md:w-[268px] md:shrink-0 md:rounded-none md:border-y-0 md:border-l-0 md:shadow-none`}>
           <GalaxyToolRail items={STUDIO_RAIL} value={leftTab} onChange={(id)=>setLeftTab(id as typeof leftTab)}/><div className="flex-1 overflow-y-auto p-3 space-y-3">
