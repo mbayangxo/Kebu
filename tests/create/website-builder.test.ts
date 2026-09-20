@@ -25,6 +25,51 @@ describe("website schema", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("keeps May editor typography and footer sizing in the validated document", () => {
+    const seed = TEMPLATE_SEEDS.find((t) => t.slug === "musician-maylecor-ksendr");
+    expect(seed).toBeDefined();
+    const hero = seed!.definition.pages
+      .find((p) => p.slug === "home")
+      ?.sections.find((section) => section.type === "legally-blonde-hero");
+    expect(hero).toBeDefined();
+
+    const next = structuredClone(seed!.definition);
+    const nextHero = next.pages
+      .find((p) => p.slug === "home")
+      ?.sections.find((section) => section.type === "legally-blonde-hero");
+    expect(nextHero).toBeDefined();
+    nextHero!.props = {
+      ...nextHero!.props,
+      titleAsText: true,
+      titleTextFontFamily: "Oswald",
+      titleTextFontSize: 22,
+      titleTextFontWeight: 700,
+      titleTextLetterSpacing: 0.08,
+      titleTextLineHeight: 1.1,
+      titleTextColor: "#fefefe",
+      embeddedFooterPaddingTop: 16,
+      embeddedFooterPaddingBottom: 24,
+    };
+
+    const result = validateWebsiteDefinition(next);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const parsedHero = result.definition.pages
+        .find((p) => p.slug === "home")
+        ?.sections.find((section) => section.type === "legally-blonde-hero");
+      expect(parsedHero?.props).toMatchObject({
+        titleTextFontFamily: "Oswald",
+        titleTextFontSize: 22,
+        titleTextFontWeight: 700,
+        titleTextLetterSpacing: 0.08,
+        titleTextLineHeight: 1.1,
+        titleTextColor: "#fefefe",
+        embeddedFooterPaddingTop: 16,
+        embeddedFooterPaddingBottom: 24,
+      });
+    }
+  });
+
   it("rejects unsafe script content", () => {
     const def = buildStructuredSiteFromBrief({
       mode: "blank",
