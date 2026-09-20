@@ -306,7 +306,7 @@ export default function StudioEditorPage() {
     [designId, canEdit, design?.business_id, design?.design_type, design?.title, access?.role, serverUpdatedAt, userId],
   );
 
-  async function useServerConflictVersion() {
+  async function acceptServerConflictVersion() {
     if (!conflictServer || !design) return;
     const next = conflictServer.doc;
     setServerUpdatedAt(conflictServer.updatedAt);
@@ -337,7 +337,7 @@ export default function StudioEditorPage() {
     }
   }
 
-  async function keepLocalConflictVersion() {
+  async function acceptLocalConflictVersion() {
     if (!conflictServer || !docRef.current || !design || !canEdit) return;
     setSaveState("saving");
     setSyncState("syncing");
@@ -928,7 +928,7 @@ export default function StudioEditorPage() {
               <button
                 type="button"
                 disabled={!conflictServer}
-                onClick={() => void useServerConflictVersion()}
+                onClick={() => void acceptServerConflictVersion()}
                 className="rounded-full border border-amber-400 bg-white px-3 py-2 text-[10px] font-black disabled:opacity-40"
               >
                 Use server version
@@ -936,7 +936,7 @@ export default function StudioEditorPage() {
               <button
                 type="button"
                 disabled={!conflictServer || !canEdit}
-                onClick={() => void keepLocalConflictVersion()}
+                onClick={() => void acceptLocalConflictVersion()}
                 className="rounded-full bg-black px-3 py-2 text-[10px] font-black text-white disabled:opacity-40"
               >
                 Keep my version
