@@ -44,7 +44,12 @@ import {
   type KebuDragAsset,
 } from "@/lib/create/builder-media-drop";
 import { BUILDER_DEVICE_FRAME } from "@/lib/create/builder-device";
-import { applyDeviceAwarePatch, mergeDeviceAwareSectionProps } from "@/lib/create/device-overrides";
+import {
+  applyDeviceAwarePatch,
+  clearDeviceOverrideKeys,
+  hasDeviceOverrideKeys,
+  mergeDeviceAwareSectionProps,
+} from "@/lib/create/device-overrides";
 import { projectUsesMaylecorRussianLayout } from "@/lib/create/maylecor-russian-hero";
 import { defaultMaylecorKsendrProps } from "@/lib/create/maylecor-ksendr-defaults";
 import { projectUsesKdirectionLayout } from "@/lib/create/kdirection-local-assets";
@@ -1705,6 +1710,54 @@ export default function ProjectEditorPage() {
                         device,
                       )}
                       projectId={projectId}
+                      device={device}
+                      responsiveOverrideActive={hasDeviceOverrideKeys(
+                        section.props as Record<string, unknown>,
+                        device,
+                        selectedElement.elementId === "titleLogo"
+                          ? [
+                              "title",
+                              "titleAsText",
+                              "titleTextFontFamily",
+                              "titleTextFontSize",
+                              "titleTextFontWeight",
+                              "titleTextLetterSpacing",
+                              "titleTextLineHeight",
+                              "titleTextColor",
+                              "layerScales",
+                              "layerZIndex",
+                              "layerOpacity",
+                              "layerRotation",
+                              "layerPositions",
+                              "lockedLayers",
+                            ]
+                          : selectedElement.elementId === "heroCanvas"
+                            ? ["sectionMinHeightPx"]
+                            : selectedElement.elementId === "siteFooter"
+                              ? ["embeddedFooterPaddingTop", "embeddedFooterPaddingBottom"]
+                              : selectedElement.kind === "background"
+                                ? ["backgroundLayer", "backgroundHidden"]
+                                : [
+                                    "extraCutouts",
+                                    "layerScales",
+                                    "layerZIndex",
+                                    "layerOpacity",
+                                    "layerRotation",
+                                    "layerPositions",
+                                    "hiddenLayers",
+                                    "lockedLayers",
+                                  ],
+                      )}
+                      onResetResponsive={(keys) =>
+                        updateProps(
+                          section.id,
+                          clearDeviceOverrideKeys(
+                            section.props as Record<string, unknown>,
+                            device,
+                            keys,
+                          ),
+                        )
+                      }
                       onPatch={(patch) =>
                         applyDeviceAwarePatch(
                           updateProps,
