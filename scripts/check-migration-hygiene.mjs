@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { readFileSync, readdirSync } from "node:fs";
-import { basename, join } from "node:path";
 
 const root = new URL("../", import.meta.url);
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
@@ -37,9 +36,10 @@ if (duplicateVersions.length) {
 }
 
 if (nonCanonical.length) {
-  console.warn("Migration hygiene warning: legacy manual SQL remains in supabase/migrations and must not be applied automatically:");
-  for (const name of nonCanonical) console.warn(`- ${basename(join("supabase/migrations", name))}`);
+  failed = true;
+  console.error("Migration hygiene failed: historical APPLY/FIX/VERIFY SQL must be stored in supabase/migrations_archive, not the executable directory:");
+  for (const name of nonCanonical) console.error(`- supabase/migrations/${name}`);
 }
 
 if (failed) process.exit(1);
-console.log(`Migration hygiene OK: ${timestamped.length} timestamped canonical migrations; legacy bundles are quarantined from package scripts.`);
+console.log(`Migration hygiene OK: ${timestamped.length} unique timestamped canonical migrations; no legacy bundles are executable.`);
