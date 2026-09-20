@@ -374,7 +374,7 @@ function SiteNav({
 }: {
   brand: string;
   brandEl: ReactNode;
-  links: { label: string; href: string; children?: { label: string; href: string }[] }[];
+  links: { label: string; href: string; children?: { label: string; href: string; grandchildren?: { label: string; href: string }[] }[] }[];
   navBg: string | undefined;
   navColor: string;
   stickyClass: string;
@@ -399,7 +399,7 @@ function SiteNav({
 
   function slugFromHref(href: string): string | null {
     const h = (href || "").trim();
-    if (!h || h === "#" || h.startsWith("http") || h.startsWith("mailto:")) return null;
+    if (!h || h === "#" || h.startsWith("#") || h.startsWith("http") || h.startsWith("//") || h.startsWith("mailto:") || h.startsWith("tel:")) return null;
     const cleaned = h.replace(/^\//, "").split(/[?#]/)[0] ?? "";
     return cleaned || "home";
   }
@@ -416,7 +416,7 @@ function SiteNav({
   const logoJustify = logoAlign === "center" ? "justify-center" : logoAlign === "right" ? "justify-end" : "justify-start";
 
   /* Desktop link renderer */
-  function renderDesktopLink(l: { label: string; href: string; children?: { label: string; href: string }[] }) {
+  function renderDesktopLink(l: { label: string; href: string; children?: { label: string; href: string; grandchildren?: { label: string; href: string }[] }[] }) {
     const hasChildren = l.children && l.children.length > 0;
     if (!hasChildren) {
       const slug = slugFromHref(l.href);
@@ -471,11 +471,17 @@ function SiteNav({
                   {l.children!.map((child) => {
                     const cslug = slugFromHref(child.href);
                     const cls = "kebu-nav-dropdown-item text-left";
-                    return onNavigate && cslug ? (
-                      <button key={child.label} type="button" onClick={() => handleNav(child.href)} className={cls} style={{ color: navColor }}>{child.label}</button>
+                    const childLink = onNavigate && cslug ? (
+                      <button type="button" onClick={() => handleNav(child.href)} className={cls} style={{ color: navColor }}>{child.label}</button>
                     ) : (
-                      <a key={child.label} href={resolveHref(child.href)} onClick={() => setOpenGroup(null)} className={cls} style={{ color: navColor }}>{child.label}</a>
+                      <a href={resolveHref(child.href)} onClick={() => setOpenGroup(null)} className={cls} style={{ color: navColor }}>{child.label}</a>
                     );
+                    return <div key={child.label} className="flex flex-col">{childLink}{child.grandchildren?.map((grand) => {
+                      const gslug = slugFromHref(grand.href);
+                      return onNavigate && gslug
+                        ? <button key={grand.label} type="button" onClick={() => handleNav(grand.href)} className="px-4 py-1.5 text-left text-[0.85em] opacity-70" style={{ color: navColor }}>{grand.label}</button>
+                        : <a key={grand.label} href={resolveHref(grand.href)} onClick={() => setOpenGroup(null)} className="px-4 py-1.5 text-[0.85em] opacity-70" style={{ color: navColor }}>{grand.label}</a>;
+                    })}</div>;
                   })}
                 </div>
               ) : (
@@ -484,11 +490,17 @@ function SiteNav({
                   {l.children!.map((child) => {
                     const cslug = slugFromHref(child.href);
                     const cls = "kebu-nav-dropdown-item text-left";
-                    return onNavigate && cslug ? (
-                      <button key={child.label} type="button" onClick={() => handleNav(child.href)} className={cls} style={{ color: navColor }}>{child.label}</button>
+                    const childLink = onNavigate && cslug ? (
+                      <button type="button" onClick={() => handleNav(child.href)} className={cls} style={{ color: navColor }}>{child.label}</button>
                     ) : (
-                      <a key={child.label} href={resolveHref(child.href)} onClick={() => setOpenGroup(null)} className={cls} style={{ color: navColor }}>{child.label}</a>
+                      <a href={resolveHref(child.href)} onClick={() => setOpenGroup(null)} className={cls} style={{ color: navColor }}>{child.label}</a>
                     );
+                    return <div key={child.label} className="flex flex-col">{childLink}{child.grandchildren?.map((grand) => {
+                      const gslug = slugFromHref(grand.href);
+                      return onNavigate && gslug
+                        ? <button key={grand.label} type="button" onClick={() => handleNav(grand.href)} className="px-4 py-1.5 text-left text-[0.85em] opacity-70" style={{ color: navColor }}>{grand.label}</button>
+                        : <a key={grand.label} href={resolveHref(grand.href)} onClick={() => setOpenGroup(null)} className="px-4 py-1.5 text-[0.85em] opacity-70" style={{ color: navColor }}>{grand.label}</a>;
+                    })}</div>;
                   })}
                 </div>
               )}
@@ -500,7 +512,7 @@ function SiteNav({
   }
 
   /* Mobile drawer link renderer */
-  function renderDrawerLink(l: { label: string; href: string; children?: { label: string; href: string }[] }) {
+  function renderDrawerLink(l: { label: string; href: string; children?: { label: string; href: string; grandchildren?: { label: string; href: string }[] }[] }) {
     const hasChildren = l.children && l.children.length > 0;
     if (!hasChildren) {
       const slug = slugFromHref(l.href);
@@ -534,20 +546,17 @@ function SiteNav({
           <div className="kebu-nav-drawer-children">
             {l.children!.map((child) => {
               const cslug = slugFromHref(child.href);
-              return onNavigate && cslug ? (
-                <button
-                  key={child.label}
-                  type="button"
-                  onClick={() => handleNav(child.href)}
-                  className="kebu-nav-drawer-child"
-                >
-                  {child.label}
-                </button>
+              const childLink = onNavigate && cslug ? (
+                <button type="button" onClick={() => handleNav(child.href)} className="kebu-nav-drawer-child">{child.label}</button>
               ) : (
-                <a key={child.label} href={resolveHref(child.href)} onClick={() => setDrawerOpen(false)} className="kebu-nav-drawer-child">
-                  {child.label}
-                </a>
+                <a href={resolveHref(child.href)} onClick={() => setDrawerOpen(false)} className="kebu-nav-drawer-child">{child.label}</a>
               );
+              return <div key={child.label} className="flex flex-col">{childLink}{child.grandchildren?.map((grand) => {
+                const gslug = slugFromHref(grand.href);
+                return onNavigate && gslug
+                  ? <button key={grand.label} type="button" onClick={() => handleNav(grand.href)} className="kebu-nav-drawer-child pl-8 text-[0.9em] opacity-70">{grand.label}</button>
+                  : <a key={grand.label} href={resolveHref(grand.href)} onClick={() => setDrawerOpen(false)} className="kebu-nav-drawer-child pl-8 text-[0.9em] opacity-70">{grand.label}</a>;
+              })}</div>;
             })}
           </div>
         )}
@@ -1091,7 +1100,7 @@ export function SiteRenderer({
             const device = activeDevice;
             const p = {
               brand: String(readDeviceOverride(raw, device, "brand") ?? ""),
-              links: (raw.links as { label: string; href: string; children?: { label: string; href: string }[] }[] | undefined) ?? [],
+              links: (raw.links as { label: string; href: string; children?: { label: string; href: string; grandchildren?: { label: string; href: string }[] }[] }[] | undefined) ?? [],
               navScale: raw.navScale as number | undefined,
               navSize: raw.navSize as "compact" | "comfortable" | "large" | "fullscreen" | undefined,
               navLayout: raw.navLayout as "top" | "side" | "hamburger" | undefined,
