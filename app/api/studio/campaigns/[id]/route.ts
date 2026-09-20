@@ -39,11 +39,14 @@ export async function GET(_req: Request, { params }: Params) {
   const campaign = rowToCampaign(data as Record<string, unknown>);
   let designs: { id: string; title: string; design_type: string; updated_at: string }[] = [];
   if (campaign.design_ids.length) {
-    const { data: designRows } = await supabase
+    let designQuery = supabase
       .from("create_designs")
       .select("id, title, design_type, updated_at")
-      .in("id", campaign.design_ids)
-      .eq("business_id", campaign.business_id as string);
+      .in("id", campaign.design_ids);
+    designQuery = campaign.business_id
+      ? designQuery.eq("business_id", campaign.business_id)
+      : designQuery.is("business_id", null);
+    const { data: designRows } = await designQuery;
     designs = designRows ?? [];
   }
 
@@ -99,6 +102,49 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   const prev = rowToCampaign(existing as Record<string, unknown>);
+
+  if (parsed.data.brandKitId) {
+    let kitQuery = supabase
+      .from("business_brand_kits")
+      .select("id")
+      .eq("id", parsed.data.brandKitId);
+    kitQuery = workspace.activeBusinessId
+      ? kitQuery.eq("business_id", workspace.activeBusinessId)
+      : kitQuery.is("business_id", null);
+    const { data: kit } = await kitQuery.maybeSingle();
+    if (!kit) {
+      return NextResponse.json({ error: "That Brand DNA kit does not belong to the current Kebu space." }, { status: 403 });
+    }
+  }
+
+  if (parsed.data.designIds?.length) {
+    let designQuery = supabase
+      .from("create_designs")
+      .select("id")
+      .in("id", parsed.data.designIds);
+    designQuery = workspace.activeBusinessId
+      ? designQuery.eq("business_id", workspace.activeBusinessId)
+      : designQuery.is("business_id", null);
+    const { data: rows } = await designQuery;
+    if ((rows ?? []).length !== new Set(parsed.data.designIds).size) {
+      return NextResponse.json({ error: "One or more designs are outside the current Kebu space." }, { status: 403 });
+    }
+  }
+
+  if (parsed.data.videoProjectIds?.length) {
+    let videoQuery = supabase
+      .from("studio_video_projects")
+      .select("id")
+      .in("id", parsed.data.videoProjectIds);
+    videoQuery = workspace.activeBusinessId
+      ? videoQuery.eq("business_id", workspace.activeBusinessId)
+      : videoQuery.is("business_id", null);
+    const { data: rows } = await videoQuery;
+    if ((rows ?? []).length !== new Set(parsed.data.videoProjectIds).size) {
+      return NextResponse.json({ error: "One or more video projects are outside the current Kebu space." }, { status: 403 });
+    }
+  }
+
   const nextMood = parsed.data.mood
     ? parseCampaignMood({ ...prev.mood, ...parsed.data.mood })
     : prev.mood;
