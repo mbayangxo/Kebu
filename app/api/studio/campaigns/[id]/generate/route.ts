@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 import {
   BRAND_DNA_SELECT,
   rowToBrandDna,
@@ -27,13 +28,16 @@ export async function POST(_req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  const { data: row, error } = await supabase
+  let campaignQuery = supabase
     .from("studio_campaign_projects")
     .select(CAMPAIGN_SELECT)
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .maybeSingle();
+    .eq("id", id);
+  campaignQuery = workspace.activeBusinessId
+    ? campaignQuery.eq("business_id", workspace.activeBusinessId)
+    : campaignQuery.is("business_id", null);
+  const { data: row, error } = await campaignQuery.maybeSingle();
 
   if (error || !row) {
     return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
@@ -47,14 +51,12 @@ export async function POST(_req: Request, { params }: Params) {
       .from("business_brand_kits")
       .select(BRAND_DNA_SELECT)
       .eq("id", campaign.brand_kit_id)
-      .eq("owner_id", user.id)
       .maybeSingle();
     if (kit) dna = rowToBrandDna(kit as Record<string, unknown>);
   } else if (campaign.business_id) {
     const { data: kit } = await supabase
       .from("business_brand_kits")
       .select(BRAND_DNA_SELECT)
-      .eq("owner_id", user.id)
       .eq("business_id", campaign.business_id)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -103,7 +105,6 @@ export async function POST(_req: Request, { params }: Params) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .eq("owner_id", user.id)
     .select(CAMPAIGN_SELECT)
     .single();
 
