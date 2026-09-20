@@ -56,6 +56,52 @@ export function BuilderElementInspector({
         </p>
       </div>
 
+      {selection.elementId === "heroCanvas" ? (
+        <div className="space-y-3">
+          <p className="text-[11px] leading-relaxed text-black/55">
+            Drag the blue handle at the bottom of the hero or set an exact height for this device.
+          </p>
+          <label className="block text-[11px] font-semibold text-black/65">
+            Section height
+            <div className="mt-1.5 flex items-center gap-2">
+              <input
+                className="min-w-0 flex-1 accent-[#2C6ECB]"
+                type="range"
+                min="360"
+                max="1800"
+                step="10"
+                value={Number(sectionProps.sectionMinHeightPx ?? 720)}
+                onChange={(event) =>
+                  onPatch({
+                    sectionMinHeightPx: Math.min(
+                      1800,
+                      Math.max(360, Number(event.target.value) || 720),
+                    ),
+                  })
+                }
+              />
+              <input
+                className="w-[76px] rounded-lg border border-black/15 bg-white px-2 py-1.5 text-right text-xs"
+                type="number"
+                min="360"
+                max="1800"
+                step="10"
+                value={Number(sectionProps.sectionMinHeightPx ?? 720)}
+                onChange={(event) =>
+                  onPatch({
+                    sectionMinHeightPx: Math.min(
+                      1800,
+                      Math.max(360, Number(event.target.value) || 720),
+                    ),
+                  })
+                }
+                aria-label="Hero section height"
+              />
+            </div>
+          </label>
+        </div>
+      ) : null}
+
       {selection.elementId === "siteFooter" ? (
         <div className="space-y-3">
           <p className="text-[11px] leading-relaxed text-black/55">
@@ -311,7 +357,7 @@ export function BuilderElementInspector({
         </div>
       ) : null}
 
-      {selection.elementId !== "siteFooter" ? (
+      {selection.elementId !== "siteFooter" && selection.elementId !== "heroCanvas" ? (
       <label className="block text-[11px] font-semibold text-black/65">
         Object size
         <div className="mt-1.5 flex items-center gap-2">
@@ -338,7 +384,7 @@ export function BuilderElementInspector({
       </label>
       ) : null}
 
-      {selection.elementId !== "siteFooter" ? (
+      {selection.elementId !== "siteFooter" && selection.elementId !== "heroCanvas" ? (
       <label className="block text-[11px] font-semibold text-black/65">
         Layer depth
         <div className="mt-1.5 flex items-center gap-2">
