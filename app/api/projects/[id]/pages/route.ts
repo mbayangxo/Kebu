@@ -20,12 +20,17 @@ const addPageSchema = z.object({
   seed: z.enum(["blank", "about-may"]).optional().default("blank"),
 });
 
-const patchPageSchema = z.object({
-  pageId: z.string().uuid(),
-  title: z.string().trim().min(1).max(120).optional(),
-  slug: slugSchema.optional(),
-  sortOrder: z.number().int().min(0).optional(),
-});
+const patchPageSchema = z.union([
+  z.object({
+    pageId: z.string().uuid(),
+    title: z.string().trim().min(1).max(120).optional(),
+    slug: slugSchema.optional(),
+    sortOrder: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    order: z.array(z.string().uuid()).min(1).max(12),
+  }),
+]);
 
 const deletePageSchema = z.object({
   pageId: z.string().uuid(),
@@ -189,6 +194,39 @@ export async function PATCH(req: Request, { params }: Params) {
   const parsed = patchPageSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
+  }
+
+  if ("order" in parsed.data) {
+    const order = parsed.data.order;
+    if (new Set(order).size !== order.length) {
+      return NextResponse.json({ error: "Page order contains duplicates." }, { status: 400 });
+    }
+    const { data: projectPages, error: listError } = await supabase
+      .from("project_pages")
+      .select("id, project_id, slug, title")
+      .eq("project_id", projectId);
+    if (listError) {
+      return NextResponse.json({ error: "Could not verify page order.", detail: listError.message }, { status: 500 });
+    }
+    if (!projectPages || projectPages.length !== order.length || projectPages.some((page) => !order.includes(page.id))) {
+      return NextResponse.json({ error: "Page order must include every page exactly once." }, { status: 400 });
+    }
+    const byId = new Map(projectPages.map((page) => [page.id, page]));
+    const rows = order.map((id, sort_order) => ({ ...byId.get(id)!, sort_order }));
+    const { error: reorderError } = await supabase
+      .from("project_pages")
+      .upsert(rows, { onConflict: "id" });
+    if (reorderError) {
+      return NextResponse.json({ error: "Could not reorder pages.", detail: reorderError.message }, { status: 500 });
+    }
+    try {
+      await syncProjectChromeNavFromPages(supabase as never, projectId);
+    } catch {
+      /* best-effort */
+    }
+    return NextResponse.json({
+      pages: rows.map(({ id, slug, title, sort_order }) => ({ id, slug, title, sort_order })),
+    });
   }
 
   const { data: page } = await supabase

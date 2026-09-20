@@ -104,30 +104,25 @@ export function BuilderPagesPanel({
   }
 
   async function persistPageOrder(next: BuilderPageRow[], previous: BuilderPageRow[]) {
-    onPagesChange(next);
+    const normalized = next.map((page, index) => ({ ...page, sort_order: index }));
+    onPagesChange(normalized);
     setLocalBusy(true);
     onError(null);
     try {
-      const changed = next.filter((page, index) => {
-        const before = previous.find((candidate) => candidate.id === page.id);
-        return !before || before.sort_order !== index;
+      const res = await fetch(`/api/projects/${projectId}/pages`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: normalized.map((page) => page.id) }),
       });
-      const results = await Promise.all(
-        changed.map((page) =>
-          fetch(`/api/projects/${projectId}/pages`, {
-            method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pageId: page.id, sortOrder: next.indexOf(page) }),
-          }),
-        ),
-      );
-      if (results.some((res) => !res.ok)) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
         onPagesChange(previous);
-        onError("Could not reorder pages. Your previous order was restored.");
+        onError(typeof data.error === "string" ? data.error : "Could not reorder pages. Your previous order was restored.");
         return;
       }
-      onPagesChange(next.map((page, index) => ({ ...page, sort_order: index })));
+      const confirmed = Array.isArray(data.pages) ? (data.pages as BuilderPageRow[]) : normalized;
+      onPagesChange(confirmed);
     } catch {
       onPagesChange(previous);
       onError("Network error while reordering. Your previous order was restored.");
