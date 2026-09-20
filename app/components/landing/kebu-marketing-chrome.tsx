@@ -101,10 +101,10 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
               type="button"
               onClick={() => setMenuOpen(false)}
               aria-label="Close menu"
-              className="w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold"
+              className="w-10 h-10 flex items-center justify-center rounded-lg text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               style={{ color: "rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.08)" }}
             >
-              ✕
+              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="M3 3l10 10M13 3 3 13" strokeLinecap="round"/></svg>
             </button>
           </div>
 
@@ -135,7 +135,7 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
             {!profileLoading && !profile ? (
               <Link
                 href="/login"
-                className="block w-full text-center py-4 rounded-full text-sm font-bold uppercase tracking-[0.1em]"
+                className="block w-full text-center py-3.5 rounded-lg text-sm font-semibold"
                 style={{ border: "2px solid rgba(255,255,255,0.25)", color: C.white }}
                 onClick={() => setMenuOpen(false)}
               >
@@ -144,7 +144,7 @@ export function KebuMarketingHeader({ activeHref }: { activeHref?: string }) {
             ) : null}
             <Link
               href={profile ? "/dashboard" : "/signup"}
-              className="block w-full text-center py-4 rounded-full text-sm font-bold uppercase tracking-[0.1em]"
+              className="block w-full text-center py-3.5 rounded-lg text-sm font-semibold"
               style={{ background: C.white, color: C.black }}
               onClick={() => setMenuOpen(false)}
             >
@@ -167,8 +167,7 @@ export function KebuMarketingFooter() {
               <KebuWordmark size={28} dark />
             </div>
             <p className="text-xs leading-relaxed" style={{ color: C.faint }}>
-              Africa&apos;s AI business builder and opportunity operating system — for youth who want to build something
-              real.
+              One Kebu for creating, working, selling, communicating and finding opportunities.
             </p>
           </div>
           <div>

@@ -95,7 +95,7 @@ export default function KebuHomePage() {
           ) : error ? (
             <div className="rounded-xl border p-6" style={{ borderColor: "rgba(255,31,31,.35)", background: "rgba(255,31,31,.08)" }}>
               <p className="font-semibold">{error}</p>
-              <button type="button" onClick={() => void load()} className="mt-3 rounded-full px-4 py-2 text-sm font-semibold text-black" style={{ background: orange }}>Retry</button>
+              <button type="button" onClick={() => void load()} className="mt-3 rounded-lg px-4 py-2 text-sm font-semibold text-black" style={{ background: orange }}>Retry</button>
             </div>
           ) : summary ? (
             <>
@@ -110,7 +110,7 @@ export default function KebuHomePage() {
                   </h1>
                   <p className="mt-2 text-sm" style={{ color: muted }}>Everything you were working on, organized around your current space.</p>
                 </div>
-                <Link href={toolById((summary.setup.tools[0] ?? "search") as KebuToolId)?.href ?? "/search"} className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white"
+                <Link href={toolById((summary.setup.tools[0] ?? "search") as KebuToolId)?.href ?? "/search"} className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
                   style={{ background: "linear-gradient(90deg," + orange + "," + red + ")" }}>
                   Continue →
                 </Link>
@@ -145,7 +145,7 @@ export default function KebuHomePage() {
                 <main className="space-y-4">
                   <section className="overflow-hidden rounded-xl border" style={{ borderColor: border, background: panel }}>
                     <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: border }}>
-                      <h2 className="font-semibold"><span style={{ color: red }}>●</span> Needs your attention</h2>
+                      <h2 className="flex items-center gap-2 font-semibold"><span className="h-2 w-2 rounded-full" style={{ background: red }} aria-hidden />Needs your attention</h2>
                       <Link href="/tasks" className="text-xs" style={{ color: muted }}>View all <Arrow /></Link>
                     </div>
                     <div>
@@ -235,7 +235,7 @@ export default function KebuHomePage() {
                     <p className="text-[9px] font-semibold tracking-[.08em]" style={{ color: orange }}>Your setup</p>
                     <p className="mt-2 text-sm font-black capitalize">{summary.setup.persona}</p>
                     <p className="mt-1 text-[10px] leading-relaxed" style={{ color: muted }}>{summary.setup.intents.map((intent) => intent.replace("_", " ")).join(" · ")}</p>
-                    <Link href="/welcome?edit=1" className="mt-3 inline-flex text-[10px] font-black uppercase tracking-wide" style={{ color: orange }}>Edit my Kebu →</Link>
+                    <Link href="/welcome?edit=1" className="mt-3 inline-flex text-[10px] font-semibold" style={{ color: orange }}>Edit my Kebu →</Link>
                   </section>
 
                   <section className="relative min-h-48 overflow-hidden rounded-xl border p-5" style={{ borderColor: border, background: "linear-gradient(145deg,#170804,#0b0b0b 60%)" }}>
