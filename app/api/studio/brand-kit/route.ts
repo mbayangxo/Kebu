@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { BRAND_KIT_SELECT, brandKitSchema } from "@/lib/studio/brand-kit";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
+import { builderRateLimit } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const originBlocked = assertSameOriginMutation(req);
   if (originBlocked) return originBlocked;
+  const limited = builderRateLimit(req);
+  if (limited) return limited;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -111,6 +114,9 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Brand kit id required." }, { status: 400 });
   }
 
+  if (parsed.data.businessId !== undefined && (parsed.data.businessId ?? null) !== workspace.activeBusinessId) {
+    return NextResponse.json({ error: "Brand kit cannot be moved outside the active Kebu space." }, { status: 409 });
+  }
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (parsed.data.name !== undefined) patch.name = parsed.data.name;
   if (parsed.data.logoUrl !== undefined) patch.logo_url = parsed.data.logoUrl;

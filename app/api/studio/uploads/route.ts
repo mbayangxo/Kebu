@@ -19,7 +19,7 @@ export async function GET() {
     .limit(200);
   query = workspace.activeBusinessId
     ? query.eq("business_id", workspace.activeBusinessId)
-    : query.is("business_id", null);
+    : query.is("business_id", null).eq("owner_id", user.id);
   const { data, error } = await query;
 
   if (error) {
@@ -53,7 +53,7 @@ export async function DELETE(req: Request) {
   let deleteQuery = supabase.from("studio_uploads").delete().eq("id", id);
   deleteQuery = workspace.activeBusinessId
     ? deleteQuery.eq("business_id", workspace.activeBusinessId)
-    : deleteQuery.is("business_id", null);
+    : deleteQuery.is("business_id", null).eq("owner_id", user.id);
   const { error } = await deleteQuery;
   if (error) {
     return NextResponse.json({ error: "Could not remove from library." }, { status: 500 });

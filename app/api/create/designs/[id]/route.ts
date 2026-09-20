@@ -6,6 +6,7 @@ import { canvasDocumentSchema } from "@/lib/studio/canvas-document";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
 import { recalculateReadinessForBusiness } from "@/lib/kebu-id/recalculate-hooks";
 import { z } from "zod";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,14 @@ export async function PATCH(req: Request, { params }: Params) {
 
   if (!existing) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
+  }
+
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
+  if ((existing.business_id ?? null) !== workspace.activeBusinessId) {
+    return NextResponse.json(
+      { error: "This design belongs to another Kebu space. Switch back to that space before editing." },
+      { status: 409 },
+    );
   }
 
   if (

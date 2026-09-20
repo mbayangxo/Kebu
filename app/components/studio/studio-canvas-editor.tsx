@@ -177,6 +177,7 @@ export function StudioCanvasEditor({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "brand" | "tools">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [mobilePanel, setMobilePanel] = useState<"library" | "inspector" | null>(null);
 
   useEffect(() => {
     if (!STUDIO_FONTS_HREF) return;
@@ -634,7 +635,7 @@ export function StudioCanvasEditor({
   const canAlign = !readOnly && selectedLayerIds.length >= 1;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7.5rem)] min-h-[520px] bg-[#F1F0ED]">
+    <div className="relative flex h-[calc(100dvh-7.5rem)] min-h-[480px] flex-col bg-[#F1F0ED]">
       {/* Top tool strip */}
       <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap border-b border-black/10 bg-[#FFFCF8] px-3 py-1.5 shrink-0">
         {readOnly ? (
@@ -753,8 +754,9 @@ export function StudioCanvasEditor({
       </div>
 
       <div className="flex flex-1 min-h-0">
+        <div className="absolute bottom-4 left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-2xl border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black">Add & layers</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white">Inspector</button></div>
         {/* Left: Elements / Layers */}
-        <aside className="w-[268px] shrink-0 border-r border-black/10 bg-[#FFFCF8] flex flex-col">
+        <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-black/10 bg-[#FFFCF8] shadow-2xl md:static md:flex md:w-[268px] md:shrink-0 md:rounded-none md:border-y-0 md:border-l-0 md:shadow-none`}>
           <div className="grid grid-cols-5 border-b border-black/10">
             {(["elements", "layers", "uploads", "brand", "tools"] as const).map((t) => (
               <button
@@ -835,7 +837,7 @@ export function StudioCanvasEditor({
         {/* Center canvas */}
         <div
           ref={boardRef}
-          className={`flex-1 overflow-hidden p-6 flex justify-center items-start relative ${
+          className={`min-w-0 flex-1 overflow-hidden p-3 sm:p-6 flex justify-center items-start relative ${
             spaceHeld || pan ? "cursor-grab" : ""
           } ${pan ? "cursor-grabbing" : ""}`}
           onPointerDown={boardPointerDown}
@@ -1077,7 +1079,7 @@ export function StudioCanvasEditor({
         </div>
 
         {/* Right: Properties */}
-        <aside className="w-[288px] shrink-0 border-l border-black/10 bg-white overflow-y-auto p-4 space-y-3">
+        <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-black/10 bg-white p-4 shadow-2xl md:static md:block md:w-[288px] md:shrink-0 md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none space-y-3`}>
           <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-black/10 bg-white/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-black/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p></div>
           <fieldset disabled={readOnly} className="space-y-3 border-0 p-0 m-0 min-w-0 disabled:opacity-70">
           {selectedLayerIds.length > 1 ? (

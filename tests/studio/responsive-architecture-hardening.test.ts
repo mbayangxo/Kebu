@@ -1,0 +1,8 @@
+import { readFileSync } from "node:fs";import { join } from "node:path";import { describe,expect,it } from "vitest";const read=(p:string)=>readFileSync(join(process.cwd(),p),"utf8");
+describe("Studio responsive and architecture hardening",()=>{
+ it("uses mobile drawers and dynamic viewport canvas",()=>{const s=read("app/components/studio/studio-canvas-editor.tsx");expect(s).toContain("100dvh");expect(s).toContain('mobilePanel==="library"');expect(s).toContain('mobilePanel==="inspector"');expect(s).toContain("md:hidden")});
+ it("blocks stale workspace design writes",()=>{const s=read("app/api/create/designs/[id]/route.ts");expect(s).toContain("loadActiveWorkspaceScope");expect(s).toContain("This design belongs to another Kebu space")});
+ it("keeps personal uploads owner scoped",()=>{const s=read("app/api/studio/uploads/route.ts");expect((s.match(/is\("business_id", null\)\.eq\("owner_id", user.id\)/g)||[]).length).toBeGreaterThanOrEqual(2)});
+ it("makes network-only media actions explicit offline",()=>{const s=read("app/components/studio/studio-uploads-library.tsx");expect(s).toContain("Reconnect before uploading new media");expect(s).toContain("Reconnect before changing the shared media library")});
+ it("rate limits and workspace-bounds brand mutations",()=>{const s=read("app/api/studio/brand-kit/route.ts");expect(s).toContain("builderRateLimit");expect(s).toContain("Brand kit cannot be moved outside the active Kebu space")});
+});

@@ -30,6 +30,7 @@ export function StudioUploadsLibrary({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) { setError("Offline · reconnect to refresh the workspace media library."); return; }
     const res = await fetch("/api/studio/uploads", { credentials: "include" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -52,6 +53,7 @@ export function StudioUploadsLibrary({
 
   async function upload(file: File | null) {
     if (!file || readOnly) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) { setError("Reconnect before uploading new media. Design edits can still save locally."); return; }
     setBusy(true);
     setError(null);
     try {
@@ -76,6 +78,7 @@ export function StudioUploadsLibrary({
   }
 
   async function remove(id: string) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) { setError("Reconnect before changing the shared media library."); return; }
     setBusy(true);
     try {
       const res = await fetch(`/api/studio/uploads?id=${id}`, {
