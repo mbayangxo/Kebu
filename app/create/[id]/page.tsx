@@ -1374,7 +1374,7 @@ export default function ProjectEditorPage() {
                       onSelect={(selection) => {
                         setSelectedSectionId(selection.sectionId);
                         setSelectedElement(selection);
-                        setSidebarTab("layers");
+                        setSidebarTab("content");
                         setLeftPanelOpen(true);
                       }}
                       onPatch={(patch) =>
