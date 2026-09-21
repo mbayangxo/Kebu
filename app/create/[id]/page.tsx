@@ -921,7 +921,9 @@ export default function ProjectEditorPage() {
       if (isChromeSectionId(id)) return;
       void moveSection(id, dir === "up" ? -1 : 1);
     },
-    // Add/remove sections only from the left Sections rail — not on the canvas.
+    onAddSection: (type: string) => addSection(type),
+    onAddSectionAfter: (type: string, afterSectionId: string | null) =>
+      addSection(type, undefined, afterSectionId),
     onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => {
       const section = sections.find((s) => s.id === sectionId);
       if (!section || section.section_type !== "free-text") return;
@@ -4092,7 +4094,7 @@ export default function ProjectEditorPage() {
                           border: `1px solid ${BUILDER.border}`,
                           borderRadius: 12,
                           boxShadow: "0 8px 30px rgba(10,10,10,0.07)",
-                          overflow: "hidden",
+                          overflow: "visible",
                         }
                       : {
                           width: "100%",

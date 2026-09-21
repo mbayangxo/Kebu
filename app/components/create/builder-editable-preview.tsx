@@ -63,7 +63,7 @@ export function BuilderEditablePreview({
   return (
     <div
       ref={rootRef}
-      className={canvasFill ? "relative flex min-h-full w-full flex-1 flex-col bg-[#EEEDEA]" : "relative min-h-full bg-[#EEEDEA]"}
+      className={canvasFill ? "relative min-h-full w-full bg-[#EEEDEA]" : "relative min-h-full bg-[#EEEDEA]"}
       onDragOver={(e) => {
         if (!onAssetDrop) return;
         if (
@@ -101,7 +101,7 @@ export function BuilderEditablePreview({
           </span>
         </div>
       ) : null}
-      <div className={canvasFill ? "min-h-full w-full flex-1" : undefined}>
+      <div className={canvasFill ? "min-h-full w-full" : undefined}>
         <SiteRenderer
           definition={definition}
           mode="preview"
