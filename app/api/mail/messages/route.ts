@@ -6,6 +6,7 @@ import { mailThreadIdentity } from "@/lib/mail/threading";
 export const dynamic = "force-dynamic";
 
 const folderSchema = z.enum(["inbox","sent","drafts","archive","spam","trash"]);
+const viewSchema = z.enum(["inbox","priority","waiting","starred","sent","drafts","archive","spam","trash"]);
 
 const draftSchema = z.object({
   mailboxId: z.string().uuid(),
@@ -24,18 +25,22 @@ export async function GET(req: Request) {
   const { supabase } = auth;
   const url = new URL(req.url);
   const mailboxId = url.searchParams.get("mailboxId");
-  const folder = folderSchema.safeParse(url.searchParams.get("folder") || "inbox");
-  if (!mailboxId || !/^[0-9a-f-]{36}$/i.test(mailboxId) || !folder.success) {
-    return NextResponse.json({ error: "Valid mailbox and folder required." }, { status: 400 });
+  const view = viewSchema.safeParse(url.searchParams.get("view") || url.searchParams.get("folder") || "inbox");
+  if (!mailboxId || !/^[0-9a-f-]{36}$/i.test(mailboxId) || !view.success) {
+    return NextResponse.json({ error: "Valid mailbox and view required." }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("mail_messages")
-    .select("id, mailbox_id, thread_id, direction, folder, from_address, to_addresses, cc_addresses, subject, body_text, status, read_at, in_reply_to_message_id, created_at")
-    .eq("mailbox_id", mailboxId)
-    .eq("folder", folder.data)
-    .order("created_at", { ascending: false })
-    .limit(200);
+    .select("id, mailbox_id, thread_id, direction, folder, from_address, to_addresses, cc_addresses, subject, body_text, status, read_at, in_reply_to_message_id, priority, starred_at, waiting_until, scheduled_at, created_at")
+    .eq("mailbox_id", mailboxId);
+
+  if (view.data === "priority") query = query.eq("priority", true).neq("folder", "trash");
+  else if (view.data === "starred") query = query.not("starred_at", "is", null).neq("folder", "trash");
+  else if (view.data === "waiting") query = query.not("waiting_until", "is", null).neq("folder", "trash");
+  else query = query.eq("folder", view.data);
+
+  const { data, error } = await query.order("created_at", { ascending: false }).limit(200);
 
   if (error) return NextResponse.json({ error: "Could not load messages." }, { status: 500 });
   return NextResponse.json({ messages: data ?? [] });
@@ -160,7 +165,16 @@ const patchSchema = z.object({
   id: z.string().uuid(),
   folder: folderSchema.optional(),
   read: z.boolean().optional(),
-}).refine((value) => value.folder !== undefined || value.read !== undefined);
+  priority: z.boolean().optional(),
+  starred: z.boolean().optional(),
+  waitingUntil: z.string().datetime().nullable().optional(),
+}).refine((value) =>
+  value.folder !== undefined ||
+  value.read !== undefined ||
+  value.priority !== undefined ||
+  value.starred !== undefined ||
+  value.waitingUntil !== undefined
+);
 
 export async function PATCH(req: Request) {
   const auth = await requireUser();
@@ -173,6 +187,9 @@ export async function PATCH(req: Request) {
   const patch: Record<string, unknown> = {};
   if (parsed.data.folder) patch.folder = parsed.data.folder;
   if (parsed.data.read !== undefined) patch.read_at = parsed.data.read ? new Date().toISOString() : null;
+  if (parsed.data.priority !== undefined) patch.priority = parsed.data.priority;
+  if (parsed.data.starred !== undefined) patch.starred_at = parsed.data.starred ? new Date().toISOString() : null;
+  if (parsed.data.waitingUntil !== undefined) patch.waiting_until = parsed.data.waitingUntil;
   const { data, error } = await supabase.from("mail_messages").update(patch).eq("id", parsed.data.id).select("*").single();
   if (error) return NextResponse.json({ error: "Could not update message." }, { status: 500 });
   return NextResponse.json({ message: data });
