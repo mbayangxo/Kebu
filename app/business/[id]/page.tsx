@@ -232,51 +232,57 @@ export default function BusinessDashboardPage() {
       ) : (
         <div className="px-6 sm:px-8 lg:px-10 py-8">
 
-          {/* Page header */}
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
+          <section className="overflow-hidden rounded-[20px] bg-[#0B0D0F] text-white shadow-[0_16px_50px_rgba(0,0,0,.18)]">
+            <div className="grid min-h-[170px] lg:grid-cols-[minmax(0,1fr)_350px]">
+              <div className="relative overflow-hidden p-5 sm:p-6">
+                <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 58% 30%,rgba(255,106,0,.36),transparent 28%),linear-gradient(120deg,#131416,#2a1512 58%,#0a0b0d)" }} />
+                <div className="relative">
+                  <p className="text-[9px] uppercase tracking-[.18em] text-white/40">Workspace</p>
+                  <div className="mt-1 flex items-end gap-3"><h1 className="text-[46px] leading-none tracking-[-.05em] sm:text-[58px]" style={{ fontFamily: "var(--font-fraunces)" }}>{bizName}</h1><span className="pb-1 text-white/30">⌄</span></div>
+                  <p className="mt-2 max-w-xl text-[11px] text-white/58">{business.description || business.category}</p>
+                  <div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/10 px-3 py-1.5 text-[8px]">{business.category}</span><span className="rounded-full bg-white/10 px-3 py-1.5 text-[8px]">{business.country_code}{business.region ? " · " + business.region : ""}</span><span className="rounded-full bg-white/10 px-3 py-1.5 text-[8px]">{business.public_kebu_id}</span></div>
+                </div>
+              </div>
+              <div className="relative overflow-hidden border-l border-white/10 p-5">
+                <div className="absolute inset-0" style={{background:"linear-gradient(135deg,rgba(255,106,0,.65),rgba(25,7,5,.9)),radial-gradient(circle at 70% 20%,rgba(255,255,255,.22),transparent 22%)"}} />
+                <div className="relative flex h-full flex-col justify-between"><p className="max-w-[190px] text-[27px] leading-[1.02]" style={{fontFamily:"var(--font-fraunces)"}}>Stories move the world.</p><div className="flex gap-2"><Link href={"/create/new?businessId="+business.id} className="rounded-full bg-white px-3 py-2 text-[8px] font-semibold text-black">Create site</Link><Link href="/studio" className="rounded-full border border-white/30 px-3 py-2 text-[8px] font-semibold">Studio</Link></div></div>
+              </div>
+            </div>
+            <nav className="flex gap-2 overflow-x-auto border-t border-white/10 px-4 py-2.5">
+              {["Today","Projects","Rooms","Tasks","Calendar","Files","People","Analytics"].map((label,index)=><span key={label} className="shrink-0 rounded-full px-3 py-2 text-[8px] font-semibold" style={{background:index===0?"#FFB09A":"rgba(255,255,255,.06)",color:index===0?"#160807":"rgba(255,255,255,.62)"}}>{label}</span>)}
+            </nav>
+          </section>
+
+          <section className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-1" style={{ color: KEBU.orange }}>
-                {business.country_code}{business.region ? ` · ${business.region}` : ""} · {business.category}
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-bold leading-tight" style={{ fontFamily: "var(--font-fraunces)" }}>
-                {bizName}
-              </h1>
-              {business.trading_name && business.trading_name !== business.legal_name ? (
-                <p className="text-sm mt-1" style={{ color: KEBU.muted }}>Legal: {business.legal_name}</p>
-              ) : null}
-              <p className="font-mono text-xs mt-2" style={{ color: KEBU.orange }}>{business.public_kebu_id}</p>
-            </div>
-            <div className="flex flex-wrap gap-2 shrink-0">
-              <Link
-                href={`/create/new?businessId=${business.id}`}
-                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-                style={{ background: KEBU.orange, color: KEBU.black }}
-              >
-                Build website
-              </Link>
-              <Link
-                href="/business?tab=businesses"
-                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-                style={{ border: `1px solid ${KEBU.border}` }}
-              >
-                Pulse
-              </Link>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                {[
+                  [websiteProjects.length,"Projects"],
+                  [progress.filter((step)=>step.is_complete).length,"Tasks done"],
+                  [owners.length,"People"],
+                  [readiness?.score_value ?? 0,"Readiness"],
+                  [business.verification_level,"Verification"],
+                ].map(([value,label],index)=><div key={String(label)} className="rounded-[12px] border border-white/5 bg-[#111315] p-3 text-white"><div className="flex items-center justify-between"><p className="text-[24px]" style={{fontFamily:"var(--font-fraunces)"}}>{value}</p><span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 text-[9px]">{["▣","✓","◉","↗","✦"][index]}</span></div><p className="mt-1 text-[8px] text-white/40">{label}</p></div>)}
+              </div>
 
-          {/* Status strip */}
-          <div className="flex flex-wrap gap-2 mb-8">
-            {[
-              { label: structureLabel },
-              { label: business.registration_status.replace(/_/g, " ") },
-              { label: role ? `Your role: ${role}` : null },
-            ].filter((s) => s.label).map((s) => (
-              <span key={s.label} className="rounded-full px-3 py-1 text-[10px] font-semibold" style={{ background: KEBU.cream, color: KEBU.black }}>
-                {s.label}
-              </span>
-            ))}
-          </div>
+              <div className="mt-3 rounded-[16px] border border-white/5 bg-[#0D0F11] p-3 text-white">
+                <div className="flex items-center justify-between"><p className="text-[12px] font-semibold">Active projects</p><Link href={"/create/new?businessId="+business.id} className="text-[8px] text-white/40">Create →</Link></div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {websiteProjects.slice(0,6).map((site,index)=><Link key={site.id} href={site.siteHomeUrl ?? "/my-sites/"+site.id} className="overflow-hidden rounded-[12px] border border-white/10 bg-[#151719]"><div className="h-20" style={{background:index%2?"linear-gradient(135deg,#2a1512,#ff6a00)":"linear-gradient(135deg,#17191d,#b55339)"}}/><div className="p-3"><p className="truncate text-[10px] font-semibold">{site.title}</p><p className="mt-1 text-[8px] text-white/38">{site.status}{site.shopOpened?" · Shop open":""}</p></div></Link>)}
+                  {!websiteProjects.length?<div className="col-span-full py-8 text-center text-[9px] text-white/35">No active site projects yet.</div>:null}
+                </div>
+              </div>
+            </div>
 
+            <aside className="space-y-3">
+              <div className="rounded-[16px] border border-white/5 bg-[#0D0F11] p-3 text-white"><div className="flex items-center justify-between"><p className="text-[11px] font-semibold">People ({owners.length})</p><a href="#team" className="text-[8px] text-white/35">See all →</a></div><div className="mt-2 space-y-2">{owners.slice(0,5).map((owner)=><div key={owner.email} className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[9px] font-semibold">{owner.full_name.slice(0,1).toUpperCase()}</span><span className="min-w-0"><span className="block truncate text-[9px] font-semibold">{owner.full_name}</span><span className="block truncate text-[8px] text-white/35">{owner.is_primary_founder?"Founder":"Owner"} · {owner.ownership_percent}%</span></span></div>)}</div></div>
+              <div className="rounded-[16px] border border-white/5 bg-[#0D0F11] p-3 text-white"><p className="text-[11px] font-semibold">Workspace focus</p><div className="mt-2 space-y-2">{progress.slice(0,4).map((step)=><div key={step.step_key} className="flex items-center gap-2 text-[8px]"><span className="text-[#FF9B7A]">{step.is_complete?"●":"○"}</span><span className="text-white/62">{step.label}</span></div>)}</div></div>
+            </aside>
+          </section>
+
+          <div className="mt-8 border-t pt-5" style={{borderColor:KEBU.border}}>
+            <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-black/35">Business settings & operations</p>
+          </div>
           {/* Main 2-column layout */}
           <div className="grid lg:grid-cols-[1fr_320px] gap-6">
             {/* Left column — primary content */}
