@@ -34,7 +34,7 @@ export function BuilderElementInspector({
 }) {
   const storageKey = builderLayerStorageKey(selection.elementId);
   const presentation = readBuilderLayerPresentation(sectionProps, storageKey);
-  const { scale, zIndex, opacity, rotation, locked, hidden } = presentation;
+  const { scale, widthScale, heightScale, crop, zIndex, opacity, rotation, locked, hidden } = presentation;
   const motionMap =
     sectionProps.layerMotions && typeof sectionProps.layerMotions === "object" && !Array.isArray(sectionProps.layerMotions)
       ? (sectionProps.layerMotions as Record<string, string>)
@@ -70,6 +70,9 @@ export function BuilderElementInspector({
           "titleTextLineHeight",
           "titleTextColor",
           "layerScales",
+          "layerWidthScale",
+          "layerHeightScale",
+          "layerCrop",
           "layerZIndex",
           "layerOpacity",
           "layerRotation",
@@ -606,6 +609,55 @@ export function BuilderElementInspector({
               />
             </div>
           </label>
+
+          {selection.kind === "image" || selection.kind === "cutout" ? (
+            <div className="space-y-3 border-t border-black/[.06] pt-3">
+              <p className="text-[10px] leading-relaxed text-black/45">
+                Shape the photo independently. Width and height do not have to stay locked together.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block text-[11px] font-semibold text-black/65">
+                  Width
+                  <input
+                    type="range" min="0.15" max="3" step="0.05"
+                    className="mt-1.5 w-full accent-[#FF6A00]"
+                    value={widthScale}
+                    onChange={(event) => onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { widthScale: Number(event.target.value) }))}
+                  />
+                  <span className="text-[9px] text-black/40">{Math.round(widthScale * 100)}%</span>
+                </label>
+                <label className="block text-[11px] font-semibold text-black/65">
+                  Height
+                  <input
+                    type="range" min="0.15" max="3" step="0.05"
+                    className="mt-1.5 w-full accent-[#FF6A00]"
+                    value={heightScale}
+                    onChange={(event) => onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { heightScale: Number(event.target.value) }))}
+                  />
+                  <span className="text-[9px] text-black/40">{Math.round(heightScale * 100)}%</span>
+                </label>
+              </div>
+              <label className="block text-[11px] font-semibold text-black/65">
+                Crop empty edges
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input
+                    type="range" min="0" max="45" step="1"
+                    className="min-w-0 flex-1 accent-[#FF6A00]"
+                    value={crop}
+                    onChange={(event) => onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { crop: Number(event.target.value) }))}
+                  />
+                  <span className="w-10 text-right text-[10px] text-black/45">{Math.round(crop)}%</span>
+                </div>
+              </label>
+              <button
+                type="button"
+                className="w-full rounded-md border border-black/10 bg-white px-3 py-2 text-[11px] font-semibold text-black/60"
+                onClick={() => onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { widthScale: 1, heightScale: 1, crop: 0 }))}
+              >
+                Reset shape
+              </button>
+            </div>
+          ) : null}
         </PanelSection>
       ) : null}
 

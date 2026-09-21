@@ -142,6 +142,9 @@ export function LegallyBlondeEditCanvas({
   const moves = (props.layerMoves as Record<string, { dx?: number; dy?: number }>) ?? {};
   const positions = (props.layerPositions as Record<string, LayerPos>) ?? {};
   const scales = (props.layerScales as Record<string, number>) ?? {};
+  const widthScales = (props.layerWidthScale as Record<string, number>) ?? {};
+  const heightScales = (props.layerHeightScale as Record<string, number>) ?? {};
+  const crops = (props.layerCrop as Record<string, number>) ?? {};
   const motions = (props.layerMotions as Record<string, LayerMotion>) ?? {};
   const layerLinks = (props.layerLinks as Record<string, string>) ?? {};
   const layerZ = (props.layerZIndex as Record<string, number>) ?? {};
@@ -591,6 +594,9 @@ export function LegallyBlondeEditCanvas({
               }}
               baseWidthPct={slot.widthPct}
               scale={scale}
+              widthScale={widthScales[slot.key] ?? 1}
+              heightScale={heightScales[slot.key] ?? 1}
+              crop={crops[slot.key] ?? 0}
               onSnapGuide={setSnapGuide}
             />
           );
@@ -678,6 +684,9 @@ export function LegallyBlondeEditCanvas({
                 }}
                 baseWidthPct={cut.widthPct}
                 scale={scale}
+                widthScale={widthScales[cut.id] ?? 1}
+                heightScale={heightScales[cut.id] ?? 1}
+                crop={crops[cut.id] ?? 0}
                 onSnapGuide={setSnapGuide}
               />
             );
@@ -820,6 +829,9 @@ function CutoutChip({
   leftPct,
   topPct,
   scale,
+  widthScale = 1,
+  heightScale = 1,
+  crop = 0,
   baseWidthPct,
   motion,
   href = "",
@@ -867,6 +879,9 @@ function CutoutChip({
   leftPct: number;
   topPct: number;
   scale: number;
+  widthScale?: number;
+  heightScale?: number;
+  crop?: number;
   baseWidthPct: number;
   motion: LayerMotion;
   href?: string;
@@ -1095,7 +1110,7 @@ function CutoutChip({
       style={{
         left: `${leftPct}%`,
         top: `${topPct}%`,
-        width: `${slot.widthPct}%`,
+        width: `${slot.widthPct * widthScale}%`,
         transform: scrollTransform,
         zIndex: selected || titleEditing ? Math.max(zIndex, 40) : zIndex,
         touchAction: "none",
@@ -1264,12 +1279,18 @@ function CutoutChip({
           </div>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={slot.src}
-            alt={slot.label}
-            className="pointer-events-none h-auto w-full select-none"
-            draggable={false}
-          />
+          <div
+            className="pointer-events-none w-full overflow-hidden"
+            style={{ clipPath: crop > 0 ? `inset(${crop}% ${crop}% ${crop}% ${crop}%)` : undefined }}
+          >
+            <img
+              src={slot.src}
+              alt={slot.label}
+              className="pointer-events-none h-auto w-full select-none"
+              style={{ transform: heightScale !== 1 ? `scaleY(${heightScale})` : undefined, transformOrigin: "center" }}
+              draggable={false}
+            />
+          </div>
         )}
       </div>
 

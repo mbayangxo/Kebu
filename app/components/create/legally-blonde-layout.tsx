@@ -104,6 +104,9 @@ export type LegallyBlondeHeroProps = {
   socialRailIconSize?: number;
   layerMoves?: Record<string, { dx: number; dy: number }>;
   layerScales?: Record<string, number>;
+  layerWidthScale?: Record<string, number>;
+  layerHeightScale?: Record<string, number>;
+  layerCrop?: Record<string, number>;
   layerMotions?: Record<string, "spin" | "float" | "bob" | "none">;
   layerLinks?: Record<string, string>;
   /** Paint order for built-in slots + extras (1 = back, 80 = front). Survives publish. */
@@ -264,10 +267,14 @@ function renderLayer(
   const hasScrollMotion = sbs.length >= 2 && Math.abs((sbs[sbs.length - 1]?.mx ?? 0) - (sbs[0]?.mx ?? 0)) > 1;
   const move = props.layerMoves?.[layer.id];
   const scaleKey = LB_EDITABLE_LAYER_KEYS[layer.id];
+  const storageKey = scaleKey || layer.id;
   const scale =
     (scaleKey && props.layerScales?.[scaleKey]) ||
     props.layerScales?.[layer.id] ||
     (LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo" ? 0.55 : 1);
+  const widthScale = props.layerWidthScale?.[storageKey] ?? 1;
+  const heightScale = props.layerHeightScale?.[storageKey] ?? 1;
+  const crop = props.layerCrop?.[storageKey] ?? 0;
   const layerHref = scaleKey ? String(props.layerLinks?.[scaleKey] ?? "").trim() : "";
   const editable = Boolean(opts.editing && LB_EDITABLE_LAYER_KEYS[layer.id] && CUTOUT_LAYER_IDS.has(layer.id));
 
@@ -287,8 +294,8 @@ function renderLayer(
   if (baseStyle.transform && typeof baseStyle.transform === "string") {
     transformParts.push(baseStyle.transform);
   }
-  if (scale !== 1) {
-    transformParts.push(`scale(${scale})`);
+  if (scale !== 1 || widthScale !== 1 || heightScale !== 1) {
+    transformParts.push(`scale(${scale * widthScale}, ${scale * heightScale})`);
   }
   if (move && (move.dx || move.dy)) {
     transformParts.push(`translate3d(${move.dx}px, ${move.dy}px, 0)`);
@@ -350,6 +357,7 @@ function renderLayer(
       return fromMap ?? baseStyle.zIndex;
     })(),
     touchAction: editable ? "none" : undefined,
+    clipPath: crop > 0 ? `inset(${crop}% ${crop}% ${crop}% ${crop}%)` : undefined,
   };
 
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {

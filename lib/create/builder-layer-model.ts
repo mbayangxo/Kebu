@@ -1,5 +1,8 @@
 export type BuilderLayerPresentation = {
   scale: number;
+  widthScale: number;
+  heightScale: number;
+  crop: number;
   zIndex: number;
   opacity: number;
   rotation: number;
@@ -13,7 +16,7 @@ export function builderLayerStorageKey(elementId: string): string {
 
 function numberMap(
   props: Record<string, unknown>,
-  key: "layerScales" | "layerZIndex" | "layerOpacity" | "layerRotation",
+  key: "layerScales" | "layerWidthScale" | "layerHeightScale" | "layerCrop" | "layerZIndex" | "layerOpacity" | "layerRotation",
 ): Record<string, number> {
   const raw = props[key];
   return raw && typeof raw === "object" && !Array.isArray(raw)
@@ -30,6 +33,9 @@ export function readBuilderLayerPresentation(
   storageKey: string,
 ): BuilderLayerPresentation {
   const scales = numberMap(props, "layerScales");
+  const widths = numberMap(props, "layerWidthScale");
+  const heights = numberMap(props, "layerHeightScale");
+  const crops = numberMap(props, "layerCrop");
   const zIndexes = numberMap(props, "layerZIndex");
   const opacities = numberMap(props, "layerOpacity");
   const rotations = numberMap(props, "layerRotation");
@@ -38,6 +44,9 @@ export function readBuilderLayerPresentation(
 
   return {
     scale: typeof scales[storageKey] === "number" ? scales[storageKey]! : 1,
+    widthScale: typeof widths[storageKey] === "number" ? widths[storageKey]! : 1,
+    heightScale: typeof heights[storageKey] === "number" ? heights[storageKey]! : 1,
+    crop: typeof crops[storageKey] === "number" ? crops[storageKey]! : 0,
     zIndex: typeof zIndexes[storageKey] === "number" ? zIndexes[storageKey]! : 10,
     opacity: typeof opacities[storageKey] === "number" ? opacities[storageKey]! : 1,
     rotation: typeof rotations[storageKey] === "number" ? rotations[storageKey]! : 0,
@@ -57,6 +66,24 @@ export function patchBuilderLayerPresentation(
     next.layerScales = {
       ...numberMap(props, "layerScales"),
       [storageKey]: Math.min(3, Math.max(0.15, patch.scale)),
+    };
+  }
+  if (patch.widthScale !== undefined) {
+    next.layerWidthScale = {
+      ...numberMap(props, "layerWidthScale"),
+      [storageKey]: Math.min(3, Math.max(0.15, patch.widthScale)),
+    };
+  }
+  if (patch.heightScale !== undefined) {
+    next.layerHeightScale = {
+      ...numberMap(props, "layerHeightScale"),
+      [storageKey]: Math.min(3, Math.max(0.15, patch.heightScale)),
+    };
+  }
+  if (patch.crop !== undefined) {
+    next.layerCrop = {
+      ...numberMap(props, "layerCrop"),
+      [storageKey]: Math.min(45, Math.max(0, patch.crop)),
     };
   }
   if (patch.zIndex !== undefined) {
