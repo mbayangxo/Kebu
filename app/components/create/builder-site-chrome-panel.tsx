@@ -11,9 +11,9 @@ import {
 } from "@/app/components/galaxy/editor-primitives";
 import { clampNavScale, parseNavLayout, parseNavSize } from "@/lib/create/nav-chrome-size";
 import type { SiteChrome } from "@/lib/create/site-chrome";
+import { BUILDER_FONT_OPTIONS, BUILDER_FONT_WEIGHT_OPTIONS } from "@/lib/create/builder-fonts";
 
 const INPUT = "min-h-9 w-full rounded-lg border border-black/10 bg-white px-2.5 py-2 text-xs text-black outline-none focus:border-[#FF6A00] focus:ring-2 focus:ring-[#FF6A00]/15";
-const FONTS = ["Satoshi", "Inter", "DM Sans", "Space Grotesk", "Manrope", "Helvetica", "Georgia", "Playfair Display", "Cormorant Garamond", "Libre Baskerville", "Oswald", "Bebas Neue", "Syne"] as const;
 
 export function BuilderSiteChromePanel({
   part,
@@ -121,11 +121,11 @@ export function BuilderSiteChromePanel({
             <PanelSection title="Typography" group="chrome-header">
               <GalaxyFieldLabel label="Menu font">
                 <input list="kebu-nav-fonts" className={INPUT} value={headerProps.fontFamily ?? ""} onChange={(event) => onPatch({ fontFamily: event.target.value || undefined })} placeholder="Same as site" />
-                <datalist id="kebu-nav-fonts">{FONTS.map((font) => <option key={font} value={font} />)}</datalist>
+                <datalist id="kebu-nav-fonts">{BUILDER_FONT_OPTIONS.map((font) => <option key={font} value={font} />)}</datalist>
               </GalaxyFieldLabel>
               <GalaxyFieldLabel label="Weight">
                 <select className={INPUT} value={String(headerProps.fontWeight ?? 700)} onChange={(event) => onPatch({ fontWeight: Number(event.target.value) })}>
-                  <option value="400">Regular · 400</option><option value="500">Medium · 500</option><option value="600">Semibold · 600</option><option value="700">Bold · 700</option><option value="800">Extra bold · 800</option><option value="900">Black · 900</option>
+                  {BUILDER_FONT_WEIGHT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label} · {option.value}</option>)}
                 </select>
               </GalaxyFieldLabel>
               <div className="border-l-2 border-black/[.08] py-1 pl-3">
@@ -172,7 +172,7 @@ export function BuilderSiteChromePanel({
             <PanelSection title="Typography & colors" group="chrome-footer">
               <GalaxyFieldLabel label="Footer font">
                 <input list="kebu-footer-fonts" className={INPUT} value={footerProps.fontFamily ?? ""} onChange={(event) => onPatch({ fontFamily: event.target.value || undefined })} placeholder="Same as site" />
-                <datalist id="kebu-footer-fonts">{FONTS.map((font) => <option key={font} value={font} />)}</datalist>
+                <datalist id="kebu-footer-fonts">{BUILDER_FONT_OPTIONS.map((font) => <option key={font} value={font} />)}</datalist>
               </GalaxyFieldLabel>
               {([["Background", "bgColor", footerProps.bgColor || "#0a0a0a"], ["Text", "textColor", footerProps.textColor || "#ffffff"]] as const).map(([label, key, value]) => (
                 <GalaxyFieldLabel key={key} label={label}>

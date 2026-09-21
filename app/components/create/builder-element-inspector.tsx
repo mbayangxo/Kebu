@@ -4,6 +4,7 @@ import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { PanelSection } from "@/app/components/create/builder-panel-section";
 import { GalaxyBadge, GalaxyButton, GalaxyInspectorCard } from "@/app/components/galaxy/editor-primitives";
+import { BUILDER_FONT_OPTIONS, BUILDER_FONT_WEIGHT_OPTIONS } from "@/lib/create/builder-fonts";
 import {
   builderLayerStorageKey,
   patchBuilderLayerPresentation,
@@ -382,16 +383,7 @@ export function BuilderElementInspector({
               onChange={(event) => onPatch({ titleTextFontFamily: event.target.value })}
             />
             <datalist id="kebu-builder-fonts">
-              <option value="Impact" />
-              <option value="Arial Black" />
-              <option value="Helvetica" />
-              <option value="Georgia" />
-              <option value="Playfair Display" />
-              <option value="Fraunces" />
-              <option value="Oswald" />
-              <option value="Bebas Neue" />
-              <option value="Syne" />
-              <option value="system-ui" />
+              {BUILDER_FONT_OPTIONS.map((font) => <option key={font} value={font} />)}
             </datalist>
           </label>
 
@@ -419,12 +411,9 @@ export function BuilderElementInspector({
                 value={String(sectionProps.titleTextFontWeight ?? 900)}
                 onChange={(event) => onPatch({ titleTextFontWeight: Number(event.target.value) })}
               >
-                <option value="400">Regular</option>
-                <option value="500">Medium</option>
-                <option value="600">Semibold</option>
-                <option value="700">Bold</option>
-                <option value="800">Extra bold</option>
-                <option value="900">Black</option>
+                {BUILDER_FONT_WEIGHT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </label>
           </div>

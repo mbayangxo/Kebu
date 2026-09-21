@@ -4,6 +4,11 @@
  */
 
 const GOOGLE_DISPLAY: Record<string, string> = {
+  "DM Sans": "DM+Sans:wght@300;400;500;600;700;800;900",
+  "Space Grotesk": "Space+Grotesk:wght@300;400;500;600;700",
+  Manrope: "Manrope:wght@300;400;500;600;700;800",
+  "Cormorant Garamond": "Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400",
+  "Libre Baskerville": "Libre+Baskerville:ital,wght@0,400;0,700;1,400",
   Fraunces: "Fraunces:ital,wght@0,400;0,600;0,700;1,400",
   "Playfair Display": "Playfair+Display:ital,wght@0,400;0,600;0,700;1,400",
   Oswald: "Oswald:wght@400;500;600;700",
@@ -28,20 +33,7 @@ const GOOGLE_BODY: Record<string, string> = {
 };
 
 /** Fonts pickable on moveable text boxes + Aesthetic Editor. */
-export const TEXT_FONT_OPTIONS = [
-  "Fraunces",
-  "Playfair Display",
-  "Oswald",
-  "Bebas Neue",
-  "Syne",
-  "Steelfish",
-  "Georgia",
-  "IBM Plex Sans",
-  "Inter",
-  "system-ui",
-  "Arial",
-  "Helvetica Neue",
-] as const;
+export { BUILDER_FONT_OPTIONS as TEXT_FONT_OPTIONS } from "@/lib/create/builder-fonts";
 
 function googleFamilySpec(name: string): string | null {
   const spec = GOOGLE_DISPLAY[name] ?? GOOGLE_BODY[name];
