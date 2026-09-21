@@ -427,7 +427,7 @@ function MySpaceInner() {
                           </div>
                           <div className="mt-4 grid grid-cols-3 gap-3 border-t pt-3" style={{ borderColor: KEBU.border }}>
                             <div><p className="text-[12px] font-semibold">{item.verification_level}</p><p className="text-[8px] text-black/35">Verification</p></div>
-                            <div><p className="text-[12px] font-semibold">{item.region || "—"}</p><p className="text-[8px] text-black/35">Region</p></div>
+                            <div><p className="text-[12px] font-semibold">{item.country_code || "—"}</p><p className="text-[8px] text-black/35">Region</p></div>
                             <div><p className="text-[12px] font-semibold">Open</p><p className="text-[8px] text-black/35">Workspace</p></div>
                           </div>
                         </div>
