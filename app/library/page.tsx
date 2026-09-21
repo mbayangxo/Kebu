@@ -4,6 +4,7 @@ import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { createClient } from "@/lib/supabase/server";
 import { KEBU } from "@/lib/kebu-brand";
+import { LibraryDrivePanel } from "@/app/components/library/library-drive-panel";
 
 function formatBytes(value: number | null) {
   if (!value || value < 1) return "—";
@@ -42,7 +43,11 @@ export default async function LibraryPage() {
           </div>
         </header>
 
-        <section className="grid gap-3 py-6 sm:grid-cols-3">
+        <div className="py-6">
+          <LibraryDrivePanel />
+        </div>
+
+        <section className="grid gap-3 pb-6 sm:grid-cols-3">
           {[["Files", uploads.length, "library"], ["Designs", designs.length, "studio"], ["Sites", projects.length, "builder"]].map(([label, count, icon]) => (
             <div key={String(label)} className="rounded-[20px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
               <KebuIcon name={icon as "library" | "studio" | "builder"} size={18} style={{ color: KEBU.orange }} />
