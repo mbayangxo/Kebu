@@ -226,20 +226,21 @@ export default function BrowserPage() {
                   </div>
                 </article>
               ) : (
-                <div className="mx-auto flex min-h-[600px] max-w-[900px] flex-col justify-center px-5 py-10">
-                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>Kebu Browser</p>
-                  <h1 className="mt-3 max-w-3xl text-5xl font-black leading-[.92] tracking-[-.05em] sm:text-7xl" style={{ fontFamily: "var(--font-fraunces)" }}>Browse to <span className="font-normal italic">do something</span>.</h1>
-                  <p className="mt-5 max-w-xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>Search the web, keep journeys, save useful pages, and move what you find into Research, Mail, Docs, Builder and the rest of Kebu.</p>
-                  <form className="mt-8 flex max-w-2xl items-center gap-2 rounded-[18px] border bg-white p-2 shadow-[0_8px_30px_rgba(10,10,10,.06)]" style={{ borderColor: KEBU.borders.strong }} onSubmit={(event) => { event.preventDefault(); void navigate(address); }}>
-                    <KebuIcon name="search" size={20} className="ml-2" style={{ color: KEBU.orange }} />
-                    <input autoFocus value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Search Kebu or enter a web address" className="min-h-11 min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none" />
-                    <button type="submit" className="rounded-xl bg-black px-4 py-3 text-[10px] font-black uppercase tracking-wide text-white">Go</button>
-                  </form>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <Link href="/search" className="rounded-full border bg-white px-3 py-2 text-[9px] font-bold" style={{ borderColor: KEBU.borders.default }}>Kebu Search</Link>
-                    <Link href="/opportunity" className="rounded-full border bg-white px-3 py-2 text-[9px] font-bold" style={{ borderColor: KEBU.borders.default }}>Opportunity OS</Link>
-                    <Link href="/email" className="rounded-full border bg-white px-3 py-2 text-[9px] font-bold" style={{ borderColor: KEBU.borders.default }}>Mail</Link>
-                    <Link href="/rooms" className="rounded-full border bg-white px-3 py-2 text-[9px] font-bold" style={{ borderColor: KEBU.borders.default }}>Rooms</Link>
+                <div className="mx-auto flex min-h-[560px] max-w-[760px] flex-col justify-center px-5 py-10">
+                  <div className="mx-auto w-full max-w-[680px]">
+                    <form className="flex items-center gap-2 border-b-2 border-black px-1 py-2" onSubmit={(event) => { event.preventDefault(); void navigate(address); }}>
+                      <KebuIcon name="search" size={19} style={{ color: KEBU.orange }} />
+                      <input autoFocus value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Search or enter a web address" className="min-h-12 min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-black/25" />
+                      <button type="submit" className="rounded-full bg-black px-4 py-2 text-[9px] font-semibold text-white">Go</button>
+                    </form>
+                    <div className="mt-6 grid border-t sm:grid-cols-2" style={{borderColor:KEBU.borders.default}}>
+                      {[["/search","Search Kebu"],["/opportunity","Opportunity"],["/email","Mail"],["/rooms","Rooms"]].map(([href,label])=>(
+                        <Link key={href} href={href} className="flex items-center justify-between border-b py-3 text-[10px] font-semibold sm:px-3" style={{borderColor:KEBU.borders.default}}>
+                          <span>{label}</span><span className="text-black/25">→</span>
+                        </Link>
+                      ))}
+                    </div>
+                    <p className="mt-5 text-center text-[9px] leading-relaxed text-black/30">Journeys, history and bookmarks stay in the Browser library. Private mode does not add new history.</p>
                   </div>
                 </div>
               )}
@@ -251,13 +252,13 @@ export default function BrowserPage() {
                   {(["bookmarks","history","journeys"] as const).map((item) => <button key={item} type="button" onClick={() => setSidePanel(item)} className="rounded-full px-3 py-2 text-[8px] font-black uppercase tracking-wide" style={{ background: sidePanel === item ? KEBU.black : "white", color: sidePanel === item ? "white" : KEBU.muted, border: "1px solid " + KEBU.borders.default }}>{item}</button>)}
                 </div>
 
-                {sidePanel === "bookmarks" ? <div className="mt-4 space-y-2">{bookmarks.map((item) => <button key={item.id} type="button" onClick={() => void navigate(item.url)} className="w-full rounded-xl border bg-white p-3 text-left" style={{ borderColor: KEBU.borders.default }}><p className="truncate text-[10px] font-black">{item.title}</p><p className="mt-1 truncate text-[8px]" style={{ color: KEBU.muted }}>{item.url}</p></button>)}{!bookmarks.length ? <p className="text-[10px]" style={{ color: KEBU.muted }}>No bookmarks yet.</p> : null}</div> : null}
+                {sidePanel === "bookmarks" ? <div className="mt-4 space-y-2">{bookmarks.map((item) => <button key={item.id} type="button" onClick={() => void navigate(item.url)} className="w-full border-b py-3 text-left" style={{ borderColor: KEBU.borders.default }}><p className="truncate text-[10px] font-black">{item.title}</p><p className="mt-1 truncate text-[8px]" style={{ color: KEBU.muted }}>{item.url}</p></button>)}{!bookmarks.length ? <p className="text-[10px]" style={{ color: KEBU.muted }}>No bookmarks yet.</p> : null}</div> : null}
 
-                {sidePanel === "history" ? <div className="mt-4 space-y-2">{privateMode ? <p className="text-[10px]" style={{ color: KEBU.muted }}>Private mode does not write new history.</p> : history.map((item) => <button key={item.id} type="button" onClick={() => void navigate(item.url)} className="w-full rounded-xl border bg-white p-3 text-left" style={{ borderColor: KEBU.borders.default }}><p className="truncate text-[10px] font-black">{item.title || item.url}</p><p className="mt-1 truncate text-[8px]" style={{ color: KEBU.muted }}>{new Date(item.visited_at).toLocaleString()}</p></button>)}</div> : null}
+                {sidePanel === "history" ? <div className="mt-4 space-y-2">{privateMode ? <p className="text-[10px]" style={{ color: KEBU.muted }}>Private mode does not write new history.</p> : history.map((item) => <button key={item.id} type="button" onClick={() => void navigate(item.url)} className="w-full border-b py-3 text-left" style={{ borderColor: KEBU.borders.default }}><p className="truncate text-[10px] font-black">{item.title || item.url}</p><p className="mt-1 truncate text-[8px]" style={{ color: KEBU.muted }}>{new Date(item.visited_at).toLocaleString()}</p></button>)}</div> : null}
 
                 {sidePanel === "journeys" ? <div className="mt-4">
                   <div className="flex gap-1.5"><input value={journeyName} onChange={(event) => setJourneyName(event.target.value)} placeholder="New journey" disabled={privateMode} className="min-h-9 min-w-0 flex-1 rounded-xl border bg-white px-3 text-[10px] font-bold outline-none" style={{ borderColor: KEBU.borders.default }} /><button type="button" onClick={() => void createJourney()} disabled={!journeyName.trim() || privateMode} className="rounded-xl bg-black px-3 text-[9px] font-black text-white disabled:opacity-30">Add</button></div>
-                  <div className="mt-3 space-y-2">{journeys.map((journey) => <div key={journey.id} className="rounded-xl border bg-white p-3" style={{ borderColor: KEBU.borders.default }}><p className="text-[10px] font-black">{journey.name}</p><p className="mt-1 text-[8px]" style={{ color: KEBU.muted }}>A focused collection for tabs and bookmarks.</p></div>)}</div>
+                  <div className="mt-3 space-y-2">{journeys.map((journey) => <div key={journey.id} className="border-b py-3" style={{ borderColor: KEBU.borders.default }}><p className="text-[10px] font-black">{journey.name}</p><p className="mt-1 text-[8px]" style={{ color: KEBU.muted }}>A focused collection for tabs and bookmarks.</p></div>)}</div>
                 </div> : null}
               </aside>
             ) : null}

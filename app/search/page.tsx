@@ -48,20 +48,14 @@ export default function SearchPage() {
   return <AppShell title="Search" immersive>
     <main className="min-h-[calc(100vh-60px)] px-4 py-8 sm:px-8 lg:px-12" style={{ background: KEBU.bright, color: KEBU.black }}>
       <div className="mx-auto max-w-5xl">
-        <header className="mb-8 max-w-3xl">
-          <p className="mb-2 text-[10px] font-black uppercase tracking-[.22em]" style={{ color: KEBU.orange }}>Kebu Search</p>
-          <h1 className="text-4xl font-semibold tracking-[-.04em] sm:text-6xl" style={{ fontFamily: "var(--font-fraunces)" }}>Find what matters.</h1>
-          <p className="mt-3 max-w-xl text-sm" style={{ color: KEBU.muted }}>Search your Kebu and the trusted Kebu corpus. Results are real records, not generated answers.</p>
-        </header>
-
-        <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+        <div className="mb-2 flex gap-4 overflow-x-auto border-b pb-0" style={{borderColor:KEBU.borders.default}}>
           {MODES.map((item) => (
-            <button key={item.id} type="button" onClick={() => setMode(item.id)} className="shrink-0 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-wide" style={{ borderColor: mode === item.id ? KEBU.black : KEBU.borders.default, background: mode === item.id ? KEBU.black : KEBU.white, color: mode === item.id ? KEBU.white : KEBU.muted }}>{item.label}</button>
+            <button key={item.id} type="button" onClick={() => setMode(item.id)} className="shrink-0 border-b-2 px-0 py-2.5 text-[10px] font-semibold" style={{ borderColor: mode === item.id ? KEBU.orange : "transparent", color: mode === item.id ? KEBU.black : KEBU.muted }}>{item.label}</button>
           ))}
         </div>
-        <div className="sticky top-16 z-20 mb-8 flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm" style={{ borderColor: KEBU.borders.strong }}>
+        <div className="sticky top-0 z-20 mb-8 flex items-center gap-3 border-b-2 bg-[#FFFCF8]/95 px-1 py-4 backdrop-blur" style={{ borderColor: KEBU.black }}>
           <KebuIcon name="search" size={22} style={{ color: loading ? KEBU.orange : KEBU.black }} />
-          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search businesses, opportunities, sites, designs…" aria-label="Search Kebu" className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none sm:text-lg" />
+          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search businesses, opportunities, sites, designs…" aria-label="Search Kebu" className="min-w-0 flex-1 bg-transparent text-[16px] outline-none sm:text-[18px]" />
           {q && <button onClick={()=>setQ("")} className="text-xs font-bold" style={{ color: KEBU.muted }}>Clear</button>}
         </div>
 
@@ -85,8 +79,8 @@ export default function SearchPage() {
 
 function Heading({children}:{children:ReactNode}) { return <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{color: KEBU.muted}}>{children}</h2>; }
 function Result({item}:{item:SearchResult}) {
-  return <Link href={item.href} className="group flex min-h-20 items-center gap-3 rounded-2xl border bg-white p-4 transition hover:-translate-y-px hover:shadow-sm" style={{borderColor: KEBU.borders.default}}>
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{background: KEBU.cream, color: item.accent ?? KEBU.black}}><KebuIcon name={item.kind==="opportunity"?"opportunity":item.kind==="design"?"studio":item.kind==="business"?"spaces":item.kind==="site"?"builder":"arrowRight"} size={19}/></span>
+  return <Link href={item.href} className="group flex min-h-16 items-center gap-3 border-b py-3 transition hover:pl-1" style={{borderColor: KEBU.borders.default}}>
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{background: KEBU.cream, color: item.accent ?? KEBU.black}}><KebuIcon name={item.kind==="opportunity"?"opportunity":item.kind==="design"?"studio":item.kind==="business"?"spaces":item.kind==="site"?"builder":"arrowRight"} size={19}/></span>
     <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{item.label}</span>{item.sublabel?<span className="block truncate text-xs" style={{color:KEBU.muted}}>{item.sublabel}</span>:null}{item.sourceName?<span className="mt-1 block truncate text-[9px]" style={{color:KEBU.faint}}>Source: {item.sourceName}</span>:null}{item.trustLabel?<span className="mt-1 block text-[9px] font-bold uppercase tracking-wider" style={{color: item.trustLabel==="verified"?KEBU.status.successText:KEBU.faint}}>{item.trustLabel.replaceAll("_"," ")}</span>:null}</span>
     <KebuIcon name="arrowRight" size={16} style={{color:KEBU.faint}}/>
   </Link>;
