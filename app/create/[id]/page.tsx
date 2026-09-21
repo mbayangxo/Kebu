@@ -154,6 +154,8 @@ export default function ProjectEditorPage() {
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [contentSubTab, setContentSubTab] = useState<"sections" | "elements" | "layouts">("sections");
+  const [rightInspectorTab, setRightInspectorTab] = useState<"page" | "section" | "element">("section");
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<BuilderElementSelection | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1792,12 +1794,24 @@ export default function ProjectEditorPage() {
                   </p>
                 </div>
               ) : (
-                /* Header shown when no section is selected */
-                <div className="border-b px-3 py-2.5" style={{ borderColor: BUILDER.border }}>
-                  <p className="text-[13px] font-semibold" style={{ color: BUILDER.ink }}>Sections</p>
-                  <p className="text-[11px] leading-tight" style={{ color: BUILDER.muted }}>
-                    Header · Template · Footer
-                  </p>
+                /* Header with Sections / Elements / Layouts sub-tabs */
+                <div className="border-b px-2 py-2" style={{ borderColor: BUILDER.border }}>
+                  <div className="flex gap-0.5">
+                    {(["sections", "elements", "layouts"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setContentSubTab(t)}
+                        className="flex-1 rounded-lg py-1.5 text-[10px] font-bold capitalize transition-colors"
+                        style={{
+                          background: contentSubTab === t ? BUILDER.ink : "transparent",
+                          color: contentSubTab === t ? "#fff" : BUILDER.muted,
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               {!selectedSectionId && pages.length > 1 && (
@@ -1827,9 +1841,64 @@ export default function ProjectEditorPage() {
                 </div>
               )}
 
-              {!selectedSectionId && <BuilderBlogPanel projectId={projectId} />}
+              {!selectedSectionId && contentSubTab === "sections" && <BuilderBlogPanel projectId={projectId} />}
 
-              {!selectedSectionId && (
+              {!selectedSectionId && contentSubTab === "elements" && (
+                <div className="px-3 py-3 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: BUILDER.ink }}>Elements</p>
+                  <p className="text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>Click a section first, then select an element on the canvas to edit it directly.</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { label: "Heading", icon: "T", hint: "Main title text" },
+                      { label: "Body text", icon: "¶", hint: "Paragraph copy" },
+                      { label: "Button", icon: "⊡", hint: "Call to action" },
+                      { label: "Image", icon: "⬚", hint: "Photo or graphic" },
+                      { label: "Video", icon: "▶", hint: "Embedded video" },
+                      { label: "Gallery", icon: "⊞", hint: "Photo grid" },
+                      { label: "Logo", icon: "◈", hint: "Brand mark" },
+                      { label: "Nav links", icon: "≡", hint: "Navigation" },
+                    ]).map((el) => (
+                      <div key={el.label} className="rounded-xl border p-2.5 space-y-1" style={{ borderColor: BUILDER.border }}>
+                        <span className="text-base">{el.icon}</span>
+                        <p className="text-[10px] font-bold" style={{ color: BUILDER.ink }}>{el.label}</p>
+                        <p className="text-[9px]" style={{ color: BUILDER.muted }}>{el.hint}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!selectedSectionId && contentSubTab === "layouts" && (
+                <div className="px-3 py-3 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: BUILDER.ink }}>Layouts</p>
+                  <p className="text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>Common page structure patterns. Use the Sections tab to add individual sections.</p>
+                  {([
+                    { label: "Landing page", desc: "Hero · Features · CTA · Footer", sections: ["hero", "features", "newsletter"] },
+                    { label: "Portfolio", desc: "Hero · Gallery · About · Contact", sections: ["hero", "gallery", "contact"] },
+                    { label: "Product page", desc: "Hero · Products · Testimonials · CTA", sections: ["hero", "products", "newsletter"] },
+                    { label: "Blog", desc: "Hero · Blog feed · Newsletter", sections: ["hero", "blog", "newsletter"] },
+                  ]).map((layout) => (
+                    <div key={layout.label} className="rounded-xl border p-3 space-y-1.5 cursor-default" style={{ borderColor: BUILDER.border }}>
+                      <p className="text-[11px] font-bold" style={{ color: BUILDER.ink }}>{layout.label}</p>
+                      <p className="text-[10px]" style={{ color: BUILDER.muted }}>{layout.desc}</p>
+                      <button
+                        type="button"
+                        className="mt-1 rounded-lg px-3 py-1 text-[10px] font-bold text-white"
+                        style={{ background: BUILDER.orange }}
+                        onClick={async () => {
+                          for (const type of layout.sections) {
+                            await addSection(type as Parameters<typeof addSection>[0]);
+                          }
+                        }}
+                      >
+                        Add sections
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!selectedSectionId && contentSubTab === "sections" && (
               <div className="px-2 py-1 space-y-1" style={{ background: "#ffffff" }}>
 
                 {chromeActive && siteChrome ? (
@@ -4352,6 +4421,123 @@ export default function ProjectEditorPage() {
                 </div>
               </div>
             </section>
+
+            {/* Right inspector panel — Page / Section / Element tabs */}
+            {selectedSectionId && !previewFullscreen ? (
+              <aside
+                className="hidden xl:flex w-[232px] shrink-0 flex-col border-l overflow-y-auto"
+                style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
+              >
+                <div
+                  className="sticky top-0 z-10 flex shrink-0 gap-0.5 border-b p-1.5"
+                  style={{ background: BUILDER.surface, borderColor: BUILDER.border }}
+                >
+                  {(["page", "section", "element"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setRightInspectorTab(t)}
+                      className="flex-1 rounded-lg py-1.5 text-[9px] font-bold capitalize transition-colors"
+                      style={{
+                        background: rightInspectorTab === t ? BUILDER.ink : "transparent",
+                        color: rightInspectorTab === t ? "#fff" : BUILDER.muted,
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
+                  {rightInspectorTab === "page" && (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: BUILDER.ink }}>Page</p>
+                        <p className="mt-1 text-[11px]" style={{ color: BUILDER.muted }}>
+                          {pages.find((p) => p.id === editPageId)?.title ?? "Home"}
+                        </p>
+                      </div>
+                      <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                        Use the Pages tab in the left rail to manage pages, slugs, and SEO settings.
+                      </p>
+                      <button
+                        type="button"
+                        className="w-full rounded-xl py-2 text-[10px] font-bold text-white"
+                        style={{ background: BUILDER.ink }}
+                        onClick={() => { setSidebarTab("pages" as BuilderStudioTab); setLeftPanelOpen(true); }}
+                      >
+                        Open page settings →
+                      </button>
+                    </div>
+                  )}
+
+                  {rightInspectorTab === "section" && (() => {
+                    const s = sections.find((x) => x.id === selectedSectionId);
+                    if (!s) return <p className="text-[10px] opacity-50">No section selected.</p>;
+                    return (
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: BUILDER.ink }}>Section</p>
+                          <p className="mt-0.5 text-[10px]" style={{ color: BUILDER.muted }}>{labelForSectionType(s.section_type)}</p>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!Boolean(s.props.hidden)}
+                            onChange={() => updateProps(s.id, { hidden: !Boolean(s.props.hidden) })}
+                            className="rounded"
+                          />
+                          <span className="text-[11px] font-semibold" style={{ color: BUILDER.ink }}>Visible</span>
+                        </label>
+                        {"background" in s.props ? (
+                          <label className="block">
+                            <span className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BUILDER.muted }}>Background</span>
+                            <input
+                              type="color"
+                              value={String(s.props.background ?? "#ffffff")}
+                              onChange={(e) => updateProps(s.id, { background: e.target.value })}
+                              className="mt-1 h-8 w-full rounded-lg border-0 cursor-pointer"
+                            />
+                          </label>
+                        ) : null}
+                        {"color" in s.props ? (
+                          <label className="block">
+                            <span className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BUILDER.muted }}>Text color</span>
+                            <input
+                              type="color"
+                              value={String(s.props.color ?? "#0a0a0a")}
+                              onChange={(e) => updateProps(s.id, { color: e.target.value })}
+                              className="mt-1 h-8 w-full rounded-lg border-0 cursor-pointer"
+                            />
+                          </label>
+                        ) : null}
+                        <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>Full section controls are in the left panel.</p>
+                      </div>
+                    );
+                  })()}
+
+                  {rightInspectorTab === "element" && (
+                    <div className="space-y-3">
+                      {selectedElement ? (
+                        <>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: BUILDER.ink }}>Element</p>
+                            <p className="mt-0.5 text-[10px]" style={{ color: BUILDER.muted }}>{selectedElement.label}</p>
+                          </div>
+                          <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                            Element controls are in the left panel. Click inside the section to select elements.
+                          </p>
+                        </>
+                      ) : (
+                        <div className="rounded-xl border border-dashed p-4 text-center" style={{ borderColor: BUILDER.border }}>
+                          <p className="text-[10px]" style={{ color: BUILDER.muted }}>Click an element on the canvas to edit it here.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </aside>
+            ) : null}
           </>
         )}
 

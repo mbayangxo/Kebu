@@ -881,6 +881,25 @@ export function StudioCanvasEditor({
                   <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-white/40">Shape</span></button>
                   <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-white/40">Circle</span></button>
                 </div>
+                {(elementCategory === "all" || elementCategory === "social") && !elementQuery ? (
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/40 mb-2">Social icons</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { id:"ig", label:"Instagram", color:"#E1306C", path:"M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" },
+                        { id:"tk", label:"TikTok", color:"#000000", path:"M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.22 8.22 0 004.81 1.54V6.78a4.85 4.85 0 01-1.04-.09z" },
+                        { id:"yt", label:"YouTube", color:"#FF0000", path:"M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z" },
+                        { id:"x", label:"X / Twitter", color:"#000000", path:"M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" },
+                        { id:"sp", label:"Spotify", color:"#1DB954", path:"M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" },
+                      ]).map(({id, label, color, path}) => (
+                        <button key={id} type="button" disabled={readOnly} title={label} onClick={()=>addLayer("icon",{name:label,fill:color,width:48,height:48,iconSvgPath:path,iconViewBox:"0 0 24 24"})} className="flex flex-col items-center gap-1 rounded-xl border border-white/10 bg-[#17181B] py-2 hover:border-orange-400 disabled:opacity-40">
+                          <svg viewBox="0 0 24 24" className="h-5 w-5" fill={color} aria-hidden><path d={path}/></svg>
+                          <span className="text-[8px] text-white/50">{label.split(" ")[0]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-2 gap-2">{searchStudioElements(elementQuery,elementCategory).map((el)=><button key={el.id} type="button" disabled={readOnly} title={el.label} onClick={()=>addElement(el)} className="flex min-h-[70px] flex-col items-center justify-center rounded-xl border border-white/10 bg-[#17181B] px-2 py-2 text-center hover:border-orange-400 disabled:opacity-40"><span className="text-2xl">{el.glyph ?? (el.kind==="frame"?"□":"━")}</span><span className="mt-1 text-[9px] font-bold">{el.label}</span></button>)}</div>
                 {searchStudioElements(elementQuery,elementCategory).length===0?<p className="rounded-xl border border-dashed border-black/15 p-4 text-center text-[10px] text-white/45">No elements match that search.</p>:null}
                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"image")}/>
@@ -1119,7 +1138,11 @@ export function StudioCanvasEditor({
                           lineHeight: 1,
                         }}
                       >
-                        {layer.text || "★"}
+                        {layer.iconSvgPath ? (
+                          <svg viewBox={layer.iconViewBox ?? "0 0 24 24"} className="w-full h-full" fill={layer.fill ?? layer.color ?? "#FFFFFF"} aria-hidden>
+                            <path d={layer.iconSvgPath} />
+                          </svg>
+                        ) : layer.text || "★"}
                       </div>
                     ) : (
                       <div className="w-full h-full pointer-events-none" style={{ background: studioLayerFillCss(layer) }} />
@@ -1331,6 +1354,28 @@ export function StudioCanvasEditor({
                       <option value="right">Right</option>
                     </select>
                   </label>
+                  <div className="flex gap-1 flex-wrap">
+                    {([
+                      { label: "B", value: "700", field: "fontWeight" as const, active: (selected.fontWeight === "700" || selected.fontWeight === "800" || selected.fontWeight === "900"), title: "Bold" },
+                      { label: "I", value: "italic", field: "fontStyle" as const, active: selected.fontStyle === "italic", title: "Italic" },
+                      { label: "U", value: "underline", field: "textDecoration" as const, active: selected.textDecoration === "underline", title: "Underline" },
+                      { label: "S", value: "line-through", field: "textDecoration" as const, active: selected.textDecoration === "line-through", title: "Strikethrough" },
+                    ]).map(({ label, value, field, active, title }) => (
+                      <button
+                        key={title}
+                        type="button"
+                        title={title}
+                        onClick={() => {
+                          if (field === "fontWeight") updateLayer(selected.id, { fontWeight: active ? "400" : value });
+                          else if (field === "fontStyle") updateLayer(selected.id, { fontStyle: (active ? "normal" : "italic") as "normal" | "italic" });
+                          else updateLayer(selected.id, { textDecoration: (active ? "none" : value) as "none" | "underline" | "line-through" });
+                        }}
+                        className={`w-8 h-8 rounded-lg border text-[11px] font-bold ${active ? "border-orange-400 bg-orange-400/20 text-orange-300" : "border-white/10 text-white/60"}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="block font-semibold">
                       Weight
@@ -1647,6 +1692,31 @@ export function StudioCanvasEditor({
               {(["rect","ellipse","line","frame","icon"].includes(selected.type))?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Element style</p>{selected.type!=="icon"?<><label className="block font-semibold">Stroke<input type="color" value={selected.stroke??"#111111"} onChange={e=>updateLayer(selected.id,{stroke:e.target.value})} className="mt-1 h-8 w-full"/></label><label className="block font-semibold">Stroke width<input type="range" min="0" max="40" value={selected.strokeWidth??0} onChange={e=>updateLayer(selected.id,{strokeWidth:Number(e.target.value)})} className="w-full"/></label></>:null}{selected.type==="rect"||selected.type==="frame"?<label className="block font-semibold">Corners<input type="range" min="0" max="200" value={selected.cornerRadius??0} onChange={e=>updateLayer(selected.id,{cornerRadius:Number(e.target.value)})} className="w-full"/></label>:null}{selected.type==="line"?<><label className="block font-semibold">Line weight<input type="range" min="2" max="40" value={selected.height} onChange={e=>updateLayer(selected.id,{height:Number(e.target.value)})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{text:selected.text==="→"?"":"→"})} className="rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold">{selected.text==="→"?"Remove arrow":"Add arrow"}</button></>:null}</div>:null}
               </> : null}
               {inspectorTab === "position" ? <>
+              <div className="space-y-1.5 pt-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Effect preset</p>
+                <div className="flex gap-1 flex-wrap">
+                  {([
+                    { label: "None", active: !(selected.shadowBlur ?? 0) && !selected.outlineWidth && !selected.glowBlur },
+                    { label: "Shadow", active: Boolean(selected.shadowBlur ?? 0) },
+                    { label: "Outline", active: Boolean(selected.outlineWidth ?? 0) },
+                    { label: "Glow", active: Boolean(selected.glowBlur ?? 0) },
+                  ]).map(({ label, active }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => {
+                        if (label === "None") updateLayer(selected.id, { shadowBlur: 0, shadowX: 0, shadowY: 0, outlineWidth: 0, glowBlur: 0 });
+                        else if (label === "Shadow") updateLayer(selected.id, { shadowBlur: (selected.shadowBlur ?? 0) > 0 ? 0 : 12, shadowX: 2, shadowY: 4, shadowColor: "#00000066" });
+                        else if (label === "Outline") updateLayer(selected.id, { outlineWidth: (selected.outlineWidth ?? 0) > 0 ? 0 : 2, strokeWidth: 2, stroke: selected.color ?? "#ffffff" });
+                        else if (label === "Glow") updateLayer(selected.id, { glowBlur: (selected.glowBlur ?? 0) > 0 ? 0 : 16, shadowBlur: (selected.glowBlur ?? 0) > 0 ? 0 : 16, shadowX: 0, shadowY: 0, shadowColor: `${selected.color ?? "#FF5500"}88` });
+                      }}
+                      className={`rounded-lg px-2.5 py-1 text-[9px] font-bold border ${active ? "border-orange-400 bg-orange-400/15 text-orange-300" : "border-white/10 text-white/50"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Position · size</p>
               <div className="grid grid-cols-2 gap-2">
                 {([

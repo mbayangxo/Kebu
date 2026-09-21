@@ -76,6 +76,13 @@ export const canvasLayerSchema = z.object({
   saturation: z.number().min(0).max(3).optional(),
   grayscale: z.number().min(0).max(1).optional(),
   blur: z.number().min(0).max(40).optional(),
+  /** Custom inline SVG path for social/custom icons */
+  iconSvgPath: z.string().trim().max(2000).optional(),
+  iconViewBox: z.string().trim().max(40).optional(),
+  /** Outline (border around the layer) */
+  outlineWidth: z.number().min(0).max(40).optional(),
+  /** Glow effect blur radius */
+  glowBlur: z.number().min(0).max(200).optional(),
   /** Elements pack (S19) */
   iconKey: z.string().trim().max(40).optional(),
   frameStyle: z.enum(["corner", "rounded", "polaroid"]).optional(),
