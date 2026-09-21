@@ -113,17 +113,15 @@ function SiteHealthCard({
   }, [project.id, deleting, onDeleted, router]);
 
   const isLive = size === "live";
-  const slotH = isLive ? 192 : 152;
+  const slotH = 170;
 
   return (
     <article
       ref={hostRef}
-      className="flex h-full flex-col overflow-hidden rounded-xl bg-white"
+      className="group flex h-full flex-col overflow-hidden rounded-[18px] bg-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(10,10,10,.07)]"
       style={{
         border: `1px solid ${KEBU.border}`,
-        boxShadow: isLive
-          ? "0 6px 24px rgba(10,10,10,0.08)"
-          : "0 2px 12px rgba(10,10,10,0.05)",
+        boxShadow: "0 2px 12px rgba(10,10,10,0.035)",
       }}
     >
       {/* Card header — links to site detail */}
@@ -142,7 +140,7 @@ function SiteHealthCard({
             aria-hidden
           />
           <h3
-            className={`truncate font-bold ${isLive ? "text-sm" : "text-xs"}`}
+            className="truncate text-[13px] font-black"
             style={{ color: KEBU.black, fontFamily: "var(--font-fraunces)" }}
           >
             {project.title}
@@ -226,9 +224,16 @@ function SiteHealthCard({
 
         <div className="flex flex-wrap items-center gap-1.5">
           <Link
+            href={mySiteDetailHref(project.id)}
+            className="rounded-full bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white"
+          >
+            Open site
+          </Link>
+
+          <Link
             href={`/create/${project.id}`}
-            className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white"
-            style={{ background: KEBU.black }}
+            className="rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-wide"
+            style={{ borderColor: KEBU.border, color: KEBU.black }}
           >
             Edit
           </Link>
@@ -238,10 +243,10 @@ function SiteHealthCard({
               href={live}
               target="_blank"
               rel="noreferrer"
-              className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white"
-              style={{ background: KEBU.orange }}
+              className="rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-wide"
+              style={{ color: KEBU.orange }}
             >
-              Open ↗
+              Visit ↗
             </a>
           ) : null}
 
@@ -315,6 +320,7 @@ export function MySitesGrid({
   initialFilter?: MySitesFilter;
 }) {
   const [filter, setFilter] = useState<MySitesFilter>(initialFilter);
+  const [query, setQuery] = useState("");
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -322,8 +328,16 @@ export function MySitesGrid({
   }, [initialFilter]);
 
   const visibleProjects = useMemo(
-    () => projects.filter((p) => !removedIds.has(p.id)),
-    [projects, removedIds],
+    () => projects.filter((p) => {
+      if (removedIds.has(p.id)) return false;
+      const q = query.trim().toLowerCase();
+      if (!q) return true;
+      return [p.title, p.subdomain ?? "", p.project_type ?? "", p.status ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    }),
+    [projects, removedIds, query],
   );
 
   const liveSites = useMemo(() => visibleProjects.filter(isSitePublished), [visibleProjects]);
@@ -344,13 +358,7 @@ export function MySitesGrid({
   function renderGrid(list: MySiteProject[], size: "live" | "draft") {
     if (list.length === 0) return null;
     return (
-      <div
-        className={
-          size === "live"
-            ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2"
-            : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-        }
-      >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {list.map((p, i) => (
           <div key={p.id} className="kebu-slide-in-up" style={{ animationDelay: `${i * 50}ms` }}>
             <SiteHealthCard project={p} size={size} onDeleted={handleDeleted} />
@@ -362,71 +370,49 @@ export function MySitesGrid({
 
   return (
     <div className={compact ? "" : "w-full px-5 py-8 sm:px-8 lg:px-16"}>
-      <div
-        className={`flex flex-wrap items-center justify-between gap-3 ${compact ? "mb-4" : "mb-6"}`}
-      >
-        <div>
-          {!compact ? (
-            <h1 className="text-xl font-black" style={{ color: KEBU.black }}>
-              My sites
-            </h1>
-          ) : (
-            <h2 className="text-base font-bold" style={{ color: KEBU.black }}>
-              Recent sites
-            </h2>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {!compact ? (
-            <>
-              <Link
-                href="/create/new"
-                className="inline-flex rounded-lg px-4 py-2 text-[13px] font-bold text-white"
-                style={{ background: KEBU.orange }}
-              >
-                + New site
-              </Link>
-              <Link
-                href="/create/aesthetics"
-                className="inline-flex rounded-lg border px-3.5 py-2 text-[12px] font-semibold"
-                style={{ borderColor: KEBU.border, color: KEBU.black }}
-              >
-                Aesthetics
-              </Link>
-            </>
-          ) : (
-            <Link href={MY_SITES_HREF} className="text-[12px] font-bold" style={{ color: KEBU.orange }}>
-              View all →
-            </Link>
-          )}
-        </div>
+      <div className={compact ? "mb-4" : "mb-5"}>
+        {compact ? (
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-bold" style={{ color: KEBU.black }}>Recent sites</h2>
+            <Link href={MY_SITES_HREF} className="text-[12px] font-bold" style={{ color: KEBU.orange }}>View all →</Link>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-1">
+              {(
+                [
+                  ["all", `All ${visibleProjects.length}`],
+                  ["live", `Published ${liveCount}`],
+                  ["draft", `Drafts ${draftCount}`],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setFilter(id)}
+                  className="rounded-full px-3 py-2 text-[10px] font-black"
+                  style={{
+                    background: filter === id ? KEBU.black : "transparent",
+                    color: filter === id ? KEBU.white : KEBU.muted,
+                    border: filter === id ? "1px solid #0A0A0A" : `1px solid ${KEBU.border}`,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <label className="flex min-h-10 min-w-[220px] items-center gap-2 rounded-full border bg-white px-3" style={{ borderColor: KEBU.border }}>
+              <span className="text-black/30" aria-hidden>⌕</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search sites"
+                className="min-w-0 flex-1 bg-transparent text-[11px] font-semibold outline-none placeholder:text-black/30"
+              />
+            </label>
+          </div>
+        )}
       </div>
-
-      {!compact ? (
-        <div className="mb-6 flex flex-wrap gap-2">
-          {(
-            [
-              ["all", `All (${visibleProjects.length})`],
-              ["live", `Live (${liveCount})`],
-              ["draft", `Drafts (${draftCount})`],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setFilter(id)}
-              className="rounded-md px-3.5 py-1.5 text-[11px] font-bold"
-              style={{
-                background: filter === id ? KEBU.black : "transparent",
-                color: filter === id ? KEBU.white : KEBU.muted,
-                border: filter === id ? "none" : `1px solid ${KEBU.border}`,
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       {visibleProjects.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-black/15 bg-white p-12 text-center">
@@ -464,45 +450,11 @@ export function MySitesGrid({
           </Link>
         </div>
       ) : (
-        <div className="space-y-10">
-          {(filter === "all" || filter === "live") && liveCount > 0 ? (
-            <section>
-              <div className="mb-3 flex items-baseline justify-between gap-2">
-                <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-                  Live
-                </h2>
-                <span
-                  className="text-[10px] font-bold uppercase tracking-wider"
-                  style={{ color: KEBU.muted }}
-                >
-                  {liveCount} site{liveCount === 1 ? "" : "s"}
-                </span>
-              </div>
-              {renderGrid(liveSites, "live")}
-            </section>
-          ) : null}
-
-          {(filter === "all" || filter === "draft") && draftCount > 0 ? (
-            <section>
-              <div
-                className={`mb-3 flex items-baseline justify-between gap-2 ${filter === "all" && liveCount > 0 ? "border-t pt-8" : ""}`}
-                style={
-                  filter === "all" && liveCount > 0 ? { borderColor: KEBU.border } : undefined
-                }
-              >
-                <h2 className="text-base font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-                  Drafts
-                </h2>
-                <span
-                  className="text-[10px] font-bold uppercase tracking-wider"
-                  style={{ color: KEBU.muted }}
-                >
-                  {draftCount} draft{draftCount === 1 ? "" : "s"}
-                </span>
-              </div>
-              {renderGrid(draftSites, "draft")}
-            </section>
-          ) : null}
+        <div>
+          {renderGrid(
+            filter === "live" ? liveSites : filter === "draft" ? draftSites : visibleProjects,
+            filter === "draft" ? "draft" : "live",
+          )}
         </div>
       )}
     </div>

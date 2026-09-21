@@ -56,20 +56,19 @@ export default async function MySitesPage({ searchParams }: Props) {
 
   return (
     <AppShell title="My Sites">
-      <div className="px-5 pt-8 sm:px-8 lg:px-16">
-        <div className="mb-2 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.18em] text-black/35">
-              {activeBusinessId ? "Active business" : "Your sites"}
-            </p>
-            <h1 className="mt-1 text-3xl font-black tracking-[-.04em]">My Sites</h1>
-            <p className="mt-2 max-w-2xl text-sm text-black/45">
-              Real sites from your Kebu account. Open a site to enter its own world; shops stay optional.
-            </p>
+      <div className="px-5 pt-5 sm:px-8 lg:px-10 xl:px-12">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4" style={{ borderColor: "rgba(10,10,10,.08)" }}>
+          <p className="text-[10px] font-black uppercase tracking-[.16em] text-black/35">
+            {activeBusinessId ? "Sites · Active business" : "Sites"}
+          </p>
+          <div className="flex items-center gap-2">
+            <a href="/create/aesthetics" className="rounded-full border px-4 py-2 text-[9px] font-black uppercase tracking-[.1em] text-black/55" style={{ borderColor: "rgba(10,10,10,.12)" }}>
+              Templates
+            </a>
+            <a href="/create/new" className="rounded-full bg-black px-4 py-2 text-[9px] font-black uppercase tracking-[.1em] text-white">
+              + Create site
+            </a>
           </div>
-          <a href="/create/new" className="rounded-full bg-black px-5 py-3 text-[10px] font-black uppercase tracking-[.1em] text-white">
-            + Create site
-          </a>
         </div>
       </div>
       <MySitesGrid projects={projects ?? []} initialFilter={initialFilter} />
