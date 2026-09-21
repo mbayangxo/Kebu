@@ -19,6 +19,7 @@ export type BuilderStudioTab =
   | "media"
   | "nav"
   | "apps"
+  | "connections"
   | "seo";
 
 const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
@@ -101,6 +102,15 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
         <rect x="14" y="4" width="6" height="6" rx="1.5" />
         <rect x="4" y="14" width="6" height="6" rx="1.5" />
         <path d="M17 14v6M14 17h6" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "connections",
+    label: "Connect",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M8 12a4 4 0 014-4h3M16 12a4 4 0 01-4 4H9M15 5l3 3-3 3M9 19l-3-3 3-3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },

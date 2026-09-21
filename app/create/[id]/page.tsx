@@ -96,6 +96,10 @@ const SiteDomainSeoPanel = dynamic(
   () => import("@/app/components/create/site-domain-seo-panel").then((m) => m.SiteDomainSeoPanel),
   { ssr: false },
 );
+const BuilderConnectionsPanel = dynamic(
+  () => import("@/app/components/create/builder-connections-panel").then((m) => m.BuilderConnectionsPanel),
+  { ssr: false },
+);
 const BuilderAiPreviewPanel = dynamic(
   () => import("@/app/components/create/builder-ai-preview-panel").then((m) => m.BuilderAiPreviewPanel),
   { ssr: false },
@@ -1535,6 +1539,10 @@ export default function ProjectEditorPage() {
                     setLeftPanelOpen(true);
                   }}
                 />
+              )}
+
+              {sidebarTab === "connections" && (
+                <BuilderConnectionsPanel projectId={projectId} />
               )}
 
               {sidebarTab === "seo" && (
