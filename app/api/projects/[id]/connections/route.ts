@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 
@@ -14,7 +15,7 @@ const connectionSchema = z.object({
   publicConfig: z.record(z.string(), z.union([z.string().max(1000), z.number(), z.boolean(), z.null()])).default({}),
 });
 
-async function ownedProject(supabase: any, userId: string, projectId: string) {
+async function ownedProject(supabase: SupabaseClient, userId: string, projectId: string) {
   const { data } = await supabase.from("projects").select("id").eq("id", projectId).eq("owner_id", userId).maybeSingle();
   return Boolean(data);
 }

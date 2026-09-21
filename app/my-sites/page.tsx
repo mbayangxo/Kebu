@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/app/components/app-shell";
 import { MySitesGrid } from "@/app/components/create/my-sites-grid";
@@ -27,9 +28,9 @@ export default async function MySitesPage({ searchParams }: Props) {
       <AppShell title="My sites">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
           <p className="text-muted mb-4">Sign in to see every site you have built on Kebu — drafts and live.</p>
-          <a href={`/login?next=${MY_SITES_HREF}`} className="font-bold underline text-orange-600">
+          <Link href={`/login?next=${MY_SITES_HREF}`} className="font-bold underline text-orange-600">
             Sign in
-          </a>
+          </Link>
         </div>
       </AppShell>
     );
@@ -62,12 +63,12 @@ export default async function MySitesPage({ searchParams }: Props) {
             {activeBusinessId ? "Sites · Active business" : "Sites"}
           </p>
           <div className="flex items-center gap-2">
-            <a href="/create/aesthetics" className="rounded-full border px-4 py-2 text-[9px] font-black uppercase tracking-[.1em] text-black/55" style={{ borderColor: "rgba(10,10,10,.12)" }}>
+            <Link href="/create/aesthetics" className="rounded-full border px-4 py-2 text-[9px] font-black uppercase tracking-[.1em] text-black/55" style={{ borderColor: "rgba(10,10,10,.12)" }}>
               Templates
-            </a>
-            <a href="/create/new" className="rounded-full bg-black px-4 py-2 text-[9px] font-black uppercase tracking-[.1em] text-white">
+            </Link>
+            <Link href="/create/new" className="rounded-full bg-black px-4 py-2 text-[9px] font-black uppercase tracking-[.1em] text-white">
               + Create site
-            </a>
+            </Link>
           </div>
         </div>
       </div>
