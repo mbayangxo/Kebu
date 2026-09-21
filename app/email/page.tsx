@@ -520,7 +520,7 @@ export default function EmailPage() {
     <AppShell title="Mail" immersive>
       <div className="min-h-[calc(100vh-60px)] bg-[#F6F2EC] p-2 sm:p-3">
         <div className="mx-auto min-h-[calc(100vh-84px)] max-w-[1740px] overflow-hidden rounded-[22px] border border-black/[.08] bg-[#FFFCF8] shadow-[0_12px_40px_rgba(20,15,10,.06)]">
-          <header className="flex h-14 items-center gap-3 border-b border-black/[.07] px-4 lg:pl-[238px]">
+          <header className="flex h-14 items-center gap-3 border-b border-black/[.07] px-4 lg:pl-[300px]">
             <label className="mx-auto flex min-h-9 w-full max-w-[720px] items-center gap-2 rounded-full border border-black/[.08] bg-white px-3">
               <span className="text-black/35" aria-hidden>⌕</span>
               <input
@@ -531,14 +531,20 @@ export default function EmailPage() {
               />
               <span className="hidden rounded-md bg-black/[.04] px-1.5 py-1 text-[8px] font-semibold text-black/35 sm:inline">⌘ K</span>
             </label>
-            <button type="button" onClick={() => { resetComposer(); setCompose(true); }} className="hidden rounded-full bg-black px-4 py-2 text-[10px] font-semibold text-white sm:inline-flex">+ New message</button>
+            <button type="button" className="hidden rounded-full bg-black px-4 py-2 text-[10px] font-semibold text-white lg:inline-flex">✦ Ask EVA</button>
+            <button type="button" onClick={() => { resetComposer(); setCompose(true); }} className="hidden rounded-full border border-black/10 px-4 py-2 text-[10px] font-semibold sm:inline-flex">+ New message</button>
           </header>
 
-          <div className="grid min-h-[calc(100vh-140px)] lg:grid-cols-[224px_360px_minmax(420px,1fr)_260px]">
+          <div className="grid min-h-[calc(100vh-140px)] lg:grid-cols-[58px_224px_360px_minmax(420px,1fr)_260px]">
+            <aside className="hidden flex-col items-center border-r border-white/[.08] bg-[#08090B] py-3 text-white lg:flex">
+              <Link href="/dashboard" className="mb-4 text-[22px] font-black tracking-[-.08em]"><span className="text-[#FF6A00]">K</span></Link>
+              <nav className="flex flex-1 flex-col gap-2">{[["/dashboard","⌂"],["/search","⌕"],["/email","✉"],["/people","◉"],["/rooms","◎"],["/calendar","▦"],["/library","▣"]].map(([href,icon],index)=><Link key={href} href={href} className="flex h-9 w-9 items-center justify-center rounded-[9px] text-[13px]" style={{background:index===2?"#C74417":"transparent",color:index===2?"white":"rgba(255,255,255,.68)"}}>{icon}</Link>)}</nav>
+              <Link href="/account" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[8px]">ME</Link>
+            </aside>
             <aside className="border-r border-black/[.07] bg-[#FFFCF8] p-3">
               <div className="px-1 pb-3">
-                <p className="text-[28px] font-semibold tracking-[-.04em]" style={{ fontFamily:"var(--font-fraunces)" }}>Mail</p>
-                <p className="mt-0.5 text-[9px] text-black/40">{mailContext === "business" ? businessName || "Business Mail" : "Your communication space."}</p>
+                <div className="flex items-baseline gap-2"><p className="text-[28px] font-semibold tracking-[-.04em]" style={{ fontFamily:"var(--font-fraunces)" }}>EVA</p><span className="text-[7px] font-semibold uppercase text-[#E85B2A]">beta</span></div>
+                <p className="mt-0.5 text-[9px] text-black/40">{mailContext === "business" ? businessName || "Business Mail" : "More than email. It’s your communication space."}</p>
               </div>
 
               <button type="button" onClick={() => { resetComposer(); setCompose(true); }} disabled={!mailboxId} className="mb-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[10px] font-semibold text-white disabled:opacity-35">+ New message</button>
@@ -576,7 +582,9 @@ export default function EmailPage() {
                 </form>
               ) : null}
 
+              <div className="mt-5 border-t border-black/[.07] pt-3"><p className="px-2 text-[8px] font-semibold uppercase tracking-[.12em] text-black/30">Spaces</p><div className="mt-2 space-y-1">{mailboxes.slice(0,5).map((mailbox)=><button key={"space-"+mailbox.id} type="button" onClick={()=>setMailboxId(mailbox.id)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[8px] hover:bg-black/[.03]"><span className="h-5 w-5 rounded-[6px] bg-[#FFF0E8]"/><span className="truncate">{mailbox.display_name}</span></button>)}</div></div>
               {mailContext === "business" ? <button type="button" onClick={()=>setShowBusinessSetup(v=>!v)} className="mt-4 px-2 text-[9px] font-semibold text-[#C95000]">{showBusinessSetup?"Back to inbox":"Business mail settings"}</button> : <Link href="/business" className="mt-4 block px-2 text-[9px] font-semibold text-black/40">Business Mail →</Link>}
+              <div className="mt-auto hidden rounded-[12px] bg-black p-3 text-white lg:block"><p className="text-[9px] font-semibold">✦ Let EVA help</p><p className="mt-1 text-[8px] leading-relaxed text-white/45">Summarize, draft, schedule or find anything.</p></div>
             </aside>
 
             <section className="border-r border-black/[.07] bg-white">
