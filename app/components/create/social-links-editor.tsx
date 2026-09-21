@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 
 export type SocialLinkEdit = { label: string; href: string; iconUrl: string };
@@ -30,26 +31,24 @@ export function SocialLinksEditor({
     socialRailIconSize: number;
   }>) => void;
 }) {
-  function move(idx: number, dir: -1 | 1) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  function reorder(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= links.length || to >= links.length) return;
     const next = [...links];
-    const j = idx + dir;
-    if (j < 0 || j >= next.length) return;
-    const a = next[idx]!;
-    next[idx] = next[j]!;
-    next[j] = a;
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item!);
     onChange(next);
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-        Social icons — edit only in this left panel
-      </p>
-      <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
-        Add, remove, reorder, and set links here. On the canvas you can drag the rail position — not manage icons.
-      </p>
+      <div className="border-b border-black/[.07] pb-2">
+        <p className="text-[11px] font-semibold text-black/75">Social links</p>
+        <p className="mt-0.5 text-[9px] leading-relaxed text-black/40">Drag rows to reorder. Select the rail on the canvas to reposition it.</p>
+      </div>
       {rail && onRailChange ? (
-        <div className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
+        <div className="space-y-2 border-b border-black/[.07] pb-3">
           <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
             <input
               type="checkbox"
@@ -121,34 +120,28 @@ export function SocialLinksEditor({
       </button>
 
       {links.map((link, idx) => (
-        <div key={idx} className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
-          <div className="flex items-center gap-1">
+        <div
+          key={`${link.label}-${idx}`}
+          draggable
+          onDragStart={() => setDraggedIndex(idx)}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={() => {
+            if (draggedIndex !== null) reorder(draggedIndex, idx);
+            setDraggedIndex(null);
+          }}
+          onDragEnd={() => setDraggedIndex(null)}
+          className="space-y-2 border-b border-black/[.07] py-3 last:border-b-0"
+          style={{ opacity: draggedIndex === idx ? 0.45 : 1 }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="cursor-grab text-[13px] text-black/25" aria-hidden>⠿</span>
+            <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-black/65">{link.label || "Social link"}</span>
             <button
               type="button"
-              className="rounded px-1.5 py-0.5 text-[10px] font-bold"
-              style={{ border: "1px solid #DDE0F0" }}
-              disabled={idx === 0}
-              onClick={() => move(idx, -1)}
-              aria-label="Move up"
-            >
-              ↑
-            </button>
-            <button
-              type="button"
-              className="rounded px-1.5 py-0.5 text-[10px] font-bold"
-              style={{ border: "1px solid #DDE0F0" }}
-              disabled={idx === links.length - 1}
-              onClick={() => move(idx, 1)}
-              aria-label="Move down"
-            >
-              ↓
-            </button>
-            <button
-              type="button"
-              className="ml-auto text-[10px] font-bold uppercase text-red-600"
+              className="rounded-md px-2 py-1 text-[9px] font-semibold text-red-700 hover:bg-red-50"
               onClick={() => onChange(links.filter((_, i) => i !== idx))}
             >
-              Delete
+              Remove
             </button>
           </div>
           <input

@@ -30,64 +30,8 @@ type SectionRow = {
   props?: Record<string, unknown>;
 };
 
-/** Small colored pill thumbnail showing section category. */
-function SectionIcon({ type }: { type: string }) {
-  const { bg, letter } = iconForType(type);
-  return (
-    <span
-      aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded text-[8px] font-black uppercase"
-      style={{
-        width: 20,
-        height: 20,
-        background: bg,
-        color: "#fff",
-        letterSpacing: "0.01em",
-      }}
-    >
-      {letter}
-    </span>
-  );
-}
-
-function iconForType(type: string): { bg: string; letter: string } {
-  switch (type) {
-    case "navigation": return { bg: "#3B82F6", letter: "≡" };
-    case "hero": return { bg: "#6366F1", letter: "H" };
-    case "editorial-hero": return { bg: "#6366F1", letter: "EH" };
-    case "announcement-bar": return { bg: "#F59E0B", letter: "!" };
-    case "marquee": return { bg: "#F97316", letter: "~" };
-    case "split": return { bg: "#3B82F6", letter: "S" };
-    case "category-tiles": return { bg: "#3B82F6", letter: "CT" };
-    case "text": return { bg: "#6B7280", letter: "T" };
-    case "free-text": return { bg: "#6B7280", letter: "FT" };
-    case "features": return { bg: "#6B7280", letter: "F" };
-    case "image": return { bg: "#8B5CF6", letter: "I" };
-    case "gallery": return { bg: "#8B5CF6", letter: "G" };
-    case "video": return { bg: "#8B5CF6", letter: "V" };
-    case "audio": return { bg: "#8B5CF6", letter: "A" };
-    case "products": return { bg: "#10B981", letter: "P" };
-    case "contact": return { bg: "#10B981", letter: "C" };
-    case "whatsapp": return { bg: "#25D366", letter: "W" };
-    case "joko": return { bg: "#0070F3", letter: "J" };
-    case "map": return { bg: "#10B981", letter: "M" };
-    case "form": return { bg: "#F97316", letter: "FM" };
-    case "newsletter": return { bg: "#F97316", letter: "N" };
-    case "blog-list": return { bg: "#6B7280", letter: "B" };
-    case "email-popup": return { bg: "#F97316", letter: "EP" };
-    case "testimonials": return { bg: "#F97316", letter: "Q" };
-    case "faq": return { bg: "#F97316", letter: "?" };
-    case "events": return { bg: "#F97316", letter: "E" };
-    case "footer": return { bg: "#3B82F6", letter: "F" };
-    case "countdown": return { bg: "#0EA5E9", letter: "⏱" };
-    case "trust-badges": return { bg: "#10B981", letter: "TB" };
-    case "social-proof": return { bg: "#8B5CF6", letter: "SP" };
-    case "floating-cta": return { bg: "#25D366", letter: "FC" };
-    case "before-after": return { bg: "#F97316", letter: "BA" };
-    case "hotspot-image": return { bg: "#8B5CF6", letter: "HI" };
-    case "reviews": return { bg: "#F59E0B", letter: "★" };
-    default: return { bg: "#9CA3AF", letter: type.slice(0, 2).toUpperCase() };
-  }
+function SectionMarker() {
+  return <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-black/20" />;
 }
 
 function SortableSectionRow({
@@ -135,8 +79,8 @@ function SortableSectionRow({
       <div
         className="group flex items-center gap-1.5 rounded-lg px-1.5 py-1.5"
         style={{
-          background: selected ? "#EEF2FF" : "transparent",
-          outline: selected ? "1.5px solid #C7D2FE" : undefined,
+          background: selected ? "rgba(10,10,10,.045)" : "transparent",
+          outline: selected ? "1px solid rgba(10,10,10,.08)" : undefined,
         }}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
@@ -153,8 +97,7 @@ function SortableSectionRow({
           ⠿
         </button>
 
-        {/* Type icon thumbnail */}
-        <SectionIcon type={section.section_type} />
+        <SectionMarker />
 
         {/* Section label — clicking selects */}
         <button
@@ -185,52 +128,27 @@ function SortableSectionRow({
           </button>
         ) : null}
 
-        {/* Hover actions */}
         {showActions || selected ? (
-          <div className="flex shrink-0 items-center gap-0.5">
-            {onToggleHidden ? (
-              <button
-                type="button"
-                onClick={onToggleHidden}
-                className="rounded px-1 py-0.5 text-[9px] font-semibold"
-                style={{ color: "#5C5C5C" }}
-                aria-label={section.hidden ? "Show" : "Hide"}
-              >
-                {section.hidden ? "Show" : "Hide"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              disabled={isFirst}
-              onClick={onMoveUp}
-              className="rounded px-0.5 py-0.5 text-[11px] disabled:opacity-20"
-              style={{ color: "#5C5C5C" }}
-              aria-label="Move up"
+          <details className="relative shrink-0">
+            <summary
+              className="flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-md text-[13px] text-black/40 hover:bg-black/[.05] hover:text-black"
+              aria-label="Section options"
             >
-              ↑
-            </button>
-            <button
-              type="button"
-              disabled={isLast}
-              onClick={onMoveDown}
-              className="rounded px-0.5 py-0.5 text-[11px] disabled:opacity-20"
-              style={{ color: "#5C5C5C" }}
-              aria-label="Move down"
-            >
-              ↓
-            </button>
-            {onRemove ? (
-              <button
-                type="button"
-                onClick={onRemove}
-                className="rounded px-0.5 py-0.5 text-[11px] font-semibold"
-                style={{ color: "#DC2626" }}
-                aria-label={`Remove ${labelForSectionType(section.section_type)}`}
-              >
-                ×
-              </button>
-            ) : null}
-          </div>
+              •••
+            </summary>
+            <div className="absolute right-0 top-8 z-30 min-w-[132px] rounded-lg border border-black/10 bg-white p-1 shadow-lg">
+              {onToggleHidden ? (
+                <button type="button" onClick={onToggleHidden} className="w-full rounded-md px-2.5 py-2 text-left text-[10px] font-semibold text-black/65 hover:bg-black/[.04]">
+                  {section.hidden ? "Show section" : "Hide section"}
+                </button>
+              ) : null}
+              {onRemove ? (
+                <button type="button" onClick={onRemove} className="w-full rounded-md px-2.5 py-2 text-left text-[10px] font-semibold text-red-700 hover:bg-red-50">
+                  Remove section
+                </button>
+              ) : null}
+            </div>
+          </details>
         ) : null}
 
         {/* Chevron — always visible, indicates "click to edit" */}
@@ -238,7 +156,7 @@ function SortableSectionRow({
           type="button"
           onClick={onSelect}
           className="shrink-0 text-[11px] ml-0.5"
-          style={{ color: selected ? "#6366F1" : "#C0C0C0" }}
+          style={{ color: selected ? "#0A0A0A" : "#B8B8B8" }}
           aria-label="Edit section"
           tabIndex={-1}
         >

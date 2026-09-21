@@ -1871,8 +1871,6 @@ export default function ProjectEditorPage() {
                           <span className="inline-flex items-center gap-1.5">Section actions <span aria-hidden>•••</span></span>
                         </summary>
                         <div className="flex flex-wrap gap-1.5 px-3 pb-3">
-                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, -1)}>↑ Move up</button>
-                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, 1)}>↓ Move down</button>
                           <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void duplicateSection(section.id)}>Duplicate</button>
                           <button
                             type="button"

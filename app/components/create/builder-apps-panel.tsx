@@ -4,7 +4,6 @@ import Link from "next/link";
 import { BUILDER_APP_BLOCKS } from "@/lib/create/builder-block-registry";
 import {
   GalaxyBadge,
-  GalaxyButton,
   GalaxyEmptyState,
   GalaxyPanelHeader,
 } from "@/app/components/galaxy/editor-primitives";
@@ -32,28 +31,14 @@ export function BuilderAppsPanel({
         description="Add useful capabilities to this site. Every block uses the same real Kebu save, responsive, and publish pipeline."
       />
       <div className="space-y-3 p-3">
-        <div className="rounded-lg border border-black/[0.07] bg-[#FFF9F4] p-2.5">
-          <p className="text-[10px] font-semibold text-[#C95000]">How it works</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-black/55">
-            Add a block to the current page, then configure it in Build. Nothing here is a fake install or a local-only widget.
-          </p>
-        </div>
-
         {BUILDER_APP_BLOCKS.length ? (
           <div className="grid gap-2">
             {BUILDER_APP_BLOCKS.map((app) => {
               const alreadyOnSite = installed.has(app.type);
               return (
-                <article
-                  key={app.type}
-                  className="group rounded-lg border border-black/[0.08] bg-white p-2.5 transition-colors hover:border-black/20"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                      style={{ background: BUILDER.orangeGlow, color: BUILDER.ink }}
-                      aria-hidden
-                    >
+                <article key={app.type} className="group flex items-center gap-2.5 border-b border-black/[.07] py-2.5 last:border-b-0">
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-black/[.035] text-black/60" aria-hidden>
                       <StudioIcon name={APP_ICON[app.type] ?? "elements"} className="h-4 w-4"/>
                     </div>
                     <div className="min-w-0 flex-1">
@@ -62,16 +47,17 @@ export function BuilderAppsPanel({
                         <GalaxyBadge>{app.app?.provider === "kebu" ? "Kebu" : "Connection"}</GalaxyBadge>
                         {alreadyOnSite ? <GalaxyBadge>On site</GalaxyBadge> : null}
                       </div>
-                      <p className="mt-1 text-[10px] leading-relaxed text-black/50">{app.description}</p>
+                      <p className="mt-0.5 truncate text-[9px] text-black/40">{app.description}</p>
                     </div>
                   </div>
-                  <GalaxyButton
-                    className="mt-3 w-full"
-                    variant={alreadyOnSite ? "secondary" : "primary"}
+                  <button
+                    type="button"
                     onClick={() => void onAdd(app.type)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 text-[15px] text-black/60 hover:border-black/25 hover:text-black"
+                    aria-label={alreadyOnSite ? `Add another ${app.label}` : `Add ${app.label}`}
                   >
-                    {alreadyOnSite ? "Add another to this page" : "Add to this page"}
-                  </GalaxyButton>
+                    +
+                  </button>
                 </article>
               );
             })}
