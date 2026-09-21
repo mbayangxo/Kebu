@@ -6,7 +6,6 @@ import { StudioDesignLibrary } from "@/app/components/studio/studio-design-libra
 import type { StudioDesignRole } from "@/lib/studio/design-access";
 import { KEBU } from "@/lib/kebu-brand";
 import { AppShell } from "@/app/components/app-shell";
-import { StudioWorldNav } from "@/app/components/studio/studio-world-nav";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 
 type FormatCard = {
@@ -110,73 +109,47 @@ export default async function StudioHomePage() {
   return (
     <AppShell title="Studio" immersive>
       <main className="min-h-screen bg-[#FFFCF8] text-black">
-        <section className="grid min-h-[620px] border-b border-black/10 lg:grid-cols-[minmax(0,1.05fr)_minmax(520px,.95fr)]">
-          <div className="flex flex-col justify-between border-b border-black/10 px-5 py-9 sm:px-8 lg:border-b-0 lg:border-r lg:px-12 lg:py-12 xl:px-16">
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-[10px] font-black uppercase tracking-[.25em]" style={{ color: KEBU.orange }}>Kebu Studio</p>
-                <span className="h-1 w-1 rounded-full bg-black/20" />
-                <p className="text-[9px] font-black uppercase tracking-[.14em] text-black/35">{workspace.mode === "business" ? "Business Kebu" : "Personal Kebu"}</p>
+        <section className="border-b border-black/10">
+          <div className="mx-auto max-w-[1600px] px-5 py-6 sm:px-8 lg:px-12">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/[.08] pb-4">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-[.16em]" style={{color:KEBU.orange}}>Studio · {workspace.mode === "business" ? "Business" : "Personal"}</p>
+                <p className="mt-1 text-[11px] text-black/40">Design, video, brand and campaign work in one creative world.</p>
               </div>
-              <h1 className="mt-5 max-w-4xl text-[clamp(3.6rem,7vw,8.4rem)] font-black leading-[.82] tracking-[-.07em]" style={{ fontFamily: "var(--font-fraunces)" }}>
-                Make the thing.<br /><span className="font-normal italic">Then make it move.</span>
-              </h1>
-              <p className="mt-7 max-w-2xl text-sm leading-6 text-black/50 sm:text-base">
-                Design, video, music intelligence, brand systems and campaigns in one creative space. Personal work stays personal. Business work stays with that business.
-              </p>
-
-              <div className="mt-7 flex flex-wrap gap-2">
-                <Link href="/studio/new" className="rounded-full bg-black px-5 py-3 text-[10px] font-black uppercase tracking-[.13em] text-white">Create something <span style={{ color: KEBU.orange }}>＋</span></Link>
-                <Link href="/studio/video/new" className="rounded-full border border-black/10 bg-white px-5 py-3 text-[10px] font-black uppercase tracking-[.13em]">Start video</Link>
-                <Link href="/studio/templates" className="rounded-full border border-black/10 bg-white px-5 py-3 text-[10px] font-black uppercase tracking-[.13em]">Explore themes</Link>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/studio/new" className="rounded-full bg-black px-4 py-2.5 text-[9px] font-semibold text-white">+ Create</Link>
+                <Link href="/studio/templates" className="rounded-full border border-black/10 px-4 py-2.5 text-[9px] font-semibold">Templates</Link>
+                <Link href="/studio/brand" className="rounded-full border border-black/10 px-4 py-2.5 text-[9px] font-semibold">Brand DNA</Link>
               </div>
             </div>
 
-            <div className="mt-10 grid grid-cols-4 gap-2">
+            <div className="py-7">
+              <p className="mb-3 text-[10px] font-semibold text-black/45">What are you making?</p>
+              <div className="grid border-t sm:grid-cols-2 lg:grid-cols-4" style={{borderColor:KEBU.border}}>
+                {FORMATS.map((format) => (
+                  <Link key={format.type} href={format.href} className="group flex min-h-[82px] items-center gap-3 border-b px-1 py-3 transition hover:pl-2 lg:px-3" style={{borderColor:KEBU.border}}>
+                    <FormatMark format={format} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[11px] font-semibold">{format.label}</span>
+                      <span className="mt-0.5 block text-[9px] text-black/35">{format.sublabel}</span>
+                    </span>
+                    <span className="text-[10px] text-black/20">→</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid border-t sm:grid-cols-3" style={{borderColor:KEBU.border}}>
               {[
-                ["/templates/maylecor/portrait.jpg", "Portrait"],
-                ["/templates/legally-blonde/hero-photo.png", "Editorial"],
-                ["/templates/kdirection/portrait.jpg", "Artist"],
-                ["/templates/maylecor/city-skyline.png", "City"],
-              ].map(([src, alt], index) => (
-                <div key={src} className={"relative overflow-hidden rounded-[18px] bg-black " + (index === 0 ? "col-span-2 min-h-[210px]" : "min-h-[210px]")}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col bg-white">
-            <div className="border-b border-black/10 px-5 py-5 sm:px-7 lg:px-8">
-              <p className="text-[9px] font-black uppercase tracking-[.16em] text-black/35">Start anywhere</p>
-              <h2 className="mt-1 text-2xl font-black tracking-[-.035em]" style={{ fontFamily: "var(--font-fraunces)" }}>Pick a format. The editor opens.</h2>
-            </div>
-            <div className="grid flex-1 sm:grid-cols-2">
-              {FORMATS.map((format, index) => (
-                <Link key={format.type} href={format.href} className="group flex min-h-[126px] items-center gap-4 border-b border-black/10 px-5 py-4 transition hover:bg-[#FFFCF8] sm:px-6 sm:[&:nth-child(odd)]:border-r">
-                  <FormatMark format={format} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[12px] font-black">{format.label}</span>
-                    <span className="mt-1 block text-[9px] text-black/40">{format.sublabel}</span>
-                    <span className="mt-4 block text-[9px] font-black uppercase tracking-wide opacity-0 transition group-hover:opacity-100" style={{ color: KEBU.orange }}>Create →</span>
-                  </span>
-                  <span className="text-black/15">0{index + 1}</span>
+                ["/studio/new?tab=ai","Start with an idea","Describe what you want and keep the result editable."],
+                ["/studio/video/new","Start a video","Open the timeline, sound and motion workspace."],
+                ["/studio/brand","Use Brand DNA","Bring your type, colors and voice into the work."],
+              ].map(([href,title,detail])=>(
+                <Link key={href} href={href} className="border-b py-4 sm:border-b-0 sm:border-r sm:px-4 sm:last:border-r-0" style={{borderColor:KEBU.border}}>
+                  <p className="text-[10px] font-semibold">{title}</p>
+                  <p className="mt-1 text-[9px] leading-relaxed text-black/38">{detail}</p>
                 </Link>
               ))}
-            </div>
-            <div className="grid border-t border-black/10 sm:grid-cols-2">
-              <Link href="/studio/new?tab=ai" className="min-h-[150px] bg-black p-5 text-white">
-                <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/35">Kebu AI</p>
-                <p className="mt-7 text-xl font-black">Start with an idea.</p>
-                <p className="mt-2 max-w-xs text-[10px] leading-relaxed text-white/45">Describe the outcome. Get an editable direction, not a dead image.</p>
-              </Link>
-              <Link href="/studio/brand" className="min-h-[150px] bg-[#EEE8E1] p-5">
-                <p className="text-[9px] font-black uppercase tracking-[.16em] text-black/35">Brand DNA</p>
-                <p className="mt-7 text-xl font-black">Make it unmistakably yours.</p>
-                <p className="mt-2 max-w-xs text-[10px] leading-relaxed text-black/45">Logo, color, type, voice and reusable creative rules.</p>
-              </Link>
             </div>
           </div>
         </section>
@@ -196,7 +169,7 @@ export default async function StudioHomePage() {
                 const format = FORMATS.find((item) => item.type === design.design_type);
                 return (
                   <Link key={design.id} href={`/studio/${design.id}`} className="group">
-                    <div className="relative h-[220px] overflow-hidden rounded-[20px] border border-black/10 bg-white">
+                    <div className="relative h-[150px] overflow-hidden rounded-[12px] border border-black/10 bg-white">
                       <div className="absolute inset-4 rounded-[14px]" style={{ background: `linear-gradient(145deg,${format?.accent ?? KEBU.orange},#111)` }} />
                       <div className="absolute bottom-7 left-7 right-7">
                         <span className="block h-2 w-2/3 rounded-full bg-white/80" />
@@ -204,7 +177,7 @@ export default async function StudioHomePage() {
                       </div>
                       <span className="absolute right-3 top-3 text-[9px] font-black text-black/25">0{index + 1}</span>
                     </div>
-                    <p className="mt-2 truncate text-[11px] font-black">{design.title}</p>
+                    <p className="mt-2 truncate text-[10px] font-semibold">{design.title}</p>
                     <p className="mt-1 text-[9px] capitalize text-black/35">{design.design_type.replaceAll("_", " ")}</p>
                   </Link>
                 );
@@ -212,7 +185,7 @@ export default async function StudioHomePage() {
 
               {recentVideos.map((video) => (
                 <Link key={video.id} href={`/studio/video/${video.id}`} className="group">
-                  <div className="relative h-[220px] overflow-hidden rounded-[20px] bg-black">
+                  <div className="relative h-[150px] overflow-hidden rounded-[12px] bg-black">
                     <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 70% 20%,rgba(255,106,0,.95),transparent 34%),linear-gradient(160deg,#111,#000)" }} />
                     <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-black">▶</span>
                   </div>
@@ -231,11 +204,11 @@ export default async function StudioHomePage() {
             ["/studio/campaigns", "Campaigns", "Connected creative sets across formats."],
             ["/studio/video/new", "Video", "Timeline, captions, sound and motion."],
           ].map(([href, label, description], index) => (
-            <Link key={href} href={href} className="group min-h-[190px] border-b border-black/10 p-6 transition hover:bg-white lg:border-b-0 lg:border-r">
+            <Link key={href} href={href} className="group min-h-[120px] border-b border-black/10 p-4 transition hover:bg-white lg:border-b-0 lg:border-r">
               <span className="text-[9px] font-black text-black/20">0{index + 1}</span>
-              <h3 className="mt-8 text-xl font-black">{label}</h3>
+              <h3 className="mt-4 text-[12px] font-semibold">{label}</h3>
               <p className="mt-2 max-w-xs text-[10px] leading-relaxed text-black/45">{description}</p>
-              <span className="mt-5 block text-[9px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>Open →</span>
+              <span className="mt-3 block text-[9px] font-semibold" style={{ color: KEBU.orange }}>Open →</span>
             </Link>
           ))}
         </section>
