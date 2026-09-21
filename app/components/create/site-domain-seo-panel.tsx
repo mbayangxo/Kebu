@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { DomainConnectWizard } from "@/app/components/create/domain-connect-wizard";
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import { KEBU } from "@/lib/kebu-brand";
@@ -17,7 +16,7 @@ type DomainRow = {
   last_error?: string | null;
 };
 
-export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
+export function SiteDomainSeoPanel({ projectId, embedded = false }: { projectId: string; embedded?: boolean }) {
   const [title, setTitle] = useState("");
   const [subdomain, setSubdomain] = useState("");
   const [seo, setSeo] = useState<SiteSeo>(defaultSiteSeo());
@@ -293,26 +292,18 @@ export function SiteDomainSeoPanel({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className={embedded ? "space-y-3 p-3" : "max-w-2xl space-y-8"}>
       <div>
         <p className="text-[10px] font-bold uppercase tracking-[0.24em] mb-1" style={{ color: KEBU.orange }}>
           {title}
         </p>
-        <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
+        <h2 className={embedded ? "text-lg font-black mb-1" : "text-2xl font-bold mb-2"} style={{ fontFamily: "var(--font-fraunces)" }}>
           Domain &amp; SEO
         </h2>
-        <p className="text-sm" style={{ color: KEBU.muted }}>
-          Connect your own domain here — outside the visual editor. The editor is for building pages, media, colors, and
-          shop. You set one CNAME at your registrar; Kebu handles HTTPS.
+        <p className={embedded ? "text-[10px] leading-relaxed" : "text-sm"} style={{ color: KEBU.muted }}>
+          Manage the site address, custom domain, search appearance, social sharing and privacy without leaving Builder.
         </p>
-        <div className="flex flex-wrap gap-2 mt-4">
-          <Link
-            href={`/create/${projectId}`}
-            className="rounded-full px-4 py-2 text-xs font-bold text-white"
-            style={{ background: KEBU.black }}
-          >
-            Open visual editor
-          </Link>
+        <div className="flex flex-wrap gap-2 mt-3">
           {httpsLiveUrl ? (
             <a
               href={httpsLiveUrl}

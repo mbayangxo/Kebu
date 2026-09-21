@@ -92,6 +92,10 @@ const BuilderPagesPanel = dynamic(
   () => import("@/app/components/create/builder-pages-panel").then((m) => m.BuilderPagesPanel),
   { ssr: false },
 );
+const SiteDomainSeoPanel = dynamic(
+  () => import("@/app/components/create/site-domain-seo-panel").then((m) => m.SiteDomainSeoPanel),
+  { ssr: false },
+);
 const BuilderAiPreviewPanel = dynamic(
   () => import("@/app/components/create/builder-ai-preview-panel").then((m) => m.BuilderAiPreviewPanel),
   { ssr: false },
@@ -1297,14 +1301,6 @@ export default function ProjectEditorPage() {
               onRail={openStudioTab}
               extras={
                 <>
-                  <Link
-                    href={mySiteDetailHref(projectId)}
-                    title="Domain & SEO"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-[9px] font-bold uppercase leading-none"
-                    style={{ color: BUILDER.muted }}
-                  >
-                    SEO
-                  </Link>
                   {maylecorRussianLayout || kdirectionLayout ? (
                     <button
                       type="button"
@@ -1444,6 +1440,10 @@ export default function ProjectEditorPage() {
                     setLeftPanelOpen(true);
                   }}
                 />
+              )}
+
+              {sidebarTab === "seo" && (
+                <SiteDomainSeoPanel projectId={projectId} embedded />
               )}
 
               {sidebarTab === "nav" && (

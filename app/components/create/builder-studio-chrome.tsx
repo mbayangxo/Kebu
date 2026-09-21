@@ -18,7 +18,8 @@ export type BuilderStudioTab =
   | "aesthetic"
   | "media"
   | "nav"
-  | "apps";
+  | "apps"
+  | "seo";
 
 const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   {
@@ -100,6 +101,16 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
         <rect x="14" y="4" width="6" height="6" rx="1.5" />
         <rect x="4" y="14" width="6" height="6" rx="1.5" />
         <path d="M17 14v6M14 17h6" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "seo",
+    label: "SEO",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+        <circle cx="10.5" cy="10.5" r="6.5" />
+        <path d="M15.5 15.5L20 20M7.5 10.5h6" strokeLinecap="round" />
       </svg>
     ),
   },
