@@ -179,7 +179,7 @@ export default function AccountPage() {
   return (
     <AppShell title="My Account">
       <div className="mx-auto max-w-[1180px] px-5 py-8 sm:px-7 lg:py-10">
-        <div className="mb-6 flex items-center gap-4 rounded-[24px] border bg-white p-5 sm:p-6" style={{ borderColor: KEBU.border }}>
+        <div className="mb-5 flex items-center gap-4 border-b pb-5" style={{ borderColor: KEBU.border }}>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -189,10 +189,10 @@ export default function AccountPage() {
           >
             {profile.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatarUrl} alt="" className="w-16 h-16 rounded-full object-cover" />
+              <img src={profile.avatarUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
             ) : (
               <span
-                className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-black text-white"
+                className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-black text-black"
                 style={{ background: KEBU.orange }}
               >
                 {first.charAt(0).toUpperCase()}
@@ -215,17 +215,18 @@ export default function AccountPage() {
             )}
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl font-bold truncate" style={{ fontFamily: "var(--font-fraunces)" }}>
+            <h1 className="truncate text-[18px] font-semibold" style={{ fontFamily: "var(--font-fraunces)" }}>
               {first}
             </h1>
             <p className="text-xs truncate" style={{ color: KEBU.muted }}>
               {profile.email}
             </p>
-            <p className="text-[10px] mt-0.5" style={{ color: KEBU.orange }}>Tap photo to change</p>
+            
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">\n          <div className="rounded-[20px] border bg-white overflow-hidden divide-y" style={{ borderColor: KEBU.border }}>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="border-y divide-y" style={{ borderColor: KEBU.border }}>
           <ListRow
             title="Personal info"
             hint="Name, photo, country"
@@ -233,7 +234,7 @@ export default function AccountPage() {
             onClick={() => toggle("personal")}
           />
           {section === "personal" ? (
-            <div className="px-4 py-4 space-y-3 bg-[#FFFBFA]">
+            <div className="px-4 py-4 space-y-3 bg-transparent">
               <input
                 ref={fileRef}
                 type="file"
@@ -266,7 +267,7 @@ export default function AccountPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="rounded-full px-5 py-2 text-xs font-bold text-white disabled:opacity-60"
+                  className="rounded-full px-5 py-2 text-xs font-bold text-black disabled:opacity-60"
                   style={{ background: KEBU.black }}
                 >
                   Save
@@ -282,7 +283,7 @@ export default function AccountPage() {
             onClick={() => toggle("security")}
           />
           {section === "security" ? (
-            <div className="px-4 py-4 bg-[#FFFBFA] text-sm" style={{ color: KEBU.muted }}>
+            <div className="px-4 py-4 bg-transparent text-sm" style={{ color: KEBU.muted }}>
               <p className="mb-3">Use the signed-in email flow to reset your password.</p>
               <Link href="/login?reset=1" className="font-bold underline" style={{ color: KEBU.orange }}>
                 Reset password
@@ -297,7 +298,7 @@ export default function AccountPage() {
             onClick={() => toggle("ids")}
           />
           {section === "ids" ? (
-            <div className="px-4 py-4 space-y-4 bg-[#FFFBFA]">
+            <div className="px-4 py-4 space-y-4 bg-transparent">
               <p className="text-[11px]" style={{ color: KEBU.muted }}>
                 Private business identity — keep this separate from everyday personal settings. Password lock for this
                 drawer is planned; treat as sensitive for now.
@@ -363,7 +364,7 @@ export default function AccountPage() {
             onClick={() => toggle("data")}
           />
           {section === "data" ? (
-            <div className="px-4 py-4 bg-[#FFFBFA]">
+            <div className="px-4 py-4 bg-transparent">
               <DataModeControls />
             </div>
           ) : null}
@@ -375,7 +376,7 @@ export default function AccountPage() {
             onClick={() => toggle("billing")}
           />
           {section === "billing" ? (
-            <div className="px-4 py-4 bg-[#FFFBFA]">
+            <div className="px-4 py-4 bg-transparent">
               <AccountHostingBilling />
             </div>
           ) : null}
@@ -426,18 +427,18 @@ export default function AccountPage() {
           </Link>
           </div>
 
-          <aside className="space-y-3">
-            <Link href="/business?tab=businesses" className="block rounded-[20px] border bg-black p-5 text-white" style={{ borderColor: KEBU.border }}>
-              <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/45">Business</p>
+          <aside className="border-t" style={{borderColor:KEBU.border}}>
+            <Link href="/business?tab=businesses" className="block border-b py-4 text-black" style={{ borderColor: KEBU.border }}>
+              <p className="text-[9px] font-black uppercase tracking-[.16em] text-black/40">Business</p>
               <p className="mt-3 text-lg font-black">My Businesses</p>
-              <p className="mt-1 text-[10px] leading-relaxed text-white/45">Open or activate business tools without mixing them into your personal account.</p>
+              <p className="mt-1 text-[10px] leading-relaxed text-black/40">Open or activate business tools without mixing them into your personal account.</p>
             </Link>
-            <Link href={MY_SITES_HREF} className="block rounded-[20px] border bg-white p-5" style={{ borderColor: KEBU.border }}>
+            <Link href={MY_SITES_HREF} className="block border-b py-4" style={{ borderColor: KEBU.border }}>
               <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Sites</p>
               <p className="mt-3 text-lg font-black">My Sites</p>
               <p className="mt-1 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>Manage the sites that actually exist in your account.</p>
             </Link>
-            <div className="rounded-[20px] border bg-[#FFFBF7] p-5" style={{ borderColor: KEBU.border }}>
+            <div className="border-b py-4" style={{ borderColor: KEBU.border }}>
               <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>One Kebu login</p>
               <p className="mt-2 text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>Your account, personal Mail addresses, businesses and product worlds remain connected without forcing separate logins.</p>
             </div>
