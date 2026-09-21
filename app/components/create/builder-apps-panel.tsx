@@ -27,13 +27,20 @@ export function BuilderAppsPanel({
     <div>
       <GalaxyPanelHeader
         eyebrow="Extend"
-        title="Apps & blocks"
-        description="Add useful capabilities to this site. Every block uses the same real Kebu save, responsive, and publish pipeline."
+        title="Extensions"
+        description="Add real capabilities to this site. Nothing here is a fake download."
       />
-      <div className="space-y-3 p-3">
+      <div className="p-3">
         {BUILDER_APP_BLOCKS.length ? (
-          <div className="grid gap-2">
-            {BUILDER_APP_BLOCKS.map((app) => {
+          <div className="space-y-4">
+            {(["Engage","Social","Media","Trust","Utility"] as const).map((group) => {
+              const groupItems = BUILDER_APP_BLOCKS.filter((item) => item.group === group);
+              if (!groupItems.length) return null;
+              return (
+                <section key={group}>
+                  <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[.12em] text-black/35">{group}</p>
+                  <div>
+                  {groupItems.map((app) => {
               const alreadyOnSite = installed.has(app.type);
               return (
                 <article key={app.type} className="group flex items-center gap-2.5 border-b border-black/[.07] py-2.5 last:border-b-0">
@@ -44,7 +51,7 @@ export function BuilderAppsPanel({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <h3 className="text-[11px] font-semibold text-black">{app.label}</h3>
-                        <GalaxyBadge>{app.app?.provider === "kebu" ? "Kebu" : "Connection"}</GalaxyBadge>
+                        <GalaxyBadge>{app.extension?.provider === "kebu" ? "Kebu" : "Connection"}</GalaxyBadge>
                         {alreadyOnSite ? <GalaxyBadge>On site</GalaxyBadge> : null}
                       </div>
                       <p className="mt-0.5 truncate text-[9px] text-black/40">{app.description}</p>
@@ -60,14 +67,18 @@ export function BuilderAppsPanel({
                   </button>
                 </article>
               );
+                  })}
+                  </div>
+                </section>
+              );
             })}
           </div>
         ) : (
-          <GalaxyEmptyState title="No app blocks available" detail="Kebu app blocks will appear here when they are available for this site." />
+          <GalaxyEmptyState title="No extensions available" detail="Site extensions will appear here when they are available for this design." />
         )}
 
         <div className="border-t border-black/[0.07] pt-3">
-          <p className="text-[10px] font-semibold text-black/45">Commerce lives in Kebu Shop</p>
+          <p className="text-[10px] font-semibold text-black/45">Products and orders stay in Kebu Shop</p>
           <p className="mt-1 text-[10px] leading-relaxed text-black/50">
             Manage products, orders, customers, inventory, and payments outside the canvas.
           </p>
