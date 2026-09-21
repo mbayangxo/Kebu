@@ -15,6 +15,9 @@ describe("builder layer model", () => {
     const props: Record<string, unknown> = {};
     expect(readBuilderLayerPresentation(props, "titleLogo")).toEqual({
       scale: 1,
+      widthScale: 1,
+      heightScale: 1,
+      crop: 0,
       zIndex: 10,
       opacity: 1,
       rotation: 0,
@@ -36,9 +39,12 @@ describe("builder layer model", () => {
 
     expect(readBuilderLayerPresentation(next, "titleLogo")).toEqual({
       scale: 3,
+      widthScale: 1,
+      heightScale: 1,
+      crop: 0,
       zIndex: 80,
       opacity: 0,
-      rotation: 180,
+      rotation: 40,
       locked: true,
       hidden: true,
     });

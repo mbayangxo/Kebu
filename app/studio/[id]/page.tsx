@@ -919,7 +919,7 @@ export default function StudioEditorPage() {
             </button>
           ) : null}
         </div>
-        <div className="flex min-h-12 items-center gap-2 overflow-x-auto border-t border-white/[.06] px-3 sm:px-5">
+        <div className="flex min-h-12 items-center gap-2 overflow-x-auto whitespace-nowrap border-t border-white/[.06] px-3 sm:px-5">
           <Link href="/studio" className="rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wide text-white/45 hover:bg-white/[.05]">← Projects</Link>
           <h1 className="min-w-[160px] max-w-sm flex-1 truncate text-[12px] font-black tracking-[-.02em] text-white">{design.title}</h1>
         <button
