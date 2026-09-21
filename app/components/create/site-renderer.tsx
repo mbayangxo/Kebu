@@ -36,6 +36,7 @@ import {
 } from "@/app/components/create/legally-blonde-layout";
 import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
 import { cssFontStack } from "@/lib/create/site-theme-fonts";
+import { layerMotionClass, type LayerMotion } from "@/app/components/create/circular-brand-ring";
 import {
   KdirectionHomeLayout,
   KdirectionPageLayout,
@@ -2228,6 +2229,14 @@ export function SiteRenderer({
                 align: "left" | "center" | "right";
                 color?: string;
                 fontFamily?: string;
+                fontWeight?: number;
+                letterSpacing?: number;
+                lineHeight?: number;
+                rotation?: number;
+                opacity?: number;
+                animation?: LayerMotion;
+                animationDurationMs?: number;
+                animationDelayMs?: number;
               }[];
             };
             const fontSizeMap = { sm: "0.875rem", md: "1rem", lg: "1.25rem", xl: "1.75rem", hero: "2.5rem" };
@@ -2251,7 +2260,7 @@ export function SiteRenderer({
                 {(p.blocks ?? []).map((block) => (
                   <div
                     key={block.id}
-                    className="absolute px-2 select-none"
+                    className={`absolute px-2 select-none ${layerMotionClass(block.animation, !editor)}`}
                     style={{
                       left: `${block.x}%`,
                       top: `${block.y}%`,
@@ -2262,6 +2271,13 @@ export function SiteRenderer({
                         ? cssFontStack(block.fontFamily)
                         : cssFontStack(theme.fontDisplay),
                       color: block.color || theme.text,
+                      fontWeight: block.fontWeight ?? 700,
+                      letterSpacing: `${block.letterSpacing ?? 0}em`,
+                      lineHeight: block.lineHeight ?? 1.1,
+                      rotate: `${block.rotation ?? 0}deg`,
+                      opacity: block.opacity ?? 1,
+                      "--kebu-motion-duration": `${block.animationDurationMs ?? 650}ms`,
+                      "--kebu-motion-delay": `${block.animationDelayMs ?? 0}ms`,
                       cursor: editor ? "grab" : "default",
                       touchAction: editor ? "none" : undefined,
                       userSelect: editor ? "none" : undefined,
