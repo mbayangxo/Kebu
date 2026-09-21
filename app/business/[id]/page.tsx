@@ -198,7 +198,26 @@ export default function BusinessDashboardPage() {
   const bizName = business?.trading_name || business?.legal_name || "Business";
 
   return (
-    <AppShell title={bizName}>
+    <AppShell title={bizName} immersive>
+      <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur" style={{ borderColor: KEBU.borders.default }}>
+        <div className="flex min-h-14 items-center gap-3 px-3 sm:px-5 lg:px-7">
+          <Link href="/business?tab=businesses" className="flex min-h-9 items-center gap-2 rounded-full px-2.5 text-[10px] font-black uppercase tracking-[.1em] hover:bg-black/[.035]">
+            <span aria-hidden>←</span><span className="hidden sm:inline">My Businesses</span>
+          </Link>
+          <span className="h-5 w-px bg-black/10" aria-hidden />
+          <KebuMark size={22} />
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-black">{bizName}</p>
+            <p className="text-[8px] font-bold uppercase tracking-[.14em] text-black/35">Business world</p>
+          </div>
+          <nav className="ml-3 hidden items-center gap-1 lg:flex" aria-label="Business world">
+            <a href="#sites" className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-[.1em] text-black/55 hover:bg-black/[.04]">Sites</a>
+            <a href="#team" className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-[.1em] text-black/55 hover:bg-black/[.04]">People</a>
+            <a href="#operations" className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-[.1em] text-black/55 hover:bg-black/[.04]">Operations</a>
+            <Link href="/email" className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-[.1em] text-black/55 hover:bg-black/[.04]">Mail</Link>
+          </nav>
+        </div>
+      </header>
       {loading ? (
         <div className="px-6 sm:px-8 lg:px-10 pt-10">
           <p className="text-sm" style={{ color: KEBU.muted }}>Loading business…</p>
@@ -236,7 +255,7 @@ export default function BusinessDashboardPage() {
                 Build website
               </Link>
               <Link
-                href="/business?tab=pulse"
+                href="/business?tab=businesses"
                 className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
                 style={{ border: `1px solid ${KEBU.border}` }}
               >
@@ -358,7 +377,7 @@ export default function BusinessDashboardPage() {
               ) : null}
 
               {/* Team, Press, Artist panels */}
-              <BusinessTeamPanel businessId={id} />
+              <div id="team"><BusinessTeamPanel businessId={id} /></div>
               <BusinessPressPanel businessId={id} />
               <BusinessArtistCampaignsPanel businessId={id} />
               <BusinessArtistMediaPanel businessId={id} />

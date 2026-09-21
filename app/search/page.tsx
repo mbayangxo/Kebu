@@ -45,7 +45,7 @@ export default function SearchPage() {
     return () => clearTimeout(timer);
   }, [q, mode]);
 
-  return <AppShell title="Search">
+  return <AppShell title="Search" immersive>
     <main className="min-h-[calc(100vh-60px)] px-4 py-8 sm:px-8 lg:px-12" style={{ background: KEBU.bright, color: KEBU.black }}>
       <div className="mx-auto max-w-5xl">
         <header className="mb-8 max-w-3xl">
