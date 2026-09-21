@@ -1023,9 +1023,12 @@ export default function ProjectEditorPage() {
       if (isChromeSectionId(id)) return;
       void moveSection(id, dir === "up" ? -1 : 1);
     },
-    onAddSection: (type: string) => addSection(type),
-    onAddSectionAfter: (type: string, afterSectionId: string | null) =>
-      addSection(type, undefined, afterSectionId),
+    onAddSection: async (type: string) => {
+      await addSection(type);
+    },
+    onAddSectionAfter: async (type: string, afterSectionId: string | null) => {
+      await addSection(type, undefined, afterSectionId);
+    },
     onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => {
       const section = sections.find((s) => s.id === sectionId);
       if (!section || section.section_type !== "free-text") return;
@@ -1471,7 +1474,7 @@ export default function ProjectEditorPage() {
                 <div>
                   <SiteAssetsPanel
                     projectId={projectId}
-                    onUseOnSite={(asset) => void applyMediaAsset(asset)}
+                    onAddOnSite={(asset) => void applyMediaAsset(asset)}
                   />
                 </div>
               )}

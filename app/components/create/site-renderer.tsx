@@ -2281,6 +2281,9 @@ export function SiteRenderer({
                       cursor: editor ? "grab" : "default",
                       touchAction: editor ? "none" : undefined,
                       userSelect: editor ? "none" : undefined,
+                    } as CSSProperties & {
+                      "--kebu-motion-duration"?: string;
+                      "--kebu-motion-delay"?: string;
                     }}
                     onPointerDown={(e) => {
                       if (!editor?.onMoveFreeTextBlock) return;

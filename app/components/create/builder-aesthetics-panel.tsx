@@ -329,7 +329,7 @@ export function BuilderAestheticsPanel({
         <EditorAccordion title="Photos" open={openId === "photos"} onToggle={() => toggle("photos")}>
           <SiteAssetsPanel
             projectId={projectId}
-            onUseOnSite={(asset) => {
+            onAddOnSite={(asset) => {
               if (asset.kind === "image") onUsePhotoOnSite?.(asset.url);
             }}
           />

@@ -32,6 +32,11 @@ import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import "./artist-motion.css";
 import "./legally-blonde-tilda.css";
 
+type MotionStyle = CSSProperties & {
+  "--kebu-motion-duration"?: string;
+  "--kebu-motion-delay"?: string;
+};
+
 type TildaLayer = {
   id: string;
   type: string;
@@ -280,7 +285,7 @@ function renderLayer(
   const layerHref = scaleKey ? String(props.layerLinks?.[scaleKey] ?? "").trim() : "";
   const motionKey = scaleKey || layer.id;
   const customMotion = props.layerMotions?.[motionKey] as LayerMotion | undefined;
-  const motionDuration = Math.min(20000, Math.max(100, Number(props.layerMotionDuration?.[motionKey] ?? (titleMotion === "spin" ? 14000 : customMotion === "float" ? 3200 : customMotion === "bob" ? 2400 : customMotion === "pulse" ? 2200 : 650))));
+  const motionDuration = Math.min(20000, Math.max(100, Number(props.layerMotionDuration?.[motionKey] ?? (customMotion === "spin" ? 14000 : customMotion === "float" ? 3200 : customMotion === "bob" ? 2400 : customMotion === "pulse" ? 2200 : 650))));
   const motionDelay = Math.min(5000, Math.max(0, Number(props.layerMotionDelay?.[motionKey] ?? 0)));
   const editable = Boolean(opts.editing && LB_EDITABLE_LAYER_KEYS[layer.id] && CUTOUT_LAYER_IDS.has(layer.id));
 
@@ -327,7 +332,7 @@ function renderLayer(
     if (scroll.rotate) transformParts.push(`rotate(${scroll.rotate}deg)`);
   }
 
-  const style: CSSProperties = {
+  const style: MotionStyle = {
     ...baseStyle,
     ...atomStyle,
     transform: transformParts.length ? transformParts.join(" ") : baseStyle.transform,
@@ -898,6 +903,9 @@ export function LegallyBlondeHeroLayout({
                 .filter((c) => c.src && !(props.hiddenLayers ?? []).includes(c.id))
                 .map((photo) => {
                   const scale = props.layerScales?.[photo.id] ?? 1;
+                  const widthScale = props.layerWidthScale?.[photo.id] ?? 1;
+                  const heightScale = props.layerHeightScale?.[photo.id] ?? 1;
+                  const crop = props.layerCrop?.[photo.id] ?? 0;
                   return (
                     <ExtraCutoutItem
                       key={photo.id}
