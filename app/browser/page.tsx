@@ -177,8 +177,16 @@ export default function BrowserPage() {
 
   return (
     <AppShell title="Browser" immersive>
-      <div className="min-h-[calc(100vh-60px)] bg-[#EDE9E3] p-2 sm:p-3">
-        <div className="mx-auto flex min-h-[calc(100vh-80px)] max-w-[1600px] flex-col overflow-hidden rounded-[24px] border bg-white shadow-[0_18px_70px_rgba(10,10,10,.10)]" style={{ borderColor: KEBU.borders.default }}>
+      <div className="min-h-screen bg-[#EDE9E3] p-0 sm:p-2">
+        <div className="mx-auto grid min-h-screen max-w-[1680px] overflow-hidden bg-white shadow-[0_18px_70px_rgba(10,10,10,.10)] sm:min-h-[calc(100vh-16px)] sm:grid-cols-[64px_minmax(0,1fr)] sm:rounded-[18px] sm:border" style={{ borderColor: KEBU.borders.default }}>
+          <aside className="hidden flex-col items-center border-r bg-[#090A0C] py-3 text-white sm:flex" style={{borderColor:"rgba(255,255,255,.08)"}}>
+            <Link href="/dashboard" className="mb-4 text-[22px] font-black tracking-[-.08em]"><span className="text-[#FF6A00]">K</span></Link>
+            <nav className="flex flex-1 flex-col items-center gap-2">
+              {[[ "/browser","⌂"],["/search","✦"],["/my-sites","▣"],["/shop","□"],["/email","✉"],["/people","◉"],["/calendar","▦"]].map(([href,icon],index)=><Link key={href} href={href} className="flex h-9 w-9 items-center justify-center rounded-[9px] text-[14px] transition" style={{background:index===0?"#5A170C":"transparent",color:index===0?"#FFB09A":"rgba(255,255,255,.7)"}}>{icon}</Link>)}
+            </nav>
+            <Link href="/account" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-[10px]">ME</Link>
+          </aside>
+          <div className="flex min-w-0 flex-col">
           <header className="border-b bg-[#F7F4EF]" style={{ borderColor: KEBU.borders.default }}>
             <div className="flex items-end gap-1 overflow-x-auto px-2 pt-2">
               {tabs.map((tab) => (
@@ -246,8 +254,13 @@ export default function BrowserPage() {
               )}
             </main>
 
-            {sidePanel ? (
-              <aside className="hidden w-[330px] shrink-0 overflow-y-auto border-l bg-[#FFFCF8] p-4 lg:block" style={{ borderColor: KEBU.borders.default }}>
+            <aside className="hidden w-[300px] shrink-0 overflow-y-auto border-l bg-[#FFFCF8] p-4 lg:block" style={{ borderColor: KEBU.borders.default }}>
+              {!sidePanel ? <div className="space-y-4">
+                <section className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-black text-[12px] text-white">✦</span><div><p className="text-[10px] font-semibold">Ask Yande</p><p className="text-[8px] text-black/35">Search, summarize, create, plan.</p></div></div>{["Summarize this page","Compare what I’m viewing","Save this to Kebu","Translate this page","Extract key points"].map((label)=><button key={label} type="button" className="mt-2 flex w-full items-center justify-between rounded-full border px-3 py-2 text-left text-[8px]" style={{borderColor:KEBU.border}}><span>{label}</span><span className="text-black/25">›</span></button>)}</section>
+                <section className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">Saved to Kebu</p><button type="button" onClick={()=>setSidePanel("bookmarks")} className="text-[8px] text-black/35">See all →</button></div>{bookmarks.slice(0,3).map((item)=><button key={item.id} type="button" onClick={()=>void navigate(item.url)} className="block w-full border-t py-2.5 text-left" style={{borderColor:KEBU.border}}><p className="truncate text-[9px] font-semibold">{item.title}</p><p className="truncate text-[8px] text-black/35">{item.url}</p></button>)}{!bookmarks.length?<p className="py-3 text-[8px] text-black/35">Saved pages will appear here.</p>:null}</section>
+                <section className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">Tabs</p><button type="button" onClick={()=>void newTab()} className="text-[16px] text-black/30">+</button></div>{tabs.slice(0,5).map((tab)=><button key={tab.id} onClick={()=>{setActiveId(tab.id);setPage(null)}} className="flex w-full items-center gap-2 border-t py-2.5 text-left" style={{borderColor:KEBU.border}}><span className="flex h-6 w-6 items-center justify-center rounded bg-black/[.04] text-[8px]">K</span><span className="min-w-0 flex-1 truncate text-[8px]">{tab.title||"New tab"}</span></button>)}</section>
+              </div> : null}
+              {sidePanel ? <>
                 <div className="flex gap-1">
                   {(["bookmarks","history","journeys"] as const).map((item) => <button key={item} type="button" onClick={() => setSidePanel(item)} className="rounded-full px-3 py-2 text-[8px] font-black uppercase tracking-wide" style={{ background: sidePanel === item ? KEBU.black : "white", color: sidePanel === item ? "white" : KEBU.muted, border: "1px solid " + KEBU.borders.default }}>{item}</button>)}
                 </div>
@@ -260,8 +273,9 @@ export default function BrowserPage() {
                   <div className="flex gap-1.5"><input value={journeyName} onChange={(event) => setJourneyName(event.target.value)} placeholder="New journey" disabled={privateMode} className="min-h-9 min-w-0 flex-1 rounded-xl border bg-white px-3 text-[10px] font-bold outline-none" style={{ borderColor: KEBU.borders.default }} /><button type="button" onClick={() => void createJourney()} disabled={!journeyName.trim() || privateMode} className="rounded-xl bg-black px-3 text-[9px] font-black text-white disabled:opacity-30">Add</button></div>
                   <div className="mt-3 space-y-2">{journeys.map((journey) => <div key={journey.id} className="border-b py-3" style={{ borderColor: KEBU.borders.default }}><p className="text-[10px] font-black">{journey.name}</p><p className="mt-1 text-[8px]" style={{ color: KEBU.muted }}>A focused collection for tabs and bookmarks.</p></div>)}</div>
                 </div> : null}
-              </aside>
-            ) : null}
+              </> : null}
+            </aside>
+          </div>
           </div>
         </div>
       </div>
