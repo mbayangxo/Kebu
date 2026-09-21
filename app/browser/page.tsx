@@ -176,7 +176,7 @@ export default function BrowserPage() {
   }
 
   return (
-    <AppShell title="Browser">
+    <AppShell title="Browser" immersive>
       <div className="min-h-[calc(100vh-60px)] bg-[#EDE9E3] p-2 sm:p-3">
         <div className="mx-auto flex min-h-[calc(100vh-80px)] max-w-[1600px] flex-col overflow-hidden rounded-[24px] border bg-white shadow-[0_18px_70px_rgba(10,10,10,.10)]" style={{ borderColor: KEBU.borders.default }}>
           <header className="border-b bg-[#F7F4EF]" style={{ borderColor: KEBU.borders.default }}>

@@ -66,7 +66,7 @@ function MySpaceInner() {
   const search = useSearchParams();
   const tabParam = search.get("tab");
   const [tab, setTab] = useState<TabId>(
-    tabParam && TABS.some((t) => t.id === tabParam) ? (tabParam as TabId) : "pulse",
+    tabParam && TABS.some((t) => t.id === tabParam) ? (tabParam as TabId) : "businesses",
   );
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [summary, setSummary] = useState<HomeSummary | null>(null);
@@ -126,8 +126,8 @@ function MySpaceInner() {
 
   useEffect(() => {
     if (tabParam === "overview") {
-      setTab("pulse");
-      router.replace("/business?tab=pulse", { scroll: false });
+      setTab("businesses");
+      router.replace("/business?tab=businesses", { scroll: false });
       return;
     }
     if (tabParam && TABS.some((t) => t.id === tabParam)) setTab(tabParam as TabId);
@@ -400,12 +400,12 @@ function MySpaceInner() {
                 No Kebu ID yet. Register when you’re ready — it lives here, not mixed into Aesthetics.
               </p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {businesses.map((b) => (
                   <li key={b.id}>
                     <Link
                       href={`/business/${b.id}`}
-                      className="block rounded-2xl p-4"
+                      className="group block min-h-[150px] rounded-[20px] p-5 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(10,10,10,.06)]"
                       style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
                     >
                       <p className="font-bold">{b.trading_name || b.legal_name}</p>

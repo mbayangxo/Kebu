@@ -108,7 +108,7 @@ export default async function StudioHomePage() {
   const hasRecent = recentDesigns.length > 0 || recentVideos.length > 0;
 
   return (
-    <AppShell title="Studio">
+    <AppShell title="Studio" immersive>
       <main className="min-h-screen bg-[#FFFCF8] text-black">
         <section className="grid min-h-[620px] border-b border-black/10 lg:grid-cols-[minmax(0,1.05fr)_minmax(520px,.95fr)]">
           <div className="flex flex-col justify-between border-b border-black/10 px-5 py-9 sm:px-8 lg:border-b-0 lg:border-r lg:px-12 lg:py-12 xl:px-16">

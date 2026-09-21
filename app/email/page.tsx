@@ -94,6 +94,7 @@ export default function EmailPage() {
   const [setupLocalPart, setSetupLocalPart] = useState("");
   const [setupDisplayName, setSetupDisplayName] = useState("");
   const [setupBusy, setSetupBusy] = useState(false);
+  const [showPersonalMailboxSetup, setShowPersonalMailboxSetup] = useState(false);
 
   const activeMailbox = useMemo(() => mailboxes.find((item) => item.id === mailboxId) ?? null, [mailboxes, mailboxId]);
   const selected = useMemo(() => messages.find((item) => item.id === selectedId) ?? null, [messages, selectedId]);
@@ -347,6 +348,8 @@ export default function EmailPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Could not activate Kebu Mail.");
       setNeedsPersonalSetup(false);
+      setShowPersonalMailboxSetup(false);
+      setSetupLocalPart("");
       await loadMailboxes();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not activate Kebu Mail.");
@@ -366,7 +369,7 @@ export default function EmailPage() {
 
   if (!loading && mailContext === "personal" && needsPersonalSetup && mailboxes.length === 0) {
     return (
-      <AppShell title="Mail">
+      <AppShell title="Mail" immersive>
         <main className="min-h-[calc(100vh-60px)] bg-[#FFFCF8] px-4 py-10 sm:px-6">
           <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[28px] border bg-white lg:grid-cols-[1fr_420px]" style={{ borderColor: KEBU.borders.default }}>
             <section className="p-6 sm:p-9 lg:p-12">
@@ -466,7 +469,7 @@ export default function EmailPage() {
   }
 
   return (
-    <AppShell title="Mail">
+    <AppShell title="Mail" immersive>
       <div className="min-h-[calc(100vh-60px)] bg-[#FFFCF8] p-3 sm:p-4">
         <div className="mx-auto grid min-h-[calc(100vh-92px)] max-w-[1560px] overflow-hidden rounded-[24px] border bg-white lg:grid-cols-[220px_360px_minmax(0,1fr)]" style={{ borderColor: KEBU.borders.default }}>
           <aside className="border-b p-3 lg:border-b-0 lg:border-r" style={{ borderColor: KEBU.borders.default }}>
@@ -507,6 +510,50 @@ export default function EmailPage() {
               <p className="mt-1 break-all text-[10px] font-bold">{activeMailbox?.address ?? "Provisioning…"}</p>
               <p className="mt-2 text-[9px] leading-relaxed" style={{ color: KEBU.faint }}>{mailContext === "business" ? "This mailbox belongs only to the active Business Kebu. Your personal @kebu.africa mail stays separate." : "This is your personal Kebu mailbox. Business-domain mail only appears after you switch into that Business Kebu."}</p>
             </div>
+            {mailContext === "personal" ? (
+              <div className="mt-3 hidden lg:block">
+                <button
+                  type="button"
+                  onClick={() => setShowPersonalMailboxSetup((value) => !value)}
+                  className="text-[9px] font-black uppercase tracking-wide"
+                  style={{ color: KEBU.orange }}
+                >
+                  {showPersonalMailboxSetup ? "Cancel" : "+ Add another email address"}
+                </button>
+                {showPersonalMailboxSetup ? (
+                  <form onSubmit={(event) => void activatePersonalMail(event)} className="mt-3 space-y-2 rounded-[14px] border bg-[#FFFCF8] p-3" style={{ borderColor: KEBU.borders.default }}>
+                    <input
+                      value={setupDisplayName}
+                      onChange={(event) => setSetupDisplayName(event.target.value)}
+                      required
+                      maxLength={120}
+                      className="min-h-9 w-full rounded-lg border bg-white px-2.5 text-[10px] outline-none focus:ring-2 focus:ring-[#FF6A00]"
+                      style={{ borderColor: KEBU.borders.default }}
+                      placeholder="Display name"
+                    />
+                    <div className="flex min-h-9 items-center rounded-lg border bg-white" style={{ borderColor: KEBU.borders.default }}>
+                      <input
+                        value={setupLocalPart}
+                        onChange={(event) => setSetupLocalPart(event.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
+                        required
+                        minLength={2}
+                        maxLength={48}
+                        className="min-w-0 flex-1 bg-transparent px-2.5 text-[10px] outline-none"
+                        placeholder="address"
+                      />
+                      <span className="pr-2 text-[9px] font-bold" style={{ color: KEBU.muted }}>@{mailDomain}</span>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={setupBusy || setupLocalPart.trim().length < 2 || !setupDisplayName.trim()}
+                      className="min-h-9 w-full rounded-lg bg-black px-3 text-[9px] font-black uppercase tracking-wide text-white disabled:opacity-40"
+                    >
+                      {setupBusy ? "Creating…" : "Create address"}
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            ) : null}
             {mailContext === "business" ? (
               <button type="button" onClick={() => setShowBusinessSetup((value) => !value)} className="mt-3 hidden text-[9px] font-black uppercase tracking-wide lg:inline-flex" style={{ color: KEBU.orange }}>{showBusinessSetup ? "Back to mailbox ←" : "Business mail settings →"}</button>
             ) : (
