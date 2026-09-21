@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { StudioGenerationHistory } from "@/app/components/studio/studio-generation-history";
 import { StudioDesignLibrary } from "@/app/components/studio/studio-design-library";
+import { StudioGenerationHistory } from "@/app/components/studio/studio-generation-history";
 import type { StudioDesignRole } from "@/lib/studio/design-access";
 import { KEBU } from "@/lib/kebu-brand";
 import { AppShell } from "@/app/components/app-shell";
@@ -18,24 +18,48 @@ type FormatCard = {
 };
 
 const FORMATS: FormatCard[] = [
-  { type: "instagram_post", label: "Instagram post", sublabel: "1080 × 1080", href: "/studio/new?type=instagram_post", aspect: 1, accent: "#FF6A00" },
-  { type: "instagram_story", label: "Story / Reel", sublabel: "1080 × 1920", href: "/studio/new?type=instagram_story", aspect: 9 / 16, accent: "#FF1F1F" },
-  { type: "poster", label: "Poster", sublabel: "900 × 1200", href: "/studio/new?type=poster", aspect: 900 / 1200, accent: "#A15CFF" },
+  { type: "instagram_post", label: "Instagram post", sublabel: "1080 × 1080", href: "/studio/new?type=instagram_post", aspect: 1, accent: "#E1306C" },
+  { type: "instagram_story", label: "Story / Reel", sublabel: "1080 × 1920", href: "/studio/new?type=instagram_story", aspect: 9 / 16, accent: "#FF5500" },
+  { type: "poster", label: "Poster", sublabel: "900 × 1200", href: "/studio/new?type=poster", aspect: 900 / 1200, accent: "#9333EA" },
   { type: "flyer", label: "Flyer", sublabel: "816 × 1056", href: "/studio/new?type=flyer", aspect: 816 / 1056, accent: "#0EA5E9" },
-  { type: "business_card", label: "Business card", sublabel: "1050 × 600", href: "/studio/new?type=business_card", aspect: 1050 / 600, accent: "#0E9F6E" },
-  { type: "banner", label: "Banner", sublabel: "1500 × 500", href: "/studio/new?type=banner", aspect: 1500 / 500, accent: "#F4B400" },
-  { type: "whatsapp_status", label: "WhatsApp status", sublabel: "1080 × 1920", href: "/studio/new?type=whatsapp_status", aspect: 9 / 16, accent: "#0E9F6E" },
-  { type: "social_square", label: "Social square", sublabel: "1080 × 1080", href: "/studio/new?type=social_square", aspect: 1, accent: "#111111" },
+  { type: "business_card", label: "Business card", sublabel: "1050 × 600", href: "/studio/new?type=business_card", aspect: 1050 / 600, accent: "#10B981" },
+  { type: "banner", label: "Banner", sublabel: "1500 × 500", href: "/studio/new?type=banner", aspect: 1500 / 500, accent: "#F59E0B" },
+  { type: "whatsapp_status", label: "WhatsApp status", sublabel: "1080 × 1920", href: "/studio/new?type=whatsapp_status", aspect: 9 / 16, accent: "#25D366" },
+  { type: "social_square", label: "Social square", sublabel: "1080 × 1080", href: "/studio/new?type=social_square", aspect: 1, accent: "#6366F1" },
 ];
 
-function FormatMark({ format }: { format: FormatCard }) {
-  const width = format.aspect > 1.7 ? 78 : format.aspect < .75 ? 44 : 58;
-  const height = Math.max(36, Math.min(68, Math.round(width / format.aspect)));
+const FORMAT_MAP = new Map(FORMATS.map((f) => [f.type, f]));
+
+function DesignThumb({ format, index }: { format?: FormatCard; index?: number }) {
+  const accent = format?.accent ?? KEBU.orange;
   return (
-    <span className="relative block overflow-hidden rounded-[8px] border border-black/10 shadow-[0_8px_25px_rgba(10,10,10,.07)]" style={{ width, height, background: `linear-gradient(145deg,${format.accent},#101010)` }}>
-      <span className="absolute left-2 top-2 h-1.5 w-6 rounded-full bg-white/80" />
-      <span className="absolute bottom-2 left-2 h-1 w-4 rounded-full bg-white/30" />
-    </span>
+    <div
+      className="absolute inset-0 rounded-[10px]"
+      style={{ background: `linear-gradient(145deg, ${accent}cc, #0A0A0A)` }}
+    >
+      <div className="absolute bottom-6 left-6 right-6">
+        <span className="block h-2 w-2/3 rounded-full bg-white/75" />
+        <span className="mt-1.5 block h-1.5 w-1/3 rounded-full bg-white/35" />
+      </div>
+      {index !== undefined && (
+        <span className="absolute right-3 top-3 text-[9px] font-black text-white/20">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function VideoThumb() {
+  return (
+    <div
+      className="absolute inset-0 rounded-[10px]"
+      style={{ background: "radial-gradient(circle at 65% 25%, rgba(255,85,0,.9), transparent 40%), linear-gradient(160deg, #111, #000)" }}
+    >
+      <span className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black text-sm">
+        ▶
+      </span>
+    </div>
   );
 }
 
@@ -102,126 +126,330 @@ export default async function StudioHomePage() {
     }));
   }
 
-  const recentDesigns = designs.slice(0, 4);
+  const recentDesigns = designs.slice(0, 6);
   const recentVideos = videos.slice(0, 2);
   const hasRecent = recentDesigns.length > 0 || recentVideos.length > 0;
+  const totalItems = designs.length + videos.length;
 
   return (
     <AppShell title="Studio" immersive>
-      <main className="min-h-screen bg-[#FFFCF8] text-black">
-        <section className="border-b border-black/10">
-          <div className="mx-auto max-w-[1600px] px-5 py-6 sm:px-8 lg:px-12">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/[.08] pb-4">
+      <main className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
+
+        {/* ── Hero ───────────────────────────────────────────────────── */}
+        <section style={{ borderBottom: `1px solid ${KEBU.border}` }}>
+          <div className="mx-auto max-w-[1600px] px-5 py-8 sm:px-8 lg:px-12">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[.16em]" style={{color:KEBU.orange}}>Kebu Studio · {workspace.mode === "business" ? "Business" : "Personal"}</p>
-                <p className="mt-1 text-[11px] text-black/40">Make the thing. Design, video, brand and campaign work in one creative world.</p>
+                <p
+                  className="text-[9px] font-black uppercase tracking-[.18em]"
+                  style={{ color: KEBU.orange }}
+                >
+                  Kebu Studio · {workspace.mode === "business" ? "Business" : "Personal"}
+                </p>
+                <h1
+                  className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl"
+                  style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.05 }}
+                >
+                  Create. Edit. Express.
+                </h1>
+                <p className="mt-2 max-w-sm text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
+                  Design, video, brand and campaign work — one creative world.
+                </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/studio/new" className="rounded-full bg-black px-4 py-2.5 text-[9px] font-semibold text-white">+ Create</Link>
-                <Link href="/studio/templates" className="rounded-full border border-black/10 px-4 py-2.5 text-[9px] font-semibold">Templates</Link>
-                <Link href="/studio/brand" className="rounded-full border border-black/10 px-4 py-2.5 text-[9px] font-semibold">Brand DNA</Link>
-              </div>
-            </div>
 
-            <div className="py-7">
-              <p className="mb-1 text-[9px] font-semibold uppercase tracking-[.14em] text-black/30">Start anywhere</p><p className="mb-3 text-[10px] font-semibold text-black/45">What are you making?</p>
-              <div className="grid border-t sm:grid-cols-2 lg:grid-cols-4" style={{borderColor:KEBU.border}}>
-                {FORMATS.map((format) => (
-                  <Link key={format.type} href={format.href} className="group flex min-h-[82px] items-center gap-3 border-b px-1 py-3 transition hover:pl-2 lg:px-3" style={{borderColor:KEBU.border}}>
-                    <FormatMark format={format} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[11px] font-semibold">{format.label}</span>
-                      <span className="mt-0.5 block text-[9px] text-black/35">{format.sublabel}</span>
-                    </span>
-                    <span className="text-[10px] text-black/20">→</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid border-t sm:grid-cols-3" style={{borderColor:KEBU.border}}>
-              {[
-                ["/studio/new?tab=ai","Start with an idea","Describe what you want and keep the result editable."],
-                ["/studio/video/new","Start a video","Open the timeline, sound and motion workspace."],
-                ["/studio/brand","Use Brand DNA","Bring your type, colors and voice into the work."],
-              ].map(([href,title,detail])=>(
-                <Link key={href} href={href} className="border-b py-4 sm:border-b-0 sm:border-r sm:px-4 sm:last:border-r-0" style={{borderColor:KEBU.border}}>
-                  <p className="text-[10px] font-semibold">{title}</p>
-                  <p className="mt-1 text-[9px] leading-relaxed text-black/38">{detail}</p>
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <Link
+                  href="/studio/new"
+                  className="flex items-center gap-2 rounded-full px-5 py-2.5 text-[11px] font-black text-white shadow-sm transition hover:opacity-90"
+                  style={{ background: KEBU.orange }}
+                >
+                  <span>+</span> New Project
                 </Link>
-              ))}
+                <Link
+                  href="/studio/templates"
+                  className="rounded-full border px-4 py-2.5 text-[10px] font-semibold transition hover:bg-black/5"
+                  style={{ borderColor: KEBU.border }}
+                >
+                  Templates
+                </Link>
+                <Link
+                  href="/studio/brand"
+                  className="rounded-full border px-4 py-2.5 text-[10px] font-semibold transition hover:bg-black/5"
+                  style={{ borderColor: KEBU.border }}
+                >
+                  Brand DNA
+                </Link>
+              </div>
+            </div>
+
+            {/* stat strip */}
+            {totalItems > 0 && (
+              <div className="mt-5 flex gap-5" style={{ borderTop: `1px solid ${KEBU.border}`, paddingTop: "16px" }}>
+                <span className="text-[10px]" style={{ color: KEBU.muted }}>
+                  <span className="font-black text-black">{designs.length}</span> designs
+                </span>
+                <span className="text-[10px]" style={{ color: KEBU.muted }}>
+                  <span className="font-black text-black">{videos.length}</span> videos
+                </span>
+                <span className="text-[10px]" style={{ color: KEBU.muted }}>
+                  <span className="font-black text-black">{shared.length}</span> shared with me
+                </span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ── 4 action tiles ─────────────────────────────────────────── */}
+        <section style={{ borderBottom: `1px solid ${KEBU.border}` }}>
+          <div className="mx-auto max-w-[1600px] px-5 py-6 sm:px-8 lg:px-12">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+              {/* Create a design */}
+              <Link
+                href="/studio/new"
+                className="group relative overflow-hidden rounded-[14px] border p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ borderColor: KEBU.border, background: KEBU.card }}
+              >
+                <div
+                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-[10px] text-xl"
+                  style={{ background: `${KEBU.orange}18` }}
+                >
+                  ✏️
+                </div>
+                <p className="text-[12px] font-black">Create a design</p>
+                <p className="mt-1 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
+                  Posts, flyers, cards, banners and more.
+                </p>
+                <span
+                  className="mt-4 inline-block text-[9px] font-black uppercase tracking-[.12em]"
+                  style={{ color: KEBU.orange }}
+                >
+                  Start →
+                </span>
+              </Link>
+
+              {/* Edit a video */}
+              <Link
+                href="/studio/video/new"
+                className="group relative overflow-hidden rounded-[14px] border p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ borderColor: KEBU.border, background: KEBU.card }}
+              >
+                <div
+                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-[10px] text-xl"
+                  style={{ background: "rgba(99,102,241,0.10)" }}
+                >
+                  🎬
+                </div>
+                <p className="text-[12px] font-black">Edit a video</p>
+                <p className="mt-1 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
+                  Timeline, captions, sound and motion.
+                </p>
+                <span
+                  className="mt-4 inline-block text-[9px] font-black uppercase tracking-[.12em]"
+                  style={{ color: "#6366F1" }}
+                >
+                  Open timeline →
+                </span>
+              </Link>
+
+              {/* AI generate */}
+              <Link
+                href="/studio/new?tab=ai"
+                className="group relative overflow-hidden rounded-[14px] border p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ borderColor: KEBU.border, background: KEBU.card }}
+              >
+                <div
+                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-[10px] text-xl"
+                  style={{ background: "rgba(147,51,234,0.10)" }}
+                >
+                  ✦
+                </div>
+                <p className="text-[12px] font-black">AI tools</p>
+                <p className="mt-1 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
+                  Describe what you want and keep the result editable.
+                </p>
+                <span
+                  className="mt-4 inline-block text-[9px] font-black uppercase tracking-[.12em]"
+                  style={{ color: "#9333EA" }}
+                >
+                  Generate →
+                </span>
+              </Link>
+
+              {/* Templates */}
+              <Link
+                href="/studio/templates"
+                className="group relative overflow-hidden rounded-[14px] border p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ borderColor: KEBU.border, background: KEBU.card }}
+              >
+                <div
+                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-[10px] text-xl"
+                  style={{ background: "rgba(14,165,233,0.10)" }}
+                >
+                  🗂️
+                </div>
+                <p className="text-[12px] font-black">Templates</p>
+                <p className="mt-1 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
+                  Complete visual worlds, not one-off cards.
+                </p>
+                <span
+                  className="mt-4 inline-block text-[9px] font-black uppercase tracking-[.12em]"
+                  style={{ color: "#0EA5E9" }}
+                >
+                  Browse →
+                </span>
+              </Link>
             </div>
           </div>
         </section>
 
-        {hasRecent ? (
-          <section className="border-b border-black/10 px-5 py-9 sm:px-8 lg:px-12 xl:px-16">
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Continue where you left off</p>
-                <h2 className="mt-2 text-3xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Your active work.</h2>
+        {/* ── Recent work ────────────────────────────────────────────── */}
+        {hasRecent && (
+          <section style={{ borderBottom: `1px solid ${KEBU.border}` }}>
+            <div className="mx-auto max-w-[1600px] px-5 py-8 sm:px-8 lg:px-12">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <p
+                    className="text-[9px] font-black uppercase tracking-[.16em]"
+                    style={{ color: KEBU.orange }}
+                  >
+                    Continue where you left off
+                  </p>
+                  <h2
+                    className="mt-1.5 text-2xl font-black tracking-[-.04em]"
+                    style={{ fontFamily: "var(--font-fraunces)" }}
+                  >
+                    Recent work
+                  </h2>
+                </div>
+                <Link
+                  href="#library"
+                  className="text-[10px] font-semibold transition hover:opacity-70"
+                  style={{ color: KEBU.orange }}
+                >
+                  See all →
+                </Link>
               </div>
-              <span className="text-[10px] font-bold text-black/35">{designs.length} designs · {videos.length} videos</span>
-            </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-              {recentDesigns.map((design, index) => {
-                const format = FORMATS.find((item) => item.type === design.design_type);
-                return (
-                  <Link key={design.id} href={`/studio/${design.id}`} className="group">
-                    <div className="relative h-[150px] overflow-hidden rounded-[12px] border border-black/10 bg-white">
-                      <div className="absolute inset-4 rounded-[14px]" style={{ background: `linear-gradient(145deg,${format?.accent ?? KEBU.orange},#111)` }} />
-                      <div className="absolute bottom-7 left-7 right-7">
-                        <span className="block h-2 w-2/3 rounded-full bg-white/80" />
-                        <span className="mt-2 block h-1.5 w-1/3 rounded-full bg-white/35" />
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
+                {recentDesigns.map((design, i) => {
+                  const format = FORMAT_MAP.get(design.design_type);
+                  const daysAgo = Math.floor(
+                    (Date.now() - new Date(design.updated_at).getTime()) / 86_400_000,
+                  );
+                  const timeLabel =
+                    daysAgo === 0 ? "Today" : daysAgo === 1 ? "Yesterday" : `${daysAgo}d ago`;
+                  return (
+                    <Link key={design.id} href={`/studio/${design.id}`} className="group">
+                      <div className="relative h-[140px] overflow-hidden rounded-[12px] border" style={{ borderColor: KEBU.border }}>
+                        <DesignThumb format={format} index={i} />
+                        <div className="absolute inset-0 rounded-[12px] bg-black/0 transition group-hover:bg-black/10" />
                       </div>
-                      <span className="absolute right-3 top-3 text-[9px] font-black text-black/25">0{index + 1}</span>
-                    </div>
-                    <p className="mt-2 truncate text-[10px] font-semibold">{design.title}</p>
-                    <p className="mt-1 text-[9px] capitalize text-black/35">{design.design_type.replaceAll("_", " ")}</p>
+                      <p className="mt-2 truncate text-[10px] font-semibold">{design.title}</p>
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <span className="text-[9px] capitalize" style={{ color: KEBU.muted }}>
+                          {design.design_type.replaceAll("_", " ")}
+                        </span>
+                        <span className="text-[9px]" style={{ color: KEBU.muted }}>·</span>
+                        <span className="text-[9px]" style={{ color: KEBU.faint }}>{timeLabel}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+
+                {recentVideos.map((video) => {
+                  const daysAgo = Math.floor(
+                    (Date.now() - new Date(video.updated_at).getTime()) / 86_400_000,
+                  );
+                  const timeLabel =
+                    daysAgo === 0 ? "Today" : daysAgo === 1 ? "Yesterday" : `${daysAgo}d ago`;
+                  return (
+                    <Link key={video.id} href={`/studio/video/${video.id}`} className="group">
+                      <div className="relative h-[140px] overflow-hidden rounded-[12px] border" style={{ borderColor: KEBU.border }}>
+                        <VideoThumb />
+                        <div className="absolute inset-0 rounded-[12px] bg-black/0 transition group-hover:bg-black/10" />
+                      </div>
+                      <p className="mt-2 truncate text-[10px] font-semibold">{video.title}</p>
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <span className="text-[9px] capitalize" style={{ color: KEBU.muted }}>
+                          Video · {video.edit_mode.replaceAll("_", " ")}
+                        </span>
+                        <span className="text-[9px]" style={{ color: KEBU.muted }}>·</span>
+                        <span className="text-[9px]" style={{ color: KEBU.faint }}>{timeLabel}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── Format quick-launch ─────────────────────────────────────── */}
+        <section style={{ borderBottom: `1px solid ${KEBU.border}` }}>
+          <div className="mx-auto max-w-[1600px] px-5 py-7 sm:px-8 lg:px-12">
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>
+              Quick format launch
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+              {FORMATS.map((format) => {
+                const thumbW = format.aspect > 1.4 ? 52 : format.aspect < 0.75 ? 28 : 38;
+                const thumbH = Math.max(24, Math.min(52, Math.round(thumbW / format.aspect)));
+                return (
+                  <Link
+                    key={format.type}
+                    href={format.href}
+                    className="group flex items-center gap-2.5 rounded-[10px] border p-3 transition hover:bg-white hover:shadow-sm"
+                    style={{ borderColor: KEBU.border }}
+                  >
+                    <span
+                      className="relative flex-shrink-0 overflow-hidden rounded-[5px]"
+                      style={{
+                        width: thumbW,
+                        height: thumbH,
+                        background: `linear-gradient(145deg, ${format.accent}, #0A0A0A)`,
+                      }}
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[10px] font-semibold">{format.label}</span>
+                      <span className="block text-[9px]" style={{ color: KEBU.muted }}>{format.sublabel}</span>
+                    </span>
                   </Link>
                 );
               })}
-
-              {recentVideos.map((video) => (
-                <Link key={video.id} href={`/studio/video/${video.id}`} className="group">
-                  <div className="relative h-[150px] overflow-hidden rounded-[12px] bg-black">
-                    <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 70% 20%,rgba(255,106,0,.95),transparent 34%),linear-gradient(160deg,#111,#000)" }} />
-                    <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-black">▶</span>
-                  </div>
-                  <p className="mt-2 truncate text-[11px] font-black">{video.title}</p>
-                  <p className="mt-1 text-[9px] capitalize text-black/35">video · {video.edit_mode.replaceAll("_", " ")}</p>
-                </Link>
-              ))}
             </div>
-          </section>
-        ) : null}
-
-        <section className="grid border-b border-black/10 lg:grid-cols-4">
-          {[
-            ["/studio/templates", "Themes", "Complete visual worlds, not one-off cards."],
-            ["/studio/brand", "Brand", "Logos, colors, typography and voice."],
-            ["/studio/campaigns", "Campaigns", "Connected creative sets across formats."],
-            ["/studio/video/new", "Video", "Timeline, captions, sound and motion."],
-          ].map(([href, label, description], index) => (
-            <Link key={href} href={href} className="group min-h-[120px] border-b border-black/10 p-4 transition hover:bg-white lg:border-b-0 lg:border-r">
-              <span className="text-[9px] font-black text-black/20">0{index + 1}</span>
-              <h3 className="mt-4 text-[12px] font-semibold">{label}</h3>
-              <p className="mt-2 max-w-xs text-[10px] leading-relaxed text-black/45">{description}</p>
-              <span className="mt-3 block text-[9px] font-semibold" style={{ color: KEBU.orange }}>Open →</span>
-            </Link>
-          ))}
+          </div>
         </section>
 
-        <section className="px-5 py-9 sm:px-8 lg:px-12 xl:px-16">
+        {/* ── Full library ───────────────────────────────────────────── */}
+        <section id="library" className="mx-auto max-w-[1600px] px-5 py-9 sm:px-8 lg:px-12">
           <div className="mb-5">
-            <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Your Studio</p>
-            <h2 className="mt-2 text-3xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Everything you have made here.</h2>
+            <p
+              className="text-[9px] font-black uppercase tracking-[.16em]"
+              style={{ color: KEBU.orange }}
+            >
+              Your Studio
+            </p>
+            <h2
+              className="mt-1.5 text-2xl font-black tracking-[-.04em]"
+              style={{ fontFamily: "var(--font-fraunces)" }}
+            >
+              Everything you have made.
+            </h2>
           </div>
+
           <StudioDesignLibrary initialOwned={designs} initialShared={shared} />
-          <details className="mt-8 border-t border-black/10 pt-5">
-            <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[.14em] text-black/40">AI generation history</summary>
-            <div className="pt-5"><StudioGenerationHistory /></div>
+
+          <details className="mt-8 border-t pt-5" style={{ borderColor: KEBU.border }}>
+            <summary
+              className="cursor-pointer text-[10px] font-black uppercase tracking-[.14em]"
+              style={{ color: KEBU.muted }}
+            >
+              AI generation history
+            </summary>
+            <div className="pt-5">
+              <StudioGenerationHistory />
+            </div>
           </details>
         </section>
       </main>
