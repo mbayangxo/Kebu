@@ -9,6 +9,7 @@ import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 
 const C = { ...KEBU, ink: KEBU.black, paper: KEBU.bright, muted: KEBU.muted } as const;
+const TRUST = [{ value: "1", label: "account across Kebu" }] as const;
 
 const WORLDS: Array<{ label:string; detail:string; href:string; icon:KebuIconName; live:boolean }> = [
   { label:"Studio", detail:"Design, video, content", href:"/studio", icon:"studio", live:true },
@@ -55,16 +56,16 @@ export function KebuOpportunityHome() {
                 <span className="text-[9px] font-semibold uppercase tracking-[.16em] text-black/35">One account · many worlds</span>
               </div>
               <h1 className="max-w-[11ch] text-[clamp(3.2rem,8.2vw,7.7rem)] font-semibold leading-[.84] tracking-[-.065em]" style={{ fontFamily:"var(--font-fraunces)" }}>
-                Your internet should work <span className="italic font-normal">for you.</span>
+                Build what’s next. <span className="italic font-normal">All yours.</span>
               </h1>
               <p className="mt-7 max-w-[620px] text-[clamp(.95rem,1.5vw,1.15rem)] leading-relaxed text-black/55">
-                Create, communicate, organize, build businesses and find opportunities without stitching together a dozen disconnected products.
+                Create, work, sell, communicate and find opportunities without stitching together a dozen disconnected products.
               </p>
               <div className="mt-8">
                 <KebuLandingHeroCTA orange={C.orange} ink={C.ink} border={C.border} />
               </div>
               <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 border-t border-black/[.07] pt-4 text-[9px] font-semibold text-black/40">
-                <span>Free to start</span><span>Offline-aware</span><span>Personal + Business</span><span>Africa-first</span>
+                <span>Free to start</span><span>Offline-aware</span><span>Personal + Business</span><span>Africa-first</span>{TRUST.map((item)=><span key={item.label}>{item.value} {item.label}</span>)}
               </div>
             </div>
 

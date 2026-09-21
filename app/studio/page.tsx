@@ -113,8 +113,8 @@ export default async function StudioHomePage() {
           <div className="mx-auto max-w-[1600px] px-5 py-6 sm:px-8 lg:px-12">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/[.08] pb-4">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[.16em]" style={{color:KEBU.orange}}>Studio · {workspace.mode === "business" ? "Business" : "Personal"}</p>
-                <p className="mt-1 text-[11px] text-black/40">Design, video, brand and campaign work in one creative world.</p>
+                <p className="text-[9px] font-semibold uppercase tracking-[.16em]" style={{color:KEBU.orange}}>Kebu Studio · {workspace.mode === "business" ? "Business" : "Personal"}</p>
+                <p className="mt-1 text-[11px] text-black/40">Make the thing. Design, video, brand and campaign work in one creative world.</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href="/studio/new" className="rounded-full bg-black px-4 py-2.5 text-[9px] font-semibold text-white">+ Create</Link>
@@ -124,7 +124,7 @@ export default async function StudioHomePage() {
             </div>
 
             <div className="py-7">
-              <p className="mb-3 text-[10px] font-semibold text-black/45">What are you making?</p>
+              <p className="mb-1 text-[9px] font-semibold uppercase tracking-[.14em] text-black/30">Start anywhere</p><p className="mb-3 text-[10px] font-semibold text-black/45">What are you making?</p>
               <div className="grid border-t sm:grid-cols-2 lg:grid-cols-4" style={{borderColor:KEBU.border}}>
                 {FORMATS.map((format) => (
                   <Link key={format.type} href={format.href} className="group flex min-h-[82px] items-center gap-3 border-b px-1 py-3 transition hover:pl-2 lg:px-3" style={{borderColor:KEBU.border}}>

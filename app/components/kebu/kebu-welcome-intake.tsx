@@ -297,7 +297,7 @@ export function KebuWelcomeIntake() {
                   <label className="mt-8 block">
                     <span className="text-[10px] font-semibold tracking-[.08em]">Name your Personal space <span style={{ color: KEBU.muted }}>· optional</span></span>
                     <input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} placeholder="e.g. My Kebu, School work, Creative projects" className="mt-2 min-h-12 w-full rounded-lg border bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
-                  </label><div className="mt-4 border-l-2 pl-3 text-[10px] leading-relaxed" style={{borderColor:KEBU.orange,color:KEBU.muted}}><strong style={{color:KEBU.black}}>Personal is your private starting space.</strong> Businesses and teams open as separate spaces later, with their own people and data.</div>
+                  </label><div className="mt-4 border-l-2 pl-3 text-[10px] leading-relaxed" style={{borderColor:KEBU.orange,color:KEBU.muted}}><strong style={{color:KEBU.black}}>Personal is your private starting space.</strong> Businesses and teams open as separate spaces later, with their own people and data, without mixing the work.</div>
                 </section>
               ) : null}
 
