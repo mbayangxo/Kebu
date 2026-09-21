@@ -21,7 +21,7 @@ export default function RoomsPage() {
   const [workspace, setWorkspace] = useState<AccountWorkspaceContext | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [roomType, setRoomType] = useState("project");
+  const [roomType, setRoomType] = useState("friends");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,16 +70,20 @@ export default function RoomsPage() {
         <header className="grid gap-5 border-b pb-6 lg:grid-cols-[1fr_420px] lg:items-end" style={{ borderColor: KEBU.borders.default }}>
           <div>
             <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Rooms · {workspace?.activeBusiness?.name ?? "Personal Kebu"}</p>
-            <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>A room is where a project actually lives.</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>Wall, tasks, calendar, links, people, decisions and chat stay together. Rooms sit inside a Kebu space; they are not the same thing as Chat or Spaces.</p>
+            <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>A room can be anything you gather people around.</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>Friends, school, study groups, hobbies, communities, projects and teams can each have a room. Chat lives inside the room alongside the people, links, events and shared context.</p>
           </div>
           <div className="rounded-[20px] border bg-white p-3.5" style={{ borderColor: KEBU.borders.default }}>
             <div className="grid grid-cols-[1fr_120px] gap-2">
               <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Room name" className="min-h-10 rounded-xl border px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
               <select value={roomType} onChange={(event) => setRoomType(event.target.value)} className="min-h-10 rounded-xl border bg-white px-2 text-[10px] font-bold outline-none" style={{ borderColor: KEBU.borders.default }}>
+                <option value="friends">Friends</option>
+                <option value="school">School / class</option>
+                <option value="study">Study group</option>
+                <option value="hobby">Hobby / interest</option>
+                <option value="community">Community</option>
                 <option value="project">Project</option>
                 <option value="team">Team</option>
-                <option value="community">Community</option>
                 <option value="client">Client</option>
               </select>
             </div>
@@ -106,7 +110,7 @@ export default function RoomsPage() {
             <div className="col-span-full rounded-[22px] border border-dashed bg-white p-10 text-center" style={{ borderColor: KEBU.borders.default }}>
               <KebuIcon name="spaces" size={30} className="mx-auto" style={{ color: KEBU.faint }} />
               <p className="mt-3 text-sm font-black">No rooms in this space yet.</p>
-              <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>Create one for a project, team, client or community when you need a shared working place.</p>
+              <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>Create one for friends, school, a hobby, a community, a project or a team. Chat and shared context stay together inside it.</p>
             </div>
           )}
         </section>
