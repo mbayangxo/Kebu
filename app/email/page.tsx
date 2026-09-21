@@ -531,7 +531,7 @@ export default function EmailPage() {
               />
               <span className="hidden rounded-md bg-black/[.04] px-1.5 py-1 text-[8px] font-semibold text-black/35 sm:inline">⌘ K</span>
             </label>
-            <button type="button" className="hidden rounded-full bg-black px-4 py-2 text-[10px] font-semibold text-white lg:inline-flex">✦ Ask EVA</button>
+            <button type="button" disabled title="EVA AI — coming soon" className="hidden cursor-not-allowed rounded-full bg-black/40 px-4 py-2 text-[10px] font-semibold text-white/50 lg:inline-flex">✦ Ask EVA</button>
             <button type="button" onClick={() => { resetComposer(); setCompose(true); }} className="hidden rounded-full border border-black/10 px-4 py-2 text-[10px] font-semibold sm:inline-flex">+ New message</button>
           </header>
 

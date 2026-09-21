@@ -131,7 +131,7 @@ export default function RoomPage() {
               <p className="text-[8px] text-white/35">DKLN&nbsp; › &nbsp;Rooms&nbsp; › &nbsp;{room?.name ?? "Room"}</p>
               <div className="mt-1 flex items-center gap-2"><h1 className="text-[27px] leading-none tracking-[-.035em]" style={{fontFamily:"var(--font-fraunces)"}}>{room?.name ?? "Loading…"}</h1><span className="text-white/30">☆</span></div>
             </div>
-            <div className="flex items-center gap-2"><button type="button" className="rounded-full border border-white/15 px-3 py-2 text-[8px] font-semibold text-white/75">Share</button><button type="button" className="rounded-full bg-[#FFB09A] px-4 py-2 text-[8px] font-semibold text-[#210B07]">Start a call</button></div>
+            <div className="flex items-center gap-2"><button type="button" disabled title="Share — coming soon" className="cursor-not-allowed rounded-full border border-white/10 px-3 py-2 text-[8px] font-semibold text-white/35">Share</button><button type="button" disabled title="Calls — coming soon" className="cursor-not-allowed rounded-full bg-[#FFB09A]/40 px-4 py-2 text-[8px] font-semibold text-[#210B07]/40">Start a call</button></div>
           </div>
 
           <nav className="mb-3 flex gap-2 overflow-x-auto">
