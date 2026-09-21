@@ -220,12 +220,26 @@ export function StudioCanvasEditor({
   const selected = layers.find((l) => l.id === primarySelectedId);
 
   useEffect(() => {
-    const el = boardRef.current;
-    if (!el || fittedOnce.current) return;
-    const fit = Math.min(0.85, Math.max(0.25, (el.clientWidth - 48) / page.width));
-    setZoom(Math.round(fit * 100));
-    fittedOnce.current = true;
-  }, [page.width]);
+    if (fittedOnce.current) return;
+    const tryFit = () => {
+      const el = boardRef.current;
+      if (!el || el.clientWidth === 0) return false;
+      const boardH = el.clientHeight || window.innerHeight * 0.7;
+      const fitW = (el.clientWidth - 48) / page.width;
+      const fitH = (boardH - 48) / page.height;
+      const fit = Math.min(0.9, Math.max(0.2, Math.min(fitW, fitH)));
+      setZoom(Math.round(fit * 100));
+      setPanOffset({ x: 0, y: 0 });
+      fittedOnce.current = true;
+      return true;
+    };
+    if (!tryFit()) {
+      // Layout hasn't settled yet — try next frame
+      const raf = requestAnimationFrame(() => { tryFit(); });
+      return () => cancelAnimationFrame(raf);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page.width, page.height]);
 
   const setPageLayers = useCallback(
     (nextLayers: CanvasLayer[], ephemeral = false) => {
@@ -1070,6 +1084,18 @@ export function StudioCanvasEditor({
                   </div>
                 );
               })}
+              {layers.length === 0 && !readOnly ? (
+                <div
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none select-none z-10"
+                  style={{ color: page.backgroundColor === "#FFFFFF" || page.backgroundColor === "#F8F4EF" ? "#888" : "rgba(255,255,255,0.35)" }}
+                >
+                  <div className="rounded-xl border border-current/20 bg-current/5 px-5 py-4 text-center backdrop-blur-sm">
+                    <p className="text-[14px] font-bold">Empty canvas</p>
+                    <p className="mt-1 text-[11px] opacity-75">Use the Elements panel on the left to add text, shapes, or images</p>
+                    <p className="mt-2 text-[9px] opacity-50">T&nbsp;·&nbsp;text &nbsp;·&nbsp; ■&nbsp;shape &nbsp;·&nbsp; ↑↑ upload photo</p>
+                  </div>
+                </div>
+              ) : null}
               {snapGuides.v != null ? (
                 <div
                   className="absolute top-0 bottom-0 w-px bg-pink-500 pointer-events-none z-20"

@@ -407,12 +407,30 @@ function pageFromLayers(
   });
 }
 
+function defaultBgForDesignType(designType: StudioDesignType): string {
+  switch (designType) {
+    case "flyer":
+    case "poster":
+    case "business_card":
+      return "#FFFFFF";
+    case "banner":
+      return "#F8F4EF";
+    case "instagram_post":
+    case "instagram_story":
+    case "whatsapp_status":
+    case "facebook_post":
+    case "social_square":
+    default:
+      return "#0F0D33";
+  }
+}
+
 export function defaultCanvasDocument(
   designType: StudioDesignType,
   opts?: { backgroundColor?: string; businessName?: string },
 ): CanvasDocument {
   const { width, height } = artboardSize(designType);
-  const bg = opts?.backgroundColor ?? "#0F0D33";
+  const bg = opts?.backgroundColor ?? defaultBgForDesignType(designType);
   const business = opts?.businessName?.trim() || "My business";
 
   if (designType === "banner") {
@@ -596,6 +614,10 @@ export function defaultCanvasDocument(
     });
   }
 
+  const lightBg = bg === "#FFFFFF" || bg === "#F8F4EF" || bg.toLowerCase() === "#fff";
+  const headlineColor = lightBg ? "#111111" : "#FFFFFF";
+  const subColor = lightBg ? "#555555" : "#FFFFFFAA";
+
   const layers: CanvasLayer[] = [
     {
       id: newLayerId(),
@@ -612,7 +634,7 @@ export function defaultCanvasDocument(
       fontSize: designType.includes("story") ? 56 : 48,
       fontFamily: "Fraunces",
       fontWeight: "700",
-      color: "#FFFFFF",
+      color: headlineColor,
       textAlign: "left",
     },
     {
@@ -630,7 +652,7 @@ export function defaultCanvasDocument(
       fontSize: 18,
       fontFamily: "system-ui",
       fontWeight: "600",
-      color: "#FFFFFFAA",
+      color: subColor,
       textAlign: "left",
     },
     {
