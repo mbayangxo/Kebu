@@ -124,55 +124,72 @@ export default function RoomPage() {
 
   return (
     <AppShell title={room?.name ?? "Room"}>
-      <div className="mx-auto max-w-[1500px] px-3 py-4 sm:px-5">
-        <header className="overflow-hidden rounded-[24px] bg-black text-white">
-          <div className="grid min-h-[190px] lg:grid-cols-[1fr_420px]">
-            <div className="p-5 sm:p-7">
-              <p className="text-[9px] font-black uppercase tracking-[.18em] text-[#FF6A00]">Room · {room?.room_type ?? "project"}</p>
-              <h1 className="mt-3 text-4xl font-black leading-[.95] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>{room?.name ?? "Loading…"}</h1>
-              <p className="mt-3 max-w-2xl text-[11px] leading-relaxed text-white/55">{room?.description || "A shared place for this work."}</p>
+      <div className="min-h-[calc(100vh-60px)] bg-[#080A0C] px-3 py-4 text-white sm:px-5">
+        <div className="mx-auto max-w-[1520px]">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[8px] text-white/35">DKLN&nbsp; › &nbsp;Rooms&nbsp; › &nbsp;{room?.name ?? "Room"}</p>
+              <div className="mt-1 flex items-center gap-2"><h1 className="text-[27px] leading-none tracking-[-.035em]" style={{fontFamily:"var(--font-fraunces)"}}>{room?.name ?? "Loading…"}</h1><span className="text-white/30">☆</span></div>
             </div>
-            <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg,#FF6A00,#FF1F1F)" }}>
-              <div className="absolute -right-14 -top-10 h-56 w-56 rotate-[30deg] rounded-[52px] border-[28px] border-black/60" />
-              <div className="absolute bottom-6 left-7 text-[10px] font-black uppercase tracking-[.16em] text-black/55">Wall · Tasks · Time<br />Links · People · Decisions · Chat</div>
-            </div>
+            <div className="flex items-center gap-2"><button type="button" className="rounded-full border border-white/15 px-3 py-2 text-[8px] font-semibold text-white/75">Share</button><button type="button" className="rounded-full bg-[#FFB09A] px-4 py-2 text-[8px] font-semibold text-[#210B07]">Start a call</button></div>
           </div>
-          <nav className="flex gap-1 overflow-x-auto border-t border-white/10 px-3 py-2">
-            {TABS.map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className="shrink-0 rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ background: tab === item.id ? KEBU.orange : "rgba(255,255,255,.06)", color: tab === item.id ? "white" : "rgba(255,255,255,.55)" }}>{item.label}</button>)}
-          </nav>
-        </header>
 
-        {error ? <div className="mt-4 rounded-xl border px-4 py-3 text-xs" style={{ borderColor: KEBU.status.errorBorder, background: KEBU.status.errorBg, color: KEBU.status.errorText }}>{error}</div> : null}
+          <nav className="mb-3 flex gap-2 overflow-x-auto">
+            {TABS.map((item) => <button key={item.id} type="button" onClick={() => setTab(item.id)} className="shrink-0 rounded-[10px] px-4 py-2.5 text-[8px] font-semibold" style={{ background: tab === item.id ? "#FFB09A" : "rgba(255,255,255,.055)", color: tab === item.id ? "#1A0806" : "rgba(255,255,255,.62)" }}>{item.label}</button>)}
+          </nav>
+
+          <section className="relative min-h-[205px] overflow-hidden rounded-[16px] border border-white/5">
+            <div className="absolute inset-0" style={{background:"radial-gradient(circle at 28% 45%,rgba(255,106,0,.5),transparent 24%),radial-gradient(circle at 78% 30%,rgba(255,176,154,.22),transparent 18%),linear-gradient(110deg,#170b09,#6f2519 50%,#121417)"}} />
+            <div className="absolute inset-0 opacity-25" style={{backgroundImage:"linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px)",backgroundSize:"48px 48px"}} />
+            <div className="relative grid min-h-[205px] items-center lg:grid-cols-[1fr_330px]">
+              <div className="p-6 sm:p-8">
+                <p className="text-[8px] font-semibold uppercase tracking-[.16em] text-[#FFB09A]">{room?.room_type ?? "Creative room"}</p>
+                <h2 className="mt-2 text-[42px] leading-[.92] tracking-[-.045em] sm:text-[58px]" style={{fontFamily:"var(--font-fraunces)"}}>{room?.name ?? "Room"}</h2>
+                <p className="mt-3 max-w-xl text-[10px] leading-relaxed text-white/55">{room?.description || "Create, collaborate and make it real."}</p>
+              </div>
+              <div className="border-l border-white/10 p-5"><p className="text-[28px] leading-[1.02] text-white/80" style={{fontFamily:"var(--font-fraunces)"}}>Create.<br/>Collaborate.<br/><span className="italic text-[#FFB09A]">Make it real.</span></p></div>
+            </div>
+          </section>
+        </div>
+        {error ? <div className="mx-auto mt-4 max-w-[1520px] rounded-xl border px-4 py-3 text-xs" style={{ borderColor: KEBU.status.errorBorder, background: KEBU.status.errorBg, color: KEBU.status.errorText }}>{error}</div> : null}
 
         {tab !== "overview" && tab !== "people" && tab !== "files" ? (
-          <section className="mt-4 rounded-[20px] border bg-white p-3.5" style={{ borderColor: KEBU.borders.default }}>
+          <section className="mx-auto mt-4 max-w-[1520px] rounded-[16px] border border-white/10 bg-[#0D0F11] p-3.5">
             <div className="grid gap-2 lg:grid-cols-[1fr_1fr_190px_auto]">
-              <input value={text} onChange={(event) => setText(event.target.value)} placeholder={composerLabel()} className="min-h-10 rounded-xl border px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
-              {["tasks","calendar","links","decisions"].includes(tab) ? <input value={secondary} onChange={(event) => setSecondary(event.target.value)} placeholder={tab === "links" ? "https://…" : "Notes / details"} className="min-h-10 rounded-xl border px-3 text-xs outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} /> : <div />}
-              {["tasks","calendar"].includes(tab) ? <input type="datetime-local" value={date} onChange={(event) => setDate(event.target.value)} className="min-h-10 rounded-xl border px-2 text-[10px] outline-none" style={{ borderColor: KEBU.borders.default }} /> : <div />}
+              <input value={text} onChange={(event) => setText(event.target.value)} placeholder={composerLabel()} className="min-h-10 rounded-xl border border-white/10 bg-white/[.04] px-3 text-xs font-bold text-white outline-none placeholder:text-white/25 focus:ring-2 focus:ring-[#FF6A00]" />
+              {["tasks","calendar","links","decisions"].includes(tab) ? <input value={secondary} onChange={(event) => setSecondary(event.target.value)} placeholder={tab === "links" ? "https://…" : "Notes / details"} className="min-h-10 rounded-xl border border-white/10 bg-white/[.04] px-3 text-xs text-white outline-none placeholder:text-white/25 focus:ring-2 focus:ring-[#FF6A00]" /> : <div />}
+              {["tasks","calendar"].includes(tab) ? <input type="datetime-local" value={date} onChange={(event) => setDate(event.target.value)} className="min-h-10 rounded-xl border border-white/10 bg-white/[.04] px-2 text-[10px] text-white outline-none" /> : <div />}
               <button type="button" disabled={!text.trim() || busy} onClick={() => void createAction()} className="rounded-xl bg-black px-4 py-2 text-[9px] font-black uppercase tracking-wide text-white disabled:opacity-35">{busy ? "Saving…" : "Add"}</button>
             </div>
           </section>
         ) : null}
 
-        <div className="mt-4">
+        <div className="mx-auto mt-4 max-w-[1520px]">
           {tab === "overview" ? (
-            <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
-              <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-                <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Room focus</p>
-                <h2 className="mt-1 text-lg font-black">What is moving right now</h2>
-                <div className="mt-4 space-y-2">
-                  {items.slice(0, 8).map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl bg-black/[.025] px-3 py-3"><KebuIcon name={item.kind === "event" ? "calendar" : "work"} size={16} style={{ color: KEBU.orange }} /><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-bold">{item.title}</span><span className="text-[9px]" style={{ color: KEBU.muted }}>{item.kind}{item.due_at || item.start_at ? " · " + new Date(item.due_at || item.start_at || "").toLocaleString() : ""}</span></span></div>)}
-                  {!items.length ? <p className="text-[10px]" style={{ color: KEBU.muted }}>No tasks or events yet.</p> : null}
+            <div className="mx-auto grid max-w-[1520px] gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
+              <section className="min-w-0">
+                <div className="flex items-center justify-between py-2"><p className="text-[15px] font-semibold">Project Wall</p><div className="flex gap-2"><span className="rounded-full bg-white/[.06] px-3 py-1.5 text-[8px] text-white/55">All</span><span className="rounded-full bg-white/[.04] px-3 py-1.5 text-[8px] text-white/35">Design</span><span className="rounded-full bg-white/[.04] px-3 py-1.5 text-[8px] text-white/35">Files</span></div></div>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {posts.slice(0,4).map((post,index)=><article key={post.id} className="overflow-hidden rounded-[12px] border border-white/10 bg-[#111315]"><div className="h-[120px]" style={{background:index%2?"linear-gradient(135deg,#35110d,#ff6a00)":"linear-gradient(135deg,#17191c,#87483c)"}}/><div className="p-3"><p className="truncate text-[10px] font-semibold">{post.body.slice(0,42) || "Room update"}</p><p className="mt-1 text-[8px] text-white/35">{profileById.get(post.author_id)?.name || "Room member"} · {new Date(post.created_at).toLocaleDateString()}</p></div></article>)}
+                  {roomFiles.slice(0,3).map((file,index)=><article key={file.id} className="overflow-hidden rounded-[12px] border border-white/10 bg-[#111315]"><div className="flex h-[120px] items-center justify-center" style={{background:index%2?"#1b1515":"#15181b"}}><KebuIcon name="library" size={28} style={{color:"#FFB09A"}}/></div><div className="p-3"><p className="truncate text-[10px] font-semibold">{file.file_name}</p><p className="mt-1 text-[8px] text-white/35">{file.mime}</p></div></article>)}
+                  <button type="button" onClick={()=>setTab("files")} className="flex min-h-[174px] flex-col items-center justify-center rounded-[12px] border border-dashed border-white/15 text-white/40"><span className="text-2xl">＋</span><span className="mt-2 text-[9px]">Add to wall</span></button>
+                </div>
+
+                <div className="mt-3 grid gap-2 lg:grid-cols-4">
+                  <div className="rounded-[12px] border border-white/10 bg-[#0D0F11] p-3"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">Tasks</p><button onClick={()=>setTab("tasks")} className="text-[8px] text-white/30">See all →</button></div><div className="mt-2 space-y-2">{items.filter((i)=>i.kind==="task").slice(0,4).map((item)=><div key={item.id} className="flex gap-2 text-[8px] text-white/60"><span>□</span><span className="truncate">{item.title}</span></div>)}</div></div>
+                  <div className="rounded-[12px] border border-white/10 bg-[#0D0F11] p-3"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">Upcoming</p><button onClick={()=>setTab("calendar")} className="text-[8px] text-white/30">See all →</button></div><div className="mt-2 space-y-2">{items.filter((i)=>i.kind==="event").slice(0,4).map((item)=><div key={item.id} className="text-[8px] text-white/60"><p className="truncate">{item.title}</p><p className="text-white/30">{item.start_at?new Date(item.start_at).toLocaleString():""}</p></div>)}</div></div>
+                  <div className="rounded-[12px] border border-white/10 bg-[#0D0F11] p-3"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">Decisions</p><button onClick={()=>setTab("decisions")} className="text-[8px] text-white/30">See all →</button></div><div className="mt-2 space-y-2">{decisions.slice(0,4).map((item)=><div key={item.id} className="text-[8px] text-white/60"><p className="truncate">{item.title}</p></div>)}</div></div>
+                  <div className="rounded-[12px] border border-white/10 bg-[#0D0F11] p-3"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">Links</p><button onClick={()=>setTab("links")} className="text-[8px] text-white/30">See all →</button></div><div className="mt-2 space-y-2">{links.slice(0,4).map((item)=><div key={item.id} className="truncate text-[8px] text-white/60">{item.label}</div>)}</div></div>
                 </div>
               </section>
-              <div className="space-y-4">
-                <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Wall</p>{posts.slice(0, 3).map((post) => <p key={post.id} className="mt-3 border-t pt-3 text-[11px] leading-relaxed" style={{ borderColor: KEBU.borders.subtle }}>{post.body}</p>)}{!posts.length ? <p className="mt-2 text-[10px]" style={{ color: KEBU.muted }}>No updates yet.</p> : null}</section>
-                <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Decisions</p>{decisions.slice(0, 3).map((decision) => <div key={decision.id} className="mt-3"><p className="text-[11px] font-bold">{decision.title}</p><p className="text-[9px]" style={{ color: KEBU.muted }}>{decision.detail}</p></div>)}{!decisions.length ? <p className="mt-2 text-[10px]" style={{ color: KEBU.muted }}>Nothing recorded yet.</p> : null}</section>
-              </div>
+
+              <aside className="space-y-2">
+                <div className="rounded-[12px] border border-white/10 bg-[#0D0F11] p-3"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">Room focus</p><span className="flex h-12 w-12 items-center justify-center rounded-full border-[6px] border-[#FFB09A] text-[10px]">{items.length ? Math.min(99, Math.round((items.filter((i)=>i.status==="done").length / items.length)*100)) : 0}%</span></div><div className="mt-2 space-y-2">{items.slice(0,4).map((item)=><div key={item.id} className="flex gap-2 text-[8px] text-white/55"><span>{item.status==="done"?"☑":"□"}</span><span className="truncate">{item.title}</span></div>)}</div></div>
+                <div className="rounded-[12px] border border-white/10 bg-[#0D0F11] p-3"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">Room chat</p><button onClick={()=>setTab("chat")} className="text-[8px] text-white/30">Open →</button></div><div className="mt-2 space-y-3">{messages.slice(0,4).map((message)=><div key={message.id}><p className="text-[8px] font-semibold">{profileById.get(message.author_id)?.name || "Room member"}</p><p className="mt-0.5 line-clamp-2 text-[8px] leading-relaxed text-white/45">{message.body}</p></div>)}{!messages.length?<p className="text-[8px] text-white/30">Open Chat to start the conversation.</p>:null}</div></div>
+                <div className="rounded-[12px] border border-white/10 bg-[#0D0F11] p-3"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold">People in room ({members.length})</p><button onClick={()=>setTab("people")} className="text-[8px] text-white/30">See all →</button></div><div className="mt-3 flex flex-wrap gap-2">{members.slice(0,8).map((member)=>{const p=profileById.get(member.user_id);const name=p?.name||p?.email||"K";return <span key={member.user_id} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[8px] font-semibold" title={name}>{name.slice(0,1).toUpperCase()}</span>})}</div></div>
+              </aside>
             </div>
           ) : null}
-
           {tab === "wall" ? <List>{posts.map((post) => <Card key={post.id} title={profileById.get(post.author_id)?.name || "Room member"} meta={new Date(post.created_at).toLocaleString()} body={post.body} />)}</List> : null}
           {tab === "tasks" || tab === "calendar" ? <List>{items.map((item) => <Card key={item.id} title={item.title} meta={(item.kind === "task" ? item.due_at : item.start_at) ? new Date((item.kind === "task" ? item.due_at : item.start_at) || "").toLocaleString() : item.status} body={item.body} />)}</List> : null}
           {tab === "files" ? (
