@@ -1173,7 +1173,13 @@ export default function ProjectEditorPage() {
         onUndo={undo}
         onRedo={redo}
         publishing={publishing || improving}
-        publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Publish"}
+        publishLabel={
+          publishState?.isLive && !publishState?.hasUnpublishedChanges
+            ? "Published ✓"
+            : publishState?.isLive
+            ? "Publish changes"
+            : "Publish"
+        }
         onPublish={() => void publish()}
         onSaveDraft={() => void saveDraftNow()}
         savingDraft={saveState === "saving"}
@@ -1486,8 +1492,37 @@ export default function ProjectEditorPage() {
                     sections.find((section) => section.section_type === "legally-blonde-hero");
                   if (!hero) {
                     return (
-                      <div className="px-4 py-4 text-[11px]" style={{ color: BUILDER.muted }}>
-                        This page does not have a freeform layer canvas yet.
+                      <div className="flex flex-col gap-0.5 px-2 py-2">
+                        <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                          Sections
+                        </div>
+                        {editPageSections.length === 0 ? (
+                          <div className="px-2 py-3 text-[11px]" style={{ color: BUILDER.muted }}>
+                            No sections on this page yet.
+                          </div>
+                        ) : (
+                          editPageSections.map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => selectSectionForInspector(s.id)}
+                              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] transition-colors"
+                              style={{
+                                background: selectedSectionId === s.id ? "rgba(10,10,10,.045)" : "transparent",
+                                outline: selectedSectionId === s.id ? "1px solid rgba(10,10,10,.08)" : undefined,
+                                color: s.props.hidden ? BUILDER.muted : BUILDER.ink,
+                              }}
+                            >
+                              <span className="shrink-0 text-[9px]" style={{ color: BUILDER.muted }}>◼</span>
+                              <span className="min-w-0 flex-1 truncate font-medium">
+                                {(s.props.label as string | undefined) || s.section_type.replace(/-/g, " ")}
+                              </span>
+                              {s.props.hidden ? (
+                                <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>Hidden</span>
+                              ) : null}
+                            </button>
+                          ))
+                        )}
                       </div>
                     );
                   }
@@ -1838,6 +1873,14 @@ export default function ProjectEditorPage() {
                           const s = sections.find((x) => x.id === id);
                           if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
                         }}
+                        onReorderBlocks={(sectionId, from, to) => {
+                          const s = sections.find((x) => x.id === sectionId);
+                          if (!s) return;
+                          const blocks = Array.isArray(s.props.blocks) ? [...(s.props.blocks as unknown[])] : [];
+                          const [moved] = blocks.splice(from, 1);
+                          blocks.splice(to, 0, moved);
+                          updateProps(sectionId, { blocks });
+                        }}
                       />
                     </BuilderSectionZone>
                     <BuilderSectionZone zone="lower">
@@ -1881,6 +1924,14 @@ export default function ProjectEditorPage() {
                       onToggleHidden={(id) => {
                         const s = sections.find((x) => x.id === id);
                         if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
+                      }}
+                      onReorderBlocks={(sectionId, from, to) => {
+                        const s = sections.find((x) => x.id === sectionId);
+                        if (!s) return;
+                        const blocks = Array.isArray(s.props.blocks) ? [...(s.props.blocks as unknown[])] : [];
+                        const [moved] = blocks.splice(from, 1);
+                        blocks.splice(to, 0, moved);
+                        updateProps(sectionId, { blocks });
                       }}
                     />
                   </BuilderSectionZone>
