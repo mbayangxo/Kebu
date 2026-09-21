@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
-import { personalMailboxCandidates } from "@/lib/mail/address";
+import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
+import { PERSONAL_MAIL_DOMAIN, normalizeMailboxLocalPart, personalMailboxCandidates } from "@/lib/mail/address";
 import { loadActiveBusinessMailContext } from "@/lib/mail/business-mail";
 
 export const dynamic = "force-dynamic";
+
+const createPersonalMailboxSchema = z.object({
+  localPart: z.string().trim().min(2).max(48),
+  displayName: z.string().trim().min(1).max(120),
+});
 
 export async function GET() {
   const auth = await requireUser();
@@ -38,12 +46,22 @@ export async function GET() {
       businessName: context.businessName,
       role: context.role,
       canManage: context.canManage,
+      needsSetup: false,
       mailboxes: existing ?? [],
     });
   }
 
   if ((existing ?? []).some((mailbox) => mailbox.mailbox_type === "personal")) {
-    return NextResponse.json({ context: "personal", businessId: null, businessName: null, role: null, canManage: false, mailboxes: existing ?? [] });
+    return NextResponse.json({
+      context: "personal",
+      businessId: null,
+      businessName: null,
+      role: null,
+      canManage: false,
+      needsSetup: false,
+      domain: PERSONAL_MAIL_DOMAIN,
+      mailboxes: existing ?? [],
+    });
   }
 
   const { data: profile } = await supabase
@@ -52,34 +70,105 @@ export async function GET() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const candidates = personalMailboxCandidates({
+  const suggestions = personalMailboxCandidates({
     name: profile?.name,
     email: profile?.email ?? user.email,
     userId: user.id,
-  });
+  }).map((address) => address.split("@")[0]);
 
-  for (const address of candidates) {
-    const { error } = await supabase.from("mailboxes").insert({
+  return NextResponse.json({
+    context: "personal",
+    businessId: null,
+    businessName: null,
+    role: null,
+    canManage: false,
+    needsSetup: true,
+    domain: PERSONAL_MAIL_DOMAIN,
+    suggestions,
+    displayName: profile?.name?.trim() || user.email?.split("@")[0] || "Kebu",
+    mailboxes: [],
+  });
+}
+
+export async function POST(req: Request) {
+  const limited = builderRateLimit(req);
+  if (limited) return limited;
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+  const { supabase, user } = auth;
+
+  const context = await loadActiveBusinessMailContext(supabase, user.id);
+  if (context.mode === "business") {
+    return NextResponse.json(
+      { error: "Switch to Personal Kebu to activate personal Mail." },
+      { status: 409 },
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
+
+  const parsed = createPersonalMailboxSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Choose a valid email address and display name.", issues: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const { data: existing } = await supabase
+    .from("mailboxes")
+    .select("id, address")
+    .eq("owner_user_id", user.id)
+    .is("business_id", null)
+    .eq("mailbox_type", "personal")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (existing) {
+    return NextResponse.json({ error: "Personal Mail is already activated.", mailbox: existing }, { status: 409 });
+  }
+
+  const localPart = normalizeMailboxLocalPart(parsed.data.localPart);
+  if (localPart.length < 2) {
+    return NextResponse.json({ error: "Choose a longer email name." }, { status: 400 });
+  }
+  const address = localPart + "@" + PERSONAL_MAIL_DOMAIN;
+
+  const { data: mailbox, error } = await supabase
+    .from("mailboxes")
+    .insert({
       owner_user_id: user.id,
       business_id: null,
       mailbox_type: "personal",
       address,
-      display_name: profile?.name?.trim() || user.email?.split("@")[0] || "Kebu",
-    });
-    if (!error) break;
-    if (error.code !== "23505") {
-      return NextResponse.json({ error: "Could not provision your Kebu mailbox." }, { status: 500 });
-    }
+      display_name: parsed.data.displayName,
+      is_active: true,
+    })
+    .select("id, owner_user_id, business_id, mailbox_type, address, display_name, is_active, created_at")
+    .single();
+
+  if (error?.code === "23505") {
+    return NextResponse.json({ error: "That Kebu email address is already taken." }, { status: 409 });
+  }
+  if (error || !mailbox) {
+    return NextResponse.json({ error: "Could not activate Kebu Mail." }, { status: 500 });
   }
 
-  const { data: mailboxes, error } = await supabase
-    .from("mailboxes")
-    .select("id, owner_user_id, business_id, mailbox_type, address, display_name, is_active, created_at")
-    .eq("owner_user_id", user.id)
-    .is("business_id", null)
-    .eq("is_active", true)
-    .order("created_at", { ascending: true });
+  await supabase.from("mail_audit_events").insert({
+    mailbox_id: mailbox.id,
+    business_id: null,
+    actor_user_id: user.id,
+    event_type: "personal_mail.activated",
+    metadata: { address },
+  });
 
-  if (error) return NextResponse.json({ error: "Could not load mailboxes." }, { status: 500 });
-  return NextResponse.json({ context: "personal", businessId: null, businessName: null, role: null, canManage: false, mailboxes: mailboxes ?? [] });
+  return NextResponse.json({ mailbox, context: "personal" }, { status: 201 });
 }
