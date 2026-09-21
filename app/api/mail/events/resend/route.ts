@@ -138,10 +138,16 @@ export async function POST(req: Request) {
     }
   }
 
-  await service.rpc("record_mail_domain_event", {
-    p_mailbox_id: job.mailbox_id,
-    p_event_type: event.type,
-  });
+  await Promise.all([
+    service.rpc("record_mail_domain_event", {
+      p_mailbox_id: job.mailbox_id,
+      p_event_type: event.type,
+    }),
+    service.rpc("record_mailbox_risk_event", {
+      p_mailbox_id: job.mailbox_id,
+      p_event_type: event.type,
+    }),
+  ]);
 
   if (event.type === "email.complained") {
     await service.from("mail_operational_alerts").insert({

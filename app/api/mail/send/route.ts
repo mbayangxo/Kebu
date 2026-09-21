@@ -138,6 +138,25 @@ export async function POST(req: Request) {
     }
   }
 
+  const { data: riskState } = await service
+    .from("mailbox_risk_state")
+    .select("status,blocked_until")
+    .eq("mailbox_id", mailbox.id)
+    .maybeSingle();
+
+  if (riskState?.status === "blocked" && (!riskState.blocked_until || new Date(riskState.blocked_until).getTime() > Date.now())) {
+    return NextResponse.json({
+      error: "External sending is temporarily blocked for this mailbox while Kebu protects sender reputation.",
+      code: "MAILBOX_RISK_BLOCKED",
+    }, { status: 429, headers: { "Retry-After": "3600" } });
+  }
+  if (riskState?.status === "restricted" && externalAddresses.length > 5) {
+    return NextResponse.json({
+      error: "This mailbox is temporarily restricted to smaller recipient groups.",
+      code: "MAILBOX_RISK_RESTRICTED",
+    }, { status: 429 });
+  }
+
   const estimatedBytes = new TextEncoder().encode(parsed.data.text).byteLength;
   const { error: quotaError } = await service.rpc("mail_reserve_send_quota", {
     p_mailbox_id: mailbox.id,

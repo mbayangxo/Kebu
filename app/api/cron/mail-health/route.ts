@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
   if (!service) return NextResponse.json({ error: "Service database client unavailable." }, { status: 503 });
 
   const oneHourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
+  const { data: reputation } = await service.rpc("evaluate_mail_domain_reputation");
   const [{ data: providers }, { count: failed }, { count: retrying }] = await Promise.all([
     service.from("mail_provider_health").select("*"),
     service.from("mail_delivery_jobs").select("id", { count: "exact", head: true })
@@ -63,5 +64,6 @@ export async function GET(req: NextRequest) {
     providers: providers ?? [],
     failedLastHour: failed ?? 0,
     retrying: retrying ?? 0,
+    reputation: reputation ?? [],
   });
 }
