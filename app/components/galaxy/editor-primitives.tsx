@@ -55,7 +55,7 @@ export function GalaxyInspectorCard({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-[12px] border border-black/[0.09] bg-white p-3.5 shadow-[0_1px_2px_rgba(10,10,10,0.03)]">
+    <section className="border-b border-black/[0.07] bg-white px-3 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {eyebrow ? (
@@ -67,14 +67,14 @@ export function GalaxyInspectorCard({
         </div>
         {meta}
       </div>
-      {children ? <div className="mt-2">{children}</div> : null}
+      {children ? <div className="mt-1.5">{children}</div> : null}
     </section>
   );
 }
 
 export function GalaxyBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="shrink-0 rounded-full border border-black/[0.06] bg-[#F6F6F4] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-black/55">
+    <span className="shrink-0 rounded-full bg-black/[.045] px-2 py-1 text-[9px] font-semibold text-black/50">
       {children}
     </span>
   );
@@ -111,7 +111,7 @@ export function GalaxyFieldLabel({
   children: ReactNode;
 }) {
   return (
-    <label className="block text-[10px] font-bold uppercase tracking-[0.08em] text-black/55">
+    <label className="block text-[10px] font-semibold text-black/55">
       {label}
       {children}
     </label>
@@ -131,7 +131,7 @@ export function GalaxySegmentedControl<T extends string>({
 }) {
   return (
     <div>
-      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-black/55">{label}</p>
+      <p className="mb-1.5 text-[10px] font-semibold text-black/55">{label}</p>
       <div className="grid gap-1 rounded-[10px] bg-[#F6F6F4] p-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
         {options.map((option) => {
           const active = option.value === value;
@@ -141,7 +141,7 @@ export function GalaxySegmentedControl<T extends string>({
               type="button"
               aria-pressed={active}
               onClick={() => onChange(option.value)}
-              className="min-h-8 rounded-[7px] px-1.5 text-[9px] font-black uppercase tracking-[0.04em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+              className="min-h-8 rounded-[7px] px-1.5 text-[9px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
               style={{
                 background: active ? "#fff" : "transparent",
                 color: active ? "#0A0A0A" : "#6B6B6B",

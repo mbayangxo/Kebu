@@ -101,11 +101,10 @@ export function AddSectionPicker({
         type="button"
         disabled={busy || Boolean(adding)}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-40"
-        style={{ background: BUILDER.gradient, boxShadow: BUILDER.shadow }}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 py-2.5 text-[11px] font-semibold text-black disabled:opacity-40"
       >
-        <span style={{ fontSize: 14, lineHeight: 1 }}>{open ? "✕" : "+"}</span>
-        {open ? "Close" : "Add section"}
+        <span className="text-[15px] leading-none">{open ? "×" : "+"}</span>
+        {open ? "Close sections" : "Add section"}
       </button>
       <p className="truncate text-[10px] leading-tight" style={{ color: BUILDER.muted }}>
         Editing: <span style={{ color: BUILDER.ink, fontWeight: 600 }}>{pageTitle}</span>
@@ -113,8 +112,7 @@ export function AddSectionPicker({
 
       {open && (
         <div
-          className="rounded-xl overflow-hidden"
-          style={{ background: BUILDER.surface, border: `1px solid ${BUILDER.border}`, boxShadow: BUILDER.shadowSoft }}
+          className="overflow-hidden border-t border-black/[.08] bg-white"
           role="dialog"
           aria-label="Add a section"
         >
@@ -169,17 +167,7 @@ export function AddSectionPicker({
                       if (!adding) (e.currentTarget as HTMLButtonElement).style.background = isAdding ? `${BUILDER.orange}12` : "transparent";
                     }}
                   >
-                    {/* Icon bubble */}
-                    <span
-                      className="flex-shrink-0 flex items-center justify-center rounded-md text-[10px] font-bold"
-                      style={{
-                        width: 26,
-                        height: 26,
-                        background: BUILDER.surfaceMuted,
-                        border: `1px solid ${BUILDER.border}`,
-                        color: BUILDER.ink,
-                      }}
-                    >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[11px] font-semibold text-black/45" aria-hidden>
                       {icon}
                     </span>
                     {/* Label + hint */}
@@ -197,13 +185,7 @@ export function AddSectionPicker({
                         {opt.description}
                       </span>
                     </span>
-                    {/* Chevron */}
-                    <span
-                      className="flex-shrink-0 text-[10px] opacity-30"
-                      style={{ color: BUILDER.ink }}
-                    >
-                      ›
-                    </span>
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[15px] text-black/35">+</span>
                   </button>
                 </li>
               );

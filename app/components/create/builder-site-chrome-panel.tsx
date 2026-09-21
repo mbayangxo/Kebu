@@ -64,9 +64,9 @@ export function BuilderSiteChromePanel({
       <button
         type="button"
         onClick={onSelect}
-        className="flex w-full items-center gap-2.5 rounded-lg border border-black/[0.08] bg-white p-2.5 text-left outline-none transition hover:border-black/15 hover:bg-black/[.015] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+        className="flex w-full items-center gap-2.5 border-b border-black/[0.07] bg-white px-1 py-2.5 text-left outline-none transition hover:bg-black/[.02] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#FFF3E8] text-[11px] font-bold text-[#C95000]" aria-hidden>{part === "header" ? "H" : "F"}</span>
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/[.045] text-[9px] font-bold text-black/55" aria-hidden>{part === "header" ? "H" : "F"}</span>
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-semibold text-black">{part === "header" ? "Site header" : "Site footer"}</span>
           <span className="mt-0.5 block text-[9px] leading-snug text-black/40">{part === "header" ? "Brand, logo, navigation and menu behavior · all pages" : "Copyright, links, typography and colors · all pages"}</span>
@@ -84,7 +84,7 @@ export function BuilderSiteChromePanel({
         description={part === "header" ? "These choices apply across the site. Page-specific content stays untouched." : "Keep the closing area compact, useful, and consistent on every page."}
       />
 
-      <div className="space-y-2.5 p-3">
+      <div className="px-3">
         {part === "header" ? (
           <>
             <PanelSection title="Identity" group="chrome-header" defaultOpen>
@@ -128,7 +128,7 @@ export function BuilderSiteChromePanel({
                   <option value="400">Regular · 400</option><option value="500">Medium · 500</option><option value="600">Semibold · 600</option><option value="700">Bold · 700</option><option value="800">Extra bold · 800</option><option value="900">Black · 900</option>
                 </select>
               </GalaxyFieldLabel>
-              <div className="rounded-lg border border-black/[0.07] bg-[#FAFAF8] p-2.5">
+              <div className="border-l-2 border-black/[.08] py-1 pl-3">
                 <p className="text-[16px] leading-tight text-black" style={{ fontFamily: headerProps.fontFamily || "inherit", fontWeight: headerProps.fontWeight ?? 700 }}>Home · About · Shop</p>
                 <p className="mt-1 text-[9px] text-black/35">Navigation preview</p>
               </div>
