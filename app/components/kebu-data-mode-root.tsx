@@ -10,7 +10,5 @@ import "@/app/components/create/kebu-site-responsive.css";
  * Visual mode controls are rendered by the active product shell, beside the account control.
  */
 export function KebuDataModeRoot({ children }: { children: ReactNode }) {
-  usePathname();
-
   return <DataModeProvider>{children}</DataModeProvider>;
 }
