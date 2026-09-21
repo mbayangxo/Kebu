@@ -89,6 +89,13 @@ export type LegallyBlondeHeroProps = {
   /** Small May logo in upper chrome (click → home). */
   chromeLogo?: string;
   showChromeLogo?: boolean;
+  /** Independent header controls — do not force logo/type/padding to scale together. */
+  chromeLogoScale?: number;
+  headerHeightScale?: number;
+  headerBgColor?: string;
+  navFontFamily?: string;
+  navFontSizePx?: number;
+  navFontWeight?: number;
   socialLinks?: { label: string; iconUrl: string; href: string }[];
   socialRailVisible?: boolean;
   socialRailBg?: string;

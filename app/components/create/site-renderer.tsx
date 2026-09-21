@@ -988,6 +988,12 @@ export function SiteRenderer({
               "/templates/maylecor/logo-stacked.png"
         }
         showChromeLogo={motionHero.showChromeLogo !== false}
+        chromeLogoScale={motionHero.chromeLogoScale}
+        headerHeightScale={motionHero.headerHeightScale}
+        headerBgColor={motionHero.headerBgColor}
+        navFontFamily={motionHero.navFontFamily}
+        navFontSizePx={motionHero.navFontSizePx}
+        navFontWeight={motionHero.navFontWeight}
         currentSlug={activeSlug}
         accentColor={motionHero.accentColor}
         contained={mode === "preview"}

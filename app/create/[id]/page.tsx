@@ -2020,6 +2020,29 @@ export default function ProjectEditorPage() {
                               onChange={(url) => updateProps(section.id, { chromeLogo: url })}
                             />
                           ) : null}
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-[10px] font-semibold text-black/55">
+                              Logo size
+                              <div className="mt-1 flex items-center gap-2">
+                                <input type="range" min="0.35" max="4" step="0.05" className="min-w-0 flex-1 accent-[#FF6A00]" value={Number(section.props.chromeLogoScale ?? 1)} onChange={(e) => updateProps(section.id, { chromeLogoScale: Number(e.target.value) })} />
+                                <span className="w-10 text-right text-[9px] font-bold text-black/40">{Number(section.props.chromeLogoScale ?? 1).toFixed(1)}×</span>
+                              </div>
+                            </label>
+                            <label className="block text-[10px] font-semibold text-black/55">
+                              Header height
+                              <div className="mt-1 flex items-center gap-2">
+                                <input type="range" min="0.5" max="3" step="0.05" className="min-w-0 flex-1 accent-[#FF6A00]" value={Number(section.props.headerHeightScale ?? 1)} onChange={(e) => updateProps(section.id, { headerHeightScale: Number(e.target.value) })} />
+                                <span className="w-10 text-right text-[9px] font-bold text-black/40">{Number(section.props.headerHeightScale ?? 1).toFixed(1)}×</span>
+                              </div>
+                            </label>
+                          </div>
+                          <label className="block text-[10px] font-semibold text-black/55">
+                            Header background
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <input type="color" className="h-9 w-11 rounded-lg border border-black/10 bg-white p-1" value={String(section.props.headerBgColor ?? "#0a0a0a")} onChange={(e) => updateProps(section.id, { headerBgColor: e.target.value })} />
+                              <input className="min-h-9 min-w-0 flex-1 rounded-lg border border-black/10 bg-white px-2.5 text-xs" value={String(section.props.headerBgColor ?? "")} placeholder="Gradient/default when blank" onChange={(e) => updateProps(section.id, { headerBgColor: e.target.value })} />
+                            </div>
+                          </label>
                           <label className="block text-[10px] uppercase tracking-wider">
                             Nav look
                             <select
@@ -2046,6 +2069,34 @@ export default function ProjectEditorPage() {
                             )}
                             onChange={(navLinks) => updateProps(section.id, { navLinks })}
                           />
+                          <div className="rounded-xl border border-black/[.08] bg-black/[.015] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>Navigation typography</p>
+                            <div className="mt-2 grid grid-cols-[1fr_88px] gap-2">
+                              <input
+                                list="kebu-nav-typefaces"
+                                className="min-h-9 rounded-lg border border-black/10 bg-white px-2.5 text-xs"
+                                value={String(section.props.navFontFamily ?? section.props.displayFont ?? "Steelfish")}
+                                onChange={(e) => updateProps(section.id, { navFontFamily: e.target.value })}
+                                placeholder="Font"
+                              />
+                              <input
+                                type="number" min="8" max="48" step="1"
+                                className="min-h-9 rounded-lg border border-black/10 bg-white px-2.5 text-xs"
+                                value={Number(section.props.navFontSizePx ?? 12)}
+                                onChange={(e) => updateProps(section.id, { navFontSizePx: Math.min(48, Math.max(8, Number(e.target.value) || 12)) })}
+                                aria-label="Navigation font size"
+                              />
+                              <datalist id="kebu-nav-typefaces">
+                                <option value="Steelfish" /><option value="Oswald" /><option value="Bebas Neue" /><option value="Inter" /><option value="DM Sans" /><option value="Space Grotesk" /><option value="Playfair Display" /><option value="Fraunces" /><option value="Syne" /><option value="Georgia" />
+                              </datalist>
+                            </div>
+                            <label className="mt-2 block text-[10px] font-semibold text-black/55">
+                              Weight
+                              <select className="mt-1 min-h-9 w-full rounded-lg border border-black/10 bg-white px-2.5 text-xs" value={String(section.props.navFontWeight ?? 700)} onChange={(e) => updateProps(section.id, { navFontWeight: Number(e.target.value) })}>
+                                <option value="400">Regular</option><option value="500">Medium</option><option value="600">Semibold</option><option value="700">Bold</option><option value="800">Extra bold</option><option value="900">Black</option>
+                              </select>
+                            </label>
+                          </div>
                           <NavSizeEditor
                             scale={clampNavScale(section.props.navScale, 1)}
                             size={parseNavSize(section.props.navSize)}
