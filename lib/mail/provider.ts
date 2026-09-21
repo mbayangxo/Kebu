@@ -4,6 +4,8 @@ export type MailProviderAttachment = {
   contentType?: string;
 };
 
+export type MailProviderName = "resend";
+
 export type MailSendInput = {
   from: string;
   to: string[];
@@ -15,12 +17,26 @@ export type MailSendInput = {
 };
 
 export type MailSendResult =
-  | { ok: true; providerMessageId: string }
-  | { ok: false; reason: string };
+  | { ok: true; provider: MailProviderName; providerMessageId: string }
+  | { ok: false; provider: MailProviderName; reason: string; retryable: boolean };
 
-export async function sendInternetMail(input: MailSendInput): Promise<MailSendResult> {
+export async function sendInternetMail(
+  input: MailSendInput,
+  provider: MailProviderName = "resend",
+): Promise<MailSendResult> {
+  if (provider !== "resend") {
+    return { ok: false, provider: "resend", reason: "Unsupported mail provider.", retryable: false };
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { ok: false, reason: "Internet mail provider is not configured." };
+  if (!apiKey) {
+    return {
+      ok: false,
+      provider,
+      reason: "Internet mail provider is not configured.",
+      retryable: false,
+    };
+  }
 
   try {
     const response = await fetch("https://api.resend.com/emails", {
@@ -43,12 +59,30 @@ export async function sendInternetMail(input: MailSendInput): Promise<MailSendRe
         })),
       }),
     });
-    const body = await response.json().catch(() => ({})) as { id?: string; message?: string };
+
+    const body = await response.json().catch(() => ({})) as {
+      id?: string;
+      message?: string;
+      statusCode?: number;
+    };
+
     if (!response.ok || !body.id) {
-      return { ok: false, reason: body.message || "Mail provider rejected the message." };
+      const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+      return {
+        ok: false,
+        provider,
+        reason: body.message || "Mail provider rejected the message.",
+        retryable,
+      };
     }
-    return { ok: true, providerMessageId: body.id };
+
+    return { ok: true, provider, providerMessageId: body.id };
   } catch {
-    return { ok: false, reason: "Mail provider network error." };
+    return {
+      ok: false,
+      provider,
+      reason: "Mail provider network error.",
+      retryable: true,
+    };
   }
 }

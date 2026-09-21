@@ -1,12 +1,11 @@
-import { Buffer } from "node:buffer";
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { createServiceClient } from "@/lib/opportunity/admin";
-import { sendInternetMail, type MailProviderAttachment } from "@/lib/mail/provider";
 import { canonicalAddress, mailThreadIdentity } from "@/lib/mail/threading";
 import { assertMailboxSendAccess } from "@/lib/mail/business-mail";
+import { activeSuppressions, externalMailReadiness } from "@/lib/mail/delivery";
 
 export const dynamic = "force-dynamic";
 
@@ -82,52 +81,81 @@ async function findOrCreateThread(opts: {
   return created.id as string;
 }
 
-async function loadProviderAttachments(
-  service: NonNullable<ReturnType<typeof createServiceClient>>,
-  rows: AttachmentRow[],
-): Promise<MailProviderAttachment[]> {
-  const result: MailProviderAttachment[] = [];
-  for (const row of rows) {
-    const { data, error } = await service.storage.from("digital-files").download(row.storage_path);
-    if (error || !data) throw new Error("Could not read attachment " + row.file_name + ".");
-    const contentBase64 = Buffer.from(await data.arrayBuffer()).toString("base64");
-    result.push({ filename: row.file_name, contentBase64, contentType: row.mime });
-  }
-  return result;
-}
-
 export async function POST(req: Request) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
 
   let body: unknown;
-  try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON." }, { status: 400 }); }
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
   const parsed = sendSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid email.", issues: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid email.", issues: parsed.error.flatten() }, { status: 400 });
+  }
 
-  const to = parsed.data.to.map(canonicalAddress);
-  const cc = parsed.data.cc.map(canonicalAddress);
+  const to = [...new Set(parsed.data.to.map(canonicalAddress))];
+  const cc = [...new Set(parsed.data.cc.map(canonicalAddress).filter((address) => !to.includes(address)))];
+  const allRecipientAddresses = [...to, ...cc];
 
   const mailbox = await assertMailboxSendAccess(supabase, user.id, parsed.data.mailboxId);
   if (!mailbox) {
-    return NextResponse.json(
-      { error: "You do not have permission to send from this mailbox." },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: "You do not have permission to send from this mailbox." }, { status: 403 });
   }
 
-  let draft: {
-    id: string;
-    thread_id: string;
-    folder: string;
-    status: string;
-  } | null = null;
+  const service = createServiceClient();
+  if (!service) {
+    return NextResponse.json({ error: "Mail delivery infrastructure is unavailable." }, { status: 503 });
+  }
 
+  const { data: internal } = allRecipientAddresses.length
+    ? await service.from("mailboxes").select("id,address").in("address", allRecipientAddresses).eq("is_active", true)
+    : { data: [] as Array<{ id: string; address: string }> };
+
+  const internalByAddress = new Map((internal ?? []).map((item) => [canonicalAddress(item.address), item.id as string]));
+  const externalTo = to.filter((address) => !internalByAddress.has(address));
+  const externalCc = cc.filter((address) => !internalByAddress.has(address));
+  const externalAddresses = [...externalTo, ...externalCc];
+
+  if (externalAddresses.length) {
+    const readiness = await externalMailReadiness(service, mailbox);
+    if (!readiness.ready) {
+      return NextResponse.json({
+        error: readiness.reason,
+        code: "MAIL_DOMAIN_NOT_READY",
+        internalMailAvailable: true,
+      }, { status: 409 });
+    }
+
+    const suppressed = await activeSuppressions(service, externalAddresses);
+    if (suppressed.size) {
+      return NextResponse.json({
+        error: "One or more recipients are suppressed after a bounce, complaint, or provider suppression.",
+        code: "MAIL_RECIPIENT_SUPPRESSED",
+        suppressedCount: suppressed.size,
+      }, { status: 422 });
+    }
+  }
+
+  const estimatedBytes = new TextEncoder().encode(parsed.data.text).byteLength;
+  const { error: quotaError } = await service.rpc("mail_reserve_send_quota", {
+    p_mailbox_id: mailbox.id,
+    p_recipient_count: allRecipientAddresses.length,
+    p_estimated_bytes: estimatedBytes,
+  });
+  if (quotaError) {
+    return NextResponse.json({
+      error: "This mailbox is sending too quickly. Wait a moment and try again.",
+      code: "MAIL_RATE_LIMIT",
+    }, { status: 429, headers: { "Retry-After": "60" } });
+  }
+
+  let draft: { id: string; thread_id: string } | null = null;
   if (parsed.data.draftId) {
     const { data } = await supabase
       .from("mail_messages")
-      .select("id, thread_id, folder, status")
+      .select("id,thread_id")
       .eq("id", parsed.data.draftId)
       .eq("mailbox_id", mailbox.id)
       .eq("folder", "drafts")
@@ -139,7 +167,7 @@ export async function POST(req: Request) {
   if (parsed.data.inReplyToMessageId) {
     const { data: replyTarget } = await supabase
       .from("mail_messages")
-      .select("id, thread_id")
+      .select("id,thread_id")
       .eq("id", parsed.data.inReplyToMessageId)
       .eq("mailbox_id", mailbox.id)
       .maybeSingle();
@@ -149,48 +177,18 @@ export async function POST(req: Request) {
     }
   }
 
-  const service = createServiceClient();
-  if (!service) return NextResponse.json({ error: "Mail delivery infrastructure is unavailable." }, { status: 503 });
-
-  const allRecipientAddresses = [...new Set([...to, ...cc])];
-  const { data: internal } = allRecipientAddresses.length
-    ? await service.from("mailboxes").select("id, address").in("address", allRecipientAddresses).eq("is_active", true)
-    : { data: [] as Array<{ id: string; address: string }> };
-
-  const internalByAddress = new Map((internal ?? []).map((item) => [canonicalAddress(item.address), item.id as string]));
-  const externalTo = to.filter((address) => !internalByAddress.has(address));
-  const externalCc = cc.filter((address) => !internalByAddress.has(address));
-
   let attachmentRows: AttachmentRow[] = [];
   if (draft) {
     const { data } = await supabase
       .from("mail_attachments")
-      .select("id, message_id, mailbox_id, file_name, storage_path, mime, byte_size")
+      .select("id,message_id,mailbox_id,file_name,storage_path,mime,byte_size")
       .eq("message_id", draft.id)
       .order("created_at", { ascending: true });
     attachmentRows = (data ?? []) as AttachmentRow[];
-  }
-
-  let providerMessageId: string | null = null;
-  if (externalTo.length || externalCc.length) {
-    let providerAttachments: MailProviderAttachment[] = [];
-    try {
-      providerAttachments = attachmentRows.length ? await loadProviderAttachments(service, attachmentRows) : [];
-    } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : "Could not prepare attachments." }, { status: 500 });
+    const totalBytes = attachmentRows.reduce((sum, item) => sum + Number(item.byte_size || 0), 0);
+    if (totalBytes > 35 * 1024 * 1024) {
+      return NextResponse.json({ error: "Attachments exceed the 35 MB delivery limit." }, { status: 413 });
     }
-
-    const sent = await sendInternetMail({
-      from: mailbox.display_name ? mailbox.display_name + " <" + mailbox.address + ">" : mailbox.address,
-      to: externalTo.length ? externalTo : externalCc,
-      cc: externalTo.length ? externalCc : [],
-      subject: parsed.data.subject,
-      text: parsed.data.text,
-      attachments: providerAttachments,
-      replyTo: [mailbox.address],
-    });
-    if (!sent.ok) return NextResponse.json({ error: sent.reason }, { status: 503 });
-    providerMessageId = sent.providerMessageId;
   }
 
   let senderThreadId: string;
@@ -207,13 +205,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Could not create mail thread." }, { status: 500 });
   }
 
+  const outgoingStatus = externalAddresses.length ? "queued" : "sent";
   let senderMessageId: string;
+
   if (draft) {
     const { data: updated, error } = await supabase
       .from("mail_messages")
       .update({
         thread_id: senderThreadId,
-        provider_message_id: providerMessageId,
+        provider_message_id: null,
         direction: "outbound",
         folder: "sent",
         from_address: mailbox.address,
@@ -221,7 +221,7 @@ export async function POST(req: Request) {
         cc_addresses: cc,
         subject: parsed.data.subject,
         body_text: parsed.data.text,
-        status: "sent",
+        status: outgoingStatus,
         read_at: new Date().toISOString(),
         in_reply_to_message_id: parsed.data.inReplyToMessageId ?? null,
       })
@@ -229,8 +229,7 @@ export async function POST(req: Request) {
       .eq("mailbox_id", mailbox.id)
       .select("id")
       .single();
-
-    if (error || !updated) return NextResponse.json({ error: "Provider accepted mail, but Kebu could not finalize the sent copy." }, { status: 500 });
+    if (error || !updated) return NextResponse.json({ error: "Could not finalize the sent copy." }, { status: 500 });
     senderMessageId = updated.id;
   } else {
     const { data: created, error } = await supabase
@@ -238,7 +237,7 @@ export async function POST(req: Request) {
       .insert({
         mailbox_id: mailbox.id,
         thread_id: senderThreadId,
-        provider_message_id: providerMessageId,
+        provider_message_id: null,
         direction: "outbound",
         folder: "sent",
         from_address: mailbox.address,
@@ -246,15 +245,35 @@ export async function POST(req: Request) {
         cc_addresses: cc,
         subject: parsed.data.subject,
         body_text: parsed.data.text,
-        status: "sent",
+        status: outgoingStatus,
         read_at: new Date().toISOString(),
         in_reply_to_message_id: parsed.data.inReplyToMessageId ?? null,
       })
       .select("id")
       .single();
-
-    if (error || !created) return NextResponse.json({ error: "Provider accepted mail, but Kebu could not save the sent copy." }, { status: 500 });
+    if (error || !created) return NextResponse.json({ error: "Could not save the sent copy." }, { status: 500 });
     senderMessageId = created.id;
+  }
+
+  if (externalAddresses.length) {
+    const readiness = await externalMailReadiness(service, mailbox);
+    if (!readiness.ready) {
+      await service.from("mail_messages").update({ status: "failed" }).eq("id", senderMessageId);
+      return NextResponse.json({ error: readiness.reason }, { status: 409 });
+    }
+
+    const { error: enqueueError } = await service.from("mail_delivery_jobs").insert({
+      message_id: senderMessageId,
+      mailbox_id: mailbox.id,
+      provider: readiness.provider,
+      status: "queued",
+      idempotency_key: "message:" + senderMessageId,
+    });
+
+    if (enqueueError) {
+      await service.from("mail_messages").update({ status: "failed" }).eq("id", senderMessageId);
+      return NextResponse.json({ error: "Could not queue external delivery." }, { status: 503 });
+    }
   }
 
   await supabase.from("mail_threads").update({
@@ -269,7 +288,7 @@ export async function POST(req: Request) {
 
     const { data: recipientMailbox } = await service
       .from("mailboxes")
-      .select("id, address")
+      .select("id,address")
       .eq("id", recipientMailboxId)
       .maybeSingle();
     if (!recipientMailbox) continue;
@@ -287,12 +306,12 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const { data: recipientMessage, error: recipientMessageError } = await service
+    const { data: recipientMessage, error } = await service
       .from("mail_messages")
       .insert({
         mailbox_id: recipientMailboxId,
         thread_id: recipientThreadId,
-        provider_message_id: providerMessageId,
+        provider_message_id: null,
         direction: "inbound",
         folder: "inbox",
         from_address: mailbox.address,
@@ -305,10 +324,11 @@ export async function POST(req: Request) {
       .select("id")
       .single();
 
-    if (recipientMessageError || !recipientMessage) continue;
+    if (error || !recipientMessage) continue;
 
     for (const attachment of attachmentRows) {
-      const recipientPath = `${user.id}/mail-delivery/${recipientMailboxId}/${recipientMessage.id}/${crypto.randomUUID()}-${attachment.file_name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 180)}`;
+      const safeName = attachment.file_name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 180);
+      const recipientPath = `mail-internal/${recipientMailboxId}/${recipientMessage.id}/${crypto.randomUUID()}-${safeName}`;
       const { error: copyError } = await service.storage.from("digital-files").copy(attachment.storage_path, recipientPath);
       if (copyError) continue;
       await service.from("mail_attachments").insert({
@@ -334,12 +354,14 @@ export async function POST(req: Request) {
     mailbox_id: mailbox.id,
     business_id: mailbox.business_id ?? null,
     actor_user_id: user.id,
-    event_type: "mail.sent",
+    event_type: externalAddresses.length ? "mail.queued" : "mail.sent",
     metadata: {
       recipientCount: allRecipientAddresses.length,
-      externalRecipientCount: externalTo.length + externalCc.length,
+      externalRecipientCount: externalAddresses.length,
+      internalDelivered,
       attachmentCount: attachmentRows.length,
       threadId: senderThreadId,
+      messageId: senderMessageId,
     },
   });
 
@@ -347,9 +369,9 @@ export async function POST(req: Request) {
     ok: true,
     messageId: senderMessageId,
     threadId: senderThreadId,
-    providerMessageId,
+    status: outgoingStatus,
     internalDelivered,
-    externalSent: externalTo.length + externalCc.length,
+    externalQueued: externalAddresses.length,
     attachments: attachmentRows.length,
   });
 }

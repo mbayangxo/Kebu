@@ -106,12 +106,20 @@ export async function POST(req: Request) {
   const cc = (event.data.cc ?? []).map(canonicalAddress);
   if (!recipients.length) return NextResponse.json({ ok: true, ignored: true });
 
-  const { data: mailboxes } = await admin
-    .from("mailboxes")
-    .select("id, address")
-    .in("address", recipients)
-    .eq("is_active", true);
-  if (!mailboxes?.length) return NextResponse.json({ ok: true, ignored: true });
+  const [{ data: directMailboxes }, { data: routes }] = await Promise.all([
+    admin.from("mailboxes").select("id,address").in("address", recipients).eq("is_active", true),
+    admin.from("mail_inbound_routes").select("mailbox_id,address").in("address", recipients).eq("is_active", true),
+  ]);
+
+  const mailboxIds = new Set<string>((directMailboxes ?? []).map((mailbox) => mailbox.id as string));
+  for (const route of routes ?? []) mailboxIds.add(route.mailbox_id as string);
+
+  const { data: routedMailboxes } = mailboxIds.size
+    ? await admin.from("mailboxes").select("id,address").in("id", [...mailboxIds]).eq("is_active", true)
+    : { data: [] as Array<{ id: string; address: string }> };
+
+  const mailboxes = routedMailboxes ?? [];
+  if (!mailboxes.length) return NextResponse.json({ ok: true, ignored: true });
 
   let bodyText = "";
   try {
@@ -136,8 +144,23 @@ export async function POST(req: Request) {
   }
 
   const from = canonicalAddress(event.data.from ?? "unknown@example.invalid");
+
+  const webhookId = req.headers.get("svix-id") ?? "";
+  if (webhookId) {
+    await admin.from("mail_delivery_events").upsert({
+      provider: "resend",
+      provider_event_id: webhookId,
+      provider_message_id: event.data.email_id,
+      event_type: "email.received",
+      recipient: recipients[0] ?? null,
+      occurred_at: new Date().toISOString(),
+      payload: event,
+    }, { onConflict: "provider,provider_event_id", ignoreDuplicates: true });
+  }
+
   let delivered = 0;
   let attachmentCount = 0;
+  let totalAttachmentBytes = 0;
 
   for (const mailbox of mailboxes) {
     const { data: existing } = await admin
@@ -192,6 +215,8 @@ export async function POST(req: Request) {
         if (length > 25 * 1024 * 1024) continue;
         const buffer = new Uint8Array(await response.arrayBuffer());
         if (!buffer.byteLength || buffer.byteLength > 25 * 1024 * 1024) continue;
+        if (totalAttachmentBytes + buffer.byteLength > 35 * 1024 * 1024) continue;
+        totalAttachmentBytes += buffer.byteLength;
 
         const safeName = (attachment.filename || "attachment")
           .replace(/[^a-zA-Z0-9._-]+/g, "-")

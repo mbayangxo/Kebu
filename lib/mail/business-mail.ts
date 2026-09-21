@@ -73,7 +73,7 @@ export async function assertMailboxSendAccess(
 ) {
   const { data: mailbox } = await supabase
     .from("mailboxes")
-    .select("id, owner_user_id, business_id, mailbox_type, address, display_name, is_active")
+    .select("id, owner_user_id, business_id, mailbox_type, address, display_name, is_active, mail_domain_id")
     .eq("id", mailboxId)
     .eq("is_active", true)
     .maybeSingle();
