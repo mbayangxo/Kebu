@@ -574,6 +574,59 @@ export default function ProjectEditorPage() {
     });
   }
 
+  function deleteSelectedCanvasObject() {
+    if (!selectedElement || !selectedSectionId) return false;
+    if (selectedElement.kind === "control" || selectedElement.kind === "background") return false;
+    const section = sections.find((item) => item.id === selectedElement.sectionId);
+    if (!section) return false;
+
+    const elementId = selectedElement.elementId;
+    if (elementId.startsWith("extra:")) {
+      const id = elementId.slice("extra:".length);
+      const extras = Array.isArray(section.props.extraCutouts)
+        ? (section.props.extraCutouts as Array<Record<string, unknown>>)
+        : [];
+      updateProps(section.id, {
+        extraCutouts: extras.filter((item) => String(item.id ?? "") !== id),
+      });
+    } else {
+      const hidden = Array.isArray(section.props.hiddenLayers)
+        ? (section.props.hiddenLayers as string[])
+        : [];
+      updateProps(section.id, {
+        hiddenLayers: [...new Set([...hidden, elementId])],
+      });
+    }
+    setSelectedElement(null);
+    return true;
+  }
+
+  function duplicateSelectedCanvasObject() {
+    if (!selectedElement || !selectedSectionId || !selectedElement.elementId.startsWith("extra:")) return false;
+    const section = sections.find((item) => item.id === selectedElement.sectionId);
+    if (!section) return false;
+    const id = selectedElement.elementId.slice("extra:".length);
+    const extras = Array.isArray(section.props.extraCutouts)
+      ? (section.props.extraCutouts as Array<Record<string, unknown>>)
+      : [];
+    const source = extras.find((item) => String(item.id ?? "") === id);
+    if (!source) return false;
+    const nextId = `dup-${Date.now()}`;
+    const duplicate = {
+      ...source,
+      id: nextId,
+      leftPct: Math.min(95, Number(source.leftPct ?? 50) + 3),
+      topPct: Math.min(95, Number(source.topPct ?? 50) + 3),
+    };
+    updateProps(section.id, { extraCutouts: [...extras, duplicate] });
+    setSelectedElement({
+      ...selectedElement,
+      elementId: `extra:${nextId}`,
+      label: `${selectedElement.label} copy`,
+    });
+    return true;
+  }
+
   // Builder keyboard shortcuts — available regardless of toolbar breakpoint.
   // Keep native input/textarea/contentEditable undo behavior intact while typing.
   useEffect(() => {
@@ -586,6 +639,17 @@ export default function ProjectEditorPage() {
         Boolean(target?.isContentEditable);
       if (typing) return;
       const command = event.metaKey || event.ctrlKey;
+
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedElement) {
+        if (deleteSelectedCanvasObject()) event.preventDefault();
+        return;
+      }
+
+      if (command && event.key.toLowerCase() === "d" && selectedElement) {
+        if (duplicateSelectedCanvasObject()) event.preventDefault();
+        return;
+      }
+
       if (!command) return;
       if (event.key.toLowerCase() === "z") {
         event.preventDefault();
@@ -598,7 +662,7 @@ export default function ProjectEditorPage() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [sections, history.length, future.length]);
+  }, [sections, history.length, future.length, selectedElement, selectedSectionId]);
 
   async function payHostingWithJoko(opts?: {
     autopay?: boolean;

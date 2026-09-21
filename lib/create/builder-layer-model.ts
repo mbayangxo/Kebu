@@ -101,7 +101,7 @@ export function patchBuilderLayerPresentation(
   if (patch.rotation !== undefined) {
     next.layerRotation = {
       ...numberMap(props, "layerRotation"),
-      [storageKey]: Math.min(180, Math.max(-180, patch.rotation)),
+      [storageKey]: ((patch.rotation % 360) + 360) % 360,
     };
   }
   if (patch.locked !== undefined) {

@@ -504,8 +504,8 @@ export function BuilderElementInspector({
               <input
                 className="min-w-0 flex-1 accent-[#FF6A00]"
                 type="range"
-                min="-180"
-                max="180"
+                min="0"
+                max="360"
                 step="1"
                 value={rotation}
                 onChange={(event) =>
@@ -519,10 +519,10 @@ export function BuilderElementInspector({
               <input
                 className="w-[62px] rounded-md border border-black/10 bg-white px-2 py-1.5 text-right text-xs"
                 type="number"
-                min="-180"
-                max="180"
+                min="0"
+                max="360"
                 step="1"
-                value={rotation}
+                value={((rotation % 360) + 360) % 360}
                 onChange={(event) =>
                   onPatch(
                     patchBuilderLayerPresentation(sectionProps, storageKey, {
