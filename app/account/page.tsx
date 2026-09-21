@@ -178,8 +178,8 @@ export default function AccountPage() {
 
   return (
     <AppShell title="My Account">
-      <div className="max-w-xl mx-auto px-5 py-8 lg:py-10">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="mx-auto max-w-[1180px] px-5 py-8 sm:px-7 lg:py-10">
+        <div className="mb-6 flex items-center gap-4 rounded-[24px] border bg-white p-5 sm:p-6" style={{ borderColor: KEBU.border }}>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -225,7 +225,7 @@ export default function AccountPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-white overflow-hidden divide-y" style={{ borderColor: KEBU.border }}>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">\n          <div className="rounded-[20px] border bg-white overflow-hidden divide-y" style={{ borderColor: KEBU.border }}>
           <ListRow
             title="Personal info"
             hint="Name, photo, country"
@@ -424,6 +424,24 @@ export default function AccountPage() {
               →
             </span>
           </Link>
+          </div>
+
+          <aside className="space-y-3">
+            <Link href="/business?tab=businesses" className="block rounded-[20px] border bg-black p-5 text-white" style={{ borderColor: KEBU.border }}>
+              <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/45">Business</p>
+              <p className="mt-3 text-lg font-black">My Businesses</p>
+              <p className="mt-1 text-[10px] leading-relaxed text-white/45">Open or activate business tools without mixing them into your personal account.</p>
+            </Link>
+            <Link href={MY_SITES_HREF} className="block rounded-[20px] border bg-white p-5" style={{ borderColor: KEBU.border }}>
+              <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Sites</p>
+              <p className="mt-3 text-lg font-black">My Sites</p>
+              <p className="mt-1 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>Manage the sites that actually exist in your account.</p>
+            </Link>
+            <div className="rounded-[20px] border bg-[#FFFBF7] p-5" style={{ borderColor: KEBU.border }}>
+              <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>One Kebu login</p>
+              <p className="mt-2 text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>Your account, personal Mail addresses, businesses and product worlds remain connected without forcing separate logins.</p>
+            </div>
+          </aside>
         </div>
 
         {note ? <p className="text-sm text-green-700 mt-6">{note}</p> : null}
