@@ -9,7 +9,11 @@ import { PersonalPeoplePanel } from "@/app/components/people/personal-people-pan
 type Member = { business_id: string; user_id: string; role: string; status: string };
 type Profile = { id: string; name: string | null; email: string | null; avatar_url: string | null };
 
-type Props = { searchParams: Promise<{ scope?: string }> };\n\nexport default async function PeoplePage({ searchParams }: Props) {\n  const { scope } = await searchParams;\n  const businessScope = scope === "business";
+type Props = { searchParams: Promise<{ scope?: string }> };
+
+export default async function PeoplePage({ searchParams }: Props) {
+  const { scope } = await searchParams;
+  const businessScope = scope === "business";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/people");
