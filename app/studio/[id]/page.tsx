@@ -877,188 +877,36 @@ export default function StudioEditorPage() {
     <div className="min-h-screen flex flex-col bg-[#0B0B0C] text-white">
       <header className="shrink-0 z-30 border-b border-white/10 bg-[#0B0B0C]">
         <div className="flex h-14 items-center gap-4 px-3 sm:px-5">
-          <Link href="/studio" className="shrink-0 text-xl font-black tracking-[-.06em] no-underline">
-            <span className="text-[#FF6A00]">K</span>EBU
-          </Link>
-          <nav className="hidden items-center gap-4 text-[10px] font-bold text-white/60 lg:flex">
+          <Link href="/studio" className="shrink-0 text-xl font-black tracking-[-.06em] no-underline"><span className="text-[#FF6A00]">K</span>EBU</Link>
+          <nav className="hidden items-center gap-4 text-[10px] font-semibold text-white/62 lg:flex">
             <Link href="/studio" className="text-white">Studio</Link>
-            <Link href="/studio" className="hover:text-white">Design</Link>
-            <Link href="/studio/video" className="hover:text-white">Video</Link>
-            <Link href="/studio?tab=audio" className="hover:text-white">Audio</Link>
-            <Link href="/studio/templates" className="hover:text-white">Templates</Link>
-            <Link href="/studio/brand" className="hover:text-white">Brand</Link>
+            <span>Design</span><Link href="/studio/video">Video</Link><Link href="/studio?tab=audio">Audio</Link><span>All tools</span><Link href="/studio/templates">Templates</Link><span>Elements</span><Link href="/studio/brand">Brand</Link><span>AI</span>
           </nav>
-          <div className="mx-auto hidden max-w-xl flex-1 lg:block">
-            <div className="flex h-9 items-center rounded-xl border border-white/10 bg-white/[.035] px-3 text-[10px] text-white/40">
-              Search templates, elements, or your files…
-              <span className="ml-auto rounded-md border border-white/10 px-1.5 py-0.5 text-[8px]">⌘ K</span>
-            </div>
-          </div>
-          <span className="ml-auto text-[9px] font-bold uppercase tracking-[.12em] text-white/40 lg:ml-0">{saveLabel}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setShowShare((v) => !v);
-              if (!showShare) {
-                setShowVersions(false);
-                setShowComments(false);
-              }
-            }}
-            className="rounded-xl border border-white/10 bg-white/[.05] px-4 py-2 text-[10px] font-black text-white"
-          >
-            Share
-          </button>
-          {canEdit ? (
-            <button
-              type="button"
-              onClick={() => doc && void persist(doc)}
-              className="rounded-xl px-4 py-2 text-[10px] font-black text-white"
-              style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}
-            >
-              Save
-            </button>
-          ) : null}
+          <div className="mx-auto hidden max-w-xl flex-1 lg:block"><div className="flex h-9 items-center rounded-[10px] border border-white/10 bg-white/[.035] px-3 text-[10px] text-white/40">⌕&nbsp;&nbsp; Search templates, elements, or your files…<span className="ml-auto rounded-md border border-white/10 px-1.5 py-0.5 text-[8px]">⌘ K</span></div></div>
+          <button type="button" className="hidden h-8 w-8 items-center justify-center rounded-full border border-white/10 text-white/55 sm:flex">♡</button>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2C7B9] text-[9px] font-semibold text-black">K</span>
         </div>
         <div className="flex min-h-12 items-center gap-2 overflow-x-auto whitespace-nowrap border-t border-white/[.06] px-3 sm:px-5">
-          <Link href="/studio" className="rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wide text-white/45 hover:bg-white/[.05]">← Projects</Link>
-          <h1 className="min-w-[160px] max-w-sm flex-1 truncate text-[12px] font-black tracking-[-.02em] text-white">{design.title}</h1>
-        <button
-          type="button"
-          onClick={() => setShowBrandKit((v) => !v)}
-          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-        >
-          Brand
-        </button>
-        {canEdit ? (
-          <button
-            type="button"
-            onClick={() => setShowResize(true)}
-            className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-            title="Change artboard size"
-          >
-            Resize
-          </button>
-        ) : null}
-        {canEdit ? (
-          <select
-            aria-label="Create editable size variant"
-            disabled={variantBusy || syncState === "conflict"}
-            defaultValue=""
-            onChange={(e) => {
-              const value = e.target.value as StudioDesignType;
-              if (value) void createVariant(value);
-              e.currentTarget.value = "";
-            }}
-            className="rounded-lg border border-white/10 bg-[#171719] px-3 py-1.5 text-[9px] font-black text-white/70 disabled:opacity-50"
-          >
-            <option value="">{variantBusy ? "Creating variant…" : "Variant"}</option>
-            <option value="instagram_post">Instagram post</option>
-            <option value="instagram_story">Instagram story</option>
-            <option value="whatsapp_status">WhatsApp status</option>
-            <option value="facebook_post">Facebook post</option>
-            <option value="flyer">Flyer</option>
-            <option value="poster">Poster</option>
-            <option value="banner">Banner</option>
-            <option value="business_card">Business card</option>
-          </select>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => void downloadPng()}
-          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-        >
-          Download PNG
-        </button>
-        <button
-          type="button"
-          disabled={packBusy}
-          onClick={() => void downloadPdf()}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
-          title="Multi-page PDF"
-        >
-          {packBusy ? "…" : "PDF"}
-        </button>
-        <button
-          type="button"
-          disabled={packBusy}
-          onClick={() => void downloadZip()}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
-          title="ZIP of PNGs (all pages)"
-        >
-          ZIP
-        </button>
-        <button
-          type="button"
-          disabled={motionBusy}
-          onClick={() => void downloadMotion()}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
-          title="Export timeline WebM (page durations + video seek)"
-        >
-          {motionBusy ? "Recording…" : "Export timeline"}
-        </button>
-        {canEdit ? (
-          <button
-            type="button"
-            disabled={videoBusy || syncState === "conflict"}
-            onClick={() => void turnDesignIntoVideo()}
-            className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
-            title="Create an editable Studio Video project from the active page"
-          >
-            {videoBusy ? "Preparing video…" : "Turn into video"}
-          </button>
-        ) : null}
-        <label className="flex items-center gap-1 text-[9px] font-semibold text-white/35" title="Applies to pages without a custom duration">
-          default s/page
-          <input
-            type="number"
-            min={0.5}
-            max={8}
-            step={0.5}
-            value={secondsPerPage}
-            onChange={(e) => {
-              const v = Number(e.target.value) || 2;
-              setSecondsPerPage(v);
-              if (doc && canEdit) {
-                const ms = Math.round(v * 1000);
-                onChangeDoc({
-                  ...doc,
-                  pages: doc.pages.map((p) =>
-                    p.durationMs == null || p.durationMs === 2000 ? { ...p, durationMs: ms } : p,
-                  ),
-                });
-              }
-            }}
-            className="w-12 rounded border border-white/10 bg-[#171719] px-1 py-0.5 text-[9px] text-white"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => {
-            setShowVersions((v) => !v);
-            if (!showVersions) {
-              setShowShare(false);
-              setShowComments(false);
-            }
-          }}
-          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-        >
-          Versions
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setShowComments((v) => !v);
-            if (!showComments) {
-              setShowShare(false);
-              setShowVersions(false);
-            }
-          }}
-          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-        >
-          Comments
-        </button>
-      </div>
-      </header>
+          <Link href="/studio" className="rounded-[8px] bg-[#FF6A00] px-3 py-2 text-[9px] font-semibold text-white">+ Create new</Link>
+          <h1 className="ml-2 min-w-[160px] max-w-sm truncate text-[11px] font-semibold text-white">{design.title}</h1>
+          <span className="rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] text-white/62">{doc.width} × {doc.height}</span>
+          <button type="button" onClick={undo} disabled={!canEdit || history.length===0} className="rounded-[8px] px-2 py-2 text-[11px] text-white/45 disabled:opacity-20" aria-label="Undo">↶</button>
+          <button type="button" onClick={redo} disabled={!canEdit || future.length===0} className="rounded-[8px] px-2 py-2 text-[11px] text-white/45 disabled:opacity-20" aria-label="Redo">↷</button>
+          <span className="ml-auto text-[9px] text-white/38">{saveLabel}</span>
+          <button type="button" onClick={() => setShowBrandKit((v)=>!v)} className="rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] font-semibold text-white/70">Brand</button>
+          {canEdit ? <button type="button" onClick={()=>setShowResize(true)} className="rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] font-semibold text-white/70">Resize</button> : null}
+          <details className="relative"><summary className="cursor-pointer list-none rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] font-semibold text-white/70">More</summary><div className="absolute right-0 top-11 z-50 w-[190px] rounded-[12px] border border-white/10 bg-[#171719] p-2 shadow-2xl">
+            <button type="button" onClick={()=>void downloadPng()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Download PNG</button>
+            <button type="button" disabled={packBusy} onClick={()=>void downloadPdf()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Export PDF</button>
+            <button type="button" disabled={packBusy} onClick={()=>void downloadZip()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Download pages ZIP</button>
+            <button type="button" disabled={motionBusy} onClick={()=>void downloadMotion()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Export timeline</button>
+            {canEdit ? <button type="button" disabled={videoBusy || syncState==="conflict"} onClick={()=>void turnDesignIntoVideo()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Turn into video</button> : null}
+            <button type="button" onClick={()=>{setShowVersions((v)=>!v);setShowShare(false);setShowComments(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Versions</button>
+            <button type="button" onClick={()=>{setShowComments((v)=>!v);setShowShare(false);setShowVersions(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Comments</button>
+          </div></details>
+          <button type="button" onClick={()=>{setShowShare((v)=>!v);setShowVersions(false);setShowComments(false)}} className="rounded-[8px] border border-white/15 px-4 py-2 text-[9px] font-semibold text-white">Share</button>
+          {canEdit ? <button type="button" onClick={()=>doc&&void persist(doc)} className="rounded-[8px] bg-[#FF6A00] px-4 py-2 text-[9px] font-semibold text-white">Publish</button> : null}
+        </div>      </header>
 
       {syncState === "conflict" ? (
         <div className="border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950">
