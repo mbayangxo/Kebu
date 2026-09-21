@@ -12,6 +12,7 @@ import { StudioReachPromote } from "@/app/components/studio/studio-reach-promote
 import { StudioResizeDialog } from "@/app/components/studio/studio-resize-dialog";
 import { StudioTimelinePanel } from "@/app/components/studio/studio-timeline-panel";
 import { StudioCoachPanel } from "@/app/components/studio/studio-coach-panel";
+import { YandeGlobalFab } from "@/app/components/yande-global-fab";
 import {
   downloadBlob,
   downloadPngDataUrl,
@@ -1061,6 +1062,7 @@ export default function StudioEditorPage() {
         onPlayingChange={setTimelinePlaying}
         readOnly={!canEdit}
       />
+      <YandeGlobalFab variant="fixed" projectId={designId} />
     </div>
   );
 }

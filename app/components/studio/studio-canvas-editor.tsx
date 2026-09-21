@@ -104,7 +104,8 @@ function TimelineVideo({
 const FONT_OPTIONS = studioFontFamilies();
 const STUDIO_FONTS_HREF = googleFontsHrefForStudioCatalog();
 
-const STUDIO_RAIL=[{id:"elements",label:"Elements",icon:<StudioIcon name="elements"/>},{id:"layers",label:"Layers",icon:<StudioIcon name="layers"/>},{id:"uploads",label:"Media",icon:<StudioIcon name="uploads"/>},{id:"themes",label:"Themes",icon:<StudioIcon name="themes"/>},{id:"brand",label:"Brand",icon:<StudioIcon name="brand"/>},{id:"tools",label:"Tools",icon:<StudioIcon name="tools"/>}];
+const AI_ICON=<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M12 2l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14l-5 3.2 1.9-5.8L4 7.8h6.1z"/><path d="M5 20h14M9 20v-3M15 20v-3"/></svg>;
+const STUDIO_RAIL=[{id:"elements",label:"Elements",icon:<StudioIcon name="elements"/>},{id:"layers",label:"Layers",icon:<StudioIcon name="layers"/>},{id:"uploads",label:"Media",icon:<StudioIcon name="uploads"/>},{id:"themes",label:"Themes",icon:<StudioIcon name="themes"/>},{id:"brand",label:"Brand",icon:<StudioIcon name="brand"/>},{id:"tools",label:"Tools",icon:<StudioIcon name="tools"/>},{id:"ai",label:"AI",icon:AI_ICON}];
 
 const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string; minSelection?: number }[] = [
   { mode: "left", label: "left", title: "Align left" },
@@ -188,9 +189,13 @@ export function StudioCanvasEditor({
   const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [brandSpace,setBrandSpace]=useState<BrandSpace|null>(null);
-  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "themes" | "brand" | "tools">("elements");
+  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "themes" | "brand" | "tools" | "ai">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"library" | "inspector" | null>(null);
+  const [inspectorTab, setInspectorTab] = useState<"design" | "animate" | "position">("design");
+  const [aiInput, setAiInput] = useState("");
+  const [aiMessages, setAiMessages] = useState<{role:"user"|"assistant";text:string}[]>([]);
+  const [aiBusy, setAiBusy] = useState(false);
 
   useEffect(() => {
     if (!STUDIO_FONTS_HREF) return;
@@ -663,6 +668,26 @@ export function StudioCanvasEditor({
     !readOnly && selectedLayerIds.some((id) => layers.find((l) => l.id === id)?.groupId);
   const canAlign = !readOnly && selectedLayerIds.length >= 1;
 
+  async function sendAiMessage(text: string) {
+    if (!text.trim() || aiBusy) return;
+    setAiMessages(prev => [...prev, { role: "user", text }]);
+    setAiInput("");
+    setAiBusy(true);
+    try {
+      const res = await fetch("/api/yande/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, context: "studio" }),
+      });
+      const data = await res.json() as { reply?: string; message?: string };
+      setAiMessages(prev => [...prev, { role: "assistant", text: data.reply ?? data.message ?? "Hmm, I couldn't respond to that." }]);
+    } catch {
+      setAiMessages(prev => [...prev, { role: "assistant", text: "Something went wrong. Please try again." }]);
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   return (
     <div className="relative flex h-[calc(100dvh-6.5rem)] min-h-[520px] flex-col bg-[#111214] text-white">
       {/* Top tool strip */}
@@ -805,7 +830,48 @@ export function StudioCanvasEditor({
                 else setLeftTab(action);
               }} />
             ) : null}
-            {leftTab === "elements" ? (
+            {leftTab === "ai" ? (
+              <div className="space-y-3">
+                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">Yande AI</p><p className="text-[9px] text-white/40">Generate, design and ideate with AI</p></div>
+                {aiMessages.length === 0 ? (
+                  <div className="space-y-1.5">
+                    {["Write headline text for my design","Suggest a color palette","What font pairs well with Fraunces?","Make my layout feel more premium"].map(s=>(
+                      <button key={s} type="button" onClick={()=>void sendAiMessage(s)} className="w-full rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-left text-[10px] font-medium text-white/70 hover:border-orange-400 hover:text-white">
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+                    {aiMessages.map((m, i) => (
+                      <div key={i} className={`rounded-xl px-3 py-2 text-[10px] leading-relaxed ${m.role==="user"?"bg-orange-500/20 text-orange-200 ml-4":"bg-white/[.06] text-white/80 mr-4"}`}>
+                        {m.text}
+                      </div>
+                    ))}
+                    {aiBusy ? <div className="rounded-xl bg-white/[.06] px-3 py-2 text-[10px] text-white/40 mr-4">Thinking…</div> : null}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    value={aiInput}
+                    onChange={e=>setAiInput(e.target.value)}
+                    onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void sendAiMessage(aiInput)}}}
+                    placeholder="Ask Yande AI…"
+                    className="flex-1 rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-xs placeholder:text-white/30"
+                    disabled={aiBusy}
+                  />
+                  <button
+                    type="button"
+                    onClick={()=>void sendAiMessage(aiInput)}
+                    disabled={aiBusy||!aiInput.trim()}
+                    className="rounded-xl bg-orange-500 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40"
+                  >
+                    →
+                  </button>
+                </div>
+                {aiMessages.length > 0 ? <button type="button" onClick={()=>{setAiMessages([]);setAiInput("")}} className="text-[9px] text-white/30 hover:text-white/60">Clear chat</button> : null}
+              </div>
+            ) : leftTab === "elements" ? (
               <div className="space-y-3">
                 <div><p className="text-[10px] font-black uppercase tracking-[.18em]">{readOnly?"Elements · view only":"Elements"}</p><p className="text-[9px] text-white/40">Shapes, frames, symbols and business graphics</p></div>
                 <input value={elementQuery} onChange={(e)=>setElementQuery(e.target.value)} placeholder="Search elements" className="w-full rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-xs"/>
@@ -1114,7 +1180,7 @@ export function StudioCanvasEditor({
 
         {/* Right: Properties */}
         <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-white/10 bg-[#17181B] p-4 shadow-2xl md:static md:block md:w-[288px] md:shrink-0 md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none space-y-3`}>
-          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p></div>
+          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p>{selected ? <div className="mt-2 flex gap-1">{(["design","animate","position"] as const).map(t=><button key={t} type="button" onClick={()=>setInspectorTab(t)} className={`rounded-lg px-2.5 py-1 text-[9px] font-bold capitalize ${inspectorTab===t?"bg-orange-500 text-white":"bg-white/[.06] text-white/50 hover:bg-white/[.10]"}`}>{t}</button>)}</div> : null}</div>
           <fieldset disabled={readOnly} className="space-y-3 border-0 p-0 m-0 min-w-0 disabled:opacity-70">
           {selectedLayerIds.length > 1 ? (
             <p className="text-xs opacity-60">
@@ -1143,6 +1209,7 @@ export function StudioCanvasEditor({
             </div>
           ) : (
             <div className="space-y-0 text-xs">
+              {inspectorTab === "design" ? <>
               <GalaxyInspectorSection title="Layer"><label className="block font-semibold">
                 Name
                 <input
@@ -1151,7 +1218,8 @@ export function StudioCanvasEditor({
                   className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                 />
               </label></GalaxyInspectorSection>
-              <GalaxyInspectorSection title="Motion">
+              </> : null}
+              {inspectorTab === "animate" ? <GalaxyInspectorSection title="Motion">
                 <label className="block font-semibold">
                   Entrance
                   <select
@@ -1199,7 +1267,8 @@ export function StudioCanvasEditor({
                 <p className="text-[9px] leading-relaxed text-white/45">
                   Motion previews against the page timeline and follows the design into editable video.
                 </p>
-              </GalaxyInspectorSection>
+              </GalaxyInspectorSection> : null}
+              {inspectorTab === "design" ? <>
               {selected.type === "text" ? (<GalaxyInspectorSection title="Typography">
                   <label className="block font-semibold">
                     Text
@@ -1576,6 +1645,8 @@ export function StudioCanvasEditor({
                 </div>
               ) : null}
               {(["rect","ellipse","line","frame","icon"].includes(selected.type))?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Element style</p>{selected.type!=="icon"?<><label className="block font-semibold">Stroke<input type="color" value={selected.stroke??"#111111"} onChange={e=>updateLayer(selected.id,{stroke:e.target.value})} className="mt-1 h-8 w-full"/></label><label className="block font-semibold">Stroke width<input type="range" min="0" max="40" value={selected.strokeWidth??0} onChange={e=>updateLayer(selected.id,{strokeWidth:Number(e.target.value)})} className="w-full"/></label></>:null}{selected.type==="rect"||selected.type==="frame"?<label className="block font-semibold">Corners<input type="range" min="0" max="200" value={selected.cornerRadius??0} onChange={e=>updateLayer(selected.id,{cornerRadius:Number(e.target.value)})} className="w-full"/></label>:null}{selected.type==="line"?<><label className="block font-semibold">Line weight<input type="range" min="2" max="40" value={selected.height} onChange={e=>updateLayer(selected.id,{height:Number(e.target.value)})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{text:selected.text==="→"?"":"→"})} className="rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold">{selected.text==="→"?"Remove arrow":"Add arrow"}</button></>:null}</div>:null}
+              </> : null}
+              {inspectorTab === "position" ? <>
               <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Position · size</p>
               <div className="grid grid-cols-2 gap-2">
                 {([
@@ -1700,6 +1771,7 @@ export function StudioCanvasEditor({
                   {selected.locked ? "Unlock" : "Lock"}
                 </button>
               </div>
+              </> : null}
             </div>
           )}
           </fieldset>
