@@ -323,7 +323,7 @@ export function BuilderStudioChrome({
           type="button"
           onClick={onUndo}
           disabled={!canUndo}
-          className="hidden h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25 lg:flex"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25"
           style={{ color: BUILDER.ink }}
           aria-label="Undo"
           title="Undo"
@@ -334,7 +334,7 @@ export function BuilderStudioChrome({
           type="button"
           onClick={onRedo}
           disabled={!canRedo}
-          className="hidden h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25 lg:flex"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25"
           style={{ color: BUILDER.ink }}
           aria-label="Redo"
           title="Redo"

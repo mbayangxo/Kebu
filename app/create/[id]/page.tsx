@@ -549,6 +549,32 @@ export default function ProjectEditorPage() {
     });
   }
 
+  // Builder keyboard shortcuts — available regardless of toolbar breakpoint.
+  // Keep native input/textarea/contentEditable undo behavior intact while typing.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT" ||
+        Boolean(target?.isContentEditable);
+      if (typing) return;
+      const command = event.metaKey || event.ctrlKey;
+      if (!command) return;
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+      } else if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [sections, history.length, future.length]);
+
   async function payHostingWithJoko(opts?: {
     autopay?: boolean;
     forceRenew?: boolean;
@@ -1839,35 +1865,26 @@ export default function ProjectEditorPage() {
 
               {selectedSectionId && !selectedElement && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
                     <div key={section.id} className="pb-2">
-                      {/* Section actions — always visible */}
-                      <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
-                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, -1)}>
-                            ↑ Move up
-                          </button>
-                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, 1)}>
-                            ↓ Move down
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium"
-                            style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }}
-                            onClick={() => void duplicateSection(section.id)}
-                          >
-                            Duplicate
-                          </button>
+                      <details className="border-b" style={{ borderColor: BUILDER.border }}>
+                        <summary className="cursor-pointer list-none px-4 py-2 text-[10px] font-semibold text-black/45 hover:bg-black/[.025]">
+                          <span className="inline-flex items-center gap-1.5">Section actions <span aria-hidden>•••</span></span>
+                        </summary>
+                        <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, -1)}>↑ Move up</button>
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, 1)}>↓ Move down</button>
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void duplicateSection(section.id)}>Duplicate</button>
                           <button
                             type="button"
                             className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
                             style={{ border: "1px solid #FECACA", color: "#B91C1C" }}
                             onClick={() => {
-                              if (window.confirm(`Remove "${labelForSectionType(section.section_type)}" from this page?`)) {
-                                void deleteSection(section.id);
-                              }
+                              if (window.confirm(`Remove "${labelForSectionType(section.section_type)}" from this page?`)) void deleteSection(section.id);
                             }}
                           >
                             Remove
                           </button>
                         </div>
+                      </details>
                       <SidebarDetails title="Content" group="section-inspector">
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
@@ -2034,6 +2051,58 @@ export default function ProjectEditorPage() {
                             logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
                             onChange={(patch) => updateProps(section.id, patch)}
                           />
+                          <div className="rounded-xl border border-black/[.08] bg-black/[.015] p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>Center name typography</p>
+                                <p className="mt-0.5 text-[9px] leading-relaxed" style={{ color: BUILDER.muted }}>Controls the editable name inside the circle.</p>
+                              </div>
+                              <label className="flex items-center gap-2 text-[10px] font-semibold">
+                                <input
+                                  type="checkbox"
+                                  checked={section.props.titleAsText === true}
+                                  onChange={(e) => updateProps(section.id, { titleAsText: e.target.checked })}
+                                />
+                                Editable text
+                              </label>
+                            </div>
+                            <div className="mt-3 grid grid-cols-[1fr_92px] gap-2">
+                              <input
+                                list="kebu-hero-fonts"
+                                className="min-h-9 w-full rounded-lg border border-black/10 bg-white px-2.5 text-xs"
+                                value={String(section.props.titleTextFontFamily ?? "Impact")}
+                                onChange={(e) => updateProps(section.id, { titleTextFontFamily: e.target.value, titleAsText: true })}
+                                aria-label="Center name font"
+                                placeholder="Font"
+                              />
+                              <input
+                                type="number"
+                                min="6"
+                                max="240"
+                                step="1"
+                                className="min-h-9 w-full rounded-lg border border-black/10 bg-white px-2.5 text-xs"
+                                value={Number(section.props.titleTextFontSize ?? 14)}
+                                onChange={(e) => updateProps(section.id, { titleTextFontSize: Math.min(240, Math.max(6, Number(e.target.value) || 14)), titleAsText: true })}
+                                aria-label="Center name font size in pixels"
+                              />
+                              <datalist id="kebu-hero-fonts">
+                                <option value="Impact" /><option value="Arial Black" /><option value="Helvetica" /><option value="Georgia" /><option value="Playfair Display" /><option value="Fraunces" /><option value="Oswald" /><option value="Bebas Neue" /><option value="Syne" /><option value="system-ui" />
+                              </datalist>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              <input
+                                type="range"
+                                min="6"
+                                max="120"
+                                step="1"
+                                className="min-w-0 flex-1 accent-[#FF6A00]"
+                                value={Math.min(120, Number(section.props.titleTextFontSize ?? 14))}
+                                onChange={(e) => updateProps(section.id, { titleTextFontSize: Number(e.target.value), titleAsText: true })}
+                                aria-label="Center name font size"
+                              />
+                              <span className="w-12 text-right text-[10px] font-bold text-black/45">{Number(section.props.titleTextFontSize ?? 14)} px</span>
+                            </div>
+                          </div>
                           <label className="block text-[10px] uppercase tracking-wider">
                             Display font (Steelfish recommended)
                             <select
