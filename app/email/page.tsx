@@ -8,6 +8,7 @@ import { KEBU } from "@/lib/kebu-brand";
 import { BusinessMailSetup } from "@/app/components/mail/business-mail-setup";
 
 type Folder = "inbox" | "sent" | "drafts" | "archive" | "spam" | "trash";
+type MailView = Folder | "priority" | "waiting" | "starred";
 type Mailbox = {
   id: string;
   address: string;
@@ -29,6 +30,10 @@ type Message = {
   status: string;
   read_at: string | null;
   in_reply_to_message_id: string | null;
+  priority: boolean;
+  starred_at: string | null;
+  waiting_until: string | null;
+  scheduled_at: string | null;
   created_at: string;
 };
 type Attachment = {
@@ -45,10 +50,13 @@ type ThreadPayload = {
   attachments: Attachment[];
 };
 
-const FOLDERS: Array<{ id: Folder; label: string; icon: "message" | "work" | "library" }> = [
+const MAIL_VIEWS: Array<{ id: MailView; label: string; icon: "message" | "work" | "library" }> = [
   { id: "inbox", label: "Inbox", icon: "message" },
+  { id: "priority", label: "Priority", icon: "work" },
+  { id: "waiting", label: "Waiting", icon: "work" },
   { id: "sent", label: "Sent", icon: "message" },
   { id: "drafts", label: "Drafts", icon: "work" },
+  { id: "starred", label: "Starred", icon: "work" },
   { id: "archive", label: "Archive", icon: "library" },
   { id: "spam", label: "Spam", icon: "message" },
   { id: "trash", label: "Trash", icon: "message" },
@@ -67,7 +75,7 @@ function formatBytes(value: number) {
 export default function EmailPage() {
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
   const [mailboxId, setMailboxId] = useState("");
-  const [folder, setFolder] = useState<Folder>("inbox");
+  const [folder, setFolder] = useState<MailView>("inbox");
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [thread, setThread] = useState<ThreadPayload | null>(null);
@@ -95,10 +103,33 @@ export default function EmailPage() {
   const [setupDisplayName, setSetupDisplayName] = useState("");
   const [setupBusy, setSetupBusy] = useState(false);
   const [showPersonalMailboxSetup, setShowPersonalMailboxSetup] = useState(false);
+  const [mailSearch, setMailSearch] = useState("");
+  const [listFilter, setListFilter] = useState<"all" | "unread">("all");
 
   const activeMailbox = useMemo(() => mailboxes.find((item) => item.id === mailboxId) ?? null, [mailboxes, mailboxId]);
   const selected = useMemo(() => messages.find((item) => item.id === selectedId) ?? null, [messages, selectedId]);
   const unread = useMemo(() => messages.filter((item) => !item.read_at && item.folder === "inbox").length, [messages]);
+  const visibleMessages = useMemo(() => {
+    const q = mailSearch.trim().toLowerCase();
+    return messages.filter((item) => {
+      if (listFilter === "unread" && item.read_at) return false;
+      if (!q) return true;
+      return [item.from_address, item.to_addresses.join(" "), item.subject, item.body_text]
+        .join(" ").toLowerCase().includes(q);
+    });
+  }, [messages, mailSearch, listFilter]);
+  const threadParticipants = useMemo(() => {
+    if (!thread) return [];
+    const values = new Set<string>();
+    for (const message of thread.messages) {
+      values.add(message.from_address);
+      message.to_addresses.forEach((address) => values.add(address));
+      message.cc_addresses.forEach((address) => values.add(address));
+    }
+    if (activeMailbox?.address) values.delete(activeMailbox.address);
+    return [...values].slice(0, 12);
+  }, [thread, activeMailbox?.address]);
+  const threadAttachmentCount = thread?.attachments.length ?? 0;
 
   const loadMailboxes = useCallback(async () => {
     setLoading(true);
@@ -132,7 +163,7 @@ export default function EmailPage() {
       return;
     }
     setError(null);
-    const params = new URLSearchParams({ mailboxId, folder });
+    const params = new URLSearchParams({ mailboxId, view: folder });
     const res = await fetch("/api/mail/messages?" + params.toString(), { credentials: "include" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -182,6 +213,23 @@ export default function EmailPage() {
         body: JSON.stringify({ id: message.id, read: true }),
       }).catch(() => {});
     }
+  }
+
+  async function patchSelectedState(patch: { priority?: boolean; starred?: boolean; waitingUntil?: string | null }) {
+    if (!selected) return;
+    const res = await fetch("/api/mail/messages", {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: selected.id, ...patch }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.message) {
+      setError(data.error || "Could not update this message.");
+      return;
+    }
+    setMessages((current) => current.map((item) => item.id === selected.id ? { ...item, ...data.message } : item));
+    setSelectedId(data.message.id);
   }
 
   async function moveSelected(nextFolder: Folder) {
@@ -470,203 +518,163 @@ export default function EmailPage() {
 
   return (
     <AppShell title="Mail" immersive>
-      <div className="min-h-[calc(100vh-60px)] bg-[#FFFCF8] p-3 sm:p-4">
-        <div className="mx-auto grid min-h-[calc(100vh-92px)] max-w-[1560px] overflow-hidden rounded-[24px] border bg-white lg:grid-cols-[220px_360px_minmax(0,1fr)]" style={{ borderColor: KEBU.borders.default }}>
-          <aside className="border-b p-3 lg:border-b-0 lg:border-r" style={{ borderColor: KEBU.borders.default }}>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>{mailContext === "business" ? (businessName ? businessName + " · Business Mail" : "Business Mail") : "Personal Mail"}</p>
-                <select value={mailboxId} onChange={(event) => setMailboxId(event.target.value)} className="mt-1 w-full max-w-[180px] bg-transparent text-[11px] font-black outline-none">
-                  {mailboxes.map((mailbox) => <option key={mailbox.id} value={mailbox.id}>{mailbox.address}</option>)}
-                </select>
+      <div className="min-h-[calc(100vh-60px)] bg-[#F6F2EC] p-2 sm:p-3">
+        <div className="mx-auto min-h-[calc(100vh-84px)] max-w-[1740px] overflow-hidden rounded-[22px] border border-black/[.08] bg-[#FFFCF8] shadow-[0_12px_40px_rgba(20,15,10,.06)]">
+          <header className="flex h-14 items-center gap-3 border-b border-black/[.07] px-4 lg:pl-[238px]">
+            <label className="mx-auto flex min-h-9 w-full max-w-[720px] items-center gap-2 rounded-full border border-black/[.08] bg-white px-3">
+              <span className="text-black/35" aria-hidden>⌕</span>
+              <input
+                value={mailSearch}
+                onChange={(event) => setMailSearch(event.target.value)}
+                placeholder="Search conversations, people, or mail…"
+                className="min-w-0 flex-1 bg-transparent text-[11px] outline-none placeholder:text-black/30"
+              />
+              <span className="hidden rounded-md bg-black/[.04] px-1.5 py-1 text-[8px] font-semibold text-black/35 sm:inline">⌘ K</span>
+            </label>
+            <button type="button" onClick={() => { resetComposer(); setCompose(true); }} className="hidden rounded-full bg-black px-4 py-2 text-[10px] font-semibold text-white sm:inline-flex">+ New message</button>
+          </header>
+
+          <div className="grid min-h-[calc(100vh-140px)] lg:grid-cols-[224px_360px_minmax(420px,1fr)_260px]">
+            <aside className="border-r border-black/[.07] bg-[#FFFCF8] p-3">
+              <div className="px-1 pb-3">
+                <p className="text-[28px] font-semibold tracking-[-.04em]" style={{ fontFamily:"var(--font-fraunces)" }}>Mail</p>
+                <p className="mt-0.5 text-[9px] text-black/40">{mailContext === "business" ? businessName || "Business Mail" : "Your communication space."}</p>
               </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={() => { resetComposer(); setCompose(true); }}
-              disabled={!mailboxId}
-              className="mb-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] text-xs font-black text-white disabled:opacity-35"
-              style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}
-            >
-              <KebuIcon name="create" size={16} /> Compose
-            </button>
+              <button type="button" onClick={() => { resetComposer(); setCompose(true); }} disabled={!mailboxId} className="mb-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[10px] font-semibold text-white disabled:opacity-35">+ New message</button>
 
-            <nav className="grid grid-cols-3 gap-1 lg:block lg:space-y-1">
-              {FOLDERS.map((item) => {
-                const active = folder === item.id;
-                return (
-                  <button key={item.id} type="button" onClick={() => setFolder(item.id)} className="flex min-h-10 items-center gap-2 rounded-xl px-2.5 text-[10px] font-bold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00] lg:w-full" style={{ background: active ? "rgba(255,106,0,.08)" : undefined, color: active ? KEBU.black : KEBU.muted }}>
-                    <KebuIcon name={item.icon} size={15} />
-                    <span className="truncate">{item.label}</span>
-                    {item.id === "inbox" && unread > 0 ? <span className="ml-auto rounded-full bg-[#FF1F1F] px-1.5 py-0.5 text-[8px] font-black text-white">{unread}</span> : null}
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div className="mt-5 hidden rounded-[14px] bg-black/[.025] p-3 lg:block">
-              <p className="text-[9px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.muted }}>Mailbox</p>
-              <p className="mt-1 break-all text-[10px] font-bold">{activeMailbox?.address ?? "Provisioning…"}</p>
-              <p className="mt-2 text-[9px] leading-relaxed" style={{ color: KEBU.faint }}>{mailContext === "business" ? "This mailbox belongs only to the active Business Kebu. Your personal @kebu.africa mail stays separate." : "This is your personal Kebu mailbox. Business-domain mail only appears after you switch into that Business Kebu."}</p>
-            </div>
-            {mailContext === "personal" ? (
-              <div className="mt-3 hidden lg:block">
-                <button
-                  type="button"
-                  onClick={() => setShowPersonalMailboxSetup((value) => !value)}
-                  className="text-[9px] font-black uppercase tracking-wide"
-                  style={{ color: KEBU.orange }}
-                >
-                  {showPersonalMailboxSetup ? "Cancel" : "+ Add another email address"}
-                </button>
-                {showPersonalMailboxSetup ? (
-                  <form onSubmit={(event) => void activatePersonalMail(event)} className="mt-3 space-y-2 rounded-[14px] border bg-[#FFFCF8] p-3" style={{ borderColor: KEBU.borders.default }}>
-                    <input
-                      value={setupDisplayName}
-                      onChange={(event) => setSetupDisplayName(event.target.value)}
-                      required
-                      maxLength={120}
-                      className="min-h-9 w-full rounded-lg border bg-white px-2.5 text-[10px] outline-none focus:ring-2 focus:ring-[#FF6A00]"
-                      style={{ borderColor: KEBU.borders.default }}
-                      placeholder="Display name"
-                    />
-                    <div className="flex min-h-9 items-center rounded-lg border bg-white" style={{ borderColor: KEBU.borders.default }}>
-                      <input
-                        value={setupLocalPart}
-                        onChange={(event) => setSetupLocalPart(event.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))}
-                        required
-                        minLength={2}
-                        maxLength={48}
-                        className="min-w-0 flex-1 bg-transparent px-2.5 text-[10px] outline-none"
-                        placeholder="address"
-                      />
-                      <span className="pr-2 text-[9px] font-bold" style={{ color: KEBU.muted }}>@{mailDomain}</span>
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={setupBusy || setupLocalPart.trim().length < 2 || !setupDisplayName.trim()}
-                      className="min-h-9 w-full rounded-lg bg-black px-3 text-[9px] font-black uppercase tracking-wide text-white disabled:opacity-40"
-                    >
-                      {setupBusy ? "Creating…" : "Create address"}
+              <nav className="space-y-0.5">
+                {MAIL_VIEWS.map((item) => {
+                  const active = folder === item.id;
+                  return (
+                    <button key={item.id} type="button" onClick={() => setFolder(item.id)} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-2.5 text-[10px] font-semibold transition hover:bg-black/[.025]" style={{ background: active ? "rgba(255,106,0,.09)" : undefined, color: active ? "#B53D00" : "#292522" }}>
+                      <KebuIcon name={item.icon} size={14} />
+                      <span>{item.label}</span>
+                      {item.id === "inbox" && unread > 0 ? <span className="ml-auto text-[9px] font-bold text-[#E44813]">{unread}</span> : null}
                     </button>
-                  </form>
-                ) : null}
-              </div>
-            ) : null}
-            {mailContext === "business" ? (
-              <button type="button" onClick={() => setShowBusinessSetup((value) => !value)} className="mt-3 hidden text-[9px] font-black uppercase tracking-wide lg:inline-flex" style={{ color: KEBU.orange }}>{showBusinessSetup ? "Back to mailbox ←" : "Business mail settings →"}</button>
-            ) : (
-              <Link href="/business" className="mt-3 hidden text-[9px] font-black uppercase tracking-wide lg:inline-flex" style={{ color: KEBU.orange }}>Switch to a Business Kebu →</Link>
-            )}
-          </aside>
+                  );
+                })}
+              </nav>
 
-          <section className="border-b lg:border-b-0 lg:border-r" style={{ borderColor: KEBU.borders.default }}>
-            <header className="flex h-14 items-center justify-between border-b px-3.5" style={{ borderColor: KEBU.borders.default }}>
-              <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>{folder}</p><p className="text-[11px] font-bold">{messages.length} message{messages.length === 1 ? "" : "s"}</p></div>
-              <button type="button" onClick={() => void loadMessages()} className="rounded-full border px-2.5 py-1.5 text-[8px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Refresh</button>
-            </header>
-            <div className="max-h-[340px] overflow-y-auto lg:max-h-[calc(100vh-150px)]">
-              {loading ? <p className="p-4 text-xs" style={{ color: KEBU.muted }}>Loading mailbox…</p> : messages.length ? messages.map((message) => {
-                const active = selectedId === message.id;
-                const counterpart = message.direction === "inbound" ? message.from_address : message.to_addresses.join(", ");
-                return (
-                  <button
-                    key={message.id}
-                    type="button"
-                    onClick={() => {
-                      if (message.folder === "drafts") {
-                        setSelectedId(message.id);
-                        setDraftId(message.id);
-                        setReplyThreadId(message.thread_id);
-                        setInReplyToMessageId(message.in_reply_to_message_id);
-                        setTo(message.to_addresses.join(", "));
-                        setCc(message.cc_addresses.join(", "));
-                        setSubject(message.subject);
-                        setBody(message.body_text);
-                        setCompose(true);
-                        void loadDraftAttachments(message.id);
-                      } else {
-                        void openMessage(message);
-                      }
-                    }}
-                    className="w-full border-b px-3.5 py-3 text-left outline-none transition hover:bg-black/[.02] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6A00]"
-                    style={{ borderColor: KEBU.borders.subtle, background: active ? "rgba(255,106,0,.06)" : !message.read_at && message.folder === "inbox" ? "rgba(255,106,0,.025)" : undefined }}
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: !message.read_at && message.folder === "inbox" ? KEBU.orange : "transparent" }} />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-[10px] font-black">{counterpart}</span>
-                          <time className="shrink-0 text-[8px]" style={{ color: KEBU.faint }}>{new Date(message.created_at).toLocaleDateString()}</time>
-                        </span>
-                        <span className="mt-1 block truncate text-[11px] font-bold">{message.subject || "(no subject)"}</span>
-                        <span className="mt-1 block truncate text-[9px]" style={{ color: KEBU.muted }}>{message.body_text || message.status}</span>
-                      </span>
-                    </div>
-                  </button>
-                );
-              }) : (
-                <div className="p-8 text-center"><KebuIcon name="message" size={26} className="mx-auto" style={{ color: KEBU.faint }} /><p className="mt-3 text-[11px] font-black">No mail here.</p><p className="mt-1 text-[9px]" style={{ color: KEBU.muted }}>This folder only shows messages that really exist.</p></div>
-              )}
-            </div>
-          </section>
-
-          <main className="min-h-[420px]">
-            {mailContext === "business" && (showBusinessSetup || mailboxes.length === 0) ? (
-              <div className="h-full overflow-y-auto p-5 sm:p-7">
-                <BusinessMailSetup onMailboxCreated={() => { setShowBusinessSetup(false); void loadMailboxes(); }} />
-              </div>
-            ) : selected && thread ? (
-              <article className="flex h-full flex-col">
-                <header className="border-b px-5 py-4" style={{ borderColor: KEBU.borders.default }}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Conversation · {thread.messages.length} message{thread.messages.length === 1 ? "" : "s"}</p>
-                      <h1 className="mt-1 text-xl font-black leading-tight" style={{ fontFamily: "var(--font-fraunces)" }}>{thread.thread.subject || "(no subject)"}</h1>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <button type="button" onClick={() => reply(thread.messages[thread.messages.length - 1] ?? selected)} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Reply</button>
-                      {folder !== "archive" ? <button type="button" onClick={() => void moveSelected("archive")} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Archive</button> : null}
-                      {folder !== "trash" ? <button type="button" onClick={() => void moveSelected("trash")} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Trash</button> : null}
-                    </div>
-                  </div>
-                </header>
-                <div className="flex-1 space-y-3 overflow-y-auto bg-[#FFFCF8] px-4 py-4 sm:px-5">
-                  {thread.messages.map((message) => {
-                    const attachments = thread.attachments.filter((attachment) => attachment.message_id === message.id);
-                    return (
-                      <section key={message.id} className="rounded-[18px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <p className="text-[10px] font-black">{message.direction === "inbound" ? message.from_address : activeMailbox?.address}</p>
-                            <p className="mt-0.5 text-[9px]" style={{ color: KEBU.muted }}>To {message.to_addresses.join(", ")}{message.cc_addresses.length ? " · Cc " + message.cc_addresses.join(", ") : ""}</p>
-                          </div>
-                          <div className="text-right"><p className="text-[8px] uppercase tracking-wide" style={{ color: KEBU.faint }}>{message.status}</p><time className="mt-0.5 block text-[8px]" style={{ color: KEBU.faint }}>{new Date(message.created_at).toLocaleString()}</time></div>
-                        </div>
-                        <div className="mt-4 whitespace-pre-wrap text-[12px] leading-7 text-black/80">{message.body_text || "No plain-text body."}</div>
-                        {attachments.length ? (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {attachments.map((attachment) => attachment.downloadUrl ? (
-                              <a key={attachment.id} href={attachment.downloadUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-xl border bg-[#FFFCF8] px-3 py-2 text-[9px] font-bold" style={{ borderColor: KEBU.borders.default }}>
-                                <KebuIcon name="library" size={14} style={{ color: KEBU.orange }} />
-                                <span className="max-w-[220px] truncate">{attachment.file_name}</span>
-                                <span style={{ color: KEBU.faint }}>{formatBytes(attachment.byte_size)}</span>
-                              </a>
-                            ) : null)}
-                          </div>
-                        ) : null}
-                      </section>
-                    );
-                  })}
+              <div className="mt-5 border-t border-black/[.07] pt-3">
+                <div className="flex items-center justify-between px-2"><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-black/35">Mailboxes</p>{mailContext === "personal" ? <button type="button" onClick={()=>setShowPersonalMailboxSetup(v=>!v)} className="text-sm text-black/35">+</button> : null}</div>
+                <div className="mt-1 space-y-0.5">
+                  {mailboxes.map((mailbox) => (
+                    <button key={mailbox.id} type="button" onClick={()=>setMailboxId(mailbox.id)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-black/[.025]">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-[9px] font-semibold text-white">{(mailbox.display_name||mailbox.address).slice(0,1).toUpperCase()}</span>
+                      <span className="min-w-0"><span className="block truncate text-[9px] font-semibold">{mailbox.display_name}</span><span className="block truncate text-[8px] text-black/35">{mailbox.address}</span></span>
+                    </button>
+                  ))}
                 </div>
-              </article>
-            ) : threadLoading ? (
-              <div className="flex min-h-[420px] h-full items-center justify-center"><p className="text-xs" style={{ color: KEBU.muted }}>Loading conversation…</p></div>
-            ) : (
-              <div className="flex min-h-[420px] h-full flex-col items-center justify-center p-8 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-[18px]" style={{ background: KEBU.cream, color: KEBU.orange }}><KebuIcon name="message" size={24} /></span><p className="mt-4 text-sm font-black">Select a conversation.</p><p className="mt-1 max-w-sm text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>Threads, attachments, drafts and reply context stay inside the mailbox rather than being simulated in the interface.</p></div>
-            )}
-          </main>
+              </div>
+
+              {showPersonalMailboxSetup && mailContext === "personal" ? (
+                <form onSubmit={(event)=>void activatePersonalMail(event)} className="mt-3 border-t border-black/[.07] pt-3">
+                  <input value={setupDisplayName} onChange={e=>setSetupDisplayName(e.target.value)} placeholder="Display name" className="min-h-9 w-full rounded-lg border border-black/10 px-2.5 text-[10px] outline-none"/>
+                  <div className="mt-2 flex min-h-9 rounded-lg border border-black/10 bg-white"><input value={setupLocalPart} onChange={e=>setSetupLocalPart(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g,""))} placeholder="address" className="min-w-0 flex-1 bg-transparent px-2.5 text-[10px] outline-none"/><span className="self-center pr-2 text-[8px] text-black/40">@{mailDomain}</span></div>
+                  <button type="submit" disabled={setupBusy} className="mt-2 min-h-9 w-full rounded-lg bg-black text-[9px] font-semibold text-white disabled:opacity-40">{setupBusy?"Creating…":"Create address"}</button>
+                </form>
+              ) : null}
+
+              {mailContext === "business" ? <button type="button" onClick={()=>setShowBusinessSetup(v=>!v)} className="mt-4 px-2 text-[9px] font-semibold text-[#C95000]">{showBusinessSetup?"Back to inbox":"Business mail settings"}</button> : <Link href="/business" className="mt-4 block px-2 text-[9px] font-semibold text-black/40">Business Mail →</Link>}
+            </aside>
+
+            <section className="border-r border-black/[.07] bg-white">
+              <div className="border-b border-black/[.07] px-3 py-3">
+                <div className="flex items-center gap-4">
+                  <button type="button" onClick={()=>setListFilter("all")} className={`text-[10px] font-semibold ${listFilter==="all"?"text-black":"text-black/35"}`}>All</button>
+                  <button type="button" onClick={()=>setListFilter("unread")} className={`text-[10px] font-semibold ${listFilter==="unread"?"text-black":"text-black/35"}`}>Unread {unread || ""}</button>
+                  <button type="button" onClick={()=>void loadMessages()} className="ml-auto text-[9px] font-semibold text-black/35">Refresh</button>
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-2">
+                  <div>
+                    <p className="text-[18px] font-semibold tracking-[-.025em]" style={{fontFamily:"var(--font-fraunces)"}}>{folder === "inbox" ? "Needs your attention" : MAIL_VIEWS.find(item=>item.id===folder)?.label}</p>
+                    <p className="mt-0.5 text-[8px] text-black/35">{visibleMessages.length} message{visibleMessages.length===1?"":"s"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="max-h-[calc(100vh-214px)] overflow-y-auto">
+                {loading ? <p className="p-4 text-xs text-black/40">Loading mailbox…</p> : visibleMessages.length ? visibleMessages.map((message) => {
+                  const active = selectedId === message.id;
+                  const counterpart = message.direction === "inbound" ? message.from_address : message.to_addresses.join(", ");
+                  return (
+                    <button key={message.id} type="button" onClick={() => {
+                      if(message.folder==="drafts"){setSelectedId(message.id);setDraftId(message.id);setReplyThreadId(message.thread_id);setInReplyToMessageId(message.in_reply_to_message_id);setTo(message.to_addresses.join(", "));setCc(message.cc_addresses.join(", "));setSubject(message.subject);setBody(message.body_text);setCompose(true);void loadDraftAttachments(message.id)}
+                      else void openMessage(message);
+                    }} className="w-full border-b border-black/[.055] px-3 py-3 text-left transition hover:bg-black/[.018]" style={{background:active?"#FFF1E9":!message.read_at&&message.folder==="inbox"?"#FFFAF6":undefined}}>
+                      <div className="flex gap-2.5">
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/[.055] text-[9px] font-semibold">{counterpart.slice(0,1).toUpperCase()}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-1.5"><span className="truncate text-[10px] font-semibold">{counterpart}</span>{message.priority?<span className="h-1.5 w-1.5 rounded-full bg-[#FF6A00]"/>:null}<time className="ml-auto shrink-0 text-[8px] text-black/30">{new Date(message.created_at).toLocaleDateString()}</time></span>
+                          <span className="mt-0.5 block truncate text-[10px] font-medium">{message.subject||"(no subject)"}</span>
+                          <span className="mt-0.5 block truncate text-[9px] text-black/38">{message.body_text||message.status}</span>
+                        </span>
+                      </div>
+                    </button>
+                  );
+                }) : <div className="p-8 text-center"><p className="text-[11px] font-semibold">Nothing here yet.</p><p className="mt-1 text-[9px] text-black/35">This view only shows mail that really exists.</p></div>}
+              </div>
+            </section>
+
+            <main className="min-w-0 bg-[#FFFCF8]">
+              {mailContext === "business" && (showBusinessSetup || mailboxes.length===0) ? (
+                <div className="h-full overflow-y-auto p-6"><BusinessMailSetup onMailboxCreated={()=>{setShowBusinessSetup(false);void loadMailboxes()}}/></div>
+              ) : selected && thread ? (
+                <article className="flex h-full flex-col">
+                  <header className="border-b border-black/[.07] bg-white px-6 py-5">
+                    <div className="flex items-start gap-4">
+                      <div className="min-w-0 flex-1">
+                        <h1 className="text-[26px] leading-tight tracking-[-.035em]" style={{fontFamily:"var(--font-fraunces)"}}>{thread.thread.subject||"(no subject)"}</h1>
+                        <p className="mt-2 text-[9px] text-black/38">{thread.messages.length} message{thread.messages.length===1?"":"s"} · {threadParticipants.length} participant{threadParticipants.length===1?"":"s"}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button type="button" onClick={()=>reply(thread.messages[thread.messages.length-1]??selected)} className="rounded-full border border-black/10 px-3 py-2 text-[9px] font-semibold">Reply</button>
+                        {folder!=="archive"?<button type="button" onClick={()=>void moveSelected("archive")} className="rounded-full border border-black/10 px-3 py-2 text-[9px] font-semibold">Archive</button>:null}
+                        {folder!=="trash"?<button type="button" onClick={()=>void moveSelected("trash")} className="rounded-full border border-black/10 px-3 py-2 text-[9px] font-semibold">Trash</button>:null}
+                      </div>
+                    </div>
+                  </header>
+
+                  <div className="flex-1 overflow-y-auto px-6 py-5">
+                    {thread.messages.map((message) => {
+                      const attachments=thread.attachments.filter(a=>a.message_id===message.id);
+                      return <section key={message.id} className="border-b border-black/[.06] py-5 last:border-b-0">
+                        <div className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black text-[10px] font-semibold text-white">{(message.direction==="inbound"?message.from_address:activeMailbox?.address||"K").slice(0,1).toUpperCase()}</span><div className="min-w-0 flex-1"><div className="flex items-baseline gap-2"><p className="truncate text-[10px] font-semibold">{message.direction==="inbound"?message.from_address:activeMailbox?.address}</p><time className="ml-auto shrink-0 text-[8px] text-black/30">{new Date(message.created_at).toLocaleString()}</time></div><p className="mt-0.5 text-[8px] text-black/35">to {message.to_addresses.join(", ")}{message.cc_addresses.length?" · cc "+message.cc_addresses.join(", "):""}</p></div></div>
+                        <div className="ml-12 mt-4 whitespace-pre-wrap text-[12px] leading-7 text-black/78">{message.body_text||"No plain-text body."}</div>
+                        {attachments.length?<div className="ml-12 mt-4 flex flex-wrap gap-2">{attachments.map(a=>a.downloadUrl?<a key={a.id} href={a.downloadUrl} target="_blank" rel="noreferrer" className="min-w-[150px] rounded-xl border border-black/[.08] bg-white px-3 py-2"><span className="block truncate text-[9px] font-semibold">{a.file_name}</span><span className="text-[8px] text-black/35">{formatBytes(a.byte_size)}</span></a>:null)}</div>:null}
+                      </section>;
+                    })}
+                  </div>
+                  <div className="border-t border-black/[.07] bg-white p-4"><button type="button" onClick={()=>reply(thread.messages[thread.messages.length-1]??selected)} className="w-full rounded-full border border-black/10 px-4 py-3 text-left text-[10px] text-black/35">Reply to this conversation…</button></div>
+                </article>
+              ) : threadLoading ? <div className="flex h-full items-center justify-center text-xs text-black/40">Loading conversation…</div> : <div className="flex h-full items-center justify-center p-8 text-center"><div><p className="text-[17px] font-semibold" style={{fontFamily:"var(--font-fraunces)"}}>Open a conversation</p><p className="mt-1 text-[9px] text-black/35">Messages, files and context stay together here.</p></div></div>}
+            </main>
+
+            <aside className="hidden border-l border-black/[.07] bg-white p-4 lg:block">
+              {selected && thread ? (
+                <div className="space-y-5">
+                  <section>
+                    <div className="flex items-center justify-between"><p className="text-[10px] font-semibold">People</p><span className="text-[9px] text-black/35">{threadParticipants.length}</span></div>
+                    <div className="mt-3 space-y-2">{threadParticipants.map(address=><div key={address} className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/[.06] text-[9px] font-semibold">{address.slice(0,1).toUpperCase()}</span><span className="min-w-0 truncate text-[9px]">{address}</span></div>)}</div>
+                  </section>
+                  <section className="border-t border-black/[.07] pt-4">
+                    <p className="text-[10px] font-semibold">About this conversation</p>
+                    <div className="mt-3 space-y-1.5">
+                      <button type="button" onClick={()=>void patchSelectedState({priority:!selected.priority})} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-[9px] hover:bg-black/[.025]"><span>{selected.priority?"Remove priority":"Mark priority"}</span><span>{selected.priority?"●":"○"}</span></button>
+                      <button type="button" onClick={()=>void patchSelectedState({starred:!selected.starred_at})} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-[9px] hover:bg-black/[.025]"><span>{selected.starred_at?"Unstar":"Star"}</span><span>{selected.starred_at?"★":"☆"}</span></button>
+                      <button type="button" onClick={()=>void patchSelectedState({waitingUntil:new Date(Date.now()+24*60*60*1000).toISOString()})} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-[9px] hover:bg-black/[.025]"><span>Waiting until tomorrow</span><span>→</span></button>
+                    </div>
+                  </section>
+                  <section className="border-t border-black/[.07] pt-4">
+                    <p className="text-[10px] font-semibold">Conversation facts</p>
+                    <div className="mt-3 space-y-2 text-[9px] text-black/45"><p>{thread.messages.length} messages</p><p>{threadAttachmentCount} attachments</p><p>Last activity {new Date(thread.thread.last_message_at).toLocaleString()}</p></div>
+                  </section>
+                  {threadAttachmentCount ? <section className="border-t border-black/[.07] pt-4"><p className="text-[10px] font-semibold">Related files</p><div className="mt-2 space-y-1.5">{thread.attachments.slice(0,6).map(a=><div key={a.id} className="truncate rounded-lg bg-black/[.025] px-2.5 py-2 text-[9px]">{a.file_name}</div>)}</div></section>:null}
+                </div>
+              ) : <p className="text-[9px] leading-relaxed text-black/35">Conversation context appears here when you open a message.</p>}
+            </aside>
+          </div>
         </div>
       </div>
 
