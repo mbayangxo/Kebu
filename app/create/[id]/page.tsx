@@ -66,7 +66,6 @@ import { useProjectAutosave } from "./use-project-autosave";
 import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 import { useBuilderAccordion } from "@/app/components/create/use-builder-accordion";
 import {
-  portfolioUpgradeForProject,
   type EditorProject as Project,
   type EditorSection as Section,
 } from "./project-editor-load";
@@ -247,19 +246,10 @@ export default function ProjectEditorPage() {
         setError(typeof data.error === "string" ? data.error : "Could not load project.");
         return;
       }
-      let projectPayload = data;
-      const portfolioUpgrade = portfolioUpgradeForProject(data);
-      if (portfolioUpgrade) {
-        const upRes = await fetch(`/api/projects/${projectId}/upgrade-${portfolioUpgrade}`, {
-          method: "POST",
-          credentials: "include",
-        });
-        if (upRes.ok) {
-          const res2 = await fetch(`/api/projects/${projectId}`, { credentials: "include" });
-          const data2 = await res2.json().catch(() => ({}));
-          if (res2.ok) projectPayload = data2;
-        }
-      }
+      // Opening Builder must be read-fast and side-effect free.
+      // Theme/portfolio repair is explicit via the "Fix" tool; never run migrations/upgrades
+      // during the normal editor load path.
+      const projectPayload = data;
       setProject(projectPayload.project ?? data.project);
       setSupportAssist(Boolean(projectPayload.supportAssist ?? data.supportAssist));
       setPages(Array.isArray(projectPayload.pages) ? projectPayload.pages : []);
