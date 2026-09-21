@@ -127,6 +127,8 @@ export type SiteRendererEditor = {
   onMoveFreeTextBlock?: (sectionId: string, blockId: string, x: number, y: number) => void;
   /** Switch the builder preview to another site page (keeps you in the editor). */
   onNavigatePage?: (slug: string) => void;
+  /** In editor mode, clicking site navigation opens its inspector instead of leaving the editor. */
+  onEditNavigation?: () => void;
   onDuplicateSection?: (sectionId: string) => void;
   onDeleteSection?: (sectionId: string) => void;
   onMoveSection?: (sectionId: string, direction: "up" | "down") => void;
@@ -1009,6 +1011,7 @@ export function SiteRenderer({
         navSize={motionHero.navSize}
         navLayout={parseNavLayout(motionHero.navLayout)}
         onNavigate={editor?.onNavigatePage}
+        onEditNavigation={editingPreview ? editor?.onEditNavigation : undefined}
       />
     ) : null;
 

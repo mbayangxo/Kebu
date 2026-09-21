@@ -51,6 +51,7 @@ export function MaylecorMotionChrome({
   navFontSizePx,
   navFontWeight = 700,
   onNavigate,
+  onEditNavigation,
 }: {
   siteBase: string;
   brandLabel: string;
@@ -74,6 +75,7 @@ export function MaylecorMotionChrome({
   navFontSizePx?: number;
   navFontWeight?: number;
   onNavigate?: (slug: string) => void;
+  onEditNavigation?: () => void;
 }) {
   const [locale, setLocale] = useState<MaylecorLocale>("en");
   const [open, setOpen] = useState(false);
@@ -258,7 +260,15 @@ export function MaylecorMotionChrome({
   }));
 
   function goTo(e: MouseEvent, slug: string) {
-    if (!onNavigate) return;
+    if (onEditNavigation) {
+      e.preventDefault();
+      e.stopPropagation();
+      onEditNavigation();
+      setOpen(false);
+      setOpenMenu(null);
+      return;
+    }
+    if (!onNavigate || !slug || slug.includes(":")) return;
     e.preventDefault();
     onNavigate(slug || "home");
     setOpen(false);
@@ -555,7 +565,10 @@ export function MaylecorMotionChrome({
       }`}
       style={{ color: overlay ? "#fff" : "#111", background: headerBgColor || undefined }}
       data-kebu-site-nav="1"
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onEditNavigation && e.target === e.currentTarget) onEditNavigation();
+      }}
     >
       <div
         className={`pointer-events-auto mx-auto flex items-center justify-between ${

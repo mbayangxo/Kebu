@@ -895,9 +895,18 @@ export default function ProjectEditorPage() {
     onPatchSection: updateProps,
     onNavigatePage: (slug: string) => {
       const match = pages.find((p) => p.slug === slug);
-      if (!match) return;
+      if (!match) {
+        setError(`No Kebu page is linked to "${slug}". Edit the destination under Navigation.`);
+        return;
+      }
       setPreviewPageSlug(match.slug);
       setEditPageId(match.id);
+    },
+    onEditNavigation: () => {
+      setSelectedSectionId(null);
+      setSelectedElement(null);
+      setSidebarTab("nav");
+      setLeftPanelOpen(true);
     },
     onDuplicateSection: (id: string) => {
       if (isChromeSectionId(id)) return;

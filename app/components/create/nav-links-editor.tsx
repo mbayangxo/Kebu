@@ -118,6 +118,17 @@ export function NavLinksEditor({
                   <p className="truncate text-[11px] font-semibold text-black">{link.label || "Untitled link"}</p>
                   <p className="truncate text-[9px] text-black/40">{link.href || "No destination yet"}</p>
                 </div>
+                {link.href ? (
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md px-1.5 py-1 text-[9px] font-bold text-black/45 hover:bg-black/[.04]"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Test ↗
+                  </a>
+                ) : null}
                 <button type="button" className="rounded-md px-1.5 py-1 text-[9px] font-bold text-red-600 hover:bg-red-50" onClick={() => onChange(links.filter((_, i) => i !== index))}>Remove</button>
               </div>
 
