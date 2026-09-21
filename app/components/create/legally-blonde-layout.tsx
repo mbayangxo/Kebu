@@ -107,7 +107,9 @@ export type LegallyBlondeHeroProps = {
   layerWidthScale?: Record<string, number>;
   layerHeightScale?: Record<string, number>;
   layerCrop?: Record<string, number>;
-  layerMotions?: Record<string, "spin" | "float" | "bob" | "none">;
+  layerMotions?: Record<string, LayerMotion>;
+  layerMotionDuration?: Record<string, number>;
+  layerMotionDelay?: Record<string, number>;
   layerLinks?: Record<string, string>;
   /** Paint order for built-in slots + extras (1 = back, 80 = front). Survives publish. */
   layerZIndex?: Record<string, number>;
@@ -276,6 +278,10 @@ function renderLayer(
   const heightScale = props.layerHeightScale?.[storageKey] ?? 1;
   const crop = props.layerCrop?.[storageKey] ?? 0;
   const layerHref = scaleKey ? String(props.layerLinks?.[scaleKey] ?? "").trim() : "";
+  const motionKey = scaleKey || layer.id;
+  const customMotion = props.layerMotions?.[motionKey] as LayerMotion | undefined;
+  const motionDuration = Math.min(20000, Math.max(100, Number(props.layerMotionDuration?.[motionKey] ?? (titleMotion === "spin" ? 14000 : customMotion === "float" ? 3200 : customMotion === "bob" ? 2400 : customMotion === "pulse" ? 2200 : 650))));
+  const motionDelay = Math.min(5000, Math.max(0, Number(props.layerMotionDelay?.[motionKey] ?? 0)));
   const editable = Boolean(opts.editing && LB_EDITABLE_LAYER_KEYS[layer.id] && CUTOUT_LAYER_IDS.has(layer.id));
 
   function linkOverlay(label: string) {
@@ -311,11 +317,10 @@ function renderLayer(
   // Skip scroll offset for layers with a looping CSS animation — the animation's keyframe
   // transform would override style.transform, making the scroll offset invisible.
   const hasLoopAnim = opts.motion && !opts.editing && (() => {
-    const key = propKey || layer.id;
-    const custom = props.layerMotions?.[key] as LayerMotion | undefined;
+    const custom = customMotion;
     if (custom === "none") return false;
-    if (custom === "spin" || custom === "float" || custom === "bob") return true;
-    return Boolean(HERO_LOOP_ANIM[layer.id]);
+    if (custom === "spin" || custom === "float" || custom === "bob" || custom === "pulse") return true;
+    return !custom && Boolean(HERO_LOOP_ANIM[layer.id]);
   })();
   if (opts.motion && hasScrollMotion && opts.scrollProgress !== undefined && !opts.editing && !hasLoopAnim) {
     transformParts.push(`translate3d(${scroll.x}px, ${scroll.y}px, 0)`);
@@ -327,17 +332,11 @@ function renderLayer(
     ...atomStyle,
     transform: transformParts.length ? transformParts.join(" ") : baseStyle.transform,
     animation:
-      opts.motion && !opts.editing
-        ? (() => {
-            const key = propKey || layer.id;
-            const custom = props.layerMotions?.[key] as LayerMotion | undefined;
-            if (custom === "none") return undefined;
-            if (custom === "spin") return "lb-logo-spin 14s linear infinite";
-            if (custom === "float") return "lb-float-up 2.4s ease-in-out infinite";
-            if (custom === "bob") return "maylecor-float-a 3.2s ease-in-out infinite";
-            return HERO_LOOP_ANIM[layer.id];
-          })()
+      opts.motion && !opts.editing && !customMotion
+        ? HERO_LOOP_ANIM[layer.id]
         : undefined,
+    "--kebu-motion-duration": `${motionDuration}ms`,
+    "--kebu-motion-delay": `${motionDelay}ms`,
     willChange: opts.motion ? "transform" : undefined,
     pointerEvents: editable || (!opts.editing && layerHref) ? "auto" : undefined,
     cursor: editable ? "grab" : !opts.editing && layerHref ? "pointer" : undefined,
@@ -394,7 +393,7 @@ function renderLayer(
 
   if (layer.type === "text" && layer.text) {
     return (
-      <div key={layer.id} className={`lb-layer lb-text-steelfish`} style={style}>
+      <div key={layer.id} className={`lb-layer lb-text-steelfish ${layerMotionClass(customMotion, opts.motion && !opts.editing)}`} style={style}>
         {layer.text}
       </div>
     );
@@ -404,13 +403,12 @@ function renderLayer(
 
   /* Optional text ring — May Lècor default is the circle seal image (titleAsText false). */
   if (props.titleAsText === true && LB_EDITABLE_LAYER_KEYS[layer.id] === "titleLogo") {
-    const motionKey = propKey || layer.id;
-    const customMotion = (props.layerMotions?.[motionKey] ?? "spin") as LayerMotion;
+    const titleMotion = (props.layerMotions?.[motionKey] ?? "spin") as LayerMotion;
     return (
       <div
         key={layer.id}
         className={`lb-layer${editable ? " lb-layer--editable" : ""} ${
-          customMotion !== "spin" ? layerMotionClass(customMotion, opts.motion && !opts.editing) : ""
+          titleMotion !== "spin" ? layerMotionClass(titleMotion, opts.motion && !opts.editing) : ""
         }`}
         style={{
           ...style,
@@ -431,7 +429,7 @@ function renderLayer(
           <CircularBrandRing
             text={props.title || "YOUR BRAND"}
             color={props.accentColor || "#E9006B"}
-            spinning={opts.motion && !opts.editing && customMotion === "spin"}
+            spinning={opts.motion && !opts.editing && titleMotion === "spin"}
           />
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-[22%]">
             <p
@@ -471,7 +469,7 @@ function renderLayer(
     return (
       <div
         key={layer.id}
-        className={`lb-layer lb-shape${editable ? " lb-layer--editable" : ""}`}
+        className={`lb-layer lb-shape${editable ? " lb-layer--editable" : ""} ${layerMotionClass(customMotion, opts.motion && !opts.editing)}`}
         style={{ ...style, backgroundImage: `url(${url})` }}
         aria-hidden={!editable && !layerHref}
         onPointerDown={editable ? onPointerDown : undefined}
@@ -489,7 +487,7 @@ function renderLayer(
   return (
     <div
       key={layer.id}
-      className={`lb-layer${editable ? " lb-layer--editable" : ""}`}
+      className={`lb-layer${editable ? " lb-layer--editable" : ""} ${layerMotionClass(customMotion, opts.motion && !opts.editing)}`}
       style={style}
       onPointerDown={editable ? onPointerDown : undefined}
       onClick={(e) => {

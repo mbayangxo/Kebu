@@ -40,6 +40,16 @@ export function BuilderElementInspector({
       ? (sectionProps.layerMotions as Record<string, string>)
       : {};
   const motion = motionMap[storageKey] ?? "none";
+  const durationMap =
+    sectionProps.layerMotionDuration && typeof sectionProps.layerMotionDuration === "object" && !Array.isArray(sectionProps.layerMotionDuration)
+      ? (sectionProps.layerMotionDuration as Record<string, number>)
+      : {};
+  const delayMap =
+    sectionProps.layerMotionDelay && typeof sectionProps.layerMotionDelay === "object" && !Array.isArray(sectionProps.layerMotionDelay)
+      ? (sectionProps.layerMotionDelay as Record<string, number>)
+      : {};
+  const motionDuration = Number(durationMap[storageKey] ?? (motion === "spin" ? 14000 : motion === "float" ? 3200 : motion === "bob" ? 2400 : motion === "pulse" ? 2200 : 650));
+  const motionDelay = Number(delayMap[storageKey] ?? 0);
   const positionMap =
     sectionProps.layerPositions && typeof sectionProps.layerPositions === "object" && !Array.isArray(sectionProps.layerPositions)
       ? (sectionProps.layerPositions as Record<string, { leftPct?: number; topPct?: number }>)
@@ -698,11 +708,40 @@ export function BuilderElementInspector({
               }
             >
               <option value="none">None</option>
+              <option value="fade">Fade</option>
+              <option value="rise">Rise</option>
+              <option value="slide-left">Slide from right</option>
+              <option value="slide-right">Slide from left</option>
+              <option value="pop">Pop</option>
+              <option value="blur-in">Blur in</option>
               <option value="float">Float</option>
               <option value="bob">Bob</option>
+              <option value="pulse">Pulse</option>
               <option value="spin">Spin</option>
             </select>
           </label>
+          {motion !== "none" ? (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-[10px] font-semibold text-black/55">
+                Duration
+                <input
+                  type="number" min="100" max="20000" step="50"
+                  className="mt-1.5 min-h-9 w-full rounded-lg border border-black/10 bg-white px-2.5 text-xs"
+                  value={motionDuration}
+                  onChange={(event) => onPatch({ layerMotionDuration: { ...durationMap, [storageKey]: Math.min(20000, Math.max(100, Number(event.target.value) || 650)) } })}
+                />
+              </label>
+              <label className="block text-[10px] font-semibold text-black/55">
+                Delay
+                <input
+                  type="number" min="0" max="5000" step="50"
+                  className="mt-1.5 min-h-9 w-full rounded-lg border border-black/10 bg-white px-2.5 text-xs"
+                  value={motionDelay}
+                  onChange={(event) => onPatch({ layerMotionDelay: { ...delayMap, [storageKey]: Math.min(5000, Math.max(0, Number(event.target.value) || 0)) } })}
+                />
+              </label>
+            </div>
+          ) : null}
           <button
             type="button"
             className="min-h-9 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-[10px] font-semibold text-black/65"
