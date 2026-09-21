@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
+import { createServiceClient } from "@/lib/opportunity/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +30,10 @@ async function withProfiles(
   currentUserId: string,
 ) {
   const ids = [...new Set(rows.flatMap((row) => [row.requester_id, row.addressee_id]))];
-  const { data: profiles } = ids.length
-    ? await supabase.from("user_profiles").select("id, name, avatar_url").in("id", ids)
-    : { data: [] as Array<{ id: string; name: string | null; avatar_url: string | null }> };
+  const admin = createServiceClient();
+  const { data: profiles } = ids.length && admin
+    ? await admin.from("user_profiles").select("id, name, avatar_url, public_kebu_id").in("id", ids)
+    : { data: [] as Array<{ id: string; name: string | null; avatar_url: string | null; public_kebu_id: string | null }> };
 
   const byId = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
   return rows.map((row) => {

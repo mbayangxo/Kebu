@@ -4,11 +4,12 @@ import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { createClient } from "@/lib/supabase/server";
 import { KEBU } from "@/lib/kebu-brand";
+import { PersonalPeoplePanel } from "@/app/components/people/personal-people-panel";
 
 type Member = { business_id: string; user_id: string; role: string; status: string };
 type Profile = { id: string; name: string | null; email: string | null; avatar_url: string | null };
 
-export default async function PeoplePage() {
+type Props = { searchParams: Promise<{ scope?: string }> };\n\nexport default async function PeoplePage({ searchParams }: Props) {\n  const { scope } = await searchParams;\n  const businessScope = scope === "business";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/people");
@@ -47,15 +48,22 @@ export default async function PeoplePage() {
       <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-7">
         <header className="flex flex-col justify-between gap-4 border-b pb-6 sm:flex-row sm:items-end" style={{ borderColor: KEBU.borders.default }}>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>People</p>
-            <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>Who you work with matters.</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>A real view of teammates already connected to your Kebu businesses. No invented contacts.</p>
+            <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>{businessScope ? "Business People" : "Personal People"}</p>
+            <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>{businessScope ? "The people you work with." : "The people you choose."}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>{businessScope ? "Business members and roles stay separate from your personal friends." : "Friends across Kebu, separate from business staff and customer lists."}</p>
           </div>
-          <Link href="/messages" className="rounded-full bg-black px-4 py-2.5 text-xs font-bold text-white">Open Chat</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={businessScope ? "/people" : "/people?scope=business"} className="rounded-full border bg-white px-4 py-2.5 text-xs font-bold" style={{ borderColor: KEBU.borders.default }}>
+              {businessScope ? "Personal People" : "Business People"}
+            </Link>
+            <Link href="/chat" className="rounded-full bg-black px-4 py-2.5 text-xs font-bold text-white">Open Chat</Link>
+          </div>
         </header>
 
         <section className="py-6">
-          {members.length ? (
+          {!businessScope ? (
+            <PersonalPeoplePanel />
+          ) : members.length ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {members.map((member) => {
                 const profile = profileById.get(member.user_id);
