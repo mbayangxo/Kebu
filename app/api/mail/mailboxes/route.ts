@@ -123,19 +123,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const { data: existing } = await supabase
-    .from("mailboxes")
-    .select("id, address")
-    .eq("owner_user_id", user.id)
-    .is("business_id", null)
-    .eq("mailbox_type", "personal")
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (existing) {
-    return NextResponse.json({ error: "Personal Mail is already activated.", mailbox: existing }, { status: 409 });
-  }
-
   const localPart = normalizeMailboxLocalPart(parsed.data.localPart);
   if (localPart.length < 2) {
     return NextResponse.json({ error: "Choose a longer email name." }, { status: 400 });
@@ -166,7 +153,7 @@ export async function POST(req: Request) {
     mailbox_id: mailbox.id,
     business_id: null,
     actor_user_id: user.id,
-    event_type: "personal_mail.activated",
+    event_type: "personal_mail.mailbox_created",
     metadata: { address },
   });
 

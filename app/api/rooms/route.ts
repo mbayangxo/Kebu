@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const createRoomSchema = z.object({
   name: z.string().trim().min(1).max(100),
   description: z.string().max(2000).default(""),
-  roomType: z.enum(["project","team","community","client"]).default("project"),
+  roomType: z.enum(["friends","school","study","hobby","community","project","team","client"]).default("friends"),
   businessId: z.string().uuid().nullable().optional(),
 });
 
