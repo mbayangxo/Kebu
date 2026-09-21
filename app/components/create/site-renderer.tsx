@@ -2925,7 +2925,7 @@ export function SiteRenderer({
     <div
       ref={rootRef}
       className={`${rootClass} relative${sideNav ? " md:flex md:flex-row md:items-stretch" : ""}${
-        editingPreview && legallyBlondeOnly ? " flex min-h-full flex-col" : ""
+        editingPreview && !sideNav ? " flex min-h-full flex-col" : ""
       }`}
       data-kebu-button={theme.buttonStyle ?? "solid"}
       style={{
@@ -2944,7 +2944,13 @@ export function SiteRenderer({
       />
       {theme.customCss ? <style>{theme.customCss}</style> : null}
       {chrome}
-      {sideNav ? <div className="min-w-0 flex-1">{body}</div> : body}
+      {sideNav ? (
+        <div className="min-w-0 flex-1">{body}</div>
+      ) : editingPreview ? (
+        <div className="min-h-0 flex-1">{body}</div>
+      ) : (
+        body
+      )}
       {emailPopup && emailPopup.props.enabled !== false ? (
         <SiteEmailPopup
           projectId={mode === "live" ? projectId : undefined}
