@@ -242,20 +242,9 @@ function MySpaceInner() {
   return (
     <AppShell title="My Businesses">
       <main className="px-6 sm:px-8 lg:px-10 py-8 lg:py-10">
-        <p className="text-[10px] font-bold uppercase tracking-[0.24em] mb-2" style={{ color: KEBU.orange }}>
-          My KEBU
-        </p>
-        <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-          My Businesses
-        </h1>
-        <p className="text-sm mb-6 max-w-2xl" style={{ color: KEBU.muted }}>
-          Each business is its own workspace (May Lecor, K-Direction, DkLNS…). Pulse keeps you updated across all of
-          them — orders, messages, sites. Open a business to run only that brand.
-        </p>
-
         <div
-          className="flex flex-wrap gap-1 mb-8 p-1 rounded-xl"
-          style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+          className="mb-6 flex flex-wrap gap-4 border-b"
+          style={{ borderColor: KEBU.border }}
           role="tablist"
         >
           {TABS.map((t) => (
@@ -265,10 +254,10 @@ function MySpaceInner() {
               role="tab"
               aria-selected={tab === t.id}
               onClick={() => selectTab(t.id)}
-              className="rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-wider"
+              className="border-b-2 px-0 py-3 text-[10px] font-semibold"
               style={{
-                background: tab === t.id ? KEBU.orange : "transparent",
-                color: tab === t.id ? KEBU.white : KEBU.black,
+                borderColor: tab === t.id ? KEBU.orange : "transparent",
+                color: tab === t.id ? KEBU.black : KEBU.muted,
               }}
             >
               {t.label}
@@ -289,7 +278,7 @@ function MySpaceInner() {
 
         {!loading && tab === "pulse" ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 border-y sm:grid-cols-4" style={{borderColor:KEBU.border}}>
               {[
                 { n: pulseStats?.pendingOrders ?? 0, l: "Orders to fulfill", href: "/shop" },
                 { n: pulseStats?.openMessages ?? 0, l: "Open messages", href: "/messages" },
@@ -299,8 +288,8 @@ function MySpaceInner() {
                 <Link
                   key={s.l}
                   href={s.href}
-                  className="rounded-2xl p-4"
-                  style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                  className="border-b p-4 sm:border-b-0 sm:border-r sm:last:border-r-0"
+                  style={{ borderColor: KEBU.border }}
                 >
                   <p className="text-2xl font-black" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.orange }}>
                     {s.n}
@@ -309,7 +298,7 @@ function MySpaceInner() {
                 </Link>
               ))}
             </div>
-            <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+            <section className="border-y py-4" style={{ borderColor: KEBU.border }}>
               <h2 className="font-bold mb-1" style={{ fontFamily: "var(--font-fraunces)" }}>
                 What’s going on
               </h2>
@@ -356,7 +345,7 @@ function MySpaceInner() {
               )}
             </section>
             {(summary?.updates ?? []).length > 0 ? (
-              <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+              <section className="border-y py-4" style={{ borderColor: KEBU.border }}>
                 <h2 className="font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>
                   Account updates
                 </h2>
@@ -382,15 +371,14 @@ function MySpaceInner() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/business/register"
-                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white"
-                style={{ background: KEBU.orange }}
+                className="rounded-full bg-black px-4 py-2 text-[10px] font-semibold text-white"
               >
                 Register a business
               </Link>
               <Link
                 href="/ka-score"
-                className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
-                style={{ border: `1px solid ${KEBU.border}` }}
+                className="rounded-full border px-4 py-2 text-[10px] font-semibold"
+                style={{ borderColor: KEBU.border }}
               >
                 KA Score
               </Link>
@@ -400,13 +388,13 @@ function MySpaceInner() {
                 No Kebu ID yet. Register when you’re ready — it lives here, not mixed into Aesthetics.
               </p>
             ) : (
-              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid border-t sm:grid-cols-2 xl:grid-cols-3" style={{borderColor:KEBU.border}}>
                 {businesses.map((b) => (
                   <li key={b.id}>
                     <Link
                       href={`/business/${b.id}`}
-                      className="group block min-h-[150px] rounded-[20px] p-5 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(10,10,10,.06)]"
-                      style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                      className="group block min-h-[104px] border-b p-4 transition hover:bg-black/[.02]"
+                      style={{ borderColor: KEBU.border }}
                     >
                       <p className="font-bold">{b.trading_name || b.legal_name}</p>
                       <p className="text-xs font-mono mt-1" style={{ color: KEBU.orange }}>
@@ -437,8 +425,8 @@ function MySpaceInner() {
                 <li key={s.id}>
                   <Link
                     href={`${MY_SITES_HREF}/${s.id}`}
-                    className="block rounded-xl px-4 py-3 text-sm font-semibold"
-                    style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                    className="block border-b py-3 text-sm font-semibold"
+                    style={{ borderColor: KEBU.border }}
                   >
                     {s.title}{" "}
                     <span className="font-normal" style={{ color: KEBU.muted }}>
@@ -482,8 +470,8 @@ function MySpaceInner() {
                 <Link
                   key={s.id}
                   href={`/create/${s.id}?panel=analytics`}
-                  className="rounded-2xl p-4"
-                  style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                  className="border-b py-4"
+                  style={{ borderColor: KEBU.border }}
                 >
                   <p className="font-bold text-sm">{s.title}</p>
                   {"loadError" in s && typeof (s as { loadError?: string }).loadError === "string" ? (
@@ -539,8 +527,8 @@ function MySpaceInner() {
                 <li key={`${t.projectId}-${t.id}`}>
                   <Link
                     href={`/shop/${t.projectId}?tab=messages`}
-                    className="block rounded-xl px-4 py-3"
-                    style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                    className="block border-b py-3"
+                    style={{ borderColor: KEBU.border }}
                   >
                     <p className="text-sm font-semibold">{t.subject || "Conversation"}</p>
                     <p className="text-[11px] mt-0.5" style={{ color: KEBU.muted }}>
@@ -569,8 +557,8 @@ function MySpaceInner() {
               <Link
                 key={row.href}
                 href={row.href}
-                className="flex justify-between gap-3 rounded-xl px-4 py-3"
-                style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+                className="flex justify-between gap-3 border-b py-3"
+                style={{ borderColor: KEBU.border }}
               >
                 <span>
                   <span className="block text-sm font-semibold">{row.t}</span>
