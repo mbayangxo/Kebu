@@ -10,7 +10,7 @@ import { KebuCommandPalette, CommandPaletteTrigger } from "@/app/components/kebu
 import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
 import { KebuNotifications } from "@/app/components/kebu/kebu-notifications";
-import { DataModeProvider } from "@/app/components/create/data-mode-provider";
+import { DataModeDock, DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
 import { ToastProvider } from "@/app/components/kebu/toast";
