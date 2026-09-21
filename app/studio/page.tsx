@@ -6,6 +6,7 @@ import { StudioDesignLibrary } from "@/app/components/studio/studio-design-libra
 import type { StudioDesignRole } from "@/lib/studio/design-access";
 import { KEBU } from "@/lib/kebu-brand";
 import { AppShell } from "@/app/components/app-shell";
+import { StudioWorldNav } from "@/app/components/studio/studio-world-nav";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 
 type FormatCard = {
