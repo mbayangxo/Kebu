@@ -513,6 +513,12 @@ export function LegallyBlondeEditCanvas({
           navScale={typeof props.navScale === "number" ? props.navScale : 1}
           navSize={(props.navSize as NavSizePreset | undefined) ?? "comfortable"}
           navLayout={parseNavLayout(props.navLayout)}
+          chromeLogoScale={typeof props.chromeLogoScale === "number" ? props.chromeLogoScale : 1}
+          headerHeightScale={typeof props.headerHeightScale === "number" ? props.headerHeightScale : 1}
+          headerBgColor={typeof props.headerBgColor === "string" ? props.headerBgColor : undefined}
+          navFontFamily={typeof props.navFontFamily === "string" ? props.navFontFamily : undefined}
+          navFontSizePx={typeof props.navFontSizePx === "number" ? props.navFontSizePx : undefined}
+          navFontWeight={typeof props.navFontWeight === "number" ? props.navFontWeight : undefined}
           onNavigate={onNavigatePage}
         />
 

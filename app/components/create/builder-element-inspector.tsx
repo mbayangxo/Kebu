@@ -88,6 +88,9 @@ export function BuilderElementInspector({
             : [
                 "extraCutouts",
                 "layerScales",
+                "layerWidthScale",
+                "layerHeightScale",
+                "layerCrop",
                 "layerZIndex",
                 "layerOpacity",
                 "layerRotation",

@@ -524,6 +524,8 @@ function ExtraCutoutItem({
   scrollProgress = 0,
   motion = false,
   opacity = 1,
+  heightScale = 1,
+  crop = 0,
 }: {
   photo: ExtraCutout;
   editing: boolean;
@@ -535,6 +537,8 @@ function ExtraCutoutItem({
   scrollProgress?: number;
   motion?: boolean;
   opacity?: number;
+  heightScale?: number;
+  crop?: number;
 }) {
   const dragging = useRef(false);
   const role = photo.parallaxRole ?? (photo.id.includes("city") ? "city" : "none");
@@ -609,8 +613,19 @@ function ExtraCutoutItem({
       role={editing ? "button" : undefined}
       tabIndex={editing ? 0 : undefined}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={photo.src} alt={photo.alt ?? ""} className="h-auto w-full select-none" draggable={false} />
+      <div
+        className="w-full overflow-hidden"
+        style={{ clipPath: crop > 0 ? `inset(${crop}% ${crop}% ${crop}% ${crop}%)` : undefined }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo.src}
+          alt={photo.alt ?? ""}
+          className="h-auto w-full select-none"
+          style={{ transform: heightScale !== 1 ? `scaleY(${heightScale})` : undefined, transformOrigin: "center" }}
+          draggable={false}
+        />
+      </div>
       {!editing && photo.href ? (
         <CutoutLinkOverlay
           href={photo.href}
@@ -766,12 +781,15 @@ export function LegallyBlondeHeroLayout({
         .filter((c) => c.src && !(props.hiddenLayers ?? []).includes(c.id))
         .map((photo) => {
           const scale = props.layerScales?.[photo.id] ?? 1;
+          const widthScale = props.layerWidthScale?.[photo.id] ?? 1;
+          const heightScale = props.layerHeightScale?.[photo.id] ?? 1;
+          const crop = props.layerCrop?.[photo.id] ?? 0;
           return (
           <ExtraCutoutItem
             key={photo.id}
             photo={{
               ...photo,
-              widthPct: photo.widthPct * scale,
+              widthPct: photo.widthPct * scale * widthScale,
               rotate:
                 typeof props.layerRotation?.[photo.id] === "number"
                   ? props.layerRotation[photo.id]!
@@ -799,6 +817,8 @@ export function LegallyBlondeHeroLayout({
             scrollProgress={scrollProgress}
             opacity={typeof props.layerOpacity?.[photo.id] === "number" ? props.layerOpacity[photo.id]! : 1}
             motion={editing ? false : motion}
+            heightScale={heightScale}
+            crop={crop}
           />
           );
         })}
@@ -885,7 +905,7 @@ export function LegallyBlondeHeroLayout({
                       key={photo.id}
                       photo={{
                         ...photo,
-                        widthPct: photo.widthPct * scale,
+                        widthPct: photo.widthPct * scale * widthScale,
                         rotate:
                           typeof props.layerRotation?.[photo.id] === "number"
                             ? props.layerRotation[photo.id]!
@@ -904,6 +924,8 @@ export function LegallyBlondeHeroLayout({
                       scrollProgress={scrollProgress}
                       opacity={typeof props.layerOpacity?.[photo.id] === "number" ? props.layerOpacity[photo.id]! : 1}
                       motion={motion}
+                      heightScale={heightScale}
+                      crop={crop}
                     />
                   );
                 })}
