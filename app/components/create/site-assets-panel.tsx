@@ -33,12 +33,12 @@ function assetMediaKind(kind: string): KebuDragAsset["kind"] {
 export function SiteAssetsPanel({
   projectId,
   onPickUrl,
-  onUseOnSite,
+  onAddOnSite,
 }: {
   projectId: string;
   onPickUrl?: (url: string, kind: KebuDragAsset["kind"]) => void;
   /** Add asset to the current page canvas (preferred). */
-  onUseOnSite?: (asset: KebuDragAsset) => void;
+  onAddOnSite?: (asset: KebuDragAsset) => void;
 }) {
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +71,7 @@ export function SiteAssetsPanel({
 
   function applyAsset(url: string, kind: KebuDragAsset["kind"]) {
     onPickUrl?.(url, kind);
-    onUseOnSite?.({ url, kind });
+    onAddOnSite?.({ url, kind });
   }
 
   function onUploaded(url: string, kind: KebuDragAsset["kind"]) {
@@ -90,7 +90,7 @@ export function SiteAssetsPanel({
       <GalaxyPanelHeader
         eyebrow="Library"
         title="Assets"
-        description="Upload once, then reuse photos, video, and audio across this site."
+        description="Upload once. Add files directly to the canvas or reuse them anywhere on the site."
       />
       <div className="space-y-3 p-3">
       {/* Upload section — collapsed by default to keep library front-and-center */}
@@ -107,7 +107,7 @@ export function SiteAssetsPanel({
         {uploadExpanded ? (
           <div className="px-3 pb-3 pt-2 space-y-2">
             <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-              Drag onto the preview after uploading, or tap <strong>Use</strong> on any file below.
+              Drag a file onto the page or tap <strong>Add</strong>. Images become editable canvas objects when the current design supports freeform editing.
             </p>
             <SiteImageUpload
               projectId={projectId}
@@ -207,7 +207,7 @@ export function SiteAssetsPanel({
                     style={{ background: BUILDER.ink }}
                     onClick={() => applyAsset(a.url, kind)}
                   >
-                    Use
+                    Add
                   </button>
                 </div>
               </div>

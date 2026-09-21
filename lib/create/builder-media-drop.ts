@@ -71,6 +71,7 @@ export type MediaApplyTarget =
   | { action: "hero"; sectionId: string; heroImage: string }
   | { action: "gallery"; sectionId: string; items: { src: string; alt: string }[] }
   | { action: "patch-src"; sectionId: string; src: string }
+  | { action: "freeform-image"; sectionId: string; cutout: { id: string; src: string; alt: string; topPct: number; leftPct: number; widthPct: number; rotate: number; zIndex: number } }
   | { action: "add-section"; type: "image" | "video" | "audio"; props: Record<string, unknown> };
 
 type SectionLike = {
@@ -94,6 +95,32 @@ export function planMediaAssetApply(
   const selected = opts.sections.find((s) => s.id === opts.selectedSectionId) ?? null;
 
   if (asset.kind === "image") {
+    const freeform =
+      selected?.section_type === "legally-blonde-hero" && selected.page_id === opts.pageId
+        ? selected
+        : pageSections.find((s) => s.section_type === "legally-blonde-hero");
+    if (freeform) {
+      const existing = Array.isArray(freeform.props.extraCutouts)
+        ? (freeform.props.extraCutouts as Array<{ zIndex?: number }>)
+        : [];
+      const leftPct = opts.drop?.leftPct ?? 50;
+      const topPct = opts.drop?.topPct ?? 45;
+      return {
+        action: "freeform-image",
+        sectionId: freeform.id,
+        cutout: {
+          id: `image-${Date.now()}-${existing.length + 1}`,
+          src: asset.url,
+          alt: "Canvas image",
+          leftPct,
+          topPct,
+          widthPct: 24,
+          rotate: 0,
+          zIndex: Math.min(80, 20 + existing.length),
+        },
+      };
+    }
+
     const kdHome =
       selected?.section_type === "kdirection-home" && selected.page_id === opts.pageId
         ? selected

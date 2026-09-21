@@ -445,6 +445,37 @@ export default function ProjectEditorPage() {
       setSidebarTab("content");
       return;
     }
+    if (plan.action === "freeform-image") {
+      const target = sections.find((section) => section.id === plan.sectionId);
+      const existing = Array.isArray(target?.props.extraCutouts)
+        ? (target!.props.extraCutouts as Array<Record<string, unknown>>)
+        : [];
+      updateProps(plan.sectionId, {
+        extraCutouts: [...existing, plan.cutout],
+        layerPositions: {
+          ...((target?.props.layerPositions as Record<string, unknown>) ?? {}),
+          [plan.cutout.id]: { leftPct: plan.cutout.leftPct, topPct: plan.cutout.topPct },
+        },
+        layerZIndex: {
+          ...((target?.props.layerZIndex as Record<string, number>) ?? {}),
+          [plan.cutout.id]: plan.cutout.zIndex,
+        },
+        layerScales: {
+          ...((target?.props.layerScales as Record<string, number>) ?? {}),
+          [plan.cutout.id]: 1,
+        },
+      });
+      setSelectedSectionId(plan.sectionId);
+      setSelectedElement({
+        sectionId: plan.sectionId,
+        elementId: `extra:${plan.cutout.id}`,
+        kind: "cutout",
+        label: "Canvas image",
+      });
+      setSidebarTab("content");
+      setLeftPanelOpen(true);
+      return;
+    }
     const created = await addSection(plan.type, plan.props);
     if (created) {
       setSelectedSectionId(created.id);
