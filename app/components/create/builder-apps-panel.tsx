@@ -28,17 +28,10 @@ export function BuilderAppsPanel({
     <div>
       <GalaxyPanelHeader
         eyebrow="Extend"
-        title="Apps & blocks"
-        description="Add useful capabilities to this site. Every block uses the same real Kebu save, responsive, and publish pipeline."
+        title="Site features"
+        description="Add forms, maps, media, payments and other working features to this page."
       />
       <div className="space-y-3 p-3">
-        <div className="rounded-lg border border-black/[0.07] bg-[#FFF9F4] p-2.5">
-          <p className="text-[10px] font-semibold text-[#C95000]">How it works</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-black/55">
-            Add a block to the current page, then configure it in Build. Nothing here is a fake install or a local-only widget.
-          </p>
-        </div>
-
         {BUILDER_APP_BLOCKS.length ? (
           <div className="grid gap-2">
             {BUILDER_APP_BLOCKS.map((app) => {
@@ -81,9 +74,9 @@ export function BuilderAppsPanel({
         )}
 
         <div className="border-t border-black/[0.07] pt-3">
-          <p className="text-[10px] font-semibold text-black/45">Commerce lives in Kebu Shop</p>
+          <p className="text-[10px] font-semibold text-black/45">Selling on your site</p>
           <p className="mt-1 text-[10px] leading-relaxed text-black/50">
-            Manage products, orders, customers, inventory, and payments outside the canvas.
+            Products, orders, customers, inventory and payments stay in Kebu Shop so the page editor remains focused.
           </p>
           <Link
             href={`/shop/${projectId}`}
