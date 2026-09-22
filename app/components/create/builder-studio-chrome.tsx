@@ -198,16 +198,18 @@ export function BuilderStudioChrome({
 
   return (
     <header
-      className="relative flex h-[46px] shrink-0 items-center gap-1.5 border-b px-2 sm:px-2.5"
+      className="relative flex h-[50px] shrink-0 items-center gap-1.5 border-b px-2 sm:px-3"
       style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
     >
       <Link
         href={MY_SITES_HREF}
         aria-label="Back to your Kebu sites"
-        className="mr-1 hidden shrink-0 items-center gap-1 rounded-md px-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:flex"
+        className="mr-1 flex shrink-0 items-center gap-1.5 rounded-lg px-1.5 py-1 outline-none transition-colors hover:bg-black/[0.04] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
       >
+        <span aria-hidden className="text-[16px] leading-none text-black/55">‹</span>
         <KebuMark size={24} className="object-contain" />
-        <span className="h-5 w-px" style={{ background: BUILDER.border }} aria-hidden />
+        <span className="hidden text-[10px] font-semibold text-black/55 sm:inline">Sites</span>
+        <span className="hidden h-5 w-px sm:block" style={{ background: BUILDER.border }} aria-hidden />
       </Link>
 
       <div className="flex min-w-0 items-center gap-2">
@@ -338,7 +340,7 @@ export function BuilderStudioChrome({
             type="button"
             onClick={onSaveDraft}
             disabled={savingDraft || publishing}
-            className="hidden rounded-full px-3.5 py-2 text-[10px] font-bold disabled:opacity-40 md:inline"
+            className="hidden rounded-lg px-3 py-2 text-[10px] font-bold disabled:opacity-40 xl:inline"
             style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
           >
             {savingDraft ? "…" : "Save draft"}
@@ -348,7 +350,7 @@ export function BuilderStudioChrome({
           type="button"
           onClick={onPublish}
           disabled={publishing}
-          className="rounded-full px-4 py-2 text-[10px] font-black tracking-wide shadow-[0_3px_12px_rgba(10,10,10,0.12)] disabled:opacity-50 sm:px-5"
+          className="rounded-lg px-4 py-2 text-[10px] font-black tracking-wide shadow-[0_2px_8px_rgba(10,10,10,0.10)] disabled:opacity-50 sm:px-5"
           style={{ background: BUILDER.ink, color: "#fff" }}
         >
           {publishing ? "…" : publishLabel}
