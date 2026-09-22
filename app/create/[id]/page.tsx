@@ -117,16 +117,16 @@ function SidebarDetails({ title, children, defaultOpen = true, group }: { title:
       open={open}
       onToggle={(event) => setAccordionOpen(event.currentTarget.open)}
       className="group border-b"
-      style={{ borderColor: "#E5E5E5" }}
+      style={{ borderColor: BUILDER.border }}
     >
-      <summary
-        className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 select-none"
-        style={{ background: "#F7F7F7" }}
-      >
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#5C5C5C" }}>{title}</span>
-        <span className="text-[10px] text-[#ABABAB] transition-transform group-open:rotate-90" aria-hidden>▶</span>
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 select-none">
+        <span className="text-[10px] font-semibold" style={{ color: BUILDER.muted }}>{title}</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          className="transition-transform duration-150 group-open:rotate-90 shrink-0" style={{ color: BUILDER.faint }} aria-hidden>
+          <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </summary>
-      <div className="px-4 py-3 space-y-3">
+      <div className="px-4 py-3 space-y-2.5">
         {children}
       </div>
     </details>
@@ -1765,23 +1765,23 @@ export default function ProjectEditorPage() {
               {/* Shopify-style drill-down breadcrumb: shown when a section is selected */}
               {selectedSectionId ? (
                 <div
-                  className="sticky top-0 z-10 flex items-center gap-2 border-b px-4 py-3"
+                  className="sticky top-0 z-10 flex items-center gap-2 border-b px-3 py-2.5"
                   style={{ background: BUILDER.surface, borderColor: BUILDER.border }}
                 >
                   <button
                     type="button"
                     onClick={() => selectSectionForInspector(null)}
-                    className="flex shrink-0 items-center gap-1 text-[12px] font-medium"
+                    className="flex shrink-0 items-center gap-1 text-[11px] font-medium"
                     style={{ color: BUILDER.muted }}
                     aria-label="Back to sections list"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
                       <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     Sections
                   </button>
-                  <span aria-hidden style={{ color: BUILDER.border, fontSize: 14 }}>›</span>
-                  <p className="min-w-0 truncate text-[13px] font-semibold" style={{ color: BUILDER.ink }}>
+                  <span aria-hidden style={{ color: BUILDER.border }}>›</span>
+                  <p className="min-w-0 flex-1 truncate text-[12px] font-semibold" style={{ color: BUILDER.ink }}>
                     {selectedElement
                       ? selectedElement.label
                       : selectedSectionId === CHROME_HEADER_ID
@@ -1792,6 +1792,33 @@ export default function ProjectEditorPage() {
                               sections.find((s) => s.id === selectedSectionId)?.section_type ?? "section",
                             )}
                   </p>
+                  {!selectedElement && selectedSectionId !== CHROME_HEADER_ID && selectedSectionId !== CHROME_FOOTER_ID && (() => {
+                    const sec = sections.find((s) => s.id === selectedSectionId);
+                    if (!sec) return null;
+                    return (
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <button type="button" title="Duplicate section"
+                          onClick={() => void duplicateSection(sec.id)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-black/[.04]"
+                          style={{ color: BUILDER.muted }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                            <rect x="9" y="9" width="13" height="13" rx="2" strokeLinejoin="round"/>
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                        <button type="button" title="Remove section"
+                          onClick={() => {
+                            if (window.confirm(`Remove "${labelForSectionType(sec.section_type)}" from this page?`)) void deleteSection(sec.id);
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-red-50"
+                          style={{ color: "#C9392C" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 /* Header with Sections / Elements / Layouts sub-tabs */
@@ -2092,24 +2119,6 @@ export default function ProjectEditorPage() {
 
               {selectedSectionId && !selectedElement && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
                     <div key={section.id} className="pb-2">
-                      <details className="border-b" style={{ borderColor: BUILDER.border }}>
-                        <summary className="cursor-pointer list-none px-4 py-2 text-[10px] font-semibold text-black/45 hover:bg-black/[.025]">
-                          <span className="inline-flex items-center gap-1.5">Section actions <span aria-hidden>•••</span></span>
-                        </summary>
-                        <div className="flex flex-wrap gap-1.5 px-3 pb-3">
-                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void duplicateSection(section.id)}>Duplicate</button>
-                          <button
-                            type="button"
-                            className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
-                            style={{ border: "1px solid #FECACA", color: "#B91C1C" }}
-                            onClick={() => {
-                              if (window.confirm(`Remove "${labelForSectionType(section.section_type)}" from this page?`)) void deleteSection(section.id);
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </details>
                       <SidebarDetails title="Content" group="section-inspector">
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
@@ -2117,16 +2126,16 @@ export default function ProjectEditorPage() {
                             Words
                           </p>
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.artistName ?? "")}
                             onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
                             aria-label="Artist name"
                             placeholder="MAY LECOR"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.ctaLabel ?? "")}
                             onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
                             aria-label="CTA label"
@@ -2203,8 +2212,8 @@ export default function ProjectEditorPage() {
                             Restore May circle + cutouts
                           </button>
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.title ?? "")}
                             onChange={(e) =>
                               updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
@@ -2213,8 +2222,8 @@ export default function ProjectEditorPage() {
                             placeholder="Artist or brand name"
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             rows={3}
                             value={String(section.props.subtitle ?? "")}
                             onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
@@ -2269,8 +2278,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Nav look
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.navDisplay ?? "text")}
                               onChange={(e) =>
                                 updateProps(section.id, {
@@ -2382,8 +2391,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Display font (Steelfish recommended)
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.displayFont ?? "Steelfish")}
                               onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
                             >
@@ -2446,7 +2455,7 @@ export default function ProjectEditorPage() {
                             <button
                               type="button"
                               className="w-full rounded-md px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider"
-                              style={{ border: "1px solid #DDE0F0", color: BUILDER.ink }}
+                              style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }}
                               onClick={() => {
                                 const hl = Array.isArray(section.props.hiddenLayers)
                                   ? [...(section.props.hiddenLayers as string[])]
@@ -2520,7 +2529,7 @@ export default function ProjectEditorPage() {
                               />
                               <input
                                 className="w-full text-xs rounded px-2 py-1"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String((cut as { href?: string }).href ?? "")}
                                 placeholder="Link when photo is clicked (https://… or /page)"
                                 onChange={(e) => {
@@ -2547,7 +2556,7 @@ export default function ProjectEditorPage() {
                             Accent color
                             <input
                               className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.accentColor ?? "#FF1493")}
                               onChange={(e) => updateProps(section.id, { accentColor: e.target.value })}
                             />
@@ -2712,24 +2721,24 @@ export default function ProjectEditorPage() {
                             onChange={(url) => updateProps(section.id, { logoImage: url })}
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.brandLine1 ?? "K")}
                             onChange={(e) => updateProps(section.id, { brandLine1: e.target.value })}
                             placeholder="K"
                             aria-label="Brand letter"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.brandLine2 ?? "DIRECTION")}
                             onChange={(e) => updateProps(section.id, { brandLine2: e.target.value })}
                             placeholder="DIRECTION"
                             aria-label="Brand word"
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             rows={2}
                             value={String(section.props.mission ?? "")}
                             onChange={(e) => updateProps(section.id, { mission: e.target.value })}
@@ -2738,8 +2747,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Font (Oswald = Wix)
                             <input
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.displayFont ?? "Oswald")}
                               onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
                             />
@@ -2749,7 +2758,7 @@ export default function ProjectEditorPage() {
                               Logo color
                               <input
                                 className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.logoColor ?? "#FFFFFF")}
                                 onChange={(e) => updateProps(section.id, { logoColor: e.target.value })}
                               />
@@ -2758,7 +2767,7 @@ export default function ProjectEditorPage() {
                               Mirror color
                               <input
                                 className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.logoMirrorColor ?? "#F5C4B8")}
                                 onChange={(e) => updateProps(section.id, { logoMirrorColor: e.target.value })}
                               />
@@ -2768,7 +2777,7 @@ export default function ProjectEditorPage() {
                             Nav button yellow
                             <input
                               className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.navButtonBg ?? "#FFF86B")}
                               onChange={(e) => updateProps(section.id, { navButtonBg: e.target.value })}
                             />
@@ -2877,7 +2886,7 @@ export default function ProjectEditorPage() {
                               />
                               <input
                                 className="w-full text-xs rounded px-2 py-1"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String((photo as { href?: string }).href ?? "")}
                                 placeholder="Link when photo is clicked (https://… or /artists)"
                                 onChange={(e) => {
@@ -2894,7 +2903,7 @@ export default function ProjectEditorPage() {
                                   <input
                                     type="number"
                                     className="mt-0.5 w-full text-xs rounded px-1 py-1"
-                                    style={{ border: "1px solid #DDE0F0" }}
+                                    style={{ border: `1px solid ${BUILDER.border}` }}
                                     value={Number(photo.rotate ?? 0)}
                                     onChange={(e) => {
                                       const next = [
@@ -2910,7 +2919,7 @@ export default function ProjectEditorPage() {
                                   <input
                                     type="number"
                                     className="mt-0.5 w-full text-xs rounded px-1 py-1"
-                                    style={{ border: "1px solid #DDE0F0" }}
+                                    style={{ border: `1px solid ${BUILDER.border}` }}
                                     value={Number(photo.widthPct ?? 16)}
                                     onChange={(e) => {
                                       const next = [
@@ -2926,7 +2935,7 @@ export default function ProjectEditorPage() {
                                   <input
                                     type="number"
                                     className="mt-0.5 w-full text-xs rounded px-1 py-1"
-                                    style={{ border: "1px solid #DDE0F0" }}
+                                    style={{ border: `1px solid ${BUILDER.border}` }}
                                     value={Number(photo.topPct ?? 10)}
                                     onChange={(e) => {
                                       const next = [
@@ -2942,7 +2951,7 @@ export default function ProjectEditorPage() {
                                   <input
                                     type="number"
                                     className="mt-0.5 w-full text-xs rounded px-1 py-1"
-                                    style={{ border: "1px solid #DDE0F0" }}
+                                    style={{ border: `1px solid ${BUILDER.border}` }}
                                     value={Number(photo.leftPct ?? 10)}
                                     onChange={(e) => {
                                       const next = [
@@ -3003,7 +3012,7 @@ export default function ProjectEditorPage() {
                             Footer text
                             <input
                               className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.footerText ?? "")}
                               onChange={(e) => updateProps(section.id, { footerText: e.target.value })}
                             />
@@ -3013,14 +3022,14 @@ export default function ProjectEditorPage() {
                       {section.section_type === "kdirection-page" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.title ?? "")}
                             onChange={(e) => updateProps(section.id, { title: e.target.value })}
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             rows={4}
                             value={String(section.props.body ?? "")}
                             onChange={(e) => updateProps(section.id, { body: e.target.value })}
@@ -3058,8 +3067,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "maylecor-music" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.artistName ?? "")}
                             onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
                             aria-label="Artist name"
@@ -3095,16 +3104,16 @@ export default function ProjectEditorPage() {
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Copy</p>
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             placeholder="Heading"
                             aria-label="Hero heading"
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.subheading ?? "")}
                             onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
                             placeholder="Subheading"
@@ -3112,16 +3121,16 @@ export default function ProjectEditorPage() {
                           />
                           <div className="grid grid-cols-2 gap-2">
                             <input
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonLabel ?? "")}
                               onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
                               placeholder="Button label"
                               aria-label="Button label"
                             />
                             <input
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonHref ?? "")}
                               onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
                               placeholder="Button link"
@@ -3148,8 +3157,8 @@ export default function ProjectEditorPage() {
                             <label className="block text-[10px] uppercase tracking-wider">
                               Text align
                               <select
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.align ?? "center")}
                                 onChange={(e) => updateProps(section.id, { align: e.target.value })}
                               >
@@ -3162,8 +3171,8 @@ export default function ProjectEditorPage() {
                             <label className="block text-[10px] uppercase tracking-wider">
                               Height
                               <select
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.minHeight ?? "80vh")}
                                 onChange={(e) => updateProps(section.id, { minHeight: e.target.value })}
                               >
@@ -3191,14 +3200,14 @@ export default function ProjectEditorPage() {
                       {section.section_type === "text" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[80px]"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[80px]"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.body ?? "")}
                             onChange={(e) => updateProps(section.id, { body: e.target.value })}
                           />
@@ -3207,8 +3216,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "navigation" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.brand ?? "")}
                             onChange={(e) => updateProps(section.id, { brand: e.target.value })}
                             aria-label="Brand name"
@@ -3233,8 +3242,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "footer" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="© Your Brand · 2026"
                             value={String(section.props.text ?? "")}
                             onChange={(e) => updateProps(section.id, { text: e.target.value })}
@@ -3250,16 +3259,16 @@ export default function ProjectEditorPage() {
                       {section.section_type === "whatsapp" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.phone ?? "")}
                             onChange={(e) => updateProps(section.id, { phone: e.target.value })}
                             aria-label="WhatsApp phone"
                             placeholder="WhatsApp number with country code"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.label ?? "")}
                             onChange={(e) => updateProps(section.id, { label: e.target.value })}
                             aria-label="WhatsApp button label"
@@ -3269,32 +3278,32 @@ export default function ProjectEditorPage() {
                       {section.section_type === "contact" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             aria-label="Contact heading"
                             placeholder="Contact"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.email ?? "")}
                             onChange={(e) => updateProps(section.id, { email: e.target.value })}
                             aria-label="Email"
                             placeholder="Email"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.phone ?? "")}
                             onChange={(e) => updateProps(section.id, { phone: e.target.value })}
                             aria-label="Phone"
                             placeholder="Phone"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.address ?? "")}
                             onChange={(e) => updateProps(section.id, { address: e.target.value })}
                             aria-label="Address"
@@ -3305,8 +3314,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "features" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             aria-label="Features heading"
@@ -3331,8 +3340,8 @@ export default function ProjectEditorPage() {
                                   </button>
                                 </div>
                                 <input
-                                  className="w-full text-sm rounded-lg px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  className="w-full text-xs rounded-lg px-2.5 py-2"
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   value={String(item?.title ?? "")}
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
@@ -3342,8 +3351,8 @@ export default function ProjectEditorPage() {
                                   placeholder="Title"
                                 />
                                 <textarea
-                                  className="w-full text-sm rounded-lg px-2 py-1 min-h-[60px]"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   value={String(item?.body ?? "")}
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
@@ -3363,8 +3372,8 @@ export default function ProjectEditorPage() {
                                   }}
                                 />
                                 <input
-                                  className="w-full text-sm rounded-lg px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  className="w-full text-xs rounded-lg px-2.5 py-2"
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   value={String(item?.href ?? "")}
                                   placeholder="Link (optional)"
                                   onChange={(e) => {
@@ -3394,8 +3403,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "faq" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             aria-label="FAQ heading"
@@ -3404,8 +3413,8 @@ export default function ProjectEditorPage() {
                             (item: { question?: string; answer?: string }, idx: number) => (
                               <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
                                 <input
-                                  className="w-full text-sm rounded-lg px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  className="w-full text-xs rounded-lg px-2.5 py-2"
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   value={String(item?.question ?? "")}
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
@@ -3416,8 +3425,8 @@ export default function ProjectEditorPage() {
                                   placeholder="Question"
                                 />
                                 <textarea
-                                  className="w-full text-sm rounded-lg px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  className="w-full text-xs rounded-lg px-2.5 py-2"
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   value={String(item?.answer ?? "")}
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
@@ -3448,8 +3457,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "testimonials" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             placeholder="What our customers say"
@@ -3474,8 +3483,8 @@ export default function ProjectEditorPage() {
                                   </button>
                                 </div>
                                 <textarea
-                                  className="w-full text-sm rounded-lg px-2 py-1 min-h-[70px]"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[70px]"
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   value={String(item?.quote ?? "")}
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
@@ -3486,8 +3495,8 @@ export default function ProjectEditorPage() {
                                 />
                                 <div className="grid grid-cols-2 gap-1">
                                   <input
-                                    className="w-full text-sm rounded-lg px-2 py-1"
-                                    style={{ border: "1px solid #DDE0F0" }}
+                                    className="w-full text-xs rounded-lg px-2.5 py-2"
+                                    style={{ border: `1px solid ${BUILDER.border}` }}
                                     value={String(item?.name ?? "")}
                                     onChange={(e) => {
                                       const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
@@ -3497,8 +3506,8 @@ export default function ProjectEditorPage() {
                                     placeholder="Name"
                                   />
                                   <input
-                                    className="w-full text-sm rounded-lg px-2 py-1"
-                                    style={{ border: "1px solid #DDE0F0" }}
+                                    className="w-full text-xs rounded-lg px-2.5 py-2"
+                                    style={{ border: `1px solid ${BUILDER.border}` }}
                                     value={String(item?.role ?? "")}
                                     onChange={(e) => {
                                       const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
@@ -3539,8 +3548,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "video" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Heading (Videos)"
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
@@ -3548,8 +3557,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Layout
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.layout ?? "grid")}
                               onChange={(e) =>
                                 updateProps(section.id, {
@@ -3565,8 +3574,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Columns
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.columns ?? 2)}
                               onChange={(e) =>
                                 updateProps(section.id, { columns: Number(e.target.value) as 1 | 2 | 3 })
@@ -3614,7 +3623,7 @@ export default function ProjectEditorPage() {
                               <div key={idx} className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
                                 <input
                                   className="w-full text-xs rounded px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   placeholder="Title"
                                   value={item.title ?? ""}
                                   onChange={(e) => {
@@ -3625,7 +3634,7 @@ export default function ProjectEditorPage() {
                                 />
                                 <input
                                   className="w-full text-xs rounded px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   placeholder="YouTube / Vimeo URL or link"
                                   value={item.src ?? ""}
                                   onChange={(e) => {
@@ -3695,22 +3704,22 @@ export default function ProjectEditorPage() {
                             label="Music file from your computer"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Or paste MP3 URL"
                             value={String(section.props.src ?? "")}
                             onChange={(e) => updateProps(section.id, { src: e.target.value })}
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Track title"
                             value={String(section.props.title ?? "")}
                             onChange={(e) => updateProps(section.id, { title: e.target.value })}
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Artist name"
                             value={String(section.props.artist ?? "")}
                             onChange={(e) => updateProps(section.id, { artist: e.target.value })}
@@ -3725,8 +3734,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Photo layout
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.layout ?? "grid")}
                               onChange={(e) =>
                                 updateProps(section.id, {
@@ -3742,8 +3751,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Columns
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.columns ?? 3)}
                               onChange={(e) =>
                                 updateProps(section.id, { columns: Number(e.target.value) as 1 | 2 | 3 })
@@ -3769,7 +3778,7 @@ export default function ProjectEditorPage() {
                                 />
                                 <input
                                   className="w-full text-xs rounded-lg px-2 py-1"
-                                  style={{ border: "1px solid #DDE0F0" }}
+                                  style={{ border: `1px solid ${BUILDER.border}` }}
                                   placeholder="Caption (optional)"
                                   value={String(item?.alt ?? "")}
                                   onChange={(e) => {
@@ -3811,8 +3820,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "products" && (
                         <div className="space-y-3">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             placeholder="Section heading"
@@ -3908,8 +3917,8 @@ export default function ProjectEditorPage() {
                             })}
                           </div>
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.orderCtaLabel ?? "Place order")}
                             onChange={(e) => updateProps(section.id, { orderCtaLabel: e.target.value })}
                             placeholder="Order button label"
@@ -3933,22 +3942,22 @@ export default function ProjectEditorPage() {
                       {section.section_type === "newsletter" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             placeholder="Heading"
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.subheading ?? "")}
                             onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
                             placeholder="Subheading"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.buttonLabel ?? "")}
                             onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
                             placeholder="Button label"
@@ -3972,8 +3981,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Mode
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.mode ?? "both")}
                               onChange={(e) => updateProps(section.id, { mode: e.target.value })}
                             >
@@ -3983,22 +3992,22 @@ export default function ProjectEditorPage() {
                             </select>
                           </label>
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             placeholder="Heading"
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.body ?? "")}
                             onChange={(e) => updateProps(section.id, { body: e.target.value })}
                             placeholder="Body"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.consentLabel ?? "")}
                             onChange={(e) => updateProps(section.id, { consentLabel: e.target.value })}
                             placeholder="Consent checkbox text"
@@ -4010,8 +4019,8 @@ export default function ProjectEditorPage() {
                                 type="number"
                                 min={0}
                                 max={60}
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={Number(section.props.delaySeconds ?? 4)}
                                 onChange={(e) =>
                                   updateProps(section.id, { delaySeconds: Number(e.target.value) })
@@ -4024,8 +4033,8 @@ export default function ProjectEditorPage() {
                                 type="number"
                                 min={0}
                                 max={365}
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={Number(section.props.remindAfterDays ?? 14)}
                                 onChange={(e) =>
                                   updateProps(section.id, { remindAfterDays: Number(e.target.value) })
@@ -4038,8 +4047,8 @@ export default function ProjectEditorPage() {
                       {section.section_type === "map" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Address label"
                             value={String(section.props.address ?? "")}
                             onChange={(e) => updateProps(section.id, { address: e.target.value })}
@@ -4048,8 +4057,8 @@ export default function ProjectEditorPage() {
                             <input
                               type="number"
                               step="any"
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               placeholder="Latitude"
                               value={Number(section.props.latitude ?? 0)}
                               onChange={(e) => updateProps(section.id, { latitude: Number(e.target.value) })}
@@ -4057,8 +4066,8 @@ export default function ProjectEditorPage() {
                             <input
                               type="number"
                               step="any"
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               placeholder="Longitude"
                               value={Number(section.props.longitude ?? 0)}
                               onChange={(e) => updateProps(section.id, { longitude: Number(e.target.value) })}
@@ -4105,15 +4114,15 @@ export default function ProjectEditorPage() {
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Copy</p>
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             placeholder="Headline"
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.subheading ?? "")}
                             onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
                             placeholder="Subheading"
@@ -4121,14 +4130,14 @@ export default function ProjectEditorPage() {
                           <div className="grid grid-cols-2 gap-2">
                             <input
                               className="text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonLabel ?? "")}
                               onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
                               placeholder="Button label"
                             />
                             <input
                               className="text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonHref ?? "")}
                               onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
                               placeholder="Button link"
@@ -4145,8 +4154,8 @@ export default function ProjectEditorPage() {
                             <label className="block text-[10px] uppercase tracking-wider">
                               Height
                               <select
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.minHeight ?? "70vh")}
                                 onChange={(e) => updateProps(section.id, { minHeight: e.target.value })}
                               >
@@ -4159,8 +4168,8 @@ export default function ProjectEditorPage() {
                             <label className="block text-[10px] uppercase tracking-wider">
                               Align
                               <select
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                                style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.align ?? "left")}
                                 onChange={(e) => updateProps(section.id, { align: e.target.value })}
                               >
@@ -4186,15 +4195,15 @@ export default function ProjectEditorPage() {
                       {section.section_type === "announcement-bar" && (
                         <div className="space-y-2">
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.text ?? "")}
                             onChange={(e) => updateProps(section.id, { text: e.target.value })}
                             placeholder="Free shipping on orders over 10,000 XOF"
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.link ?? "")}
                             onChange={(e) => updateProps(section.id, { link: e.target.value })}
                             placeholder="Link (optional)"
@@ -4227,8 +4236,8 @@ export default function ProjectEditorPage() {
                             Scrolling text strip. One item per line.
                           </p>
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[80px]"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[80px]"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={(Array.isArray(section.props.items) ? section.props.items : []).join("\n")}
                             onChange={(e) => {
                               const items = e.target.value.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -4237,8 +4246,8 @@ export default function ProjectEditorPage() {
                             placeholder={"New arrivals\nShop now\nFree delivery\nMade in Africa"}
                           />
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.separator ?? " · ")}
                             onChange={(e) => updateProps(section.id, { separator: e.target.value })}
                             placeholder="Separator ( · )"
@@ -4269,15 +4278,15 @@ export default function ProjectEditorPage() {
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Copy</p>
                           <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
                             onChange={(e) => updateProps(section.id, { heading: e.target.value })}
                             placeholder="Heading"
                           />
                           <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[80px]"
-                            style={{ border: "1px solid #DDE0F0" }}
+                            className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[80px]"
+                            style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.body ?? "")}
                             onChange={(e) => updateProps(section.id, { body: e.target.value })}
                             placeholder="Body text"
@@ -4285,14 +4294,14 @@ export default function ProjectEditorPage() {
                           <div className="grid grid-cols-2 gap-2">
                             <input
                               className="text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonLabel ?? "")}
                               onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
                               placeholder="Button"
                             />
                             <input
                               className="text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonHref ?? "")}
                               onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
                               placeholder="Link"
@@ -4308,8 +4317,8 @@ export default function ProjectEditorPage() {
                           <label className="block text-[10px] uppercase tracking-wider">
                             Image side
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
+                              style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.imagePosition ?? "left")}
                               onChange={(e) => updateProps(section.id, { imagePosition: e.target.value })}
                             >
