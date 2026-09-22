@@ -81,16 +81,28 @@ export default async function LibraryPage() {
             </section>
 
             <section>
-              <div className="mb-3"><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Creative</p><h2 className="mt-0.5 text-lg font-black">Designs</h2></div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {designs.map((design) => (
-                  <Link key={design.id} href={"/studio/" + design.id} className="rounded-[18px] border bg-white p-4 transition hover:-translate-y-0.5" style={{ borderColor: KEBU.borders.default }}>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: "rgba(255,106,0,.09)", color: KEBU.orange }}><KebuIcon name="studio" size={16} /></span>
-                    <p className="mt-5 truncate text-[12px] font-black">{design.title}</p>
-                    <p className="mt-1 text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{design.design_type.replaceAll("_", " ")}</p>
-                  </Link>
-                ))}
+              <div className="mb-3 flex items-center justify-between">
+                <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Creative</p><h2 className="mt-0.5 text-lg font-black">Designs</h2></div>
+                <Link href="/studio" className="text-[10px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>Open Studio →</Link>
               </div>
+              {designs.length ? (
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {designs.map((design) => (
+                    <Link key={design.id} href={"/studio/" + design.id} className="rounded-[18px] border bg-white p-4 transition hover:-translate-y-0.5" style={{ borderColor: KEBU.borders.default }}>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: "rgba(255,106,0,.09)", color: KEBU.orange }}><KebuIcon name="studio" size={16} /></span>
+                      <p className="mt-5 truncate text-[12px] font-black">{design.title}</p>
+                      <p className="mt-1 text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{design.design_type.replaceAll("_", " ")}</p>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[20px] border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
+                  <KebuIcon name="studio" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
+                  <p className="text-sm font-black">No designs yet.</p>
+                  <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Create a poster, flyer or social post in Studio — it appears here automatically.</p>
+                  <Link href="/studio" className="mt-4 inline-flex rounded-full bg-black px-4 py-2 text-[10px] font-bold text-white">Open Studio</Link>
+                </div>
+              )}
             </section>
           </main>
 
@@ -99,12 +111,19 @@ export default async function LibraryPage() {
               <p className="text-[9px] font-black uppercase tracking-[.14em] text-white/40">Sites & stores</p>
               <div className="mt-3 space-y-2">
                 {projects.length ? projects.slice(0, 8).map((project) => (
-                  <Link key={project.id} href={"/create/" + project.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[.05] px-3 py-3">
+                  <Link key={project.id} href={"/create/" + project.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[.05] px-3 py-3 transition hover:bg-white/[.08]">
                     <KebuIcon name="builder" size={16} style={{ color: KEBU.orange }} />
                     <span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-bold">{project.title}</span><span className="text-[9px] text-white/40">{project.project_type}</span></span>
                     <span className="text-white/25">→</span>
                   </Link>
-                )) : <p className="text-[11px] text-white/50">No sites yet.</p>}
+                )) : (
+                  <div className="space-y-3 py-2">
+                    <p className="text-[11px] text-white/50">No sites yet.</p>
+                    <Link href="/create/new" className="inline-flex rounded-full border border-white/10 px-3 py-1.5 text-[10px] font-bold text-white/70 hover:border-white/20 hover:text-white">
+                      Create your first site →
+                    </Link>
+                  </div>
+                )}
               </div>
             </section>
           </aside>
