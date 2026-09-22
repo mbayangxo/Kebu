@@ -145,7 +145,7 @@ export default function ProjectEditorPage() {
   const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<BuilderElementSelection | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -856,6 +856,8 @@ export default function ProjectEditorPage() {
     if (id) {
       setSidebarTab("content");
       setLeftPanelOpen(true);
+    } else {
+      setLeftPanelOpen(false);
     }
   }
 
@@ -950,13 +952,10 @@ export default function ProjectEditorPage() {
   );
 
   useEffect(() => {
-    // Keep Sections panel open by default (Shopify theme editor). Only collapse on tiny screens.
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches) {
-      setLeftPanelOpen(false);
-    } else {
-      setLeftPanelOpen(true);
-      setSidebarTab("content");
-    }
+    // Canvas-first: panel always starts closed so the site preview fills the full width.
+    // It opens on demand: clicking a rail icon or clicking a section on the canvas.
+    setLeftPanelOpen(false);
+    setSidebarTab("content");
   }, [projectId]);
 
   function openStudioTab(tab: BuilderStudioTab) {
@@ -1296,13 +1295,11 @@ export default function ProjectEditorPage() {
               className={`${
                 leftPanelOpen
                   ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[268px] sm:max-w-[88vw]"
-                  : "hidden"
-              } shrink-0 min-h-0 overflow-y-auto border-r`}
+                  : "pointer-events-none fixed inset-0 opacity-0 sm:pointer-events-auto sm:opacity-100 sm:relative sm:inset-auto sm:w-0"
+              } shrink-0 min-h-0 overflow-y-auto border-r sm:transition-[width] sm:duration-200 sm:ease-out`}
               style={{
                 borderColor: BUILDER.border,
                 background: BUILDER.surface,
-                // Only matters at the mobile fixed-overlay width (below sm); at sm:relative this is an
-                // ordinary flex sibling and doesn't overlap anything, so a fixed z-index here is harmless.
                 zIndex: leftPanelOpen ? Z_LAYERS.drawerPanel : undefined,
               }}
             >
@@ -3995,6 +3992,9 @@ export default function ProjectEditorPage() {
                 className={`mx-auto flex min-h-0 flex-1 w-full ${
                   wideCanvas ? "overflow-y-auto p-2 sm:p-3" : "overflow-y-auto items-start p-4 sm:p-8"
                 }`}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) selectSectionForInspector(null);
+                }}
               >
                 <div
                   className={`mx-auto bg-white ${
@@ -4075,8 +4075,11 @@ export default function ProjectEditorPage() {
           />
         ) : null}
 
-        {/* Yande FAB + speed-dial — bottom-right */}
-        <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-5">
+        {/* Yande FAB + speed-dial — centered in the canvas area (panel offset on desktop) */}
+        <div
+          className="absolute bottom-3 z-30 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-5 sm:transition-[left] sm:duration-200 sm:ease-out"
+          style={{ left: leftPanelOpen ? "calc(50% + 134px)" : "50%" }}
+        >
 
           {/* Speed-dial mini-buttons — open by default on builder load */}
           {yandeDialOpen && !yandeOpen ? (

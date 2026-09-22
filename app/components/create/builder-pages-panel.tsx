@@ -410,6 +410,9 @@ export function BuilderPagesPanel({
           );
         })}
       </ul>
+      <p className="px-3 py-2 text-[9px]" style={{ color: BUILDER.faint }}>
+        Drag right onto a page to nest it as a sub-page. Drag left to reorder at the same level.
+      </p>
     </div>
   );
 }

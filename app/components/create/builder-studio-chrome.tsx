@@ -41,16 +41,6 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
     ),
   },
   {
-    id: "layers",
-    label: "Layers",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-        <path d="M12 3l8 4-8 4-8-4 8-4z" strokeLinejoin="round" />
-        <path d="M4 12l8 4 8-4M4 17l8 4 8-4" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
     id: "aesthetic",
     label: "Design",
     icon: (
@@ -90,6 +80,16 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
         <rect x="14" y="4" width="6" height="6" rx="1.5" />
         <rect x="4" y="14" width="6" height="6" rx="1.5" />
         <path d="M17 14v6M14 17h6" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "layers",
+    label: "Layers",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M12 3l8 4-8 4-8-4 8-4z" strokeLinejoin="round" />
+        <path d="M4 12l8 4 8-4M4 17l8 4 8-4" strokeLinejoin="round" />
       </svg>
     ),
   },
