@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { LanguageBar } from "@/app/components/language-bar";
-import { MobileBottomNav } from "@/app/components/mobile-nav";
 import { FloatingActionItem, FloatingActionStack } from "@/app/components/floating-action-stack";
 import { YandeGlobalFab } from "@/app/components/yande-global-fab";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
@@ -67,13 +66,9 @@ export function AppChrome() {
     return <YandeGlobalFab />;
   }
   const hideFloatingActions = shouldHideFloatingActions(pathname);
-  const pageSlug = pathname.split("/")[1] || "home";
   const shellLayout = usesAppShellLayout(pathname);
   const inSiteEditor =
     /^\/create\/[^/]+$/.test(pathname) || /^\/create\/[^/]+\/(preview|themes)/.test(pathname);
-  /** Merchant OS + editor: no marketing bottom bar competing with admin UI. */
-  const hideMobileNav =
-    inSiteEditor || pathname.startsWith("/my-sites") || pathname.startsWith("/business");
 
   return (
     <>
@@ -85,7 +80,6 @@ export function AppChrome() {
           </FloatingActionItem>
         </FloatingActionStack>
       ) : null}
-      {!hideMobileNav ? <MobileBottomNav /> : null}
     </>
   );
 }

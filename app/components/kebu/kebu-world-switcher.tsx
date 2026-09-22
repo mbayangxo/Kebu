@@ -6,7 +6,7 @@ import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 import type { AccountWorkspaceContext } from "@/lib/account/workspace-context";
 
-export function KebuWorldSwitcher({ compact = false }: { compact?: boolean }) {
+export function KebuWorldSwitcher({ compact = false, dark = false }: { compact?: boolean; dark?: boolean }) {
   const router = useRouter();
   const [context, setContext] = useState<AccountWorkspaceContext | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,6 +39,10 @@ export function KebuWorldSwitcher({ compact = false }: { compact?: boolean }) {
   }
 
   const isCompact = compact;
+  const selectBg = dark ? "rgba(255,255,255,0.07)" : "white";
+  const selectBorder = dark ? "rgba(255,255,255,0.12)" : KEBU.borders.default;
+  const selectColor = dark ? "#FFFFFF" : KEBU.black;
+  const caretColor = dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
 
   return (
     <label className={isCompact ? "block" : "block px-2 pb-2"}>
@@ -50,15 +54,15 @@ export function KebuWorldSwitcher({ compact = false }: { compact?: boolean }) {
           disabled={busy}
           onChange={(event) => void switchTo(event.target.value)}
           className={isCompact
-            ? "min-h-7 w-full appearance-none rounded-lg border bg-white pl-6 pr-5 text-[10px] font-bold outline-none focus:ring-1 focus:ring-[#FF6A00]"
-            : "min-h-9 w-full appearance-none rounded-xl border bg-white pl-8 pr-7 text-[11px] font-bold outline-none focus:ring-2 focus:ring-[#FF6A00]"
+            ? "min-h-7 w-full appearance-none rounded-lg border pl-6 pr-5 text-[10px] font-bold outline-none focus:ring-1 focus:ring-[#FF6A00]"
+            : "min-h-9 w-full appearance-none rounded-xl border pl-8 pr-7 text-[11px] font-bold outline-none focus:ring-2 focus:ring-[#FF6A00]"
           }
-          style={{ borderColor: KEBU.borders.default, color: KEBU.black }}
+          style={{ background: selectBg, borderColor: selectBorder, color: selectColor }}
         >
           <option value="personal">Personal</option>
           {(context?.businesses ?? []).map((business) => <option key={business.id} value={business.id}>{business.name}</option>)}
         </select>
-        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] text-black/35">▾</span>
+        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px]" style={{ color: caretColor }}>▾</span>
       </div>
     </label>
   );

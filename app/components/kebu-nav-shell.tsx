@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
+import { KebuWorldSwitcher } from "@/app/components/kebu/kebu-world-switcher";
 import { KEBU } from "@/lib/kebu-brand";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 
@@ -74,7 +75,7 @@ const GROUPS: NavGroup[] = [
     children: [
       { label: "Search", href: "/search", icon: "search" },
       { label: "Browser", href: "/browser", icon: "search" },
-      { label: "Opportunity OS", href: "/opportunity", icon: "opportunity" },
+      { label: "Opportunity OS", href: "/opportunity", icon: "opportunity", prefixes: ["/opportunity"] },
     ],
   },
 ];
@@ -98,8 +99,8 @@ function ChildLink({ item, path, count = 0 }: { item: ChildItem; path: string; c
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className="flex min-h-9 items-center gap-2 rounded-lg px-2.5 text-[11px] font-semibold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
-      style={{ background: active ? "rgba(255,106,0,.08)" : "transparent", color: active ? KEBU.black : KEBU.muted }}
+      className="flex min-h-9 items-center gap-2 rounded-lg px-2.5 text-[11px] font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+      style={{ background: active ? "rgba(255,106,0,.15)" : "transparent", color: active ? "#FFFFFF" : "rgba(255,255,255,0.55)" }}
     >
       <KebuIcon name={item.icon} size={14} style={{ color: active ? KEBU.orange : "currentColor" }} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -140,26 +141,37 @@ export function KebuNavShell() {
 
   const createBg = "linear-gradient(135deg," + KEBU.orange + "," + KEBU.red + ")";
 
+  const sidebarText = "rgba(255,255,255,0.55)";
+  const sidebarTextActive = "#FFFFFF";
+  const sidebarBorder = "rgba(255,255,255,0.07)";
+  const sidebarHover = "rgba(255,255,255,0.05)";
+
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-[160px] shrink-0 flex-col border-r bg-white md:flex" style={{ borderColor: KEBU.borders.default }}>
+      <aside className="sticky top-0 hidden h-screen w-[160px] shrink-0 flex-col border-r md:flex" style={{ background: KEBU.surface.sidebar, borderColor: sidebarBorder }}>
         <div className="flex h-14 items-center justify-between px-3">
           <Link href="/dashboard" className="flex items-center gap-2" aria-label="Kebu Home">
-            <KebuMark size={24} className="object-contain" />
-            <span className="text-sm font-black tracking-[-0.04em]">kebu</span>
+            <KebuMark size={24} className="object-contain" style={{ filter: "brightness(0) invert(1)" }} />
+            <span className="text-sm font-black tracking-[-0.04em]" style={{ color: sidebarTextActive }}>kebu</span>
           </Link>
           <Link href="/create/new" aria-label="Create" className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: createBg }}>
             <KebuIcon name="create" size={15} />
           </Link>
         </div>
 
+        <div className="px-2 pb-1">
+          <KebuWorldSwitcher compact dark />
+        </div>
+
         <nav className="flex-1 overflow-y-auto px-2 pb-4">
           <Link
             href="/dashboard"
-            className="flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-[12px] font-bold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
-            style={{ background: path === "/dashboard" ? "rgba(255,106,0,.08)" : "transparent", color: path === "/dashboard" ? KEBU.black : KEBU.muted }}
+            className="flex min-h-11 items-center gap-3 rounded-xl px-2.5 text-[12px] font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+            style={{ background: path === "/dashboard" ? "rgba(255,106,0,.15)" : "transparent", color: path === "/dashboard" ? sidebarTextActive : sidebarText }}
+            onMouseEnter={(e) => { if (path !== "/dashboard") e.currentTarget.style.background = sidebarHover; }}
+            onMouseLeave={(e) => { if (path !== "/dashboard") e.currentTarget.style.background = "transparent"; }}
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: path === "/dashboard" ? KEBU.black : "transparent", color: path === "/dashboard" ? KEBU.orange : "currentColor" }}>
+            <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: path === "/dashboard" ? "rgba(255,85,0,0.25)" : "transparent", color: path === "/dashboard" ? KEBU.orange : sidebarText }}>
               <KebuIcon name="home" size={17} />
             </span>
             <span>Home</span>
@@ -175,18 +187,20 @@ export function KebuNavShell() {
                     type="button"
                     onClick={() => setOpenGroup((current) => current === group.id ? null : group.id)}
                     aria-expanded={open}
-                    className="flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 text-left text-[12px] font-bold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
-                    style={{ background: active ? "rgba(255,106,0,.05)" : "transparent", color: active ? KEBU.black : KEBU.muted }}
+                    className="flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 text-left text-[12px] font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                    style={{ background: active ? "rgba(255,106,0,.15)" : "transparent", color: active ? sidebarTextActive : sidebarText }}
+                    onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = sidebarHover; }}
+                    onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: active ? KEBU.black : "transparent", color: active ? KEBU.orange : "currentColor" }}>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: active ? "rgba(255,85,0,0.25)" : "transparent", color: active ? KEBU.orange : sidebarText }}>
                       <KebuIcon name={group.icon} size={17} />
                     </span>
                     <span className="min-w-0 flex-1 truncate">{group.label}</span>
-                    <span className="text-[9px] opacity-45">{open ? "▴" : "▾"}</span>
+                    <span className="text-[9px]" style={{ opacity: 0.4 }}>{open ? "▴" : "▾"}</span>
                   </button>
 
                   {open ? (
-                    <div className="ml-8 mt-0.5 space-y-0.5 border-l pl-2" style={{ borderColor: KEBU.borders.subtle }}>
+                    <div className="ml-8 mt-0.5 space-y-0.5 border-l pl-2" style={{ borderColor: sidebarBorder }}>
                       {group.children.map((item) => (
                         <ChildLink key={item.href + item.label} item={item} path={path} count={item.badge === "messages" ? messages : 0} />
                       ))}
@@ -199,8 +213,10 @@ export function KebuNavShell() {
 
           <Link
             href="/tools"
-            className="mt-3 flex min-h-10 items-center gap-3 rounded-xl px-2.5 text-[11px] font-semibold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
-            style={{ color: KEBU.muted }}
+            className="mt-3 flex min-h-10 items-center gap-3 rounded-xl px-2.5 text-[11px] font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+            style={{ color: sidebarText }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = sidebarHover; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <span className="flex h-8 w-8 items-center justify-center"><KebuIcon name="more" size={17} /></span>
             <span>All apps</span>
@@ -209,8 +225,8 @@ export function KebuNavShell() {
           {currentGroup ? null : null}
         </nav>
 
-        <div className="border-t p-2" style={{ borderColor: KEBU.borders.subtle }}>
-          <Link href="/account" className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-[12px] font-bold" style={{ color: KEBU.muted }}><KebuIcon name="settings" size={17} />Account</Link>
+        <div className="border-t p-2" style={{ borderColor: sidebarBorder }}>
+          <Link href="/account" className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-[12px] font-bold" style={{ color: sidebarText }}><KebuIcon name="settings" size={17} /><span>Account</span></Link>
         </div>
       </aside>
 
