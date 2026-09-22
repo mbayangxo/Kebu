@@ -1417,7 +1417,7 @@ export default function ProjectEditorPage() {
               )}
 
               {sidebarTab === "seo" && (
-                <SiteDomainSeoPanel projectId={projectId} embedded />
+                <SiteDomainSeoPanel projectId={projectId} />
               )}
 
 
