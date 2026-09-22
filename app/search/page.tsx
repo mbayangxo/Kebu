@@ -69,7 +69,13 @@ export default function SearchPage() {
 
         {!failed && !q ? <section>
           <p className="mb-3 text-xs font-bold uppercase tracking-[.14em]" style={{color: KEBU.muted}}>Go somewhere</p>
-          <div className="grid gap-2 sm:grid-cols-2">{data.pages.map(p=><Result key={p.id} item={p}/>)}</div>
+          {loading && data.pages.length === 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[0,1,2,3].map(i=><div key={i} className="h-20 animate-pulse rounded-2xl border bg-white" style={{borderColor: KEBU.borders.default}}/>)}
+            </div>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">{data.pages.map(p=><Result key={p.id} item={p}/>)}</div>
+          )}
         </section> : null}
 
         {!failed && q && !loading && data.results.length === 0 && data.pages.length === 0 ? <section className="rounded-2xl border border-dashed bg-white p-10 text-center" style={{borderColor: KEBU.borders.default}}><KebuIcon name="search" size={28} className="mx-auto mb-3" style={{color: KEBU.faint}}/><p className="font-semibold">No results for “{q}”</p><p className="mt-1 text-sm" style={{color: KEBU.muted}}>Kebu only shows records that actually exist in the current index.</p></section> : null}
