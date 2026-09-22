@@ -49,18 +49,16 @@ export default async function PeoplePage({ searchParams }: Props) {
 
   return (
     <AppShell title="People">
-      <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-7">
-        <header className="flex flex-col justify-between gap-4 border-b pb-6 sm:flex-row sm:items-end" style={{ borderColor: KEBU.borders.default }}>
+      <div className="mx-auto max-w-[1320px] px-4 py-4 sm:px-6">
+        <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-4" style={{ borderColor: KEBU.borders.default }}>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>{businessScope ? "Business People" : "Personal People"}</p>
-            <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>{businessScope ? "The people you work with." : "The people you choose."}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>{businessScope ? "Business members and roles stay separate from your personal friends." : "Friends across Kebu, separate from business staff and customer lists."}</p>
+            <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-black/30">People</p>
+            <h1 className="mt-1 text-[30px] tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>{businessScope ? "People in your businesses" : "Your people"}</h1>
+            <p className="mt-1 max-w-xl text-[10px] leading-relaxed text-black/40">{businessScope ? "Teams and roles from the businesses you belong to." : "Friends and people you chose to connect with."}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href={businessScope ? "/people" : "/people?scope=business"} className="rounded-full border bg-white px-4 py-2.5 text-xs font-bold" style={{ borderColor: KEBU.borders.default }}>
-              {businessScope ? "Personal People" : "Business People"}
-            </Link>
-            <Link href="/chat" className="rounded-full bg-black px-4 py-2.5 text-xs font-bold text-white">Open Chat</Link>
+          <div className="flex gap-2">
+            <Link href={businessScope ? "/people" : "/people?scope=business"} className="rounded-full border px-4 py-2 text-[9px] font-semibold" style={{ borderColor: KEBU.borders.default }}>{businessScope ? "Friends" : "Business people"}</Link>
+            <Link href="/chat" className="rounded-full bg-black px-4 py-2 text-[9px] font-semibold text-white">Chat</Link>
           </div>
         </header>
 
@@ -68,13 +66,13 @@ export default async function PeoplePage({ searchParams }: Props) {
           {!businessScope ? (
             <PersonalPeoplePanel />
           ) : members.length ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="border-y" style={{borderColor:KEBU.border}}>
               {members.map((member) => {
                 const profile = profileById.get(member.user_id);
                 const name = profile?.name || profile?.email || "Kebu member";
                 const initial = name.charAt(0).toUpperCase();
                 return (
-                  <article key={member.business_id + ":" + member.user_id} className="rounded-[20px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
+                  <article key={member.business_id + ":" + member.user_id} className="flex items-center gap-3 border-b py-3 last:border-b-0" style={{ borderColor: KEBU.borders.default }}>
                     <div className="flex items-center gap-3">
                       {profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt="" className="h-11 w-11 rounded-full object-cover" />
@@ -86,16 +84,13 @@ export default async function PeoplePage({ searchParams }: Props) {
                         <p className="mt-0.5 truncate text-[9px] uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{member.role.replaceAll("_", " ")}</p>
                       </div>
                     </div>
-                    <div className="mt-4 rounded-xl bg-black/[.025] px-3 py-2">
-                      <p className="text-[9px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.orange }}>Space</p>
-                      <p className="mt-0.5 truncate text-[11px] font-bold">{businessById.get(member.business_id) || "Business"}</p>
-                    </div>
+                    <div className="ml-auto max-w-[220px] text-right"><p className="truncate text-[9px] font-semibold">{businessById.get(member.business_id) || "Business"}</p><p className="mt-0.5 text-[8px] text-black/35">Business space</p></div>
                   </article>
                 );
               })}
             </div>
           ) : (
-            <div className="rounded-[22px] border border-dashed bg-white p-10 text-center" style={{ borderColor: KEBU.borders.default }}>
+            <div className="border-y py-10 text-center" style={{ borderColor: KEBU.borders.default }}>
               <KebuIcon name="people" size={30} className="mx-auto" style={{ color: KEBU.faint }} />
               <p className="mt-3 text-sm font-black">No business teammates yet.</p>
               <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>When people join one of your business spaces, they will appear here.</p>

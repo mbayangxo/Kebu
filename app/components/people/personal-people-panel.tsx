@@ -92,11 +92,11 @@ export function PersonalPeoplePanel() {
   const outgoing = connections.filter((item) => item.status === "pending" && item.direction === "outgoing");
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[22px] border bg-white p-5 sm:p-6" style={{ borderColor: KEBU.borders.default }}>
-        <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Add a person</p>
-        <h2 className="mt-2 text-xl font-black">Use their public Kebu ID.</h2>
-        <p className="mt-1 max-w-xl text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div>
+      <section className="border-b pb-5" style={{ borderColor: KEBU.borders.default }}>
+        <p className="text-[10px] font-semibold">Find someone</p>
+        <p className="mt-1 max-w-xl text-[9px] leading-relaxed" style={{ color: KEBU.muted }}>
           Personal People is separate from business staff. Search an exact ID such as KBU-P-XXXXXXXXXX; internal database IDs and email addresses are never exposed.
         </p>
         <form onSubmit={(event) => void search(event)} className="mt-4 flex max-w-xl gap-2">
@@ -104,7 +104,7 @@ export function PersonalPeoplePanel() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="KBU-P-XXXXXXXXXX"
-            className="min-h-11 min-w-0 flex-1 rounded-full border px-4 text-sm font-semibold uppercase outline-none focus:ring-2 focus:ring-[#FF6A00]"
+            className="min-h-10 min-w-0 flex-1 rounded-full border px-4 text-[10px] font-semibold uppercase outline-none focus:ring-2 focus:ring-[#FF6A00]"
             style={{ borderColor: KEBU.borders.default }}
           />
           <button type="submit" disabled={searching || !query.trim()} className="rounded-full bg-black px-5 text-[10px] font-black uppercase tracking-wide text-white disabled:opacity-40">
@@ -113,7 +113,7 @@ export function PersonalPeoplePanel() {
         </form>
 
         {found ? (
-          <div className="mt-4 flex max-w-xl items-center gap-3 rounded-[18px] border p-3" style={{ borderColor: KEBU.borders.default }}>
+          <div className="mt-4 flex max-w-xl items-center gap-3 border-y py-3" style={{ borderColor: KEBU.borders.default }}>
             {found.avatar_url ? <img src={found.avatar_url} alt="" className="h-11 w-11 rounded-full object-cover" /> : <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black text-sm font-black text-white">{(found.name || "K").charAt(0).toUpperCase()}</span>}
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-black">{found.name || "Kebu person"}</p>
@@ -130,7 +130,7 @@ export function PersonalPeoplePanel() {
       {incoming.length ? (
         <section>
           <h2 className="mb-3 text-sm font-black">Requests</h2>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="border-y" style={{borderColor:KEBU.border}}>
             {incoming.map((item) => (
               <PersonCard key={item.id} connection={item}>
                 <button disabled={busyId === item.id} onClick={() => void act(item.id, "accept")} className="rounded-full bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-white">Accept</button>
@@ -147,18 +147,27 @@ export function PersonalPeoplePanel() {
           <span className="text-[9px] font-black uppercase tracking-wide" style={{ color: KEBU.muted }}>{friends.length} connected</span>
         </div>
         {friends.length ? (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="border-y" style={{borderColor:KEBU.border}}>
             {friends.map((item) => <PersonCard key={item.id} connection={item} />)}
           </div>
         ) : (
-          <div className="rounded-[22px] border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
+          <div className="border-y py-8 text-center" style={{ borderColor: KEBU.borders.default }}>
             <p className="text-sm font-black">Your personal People network starts here.</p>
             <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>Friends are not automatically added to any business.</p>
           </div>
         )}
       </section>
 
-      {outgoing.length ? <p className="text-[10px]" style={{ color: KEBU.muted }}>{outgoing.length} friend request{outgoing.length === 1 ? "" : "s"} waiting for a response.</p> : null}
+      {outgoing.length ? <p className="mt-4 text-[9px]" style={{ color: KEBU.muted }}>{outgoing.length} friend request{outgoing.length === 1 ? "" : "s"} waiting for a response.</p> : null}
+      </div>
+      <aside className="border-t pt-4 lg:border-l lg:border-t-0 lg:pl-5" style={{borderColor:KEBU.border}}>
+        <p className="text-[10px] font-semibold">Connection rules</p>
+        <div className="mt-3 space-y-3 text-[9px] leading-relaxed text-black/40">
+          <p>Friends stay separate from business staff and customer lists.</p>
+          <p>People are added by public Kebu ID, not by exposing internal IDs.</p>
+          <p>Business teammates appear in the Business People view.</p>
+        </div>
+      </aside>
     </div>
   );
 }
@@ -166,7 +175,7 @@ export function PersonalPeoplePanel() {
 function PersonCard({ connection, children }: { connection: Connection; children?: React.ReactNode }) {
   const person = connection.other;
   return (
-    <article className="rounded-[20px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
+    <article className="flex items-center gap-3 border-b py-3 last:border-b-0" style={{ borderColor: KEBU.borders.default }}>
       <div className="flex items-center gap-3">
         {person.avatar_url ? <img src={person.avatar_url} alt="" className="h-11 w-11 rounded-full object-cover" /> : <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black text-sm font-black text-white">{(person.name || "K").charAt(0).toUpperCase()}</span>}
         <div className="min-w-0 flex-1">
@@ -174,7 +183,7 @@ function PersonCard({ connection, children }: { connection: Connection; children
           {person.public_kebu_id ? <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-wide" style={{ color: KEBU.muted }}>{person.public_kebu_id}</p> : null}
         </div>
       </div>
-      {children ? <div className="mt-4 flex flex-wrap gap-2">{children}</div> : null}
+      {children ? <div className="ml-auto flex flex-wrap gap-2">{children}</div> : null}
     </article>
   );
 }
