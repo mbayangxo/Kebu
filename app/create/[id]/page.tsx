@@ -1360,13 +1360,32 @@ export default function ProjectEditorPage() {
 
               {sidebarTab === "layers" && (
                 (() => {
+                  const FREEFORM_TYPES = ["legally-blonde-hero", "maylecor-home", "maylecor-music", "kdirection-home"];
+                  const hasFreeform = (s: { section_type: string; props: Record<string, unknown> }) =>
+                    FREEFORM_TYPES.includes(s.section_type) ||
+                    Array.isArray(s.props.extraCutouts) ||
+                    Array.isArray(s.props.hiddenLayers);
                   const hero =
-                    editPageSections.find((section) => section.section_type === "legally-blonde-hero") ??
-                    sections.find((section) => section.section_type === "legally-blonde-hero");
-                  if (!hero) {
+                    (selectedSectionId
+                      ? editPageSections.find((s) => s.id === selectedSectionId && hasFreeform(s as { section_type: string; props: Record<string, unknown> }))
+                      : null) ??
+                    editPageSections.find((s) => hasFreeform(s as { section_type: string; props: Record<string, unknown> })) ??
+                    sections.find((s) => hasFreeform(s as { section_type: string; props: Record<string, unknown> }));
+                  if (!hero || !hasFreeform(hero as { section_type: string; props: Record<string, unknown> })) {
                     return (
-                      <div className="px-4 py-4 text-[11px]" style={{ color: BUILDER.muted }}>
-                        This page does not have a freeform layer canvas yet.
+                      <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: BUILDER.muted }} aria-hidden>
+                          <rect x="3" y="3" width="18" height="4" rx="1" />
+                          <rect x="3" y="10" width="18" height="4" rx="1" opacity="0.5" />
+                          <rect x="3" y="17" width="18" height="4" rx="1" opacity="0.25" />
+                        </svg>
+                        <div>
+                          <p className="text-[12px] font-semibold" style={{ color: BUILDER.ink }}>No layer canvas here</p>
+                          <p className="mt-1 text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>
+                            Layer controls appear for template sections with stacked photos and cutouts.
+                            Select a freeform section — like a Maylecor or May Lècor hero — on the canvas.
+                          </p>
+                        </div>
                       </div>
                     );
                   }
@@ -1870,84 +1889,88 @@ export default function ProjectEditorPage() {
                             Remove
                           </button>
                         </div>
-                      <SidebarDetails title="Content" group="section-inspector">
-                      {section.section_type === "maylecor-home" && (
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-                            Words
-                          </p>
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.artistName ?? "")}
-                            onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
-                            aria-label="Artist name"
-                            placeholder="MAY LECOR"
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.ctaLabel ?? "")}
-                            onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
-                            aria-label="CTA label"
-                          />
-                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            Photos — tap upload
-                          </p>
-                          {(
-                            [
-                              ["backgroundImage", "Background"],
-                              ["portraitMain", "Main portrait"],
-                              ["collageTop", "Collage top"],
-                              ["collageMiddle", "Collage middle"],
-                              ["logoBanner", "Logo banner"],
-                              ["bottomLeft", "Bottom left photo"],
-                              ["bottomRight", "Bottom right photo"],
-                              ["logoSmall", "Small logo"],
-                            ] as const
-                          ).map(([key, label]) => (
-                            <SectionPhotoField
-                              key={key}
+                      {section.section_type === "maylecor-home" ? (
+                        <>
+                          <SidebarDetails title="Text" group="section-inspector" defaultOpen={true}>
+                            <div className="space-y-2">
+                              <input
+                                className="w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.artistName ?? "")}
+                                onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
+                                aria-label="Artist name"
+                                placeholder="MAY LECOR"
+                              />
+                              <input
+                                className="w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={String(section.props.ctaLabel ?? "")}
+                                onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
+                                aria-label="CTA label"
+                                placeholder="CTA button label"
+                              />
+                            </div>
+                          </SidebarDetails>
+                          <SidebarDetails title="Photos" group="section-inspector" defaultOpen={false}>
+                            <div className="space-y-2">
+                              {(
+                                [
+                                  ["backgroundImage", "Background"],
+                                  ["portraitMain", "Main portrait"],
+                                  ["collageTop", "Collage top"],
+                                  ["collageMiddle", "Collage middle"],
+                                  ["logoBanner", "Logo banner"],
+                                  ["bottomLeft", "Bottom left photo"],
+                                  ["bottomRight", "Bottom right photo"],
+                                  ["logoSmall", "Small logo"],
+                                ] as const
+                              ).map(([key, label]) => (
+                                <SectionPhotoField
+                                  key={key}
+                                  projectId={projectId}
+                                  label={label}
+                                  value={String(section.props[key] ?? "")}
+                                  onChange={(url) => updateProps(section.id, { [key]: url })}
+                                />
+                              ))}
+                              <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
+                                <input
+                                  type="checkbox"
+                                  checked={section.props.motionEnabled !== false}
+                                  onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
+                                />
+                                Floating motion (cutouts + parallax)
+                              </label>
+                            </div>
+                          </SidebarDetails>
+                          <SidebarDetails title="Social links" group="section-inspector" defaultOpen={false}>
+                            <SocialLinksEditor
                               projectId={projectId}
-                              label={label}
-                              value={String(section.props[key] ?? "")}
-                              onChange={(url) => updateProps(section.id, { [key]: url })}
+                              links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
+                                (l) => ({
+                                  label: String(l.label ?? ""),
+                                  href: String(l.href ?? ""),
+                                  iconUrl: String(l.iconUrl ?? ""),
+                                }),
+                              )}
+                              onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                              rail={{
+                                visible: section.props.socialRailVisible !== false,
+                                bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
+                                leftPct: Number(section.props.socialRailLeftPct ?? 0),
+                                topPct: Number(section.props.socialRailTopPct ?? 12),
+                                iconSize: Number(section.props.socialRailIconSize ?? 40),
+                              }}
+                              onRailChange={(patch) => updateProps(section.id, patch)}
                             />
-                          ))}
-                          <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
-                            <input
-                              type="checkbox"
-                              checked={section.props.motionEnabled !== false}
-                              onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
-                            />
-                            Floating motion (cutouts + parallax)
-                          </label>
-                          <SocialLinksEditor
-                            projectId={projectId}
-                            links={((section.props.socialLinks as { label?: string; href?: string; iconUrl?: string }[]) ?? []).map(
-                              (l) => ({
-                                label: String(l.label ?? ""),
-                                href: String(l.href ?? ""),
-                                iconUrl: String(l.iconUrl ?? ""),
-                              }),
-                            )}
-                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
-                            rail={{
-                              visible: section.props.socialRailVisible !== false,
-                              bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
-                              leftPct: Number(section.props.socialRailLeftPct ?? 0),
-                              topPct: Number(section.props.socialRailTopPct ?? 12),
-                              iconSize: Number(section.props.socialRailIconSize ?? 40),
-                            }}
-                            onRailChange={(patch) => updateProps(section.id, patch)}
-                          />
-                        </div>
-                      )}
+                          </SidebarDetails>
+                        </>
+                      ) : null}
+                      <SidebarDetails title="Content" group="section-inspector" defaultOpen={section.section_type !== "maylecor-home"}>
+                      {section.section_type === "maylecor-home" ? null : null /* maylecor-home handled above */}
                       {section.section_type === "legally-blonde-hero" && (
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-                            May Lecor hero
-                          </p>
+                        <><SidebarDetails title="Text" group={`lb-${section.id}`} defaultOpen={true}>
+                          <div className="space-y-2">
                           <button
                             type="button"
                             className="w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold"
@@ -1984,6 +2007,9 @@ export default function ProjectEditorPage() {
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Center mark uses the May Lècor circle seal (not Russian text). Swap cutouts in Media or on the canvas.
                           </p>
+                          </div></SidebarDetails>
+                          <SidebarDetails title="Header & Nav" group={`lb-${section.id}`} defaultOpen={false}>
+                          <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: "#FF5500" }}>
                             Top bar logo (clicks → home)
                           </p>
@@ -2062,9 +2088,9 @@ export default function ProjectEditorPage() {
                               ))}
                             </select>
                           </label>
-                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            May Lecor layers — drag on canvas or upload here
-                          </p>
+                          </div></SidebarDetails>
+                          <SidebarDetails title="Layers & Assets" group={`lb-${section.id}`} defaultOpen={false}>
+                          <div className="space-y-2">
                           <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
                             Remove background = solid accent color. Replace cutouts on the canvas or upload below.
                           </p>
@@ -2227,9 +2253,9 @@ export default function ProjectEditorPage() {
                             />
                             One-screen home (off = full scroll scene)
                           </label>
-                          <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            Music / social links
-                          </p>
+                          </div></SidebarDetails>
+                          <SidebarDetails title="Social links" group={`lb-${section.id}`} defaultOpen={false}>
+                          <div className="space-y-2">
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Add, remove, reorder, and set links only here. On the canvas you can drag the rail — not edit icons.
                           </p>
@@ -2252,9 +2278,9 @@ export default function ProjectEditorPage() {
                             }}
                             onRailChange={(patch) => updateProps(section.id, patch)}
                           />
-                          <p className="text-[10px] font-bold uppercase tracking-wider pt-3" style={{ color: "#FF5500" }}>
-                            Photo layers
-                          </p>
+                          </div></SidebarDetails>
+                          <SidebarDetails title="Photo order" group={`lb-${section.id}`} defaultOpen={false}>
+                          <div className="space-y-2">
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Bring forward or send back — order saves with your draft. Links for each photo are below.
                           </p>
@@ -2352,7 +2378,8 @@ export default function ProjectEditorPage() {
                               );
                             })}
                           </ul>
-                        </div>
+                          </div></SidebarDetails>
+                        </>
                       )}
                       {section.section_type === "kdirection-home" && (
                         <div className="space-y-2">
