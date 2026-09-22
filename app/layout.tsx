@@ -6,7 +6,6 @@ import { LocaleProvider } from "@/app/components/locale-context";
 import { ProfileProvider } from "@/app/components/user-profile";
 import { AppChrome } from "@/app/components/app-chrome";
 import { AuthSessionKeeper } from "@/app/components/auth-session-keeper";
-import { EducationProvider } from "@/app/components/education-system";
 import { KebuDataModeRoot } from "@/app/components/kebu-data-mode-root";
 import { cookies, headers } from "next/headers";
 import { DATA_MODE_COOKIE, parseDataMode } from "@/lib/create/data-mode";
@@ -100,13 +99,11 @@ export default async function RootLayout({
         <PWARegister />
         <ProfileProvider>
           <LocaleProvider>
-            <EducationProvider>
-              <KebuDataModeRoot>
-                <AuthSessionKeeper />
-                {!isPublicSite && <AppChrome />}
-                {children}
-              </KebuDataModeRoot>
-            </EducationProvider>
+            <KebuDataModeRoot>
+              <AuthSessionKeeper />
+              {!isPublicSite && <AppChrome />}
+              {children}
+            </KebuDataModeRoot>
           </LocaleProvider>
         </ProfileProvider>
       </body>

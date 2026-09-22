@@ -228,3 +228,10 @@ export function KebuNavShell() {
 export function KebuNavSidebar() {
   return <KebuNavShell />;
 }
+
+export type PortfolioNavSite = {
+  key: string;
+  title: string;
+  editorUrl: string | null;
+  previewPath: string | null;
+};

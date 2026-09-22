@@ -7,7 +7,7 @@ import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuNavShell } from "@/app/components/kebu-nav-shell";
 import { KebuOfflineBanner } from "@/app/components/kebu-offline-banner";
 import { KebuCommandPalette, CommandPaletteTrigger } from "@/app/components/kebu-command-palette";
-import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
+import type { PortfolioNavSite } from "@/app/components/kebu-nav-shell";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
 import { KebuNotifications } from "@/app/components/kebu/kebu-notifications";
 import { DataModeProvider } from "@/app/components/create/data-mode-provider";
