@@ -72,12 +72,14 @@ export default function KebuHomePage(){
 
   const first=displayFirstName(summary?.profile.name,summary?.profile.email);
   const activeName=context?.mode==="business"&&context.activeBusiness?.name?context.activeBusiness.name:null;
+  const activeSpace=activeName??"Kebu";
   const recent=useMemo(()=>{
     if(!summary)return [];
     const sites=summary.sites.map(site=>({id:"site-"+site.id,title:site.title,kind:site.projectType==="store"?"Store":"Site",href:site.projectType==="store"?"/shop/"+site.id:"/my-sites/"+site.id}));
     const businesses=summary.businesses.map(b=>({id:"biz-"+b.id,title:b.name,kind:"Business",href:"/business/"+b.id}));
     return [...sites,...businesses].slice(0,6);
   },[summary]);
+  const hasWork=recent.length>0 || Boolean(summary?.updates.length) || tasks.length>0 || events.length>0;
 
   return <AppShell title="Home">
     <div className="min-h-[calc(100vh-48px)] bg-[#FFFCF8] text-black">
@@ -88,7 +90,7 @@ export default function KebuHomePage(){
             <div className="absolute -left-10 top-[-70px] h-[280px] w-[280px] rotate-[32deg] rounded-[42%] border-[42px] border-[#FF5A1F]/60"/>
             <div className="relative grid min-h-[178px] items-center lg:grid-cols-[1fr_350px]">
               <div className="p-5 sm:p-7">
-                <p className="text-[8px] font-semibold uppercase tracking-[.16em] text-white/42">{activeName??"Kebu"}</p>
+                <div className="flex items-center gap-2"><p className="text-[8px] font-semibold uppercase tracking-[.16em] text-white/42">{activeName??"Kebu"}</p><span className="rounded-full bg-white/10 px-2 py-1 text-[7px] text-white/45">{activeSpace} space</span></div>
                 <h1 className="mt-2 text-[36px] leading-[.95] tracking-[-.045em] sm:text-[48px]" style={{fontFamily:"var(--font-fraunces)"}}>Good evening, {first}.</h1>
                 <p className="mt-2 max-w-lg text-[11px] leading-relaxed text-white/60">Pick up what matters, create something new, or go somewhere else in Kebu.</p>
               </div>
@@ -103,6 +105,8 @@ export default function KebuHomePage(){
             {QUICK.map((item,index)=><Link key={item.label} href={item.href} className="group flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-[12px] border bg-white px-2 text-center transition hover:-translate-y-0.5" style={{borderColor:KEBU.border,background:index===0?"#FFF0E8":"white"}}><KebuIcon name={item.icon} size={18} style={{color:index===0?KEBU.orange:KEBU.black}}/><span className="text-[8px] font-semibold">{item.label}</span></Link>)}
           </section>
 
+          {!hasWork?<section className="mt-3 rounded-[14px] border border-dashed bg-white px-5 py-8 text-center" style={{borderColor:KEBU.border}}><p className="text-[11px] font-semibold">Nothing is filled with demo activity.</p><p className="mt-1 text-[9px] text-black/35">Your real work will appear here automatically as you create, save, join spaces, or schedule things.</p></section>:null}
+
           <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
             <main className="min-w-0 space-y-3">
               <section className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}>
@@ -115,13 +119,13 @@ export default function KebuHomePage(){
 
               <section className="grid gap-3 lg:grid-cols-2">
                 <div className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}>
-                  <div className="flex items-center justify-between"><p className="text-[11px] font-semibold">Needs your attention</p><Link href="/work" className="text-[8px] text-black/35">Work →</Link></div>
+                  <div className="flex items-center justify-between"><p className="flex items-center gap-2 text-[11px] font-semibold"><span aria-hidden />Needs your attention</p><Link href="/work" className="text-[8px] text-black/35">Work →</Link></div>
                   <div className="mt-2">
                     {summary.updates.slice(0,5).map(item=><Link key={item.id} href={item.href} className="flex items-center gap-2 border-t py-2.5" style={{borderColor:KEBU.border}}><span className="h-1.5 w-1.5 rounded-full bg-[#FF6A00]"/><span className="min-w-0 flex-1"><span className="block truncate text-[9px] font-semibold">{item.title}</span><span className="block truncate text-[8px] text-black/35">{item.body}</span></span><span className="text-black/20">→</span></Link>)}
                   </div>
                 </div>
                 <div className="rounded-[14px] border bg-white p-3.5" style={{borderColor:KEBU.border}}>
-                  <div className="flex items-center justify-between"><p className="text-[11px] font-semibold">Your spaces</p><Link href="/spaces" className="text-[8px] text-black/35">Open Spaces →</Link></div>
+                  <div className="flex items-center justify-between gap-3"><p className="text-[11px] font-semibold">Your spaces</p><div className="flex items-center gap-2"><Link href="/business/register" className="rounded-lg px-5 py-2.5 text-[8px] font-semibold" style={{background:"#FFF0E8",color:KEBU.orange}}>+ New space</Link><Link href="/spaces" className="text-[8px] text-black/35">Open Spaces →</Link></div></div>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     {summary.businesses.slice(0,4).map((business,index)=><Link key={business.id} href={"/business/"+business.id} className="min-h-[76px] rounded-[10px] p-3 text-white" style={{background:index%2?"linear-gradient(135deg,#171719,#85301f)":"linear-gradient(135deg,#250c08,#ff6a00)"}}><p className="truncate text-[9px] font-semibold">{business.name}</p><p className="mt-1 text-[8px] text-white/45">{business.role}</p></Link>)}
                     {!summary.businesses.length?<Link href="/business/register" className="col-span-2 flex min-h-[76px] items-center justify-center rounded-[10px] border border-dashed text-[8px] text-black/35" style={{borderColor:KEBU.border}}>Create a business space when you need one</Link>:null}

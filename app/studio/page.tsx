@@ -134,7 +134,7 @@ export default async function StudioHomePage() {
   return (
     <AppShell title="Studio" immersive>
       <main className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
-        <nav className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-[#FFFCF8]/95 px-4 backdrop-blur sm:px-6" style={{borderColor:KEBU.border}}><Link href="/dashboard" className="text-[9px] font-semibold text-black/55">← Kebu</Link><span className="text-black/15">|</span><Link href="/studio" className="text-[10px] font-semibold">Studio</Link><Link href="/studio" className="hidden text-[9px] text-black/45 sm:block">Projects</Link><Link href="/studio/templates" className="hidden text-[9px] text-black/45 sm:block">Templates</Link><Link href="/studio/brand" className="hidden text-[9px] text-black/45 sm:block">Brand</Link><Link href="/studio/new?tab=ai" className="hidden text-[9px] text-black/45 sm:block">AI</Link><Link href="/settings" className="ml-auto text-[9px] text-black/35">Settings</Link></nav>
+        <nav className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-[#FFFCF8]/95 px-4 backdrop-blur sm:px-6" style={{borderColor:KEBU.border}}><Link href="/dashboard" className="text-[9px] font-semibold text-black/55">← Kebu</Link><span className="text-black/15">|</span><Link href="/studio" className="text-[10px] font-semibold">Studio</Link><Link href="/studio" className="hidden text-[9px] text-black/45 sm:block">Projects</Link><Link href="/studio/templates" className="hidden text-[9px] text-black/45 sm:block">Templates</Link><Link href="/studio/brand" className="hidden text-[9px] text-black/45 sm:block">Brand</Link><Link href="/studio/campaigns" className="hidden text-[9px] text-black/45 sm:block">Campaigns</Link><Link href="/studio/new?tab=ai" className="hidden text-[9px] text-black/45 sm:block">AI</Link><Link href="/settings" className="ml-auto text-[9px] text-black/35">Settings</Link></nav>
 
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <section style={{ borderBottom: `1px solid ${KEBU.border}` }}>
@@ -154,7 +154,7 @@ export default async function StudioHomePage() {
                   Create. Edit. Express.
                 </h1>
                 <p className="mt-2 max-w-sm text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>
-                  Design, video, brand and campaign work — one creative world.
+                  Make the thing. Design, video, brand and campaign work — one creative world.
                 </p>
               </div>
 
@@ -390,7 +390,7 @@ export default async function StudioHomePage() {
         <section style={{ borderBottom: `1px solid ${KEBU.border}` }}>
           <div className="mx-auto max-w-[1600px] px-5 py-7 sm:px-8 lg:px-12">
             <p className="mb-4 text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>
-              Quick format launch
+              Start anywhere · Quick format launch
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
               {FORMATS.map((format) => {
