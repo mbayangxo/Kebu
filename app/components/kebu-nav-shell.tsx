@@ -10,94 +10,127 @@ import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { useKebuUser } from "@/app/hooks/use-kebu-user";
 import { displayFirstName } from "@/lib/account/user-profile";
 
-type FlyoutItem = { label: string; href: string; icon: KebuIconName };
-type RailItem = {
+type NavChild = {
+  label: string;
+  href: string;
+  icon: KebuIconName;
+  matchPrefixes?: string[];
+  badge?: "messages";
+};
+
+type NavGroup = {
   id: string;
   label: string;
   icon: KebuIconName;
   href?: string;
-  flyout?: FlyoutItem[];
-  badge?: "messages";
+  children?: NavChild[];
   matchPrefixes?: string[];
 };
 
-const CREATE_FLYOUT: FlyoutItem[] = [
-  { label: "Studio", href: "/studio", icon: "studio" },
-  { label: "Sites", href: "/my-sites", icon: "builder" },
-  { label: "Code", href: "/create/code", icon: "work" },
-  { label: "Design", href: "/studio/new", icon: "create" },
-  { label: "Video", href: "/studio/video/new", icon: "studio" },
-  { label: "AI Tools", href: "/tools", icon: "yande" },
-  { label: "Templates", href: "/studio/templates", icon: "library" },
+const NAV: NavGroup[] = [
+  {
+    id: "home",
+    label: "Home",
+    icon: "home",
+    href: "/dashboard",
+    matchPrefixes: ["/dashboard"],
+  },
+  {
+    id: "everyday",
+    label: "Everyday",
+    icon: "calendar",
+    children: [
+      { label: "Calendar", href: "/calendar", icon: "calendar" },
+      { label: "Tasks", href: "/tasks", icon: "work" },
+      { label: "Library", href: "/library", icon: "library" },
+      { label: "Docs", href: "/docs", icon: "work" },
+    ],
+    matchPrefixes: ["/calendar", "/tasks", "/library", "/docs"],
+  },
+  {
+    id: "create",
+    label: "Create",
+    icon: "create",
+    children: [
+      { label: "Studio", href: "/studio", icon: "studio" },
+      { label: "Sites", href: "/my-sites", icon: "builder", matchPrefixes: ["/my-sites", "/create/sites", "/create/domains", "/create/aesthetics"] },
+      { label: "Code", href: "/create/code", icon: "work" },
+      { label: "Design", href: "/studio/new", icon: "create" },
+      { label: "Text", href: "/docs", icon: "work" },
+      { label: "Video", href: "/studio/video/new", icon: "studio" },
+      { label: "AI Tools", href: "/tools", icon: "yande" },
+    ],
+    matchPrefixes: ["/studio", "/my-sites", "/create"],
+  },
+  {
+    id: "discover",
+    label: "Discover",
+    icon: "search",
+    children: [
+      { label: "Search", href: "/search", icon: "search" },
+      { label: "Browser", href: "/browser", icon: "search" },
+      { label: "Opportunity OS", href: "/opportunity", icon: "opportunity" },
+    ],
+    matchPrefixes: ["/search", "/browser", "/opportunity"],
+  },
+  {
+    id: "connect",
+    label: "Connect",
+    icon: "message",
+    children: [
+      { label: "Mail", href: "/email", icon: "message" },
+      { label: "Chat", href: "/chat", icon: "message", badge: "messages" },
+      { label: "Messages", href: "/messages", icon: "message" },
+    ],
+    matchPrefixes: ["/email", "/chat", "/messages"],
+  },
+  {
+    id: "more",
+    label: "More",
+    icon: "more",
+    children: [
+      { label: "Business", href: "/business", icon: "spaces" },
+      { label: "Spaces", href: "/spaces", icon: "spaces" },
+      { label: "People", href: "/people", icon: "people" },
+      { label: "Shop", href: "/shop", icon: "commerce" },
+      { label: "Rooms", href: "/rooms", icon: "spaces" },
+    ],
+    matchPrefixes: ["/business", "/spaces", "/people", "/shop", "/rooms"],
+  },
 ];
 
-const DISCOVER_FLYOUT: FlyoutItem[] = [
-  { label: "Search", href: "/search", icon: "search" },
-  { label: "Browser", href: "/browser", icon: "search" },
-  { label: "Opportunity OS", href: "/opportunity", icon: "opportunity" },
-];
+function childActive(path: string, child: NavChild): boolean {
+  const prefixes = child.matchPrefixes ?? [child.href];
+  return prefixes.some((p) => path === p || path.startsWith(p + "/"));
+}
 
-const CONNECT_FLYOUT: FlyoutItem[] = [
-  { label: "Mail", href: "/email", icon: "message" },
-  { label: "Chat", href: "/chat", icon: "message" },
-  { label: "Messages", href: "/messages", icon: "message" },
-];
-
-const MORE_FLYOUT: FlyoutItem[] = [
-  { label: "Business", href: "/business", icon: "spaces" },
-  { label: "Spaces", href: "/spaces", icon: "spaces" },
-  { label: "Calendar", href: "/calendar", icon: "calendar" },
-  { label: "Library", href: "/library", icon: "library" },
-  { label: "Tasks", href: "/tasks", icon: "work" },
-  { label: "People", href: "/people", icon: "people" },
-  { label: "Shop", href: "/shop", icon: "commerce" },
-];
-
-const RAIL: RailItem[] = [
-  { id: "home", label: "Home", icon: "home", href: "/dashboard", matchPrefixes: ["/dashboard"] },
-  { id: "create", label: "Create", icon: "create", flyout: CREATE_FLYOUT, matchPrefixes: ["/studio", "/my-sites", "/create"] },
-  { id: "discover", label: "Discover", icon: "search", flyout: DISCOVER_FLYOUT, matchPrefixes: ["/search", "/browser", "/opportunity"] },
-  { id: "connect", label: "Connect", icon: "message", badge: "messages", flyout: CONNECT_FLYOUT, matchPrefixes: ["/email", "/chat", "/messages"] },
-  { id: "more", label: "More", icon: "more", flyout: MORE_FLYOUT, matchPrefixes: ["/business", "/spaces", "/calendar", "/library", "/tasks", "/people", "/shop"] },
-];
-
-function isRailActive(path: string, item: RailItem): boolean {
-  if (item.href && (path === item.href || path.startsWith(item.href + "/"))) return true;
-  if (item.matchPrefixes) {
-    return item.matchPrefixes.some((p) => path === p || path.startsWith(p + "/"));
-  }
-  return false;
+function groupActive(path: string, group: NavGroup): boolean {
+  if (group.href && (path === group.href || path.startsWith(group.href + "/"))) return true;
+  if (group.matchPrefixes) return group.matchPrefixes.some((p) => path === p || path.startsWith(p + "/"));
+  return group.children?.some((c) => childActive(path, c)) ?? false;
 }
 
 export function KebuNavShell() {
   const path = usePathname();
   const { profile } = useKebuUser();
   const [messages, setMessages] = useState(0);
-  const [openFlyout, setOpenFlyout] = useState<string | null>(null);
-  const railRef = useRef<HTMLDivElement>(null);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const first = profile ? displayFirstName(profile.name, profile.email) : "";
 
-  useEffect(() => { setOpenFlyout(null); }, [path]);
+  // Auto-open the active group
+  useEffect(() => {
+    const active = NAV.find((g) => g.id !== "home" && groupActive(path, g));
+    if (active) setOpenGroup(active.id);
+  }, [path]);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/messages/unread-count", { credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (!cancelled && typeof d?.count === "number") setMessages(d.count); })
+      .then((d: { count?: number } | null) => { if (!cancelled && typeof d?.count === "number") setMessages(d.count); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    if (!openFlyout) return;
-    const handler = (e: MouseEvent) => {
-      if (railRef.current && !railRef.current.contains(e.target as Node)) {
-        setOpenFlyout(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [openFlyout]);
 
   if (
     path === "/" ||
@@ -107,138 +140,166 @@ export function KebuNavShell() {
     path.startsWith("/welcome")
   ) return null;
 
-  const sb = "rgba(255,255,255,0.5)";
-  const sbBorder = "rgba(255,255,255,0.07)";
-  const flyoutItems = openFlyout ? RAIL.find((r) => r.id === openFlyout)?.flyout ?? null : null;
-  const flyoutLabel = openFlyout ? RAIL.find((r) => r.id === openFlyout)?.label : null;
-  const createGrad = `linear-gradient(135deg,${KEBU.orange},${KEBU.red})`;
+  const bg = "#0F0F0F";
+  const border = "rgba(255,255,255,0.07)";
+  const textMuted = "rgba(255,255,255,0.5)";
+  const textDim = "rgba(255,255,255,0.35)";
+  const hoverBg = "rgba(255,255,255,0.06)";
 
   return (
     <>
-      {/* Desktop: icon rail + flyout panel */}
-      <div ref={railRef} className="sticky top-0 hidden h-screen shrink-0 md:flex" style={{ zIndex: 40 }}>
-        {/* 72px icon rail */}
-        <aside className="flex h-full w-[72px] flex-col border-r" style={{ background: KEBU.surface.sidebar, borderColor: sbBorder }}>
-          {/* Kebu mark */}
-          <div className="flex h-14 items-center justify-center">
-            <Link href="/dashboard" aria-label="Kebu Home" className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-white/10">
-              <KebuMark size={20} style={{ filter: "brightness(0) invert(1)" }} />
-            </Link>
-          </div>
+      {/* Desktop sidebar */}
+      <aside
+        className="sticky top-0 hidden h-screen w-[200px] shrink-0 flex-col border-r md:flex"
+        style={{ background: bg, borderColor: border, overflowY: "auto" }}
+      >
+        {/* Logo */}
+        <div className="px-4 pt-5 pb-3">
+          <Link href="/dashboard" className="flex items-center gap-1.5 group focus-visible:outline-none" aria-label="Kebu Home">
+            <KebuMark size={22} style={{ filter: "brightness(0) invert(1)" }} />
+            <span className="text-[15px] font-black tracking-[-0.04em] text-white">kebu</span>
+            <span className="text-[15px] font-black" style={{ color: KEBU.orange }}>•</span>
+          </Link>
+          <p className="mt-0.5 text-[8px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>ONE ID. MANY WORLDS.</p>
+        </div>
 
-          {/* Rail items */}
-          <nav className="flex flex-1 flex-col items-center gap-0.5 py-1" aria-label="Main navigation">
-            {RAIL.map((item) => {
-              const active = isRailActive(path, item);
-              const isOpen = openFlyout === item.id;
-              const hasBadge = item.badge === "messages" && messages > 0;
-
-              if (item.href && !item.flyout) {
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className="flex w-full flex-col items-center gap-1 px-2 py-2 focus-visible:outline-none"
-                    style={{ color: active ? "#FFFFFF" : sb }}
-                  >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors"
-                      style={{ background: active ? "rgba(255,85,0,0.25)" : "transparent" }}>
-                      <KebuIcon name={item.icon} size={20} style={{ color: active ? KEBU.orange : "currentColor" }} />
-                    </span>
-                    <span className="text-[9px] font-semibold leading-none">{item.label}</span>
-                  </Link>
-                );
-              }
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setOpenFlyout((c) => c === item.id ? null : item.id)}
-                  aria-expanded={isOpen}
-                  className="relative flex w-full flex-col items-center gap-1 px-2 py-2 focus-visible:outline-none"
-                  style={{ color: active || isOpen ? "#FFFFFF" : sb }}
-                >
-                  <span className="relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors"
-                    style={{ background: active ? "rgba(255,85,0,0.25)" : isOpen ? "rgba(255,255,255,0.08)" : "transparent" }}>
-                    <KebuIcon name={item.icon} size={20} style={{ color: active ? KEBU.orange : "currentColor" }} />
-                    {hasBadge ? (
-                      <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full" style={{ background: KEBU.orange }} />
-                    ) : null}
-                  </span>
-                  <span className="text-[9px] font-semibold leading-none">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Profile section at bottom */}
-          <div className="flex flex-col items-center gap-2 border-t py-3" style={{ borderColor: sbBorder }}>
-            <Link href="/account" className="flex flex-col items-center gap-1 group focus-visible:outline-none" aria-label="Your account">
-              {profile?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-white/20 transition-all" />
-              ) : (
-                <span className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-black text-black ring-2 ring-transparent group-hover:ring-white/20 transition-all" style={{ background: KEBU.orange }}>
-                  {(first || "K").charAt(0).toUpperCase()}
-                </span>
-              )}
-              {first ? <span className="text-[9px] font-semibold" style={{ color: sb }}>{first}</span> : null}
-            </Link>
-            <Link href="/account/settings" aria-label="Settings"
-              className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-white/8 focus-visible:outline-none"
-              style={{ color: sb }}>
-              <KebuIcon name="settings" size={15} />
-            </Link>
-          </div>
-        </aside>
-
-        {/* Flyout panel */}
-        {flyoutItems && openFlyout ? (
-          <div className="flex h-full w-[220px] flex-col border-r bg-white shadow-2xl" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
-            <div className="flex h-14 items-center justify-between border-b px-4" style={{ borderColor: "rgba(0,0,0,0.07)" }}>
-              <span className="text-[11px] font-black uppercase tracking-[.13em]" style={{ color: KEBU.orange }}>{flyoutLabel}</span>
-              <Link href="/create/new" className="flex h-7 w-7 items-center justify-center rounded-full text-white text-[16px] font-black leading-none" style={{ background: createGrad }}>
-                +
-              </Link>
+        {/* User section */}
+        <div className="mx-3 mb-3 rounded-xl border p-2.5" style={{ borderColor: border, background: "rgba(255,255,255,0.04)" }}>
+          <Link href="/account" className="flex items-center gap-2.5 group focus-visible:outline-none">
+            {profile?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
+            ) : (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-black" style={{ background: KEBU.orange }}>
+                {(first || "K").charAt(0).toUpperCase()}
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black text-white/50 leading-none">Personal</p>
+              <p className="mt-0.5 truncate text-[12px] font-black text-white leading-none">{first || "My Kebu"}</p>
             </div>
-            <nav className="flex-1 overflow-y-auto p-2" aria-label={`${flyoutLabel ?? ""} navigation`}>
-              {flyoutItems.map((item) => (
+            <span className="text-[10px]" style={{ color: textMuted }}>▼</span>
+          </Link>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-2 pb-2" aria-label="Main navigation">
+          {NAV.map((group) => {
+            const isHome = group.id === "home";
+            const active = groupActive(path, group);
+            const open = openGroup === group.id;
+
+            if (isHome) {
+              return (
                 <Link
-                  key={item.href + item.label}
-                  href={item.href}
-                  className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold transition-colors hover:bg-black/[0.04]"
-                  style={{ color: path.startsWith(item.href) ? KEBU.black : "rgba(0,0,0,0.6)" }}
+                  key={group.id}
+                  href={group.href!}
+                  aria-current={active ? "page" : undefined}
+                  className="flex min-h-9 items-center gap-2.5 rounded-xl px-2.5 text-[13px] font-semibold transition-colors hover:text-white focus-visible:outline-none mb-0.5"
+                  style={{ background: active ? "rgba(255,85,0,0.18)" : "transparent", color: active ? "#FFFFFF" : textMuted }}
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: path.startsWith(item.href) ? "rgba(255,85,0,0.12)" : "rgba(0,0,0,0.05)", color: path.startsWith(item.href) ? KEBU.orange : "rgba(0,0,0,0.4)" }}>
-                    <KebuIcon name={item.icon} size={15} />
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                    style={{ background: active ? "rgba(255,85,0,0.25)" : "rgba(255,255,255,0.06)", color: active ? KEBU.orange : textMuted }}>
+                    <KebuIcon name={group.icon} size={15} />
                   </span>
-                  {item.label}
+                  {group.label}
                 </Link>
-              ))}
-            </nav>
+              );
+            }
+
+            return (
+              <div key={group.id} className="mb-0.5">
+                <button
+                  type="button"
+                  onClick={() => setOpenGroup((c) => c === group.id ? null : group.id)}
+                  aria-expanded={open}
+                  className="flex min-h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-[13px] font-semibold transition-colors hover:text-white focus-visible:outline-none"
+                  style={{ background: active && !open ? "rgba(255,85,0,0.10)" : open ? hoverBg : "transparent", color: active || open ? "#FFFFFF" : textMuted }}
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                    style={{ background: active ? "rgba(255,85,0,0.25)" : "rgba(255,255,255,0.06)", color: active ? KEBU.orange : textMuted }}>
+                    <KebuIcon name={group.icon} size={15} />
+                  </span>
+                  <span className="flex-1 truncate">{group.label}</span>
+                  <span className="text-[10px] transition-transform" style={{ color: textDim, transform: open ? "rotate(90deg)" : "none" }}>›</span>
+                </button>
+
+                {open && group.children ? (
+                  <div className="ml-3 mt-0.5 space-y-0.5 pl-3 border-l" style={{ borderColor: border }}>
+                    {group.children.map((child) => {
+                      const ca = childActive(path, child);
+                      const count = child.badge === "messages" ? messages : 0;
+                      return (
+                        <Link
+                          key={child.href + child.label}
+                          href={child.href}
+                          aria-current={ca ? "page" : undefined}
+                          className="flex min-h-8 items-center gap-2 rounded-lg px-2.5 text-[12px] font-medium transition-colors hover:text-white focus-visible:outline-none"
+                          style={{ background: ca ? KEBU.orange : "transparent", color: ca ? "#FFFFFF" : textMuted }}
+                        >
+                          <KebuIcon name={child.icon} size={14} style={{ color: ca ? "#FFFFFF" : textMuted }} />
+                          <span className="flex-1 truncate">{child.label}</span>
+                          {count > 0 ? (
+                            <span className="rounded-full px-1.5 py-0.5 text-[8px] font-black text-white" style={{ background: KEBU.orange }}>
+                              {count > 99 ? "99+" : count}
+                            </span>
+                          ) : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+
+          {/* Separator */}
+          <div className="my-2 border-t" style={{ borderColor: border }} />
+
+          {/* + Add */}
+          <Link href="/create/new"
+            className="flex min-h-9 items-center gap-2.5 rounded-xl px-2.5 text-[13px] font-black transition-colors hover:text-white focus-visible:outline-none"
+            style={{ color: textMuted }}>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white text-[18px] font-black leading-none" style={{ background: KEBU.orange }}>+</span>
+            Add
+          </Link>
+        </nav>
+
+        {/* Bottom promo card */}
+        <div className="m-3 mt-0">
+          <div className="relative overflow-hidden rounded-2xl p-4" style={{ background: "linear-gradient(145deg,#1a0800,#2d1200)" }}>
+            <div className="absolute -right-6 -top-6 h-20 w-20 opacity-40" style={{ background: `radial-gradient(circle,${KEBU.orange},transparent 70%)` }} />
+            <p className="relative z-10 text-[12px] font-black leading-snug text-white">
+              Your ideas belong<br />somewhere{" "}
+              <span style={{ color: KEBU.orange }}>beautiful.</span>
+            </p>
+            <Link href="/create/new" className="relative z-10 mt-3 flex items-center gap-1 text-[10px] font-black" style={{ color: KEBU.orange }}>
+              Start creating <span>→</span>
+            </Link>
           </div>
-        ) : null}
-      </div>
+        </div>
+      </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(62px+env(safe-area-inset-bottom))] items-start justify-around border-t bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur md:hidden"
-        style={{ borderColor: KEBU.borders.default }} aria-label="Primary navigation">
-        <Link href="/dashboard" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/dashboard" ? KEBU.orange : KEBU.muted }}>
-          <KebuIcon name="home" size={19} /><span>Home</span>
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(60px+env(safe-area-inset-bottom))] items-start justify-around border-t px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-md md:hidden"
+        style={{ background: "rgba(15,15,15,0.95)", borderColor: border }}
+        aria-label="Primary navigation"
+      >
+        <Link href="/dashboard" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/dashboard" ? KEBU.orange : textMuted }}>
+          <KebuIcon name="home" size={20} /><span>Home</span>
         </Link>
-        <Link href="/studio" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/studio") ? KEBU.orange : KEBU.muted }}>
-          <KebuIcon name="studio" size={19} /><span>Create</span>
+        <Link href="/studio" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/studio") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="studio" size={20} /><span>Studio</span>
         </Link>
-        <Link href="/business" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/business") || path.startsWith("/shop") ? KEBU.orange : KEBU.muted }}>
-          <KebuIcon name="spaces" size={19} /><span>Business</span>
+        <Link href="/create/new" aria-label="Create" className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ background: `linear-gradient(135deg,${KEBU.orange},${KEBU.red})` }}>
+          <KebuIcon name="create" size={20} />
         </Link>
-        <Link href="/create/new" aria-label="New" className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ background: createGrad }}>
-          <KebuIcon name="create" size={19} />
+        <Link href="/opportunity" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/opportunity") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="opportunity" size={20} /><span>Discover</span>
         </Link>
-        <Link href="/tools" className="flex min-w-14 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: KEBU.muted }}>
-          <KebuIcon name="more" size={19} /><span>Apps</span>
+        <Link href="/business" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/business") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="spaces" size={20} /><span>More</span>
         </Link>
       </nav>
     </>
