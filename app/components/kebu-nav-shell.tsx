@@ -112,11 +112,10 @@ function ChildLink({ item, path, count = 0 }: { item: ChildItem; path: string; c
 export function KebuNavShell() {
   const path = usePathname();
   const [messages, setMessages] = useState(0);
-  const [openGroup, setOpenGroup] = useState<string | null>(() => activeGroupId(path));
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   useEffect(() => {
-    const active = activeGroupId(path);
-    if (active) setOpenGroup(active);
+    setOpenGroup(null);
   }, [path]);
 
   useEffect(() => {
@@ -144,11 +143,11 @@ export function KebuNavShell() {
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col border-r bg-white md:flex" style={{ borderColor: KEBU.borders.default }}>
-        <div className="flex h-16 items-center justify-between px-4">
+      <aside className="sticky top-0 hidden h-screen w-[196px] shrink-0 flex-col border-r bg-white md:flex" style={{ borderColor: KEBU.borders.default }}>
+        <div className="flex h-14 items-center justify-between px-3">
           <Link href="/dashboard" className="flex items-center gap-2" aria-label="Kebu Home">
-            <KebuMark size={27} />
-            <span className="text-xs font-black uppercase tracking-[.2em]">Kebu</span>
+            <KebuMark size={26} className="object-contain" />
+            <span className="text-sm font-black tracking-[-0.04em]">kebu</span>
           </Link>
           <Link href="/create/new" aria-label="Create" className="flex h-8 w-8 items-center justify-center rounded-full text-white" style={{ background: createBg }}>
             <KebuIcon name="create" size={17} />
@@ -210,11 +209,7 @@ export function KebuNavShell() {
             <span>All apps</span>
           </Link>
 
-          {currentGroup ? (
-            <p className="px-3 pt-5 text-[9px] leading-relaxed" style={{ color: KEBU.faint }}>
-              Only the {currentGroup.label.toLowerCase()} children are open. Other sections stay tucked away until you need them.
-            </p>
-          ) : null}
+          {currentGroup ? null : null}
         </nav>
 
         <div className="border-t p-2" style={{ borderColor: KEBU.borders.subtle }}>
