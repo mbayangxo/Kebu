@@ -55,7 +55,7 @@ const SPACES = [
   { label: "Personal", count: 0 },
 ];
 
-const EVA_INSIGHTS = [
+const POST_INSIGHTS = [
   "3 unread messages need a response within 24h",
   "Summer Campaign thread has 4 participants",
   "2 emails contain attachments not yet downloaded",
@@ -112,7 +112,7 @@ export default function EmailPage() {
   const [centerTab, setCenterTab] = useState<CenterTab>("all");
   const [replyText, setReplyText] = useState("");
 
-  const activeMailbox = useMemo(() => mailboxes.find((item) => item.id === mailboxId) ?? null, [mailboxes, mailboxId]);
+  const activeMailbox = useMemo(() => mailboxes.find((m) => m.id === mailboxId) ?? null, [mailboxes, mailboxId]);
   const selected = useMemo(() => messages.find((item) => item.id === selectedId) ?? null, [messages, selectedId]);
   const unread = useMemo(() => messages.filter((item) => !item.read_at && item.folder === "inbox").length, [messages]);
 
@@ -294,12 +294,12 @@ export default function EmailPage() {
       <div className="min-h-[calc(100vh-60px)] bg-[#F5F3EF] p-3 sm:p-4">
         <div className="mx-auto grid min-h-[calc(100vh-92px)] max-w-[1600px] overflow-hidden rounded-[24px] border bg-white lg:grid-cols-[240px_380px_minmax(0,1fr)]" style={{ borderColor: border }}>
 
-          {/* Left sidebar — EVA */}
+          {/* Left sidebar — POST */}
           <aside className="flex flex-col border-r" style={{ borderColor: border, background: "#0A0A0A" }}>
-            {/* EVA branding */}
+            {/* POST branding */}
             <div className="border-b px-5 py-5" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.orange }}>EVA</span>
+                <span className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.orange }}>POST</span>
                 <span className="rounded-full px-2 py-0.5 text-[8px] font-black uppercase" style={{ background: "rgba(255,85,0,.2)", color: KEBU.orange }}>BETA</span>
               </div>
               <p className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -391,14 +391,14 @@ export default function EmailPage() {
               </button>
             </nav>
 
-            {/* Let EVA help */}
+            {/* Let POST help */}
             <div className="m-3 overflow-hidden rounded-2xl" style={{ background: "linear-gradient(135deg, #1a0800, #150800)" }}>
               <div className="p-4">
-                <p className="text-[9px] font-black uppercase tracking-[.16em] mb-1" style={{ color: KEBU.orange }}>Let EVA help</p>
+                <p className="text-[9px] font-black uppercase tracking-[.16em] mb-1" style={{ color: KEBU.orange }}>Let POST help</p>
                 <p className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
-                  EVA can prioritize your inbox, draft replies, and surface what needs your attention.
+                  POST can prioritize your inbox, draft replies, and surface what needs your attention.
                 </p>
-                <button type="button" className="mt-3 text-[10px] font-black" style={{ color: KEBU.orange }}>Ask EVA →</button>
+                <button type="button" className="mt-3 text-[10px] font-black" style={{ color: KEBU.orange }}>Ask POST →</button>
               </div>
             </div>
 
@@ -653,14 +653,14 @@ export default function EmailPage() {
                       </div>
                     </div>
 
-                    {/* EVA Insights */}
+                    {/* POST Insights */}
                     <div className="rounded-2xl p-3" style={{ background: "#0A0A0A" }}>
                       <div className="flex items-center gap-1.5 mb-2">
-                        <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>EVA Insights</p>
+                        <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>POST Insights</p>
                         <span className="rounded-full px-1.5 py-0.5 text-[7px] font-black uppercase" style={{ background: "rgba(255,85,0,.2)", color: KEBU.orange }}>BETA</span>
                       </div>
                       <ul className="space-y-1.5">
-                        {EVA_INSIGHTS.slice(0, 2).map(insight => (
+                        {POST_INSIGHTS.slice(0, 2).map(insight => (
                           <li key={insight} className="flex items-start gap-1.5 text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
                             <span className="mt-1 h-1 w-1 shrink-0 rounded-full" style={{ background: KEBU.orange }} />
                             {insight}
@@ -681,7 +681,7 @@ export default function EmailPage() {
                   <div className="relative h-20 overflow-hidden" style={{ background: "linear-gradient(135deg, #1a0800, #0A0A0A)" }}>
                     <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(255,85,0,.35), transparent 60%)" }} />
                     <div className="absolute left-5 top-5">
-                      <p className="text-[8px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>EVA</p>
+                      <p className="text-[8px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>POST</p>
                       <p className="mt-0.5 text-sm font-black text-white" style={{ fontFamily: "var(--font-fraunces)" }}>Your inbox, elevated.</p>
                     </div>
                   </div>
