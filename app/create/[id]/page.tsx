@@ -34,7 +34,6 @@ import { BuilderSectionListDnd } from "@/app/components/create/builder-section-l
 import { BuilderSectionZone } from "@/app/components/create/builder-section-zone";
 import { BuilderLayersPanel } from "@/app/components/create/builder-layers-panel";
 import { BuilderAppsPanel } from "@/app/components/create/builder-apps-panel";
-import { BuilderVersionHistoryPanel } from "@/app/components/create/builder-version-history-panel";
 import { BuilderFreeTextEditor, type FreeTextBlock } from "@/app/components/create/builder-free-text-editor";
 import type { AiSectionChange } from "@/lib/create/ai-improve-merge";
 import { mergePartialAiDefinition } from "@/lib/create/ai-improve-merge";
@@ -167,7 +166,7 @@ export default function ProjectEditorPage() {
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
   const [yandeOpen, setYandeOpen] = useState(false);
-  const [yandeDialOpen, setYandeDialOpen] = useState(true);
+  const [yandeDialOpen, setYandeDialOpen] = useState(false);
   const [improveMode, setImproveMode] = useState<"free" | "redesign" | "page" | "rewrite" | "convert">(
     "free",
   );
@@ -1296,7 +1295,7 @@ export default function ProjectEditorPage() {
             <aside
               className={`${
                 leftPanelOpen
-                  ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[296px] sm:max-w-[92vw]"
+                  ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[268px] sm:max-w-[88vw]"
                   : "hidden"
               } shrink-0 min-h-0 overflow-y-auto border-r`}
               style={{
@@ -1393,18 +1392,6 @@ export default function ProjectEditorPage() {
                     />
                   );
                 })()
-              )}
-
-              {sidebarTab === "versions" && (
-                <BuilderVersionHistoryPanel
-                  projectId={projectId}
-                  onRestored={async () => {
-                    setSelectedElement(null);
-                    setSelectedSectionId(null);
-                    await load();
-                  }}
-                  onError={setError}
-                />
               )}
 
               {sidebarTab === "apps" && (
@@ -1662,7 +1649,7 @@ export default function ProjectEditorPage() {
               {!selectedSectionId && <BuilderBlogPanel projectId={projectId} />}
 
               {!selectedSectionId && (
-              <div className="px-2 py-1 space-y-1" style={{ background: "#ffffff" }}>
+              <div className="px-2 py-1.5 space-y-1.5" style={{ background: "#ffffff" }}>
 
                 {chromeActive && siteChrome ? (
                   <>
