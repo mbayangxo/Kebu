@@ -77,7 +77,8 @@ export default function StudioEditorPage() {
   const [showVersions, setShowVersions] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showResize, setShowResize] = useState(false);
-  const [showCoach, setShowCoach] = useState(true);
+  const [showCoach, setShowCoach] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [packBusy, setPackBusy] = useState(false);
   const [motionBusy, setMotionBusy] = useState(false);
   const [videoBusy, setVideoBusy] = useState(false);
@@ -875,36 +876,212 @@ export default function StudioEditorPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0B0B0C] text-white">
+      {/* Single-row header — canvas fills full height below */}
       <header className="shrink-0 z-30 border-b border-white/10 bg-[#0B0B0C]">
-        <div className="flex h-14 items-center gap-4 px-3 sm:px-5">
+        <div className="flex h-14 items-center gap-2 overflow-x-auto px-3 sm:px-4">
           <Link href="/studio" className="shrink-0 text-xl font-black tracking-[-.06em] no-underline">
             <span className="text-[#FF6A00]">K</span>EBU
           </Link>
-          <nav className="hidden items-center gap-4 text-[10px] font-bold text-white/60 lg:flex">
-            <Link href="/studio" className="text-white">Studio</Link>
-            <Link href="/studio" className="hover:text-white">Design</Link>
-            <Link href="/studio/video" className="hover:text-white">Video</Link>
-            <Link href="/studio?tab=audio" className="hover:text-white">Audio</Link>
-            <Link href="/studio/templates" className="hover:text-white">Templates</Link>
-            <Link href="/studio/brand" className="hover:text-white">Brand</Link>
-          </nav>
-          <div className="mx-auto hidden max-w-xl flex-1 lg:block">
-            <div className="flex h-9 items-center rounded-xl border border-white/10 bg-white/[.035] px-3 text-[10px] text-white/40">
-              Search templates, elements, or your files…
-              <span className="ml-auto rounded-md border border-white/10 px-1.5 py-0.5 text-[8px]">⌘ K</span>
-            </div>
+          <Link
+            href="/studio"
+            className="hidden shrink-0 items-center rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wide text-white/45 hover:bg-white/[.05] sm:flex"
+          >
+            ← Projects
+          </Link>
+          <h1 className="min-w-0 max-w-[120px] truncate text-[12px] font-black tracking-[-.02em] text-white sm:max-w-[200px] lg:max-w-xs">
+            {design.title}
+          </h1>
+          <div className="flex-1" />
+          <span className="hidden text-[9px] font-bold uppercase tracking-[.12em] text-white/40 sm:block">
+            {saveLabel}
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowBrandKit((v) => !v)}
+            className={`rounded-lg border px-3 py-1.5 text-[9px] font-black transition-colors ${showBrandKit ? "border-orange-500/40 bg-orange-500/10 text-orange-400" : "border-white/10 bg-white/[.04] text-white/70 hover:bg-white/[.08]"}`}
+          >
+            Brand
+          </button>
+          <button
+            type="button"
+            onClick={() => void downloadPng()}
+            className="hidden rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08] sm:block"
+          >
+            PNG
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowVersions((v) => !v);
+              if (!showVersions) { setShowShare(false); setShowComments(false); }
+            }}
+            className={`hidden rounded-lg border px-3 py-1.5 text-[9px] font-black transition-colors lg:block ${showVersions ? "border-orange-500/40 bg-orange-500/10 text-orange-400" : "border-white/10 bg-white/[.04] text-white/70 hover:bg-white/[.08]"}`}
+          >
+            Versions
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowComments((v) => !v);
+              if (!showComments) { setShowShare(false); setShowVersions(false); }
+            }}
+            className={`hidden rounded-lg border px-3 py-1.5 text-[9px] font-black transition-colors lg:block ${showComments ? "border-orange-500/40 bg-orange-500/10 text-orange-400" : "border-white/10 bg-white/[.04] text-white/70 hover:bg-white/[.08]"}`}
+          >
+            Comments
+          </button>
+          {/* ••• overflow menu */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowMoreMenu((v) => !v)}
+              className={`rounded-lg border px-3 py-1.5 text-[9px] font-black transition-colors ${showMoreMenu ? "border-white/20 bg-white/[.08] text-white" : "border-white/10 bg-white/[.04] text-white/70 hover:bg-white/[.08]"}`}
+            >
+              •••
+            </button>
+            {showMoreMenu ? (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
+                <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-white/10 bg-[#131315] py-1 shadow-2xl">
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => { setShowResize(true); setShowMoreMenu(false); }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white"
+                    >
+                      Resize artboard
+                    </button>
+                  ) : null}
+                  {canEdit ? (
+                    <div className="border-t border-white/[.06] px-4 py-2">
+                      <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30">Variant</p>
+                      <select
+                        aria-label="Create editable size variant"
+                        disabled={variantBusy || syncState === "conflict"}
+                        defaultValue=""
+                        onChange={(e) => {
+                          const value = e.target.value as StudioDesignType;
+                          if (value) void createVariant(value);
+                          e.currentTarget.value = "";
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full rounded-lg border border-white/10 bg-[#0B0B0C] px-3 py-1.5 text-[9px] font-black text-white/70 disabled:opacity-50"
+                      >
+                        <option value="">{variantBusy ? "Creating…" : "Choose size…"}</option>
+                        <option value="instagram_post">Instagram post</option>
+                        <option value="instagram_story">Instagram story</option>
+                        <option value="whatsapp_status">WhatsApp status</option>
+                        <option value="facebook_post">Facebook post</option>
+                        <option value="flyer">Flyer</option>
+                        <option value="poster">Poster</option>
+                        <option value="banner">Banner</option>
+                        <option value="business_card">Business card</option>
+                      </select>
+                    </div>
+                  ) : null}
+                  <div className="border-t border-white/[.06] pt-1">
+                    <button
+                      type="button"
+                      onClick={() => { void downloadPng(); setShowMoreMenu(false); }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white sm:hidden"
+                    >
+                      Download PNG
+                    </button>
+                    <button
+                      type="button"
+                      disabled={packBusy}
+                      onClick={() => { void downloadPdf(); setShowMoreMenu(false); }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white disabled:opacity-50"
+                    >
+                      {packBusy ? "Exporting…" : "Download PDF"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={packBusy}
+                      onClick={() => { void downloadZip(); setShowMoreMenu(false); }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white disabled:opacity-50"
+                    >
+                      Download ZIP (all pages)
+                    </button>
+                    <button
+                      type="button"
+                      disabled={motionBusy}
+                      onClick={() => { void downloadMotion(); setShowMoreMenu(false); }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white disabled:opacity-50"
+                    >
+                      {motionBusy ? "Recording…" : "Export timeline"}
+                    </button>
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        disabled={videoBusy || syncState === "conflict"}
+                        onClick={() => { void turnDesignIntoVideo(); setShowMoreMenu(false); }}
+                        className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white disabled:opacity-50"
+                      >
+                        {videoBusy ? "Preparing video…" : "Turn into video"}
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="border-t border-white/[.06] px-4 py-2.5">
+                    <label className="flex items-center justify-between text-[9px] font-semibold text-white/35" title="Applies to pages without a custom duration">
+                      Default s/page
+                      <input
+                        type="number"
+                        min={0.5}
+                        max={8}
+                        step={0.5}
+                        value={secondsPerPage}
+                        onChange={(e) => {
+                          const v = Number(e.target.value) || 2;
+                          setSecondsPerPage(v);
+                          if (doc && canEdit) {
+                            const ms = Math.round(v * 1000);
+                            onChangeDoc({
+                              ...doc,
+                              pages: doc.pages.map((p) =>
+                                p.durationMs == null || p.durationMs === 2000 ? { ...p, durationMs: ms } : p,
+                              ),
+                            });
+                          }
+                        }}
+                        className="w-14 rounded border border-white/10 bg-[#0B0B0C] px-1 py-0.5 text-[9px] text-white"
+                      />
+                    </label>
+                  </div>
+                  <div className="border-t border-white/[.06] pt-1 lg:hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowVersions((v) => !v);
+                        if (!showVersions) { setShowShare(false); setShowComments(false); }
+                        setShowMoreMenu(false);
+                      }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white"
+                    >
+                      Versions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowComments((v) => !v);
+                        if (!showComments) { setShowShare(false); setShowVersions(false); }
+                        setShowMoreMenu(false);
+                      }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white"
+                    >
+                      Comments
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
-          <span className="ml-auto text-[9px] font-bold uppercase tracking-[.12em] text-white/40 lg:ml-0">{saveLabel}</span>
           <button
             type="button"
             onClick={() => {
               setShowShare((v) => !v);
-              if (!showShare) {
-                setShowVersions(false);
-                setShowComments(false);
-              }
+              if (!showShare) { setShowVersions(false); setShowComments(false); }
             }}
-            className="rounded-xl border border-white/10 bg-white/[.05] px-4 py-2 text-[10px] font-black text-white"
+            className={`rounded-xl border px-4 py-2 text-[10px] font-black transition-colors ${showShare ? "border-orange-500/40 bg-orange-500/10 text-orange-400" : "border-white/10 bg-white/[.05] text-white hover:bg-white/[.08]"}`}
           >
             Share
           </button>
@@ -919,149 +1096,11 @@ export default function StudioEditorPage() {
             </button>
           ) : null}
         </div>
-        <div className="flex min-h-12 items-center gap-2 overflow-x-auto border-t border-white/[.06] px-3 sm:px-5">
-          <Link href="/studio" className="rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wide text-white/45 hover:bg-white/[.05]">← Projects</Link>
-          <h1 className="min-w-[160px] max-w-sm flex-1 truncate text-[12px] font-black tracking-[-.02em] text-white">{design.title}</h1>
-        <button
-          type="button"
-          onClick={() => setShowBrandKit((v) => !v)}
-          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-        >
-          Brand
-        </button>
-        {canEdit ? (
-          <button
-            type="button"
-            onClick={() => setShowResize(true)}
-            className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-            title="Change artboard size"
-          >
-            Resize
-          </button>
-        ) : null}
-        {canEdit ? (
-          <select
-            aria-label="Create editable size variant"
-            disabled={variantBusy || syncState === "conflict"}
-            defaultValue=""
-            onChange={(e) => {
-              const value = e.target.value as StudioDesignType;
-              if (value) void createVariant(value);
-              e.currentTarget.value = "";
-            }}
-            className="rounded-lg border border-white/10 bg-[#171719] px-3 py-1.5 text-[9px] font-black text-white/70 disabled:opacity-50"
-          >
-            <option value="">{variantBusy ? "Creating variant…" : "Variant"}</option>
-            <option value="instagram_post">Instagram post</option>
-            <option value="instagram_story">Instagram story</option>
-            <option value="whatsapp_status">WhatsApp status</option>
-            <option value="facebook_post">Facebook post</option>
-            <option value="flyer">Flyer</option>
-            <option value="poster">Poster</option>
-            <option value="banner">Banner</option>
-            <option value="business_card">Business card</option>
-          </select>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => void downloadPng()}
-          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-        >
-          Download PNG
-        </button>
-        <button
-          type="button"
-          disabled={packBusy}
-          onClick={() => void downloadPdf()}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
-          title="Multi-page PDF"
-        >
-          {packBusy ? "…" : "PDF"}
-        </button>
-        <button
-          type="button"
-          disabled={packBusy}
-          onClick={() => void downloadZip()}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
-          title="ZIP of PNGs (all pages)"
-        >
-          ZIP
-        </button>
-        <button
-          type="button"
-          disabled={motionBusy}
-          onClick={() => void downloadMotion()}
-          className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
-          title="Export timeline WebM (page durations + video seek)"
-        >
-          {motionBusy ? "Recording…" : "Export timeline"}
-        </button>
-        {canEdit ? (
-          <button
-            type="button"
-            disabled={videoBusy || syncState === "conflict"}
-            onClick={() => void turnDesignIntoVideo()}
-            className="rounded-full px-3 py-1.5 text-xs font-bold border border-black/10 disabled:opacity-50"
-            title="Create an editable Studio Video project from the active page"
-          >
-            {videoBusy ? "Preparing video…" : "Turn into video"}
-          </button>
-        ) : null}
-        <label className="flex items-center gap-1 text-[9px] font-semibold text-white/35" title="Applies to pages without a custom duration">
-          default s/page
-          <input
-            type="number"
-            min={0.5}
-            max={8}
-            step={0.5}
-            value={secondsPerPage}
-            onChange={(e) => {
-              const v = Number(e.target.value) || 2;
-              setSecondsPerPage(v);
-              if (doc && canEdit) {
-                const ms = Math.round(v * 1000);
-                onChangeDoc({
-                  ...doc,
-                  pages: doc.pages.map((p) =>
-                    p.durationMs == null || p.durationMs === 2000 ? { ...p, durationMs: ms } : p,
-                  ),
-                });
-              }
-            }}
-            className="w-12 rounded border border-white/10 bg-[#171719] px-1 py-0.5 text-[9px] text-white"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => {
-            setShowVersions((v) => !v);
-            if (!showVersions) {
-              setShowShare(false);
-              setShowComments(false);
-            }
-          }}
-          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-        >
-          Versions
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setShowComments((v) => !v);
-            if (!showComments) {
-              setShowShare(false);
-              setShowVersions(false);
-            }
-          }}
-          className="rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-[9px] font-black text-white/70 hover:bg-white/[.08]"
-        >
-          Comments
-        </button>
-      </div>
       </header>
 
+      {/* Conflict banner — inline because it requires an explicit action */}
       {syncState === "conflict" ? (
-        <div className="border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950">
+        <div className="shrink-0 border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950">
           <div className="mx-auto flex max-w-[1500px] flex-col gap-2 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-black">This design changed somewhere else.</p>
@@ -1091,12 +1130,25 @@ export default function StudioEditorPage() {
         </div>
       ) : null}
 
-      {showBrandKit ? (
-        <div className="px-4 py-3 border-b bg-white shrink-0">
-          <StudioBrandKitPanel businessId={design.business_id} />
-        </div>
+      {/* Coach: small dismissible hint strip — starts hidden, only shows if user enables it */}
+      {showCoach ? (
+        <StudioCoachPanel coach={doc.coach} onDismiss={() => setShowCoach(false)} />
+      ) : doc.coach?.mode === "teach_me" && (doc.coach.lessons?.length ?? 0) > 0 ? (
+        <button
+          type="button"
+          className="shrink-0 w-full border-b border-white/[.06] px-4 py-1.5 text-left text-[11px] text-white/40 underline"
+          onClick={() => setShowCoach(true)}
+        >
+          Show Teach me lessons
+        </button>
       ) : null}
 
+      {/* Export note strip */}
+      {exportNote && !showShare ? (
+        <p className="shrink-0 border-b border-white/[.06] px-4 py-1 text-[11px] text-white/50">{exportNote}</p>
+      ) : null}
+
+      {/* Resize dialog — modal, doesn't push canvas */}
       {showResize && canEdit ? (
         <StudioResizeDialog
           document={doc}
@@ -1105,81 +1157,106 @@ export default function StudioEditorPage() {
         />
       ) : null}
 
-      {showCoach ? (
-        <StudioCoachPanel coach={doc.coach} onDismiss={() => setShowCoach(false)} />
-      ) : doc.coach?.mode === "teach_me" && (doc.coach.lessons?.length ?? 0) > 0 ? (
-        <button
-          type="button"
-          className="text-[11px] px-4 py-1.5 border-b bg-white text-left w-full underline opacity-70"
-          onClick={() => setShowCoach(true)}
-        >
-          Show Teach me lessons
-        </button>
+      {/* Right-side overlay drawers — float over canvas, don't push it down */}
+      {showBrandKit ? (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowBrandKit(false)} />
+          <div className="fixed bottom-0 right-0 top-14 z-50 w-80 overflow-y-auto border-l border-white/10 bg-[#131315] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-white/60">Brand Kit</span>
+              <button type="button" onClick={() => setShowBrandKit(false)} className="text-lg leading-none text-white/40 hover:text-white">×</button>
+            </div>
+            <div className="px-4 py-3">
+              <StudioBrandKitPanel businessId={design.business_id} />
+            </div>
+          </div>
+        </>
       ) : null}
 
       {showVersions ? (
-        <div className="px-4 py-3 border-b bg-white shrink-0 max-w-xl">
-          <StudioVersionHistoryPanel
-            designId={designId}
-            canEdit={canEdit}
-            onRestored={() => {
-              void load();
-            }}
-          />
-        </div>
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowVersions(false)} />
+          <div className="fixed bottom-0 right-0 top-14 z-50 w-80 overflow-y-auto border-l border-white/10 bg-[#131315] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-white/60">Version history</span>
+              <button type="button" onClick={() => setShowVersions(false)} className="text-lg leading-none text-white/40 hover:text-white">×</button>
+            </div>
+            <div className="px-4 py-3">
+              <StudioVersionHistoryPanel
+                designId={designId}
+                canEdit={canEdit}
+                onRestored={() => { void load(); }}
+              />
+            </div>
+          </div>
+        </>
       ) : null}
 
       {showComments ? (
-        <div className="px-4 py-3 border-b bg-white shrink-0 max-w-xl">
-          <StudioCommentsPanel
-            designId={designId}
-            userId={userId}
-            isOwner={access?.role === "owner"}
-          />
-        </div>
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowComments(false)} />
+          <div className="fixed bottom-0 right-0 top-14 z-50 w-80 overflow-y-auto border-l border-white/10 bg-[#131315] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-white/60">Comments</span>
+              <button type="button" onClick={() => setShowComments(false)} className="text-lg leading-none text-white/40 hover:text-white">×</button>
+            </div>
+            <div className="px-4 py-3">
+              <StudioCommentsPanel
+                designId={designId}
+                userId={userId}
+                isOwner={access?.role === "owner"}
+              />
+            </div>
+          </div>
+        </>
       ) : null}
 
       {showShare ? (
-        <div className="px-4 py-3 border-b bg-white space-y-4 shrink-0">
-          <StudioSharePanel designId={designId} access={access} />
-          {access.role === "owner" ? (
-            <StudioReachPromote
-              designId={designId}
-              designTitle={design.title}
-              projects={projects}
-            />
-          ) : null}
-          {canEdit && access.role === "owner" ? (
-            <div className="space-y-2 border-t border-black/5 pt-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">Send → Shop</p>
-              <div className="flex flex-wrap gap-2 items-center">
-                <select
-                  value={exportProjectId}
-                  onChange={(e) => setExportProjectId(e.target.value)}
-                  className="rounded-lg border px-2 py-1.5 text-sm min-w-[200px]"
-                >
-                  <option value="">Choose shop…</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => void sendToShop()}
-                  className="rounded-full px-4 py-2 text-xs font-bold text-white"
-                  style={{ background: "#E05A2B" }}
-                >
-                  Create / update product image
-                </button>
-              </div>
-              {exportNote ? <p className="text-xs opacity-80">{exportNote}</p> : null}
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowShare(false)} />
+          <div className="fixed bottom-0 right-0 top-14 z-50 w-96 overflow-y-auto border-l border-white/10 bg-[#131315] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-white/60">Share</span>
+              <button type="button" onClick={() => setShowShare(false)} className="text-lg leading-none text-white/40 hover:text-white">×</button>
             </div>
-          ) : null}
-        </div>
-      ) : exportNote && !showShare ? (
-        <p className="px-4 py-1 text-[11px] bg-white border-b opacity-70">{exportNote}</p>
+            <div className="space-y-4 px-4 py-3">
+              <StudioSharePanel designId={designId} access={access} />
+              {access.role === "owner" ? (
+                <StudioReachPromote
+                  designId={designId}
+                  designTitle={design.title}
+                  projects={projects}
+                />
+              ) : null}
+              {canEdit && access.role === "owner" ? (
+                <div className="space-y-2 border-t border-white/[.06] pt-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-orange-500">Send → Shop</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={exportProjectId}
+                      onChange={(e) => setExportProjectId(e.target.value)}
+                      className="min-w-[200px] rounded-lg border border-white/10 bg-[#0B0B0C] px-2 py-1.5 text-sm text-white"
+                    >
+                      <option value="">Choose shop…</option>
+                      {projects.map((p) => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => void sendToShop()}
+                      className="rounded-full px-4 py-2 text-xs font-bold text-white"
+                      style={{ background: "#E05A2B" }}
+                    >
+                      Create / update product image
+                    </button>
+                  </div>
+                  {exportNote ? <p className="text-xs text-white/60">{exportNote}</p> : null}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </>
       ) : null}
 
       <StudioCanvasEditor
