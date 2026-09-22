@@ -100,6 +100,14 @@ const BuilderConnectionsPanel = dynamic(
   () => import("@/app/components/create/builder-connections-panel").then((m) => m.BuilderConnectionsPanel),
   { ssr: false },
 );
+const BuilderShopPanel = dynamic(
+  () => import("@/app/components/create/builder-shop-panel").then((m) => m.BuilderShopPanel),
+  { ssr: false },
+);
+const BuilderVersionHistoryPanel = dynamic(
+  () => import("@/app/components/create/builder-version-history-panel").then((m) => m.BuilderVersionHistoryPanel),
+  { ssr: false },
+);
 const BuilderAiPreviewPanel = dynamic(
   () => import("@/app/components/create/builder-ai-preview-panel").then((m) => m.BuilderAiPreviewPanel),
   { ssr: false },
@@ -1433,6 +1441,24 @@ export default function ProjectEditorPage() {
 
               {sidebarTab === "connections" && (
                 <BuilderConnectionsPanel projectId={projectId} />
+              )}
+
+              {sidebarTab === "shop" && (
+                <BuilderShopPanel
+                  projectId={projectId}
+                  commerce={seoSettings.commerce ?? {}}
+                  onSaved={(next) => queueSiteSettingsSave({ seo: { commerce: next } })}
+                />
+              )}
+
+              {sidebarTab === "history" && (
+                <BuilderVersionHistoryPanel
+                  projectId={projectId}
+                  onRestored={async () => {
+                    await load();
+                  }}
+                  onError={(msg) => setError(msg)}
+                />
               )}
 
               {sidebarTab === "seo" && (

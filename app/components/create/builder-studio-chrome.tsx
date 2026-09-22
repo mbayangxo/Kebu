@@ -20,7 +20,9 @@ export type BuilderStudioTab =
   | "extensions"
   | "connections"
   | "seo"
-  | "layers";
+  | "layers"
+  | "shop"
+  | "history";
 
 const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   {
@@ -112,6 +114,27 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
         <rect x="3" y="6" width="18" height="4" rx="1" />
         <rect x="3" y="11" width="18" height="4" rx="1" />
         <rect x="3" y="16" width="18" height="4" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    id: "shop",
+    label: "Shop",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" strokeLinejoin="round" />
+        <path d="M3 6h18" strokeLinecap="round" />
+        <path d="M16 10a4 4 0 01-8 0" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "history",
+    label: "History",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+        <path d="M3 12a9 9 0 109-9 9 9 0 00-9 9z" />
+        <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
