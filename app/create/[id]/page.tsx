@@ -4093,13 +4093,10 @@ export default function ProjectEditorPage() {
           />
         ) : null}
 
-        {/* Yande FAB + speed-dial — centered in the canvas area (panel offset on desktop) */}
-        <div
-          className="absolute bottom-3 z-30 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-5 sm:transition-[left] sm:duration-200 sm:ease-out"
-          style={{ left: leftPanelOpen ? "calc(50% + 134px)" : "50%" }}
-        >
+        {/* Yande FAB + speed-dial — lower-right corner */}
+        <div className="absolute bottom-4 right-4 z-30 flex flex-col items-end gap-2">
 
-          {/* Speed-dial mini-buttons — open by default on builder load */}
+          {/* Speed-dial mini-buttons */}
           {yandeDialOpen && !yandeOpen ? (
             <>
               {(
@@ -4109,9 +4106,9 @@ export default function ProjectEditorPage() {
                   { label: "Ask Yande", mode: "free" as const, color: "#0F0D33" },
                 ] as const
               ).map(({ label, mode, color }) => (
-                <div key={label} className="flex items-center gap-2">
+                <div key={label} className="flex items-center justify-end gap-2">
                   <span
-                    className="rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg whitespace-nowrap"
+                    className="rounded-full px-3 py-1 text-[11px] font-semibold whitespace-nowrap"
                     style={{ background: "#fff", color: BUILDER.ink, boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}
                   >
                     {label}
@@ -4157,12 +4154,12 @@ export default function ProjectEditorPage() {
                 setYandeDialOpen((o) => !o);
               }
             }}
-            className="flex min-h-11 items-center gap-2.5 rounded-full border bg-white px-3.5 py-2 pr-5 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-            style={{ borderColor: BUILDER.borderStrong, boxShadow: "0 8px 28px rgba(10,10,10,0.14)" }}
+            className="flex min-h-10 items-center gap-2 rounded-full border bg-white px-3 py-2 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            style={{ borderColor: BUILDER.borderStrong, boxShadow: "0 4px 16px rgba(10,10,10,0.14)" }}
           >
-            <YandeMark size={30} />
-            <span className="text-[11px] font-bold" style={{ color: BUILDER.ink }}>
-              {yandeOpen ? "Close Yande" : yandeDialOpen ? "Close" : "Ask Yande"}
+            <YandeMark size={26} />
+            <span className="text-[10px] font-bold" style={{ color: BUILDER.ink }}>
+              {yandeOpen ? "Close" : yandeDialOpen ? "Close" : "Ask Yande"}
             </span>
           </button>
         </div>
