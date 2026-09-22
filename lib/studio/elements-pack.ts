@@ -1,7 +1,7 @@
 import type { CanvasLayer } from "@/lib/studio/canvas-document";
 
 export type StudioElementKind = "line" | "icon" | "frame";
-export type StudioElementCategory = "shapes" | "lines" | "frames" | "symbols" | "business" | "social" | "culture";
+export type StudioElementCategory = "shapes" | "lines" | "frames" | "symbols" | "business" | "social" | "culture" | "charts" | "stickers" | "illustrations";
 
 export type StudioElementDef = {
   id: string;
@@ -101,6 +101,32 @@ export const STUDIO_ELEMENTS_PACK: StudioElementDef[] = [
   { id: "icon-pin", kind: "icon", label: "Pin", glyph: "📍", defaults: { width: 64, height: 64, color: "#E05A2B", name: "Pin", iconKey: "pin", text: "📍", fontSize: 44 } },
   { id: "icon-phone", kind: "icon", label: "Phone", glyph: "☎", defaults: { width: 64, height: 64, color: "#FFFFFF", name: "Phone", iconKey: "phone", text: "☎", fontSize: 44 } },
   { id: "icon-mail", kind: "icon", label: "Mail", glyph: "✉", defaults: { width: 64, height: 64, color: "#FFFFFF", name: "Mail", iconKey: "mail", text: "✉", fontSize: 44 } },
+
+  // Charts
+  { id: "chart-bar", kind: "icon", category: "charts", label: "Bar chart", tags: ["chart","bar","data","stats"], glyph: "▐", defaults: { width: 80, height: 80, color: "#FF6A00", name: "Bar chart", iconKey: "chart-bar", text: "▐", fontSize: 52 } },
+  { id: "chart-pie", kind: "icon", category: "charts", label: "Pie chart", tags: ["chart","pie","data","stats"], glyph: "◔", defaults: { width: 80, height: 80, color: "#FF6A00", name: "Pie chart", iconKey: "chart-pie", text: "◔", fontSize: 52 } },
+  { id: "chart-line", kind: "icon", category: "charts", label: "Line chart", tags: ["chart","line","trend","data"], glyph: "∿", defaults: { width: 96, height: 64, color: "#2F9E44", name: "Line chart", iconKey: "chart-line", text: "∿", fontSize: 52 } },
+  { id: "chart-area", kind: "icon", category: "charts", label: "Area chart", tags: ["chart","area","trend"], glyph: "⌇", defaults: { width: 96, height: 64, color: "#1C7ED6", name: "Area chart", iconKey: "chart-area", text: "⌇", fontSize: 52 } },
+  { id: "chart-donut", kind: "icon", category: "charts", label: "Donut", tags: ["chart","donut","data"], glyph: "◯", defaults: { width: 80, height: 80, color: "#7950F2", name: "Donut", iconKey: "chart-donut", text: "◯", fontSize: 52 } },
+  { id: "chart-number", kind: "icon", category: "charts", label: "Stat number", tags: ["chart","stat","kpi"], glyph: "#", defaults: { width: 80, height: 80, color: "#F0A21A", name: "Stat number", iconKey: "chart-number", text: "#", fontSize: 60 } },
+
+  // Stickers
+  { id: "sticker-fire", kind: "icon", category: "stickers", label: "Fire", tags: ["sticker","fire","hot","trend"], glyph: "🔥", defaults: { width: 72, height: 72, color: "#FF6A00", name: "Fire", iconKey: "sticker-fire", text: "🔥", fontSize: 52 } },
+  { id: "sticker-star", kind: "icon", category: "stickers", label: "Stars", tags: ["sticker","star","shine","rating"], glyph: "⭐", defaults: { width: 72, height: 72, color: "#F5C542", name: "Stars", iconKey: "sticker-star", text: "⭐", fontSize: 52 } },
+  { id: "sticker-crown", kind: "icon", category: "stickers", label: "Crown", tags: ["sticker","crown","luxury","premium"], glyph: "♛", defaults: { width: 72, height: 72, color: "#F0A21A", name: "Crown", iconKey: "sticker-crown", text: "♛", fontSize: 52 } },
+  { id: "sticker-lightning", kind: "icon", category: "stickers", label: "Lightning", tags: ["sticker","bolt","energy","power"], glyph: "⚡", defaults: { width: 64, height: 72, color: "#F0D132", name: "Lightning", iconKey: "sticker-lightning", text: "⚡", fontSize: 52 } },
+  { id: "sticker-gem", kind: "icon", category: "stickers", label: "Gem", tags: ["sticker","diamond","gem","luxury"], glyph: "◇", defaults: { width: 72, height: 72, color: "#74C0FC", name: "Gem", iconKey: "sticker-gem", text: "◇", fontSize: 52 } },
+  { id: "sticker-wave", kind: "icon", category: "stickers", label: "Wave", tags: ["sticker","wave","ocean","vibe"], glyph: "〰", defaults: { width: 88, height: 64, color: "#1C7ED6", name: "Wave", iconKey: "sticker-wave", text: "〰", fontSize: 52 } },
+  { id: "sticker-leaf", kind: "icon", category: "stickers", label: "Leaf", tags: ["sticker","leaf","nature","green"], glyph: "🌿", defaults: { width: 72, height: 72, color: "#2F9E44", name: "Leaf", iconKey: "sticker-leaf", text: "🌿", fontSize: 52 } },
+  { id: "sticker-moon", kind: "icon", category: "stickers", label: "Moon", tags: ["sticker","moon","night","vibes"], glyph: "☽", defaults: { width: 64, height: 72, color: "#CDB4DB", name: "Moon", iconKey: "sticker-moon", text: "☽", fontSize: 52 } },
+
+  // Illustrations
+  { id: "illus-circle-fill", kind: "icon", category: "illustrations", label: "Circle", tags: ["illustration","circle","shape","fill"], glyph: "●", defaults: { width: 120, height: 120, color: "#FF6A00", name: "Circle", iconKey: "illus-circle", text: "●", fontSize: 96 } },
+  { id: "illus-blob", kind: "icon", category: "illustrations", label: "Blob", tags: ["illustration","blob","organic","background"], glyph: "⬟", defaults: { width: 140, height: 130, color: "#E8D5FF", name: "Blob", iconKey: "illus-blob", text: "⬟", fontSize: 100 } },
+  { id: "illus-arch", kind: "icon", category: "illustrations", label: "Arch", tags: ["illustration","arch","frame","editorial"], glyph: "⌒", defaults: { width: 120, height: 120, color: "#FFECD2", name: "Arch", iconKey: "illus-arch", text: "⌒", fontSize: 80 } },
+  { id: "illus-squiggle", kind: "icon", category: "illustrations", label: "Squiggle", tags: ["illustration","squiggle","line","decorative"], glyph: "〜", defaults: { width: 160, height: 40, color: "#FF6A00", name: "Squiggle", iconKey: "illus-squiggle", text: "〜", fontSize: 36 } },
+  { id: "illus-diamond", kind: "icon", category: "illustrations", label: "Diamond", tags: ["illustration","diamond","geometric"], glyph: "◆", defaults: { width: 100, height: 100, color: "#F0A21A", name: "Diamond", iconKey: "illus-diamond", text: "◆", fontSize: 78 } },
+  { id: "illus-dots", kind: "icon", category: "illustrations", label: "Dots", tags: ["illustration","dots","pattern","texture"], glyph: "⋯", defaults: { width: 100, height: 40, color: "#AAAAAA", name: "Dots", iconKey: "illus-dots", text: "⋯", fontSize: 36 } },
 ];
 
 export function getElementDef(id: string): StudioElementDef | undefined {

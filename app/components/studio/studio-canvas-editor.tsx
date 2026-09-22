@@ -875,12 +875,25 @@ export function StudioCanvasEditor({
               <div className="space-y-3">
                 <div><p className="text-[10px] font-black uppercase tracking-[.18em]">{readOnly?"Elements · view only":"Elements"}</p><p className="text-[9px] text-white/40">Shapes, frames, symbols and business graphics</p></div>
                 <input value={elementQuery} onChange={(e)=>setElementQuery(e.target.value)} placeholder="Search elements" className="w-full rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-xs"/>
-                <div className="flex gap-1 overflow-x-auto">{(["all","lines","frames","symbols","business","social","culture"] as const).map((value)=><button key={value} type="button" onClick={()=>setElementCategory(value)} className={`rounded-full px-2 py-1 text-[9px] font-bold capitalize ${elementCategory===value?"bg-white text-black":"bg-white/[.05] text-white/50"}`}>{value}</button>)}</div>
-                <div className="grid grid-cols-3 gap-2">
-                  <button type="button" disabled={readOnly} onClick={()=>addLayer("text")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">T<br/><span className="font-normal text-white/40">Text</span></button>
-                  <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-white/40">Shape</span></button>
-                  <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-white/40">Circle</span></button>
-                </div>
+                <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">{(["all","lines","frames","symbols","charts","stickers","illustrations","business","social","culture"] as const).map((value)=><button key={value} type="button" onClick={()=>setElementCategory(value)} className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-bold capitalize ${elementCategory===value?"bg-white text-black":"bg-white/[.05] text-white/50"}`}>{value}</button>)}</div>
+                {elementCategory === "all" && !elementQuery ? (
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/40 mb-2">Basic</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button type="button" disabled={readOnly} onClick={()=>addLayer("text")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">T<br/><span className="font-normal text-white/40">Text</span></button>
+                      <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-white/40">Shape</span></button>
+                      <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-white/40">Circle</span></button>
+                    </div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/40 mb-2 mt-3">Featured</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["icon-spark","icon-quote","icon-heart","frame-circle","icon-sun","icon-cowrie","icon-star","icon-arrow","line-accent"] as const).map((id) => {
+                        const el = STUDIO_ELEMENTS_PACK.find(e => e.id === id);
+                        if (!el) return null;
+                        return <button key={el.id} type="button" disabled={readOnly} title={el.label} onClick={()=>addElement(el)} className="flex flex-col items-center justify-center gap-1 rounded-xl border border-white/10 bg-[#17181B] py-2.5 text-center hover:border-orange-400 disabled:opacity-40"><span className="text-xl">{el.glyph ?? "□"}</span><span className="text-[8px] text-white/50">{el.label}</span></button>;
+                      })}
+                    </div>
+                  </div>
+                ) : null}
                 {(elementCategory === "all" || elementCategory === "social") && !elementQuery ? (
                   <div>
                     <p className="text-[9px] font-bold uppercase tracking-wider text-white/40 mb-2">Social icons</p>

@@ -1873,23 +1873,32 @@ export default function ProjectEditorPage() {
               {!selectedSectionId && contentSubTab === "elements" && (
                 <div className="px-3 py-3 space-y-3">
                   <p className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: BUILDER.ink }}>Elements</p>
-                  <p className="text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>Click a section first, then select an element on the canvas to edit it directly.</p>
+                  <p className="text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>Add a section that features this element type.</p>
                   <div className="grid grid-cols-2 gap-2">
                     {([
-                      { label: "Heading", icon: "T", hint: "Main title text" },
-                      { label: "Body text", icon: "¶", hint: "Paragraph copy" },
-                      { label: "Button", icon: "⊡", hint: "Call to action" },
-                      { label: "Image", icon: "⬚", hint: "Photo or graphic" },
-                      { label: "Video", icon: "▶", hint: "Embedded video" },
-                      { label: "Gallery", icon: "⊞", hint: "Photo grid" },
-                      { label: "Logo", icon: "◈", hint: "Brand mark" },
-                      { label: "Nav links", icon: "≡", hint: "Navigation" },
+                      { label: "Heading", icon: "T", hint: "Title text", section: "hero" as const },
+                      { label: "Body text", icon: "¶", hint: "Paragraph copy", section: "free-text" as const },
+                      { label: "Button", icon: "⊡", hint: "Call to action", section: "newsletter" as const },
+                      { label: "Image", icon: "⬚", hint: "Photo or graphic", section: "split" as const },
+                      { label: "Gallery", icon: "⊞", hint: "Photo grid", section: "gallery" as const },
+                      { label: "Video", icon: "▶", hint: "Embedded video", section: "video" as const },
+                      { label: "Logo", icon: "◈", hint: "Brand mark", section: "hero" as const },
+                      { label: "Nav links", icon: "≡", hint: "Navigation", section: "navigation" as const },
                     ]).map((el) => (
-                      <div key={el.label} className="rounded-xl border p-2.5 space-y-1" style={{ borderColor: BUILDER.border }}>
+                      <button
+                        key={el.label}
+                        type="button"
+                        className="rounded-xl border p-2.5 space-y-1 text-left hover:border-orange-400 hover:bg-orange-50/40 transition-colors"
+                        style={{ borderColor: BUILDER.border }}
+                        onClick={async () => {
+                          await addSection(el.section);
+                          setContentSubTab("sections");
+                        }}
+                      >
                         <span className="text-base">{el.icon}</span>
                         <p className="text-[10px] font-bold" style={{ color: BUILDER.ink }}>{el.label}</p>
                         <p className="text-[9px]" style={{ color: BUILDER.muted }}>{el.hint}</p>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
