@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { KebuMark } from "@/app/components/kebu-mark";
 import type { ReactNode } from "react";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import { BUILDER } from "@/lib/create/builder-ui";
@@ -14,7 +15,6 @@ export type BuilderStudioTab =
   | "content"
   | "pages"
   | "layers"
-  | "versions"
   | "aesthetic"
   | "media"
   | "nav"
@@ -47,16 +47,6 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
         <path d="M12 3l8 4-8 4-8-4 8-4z" strokeLinejoin="round" />
         <path d="M4 12l8 4 8-4M4 17l8 4 8-4" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    id: "versions",
-    label: "History",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-        <path d="M4 12a8 8 0 108-8 8.5 8.5 0 00-6 2.5L4 8.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M4 4v4.5h4.5M12 8v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -119,7 +109,7 @@ export function BuilderStudioRail({
 }) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(58px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[64px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1 sm:py-1.5"
+      className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(54px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[54px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1 sm:py-1.5"
       style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
       role="toolbar"
       aria-label="Builder tools"
@@ -134,7 +124,7 @@ export function BuilderStudioRail({
             aria-label={item.label}
             aria-pressed={on}
             onClick={() => onRail(item.id)}
-            className="group relative flex h-[58px] min-w-[58px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[50px] sm:min-w-0 sm:w-full"
+            className="group relative flex h-[54px] min-w-[54px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[46px] sm:min-w-0 sm:w-full"
             style={{
               background: on ? BUILDER.orangeGlow : "transparent",
               color: on ? BUILDER.ink : BUILDER.muted,
@@ -208,20 +198,15 @@ export function BuilderStudioChrome({
 
   return (
     <header
-      className="relative flex h-[52px] shrink-0 items-center gap-1.5 border-b px-2.5 sm:px-3"
+      className="relative flex h-[46px] shrink-0 items-center gap-1.5 border-b px-2 sm:px-2.5"
       style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
     >
       <Link
         href={MY_SITES_HREF}
         aria-label="Back to your Kebu sites"
-        className="mr-1 hidden shrink-0 items-center gap-1.5 rounded-md px-1 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:flex"
+        className="mr-1 hidden shrink-0 items-center gap-1 rounded-md px-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:flex"
       >
-        <span
-          className="text-[20px] font-black leading-none tracking-[-0.08em]"
-          style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
-        >
-          kebu
-        </span>
+        <KebuMark size={24} className="object-contain" />
         <span className="h-5 w-px" style={{ background: BUILDER.border }} aria-hidden />
       </Link>
 
