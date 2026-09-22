@@ -12,6 +12,18 @@ function formatBytes(value: number | null) {
   return (value / (1024 * 1024)).toFixed(1) + " MB";
 }
 
+const FILTER_TABS = ["All", "Images", "Videos", "Documents", "Audio", "Designs", "Brand", "Code", "Other"];
+
+const ACTION_TILES = [
+  { label: "Upload", sub: "Add files", icon: "create" as const, dark: true },
+  { label: "Create folder", sub: "Organise", icon: "spaces" as const, dark: false },
+  { label: "Capture", sub: "Camera", icon: "studio" as const, dark: false },
+  { label: "Import", sub: "Cloud", icon: "library" as const, dark: false },
+  { label: "Create with AI", sub: "Yande", icon: "yande" as const, dark: false },
+];
+
+const FOLDER_COLORS = ["#C8B4A0", "#F2C4C4", "#C4C4F2", "#A0C8A0", "#1A1A1A", "#BDBDBD", "#2D2520", "#D4C0AA"];
+
 export default async function LibraryPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,105 +39,219 @@ export default async function LibraryPage() {
   const designs = designsResult.data ?? [];
   const projects = projectsResult.data ?? [];
 
+  const totalCount = uploads.length + designs.length + projects.length;
+  const totalBytes = uploads.reduce((sum, u) => sum + (u.byte_size ?? 0), 0);
+
   return (
     <AppShell title="Library">
-      <div className="mx-auto max-w-[1380px] px-4 py-6 sm:px-7">
-        <header className="grid gap-4 border-b pb-6 lg:grid-cols-[1fr_auto] lg:items-end" style={{ borderColor: KEBU.borders.default }}>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Library</p>
-            <h1 className="mt-2 text-4xl font-black tracking-[-.04em] sm:text-5xl" style={{ fontFamily: "var(--font-fraunces)" }}>Your work, without the scavenger hunt.</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>A connected view of files, designs and sites already stored in Kebu. Nothing here is duplicated just to make the Library look full.</p>
-          </div>
-          <div className="flex gap-2">
-            <Link href="/studio/new" className="rounded-full border bg-white px-4 py-2.5 text-xs font-bold" style={{ borderColor: KEBU.borders.default }}>New design</Link>
-            <Link href="/studio" className="rounded-full bg-black px-4 py-2.5 text-xs font-bold text-white">Open Studio</Link>
-          </div>
-        </header>
+      <div style={{ background: "#F5F4F1", minHeight: "100vh" }}>
+        {/* Hero */}
+        <div className="px-6 pt-8 pb-6 sm:px-10 sm:pt-10">
+          <p className="text-[10px] font-black uppercase tracking-[.22em]" style={{ color: KEBU.orange }}>Library</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight" style={{ fontFamily: "var(--font-fraunces)" }}>
+            All your creative assets, in one place.
+          </h1>
+          <p className="mt-1.5 text-sm max-w-xl" style={{ color: KEBU.muted }}>
+            Store, organize, create, and use your files across Kebu.
+          </p>
+        </div>
 
-        <section className="grid gap-3 py-6 sm:grid-cols-3">
-          {[["Files", uploads.length, "library"], ["Designs", designs.length, "studio"], ["Sites", projects.length, "builder"]].map(([label, count, icon]) => (
-            <div key={String(label)} className="rounded-[20px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-              <KebuIcon name={icon as "library" | "studio" | "builder"} size={18} style={{ color: KEBU.orange }} />
-              <p className="mt-4 text-3xl font-black" style={{ fontFamily: "var(--font-fraunces)" }}>{String(count)}</p>
-              <p className="mt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.muted }}>{String(label)}</p>
+        {/* Body */}
+        <div className="flex gap-0">
+          <main className="flex-1 min-w-0 px-5 pb-8 sm:px-8 space-y-7">
+            {/* Action tiles */}
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+              {ACTION_TILES.map((tile) => (
+                <button
+                  key={tile.label}
+                  className="flex shrink-0 flex-col items-start rounded-2xl border p-4 w-36 hover:-translate-y-0.5 transition-transform"
+                  style={{
+                    background: tile.dark ? KEBU.black : "white",
+                    borderColor: tile.dark ? "transparent" : KEBU.borders.default,
+                    color: tile.dark ? "#fff" : KEBU.black,
+                  }}
+                >
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-xl mb-3"
+                    style={{
+                      background: tile.dark ? "rgba(255,255,255,0.1)" : "rgba(255,85,0,0.09)",
+                      color: tile.dark ? "#fff" : KEBU.orange,
+                    }}
+                  >
+                    <KebuIcon name={tile.icon} size={18} />
+                  </span>
+                  <p className="text-[12px] font-black leading-tight">{tile.label}</p>
+                  <p className="mt-0.5 text-[10px]" style={{ color: tile.dark ? "rgba(255,255,255,0.5)" : KEBU.faint }}>
+                    {tile.sub}
+                  </p>
+                </button>
+              ))}
             </div>
-          ))}
-        </section>
 
-        <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <main className="space-y-7">
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Files</p><h2 className="mt-0.5 text-lg font-black">Recent uploads</h2></div>
-                <Link href="/studio" className="text-[10px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>Manage in Studio →</Link>
+            {/* Filter pills + controls */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {FILTER_TABS.map((tab, i) => (
+                <button
+                  key={tab}
+                  className="shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition"
+                  style={
+                    i === 0
+                      ? { background: KEBU.black, color: "#fff" }
+                      : { background: "white", color: KEBU.muted, border: "1px solid " + KEBU.borders.default }
+                  }
+                >
+                  {tab}
+                </button>
+              ))}
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                <button className="rounded-xl border bg-white px-3 py-1.5 text-[11px] font-bold" style={{ borderColor: KEBU.borders.default }}>
+                  ⊞ Grid
+                </button>
+                <button className="rounded-xl border bg-white px-3 py-1.5 text-[11px] font-bold" style={{ borderColor: KEBU.borders.default }}>
+                  Sort ↕
+                </button>
               </div>
-              {uploads.length ? (
-                <div className="overflow-hidden rounded-[20px] border bg-white" style={{ borderColor: KEBU.borders.default }}>
-                  {uploads.map((item, index) => (
-                    <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-black/[.02]" style={{ borderTop: index ? "1px solid " + KEBU.borders.subtle : undefined }}>
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]" style={{ background: KEBU.cream, color: KEBU.orange }}><KebuIcon name="library" size={17} /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[12px] font-bold">{item.file_name || "Untitled file"}</span>
-                        <span className="mt-0.5 block text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{item.kind || item.mime || "file"} · {formatBytes(item.byte_size)}</span>
+            </div>
+
+            {/* Folders */}
+            <section>
+              <h2 className="text-[10px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.muted }}>Folders</h2>
+              {designs.length > 0 || projects.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {FOLDER_COLORS.map((color, i) => (
+                    <button
+                      key={i}
+                      className="rounded-2xl aspect-square flex flex-col items-center justify-center gap-1.5 hover:-translate-y-0.5 transition-transform"
+                      style={{ background: color }}
+                    >
+                      <KebuIcon name="spaces" size={22} style={{ color: color === "#1A1A1A" || color === "#2D2520" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.35)" }} />
+                      <span className="text-[10px] font-bold" style={{ color: color === "#1A1A1A" || color === "#2D2520" ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)" }}>
+                        Folder {i + 1}
                       </span>
-                      <span className="text-black/25">↗</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
+                  <KebuIcon name="spaces" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
+                  <p className="text-sm font-black">No folders yet.</p>
+                  <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Create a folder to organize your files.</p>
+                </div>
+              )}
+            </section>
+
+            {/* Recent files */}
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Recent files</h2>
+                <Link href="/studio" className="text-[10px] font-bold" style={{ color: KEBU.orange }}>View all →</Link>
+              </div>
+              {uploads.length > 0 ? (
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+                  {uploads.slice(0, 12).map((item) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex shrink-0 flex-col rounded-2xl border bg-white overflow-hidden w-40 hover:-translate-y-0.5 transition-transform"
+                      style={{ borderColor: KEBU.borders.default }}
+                    >
+                      <div className="h-24 flex items-center justify-center" style={{ background: "rgba(255,85,0,0.06)" }}>
+                        <KebuIcon name="library" size={28} style={{ color: KEBU.orange }} />
+                      </div>
+                      <div className="p-2.5">
+                        <p className="truncate text-[11px] font-bold">{item.file_name || "Untitled"}</p>
+                        <p className="mt-0.5 text-[9px] uppercase tracking-wide" style={{ color: KEBU.faint }}>
+                          {formatBytes(item.byte_size)}
+                        </p>
+                      </div>
                     </a>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-[20px] border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
-                  <p className="text-sm font-black">No uploaded files yet.</p>
-                  <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Files you add through Studio will appear here automatically.</p>
+                <div className="rounded-2xl border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
+                  <KebuIcon name="library" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
+                  <p className="text-sm font-black">No files uploaded yet.</p>
+                  <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Upload files through Studio — they appear here automatically.</p>
                 </div>
               )}
             </section>
 
+            {/* Collections — empty */}
             <section>
-              <div className="mb-3 flex items-center justify-between">
-                <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Creative</p><h2 className="mt-0.5 text-lg font-black">Designs</h2></div>
-                <Link href="/studio" className="text-[10px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>Open Studio →</Link>
+              <h2 className="text-[10px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.muted }}>Collections</h2>
+              <div className="rounded-2xl border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
+                <KebuIcon name="studio" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
+                <p className="text-sm font-black">No collections yet.</p>
+                <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Group files into collections for easier access.</p>
               </div>
-              {designs.length ? (
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {designs.map((design) => (
-                    <Link key={design.id} href={"/studio/" + design.id} className="rounded-[18px] border bg-white p-4 transition hover:-translate-y-0.5" style={{ borderColor: KEBU.borders.default }}>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: "rgba(255,106,0,.09)", color: KEBU.orange }}><KebuIcon name="studio" size={16} /></span>
-                      <p className="mt-5 truncate text-[12px] font-black">{design.title}</p>
-                      <p className="mt-1 text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{design.design_type.replaceAll("_", " ")}</p>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-[20px] border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
-                  <KebuIcon name="studio" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
-                  <p className="text-sm font-black">No designs yet.</p>
-                  <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Create a poster, flyer or social post in Studio — it appears here automatically.</p>
-                  <Link href="/studio" className="mt-4 inline-flex rounded-full bg-black px-4 py-2 text-[10px] font-bold text-white">Open Studio</Link>
-                </div>
-              )}
+            </section>
+
+            {/* Shared with me — empty */}
+            <section>
+              <h2 className="text-[10px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.muted }}>Shared with me</h2>
+              <div className="rounded-2xl border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
+                <KebuIcon name="people" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
+                <p className="text-sm font-black">Nothing shared yet.</p>
+                <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Files shared with you by others will appear here.</p>
+              </div>
             </section>
           </main>
 
-          <aside>
-            <section className="rounded-[22px] border bg-black p-5 text-white" style={{ borderColor: KEBU.borders.default }}>
-              <p className="text-[9px] font-black uppercase tracking-[.14em] text-white/40">Sites & stores</p>
-              <div className="mt-3 space-y-2">
-                {projects.length ? projects.slice(0, 8).map((project) => (
-                  <Link key={project.id} href={"/create/" + project.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[.05] px-3 py-3 transition hover:bg-white/[.08]">
-                    <KebuIcon name="builder" size={16} style={{ color: KEBU.orange }} />
-                    <span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-bold">{project.title}</span><span className="text-[9px] text-white/40">{project.project_type}</span></span>
-                    <span className="text-white/25">→</span>
-                  </Link>
-                )) : (
-                  <div className="space-y-3 py-2">
-                    <p className="text-[11px] text-white/50">No sites yet.</p>
-                    <Link href="/create/new" className="inline-flex rounded-full border border-white/10 px-3 py-1.5 text-[10px] font-bold text-white/70 hover:border-white/20 hover:text-white">
-                      Create your first site →
-                    </Link>
-                  </div>
-                )}
+          {/* Right sidebar */}
+          <aside className="hidden xl:flex w-64 shrink-0 flex-col gap-4 px-4 py-6">
+            {/* Storage */}
+            <div className="rounded-2xl border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
+              <p className="text-[10px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.muted }}>Storage</p>
+              <p className="text-2xl font-black" style={{ fontFamily: "var(--font-fraunces)" }}>{totalCount}</p>
+              <p className="text-[11px]" style={{ color: KEBU.muted }}>files · {formatBytes(totalBytes)} used</p>
+              <div className="mt-3 h-2 rounded-full overflow-hidden" style={{ background: KEBU.borders.subtle }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: Math.min((totalBytes / (5 * 1024 * 1024 * 1024)) * 100, 100) + "%", background: KEBU.orange }}
+                />
               </div>
-            </section>
+              <p className="mt-1.5 text-[10px]" style={{ color: KEBU.faint }}>of 5 GB · Upgrade for more</p>
+            </div>
+
+            {/* AI Library Assistant */}
+            <div className="rounded-2xl border bg-white p-4 flex flex-col gap-3" style={{ borderColor: KEBU.borders.default }}>
+              <div className="flex items-center gap-2">
+                <KebuIcon name="yande" size={16} style={{ color: KEBU.orange }} />
+                <p className="text-[11px] font-black">AI Library Assistant</p>
+              </div>
+              <div className="space-y-1.5">
+                {["Find my brand assets", "Show last week's uploads", "Find all PDFs", "Recent designs"].map((ex) => (
+                  <button
+                    key={ex}
+                    className="w-full text-left rounded-xl border px-3 py-2 text-[10px] font-bold hover:bg-black/[.02] transition"
+                    style={{ borderColor: KEBU.borders.subtle, color: KEBU.muted }}
+                  >
+                    {ex}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-1">
+                <input
+                  readOnly
+                  placeholder="Ask Yande anything about your files…"
+                  className="w-full rounded-xl border px-3 py-2 text-[11px] outline-none"
+                  style={{ borderColor: KEBU.borders.default, background: "#F5F4F1" }}
+                />
+              </div>
+            </div>
+
+            {/* Bottom banner */}
+            <div
+              className="rounded-2xl p-4 text-white"
+              style={{ background: "linear-gradient(135deg,#1A1A1A,#2D2520)" }}
+            >
+              <p className="text-[10px] font-black uppercase tracking-[.14em] text-white/50 mb-1">Kebu Library</p>
+              <p className="text-sm font-black leading-snug" style={{ fontFamily: "var(--font-fraunces)" }}>
+                Your creativity,<br />organized.
+              </p>
+            </div>
           </aside>
         </div>
       </div>
