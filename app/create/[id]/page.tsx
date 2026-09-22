@@ -92,6 +92,14 @@ const BuilderPagesPanel = dynamic(
   () => import("@/app/components/create/builder-pages-panel").then((m) => m.BuilderPagesPanel),
   { ssr: false },
 );
+const SiteDomainSeoPanel = dynamic(
+  () => import("@/app/components/create/site-domain-seo-panel").then((m) => m.SiteDomainSeoPanel),
+  { ssr: false },
+);
+const BuilderConnectionsPanel = dynamic(
+  () => import("@/app/components/create/builder-connections-panel").then((m) => m.BuilderConnectionsPanel),
+  { ssr: false },
+);
 const BuilderAiPreviewPanel = dynamic(
   () => import("@/app/components/create/builder-ai-preview-panel").then((m) => m.BuilderAiPreviewPanel),
   { ssr: false },
@@ -1402,6 +1410,16 @@ export default function ProjectEditorPage() {
                   }}
                 />
               )}
+
+
+              {sidebarTab === "connections" && (
+                <BuilderConnectionsPanel projectId={projectId} />
+              )}
+
+              {sidebarTab === "seo" && (
+                <SiteDomainSeoPanel projectId={projectId} embedded />
+              )}
+
 
               {sidebarTab === "nav" && (
                 <div className="px-4 py-4 space-y-4">
