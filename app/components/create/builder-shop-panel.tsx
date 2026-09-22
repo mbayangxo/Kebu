@@ -89,22 +89,52 @@ export function BuilderShopPanel({
 
   const [showMoreCurrencies, setShowMoreCurrencies] = useState(false);
 
+  if (!c.shopOpened) {
+    return (
+      <div className="flex flex-col gap-0 px-4 py-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl mb-4" style={{ background: "#FFF3EB" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF6A00" strokeWidth="1.7">
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" strokeLinejoin="round" />
+            <path d="M3 6h18" strokeLinecap="round" />
+            <path d="M16 10a4 4 0 01-8 0" strokeLinecap="round" />
+          </svg>
+        </div>
+        <h2 className="text-[14px] font-black" style={{ color: BUILDER.ink }}>Add a shop to your site</h2>
+        <p className="mt-1.5 text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>
+          Accept orders by WhatsApp, mobile money or card. Manage your catalog, customers and
+          payments in Kebu Shop — separate from the page editor.
+        </p>
+        <button
+          type="button"
+          className="mt-4 flex min-h-10 w-full items-center justify-center rounded-xl px-4 text-[12px] font-bold text-white"
+          style={{ background: "#0A0A0A" }}
+          onClick={() => patch({ shopOpened: true })}
+        >
+          Enable shop
+        </button>
+        <p className="mt-2 text-center text-[9px]" style={{ color: BUILDER.muted }}>
+          You can turn it off at any time. Your site stays live either way.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-0">
       {/* Shop open toggle */}
       <div
         className="mx-4 mt-4 mb-3 rounded-xl p-3 flex items-center justify-between gap-3"
-        style={{ background: c.shopOpened ? "#F0FDF4" : "#F9FAFB", border: `1px solid ${c.shopOpened ? "#86EFAC" : BUILDER.border}` }}
+        style={{ background: "#F0FDF4", border: "1px solid #86EFAC" }}
       >
         <div>
-          <p className="text-[12px] font-semibold" style={{ color: c.shopOpened ? "#15803D" : BUILDER.ink }}>
-            {c.shopOpened ? "Shop is open" : "Shop is closed"}
+          <p className="text-[12px] font-semibold" style={{ color: "#15803D" }}>
+            Shop is open
           </p>
           <p className="text-[11px] mt-0.5" style={{ color: BUILDER.muted }}>
-            {c.shopOpened ? "Customers can browse and order." : "Activate to start receiving orders."}
+            Customers can browse and order.
           </p>
         </div>
-        <Toggle checked={Boolean(c.shopOpened)} onChange={(v) => patch({ shopOpened: v })} />
+        <Toggle checked={true} onChange={(v) => patch({ shopOpened: v })} />
       </div>
 
       {/* WhatsApp number */}

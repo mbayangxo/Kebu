@@ -102,17 +102,31 @@ export function BuilderAppsPanel({
           <GalaxyEmptyState title="No apps available" detail="Kebu app blocks will appear here when available for this site." />
         )}
 
-        <div className="border-t border-black/[0.07] pt-3">
-          <p className="text-[10px] font-semibold text-black/45">Selling on your site</p>
-          <p className="mt-1 text-[10px] leading-relaxed text-black/50">
-            Products, orders, customers and payments live in Kebu Shop — the page editor stays focused.
-          </p>
-          <Link
-            href={`/shop/${projectId}`}
-            className="mt-2 inline-flex min-h-9 w-full items-center justify-center rounded-lg border border-black/10 bg-white px-3 text-[11px] font-bold text-black transition hover:border-black/25"
-          >
-            Open Kebu Shop ↗
-          </Link>
+        <div className="border-t border-black/[0.07] pt-3 space-y-3">
+          <div>
+            <p className="text-[10px] font-semibold text-black/45">Selling on your site</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-black/50">
+              Products, orders, customers and payments live in Kebu Shop — the page editor stays focused.
+            </p>
+            <Link
+              href={`/shop/${projectId}`}
+              className="mt-2 inline-flex min-h-9 w-full items-center justify-center rounded-lg border border-black/10 bg-white px-3 text-[11px] font-bold text-black transition hover:border-black/25"
+            >
+              Open Kebu Shop ↗
+            </Link>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-black/45">Email automation</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-black/50">
+              Send triggered sequences — welcome new subscribers, confirm orders, recover abandoned carts.
+            </p>
+            <Link
+              href={`/my-sites/${projectId}/email`}
+              className="mt-2 inline-flex min-h-9 w-full items-center justify-center rounded-lg border border-black/10 bg-white px-3 text-[11px] font-bold text-black transition hover:border-black/25"
+            >
+              Email flows ↗
+            </Link>
+          </div>
         </div>
       </div>
     </div>

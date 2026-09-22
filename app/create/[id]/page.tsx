@@ -141,6 +141,24 @@ function SidebarDetails({ title, children, defaultOpen = true, group }: { title:
   );
 }
 
+function PanelField({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: import("react").ReactNode;
+}) {
+  return (
+    <div>
+      <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: "#8A8A8A" }}>{label}</p>
+      {children}
+      {hint ? <p className="mt-1 text-[9px] leading-relaxed" style={{ color: "#ABABAB" }}>{hint}</p> : null}
+    </div>
+  );
+}
+
 export default function ProjectEditorPage() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
@@ -1918,23 +1936,25 @@ export default function ProjectEditorPage() {
                       {section.section_type === "maylecor-home" ? (
                         <>
                           <SidebarDetails title="Text" group="section-inspector" defaultOpen={true}>
-                            <div className="space-y-2">
-                              <input
-                                className="w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
-                                value={String(section.props.artistName ?? "")}
-                                onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
-                                aria-label="Artist name"
-                                placeholder="MAY LECOR"
-                              />
-                              <input
-                                className="w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
-                                value={String(section.props.ctaLabel ?? "")}
-                                onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
-                                aria-label="CTA label"
-                                placeholder="CTA button label"
-                              />
+                            <div className="space-y-3">
+                              <PanelField label="Artist name">
+                                <input
+                                  className="w-full rounded-lg px-2.5 py-2 text-[12px] outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                                  style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                                  value={String(section.props.artistName ?? "")}
+                                  onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
+                                  placeholder="MAY LECOR"
+                                />
+                              </PanelField>
+                              <PanelField label="CTA button" hint="Text shown on the call-to-action button">
+                                <input
+                                  className="w-full rounded-lg px-2.5 py-2 text-[12px] outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                                  style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                                  value={String(section.props.ctaLabel ?? "")}
+                                  onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
+                                  placeholder="Listen now"
+                                />
+                              </PanelField>
                             </div>
                           </SidebarDetails>
                           <SidebarDetails title="Photos" group="section-inspector" defaultOpen={false}>
@@ -2011,25 +2031,27 @@ export default function ProjectEditorPage() {
                           >
                             Restore May circle + cutouts
                           </button>
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.title ?? "")}
-                            onChange={(e) =>
-                              updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
-                            }
-                            aria-label="Title"
-                            placeholder="Artist or brand name"
-                          />
-                          <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            rows={3}
-                            value={String(section.props.subtitle ?? "")}
-                            onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
-                            aria-label="Subtitle"
-                            placeholder="Short bio or tagline"
-                          />
+                          <PanelField label="Artist / brand name">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.title ?? "")}
+                              onChange={(e) =>
+                                updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
+                              }
+                              placeholder="Artist or brand name"
+                            />
+                          </PanelField>
+                          <PanelField label="Subtitle" hint="Short bio or tagline shown below the name">
+                            <textarea
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              rows={3}
+                              value={String(section.props.subtitle ?? "")}
+                              onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
+                              placeholder="Short bio or tagline"
+                            />
+                          </PanelField>
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
                             Center mark uses the May Lècor circle seal (not Russian text). Swap cutouts in Media or on the canvas.
                           </p>
@@ -2055,11 +2077,10 @@ export default function ProjectEditorPage() {
                               onChange={(url) => updateProps(section.id, { chromeLogo: url })}
                             />
                           ) : null}
-                          <label className="block text-[10px] uppercase tracking-wider">
-                            Nav look
+                          <PanelField label="Nav look">
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                               value={String(section.props.navDisplay ?? "text")}
                               onChange={(e) =>
                                 updateProps(section.id, {
@@ -2071,7 +2092,7 @@ export default function ProjectEditorPage() {
                               <option value="icons">Built-in icons</option>
                               <option value="photos">Photos / custom icons</option>
                             </select>
-                          </label>
+                          </PanelField>
                           <NavLinksEditor
                             projectId={projectId}
                             allowIcons
@@ -2088,11 +2109,10 @@ export default function ProjectEditorPage() {
                             logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
                             onChange={(patch) => updateProps(section.id, patch)}
                           />
-                          <label className="block text-[10px] uppercase tracking-wider">
-                            Display font (Steelfish recommended)
+                          <PanelField label="Display font" hint="Steelfish is recommended for the artist name">
                             <select
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                               value={String(section.props.displayFont ?? "Steelfish")}
                               onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
                             >
@@ -2113,7 +2133,7 @@ export default function ProjectEditorPage() {
                                 </option>
                               ))}
                             </select>
-                          </label>
+                          </PanelField>
                           </div></SidebarDetails>
                           <SidebarDetails title="Layers & Assets" group={`lb-${section.id}`} defaultOpen={false}>
                           <div className="space-y-2">
@@ -2421,68 +2441,68 @@ export default function ProjectEditorPage() {
                             value={String(section.props.logoImage ?? "")}
                             onChange={(url) => updateProps(section.id, { logoImage: url })}
                           />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.brandLine1 ?? "K")}
-                            onChange={(e) => updateProps(section.id, { brandLine1: e.target.value })}
-                            placeholder="K"
-                            aria-label="Brand letter"
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.brandLine2 ?? "DIRECTION")}
-                            onChange={(e) => updateProps(section.id, { brandLine2: e.target.value })}
-                            placeholder="DIRECTION"
-                            aria-label="Brand word"
-                          />
-                          <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            rows={2}
-                            value={String(section.props.mission ?? "")}
-                            onChange={(e) => updateProps(section.id, { mission: e.target.value })}
-                            placeholder="Mission / short line under the logo"
-                          />
-                          <label className="block text-[10px] uppercase tracking-wider">
-                            Font (Oswald = Wix)
+                          <PanelField label="Brand letter">
                             <input
-                              className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.brandLine1 ?? "K")}
+                              onChange={(e) => updateProps(section.id, { brandLine1: e.target.value })}
+                              placeholder="K"
+                            />
+                          </PanelField>
+                          <PanelField label="Brand word">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.brandLine2 ?? "DIRECTION")}
+                              onChange={(e) => updateProps(section.id, { brandLine2: e.target.value })}
+                              placeholder="DIRECTION"
+                            />
+                          </PanelField>
+                          <PanelField label="Mission" hint="Short line shown under the logo">
+                            <textarea
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              rows={2}
+                              value={String(section.props.mission ?? "")}
+                              onChange={(e) => updateProps(section.id, { mission: e.target.value })}
+                              placeholder="Mission / short line under the logo"
+                            />
+                          </PanelField>
+                          <PanelField label="Font" hint="Oswald matches the Wix K-Direction look">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                               value={String(section.props.displayFont ?? "Oswald")}
                               onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
                             />
-                          </label>
+                          </PanelField>
                           <div className="grid grid-cols-2 gap-2">
-                            <label className="block text-[10px] uppercase tracking-wider">
-                              Logo color
+                            <PanelField label="Logo color">
                               <input
-                                className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="w-full text-xs rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                                style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                                 value={String(section.props.logoColor ?? "#FFFFFF")}
                                 onChange={(e) => updateProps(section.id, { logoColor: e.target.value })}
                               />
-                            </label>
-                            <label className="block text-[10px] uppercase tracking-wider">
-                              Mirror color
+                            </PanelField>
+                            <PanelField label="Mirror color">
                               <input
-                                className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="w-full text-xs rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                                style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                                 value={String(section.props.logoMirrorColor ?? "#F5C4B8")}
                                 onChange={(e) => updateProps(section.id, { logoMirrorColor: e.target.value })}
                               />
-                            </label>
+                            </PanelField>
                           </div>
-                          <label className="block text-[10px] uppercase tracking-wider">
-                            Nav button yellow
+                          <PanelField label="Nav button color">
                             <input
-                              className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-xs rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                               value={String(section.props.navButtonBg ?? "#FFF86B")}
                               onChange={(e) => updateProps(section.id, { navButtonBg: e.target.value })}
                             />
-                          </label>
+                          </PanelField>
                           <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
                             <input
                               type="checkbox"
@@ -2709,32 +2729,37 @@ export default function ProjectEditorPage() {
                             )}
                             onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
                           />
-                          <label className="block text-[10px] uppercase tracking-wider pt-1">
-                            Footer text
+                          <PanelField label="Footer text">
                             <input
-                              className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
+                              className="w-full text-xs rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                               value={String(section.props.footerText ?? "")}
                               onChange={(e) => updateProps(section.id, { footerText: e.target.value })}
                             />
-                          </label>
+                          </PanelField>
                         </div>
                       )}
                       {section.section_type === "kdirection-page" && (
-                        <div className="space-y-2">
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.title ?? "")}
-                            onChange={(e) => updateProps(section.id, { title: e.target.value })}
-                          />
-                          <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            rows={4}
-                            value={String(section.props.body ?? "")}
-                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
-                          />
+                        <div className="space-y-3">
+                          <PanelField label="Page title">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.title ?? "")}
+                              onChange={(e) => updateProps(section.id, { title: e.target.value })}
+                              placeholder="Page title"
+                            />
+                          </PanelField>
+                          <PanelField label="Body text">
+                            <textarea
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              rows={4}
+                              value={String(section.props.body ?? "")}
+                              onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                              placeholder="Page content"
+                            />
+                          </PanelField>
                           <SectionPhotoField
                             projectId={projectId}
                             label="Hero photo"
@@ -2766,14 +2791,16 @@ export default function ProjectEditorPage() {
                         </div>
                       )}
                       {section.section_type === "maylecor-music" && (
-                        <div className="space-y-2">
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.artistName ?? "")}
-                            onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
-                            aria-label="Artist name"
-                          />
+                        <div className="space-y-3">
+                          <PanelField label="Artist name">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.artistName ?? "")}
+                              onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
+                              placeholder="Artist name"
+                            />
+                          </PanelField>
                           <SectionPhotoField
                             projectId={projectId}
                             label="Album art"
@@ -2802,41 +2829,45 @@ export default function ProjectEditorPage() {
                         </div>
                       )}
                       {section.section_type === "hero" && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Copy</p>
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
-                            placeholder="Heading"
-                            aria-label="Hero heading"
-                          />
-                          <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[60px]"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.subheading ?? "")}
-                            onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
-                            placeholder="Subheading"
-                            aria-label="Hero subheading"
-                          />
+                          <PanelField label="Heading">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.heading ?? "")}
+                              onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                              placeholder="Heading"
+                            />
+                          </PanelField>
+                          <PanelField label="Subheading">
+                            <textarea
+                              className="w-full text-sm rounded-lg px-2.5 py-2 min-h-[60px] outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.subheading ?? "")}
+                              onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
+                              placeholder="Subheading"
+                            />
+                          </PanelField>
                           <div className="grid grid-cols-2 gap-2">
-                            <input
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.buttonLabel ?? "")}
-                              onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
-                              placeholder="Button label"
-                              aria-label="Button label"
-                            />
-                            <input
-                              className="w-full text-sm rounded-lg px-2 py-1.5"
-                              style={{ border: "1px solid #DDE0F0" }}
-                              value={String(section.props.buttonHref ?? "")}
-                              onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
-                              placeholder="Button link"
-                              aria-label="Button link"
-                            />
+                            <PanelField label="Button text">
+                              <input
+                                className="w-full text-sm rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                                style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                                value={String(section.props.buttonLabel ?? "")}
+                                onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                                placeholder="Button label"
+                              />
+                            </PanelField>
+                            <PanelField label="Button link">
+                              <input
+                                className="w-full text-sm rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                                style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                                value={String(section.props.buttonHref ?? "")}
+                                onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
+                                placeholder="Button link"
+                              />
+                            </PanelField>
                           </div>
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Design</p>
                           <SectionPhotoField
@@ -2846,34 +2877,31 @@ export default function ProjectEditorPage() {
                             onChange={(url) => updateProps(section.id, { image: url })}
                           />
                           <div className="grid grid-cols-2 gap-2">
-                            <label className="block text-[10px] uppercase tracking-wider">
-                              Background color
+                            <PanelField label="Background color">
                               <input
                                 type="color"
-                                className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
+                                className="h-8 w-full cursor-pointer rounded border-0 p-0"
                                 value={String(section.props.background ?? "#0A0A0A")}
                                 onChange={(e) => updateProps(section.id, { background: e.target.value })}
                               />
-                            </label>
-                            <label className="block text-[10px] uppercase tracking-wider">
-                              Text align
+                            </PanelField>
+                            <PanelField label="Text align">
                               <select
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="w-full text-sm rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                                style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                                 value={String(section.props.align ?? "center")}
                                 onChange={(e) => updateProps(section.id, { align: e.target.value })}
                               >
                                 <option value="center">Center</option>
                                 <option value="left">Left</option>
                               </select>
-                            </label>
+                            </PanelField>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
-                            <label className="block text-[10px] uppercase tracking-wider">
-                              Height
+                            <PanelField label="Height">
                               <select
-                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
-                                style={{ border: "1px solid #DDE0F0" }}
+                                className="w-full text-sm rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                                style={{ border: "1px solid #E0E0E0", background: "#fff" }}
                                 value={String(section.props.minHeight ?? "80vh")}
                                 onChange={(e) => updateProps(section.id, { minHeight: e.target.value })}
                               >
@@ -2882,9 +2910,8 @@ export default function ProjectEditorPage() {
                                 <option value="80vh">Hero (80vh)</option>
                                 <option value="100vh">Full screen</option>
                               </select>
-                            </label>
-                            <label className="block text-[10px] uppercase tracking-wider">
-                              Overlay
+                            </PanelField>
+                            <PanelField label="Overlay">
                               <input
                                 type="range"
                                 min={0}
@@ -2894,24 +2921,30 @@ export default function ProjectEditorPage() {
                                 value={Number(section.props.overlayOpacity ?? 0.42)}
                                 onChange={(e) => updateProps(section.id, { overlayOpacity: Number(e.target.value) })}
                               />
-                            </label>
+                            </PanelField>
                           </div>
                         </div>
                       )}
                       {section.section_type === "text" && (
-                        <div className="space-y-2">
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
-                          />
-                          <textarea
-                            className="w-full text-sm rounded-lg px-2 py-1.5 min-h-[80px]"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.body ?? "")}
-                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
-                          />
+                        <div className="space-y-3">
+                          <PanelField label="Heading">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.heading ?? "")}
+                              onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                              placeholder="Section heading"
+                            />
+                          </PanelField>
+                          <PanelField label="Body text">
+                            <textarea
+                              className="w-full text-sm rounded-lg px-2.5 py-2 min-h-[80px] outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.body ?? "")}
+                              onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                              placeholder="Write your content here"
+                            />
+                          </PanelField>
                         </div>
                       )}
                       {section.section_type === "navigation" && (
@@ -2977,51 +3010,56 @@ export default function ProjectEditorPage() {
                         </div>
                       )}
                       {section.section_type === "contact" && (
-                        <div className="space-y-2">
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
-                            aria-label="Contact heading"
-                            placeholder="Contact"
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.email ?? "")}
-                            onChange={(e) => updateProps(section.id, { email: e.target.value })}
-                            aria-label="Email"
-                            placeholder="Email"
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.phone ?? "")}
-                            onChange={(e) => updateProps(section.id, { phone: e.target.value })}
-                            aria-label="Phone"
-                            placeholder="Phone"
-                          />
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.address ?? "")}
-                            onChange={(e) => updateProps(section.id, { address: e.target.value })}
-                            aria-label="Address"
-                            placeholder="Address or city"
-                          />
+                        <div className="space-y-3">
+                          <PanelField label="Section heading">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.heading ?? "")}
+                              onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                              placeholder="Contact"
+                            />
+                          </PanelField>
+                          <PanelField label="Email">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.email ?? "")}
+                              onChange={(e) => updateProps(section.id, { email: e.target.value })}
+                              placeholder="hello@example.com"
+                            />
+                          </PanelField>
+                          <PanelField label="Phone">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.phone ?? "")}
+                              onChange={(e) => updateProps(section.id, { phone: e.target.value })}
+                              placeholder="+221 77 000 00 00"
+                            />
+                          </PanelField>
+                          <PanelField label="Address">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.address ?? "")}
+                              onChange={(e) => updateProps(section.id, { address: e.target.value })}
+                              placeholder="Address or city"
+                            />
+                          </PanelField>
                         </div>
                       )}
                       {section.section_type === "features" && (
-                        <div className="space-y-2">
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
-                            aria-label="Features heading"
-                            placeholder="Section heading"
-                          />
+                        <div className="space-y-3">
+                          <PanelField label="Section heading">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.heading ?? "")}
+                              onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                              placeholder="Section heading"
+                            />
+                          </PanelField>
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
                             (item: { title?: string; body?: string; image?: string; href?: string }, idx: number) => (
                               <div key={idx} className="space-y-1.5 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
@@ -3102,14 +3140,16 @@ export default function ProjectEditorPage() {
                         </div>
                       )}
                       {section.section_type === "faq" && (
-                        <div className="space-y-2">
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
-                            aria-label="FAQ heading"
-                          />
+                        <div className="space-y-3">
+                          <PanelField label="Section heading">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.heading ?? "")}
+                              onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                              placeholder="Frequently asked questions"
+                            />
+                          </PanelField>
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
                             (item: { question?: string; answer?: string }, idx: number) => (
                               <div key={idx} className="space-y-1 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
@@ -3156,15 +3196,16 @@ export default function ProjectEditorPage() {
                         </div>
                       )}
                       {section.section_type === "testimonials" && (
-                        <div className="space-y-2">
-                          <input
-                            className="w-full text-sm rounded-lg px-2 py-1.5"
-                            style={{ border: "1px solid #DDE0F0" }}
-                            value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
-                            placeholder="What our customers say"
-                            aria-label="Testimonials heading"
-                          />
+                        <div className="space-y-3">
+                          <PanelField label="Section heading">
+                            <input
+                              className="w-full text-sm rounded-lg px-2.5 py-2 outline-none focus:ring-1 focus:ring-[#FF6A00]"
+                              style={{ border: "1px solid #E0E0E0", background: "#fff" }}
+                              value={String(section.props.heading ?? "")}
+                              onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                              placeholder="What our customers say"
+                            />
+                          </PanelField>
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
                             (item: { quote?: string; name?: string; role?: string; avatar?: string }, idx: number) => (
                               <div key={idx} className="space-y-1.5 rounded-lg p-2" style={{ background: "#F4F2EC" }}>
