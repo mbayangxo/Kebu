@@ -83,6 +83,8 @@ export const themeSchema = z.object({
   customCss: z.string().trim().max(10000).optional(),
   /** ISO 4217 currency code (XOF, NGN, KES, GHS, ZAR, USD, EUR…). */
   currency: z.string().trim().max(8).optional(),
+  /** Base body font size in px (12–20). Defaults to 16. */
+  baseFontSize: z.number().min(12).max(20).optional(),
 });
 
 const safeHref = z

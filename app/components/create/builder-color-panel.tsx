@@ -349,6 +349,26 @@ export function BuilderTypographyPanel({
         </div>
       </div>
       <div>
+        <p className="text-[10px] font-semibold text-black/55 mb-1.5">Base font size</p>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={12}
+            max={20}
+            step={1}
+            value={theme.baseFontSize ?? 16}
+            onChange={(e) => onThemeChange({ baseFontSize: Number(e.target.value) })}
+            className="flex-1"
+          />
+          <span className="w-10 text-right text-[11px] font-semibold tabular-nums" style={{ color: BUILDER.ink }}>
+            {theme.baseFontSize ?? 16}px
+          </span>
+        </div>
+        <p className="text-[9px] mt-0.5" style={{ color: BUILDER.faint }}>
+          Scales body text across all sections (12–20 px).
+        </p>
+      </div>
+      <div>
         <p className="text-[10px] font-semibold text-black/55 mb-1.5">Letter spacing</p>
         <div className="flex gap-1">
           {(["tight", "normal", "wide"] as const).map((id) => {

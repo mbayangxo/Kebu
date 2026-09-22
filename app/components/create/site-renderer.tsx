@@ -422,6 +422,7 @@ function SiteNav({
   maxWidth,
   logoAlign,
   layout,
+  navStyle,
   navScale,
   resolveHref,
   onNavigate,
@@ -442,6 +443,7 @@ function SiteNav({
   maxWidth: string | undefined;
   logoAlign: "left" | "center" | "right";
   layout?: "top" | "side" | "hamburger";
+  navStyle?: "standard" | "mega";
   /** Current scale value, passed so the drag handle can compute correctly. */
   navScale?: number;
   resolveHref: (h: string) => string;
@@ -519,10 +521,10 @@ function SiteNav({
                 zIndex: Z_LAYERS.dropdownPanel,
                 background: navBg || "#000",
                 border: "1px solid rgba(255,255,255,0.12)",
-                minWidth: l.children!.length > 4 ? 240 : 180,
+                minWidth: (navStyle === "mega" || l.children!.length > 4) ? 240 : 180,
               }}
             >
-              {l.children!.length > 4 ? (
+              {(navStyle === "mega" || l.children!.length > 4) ? (
                 /* Mega nav grid for 5+ children */
                 <div className="grid grid-cols-2 gap-0">
                   {l.children!.map((child) => {
@@ -1168,6 +1170,7 @@ export function SiteRenderer({
               fontWeight: Number(raw.fontWeight ?? 700),
               logoAlign: (raw.logoAlign as "left" | "center" | "right" | undefined) ?? "left",
               navSticky: raw.navSticky !== false,
+              navStyle: raw.navStyle as "standard" | "mega" | undefined,
             };
             const patchNav = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
@@ -1276,6 +1279,7 @@ export function SiteRenderer({
                 layout={p.navLayout}
                 navScale={m.scale}
                 resolveHref={resolveNavHref}
+                navStyle={p.navStyle}
                 onNavigate={editor?.onNavigatePage}
                 fontFamily={p.fontFamily}
                 fontWeight={p.fontWeight}

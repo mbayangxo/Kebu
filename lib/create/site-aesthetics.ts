@@ -270,8 +270,9 @@ export function themeToCssVars(theme: ThemeTokens): Record<string, string> {
         : theme.headingScale === "xl"
           ? "1.35"
           : "1";
-  const bodySize =
-    theme.bodySize === "sm" ? "0.9375rem" : theme.bodySize === "lg" ? "1.125rem" : "1rem";
+  const basePx = Math.min(20, Math.max(12, theme.baseFontSize ?? 16));
+  const bodySizeMultiplier = theme.bodySize === "sm" ? 0.9375 : theme.bodySize === "lg" ? 1.125 : 1;
+  const bodySize = `${Math.round(basePx * bodySizeMultiplier)}px`;
   const tracking =
     theme.letterSpacing === "tight" ? "-0.02em" : theme.letterSpacing === "wide" ? "0.06em" : "0";
   const surface = theme.surface?.trim() || "#FFFFFF";
