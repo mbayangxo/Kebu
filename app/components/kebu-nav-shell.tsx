@@ -150,7 +150,7 @@ export function KebuNavShell() {
     <>
       {/* Desktop sidebar */}
       <aside
-        className="sticky top-0 hidden h-screen w-[200px] shrink-0 flex-col border-r md:flex"
+        className="sticky top-0 hidden h-screen w-[160px] shrink-0 flex-col border-r md:flex"
         style={{ background: bg, borderColor: border, overflowY: "auto" }}
       >
         {/* Logo */}

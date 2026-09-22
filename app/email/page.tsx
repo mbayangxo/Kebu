@@ -526,17 +526,22 @@ export default function EmailPage() {
             <nav className="flex-1 overflow-y-auto px-2 py-3">
               {([
                 { id: "inbox" as Folder, label: "Inbox", badge: unread || null },
-                { id: "inbox" as Folder, label: "Priority", badge: 4 },
+                { id: "inbox" as Folder, label: "Primary", badge: null },
+                { id: "inbox" as Folder, label: "Important", badge: null },
+                { id: "inbox" as Folder, label: "Priority", badge: null },
+                { id: "inbox" as Folder, label: "Promotions", badge: null },
+                { id: "inbox" as Folder, label: "Unsubscribed", badge: null },
                 { id: "inbox" as Folder, label: "People", badge: null },
-                { id: "inbox" as Folder, label: "Waiting", badge: 3 },
+                { id: "inbox" as Folder, label: "Waiting", badge: null },
                 { id: "sent" as Folder, label: "Sent", badge: null },
                 { id: "drafts" as Folder, label: "Drafts", badge: messages.filter(m => m.folder === "drafts").length || null },
                 { id: "inbox" as Folder, label: "Scheduled", badge: null },
                 { id: "inbox" as Folder, label: "Starred", badge: null },
+                { id: "spam" as Folder, label: "Spam", badge: null },
                 { id: "archive" as Folder, label: "Archive", badge: null },
                 { id: "trash" as Folder, label: "Trash", badge: null },
               ]).map(({ id, label, badge }) => {
-                const active = folder === id && (label === "Inbox" || label === "Sent" || label === "Drafts" || label === "Archive" || label === "Trash");
+                const active = folder === id && (label === "Inbox" || label === "Sent" || label === "Drafts" || label === "Spam" || label === "Archive" || label === "Trash");
                 return (
                   <button
                     key={label}

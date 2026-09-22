@@ -116,13 +116,6 @@ export default function RoomsPage() {
   const dayName = today.toLocaleDateString("en-US", { weekday: "short" });
   const monthDay = today.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-  // Mock scheduled events (static placeholder)
-  const scheduledEvents = [
-    { time: "9:00 AM", name: "Team standup", biz: "Design team", color: KEBU.orange },
-    { time: "2:00 PM", name: "Client review", biz: "Project Phoenix", color: "#3B82F6" },
-    { time: "4:30 PM", name: "1-on-1", biz: "Engineering", color: "#10B981" },
-  ];
-
   return (
     <AppShell title="Rooms">
       <div style={{ background: "#FAFAF9", minHeight: "100vh" }}>
@@ -310,17 +303,10 @@ export default function RoomsPage() {
                 <p className="text-[12px] font-black">{dayName}, {monthDay}</p>
                 <button className="text-[11px]" style={{ color: KEBU.faint }}>→</button>
               </div>
-              <ul className="space-y-2">
-                {scheduledEvents.map((ev) => (
-                  <li key={ev.name} className="flex items-start gap-2.5">
-                    <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full" style={{ background: ev.color }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-[11px] font-bold">{ev.name}</p>
-                      <p className="text-[9px]" style={{ color: KEBU.faint }}>{ev.time} · {ev.biz}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div className="py-4 text-center">
+                <KebuIcon name="calendar" size={20} className="mx-auto mb-2" style={{ color: KEBU.faint }} />
+                <p className="text-[10px] font-bold" style={{ color: KEBU.faint }}>No events today</p>
+              </div>
               <Link href="/calendar" className="mt-3 block text-[10px] font-bold" style={{ color: KEBU.orange }}>
                 Open calendar →
               </Link>

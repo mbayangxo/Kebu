@@ -33,19 +33,15 @@ function shouldHideFloatingActions(pathname: string): boolean {
 }
 
 function usesAppShellLayout(pathname: string): boolean {
-  return (
-    pathname === "/dashboard" ||
-    pathname === "/account" ||
-    pathname.startsWith("/business") ||
-    pathname.startsWith("/my-sites") ||
-    pathname.startsWith("/create/sites") ||
-    pathname.startsWith("/create/domains") ||
-    pathname.startsWith("/opportunity") ||
-    pathname === "/b2b" ||
-    pathname.startsWith("/studio") ||
-    pathname === "/welcome" ||
-    pathname.startsWith("/id/")
-  );
+  // Public / marketing / unauthenticated paths don't use AppShell
+  if (pathname === "/" || isMarketingPath(pathname)) return false;
+  if (pathname.startsWith("/sites/")) return false;
+  if (pathname.startsWith("/e/")) return false;
+  if (pathname.startsWith("/login") || pathname.startsWith("/signup") || pathname === "/welcome") return false;
+  // Opportunity OS keeps its own LanguageBar (country + language + currency)
+  if (pathname.startsWith("/opportunity")) return false;
+  // Everything else is an authenticated interior page using AppShell
+  return true;
 }
 
 /** Hide legacy app chrome on the marketing landing so only Kebu hero nav shows. */

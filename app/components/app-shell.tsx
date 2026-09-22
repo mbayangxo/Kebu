@@ -111,23 +111,23 @@ export function AppShell({
           </header>
 
           <div
-            className="hidden md:flex items-center justify-between gap-3 px-8 lg:px-10 py-3.5 sticky top-0 z-30 backdrop-blur-md"
+            className="hidden md:flex items-center justify-between gap-3 px-6 lg:px-8 py-2.5 sticky top-0 z-30 backdrop-blur-md"
             style={{
               background: "rgba(255,251,247,0.92)",
               borderBottom: `1px solid rgba(255,85,0,0.15)`,
             }}
           >
-            <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               <BackLink fallbackHref={fallback} variant="strong" />
               <h1
-                className="text-sm font-bold truncate"
+                className="text-xs font-bold truncate opacity-60"
                 style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
               >
                 {title}
               </h1>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="w-[148px]"><KebuWorldSwitcher compact /></div>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="w-[160px]"><KebuWorldSwitcher compact /></div>
               <CommandPaletteTrigger />
               {actions}
               <KebuNotifications />

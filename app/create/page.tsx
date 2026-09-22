@@ -29,7 +29,7 @@ type PortfolioSiteRow = {
   status?: string | null;
 };
 
-const TYPE_TABS = ["Website", "Design", "Video", "Document", "Presentation", "Social", "Brand Kit", "More"];
+const TYPE_TABS = ["All", "Website", "Design", "Video", "Document", "Presentation", "Social", "Brand Kit", "More"];
 
 const TEMPLATE_STARTERS = [
   { label: "Blank", bg: "#F5F4F1", border: true },
@@ -60,7 +60,7 @@ export default function CreateHubPage() {
   const [portfolioNote, setPortfolioNote] = useState<string | null>(null);
   const [portfolioAllowed, setPortfolioAllowed] = useState(false);
   const [portfolioSites, setPortfolioSites] = useState<PortfolioSiteRow[]>([]);
-  const [activeTab, setActiveTab] = useState("Website");
+  const [activeTab, setActiveTab] = useState("All");
   const [activeFilter, setActiveFilter] = useState("All");
 
   const load = useCallback(async () => {
@@ -195,6 +195,34 @@ export default function CreateHubPage() {
 
   const galleryFlagship = getFlagshipGalleryTemplates();
 
+  const TYPE_TO_PROJECT_TYPE: Record<string, string> = {
+    Website: "website",
+    Design: "design",
+    Video: "video",
+    Document: "document",
+    Presentation: "presentation",
+    Social: "social",
+    "Brand Kit": "brand",
+  };
+
+  const FILTER_TO_PROJECT_TYPE: Record<string, string> = {
+    Websites: "website",
+    Designs: "design",
+    Videos: "video",
+    Documents: "document",
+    Presentations: "presentation",
+    Social: "social",
+    "Brand Kits": "brand",
+  };
+
+  const filteredProjects = projects.filter((p) => {
+    const tabFilter = activeTab !== "All" && activeTab !== "More" ? TYPE_TO_PROJECT_TYPE[activeTab] : null;
+    const contentFilter = activeFilter !== "All" ? FILTER_TO_PROJECT_TYPE[activeFilter] : null;
+    const activeKey = tabFilter ?? contentFilter;
+    if (!activeKey) return true;
+    return p.project_type?.toLowerCase().includes(activeKey);
+  });
+
   const gradients = [
     "linear-gradient(135deg,#FF5500,#E10600)",
     "linear-gradient(135deg,#1A1A1A,#374151)",
@@ -219,12 +247,9 @@ export default function CreateHubPage() {
       }
     >
       <div style={{ background: "#FAFAF9", minHeight: "100vh" }}>
-        <div className="px-5 pt-6 sm:px-8 sm:pt-8">
-          {/* Eyebrow */}
-          <p className="text-[10px] font-black uppercase tracking-[.22em]" style={{ color: KEBU.orange }}>Create</p>
-
+        <div className="px-5 pt-5 sm:px-8 sm:pt-5">
           {/* Type tabs */}
-          <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
             {TYPE_TABS.map((tab) => (
               <button
                 key={tab}
@@ -337,9 +362,9 @@ export default function CreateHubPage() {
                 Open My sites{projects.length ? ` (${projects.length})` : ""} →
               </Link>
             </div>
-            {projects.length > 0 ? (
+            {filteredProjects.length > 0 ? (
               <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-                {projects.slice(0, 8).map((project, i) => (
+                {filteredProjects.slice(0, 12).map((project, i) => (
                   <Link
                     key={project.id}
                     href={`/create/${project.id}`}

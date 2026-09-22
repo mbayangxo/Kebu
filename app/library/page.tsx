@@ -22,7 +22,6 @@ const ACTION_TILES = [
   { label: "Create with AI", sub: "Yande", icon: "yande" as const, dark: false },
 ];
 
-const FOLDER_COLORS = ["#C8B4A0", "#F2C4C4", "#C4C4F2", "#A0C8A0", "#1A1A1A", "#BDBDBD", "#2D2520", "#D4C0AA"];
 
 export default async function LibraryPage() {
   const supabase = await createClient();
@@ -45,20 +44,9 @@ export default async function LibraryPage() {
   return (
     <AppShell title="Library">
       <div style={{ background: "#F5F4F1", minHeight: "100vh" }}>
-        {/* Hero */}
-        <div className="px-6 pt-8 pb-6 sm:px-10 sm:pt-10">
-          <p className="text-[10px] font-black uppercase tracking-[.22em]" style={{ color: KEBU.orange }}>Library</p>
-          <h1 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight" style={{ fontFamily: "var(--font-fraunces)" }}>
-            All your creative assets, in one place.
-          </h1>
-          <p className="mt-1.5 text-sm max-w-xl" style={{ color: KEBU.muted }}>
-            Store, organize, create, and use your files across Kebu.
-          </p>
-        </div>
-
         {/* Body */}
         <div className="flex gap-0">
-          <main className="flex-1 min-w-0 px-5 pb-8 sm:px-8 space-y-7">
+          <main className="flex-1 min-w-0 px-5 py-5 pb-8 sm:px-8 space-y-6">
             {/* Action tiles */}
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
               {ACTION_TILES.map((tile) => (
@@ -116,28 +104,14 @@ export default async function LibraryPage() {
             {/* Folders */}
             <section>
               <h2 className="text-[10px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.muted }}>Folders</h2>
-              {designs.length > 0 || projects.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {FOLDER_COLORS.map((color, i) => (
-                    <button
-                      key={i}
-                      className="rounded-2xl aspect-square flex flex-col items-center justify-center gap-1.5 hover:-translate-y-0.5 transition-transform"
-                      style={{ background: color }}
-                    >
-                      <KebuIcon name="spaces" size={22} style={{ color: color === "#1A1A1A" || color === "#2D2520" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.35)" }} />
-                      <span className="text-[10px] font-bold" style={{ color: color === "#1A1A1A" || color === "#2D2520" ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)" }}>
-                        Folder {i + 1}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
-                  <KebuIcon name="spaces" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
-                  <p className="text-sm font-black">No folders yet.</p>
-                  <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Create a folder to organize your files.</p>
-                </div>
-              )}
+              <div className="rounded-2xl border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
+                <KebuIcon name="spaces" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
+                <p className="text-sm font-black">No folders yet.</p>
+                <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Create a folder to organize your files.</p>
+                <button className="mt-4 inline-flex rounded-full px-4 py-2 text-[10px] font-bold text-white" style={{ background: KEBU.black }}>
+                  + New folder
+                </button>
+              </div>
             </section>
 
             {/* Recent files */}

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
@@ -37,25 +40,14 @@ const SIDEBAR_TOOLS = [
 ];
 
 export default function DocsPage() {
+  const [activeTab, setActiveTab] = useState("All");
+
   return (
     <AppShell title="Docs">
       <div style={{ background: "#F5F4F1", minHeight: "100vh" }}>
-        {/* Hero */}
-        <div
-          className="relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg,#1A1A1A 0%,#2D2520 55%,#3D2B1F 100%)", minHeight: 172 }}
-        >
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 75% 30%, #FF5500 0%, transparent 55%)" }} aria-hidden />
-          <div className="relative z-10 px-6 py-8 sm:px-10 sm:py-10">
-            <p className="text-[10px] font-black uppercase tracking-[.22em]" style={{ color: KEBU.orange }}>KEBU</p>
-            <h1 className="mt-2 text-4xl sm:text-5xl font-black tracking-tight text-white" style={{ fontFamily: "var(--font-fraunces)" }}>Docs.</h1>
-            <p className="mt-2 text-sm text-white/60 max-w-lg">Create, manage and share documents, spreadsheets, and presentations — all in one place.</p>
-          </div>
-        </div>
-
         {/* Body layout */}
         <div className="flex gap-0">
-          <main className="flex-1 min-w-0 px-5 py-6 sm:px-8 space-y-6">
+          <main className="flex-1 min-w-0 px-5 py-5 sm:px-8 space-y-5">
             {/* File type shortcuts */}
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
               {FILE_TYPES.map((ft) => (
@@ -75,14 +67,15 @@ export default function DocsPage() {
               ))}
             </div>
 
-            {/* Filter tabs */}
+            {/* Filter tabs — interactive */}
             <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-              {FILTER_TABS.map((tab, i) => (
+              {FILTER_TABS.map((tab) => (
                 <button
                   key={tab}
+                  onClick={() => setActiveTab(tab)}
                   className="shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition"
                   style={
-                    i === 0
+                    activeTab === tab
                       ? { background: KEBU.black, color: "#fff" }
                       : {
                           background: "white",
@@ -176,7 +169,7 @@ export default function DocsPage() {
           </main>
 
           {/* Right sidebar */}
-          <aside className="hidden xl:flex w-60 shrink-0 flex-col gap-4 px-4 py-6">
+          <aside className="hidden xl:flex w-56 shrink-0 flex-col gap-4 px-4 py-5">
             {/* Create new */}
             <div className="rounded-2xl border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
               <p className="text-[10px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.muted }}>

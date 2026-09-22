@@ -7,7 +7,7 @@ import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
 import { KEBU_TOOLS } from "@/lib/account/kebu-setup";
 import { KEBU } from "@/lib/kebu-brand";
 
-const CATEGORY_FILTERS = ["All", "Create", "Communicate", "Build", "Manage", "Business", "Explore"];
+const CATEGORY_FILTERS = ["All", "Create", "Communicate", "Manage", "Business", "Explore"];
 
 const FEATURED_TOOLS = [
   {
@@ -74,45 +74,35 @@ export default function ToolsPage() {
   return (
     <AppShell title="All tools">
       <div style={{ background: "#F5F4F1", minHeight: "100vh" }}>
-        {/* Hero */}
-        <div className="flex items-start justify-between px-6 pt-8 pb-4 sm:px-10 sm:pt-10">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.22em]" style={{ color: KEBU.orange }}>Tools</p>
-            <h1
-              className="mt-2 text-3xl sm:text-4xl font-black tracking-tight"
-              style={{ fontFamily: "var(--font-fraunces)" }}
-            >
-              Everything you need.
-            </h1>
-          </div>
-          <button
-            className="mt-2 rounded-full px-4 py-2 text-[11px] font-bold text-white"
-            style={{ background: KEBU.black }}
-          >
-            + Add tool
-          </button>
-        </div>
-
         {/* Body */}
         <div className="flex gap-0">
-          <main className="flex-1 min-w-0 px-5 pb-8 sm:px-8 space-y-8">
-            {/* Category filter pills */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-              {CATEGORY_FILTERS.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveFilter(cat)}
-                  className="shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition"
-                  style={
-                    activeFilter === cat
-                      ? { background: KEBU.black, color: "#fff" }
-                      : { background: "white", color: KEBU.muted, border: "1px solid " + KEBU.borders.default }
-                  }
-                >
-                  {cat}
-                </button>
-              ))}
+          <main className="flex-1 min-w-0 px-5 py-5 pb-8 sm:px-8 space-y-5">
+            {/* Top action row */}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                {CATEGORY_FILTERS.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveFilter(cat)}
+                    className="shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition"
+                    style={
+                      activeFilter === cat
+                        ? { background: KEBU.black, color: "#fff" }
+                        : { background: "white", color: KEBU.muted, border: "1px solid " + KEBU.borders.default }
+                    }
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="ml-3 shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold text-white"
+                style={{ background: KEBU.black }}
+              >
+                + Add tool
+              </button>
             </div>
+
 
             {/* Featured tools */}
             {activeFilter === "All" && (
