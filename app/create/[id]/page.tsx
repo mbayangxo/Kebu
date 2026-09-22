@@ -1399,7 +1399,7 @@ export default function ProjectEditorPage() {
                 })()
               )}
 
-              {sidebarTab === "apps" && (
+              {sidebarTab === "extensions" && (
                 <BuilderAppsPanel
                   projectId={projectId}
                   sectionTypes={editPageSections.map((section) => section.section_type)}

@@ -17,7 +17,7 @@ export type BuilderStudioTab =
   | "aesthetic"
   | "media"
   | "nav"
-  | "apps"
+  | "extensions"
   | "connections"
   | "seo"
   | "layers";
@@ -74,8 +74,8 @@ const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
     ),
   },
   {
-    id: "apps",
-    label: "Apps",
+    id: "extensions",
+    label: "Ext.",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
         <rect x="4" y="4" width="6" height="6" rx="1.5" />
@@ -334,6 +334,17 @@ export function BuilderStudioChrome({
         >
           Preview
         </Link>
+        {onSaveDraft ? (
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            disabled={savingDraft}
+            className="hidden rounded-full px-3 py-1.5 text-[10px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:inline disabled:opacity-40"
+            style={{ color: BUILDER.ink, border: `1px solid ${BUILDER.borderStrong}`, background: BUILDER.surface }}
+          >
+            {savingDraft ? "Saving…" : "Save draft"}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onPublish}
