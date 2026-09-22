@@ -13,6 +13,7 @@ import { KebuNotifications } from "@/app/components/kebu/kebu-notifications";
 import { DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
+import { KebuWorldSwitcher } from "@/app/components/kebu/kebu-world-switcher";
 import { ToastProvider } from "@/app/components/kebu/toast";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import "@/app/components/create/kebu-site-responsive.css";
@@ -126,6 +127,7 @@ export function AppShell({
               </h1>
             </div>
             <div className="flex items-center gap-3 shrink-0">
+              <div className="w-[148px]"><KebuWorldSwitcher compact /></div>
               <CommandPaletteTrigger />
               {actions}
               <KebuNotifications />

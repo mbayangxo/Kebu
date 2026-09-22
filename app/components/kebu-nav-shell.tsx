@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
-import { KebuWorldSwitcher } from "@/app/components/kebu/kebu-world-switcher";
 import { KEBU } from "@/lib/kebu-brand";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 
@@ -143,18 +142,16 @@ export function KebuNavShell() {
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-[196px] shrink-0 flex-col border-r bg-white md:flex" style={{ borderColor: KEBU.borders.default }}>
+      <aside className="sticky top-0 hidden h-screen w-[160px] shrink-0 flex-col border-r bg-white md:flex" style={{ borderColor: KEBU.borders.default }}>
         <div className="flex h-14 items-center justify-between px-3">
           <Link href="/dashboard" className="flex items-center gap-2" aria-label="Kebu Home">
-            <KebuMark size={26} className="object-contain" />
+            <KebuMark size={24} className="object-contain" />
             <span className="text-sm font-black tracking-[-0.04em]">kebu</span>
           </Link>
-          <Link href="/create/new" aria-label="Create" className="flex h-8 w-8 items-center justify-center rounded-full text-white" style={{ background: createBg }}>
-            <KebuIcon name="create" size={17} />
+          <Link href="/create/new" aria-label="Create" className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: createBg }}>
+            <KebuIcon name="create" size={15} />
           </Link>
         </div>
-
-        <KebuWorldSwitcher />
 
         <nav className="flex-1 overflow-y-auto px-2 pb-4">
           <Link

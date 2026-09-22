@@ -82,70 +82,127 @@ export function KebuOpportunityHome() {
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section
-        className="relative min-h-[82svh] overflow-hidden flex flex-col justify-center"
+        className="relative overflow-hidden"
         style={{ background: C.paper }}
       >
         <div
-          className="kebu-landing-orb pointer-events-none absolute -right-24 top-[8%] h-[520px] w-[520px] rounded-full blur-3xl opacity-[0.12] sm:h-[700px] sm:w-[700px]"
-          style={{ background: "radial-gradient(circle, rgba(255,85,0,0.8), transparent 65%)" }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -left-16 bottom-[12%] h-[340px] w-[340px] rounded-full blur-3xl opacity-[0.08]"
-          style={{ background: "radial-gradient(circle, rgba(225,6,0,0.9), transparent 65%)", animationDelay: "4s" }}
+          className="pointer-events-none absolute right-0 top-0 h-[600px] w-[600px] opacity-[0.07]"
+          style={{ background: "radial-gradient(circle at 80% 20%, rgba(255,85,0,1), transparent 60%)" }}
           aria-hidden
         />
 
-        <div className="relative max-w-[1400px] mx-auto w-full px-5 sm:px-8 lg:px-16 py-20 lg:py-28">
-          <div className="kebu-landing-rise mb-8 inline-flex">
-            <KebuMark size={72} />
-          </div>
+        <div className="relative max-w-[1400px] mx-auto w-full px-5 sm:px-8 lg:px-16 py-16 lg:py-20 xl:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
+            {/* Left: copy */}
+            <div>
+              <p
+                className="kebu-landing-rise mb-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em]"
+                style={{ background: "rgba(255,85,0,.08)", color: C.orange, border: "1px solid rgba(255,85,0,.18)" }}
+              >
+                <KebuMark size={14} /> Free to start · Built for Africa
+              </p>
 
-          <h1
-            className="kebu-landing-rise kebu-landing-rise-delay font-black uppercase leading-[0.83] tracking-tight mb-6"
-            style={{
-              fontFamily: "var(--font-fraunces)",
-              fontSize: "clamp(3.4rem,10vw,8rem)",
-              color: C.ink,
-            }}
-          >
-            Build what’s
-            <br />
-            <span style={{ color: C.orange }}>yours.</span>
-          </h1>
-
-          <p
-            className="kebu-landing-rise kebu-landing-rise-delay-2 text-[clamp(1.05rem,2.4vw,1.3rem)] max-w-xl mb-10 leading-relaxed"
-            style={{ color: C.muted }}
-          >
-            Create, work, sell, communicate and find opportunities in one place — built for African creators, students and businesses.
-          </p>
-
-          <div className="kebu-landing-rise kebu-landing-rise-delay-3">
-            <KebuLandingHeroCTA
-              orange={C.orange}
-              ink={C.ink}
-              border={C.border}
-            />
-          </div>
-
-          <div
-            className="kebu-landing-rise mt-10 flex flex-wrap gap-2"
-            style={{ animationDelay: "0.5s" }}
-          >
-            {["Free to start", "No code required", "XOF & mobile money", "WhatsApp checkout"].map((chip) => (
-              <span
-                key={chip}
-                className="text-[10px] font-semibold px-3 py-1.5 rounded-md"
+              <h1
+                className="kebu-landing-rise kebu-landing-rise-delay font-black leading-[0.88] tracking-[-0.04em] mb-6"
                 style={{
-                  background: C.white,
-                  color: C.muted,
-                  border: `1px solid ${C.border}`,
+                  fontFamily: "var(--font-fraunces)",
+                  fontSize: "clamp(3rem,7.5vw,6.4rem)",
+                  color: C.ink,
                 }}
               >
-                {chip}
-              </span>
-            ))}
+                Build your site.<br />
+                Run your business.<br />
+                <span style={{ color: C.orange }}>Own your future.</span>
+              </h1>
+
+              <p
+                className="kebu-landing-rise kebu-landing-rise-delay-2 text-base sm:text-lg max-w-lg mb-10 leading-relaxed"
+                style={{ color: C.muted }}
+              >
+                One platform to build a professional site, run a shop, manage customers and find African market opportunities — no code, no confusion.
+              </p>
+
+              <div className="kebu-landing-rise kebu-landing-rise-delay-3 flex flex-wrap gap-3 mb-10">
+                <KebuLandingHeroCTA
+                  orange={C.orange}
+                  ink={C.ink}
+                  border={C.border}
+                />
+              </div>
+
+              <div className="kebu-landing-rise flex flex-wrap gap-2" style={{ animationDelay: "0.5s" }}>
+                {["Free to start", "No code", "XOF & mobile money", "WhatsApp checkout", "AI site builder"].map((chip) => (
+                  <span
+                    key={chip}
+                    className="text-[10px] font-semibold px-3 py-1.5 rounded-full"
+                    style={{ background: C.white, color: C.muted, border: `1px solid ${C.border}` }}
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: product browser mockup */}
+            <div className="kebu-landing-rise kebu-landing-rise-delay-2 relative">
+              {/* Browser chrome frame */}
+              <div
+                className="relative overflow-hidden rounded-[18px] shadow-[0_24px_80px_rgba(10,10,10,.14)]"
+                style={{ border: `1px solid ${C.border}` }}
+              >
+                {/* Browser top bar */}
+                <div
+                  className="flex items-center gap-2 px-4 py-3"
+                  style={{ background: "#F0EDE8", borderBottom: `1px solid ${C.border}` }}
+                >
+                  <span className="flex gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-red-400" />
+                    <span className="h-3 w-3 rounded-full bg-yellow-400" />
+                    <span className="h-3 w-3 rounded-full bg-green-400" />
+                  </span>
+                  <span
+                    className="flex-1 mx-3 rounded-md px-3 py-1 text-[10px]"
+                    style={{ background: C.white, color: C.faint, border: `1px solid ${C.border}` }}
+                  >
+                    maylecor.kebu.africa
+                  </span>
+                </div>
+                {/* Site preview */}
+                <div className="relative" style={{ aspectRatio: "4/3", background: "#FFE4F0" }}>
+                  <Image
+                    src="/templates/maylecor/hero-collage.png"
+                    alt="May Lecor artist site built on Kebu"
+                    fill
+                    sizes="(min-width: 1024px) 55vw, 100vw"
+                    className="object-cover object-top"
+                    priority
+                  />
+                  {/* Overlay badge */}
+                  <div
+                    className="absolute bottom-4 left-4 rounded-xl px-3 py-2 text-[10px] font-bold"
+                    style={{ background: "rgba(255,255,255,0.95)", color: C.ink, boxShadow: "0 2px 12px rgba(10,10,10,.15)" }}
+                  >
+                    <span style={{ color: C.orange }}>● Live</span> · maylecor.kebu.africa
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating stat cards */}
+              <div
+                className="absolute -left-6 top-1/3 hidden rounded-2xl px-4 py-3 shadow-lg lg:block"
+                style={{ background: C.white, border: `1px solid ${C.border}` }}
+              >
+                <p className="text-[11px] font-black" style={{ color: C.ink }}>6 min</p>
+                <p className="text-[9px]" style={{ color: C.muted }}>avg. time to first site</p>
+              </div>
+              <div
+                className="absolute -right-4 bottom-16 hidden rounded-2xl px-4 py-3 shadow-lg lg:block"
+                style={{ background: C.black, border: "1px solid rgba(255,255,255,.1)" }}
+              >
+                <p className="text-[11px] font-black text-white">XOF native</p>
+                <p className="text-[9px] text-white/50">mobile money built in</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

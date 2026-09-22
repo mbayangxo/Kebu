@@ -1,10 +1,8 @@
 /** Public marketing site — header & footer links (landing + company pages). */
 
 export const KEBU_MARKETING_NAV = [
-  { label: "Products", href: "/products" },
   { label: "Sites", href: "/create" },
   { label: "Studio", href: "/studio" },
-  { label: "Business", href: "/business" },
   { label: "Opportunities", href: "/opportunity" },
   { label: "Pricing", href: "/pricing" },
 ] as const;
