@@ -1,2 +1,2 @@
-import { WorkItemsSurface } from "@/app/components/work/work-items-surface";
-export default function DocsPage() { return <WorkItemsSurface kind="doc" />; }
+import { redirect } from "next/navigation";
+export default function DocsPage(){redirect("/library?view=documents");}

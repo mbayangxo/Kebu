@@ -518,8 +518,8 @@ export default function EmailPage() {
 
   return (
     <AppShell title="Mail" immersive>
-      <div className="min-h-[calc(100vh-60px)] bg-[#F6F2EC] p-2 sm:p-3">
-        <div className="mx-auto min-h-[calc(100vh-84px)] max-w-[1740px] overflow-hidden rounded-[22px] border border-black/[.08] bg-[#FFFCF8] shadow-[0_12px_40px_rgba(20,15,10,.06)]">
+      <div className="min-h-screen bg-[#F6F2EC]">
+        <div className="min-h-screen overflow-hidden bg-[#FFFCF8]">
           <header className="flex h-14 items-center gap-3 border-b border-black/[.07] px-4 lg:pl-[300px]">
             <label className="mx-auto flex min-h-9 w-full max-w-[720px] items-center gap-2 rounded-full border border-black/[.08] bg-white px-3">
               <span className="text-black/35" aria-hidden>⌕</span>
@@ -537,7 +537,7 @@ export default function EmailPage() {
 
           <div className="grid min-h-[calc(100vh-140px)] lg:grid-cols-[58px_224px_360px_minmax(420px,1fr)_260px]">
             <aside className="hidden flex-col items-center border-r border-white/[.08] bg-[#08090B] py-3 text-white lg:flex">
-              <Link href="/dashboard" className="mb-4 text-[22px] font-black tracking-[-.08em]"><span className="text-[#FF6A00]">K</span></Link>
+              <Link href="/dashboard" title="Back to Kebu" className="mb-2 flex h-9 w-9 items-center justify-center rounded-[9px] text-[12px] text-white/65 hover:bg-white/10">←</Link><Link href="/dashboard" className="mb-4 text-[20px] font-black tracking-[-.08em]"><span className="text-[#FF6A00]">K</span></Link>
               <nav className="flex flex-1 flex-col gap-2">{[["/dashboard","⌂"],["/search","⌕"],["/email","✉"],["/people","◉"],["/rooms","◎"],["/calendar","▦"],["/library","▣"]].map(([href,icon],index)=><Link key={href} href={href} className="flex h-9 w-9 items-center justify-center rounded-[9px] text-[13px]" style={{background:index===2?"#C74417":"transparent",color:index===2?"white":"rgba(255,255,255,.68)"}}>{icon}</Link>)}</nav>
               <Link href="/account" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[8px]">ME</Link>
             </aside>
