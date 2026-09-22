@@ -124,7 +124,7 @@ export default function SpacesPage() {
               {updates.slice(0,6).map((item)=>(
                 <Link key={item.id} href={item.href} className="flex items-center gap-3 border-b py-3 transition hover:pl-1" style={{borderColor:KEBU.border}}>
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF1E9]"><KebuIcon name="spaces" size={14} style={{color:KEBU.orange}}/></span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-[10px] font-semibold">{item.title}</span><span className="block truncate text-[8px] text-black/35">{item.detail}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-[10px] font-semibold">{item.title}</span><span className="block truncate text-[8px] text-black/35">{item.body}</span></span>
                   <span className="text-black/20">→</span>
                 </Link>
               ))}
