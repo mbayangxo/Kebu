@@ -135,8 +135,8 @@ const STEPS = [
   {
     num: "01",
     title: "Find the opportunity",
-    desc: "Country Explorer — real data from labeled public sources. 54 countries, real market signals.",
-    href: "/opportunity/countries",
+    desc: "Opportunity OS — verified grants, loans, and programs for African and diaspora founders.",
+    href: "/opportunity",
   },
   {
     num: "02",
@@ -656,11 +656,11 @@ export function KebuOpportunityHome() {
               Open the Builder →
             </Link>
             <Link
-              href="/opportunity/countries"
+              href="/opportunity"
               className="inline-flex items-center justify-center font-semibold px-10 py-4 text-sm rounded-xl transition-all"
               style={{ background: "transparent", color: C.white, border: "2px solid rgba(255,255,255,0.75)" }}
             >
-              Explore countries
+              Opportunity OS
             </Link>
           </div>
         </div>
