@@ -134,6 +134,7 @@ export default async function StudioHomePage() {
   return (
     <AppShell title="Studio" immersive>
       <main className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
+        <nav className="sticky top-0 z-40 flex h-12 items-center gap-4 border-b bg-[#FFFCF8]/95 px-4 backdrop-blur sm:px-6" style={{borderColor:KEBU.border}}><Link href="/dashboard" className="text-[9px] font-semibold text-black/55">← Kebu</Link><span className="text-black/15">|</span><Link href="/studio" className="text-[10px] font-semibold">Studio</Link><Link href="/studio" className="hidden text-[9px] text-black/45 sm:block">Projects</Link><Link href="/studio/templates" className="hidden text-[9px] text-black/45 sm:block">Templates</Link><Link href="/studio/brand" className="hidden text-[9px] text-black/45 sm:block">Brand</Link><Link href="/studio/new?tab=ai" className="hidden text-[9px] text-black/45 sm:block">AI</Link><Link href="/settings" className="ml-auto text-[9px] text-black/35">Settings</Link></nav>
 
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <section style={{ borderBottom: `1px solid ${KEBU.border}` }}>

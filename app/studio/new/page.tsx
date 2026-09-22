@@ -146,9 +146,7 @@ function NewStudioDesignInner() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#FFFCF8] text-black">
       <header className="flex min-h-16 items-center justify-between border-b border-black/10 px-4 sm:px-6 lg:px-8">
-        <Link href="/studio" className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[.16em]">
-          <span aria-hidden>←</span> Studio
-        </Link>
+        <div className="flex items-center gap-3"><Link href="/dashboard" className="text-[9px] font-semibold text-black/45">← Kebu</Link><span className="text-black/15">|</span><Link href="/studio" className="text-[10px] font-semibold">Studio</Link></div>
         <div className="hidden items-center gap-5 text-[10px] font-black uppercase tracking-[.14em] text-black/40 sm:flex">
           <Link href="/studio/templates" className="hover:text-black">Themes</Link>
           <Link href="/studio/brand" className="hover:text-black">Brand</Link>

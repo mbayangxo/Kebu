@@ -878,9 +878,8 @@ export default function StudioEditorPage() {
     <div className="min-h-screen flex flex-col bg-[#0B0B0C] text-white">
       <header className="shrink-0 z-30 border-b border-white/10 bg-[#0B0B0C]">
         <div className="flex h-14 items-center gap-4 px-3 sm:px-5">
-          <Link href="/studio" className="shrink-0 text-xl font-black tracking-[-.06em] no-underline"><span className="text-[#FF6A00]">K</span>EBU</Link>
+          <Link href="/dashboard" className="shrink-0 text-[9px] font-semibold text-white/55 no-underline">← Kebu</Link><span className="text-white/15">|</span><Link href="/studio" className="shrink-0 text-[11px] font-semibold text-white no-underline">Studio</Link>
           <nav className="hidden items-center gap-4 text-[10px] font-semibold text-white/62 lg:flex">
-            <Link href="/studio" className="text-white">Studio</Link>
             <span>Design</span><Link href="/studio/video">Video</Link><Link href="/studio?tab=audio">Audio</Link><span>All tools</span><Link href="/studio/templates">Templates</Link><span>Elements</span><Link href="/studio/brand">Brand</Link><span>AI</span>
           </nav>
           <div className="mx-auto hidden max-w-xl flex-1 lg:block"><div className="flex h-9 items-center rounded-[10px] border border-white/10 bg-white/[.035] px-3 text-[10px] text-white/40">⌕&nbsp;&nbsp; Search templates, elements, or your files…<span className="ml-auto rounded-md border border-white/10 px-1.5 py-0.5 text-[8px]">⌘ K</span></div></div>
