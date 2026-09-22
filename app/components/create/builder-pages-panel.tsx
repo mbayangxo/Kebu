@@ -43,6 +43,7 @@ export function BuilderPagesPanel({
   const [editParentId, setEditParentId] = useState<string>("");
   const [localBusy, setLocalBusy] = useState(false);
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
+  const [dragIntent, setDragIntent] = useState<"before" | "child">("before");
 
   const sorted = [...pages].sort((a, b) => a.sort_order - b.sort_order);
   const working = busy || localBusy;
@@ -146,8 +147,42 @@ export function BuilderPagesPanel({
 
   async function dropPage(targetPageId: string) {
     const sourceId = draggedPageId;
+    const intent = dragIntent;
     setDraggedPageId(null);
+    setDragIntent("before");
     if (!sourceId || sourceId === targetPageId) return;
+
+    if (intent === "child") {
+      const previous = sorted;
+      const optimistic = sorted.map((page) =>
+        page.id === sourceId ? { ...page, parent_id: targetPageId } : page,
+      );
+      onPagesChange(optimistic);
+      setLocalBusy(true);
+      onError(null);
+      try {
+        const res = await fetch(`/api/projects/${projectId}/pages`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageId: sourceId, parentId: targetPageId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          onPagesChange(previous);
+          onError(typeof data.error === "string" ? data.error : "Could not nest page. Your previous structure was restored.");
+          return;
+        }
+        await onRefresh();
+      } catch {
+        onPagesChange(previous);
+        onError("Network error while nesting page. Your previous structure was restored.");
+      } finally {
+        setLocalBusy(false);
+      }
+      return;
+    }
+
     const from = sorted.findIndex((page) => page.id === sourceId);
     const to = sorted.findIndex((page) => page.id === targetPageId);
     if (from < 0 || to < 0) return;
@@ -216,6 +251,9 @@ export function BuilderPagesPanel({
               onDragOver={(event) => {
                 if (!draggedPageId || draggedPageId === p.id) return;
                 event.preventDefault();
+                const rect = event.currentTarget.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                setDragIntent(x > rect.width * 0.34 ? "child" : "before");
                 event.dataTransfer.dropEffect = "move";
               }}
               onDrop={(event) => {
@@ -227,6 +265,9 @@ export function BuilderPagesPanel({
                 borderBottom: `1px solid ${BUILDER.border}`,
                 opacity: draggedPageId === p.id ? 0.45 : 1,
                 cursor: working || editing ? "default" : "grab",
+                boxShadow: draggedPageId && draggedPageId !== p.id && dragIntent === "child"
+                  ? "inset 24px 0 0 rgba(255,106,0,.06)"
+                  : "none",
               }}
             >
               {editing ? (
@@ -302,7 +343,7 @@ export function BuilderPagesPanel({
                   <button
                     type="button"
                     className="min-w-0 flex-1 truncate py-2 text-left text-[12px] font-medium"
-                    style={{ color: active ? BUILDER.ink : "#3A3A3A" }}
+                    style={{ paddingLeft: p.parent_id ? "16px" : undefined, color: active ? BUILDER.ink : "#3A3A3A" }}
                     onClick={() => onSelectPage(p)}
                     title={`/${p.slug}`}
                   >
