@@ -246,7 +246,7 @@ export default function ForOrganizationsPage() {
                 Kebu Opportunity OS is a daily feed for young entrepreneurs and professionals across Francophone and Anglophone Africa — grants, fellowships, tenders, contracts. List yours free as a verified organization.
               </p>
               <Link
-                href="/opportunity/listings"
+                href="/opportunity"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold"
                 style={{ background: KEBU.red, color: KEBU.white }}
               >

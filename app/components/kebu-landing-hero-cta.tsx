@@ -43,11 +43,11 @@ export function KebuLandingHeroCTA({
             Kebu Builder
           </Link>
           <Link
-            href="/opportunity/countries"
+            href="/opportunity"
             className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.1em] transition-all hover:bg-black/[0.03]"
             style={{ border: `2px solid ${border}`, color: ink }}
           >
-            Explore countries
+            Opportunity OS
           </Link>
         </div>
       </div>
@@ -57,16 +57,9 @@ export function KebuLandingHeroCTA({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Link
-        href="/opportunity/countries"
+        href="/opportunity"
         className="inline-flex items-center gap-2 font-bold px-10 py-4 rounded-full text-sm uppercase tracking-[0.1em] transition-all hover:brightness-110"
         style={{ background: orange, color: "#fff" }}
-      >
-        Explore countries
-      </Link>
-      <Link
-        href="/opportunity"
-        className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-full text-sm uppercase tracking-[0.1em] transition-all hover:bg-black/[0.03]"
-        style={{ border: `2px solid ${orange}`, color: orange }}
       >
         Opportunity OS
       </Link>
