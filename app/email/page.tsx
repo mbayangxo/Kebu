@@ -14,6 +14,7 @@ type Mailbox = {
   display_name: string;
   mailbox_type: string;
   business_id: string | null;
+  is_default: boolean;
 };
 type Message = {
   id: string;
@@ -111,10 +112,15 @@ export default function EmailPage() {
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
   const [centerTab, setCenterTab] = useState<CenterTab>("all");
   const [replyText, setReplyText] = useState("");
+  const [showAddAccount, setShowAddAccount] = useState(false);
+  const [newLocalPart, setNewLocalPart] = useState("");
+  const [addingAccount, setAddingAccount] = useState(false);
+  const [addAccountError, setAddAccountError] = useState<string | null>(null);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   const activeMailbox = useMemo(() => mailboxes.find((m) => m.id === mailboxId) ?? null, [mailboxes, mailboxId]);
   const selected = useMemo(() => messages.find((item) => item.id === selectedId) ?? null, [messages, selectedId]);
-  const unread = useMemo(() => messages.filter((item) => !item.read_at && item.folder === "inbox").length, [messages]);
+  const unread = useMemo(() => messages.filter((item) => !item.read_at && item.folder === "inbox" && item.mailbox_id === mailboxId).length, [messages, mailboxId]);
 
   const loadMailboxes = useCallback(async () => {
     setLoading(true);
@@ -289,6 +295,23 @@ export default function EmailPage() {
   const attentionMessages = filteredMessages.filter(m => !m.read_at && m.folder === "inbox");
   const otherMessages = filteredMessages.filter(m => m.read_at || m.folder !== "inbox");
 
+  async function addAccount() {
+    const local = newLocalPart.trim().toLowerCase();
+    if (!local) return;
+    setAddingAccount(true); setAddAccountError(null);
+    const res = await fetch("/api/mail/mailboxes", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ localPart: local }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setAddingAccount(false);
+    if (!res.ok) { setAddAccountError(data.error || "Could not create address."); return; }
+    setShowAddAccount(false); setNewLocalPart(""); setAddAccountError(null);
+    await loadMailboxes();
+    if (data.mailbox?.id) setMailboxId(data.mailbox.id);
+  }
+
   return (
     <AppShell title="Mail">
       <div className="min-h-[calc(100vh-60px)] bg-[#F5F3EF] p-3 sm:p-4">
@@ -296,24 +319,114 @@ export default function EmailPage() {
 
           {/* Left sidebar — POST */}
           <aside className="flex flex-col border-r" style={{ borderColor: border, background: "#0A0A0A" }}>
-            {/* POST branding */}
-            <div className="border-b px-5 py-5" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.orange }}>POST</span>
-                <span className="rounded-full px-2 py-0.5 text-[8px] font-black uppercase" style={{ background: "rgba(255,85,0,.2)", color: KEBU.orange }}>BETA</span>
+            {/* POST branding + account switcher */}
+            <div className="border-b px-5 py-4" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.orange }}>POST</span>
+                  <span className="rounded-full px-2 py-0.5 text-[8px] font-black uppercase" style={{ background: "rgba(255,85,0,.2)", color: KEBU.orange }}>BETA</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAccountMenu(v => !v)}
+                  className="rounded-full p-1 text-[10px] transition hover:bg-white/[.08]"
+                  style={{ color: "rgba(255,255,255,0.4)" }}
+                  title="Manage accounts"
+                >
+                  ⋯
+                </button>
               </div>
-              <p className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>
-                More than email. It&apos;s your communication space.
-              </p>
-              <select
-                value={mailboxId}
-                onChange={(e) => setMailboxId(e.target.value)}
-                className="mt-3 w-full rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)" }}
-              >
-                {mailboxes.map((m) => <option key={m.id} value={m.id}>{m.address}</option>)}
-                {mailboxes.length === 0 && <option value="">No mailbox</option>}
-              </select>
+
+              {/* Account list — always visible, Gmail style */}
+              <div className="space-y-1">
+                {mailboxes.map((m) => {
+                  const mUnread = messages.filter(msg => msg.mailbox_id === m.id && !msg.read_at && msg.folder === "inbox").length;
+                  const active = m.id === mailboxId;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => { setMailboxId(m.id); setShowAccountMenu(false); }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition"
+                      style={{
+                        background: active ? "rgba(255,85,0,.15)" : "rgba(255,255,255,0.04)",
+                        border: active ? "1px solid rgba(255,85,0,.3)" : "1px solid rgba(255,255,255,0.06)",
+                      }}
+                    >
+                      <span
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-black"
+                        style={{ background: active ? KEBU.orange : "rgba(255,255,255,0.12)", color: active ? "#fff" : "rgba(255,255,255,0.6)" }}
+                      >
+                        {m.address.charAt(0).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[10px] font-bold" style={{ color: active ? "#fff" : "rgba(255,255,255,0.7)" }}>
+                          {m.address.split("@")[0]}
+                        </span>
+                        <span className="block truncate text-[8px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                          @{m.address.split("@")[1]}
+                          {m.is_default ? " · default" : ""}
+                        </span>
+                      </span>
+                      {mUnread > 0 && (
+                        <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-black" style={{ background: active ? "rgba(255,255,255,.25)" : "rgba(255,85,0,.25)", color: active ? "#fff" : KEBU.orange }}>
+                          {mUnread}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                {mailboxes.length === 0 && (
+                  <p className="px-2 py-2 text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>No accounts yet.</p>
+                )}
+              </div>
+
+              {/* Add account */}
+              {!showAddAccount ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAddAccount(true)}
+                  className="mt-2 flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-[10px] font-bold transition hover:bg-white/[.06]"
+                  style={{ color: "rgba(255,255,255,0.35)" }}
+                >
+                  <span style={{ color: KEBU.orange }}>+</span> Add POST account
+                </button>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                    <input
+                      autoFocus
+                      value={newLocalPart}
+                      onChange={e => setNewLocalPart(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") void addAccount(); if (e.key === "Escape") { setShowAddAccount(false); setNewLocalPart(""); setAddAccountError(null); } }}
+                      placeholder="yourname"
+                      className="flex-1 bg-transparent px-2.5 py-2 text-[10px] font-bold outline-none"
+                      style={{ color: "rgba(255,255,255,0.8)" }}
+                    />
+                    <span className="shrink-0 pr-2 text-[9px]" style={{ color: "rgba(255,255,255,0.3)" }}>@kebu.africa</span>
+                  </div>
+                  {addAccountError && <p className="px-1 text-[9px] text-red-400">{addAccountError}</p>}
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      disabled={!newLocalPart.trim() || addingAccount}
+                      onClick={() => void addAccount()}
+                      className="flex-1 rounded-xl py-2 text-[10px] font-black text-white disabled:opacity-40 transition hover:brightness-110"
+                      style={{ background: KEBU.orange }}
+                    >
+                      {addingAccount ? "Creating…" : "Create"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddAccount(false); setNewLocalPart(""); setAddAccountError(null); }}
+                      className="rounded-xl px-3 py-2 text-[10px] font-bold transition hover:bg-white/[.08]"
+                      style={{ color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* New message */}
