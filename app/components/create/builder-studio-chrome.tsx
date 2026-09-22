@@ -109,7 +109,7 @@ export function BuilderStudioRail({
 }) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(54px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[54px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1 sm:py-1.5"
+      className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(52px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[64px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1 sm:py-1.5"
       style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
       role="toolbar"
       aria-label="Builder tools"
@@ -124,7 +124,7 @@ export function BuilderStudioRail({
             aria-label={item.label}
             aria-pressed={on}
             onClick={() => onRail(item.id)}
-            className="group relative flex h-[54px] min-w-[54px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[46px] sm:min-w-0 sm:w-full"
+            className="group relative flex h-[52px] min-w-[52px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[48px] sm:min-w-0 sm:w-full"
             style={{
               background: on ? BUILDER.orangeGlow : "transparent",
               color: on ? BUILDER.ink : BUILDER.muted,
@@ -198,7 +198,7 @@ export function BuilderStudioChrome({
 
   return (
     <header
-      className="relative flex h-[50px] shrink-0 items-center gap-1.5 border-b px-2 sm:px-3"
+      className="relative flex h-[52px] shrink-0 items-center gap-1.5 border-b px-2 sm:px-3"
       style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
     >
       <Link

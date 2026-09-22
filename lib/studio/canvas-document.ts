@@ -91,7 +91,7 @@ export const canvasLayerSchema = z.object({
   animationDelayMs: z.number().int().min(0).max(10000).optional(),
 });
 
-export type CanvasLayer = z.infer<typeof canvasLayerSchema>;
+export type CanvasLayer = Omit<z.infer<typeof canvasLayerSchema>, "hidden"> & { hidden?: boolean };
 
 export const canvasPageSchema = z.object({
   id: z.string().trim().min(1).max(40),
@@ -107,7 +107,7 @@ export const canvasPageSchema = z.object({
   transitionDurationMs: z.number().int().min(0).max(3000).optional(),
 });
 
-export type CanvasPage = z.infer<typeof canvasPageSchema>;
+export type CanvasPage = Omit<z.infer<typeof canvasPageSchema>, "layers"> & { layers: CanvasLayer[] };
 
 /** Soundtrack + beat grid (S8c-lite) — persisted on the design canvas. */
 export const canvasSoundtrackSchema = z.object({
@@ -166,7 +166,7 @@ export const canvasDocumentSchema = z.object({
     .optional(),
 });
 
-export type CanvasDocument = z.infer<typeof canvasDocumentSchema>;
+export type CanvasDocument = Omit<z.infer<typeof canvasDocumentSchema>, "layers" | "pages"> & { layers: CanvasLayer[]; pages: CanvasPage[] };
 
 export const STUDIO_DESIGN_TYPES = [
   "poster",
