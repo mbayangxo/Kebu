@@ -1,11 +1,12 @@
 /** Public marketing site — header & footer links (landing + company pages). */
 
 export const KEBU_MARKETING_NAV = [
+  { label: "Products", href: "/products" },
+  { label: "Sites", href: "/create" },
+  { label: "Studio", href: "/studio" },
+  { label: "Business", href: "/business" },
+  { label: "Opportunities", href: "/opportunity" },
   { label: "Pricing", href: "/pricing" },
-  { label: "About us", href: "/about" },
-  { label: "Contact us", href: "/contact" },
-  { label: "Aesthetic Gallery", href: "/create/aesthetics" },
-  { label: "Kebu Icon", href: "/kebu-icon" },
 ] as const;
 
 export const KEBU_MARKETING_FOOTER = [
@@ -22,6 +23,7 @@ export const KEBU_SUPPORT_EMAIL = "support@kebu.africa";
 export function isMarketingPath(pathname: string): boolean {
   if (pathname === "/") return true;
   const marketing = [
+    "/products",
     "/pricing",
     "/about",
     "/contact",
