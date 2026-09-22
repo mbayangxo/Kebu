@@ -1,100 +1,58 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { LanguageBar } from "@/app/components/language-bar";
-import { MobileBottomNav } from "@/app/components/mobile-nav";
 import { FloatingActionItem, FloatingActionStack } from "@/app/components/floating-action-stack";
 import { LearnFab, useEducation } from "@/app/components/education-system";
 import { YandeGlobalFab } from "@/app/components/yande-global-fab";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
-import type { LanguageBarVariant } from "@/app/components/language-bar";
-
-function languageBarVariant(pathname: string): LanguageBarVariant {
-  if (pathname.startsWith("/opportunity")) return "opportunity";
-  return "builder";
-}
 
 function shouldHideFloatingActions(pathname: string): boolean {
   return (
     pathname.startsWith("/sites/") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
-    pathname === "/dashboard" ||
-    pathname === "/account" ||
-    pathname.startsWith("/business") ||
-    pathname.startsWith("/my-sites") ||
-    pathname.startsWith("/create/sites") ||
-    pathname.startsWith("/create/domains") ||
-    pathname.startsWith("/opportunity") ||
-    pathname === "/b2b" ||
     pathname.startsWith("/studio") ||
     pathname.startsWith("/email") ||
     pathname.startsWith("/browser") ||
-    pathname === "/welcome" ||
-    /^\/create\/[^/]+$/.test(pathname) ||
-    /^\/create\/[^/]+\/(preview|themes)/.test(pathname)
+    pathname.startsWith("/create/") ||
+    pathname === "/welcome"
   );
 }
 
-function usesAppShellLayout(pathname: string): boolean {
-  return (
-    pathname === "/dashboard" ||
-    pathname === "/account" ||
-    pathname.startsWith("/business") ||
-    pathname.startsWith("/my-sites") ||
-    pathname.startsWith("/create/sites") ||
-    pathname.startsWith("/create/domains") ||
-    pathname.startsWith("/opportunity") ||
-    pathname === "/b2b" ||
-    pathname.startsWith("/studio") ||
-    pathname.startsWith("/email") ||
-    pathname.startsWith("/browser") ||
-    pathname === "/welcome" ||
-    pathname.startsWith("/id/")
-  );
-}
-
-/** Hide legacy app chrome on the marketing landing so only Kebu hero nav shows. */
+/**
+ * Global chrome is intentionally minimal.
+ * Signed-in product navigation lives in AppShell/KebuNavShell.
+ * The old language bar + second mobile navigation were removed because
+ * they duplicated the product shell and made every world vertically cramped.
+ */
 export function AppChrome() {
   const pathname = usePathname();
   const { showRandomForPage } = useEducation();
 
-  // Public site views — no Kebu app chrome at all.
   if (
     pathname.startsWith("/sites/") ||
     pathname.startsWith("/e/") ||
-    (pathname.startsWith("/id/") && !usesAppShellLayout(pathname))
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup")
   ) {
     return null;
   }
 
-  // Public marketing / landing: no app sidebar, no logged-in bottom nav.
   if (pathname === "/" || isMarketingPath(pathname)) {
     return <YandeGlobalFab />;
   }
-  const hideFloatingActions = shouldHideFloatingActions(pathname);
-  const pageSlug = pathname.split("/")[1] || "home";
-  const shellLayout = usesAppShellLayout(pathname);
-  const inSiteEditor =
-    /^\/create\/[^/]+$/.test(pathname) || /^\/create\/[^/]+\/(preview|themes)/.test(pathname);
-  /** Merchant OS + editor: no marketing bottom bar competing with admin UI. */
-  const hideMobileNav =
-    inSiteEditor || pathname.startsWith("/my-sites") || pathname.startsWith("/business");
 
+  if (shouldHideFloatingActions(pathname)) return null;
+
+  const pageSlug = pathname.split("/")[1] || "home";
   return (
-    <>
-      {!shellLayout && !inSiteEditor ? <LanguageBar variant={languageBarVariant(pathname)} /> : null}
-      {!hideFloatingActions ? (
-        <FloatingActionStack>
-          <FloatingActionItem>
-            <YandeGlobalFab variant="stacked" projectId={inSiteEditor ? pathname.split("/")[2] : undefined} />
-          </FloatingActionItem>
-          <FloatingActionItem>
-            <LearnFab onClick={() => showRandomForPage(pageSlug)} />
-          </FloatingActionItem>
-        </FloatingActionStack>
-      ) : null}
-      {!hideMobileNav ? <MobileBottomNav /> : null}
-    </>
+    <FloatingActionStack>
+      <FloatingActionItem>
+        <YandeGlobalFab variant="stacked" />
+      </FloatingActionItem>
+      <FloatingActionItem>
+        <LearnFab onClick={() => showRandomForPage(pageSlug)} />
+      </FloatingActionItem>
+    </FloatingActionStack>
   );
 }

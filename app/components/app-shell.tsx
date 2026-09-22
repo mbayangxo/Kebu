@@ -110,7 +110,7 @@ export function AppShell({
           </header>
 
           <div
-            className="hidden md:flex items-center justify-between gap-3 px-8 lg:px-10 py-3.5 sticky top-0 z-30 backdrop-blur-md"
+            className="hidden h-12 md:flex items-center justify-between gap-3 px-4 lg:px-5 sticky top-0 z-30 backdrop-blur-md"
             style={{
               background: "rgba(255,251,247,0.92)",
               borderBottom: `1px solid rgba(255,85,0,0.15)`,
@@ -119,7 +119,7 @@ export function AppShell({
             <div className="flex items-center gap-4 min-w-0">
               <BackLink fallbackHref={fallback} variant="strong" />
               <h1
-                className="text-sm font-bold truncate"
+                className="text-[10px] font-semibold truncate"
                 style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
               >
                 {title}
