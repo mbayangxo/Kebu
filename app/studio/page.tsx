@@ -5,7 +5,6 @@ import { StudioGenerationHistory } from "@/app/components/studio/studio-generati
 import { StudioDesignLibrary } from "@/app/components/studio/studio-design-library";
 import type { StudioDesignRole } from "@/lib/studio/design-access";
 import { KEBU } from "@/lib/kebu-brand";
-import { AppShell } from "@/app/components/app-shell";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 
 type FormatCard = {
@@ -28,7 +27,7 @@ const FORMATS: FormatCard[] = [
   { type: "social_square", label: "Social square", sublabel: "1080 × 1080", href: "/studio/new?type=social_square", aspect: 1, accent: "#333333" },
 ];
 
-const TEMPLATE_CATS = ["All", "Social Media", "Presentations", "Posters", "Videos", "Web", "Documents", "Marketing"];
+const TEMPLATE_CATS = ["All", "Social Media", "Presentations", "Posters", "Videos", "Web", "Documents", "Marketing", "Custom Size"];
 
 const TOOLS = [
   { label: "AI Design", desc: "Generate from a prompt", href: "/studio/new?tab=ai", accent: "#FF5500" },
@@ -54,6 +53,11 @@ const STUDIO_NAV = [
 ];
 
 const INSPO_TABS = ["For you", "Trending", "Branding", "Editorial", "Minimal", "Bold", "Motion"];
+
+const sidebar = "#0A0A0A";
+const border = "rgba(255,255,255,0.07)";
+const textMuted = "rgba(255,255,255,0.5)";
+const textDim = "rgba(255,255,255,0.3)";
 
 export default async function StudioHomePage() {
   const supabase = await createClient();
@@ -121,96 +125,174 @@ export default async function StudioHomePage() {
   const recentDesigns = designs.slice(0, 8);
   const recentVideos = videos.slice(0, 4);
   const hasRecent = recentDesigns.length > 0 || recentVideos.length > 0;
+  const avatarInitial = (user.email ?? "K").charAt(0).toUpperCase();
 
   return (
-    <AppShell title="Studio">
-      <div className="flex min-h-screen" style={{ background: "#111111", color: "#FFFFFF" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: "#111111", color: "#FFFFFF" }}>
 
-        {/* Studio sub-nav */}
-        <aside className="hidden w-[196px] shrink-0 flex-col border-r lg:flex" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0A0A0A" }}>
-          <div className="border-b px-4 py-4" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-            <p className="text-[9px] font-black uppercase tracking-[.2em]" style={{ color: "rgba(255,255,255,0.3)" }}>Studio</p>
-            <p className="mt-1 text-xs font-black uppercase tracking-[.1em]" style={{ color: KEBU.orange }}>CREATE WITHOUT LIMITS</p>
-          </div>
-          <nav className="flex-1 overflow-y-auto p-2">
-            {STUDIO_NAV.map((item) => (
-              <Link key={item.href} href={item.href}
-                className="flex min-h-9 items-center rounded-lg px-3 text-[12px] font-medium transition-colors hover:bg-white/[0.06]"
-                style={{ color: "rgba(255,255,255,0.55)" }}>
-                {item.label}
-              </Link>
-            ))}
-            {hasRecent ? (
-              <div className="mt-4 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-                <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[.14em]" style={{ color: "rgba(255,255,255,0.25)" }}>Recent</p>
-                {recentDesigns.slice(0, 5).map((d) => (
-                  <Link key={d.id} href={`/studio/${d.id}`}
-                    className="flex min-h-8 items-center rounded-lg px-3 text-[11px] truncate transition-colors hover:bg-white/[0.06]"
-                    style={{ color: "rgba(255,255,255,0.45)" }}>
-                    {d.title}
-                  </Link>
-                ))}
-              </div>
-            ) : null}
-          </nav>
-        </aside>
+      {/* Studio-specific sidebar — replaces main app nav */}
+      <aside className="hidden w-[200px] shrink-0 flex-col border-r lg:flex" style={{ background: sidebar, borderColor: border }}>
 
-        {/* Main studio content */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
+        {/* Logo + Back */}
+        <div className="border-b px-4 py-5" style={{ borderColor: border }}>
+          <Link href="/dashboard" className="flex items-center gap-1.5 group focus-visible:outline-none" aria-label="Kebu Home">
+            <span className="text-[15px] font-black tracking-[-0.04em] text-white">kebu</span>
+            <span className="text-[15px] font-black" style={{ color: KEBU.orange }}>•</span>
+          </Link>
+          <Link href="/dashboard" className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: textMuted }}>
+            <span>←</span> Back to Home
+          </Link>
+        </div>
 
-          {/* Studio top bar */}
-          <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b px-5 py-3 backdrop-blur-md"
-            style={{ background: "rgba(17,17,17,0.92)", borderColor: "rgba(255,255,255,0.07)" }}>
-            <div className="flex items-center gap-3 min-w-0">
-              <h1 className="text-sm font-black tracking-[-.02em]">Studio</h1>
-              <span className="hidden text-[9px] font-black uppercase tracking-[.18em] sm:block" style={{ color: "rgba(255,255,255,0.25)" }}>CREATE WITHOUT LIMITS</span>
+        {/* Studio nav */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          <Link href="/studio"
+            className="mb-0.5 flex min-h-9 items-center rounded-xl px-2.5 text-[13px] font-black"
+            style={{ background: "rgba(255,85,0,0.18)", color: "#FFFFFF" }}>
+            Studio
+          </Link>
+          {STUDIO_NAV.map((item) => (
+            <Link key={item.href} href={item.href}
+              className="flex min-h-8 items-center rounded-lg px-2.5 text-[12px] font-medium transition-colors hover:bg-white/[0.06]"
+              style={{ color: textMuted }}>
+              {item.label}
+            </Link>
+          ))}
+
+          {/* Recent */}
+          {hasRecent ? (
+            <div className="mt-4 border-t pt-3" style={{ borderColor: border }}>
+              <p className="mb-2 px-2.5 text-[9px] font-black uppercase tracking-[.14em]" style={{ color: textDim }}>Recent</p>
+              {recentDesigns.slice(0, 5).map((d) => (
+                <Link key={d.id} href={`/studio/${d.id}`}
+                  className="flex min-h-8 items-center rounded-lg px-2.5 text-[11px] truncate transition-colors hover:bg-white/[0.06]"
+                  style={{ color: "rgba(255,255,255,0.4)" }}>
+                  {d.title}
+                </Link>
+              ))}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="hidden text-[10px] sm:block" style={{ color: "rgba(255,255,255,0.35)" }}>All changes saved</span>
-              <Link href="/account/upgrade" className="rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white" style={{ background: KEBU.orange }}>Upgrade</Link>
-              <Link href="/studio/new" className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[10px] font-black uppercase tracking-wide"
-                style={{ borderColor: KEBU.orange, color: KEBU.orange }}>
-                + New design
-              </Link>
-            </div>
+          ) : null}
+        </nav>
+
+        {/* Promo card */}
+        <div className="m-3">
+          <div className="relative overflow-hidden rounded-2xl p-4" style={{ background: "linear-gradient(145deg,#1a0800,#2d1200)" }}>
+            <div className="absolute -right-4 -top-4 h-16 w-16 opacity-40" style={{ background: `radial-gradient(circle,${KEBU.orange},transparent 70%)` }} />
+            <p className="relative z-10 text-[11px] font-black leading-snug text-white">Create<br />Collaborate<br />Launch</p>
+            <Link href="/studio/new" className="relative z-10 mt-2 flex items-center gap-1 text-[10px] font-black" style={{ color: KEBU.orange }}>
+              Get started <span>→</span>
+            </Link>
           </div>
+        </div>
+      </aside>
+
+      {/* Main content area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+
+        {/* Studio top bar */}
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3"
+          style={{ background: "rgba(17,17,17,0.95)", borderColor: border }}>
+
+          {/* Left: title + tagline */}
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-sm font-black tracking-[-.01em]">Studio</h1>
+            <span className="hidden text-[9px] font-black uppercase tracking-[.18em] sm:block" style={{ color: textDim }}>CREATE WITHOUT LIMITS</span>
+          </div>
+
+          {/* Center: search */}
+          <div className="hidden flex-1 max-w-sm lg:block">
+            <input type="text" placeholder="Search templates, designs..."
+              className="w-full h-8 rounded-full px-4 text-[11px] outline-none focus:ring-1 focus:ring-orange-500"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }} />
+          </div>
+
+          {/* Right: actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="hidden text-[10px] sm:block" style={{ color: "rgba(255,255,255,0.3)" }}>☁ All changes saved</span>
+            <Link href="/account/upgrade" className="rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white" style={{ background: KEBU.orange }}>Upgrade</Link>
+            <button type="button" className="rounded-full w-8 h-8 flex items-center justify-center transition-colors hover:bg-white/10" style={{ color: textMuted }} aria-label="Notifications">
+              🔔
+            </button>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-black" style={{ background: KEBU.orange }}>
+              {avatarInitial}
+            </span>
+            <Link href="/studio/new"
+              className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[10px] font-black uppercase tracking-wide"
+              style={{ borderColor: KEBU.orange, color: KEBU.orange }}>
+              + New design ▼
+            </Link>
+          </div>
+        </header>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto">
 
           {/* Hero */}
-          <section className="border-b px-6 py-10 sm:px-8 lg:px-10" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-            <p className="text-[9px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.orange }}>Kebu Studio</p>
-            <h2 className="mt-3 max-w-2xl text-[clamp(2rem,5vw,4rem)] font-black leading-[.88] tracking-[-.06em]" style={{ fontFamily: "var(--font-fraunces)" }}>
-              Ideas take<br />shape here.
-            </h2>
-            <p className="mt-4 max-w-lg text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
-              Design. Edit. Animate. Collaborate. All in one creative space.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/studio/new" className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[11px] font-black uppercase tracking-[.12em] text-white" style={{ background: KEBU.orange }}>
-                + Create new
-              </Link>
-              <Link href="/studio/new?tab=ai" className="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-[11px] font-black uppercase tracking-[.12em]"
-                style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
-                + Start with AI
-              </Link>
+          <section className="border-b px-6 py-10 sm:px-8" style={{ borderColor: border }}>
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+              <div className="flex flex-col justify-center">
+                <p className="text-[9px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.orange }}>Kebu Studio</p>
+                <h2 className="mt-3 text-[clamp(2.2rem,5vw,4.5rem)] font-black leading-[.88] tracking-[-.06em]" style={{ fontFamily: "var(--font-fraunces)" }}>
+                  Ideas take<br />shape{" "}
+                  <em className="font-normal not-italic" style={{ color: KEBU.orange }}>here.</em>
+                </h2>
+                <p className="mt-4 max-w-md text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+                  Design. Edit. Animate. Collaborate. All in one creative space built for what you make next.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link href="/studio/new"
+                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[11px] font-black uppercase tracking-[.12em] text-white"
+                    style={{ background: KEBU.orange }}>
+                    + Create new ▼
+                  </Link>
+                  <Link href="/studio/new?tab=ai"
+                    className="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-[11px] font-black uppercase tracking-[.12em]"
+                    style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
+                    + Start with AI
+                  </Link>
+                </div>
+              </div>
+
+              {/* Editorial photo mock */}
+              <div className="relative min-h-[280px] overflow-hidden rounded-3xl lg:min-h-[340px]">
+                <div className="absolute inset-0" style={{ background: "linear-gradient(145deg,#1a0d00,#0a0a0a 40%,#1a1a2e)" }} />
+                <div className="absolute inset-0 opacity-60" style={{ background: "radial-gradient(ellipse at 60% 30%,#FF5500,transparent 50%),radial-gradient(ellipse at 20% 70%,#6C63FF,transparent 45%)" }} />
+                {/* Photo overlay text */}
+                <div className="absolute left-6 top-6 right-6">
+                  <p className="text-[9px] font-black uppercase tracking-[.2em]" style={{ color: "rgba(255,255,255,0.4)" }}>More ideas</p>
+                  <p className="mt-1 text-lg font-black leading-tight text-white" style={{ fontFamily: "var(--font-fraunces)" }}>A brighter tomorrow</p>
+                </div>
+                {/* Bottom dark card */}
+                <div className="absolute bottom-4 left-4 right-4 rounded-2xl border p-4 backdrop-blur-sm"
+                  style={{ background: "rgba(0,0,0,0.6)", borderColor: "rgba(255,255,255,0.1)" }}>
+                  <p className="text-sm font-black text-white">A canvas for what&apos;s next.</p>
+                  <Link href="/studio" className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: "rgba(255,255,255,0.5)" }}>
+                    Watch video ▶
+                  </Link>
+                </div>
+              </div>
             </div>
           </section>
 
-          {/* Template categories filter */}
-          <section className="border-b px-6 py-4 sm:px-8 lg:px-10" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+          {/* Template category filter */}
+          <section className="border-b px-6 py-4 sm:px-8" style={{ borderColor: border }}>
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               {TEMPLATE_CATS.map((cat, i) => (
                 <button key={cat} type="button"
                   className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide transition-colors"
-                  style={{ background: i === 0 ? KEBU.orange : "rgba(255,255,255,0.07)", color: i === 0 ? "#fff" : "rgba(255,255,255,0.55)" }}>
+                  style={{ background: i === 0 ? KEBU.orange : "rgba(255,255,255,0.07)", color: i === 0 ? "#fff" : textMuted }}>
                   {cat}
                 </button>
               ))}
+              <span className="mx-2 text-[10px]" style={{ color: textDim }}>|</span>
+              <button type="button" className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide border" style={{ borderColor: "rgba(255,255,255,0.12)", color: textMuted }}>Templates</button>
+              <button type="button" className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide" style={{ color: textDim }}>My Projects</button>
             </div>
           </section>
 
           {/* Format grid */}
-          <section className="border-b px-6 py-8 sm:px-8 lg:px-10" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-            <p className="mb-4 text-[9px] font-black uppercase tracking-[.18em]" style={{ color: "rgba(255,255,255,0.3)" }}>Start anywhere — pick a format</p>
+          <section className="border-b px-6 py-8 sm:px-8" style={{ borderColor: border }}>
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>Start anywhere — pick a format</p>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {FORMATS.map((format) => {
                 const width = format.aspect > 1.7 ? 52 : format.aspect < .75 ? 30 : 38;
@@ -225,7 +307,7 @@ export default async function StudioHomePage() {
                     </span>
                     <span>
                       <span className="block text-[11px] font-black">{format.label}</span>
-                      <span className="block text-[9px]" style={{ color: "rgba(255,255,255,0.3)" }}>{format.sublabel}</span>
+                      <span className="block text-[9px]" style={{ color: textDim }}>{format.sublabel}</span>
                     </span>
                   </Link>
                 );
@@ -234,8 +316,8 @@ export default async function StudioHomePage() {
           </section>
 
           {/* Get started with tools */}
-          <section className="border-b px-6 py-8 sm:px-8 lg:px-10" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-            <p className="mb-4 text-[9px] font-black uppercase tracking-[.18em]" style={{ color: "rgba(255,255,255,0.3)" }}>Get started with tools</p>
+          <section className="border-b px-6 py-8 sm:px-8" style={{ borderColor: border }}>
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>Get started with tools</p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {TOOLS.map((tool) => (
                 <Link key={tool.label} href={tool.href}
@@ -255,13 +337,13 @@ export default async function StudioHomePage() {
 
           {/* Recent work */}
           {hasRecent ? (
-            <section className="border-b px-6 py-8 sm:px-8 lg:px-10" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+            <section className="border-b px-6 py-8 sm:px-8" style={{ borderColor: border }}>
               <div className="mb-4 flex items-end justify-between">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>Continue where you left off</p>
                   <h2 className="mt-1 text-2xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Your active work.</h2>
                 </div>
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>{designs.length} designs · {videos.length} videos</span>
+                <span className="text-[10px]" style={{ color: textDim }}>{designs.length} designs · {videos.length} videos</span>
               </div>
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                 {recentDesigns.map((design) => {
@@ -294,8 +376,8 @@ export default async function StudioHomePage() {
           ) : null}
 
           {/* Inspiration tabs */}
-          <section className="border-b px-6 py-8 sm:px-8 lg:px-10" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-            <p className="mb-4 text-[9px] font-black uppercase tracking-[.18em]" style={{ color: "rgba(255,255,255,0.3)" }}>Inspiration for you</p>
+          <section className="border-b px-6 py-8 sm:px-8" style={{ borderColor: border }}>
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>Inspiration for you</p>
             <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
               {INSPO_TABS.map((tab, i) => (
                 <button key={tab} type="button"
@@ -322,19 +404,19 @@ export default async function StudioHomePage() {
           </section>
 
           {/* Full library */}
-          <section className="px-6 py-8 sm:px-8 lg:px-10">
+          <section className="px-6 py-8 sm:px-8">
             <div className="mb-5">
               <p className="text-[9px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>Your Studio</p>
               <h2 className="mt-1 text-2xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Everything you have made.</h2>
             </div>
             <StudioDesignLibrary initialOwned={designs} initialShared={shared} />
-            <details className="mt-8 border-t pt-5" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-              <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[.14em]" style={{ color: "rgba(255,255,255,0.3)" }}>AI generation history</summary>
+            <details className="mt-8 border-t pt-5" style={{ borderColor: border }}>
+              <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[.14em]" style={{ color: textDim }}>AI generation history</summary>
               <div className="pt-5"><StudioGenerationHistory /></div>
             </details>
           </section>
         </div>
       </div>
-    </AppShell>
+    </div>
   );
 }
