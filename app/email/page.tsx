@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
@@ -117,6 +117,9 @@ export default function EmailPage() {
   const [addingAccount, setAddingAccount] = useState(false);
   const [addAccountError, setAddAccountError] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [availability, setAvailability] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeMailbox = useMemo(() => mailboxes.find((m) => m.id === mailboxId) ?? null, [mailboxes, mailboxId]);
   const selected = useMemo(() => messages.find((item) => item.id === selectedId) ?? null, [messages, selectedId]);
@@ -295,9 +298,26 @@ export default function EmailPage() {
   const attentionMessages = filteredMessages.filter(m => !m.read_at && m.folder === "inbox");
   const otherMessages = filteredMessages.filter(m => m.read_at || m.folder !== "inbox");
 
-  async function addAccount() {
-    const local = newLocalPart.trim().toLowerCase();
+  function triggerCheck(local: string) {
+    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    const clean = local.trim().toLowerCase();
+    if (!clean) { setAvailability("idle"); setSuggestions([]); return; }
+    setAvailability("checking"); setSuggestions([]);
+    checkTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/mail/mailboxes/check?local=" + encodeURIComponent(clean), { credentials: "include" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { setAvailability("idle"); return; }
+        setAvailability(data.available ? "available" : "taken");
+        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions as string[] : []);
+      } catch { setAvailability("idle"); }
+    }, 380);
+  }
+
+  async function addAccount(localOverride?: string) {
+    const local = (localOverride ?? newLocalPart).trim().toLowerCase();
     if (!local) return;
+    if (availability === "taken" && !localOverride) { setAddAccountError("That address is taken — pick one of the suggestions below."); return; }
     setAddingAccount(true); setAddAccountError(null);
     const res = await fetch("/api/mail/mailboxes", {
       method: "POST", credentials: "include",
@@ -306,8 +326,13 @@ export default function EmailPage() {
     });
     const data = await res.json().catch(() => ({}));
     setAddingAccount(false);
-    if (!res.ok) { setAddAccountError(data.error || "Could not create address."); return; }
+    if (!res.ok) {
+      setAddAccountError(data.error || "Could not create address.");
+      if (res.status === 409) { setAvailability("taken"); triggerCheck(local); }
+      return;
+    }
     setShowAddAccount(false); setNewLocalPart(""); setAddAccountError(null);
+    setAvailability("idle"); setSuggestions([]);
     await loadMailboxes();
     if (data.mailbox?.id) setMailboxId(data.mailbox.id);
   }
@@ -393,32 +418,86 @@ export default function EmailPage() {
                 </button>
               ) : (
                 <div className="mt-2 space-y-2">
-                  <div className="flex items-center rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                  {/* Input row */}
+                  <div
+                    className="flex items-center rounded-xl overflow-hidden"
+                    style={{
+                      background: "rgba(255,255,255,0.07)",
+                      border: availability === "taken"
+                        ? "1px solid rgba(239,68,68,.6)"
+                        : availability === "available"
+                        ? "1px solid rgba(52,211,153,.5)"
+                        : "1px solid rgba(255,255,255,0.12)",
+                    }}
+                  >
                     <input
                       autoFocus
                       value={newLocalPart}
-                      onChange={e => setNewLocalPart(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") void addAccount(); if (e.key === "Escape") { setShowAddAccount(false); setNewLocalPart(""); setAddAccountError(null); } }}
+                      onChange={e => { setNewLocalPart(e.target.value); setAddAccountError(null); triggerCheck(e.target.value); }}
+                      onKeyDown={e => { if (e.key === "Enter" && availability === "available") void addAccount(); if (e.key === "Escape") { setShowAddAccount(false); setNewLocalPart(""); setAddAccountError(null); setAvailability("idle"); setSuggestions([]); } }}
                       placeholder="yourname"
                       className="flex-1 bg-transparent px-2.5 py-2 text-[10px] font-bold outline-none"
                       style={{ color: "rgba(255,255,255,0.8)" }}
                     />
-                    <span className="shrink-0 pr-2 text-[9px]" style={{ color: "rgba(255,255,255,0.3)" }}>@kebu.africa</span>
+                    {/* Availability indicator */}
+                    {availability === "checking" && (
+                      <span className="shrink-0 px-2 text-[8px] animate-pulse" style={{ color: "rgba(255,255,255,0.35)" }}>checking…</span>
+                    )}
+                    {availability === "available" && (
+                      <span className="shrink-0 px-2 text-[8px] font-black" style={{ color: "rgba(52,211,153,.9)" }}>✓ free</span>
+                    )}
+                    {availability === "taken" && (
+                      <span className="shrink-0 px-2 text-[8px] font-black" style={{ color: "rgba(239,68,68,.9)" }}>✗ taken</span>
+                    )}
+                    <span className="shrink-0 border-l pr-2.5 pl-2 text-[8px]" style={{ color: "rgba(255,255,255,0.25)", borderColor: "rgba(255,255,255,0.08)" }}>@kebu.africa</span>
                   </div>
+
+                  {/* Taken message + suggestions */}
+                  {availability === "taken" && (
+                    <div>
+                      <p className="px-1 mb-1.5 text-[9px]" style={{ color: "rgba(239,68,68,.85)" }}>
+                        That address is taken.
+                        {suggestions.length > 0 ? " Try one of these:" : " Try a different name."}
+                      </p>
+                      {suggestions.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 px-0.5">
+                          {suggestions.map(s => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => {
+                                setNewLocalPart(s);
+                                setAddAccountError(null);
+                                triggerCheck(s);
+                              }}
+                              className="rounded-lg px-2.5 py-1.5 text-[9px] font-bold transition hover:brightness-110"
+                              style={{ background: "rgba(255,85,0,.18)", color: KEBU.orange, border: "1px solid rgba(255,85,0,.3)" }}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* General error */}
                   {addAccountError && <p className="px-1 text-[9px] text-red-400">{addAccountError}</p>}
+
+                  {/* Actions */}
                   <div className="flex gap-1.5">
                     <button
                       type="button"
-                      disabled={!newLocalPart.trim() || addingAccount}
+                      disabled={!newLocalPart.trim() || addingAccount || availability === "taken" || availability === "checking"}
                       onClick={() => void addAccount()}
                       className="flex-1 rounded-xl py-2 text-[10px] font-black text-white disabled:opacity-40 transition hover:brightness-110"
                       style={{ background: KEBU.orange }}
                     >
-                      {addingAccount ? "Creating…" : "Create"}
+                      {addingAccount ? "Creating…" : "Create address"}
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setShowAddAccount(false); setNewLocalPart(""); setAddAccountError(null); }}
+                      onClick={() => { setShowAddAccount(false); setNewLocalPart(""); setAddAccountError(null); setAvailability("idle"); setSuggestions([]); }}
                       className="rounded-xl px-3 py-2 text-[10px] font-bold transition hover:bg-white/[.08]"
                       style={{ color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}
                     >
