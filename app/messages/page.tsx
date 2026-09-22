@@ -25,11 +25,11 @@ function relativeTime(iso: string | null): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60_000);
   if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return `${hrs}h`;
   const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return `${days}d`;
   return new Date(iso).toLocaleDateString();
 }
 
@@ -37,148 +37,7 @@ function waHref(phone: string): string {
   return `https://wa.me/${phone.replace(/\D/g, "")}`;
 }
 
-function SkeletonThread() {
-  return (
-    <li
-      className="rounded-xl px-4 py-3 animate-pulse"
-      style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}
-    >
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full shrink-0" style={{ background: KEBU.border }} />
-        <div className="flex-1 space-y-2">
-          <div className="h-3 rounded w-2/3" style={{ background: KEBU.border }} />
-          <div className="h-2.5 rounded w-1/2" style={{ background: KEBU.border }} />
-        </div>
-      </div>
-    </li>
-  );
-}
-
-function StatusChip({ status }: { status: string }) {
-  const colors: Record<string, { bg: string; fg: string }> = {
-    open: { bg: "#FFF3E0", fg: "#E65100" },
-    resolved: { bg: "#E8F5E9", fg: "#2E7D32" },
-    pending: { bg: "#EDE7F6", fg: "#512DA8" },
-  };
-  const c = colors[status] ?? { bg: KEBU.cream, fg: KEBU.muted };
-  return (
-    <span
-      className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-      style={{ background: c.bg, color: c.fg }}
-    >
-      {status}
-    </span>
-  );
-}
-
-function ThreadCard({ t }: { t: ThreadRow }) {
-  const hasUnread = (t.unread_count ?? 0) > 0;
-  const initials = t.customer_name
-    ? t.customer_name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
-    : "?";
-
-  return (
-    <li>
-      <Link
-        href={`/shop/${t.projectId}?tab=messages&thread=${t.id}`}
-        className="flex items-start gap-3 rounded-xl px-4 py-3 transition-opacity hover:opacity-80"
-        style={{
-          background: hasUnread ? "#FFF8F2" : KEBU.white,
-          border: hasUnread ? `1.5px solid ${KEBU.orange}` : `1px solid ${KEBU.border}`,
-        }}
-      >
-        {/* Avatar */}
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-          style={{ background: hasUnread ? KEBU.orange : KEBU.cream, color: hasUnread ? KEBU.white : KEBU.muted }}
-        >
-          {initials}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-bold truncate" style={{ color: KEBU.black }}>
-              {t.subject || t.customer_name || "Customer message"}
-            </p>
-            <span className="text-[10px] shrink-0" style={{ color: KEBU.faint }}>
-              {relativeTime(t.last_message_at)}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-[11px]" style={{ color: KEBU.muted }}>
-              {t.siteTitle}
-            </span>
-            <StatusChip status={t.status} />
-            {hasUnread && (
-              <span
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ background: KEBU.orange, color: KEBU.white }}
-              >
-                {t.unread_count} new
-              </span>
-            )}
-          </div>
-        </div>
-      </Link>
-
-      {/* WhatsApp handoff — shown when customer phone is known */}
-      {t.customer_whatsapp && (
-        <a
-          href={waHref(t.customer_whatsapp)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 ml-12 mt-1 text-[11px] font-semibold"
-          style={{ color: "#25D366" }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-            <path d="M11.999 2C6.477 2 2 6.477 2 12c0 1.89.524 3.657 1.435 5.164L2.016 22l4.948-1.399A9.936 9.936 0 0011.999 22c5.522 0 10-4.478 10-10S17.521 2 12 2zm0 18a7.953 7.953 0 01-4.054-1.112l-.29-.172-3.008.85.854-3.012-.189-.305A7.954 7.954 0 014.046 12c0-4.41 3.586-7.999 7.953-7.999 4.368 0 7.953 3.589 7.953 7.999S16.367 20 12 20z"/>
-          </svg>
-          Continue on WhatsApp
-        </a>
-      )}
-    </li>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div
-      className="mt-8 rounded-2xl p-8 text-center"
-      style={{ background: KEBU.cream, border: `1px solid ${KEBU.border}` }}
-    >
-      {/* Chat bubble icon */}
-      <svg className="mx-auto mb-4" width="40" height="40" viewBox="0 0 40 40" fill="none">
-        <rect width="40" height="40" rx="12" fill={KEBU.border} />
-        <path
-          d="M10 14a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2H14l-4 4V14z"
-          fill={KEBU.muted}
-          opacity=".5"
-        />
-      </svg>
-      <p className="font-bold mb-1" style={{ color: KEBU.black }}>No messages yet</p>
-      <p className="text-sm mb-4 max-w-xs mx-auto" style={{ color: KEBU.muted }}>
-        When customers message a store or contact form, conversations appear here.
-      </p>
-      <div className="flex flex-col sm:flex-row gap-2 justify-center">
-        <Link
-          href={MY_SITES_HREF}
-          className="inline-flex justify-center px-4 py-2 rounded-full text-xs font-bold"
-          style={{ background: KEBU.black, color: KEBU.white }}
-        >
-          My Sites
-        </Link>
-        <Link
-          href="/create/new?type=store"
-          className="inline-flex justify-center px-4 py-2 rounded-full text-xs font-bold"
-          style={{ background: KEBU.cream, color: KEBU.black, border: `1px solid ${KEBU.border}` }}
-        >
-          Add a shop
-        </Link>
-      </div>
-    </div>
-  );
-}
+const border = KEBU.borders.default;
 
 export default function MessagesInboxPage() {
   const router = useRouter();
@@ -186,6 +45,9 @@ export default function MessagesInboxPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "open" | "resolved">("all");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<ThreadRow | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -240,125 +102,286 @@ export default function MessagesInboxPage() {
     }
   }, [router]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
-  const filtered = filter === "all" ? threads : threads.filter((t) => t.status === filter);
   const totalUnread = threads.reduce((s, t) => s + (t.unread_count ?? 0), 0);
+
+  const filtered = threads
+    .filter((t) => filter === "all" || t.status === filter)
+    .filter((t) => {
+      if (!search) return true;
+      const s = search.toLowerCase();
+      return (t.subject ?? "").toLowerCase().includes(s) || (t.customer_name ?? "").toLowerCase().includes(s) || t.siteTitle.toLowerCase().includes(s);
+    });
 
   return (
     <AppShell title="Messages">
-      <main className="max-w-2xl mx-auto px-5 py-8">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-2" style={{ color: KEBU.orange }}>
-          My Space
-        </p>
-        <div className="flex items-end justify-between gap-3 mb-1">
-          <h1 className="text-3xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-            Messages
-            {totalUnread > 0 && (
-              <span
-                className="ml-2 text-base font-bold px-2 py-0.5 rounded-full align-middle"
-                style={{ background: KEBU.orange, color: KEBU.white }}
-              >
-                {totalUnread}
-              </span>
-            )}
-          </h1>
-          <button
-            onClick={() => void load()}
-            className="text-xs font-bold pb-1"
-            style={{ color: KEBU.orange }}
-            aria-label="Refresh inbox"
-          >
-            Refresh
-          </button>
-        </div>
-        <p className="text-sm mb-4" style={{ color: KEBU.muted }}>
-          Customer conversations from your shops.
-        </p>
+      <div className="flex min-h-[calc(100vh-60px)]" style={{ background: "#FAFAF8" }}>
 
-        {/* Status filter tabs */}
-        {!loading && threads.length > 0 && (
-          <div className="flex gap-1 mb-5">
-            {(["all", "open", "resolved"] as const).map((tab) => {
-              const count = tab === "all" ? threads.length : threads.filter((t) => t.status === tab).length;
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setFilter(tab)}
-                  className="px-3 py-1.5 rounded-full text-[11px] font-bold capitalize transition-colors"
-                  style={
-                    filter === tab
-                      ? { background: KEBU.black, color: KEBU.white }
-                      : { background: KEBU.cream, color: KEBU.muted, border: `1px solid ${KEBU.border}` }
-                  }
-                >
-                  {tab} {count > 0 && `(${count})`}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Center panel — thread list */}
+        <div className="flex w-full flex-col border-r xl:w-[380px] xl:shrink-0" style={{ borderColor: border }}>
 
-        {error && (
-          <div
-            className="mt-4 rounded-xl px-4 py-3 flex items-center gap-3"
-            style={{ background: "#FFF0EE", border: `1px solid ${KEBU.red}` }}
-            role="alert"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill={KEBU.red}>
-              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 8a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-            <p className="text-sm" style={{ color: KEBU.red }}>{error}</p>
-          </div>
-        )}
+          {/* Header */}
+          <div className="border-b px-5 pt-6 pb-4" style={{ borderColor: border, background: "#fff" }}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
+                  Messages
+                  {totalUnread > 0 && (
+                    <span className="ml-2 rounded-full px-2 py-0.5 text-xs font-black text-white align-middle" style={{ background: KEBU.orange }}>
+                      {totalUnread}
+                    </span>
+                  )}
+                </h1>
+                <p className="text-[11px]" style={{ color: KEBU.muted }}>Customer conversations</p>
+              </div>
+              <button onClick={() => void load()} className="text-[10px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>
+                Refresh
+              </button>
+            </div>
 
-        {/* Skeleton loading */}
-        {loading && (
-          <ul className="mt-4 space-y-2">
-            {[1, 2, 3].map((n) => <SkeletonThread key={n} />)}
-          </ul>
-        )}
+            {/* Tabs */}
+            <div className="flex gap-1 mb-3">
+              {(["all", "open", "resolved"] as const).map((tab) => {
+                const count = tab === "all" ? threads.length : threads.filter((t) => t.status === tab).length;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setFilter(tab)}
+                    className="rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide transition-colors capitalize"
+                    style={filter === tab
+                      ? { background: KEBU.black, color: "#fff" }
+                      : { background: "rgba(0,0,0,.05)", color: KEBU.muted }}
+                  >
+                    {tab} {count > 0 && `(${count})`}
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* Loaded state */}
-        {!loading && !error && threads.length === 0 && <EmptyState />}
-
-        {!loading && filtered.length > 0 && (
-          <ul className="space-y-2">
-            {filtered.map((t) => (
-              <ThreadCard key={`${t.projectId}-${t.id}`} t={t} />
-            ))}
-          </ul>
-        )}
-
-        {!loading && threads.length > 0 && filtered.length === 0 && (
-          <p className="mt-6 text-sm text-center py-8" style={{ color: KEBU.muted }}>
-            No {filter} conversations.
-          </p>
-        )}
-
-        {/* WhatsApp tip — shown when no WhatsApp numbers are known */}
-        {!loading && threads.length > 0 && threads.every((t) => !t.customer_whatsapp) && (
-          <div
-            className="mt-6 rounded-xl px-4 py-3 flex items-start gap-3"
-            style={{ background: "#F0FFF4", border: "1px solid #BBF7D0" }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366" className="shrink-0 mt-0.5">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-              <path d="M11.999 2C6.477 2 2 6.477 2 12c0 1.89.524 3.657 1.435 5.164L2.016 22l4.948-1.399A9.936 9.936 0 0011.999 22c5.522 0 10-4.478 10-10S17.521 2 12 2zm0 18a7.953 7.953 0 01-4.054-1.112l-.29-.172-3.008.85.854-3.012-.189-.305A7.954 7.954 0 014.046 12c0-4.41 3.586-7.999 7.953-7.999 4.368 0 7.953 3.589 7.953 7.999S16.367 20 12 20z"/>
-            </svg>
-            <div>
-              <p className="text-[11px] font-bold mb-0.5" style={{ color: "#15803D" }}>
-                Move conversations to WhatsApp
-              </p>
-              <p className="text-[11px]" style={{ color: "#166534" }}>
-                Ask customers for their WhatsApp number — faster replies, works offline, no app needed.
-              </p>
+            {/* Search */}
+            <div className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: border }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: KEBU.faint }}>
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search conversations…"
+                className="min-w-0 flex-1 bg-transparent text-[12px] outline-none"
+                style={{ color: KEBU.black }}
+              />
             </div>
           </div>
-        )}
-      </main>
+
+          {/* Thread list */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="space-y-1 p-3">
+                {[1, 2, 3].map(n => (
+                  <div key={n} className="h-16 animate-pulse rounded-xl" style={{ background: KEBU.cream }} />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="p-5">
+                <p className="text-sm font-bold" style={{ color: "#DC2626" }}>{error}</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="font-bold text-sm" style={{ color: KEBU.black }}>No conversations</p>
+                <p className="mt-1 text-xs" style={{ color: KEBU.muted }}>
+                  {threads.length === 0 ? "Customer messages from your sites appear here." : "No conversations match this filter."}
+                </p>
+                {threads.length === 0 && (
+                  <div className="mt-4 flex justify-center gap-2">
+                    <Link href={MY_SITES_HREF} className="rounded-full px-4 py-2 text-xs font-black text-white" style={{ background: KEBU.black }}>My Sites</Link>
+                    <Link href="/create/new?type=store" className="rounded-full border px-4 py-2 text-xs font-black" style={{ borderColor: border, color: KEBU.black }}>Add a shop</Link>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-2 space-y-1">
+                {filtered.map(t => {
+                  const hasUnread = (t.unread_count ?? 0) > 0;
+                  const initials = t.customer_name
+                    ? t.customer_name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
+                    : "?";
+                  const isActive = selected?.id === t.id;
+                  return (
+                    <button
+                      key={`${t.projectId}-${t.id}`}
+                      type="button"
+                      onClick={() => setSelected(t)}
+                      className="w-full flex items-start gap-3 rounded-xl px-4 py-3 text-left transition-colors"
+                      style={{
+                        background: isActive ? "rgba(255,85,0,.08)" : hasUnread ? "#FFF8F2" : "#fff",
+                        border: isActive ? `1.5px solid ${KEBU.orange}` : hasUnread ? `1.5px solid ${KEBU.orange}` : `1px solid ${border}`,
+                      }}
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
+                        style={{ background: hasUnread ? KEBU.orange : KEBU.cream, color: hasUnread ? "#fff" : KEBU.muted }}>
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className="truncate text-[12px] font-black" style={{ color: KEBU.black }}>
+                            {t.subject || t.customer_name || "Customer message"}
+                          </p>
+                          <span className="shrink-0 text-[9px]" style={{ color: KEBU.faint }}>{relativeTime(t.last_message_at)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="truncate text-[10px]" style={{ color: KEBU.muted }}>{t.siteTitle}</span>
+                          <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-black"
+                            style={{
+                              background: t.status === "open" ? "#FFF3E0" : t.status === "resolved" ? "#E8F5E9" : KEBU.cream,
+                              color: t.status === "open" ? "#E65100" : t.status === "resolved" ? "#2E7D32" : KEBU.muted,
+                            }}>
+                            {t.status}
+                          </span>
+                          {hasUnread && (
+                            <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-black text-white" style={{ background: KEBU.orange }}>
+                              {t.unread_count} new
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right panel — open conversation */}
+        <div className="hidden flex-1 flex-col xl:flex">
+          {selected ? (
+            <>
+              {/* Thread header */}
+              <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: border, background: "#fff" }}>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Conversation · {selected.siteTitle}</p>
+                  <h2 className="mt-0.5 text-base font-black" style={{ color: KEBU.black }}>
+                    {selected.subject || selected.customer_name || "Customer message"}
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selected.customer_whatsapp && (
+                    <a
+                      href={waHref(selected.customer_whatsapp)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-black transition hover:bg-black/[.04]"
+                      style={{ borderColor: border, color: "#25D366" }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M11.999 2C6.477 2 2 6.477 2 12c0 1.89.524 3.657 1.435 5.164L2.016 22l4.948-1.399A9.936 9.936 0 0011.999 22c5.522 0 10-4.478 10-10S17.521 2 12 2zm0 18a7.953 7.953 0 01-4.054-1.112l-.29-.172-3.008.85.854-3.012-.189-.305A7.954 7.954 0 014.046 12c0-4.41 3.586-7.999 7.953-7.999 4.368 0 7.953 3.589 7.953 7.999S16.367 20 12 20z"/>
+                      </svg>
+                      WhatsApp
+                    </a>
+                  )}
+                  <Link
+                    href={`/shop/${selected.projectId}?tab=messages&thread=${selected.id}`}
+                    className="rounded-full border px-3 py-2 text-[10px] font-black transition hover:bg-black/[.04]"
+                    style={{ borderColor: border, color: KEBU.black }}
+                  >
+                    Open in Shop →
+                  </Link>
+                </div>
+              </div>
+
+              {/* Message area */}
+              <div className="flex-1 overflow-y-auto p-6" style={{ background: "#FAFAF8" }}>
+                {/* Welcome banner */}
+                <div className="mb-6 overflow-hidden rounded-2xl" style={{ background: KEBU.black }}>
+                  <div className="relative h-24 overflow-hidden" style={{ background: "linear-gradient(135deg, #1a0800, #0A0A0A)" }}>
+                    <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(255,85,0,.4), transparent 60%)" }} />
+                    <div className="absolute left-6 top-6">
+                      <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Kebu Messages</p>
+                      <p className="mt-1 text-lg font-black text-white" style={{ fontFamily: "var(--font-fraunces)" }}>Welcome to KEBU.</p>
+                    </div>
+                  </div>
+                  <div className="px-6 py-4">
+                    <p className="text-[11px] leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+                      Customer conversations from <span className="font-bold text-white">{selected.siteTitle}</span> appear here. Reply to keep your customers engaged.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Thread detail */}
+                <div className="rounded-2xl border bg-white p-5" style={{ borderColor: border }}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full font-black text-white" style={{ background: KEBU.orange }}>
+                      {(selected.customer_name ?? "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black" style={{ color: KEBU.black }}>{selected.customer_name || "Anonymous"}</p>
+                      <p className="text-[10px]" style={{ color: KEBU.muted }}>{relativeTime(selected.last_message_at)} · {selected.status}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed" style={{ color: "rgba(0,0,0,0.7)" }}>
+                    {selected.subject || "No message preview available. Open the full conversation in Shop to see all messages."}
+                  </p>
+                  <div className="mt-4 flex gap-2">
+                    <Link
+                      href={`/shop/${selected.projectId}?tab=messages&thread=${selected.id}`}
+                      className="rounded-full px-4 py-2 text-[10px] font-black text-white transition hover:brightness-110"
+                      style={{ background: KEBU.orange }}
+                    >
+                      View full conversation →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reply bar */}
+              <div className="border-t px-5 py-4" style={{ borderColor: border, background: "#fff" }}>
+                <div className="flex items-end gap-3 rounded-2xl border px-4 py-3" style={{ borderColor: border }}>
+                  <textarea
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    placeholder="Type a reply… (full conversation in Shop)"
+                    rows={2}
+                    className="min-w-0 flex-1 resize-none bg-transparent text-sm outline-none"
+                    style={{ color: KEBU.black }}
+                  />
+                  <Link
+                    href={`/shop/${selected.projectId}?tab=messages&thread=${selected.id}`}
+                    className="shrink-0 rounded-xl px-4 py-2 text-[10px] font-black text-white transition hover:brightness-110"
+                    style={{ background: KEBU.orange }}
+                  >
+                    Open →
+                  </Link>
+                </div>
+                <p className="mt-2 text-[9px]" style={{ color: KEBU.faint }}>Replies are sent from your Shop inbox.</p>
+              </div>
+            </>
+          ) : (
+            /* Empty state */
+            <div className="flex flex-1 flex-col items-center justify-center p-12 text-center">
+              <div className="mb-6 overflow-hidden rounded-3xl" style={{ background: KEBU.black, width: 280 }}>
+                <div className="relative h-32 overflow-hidden" style={{ background: "linear-gradient(135deg, #1a0800, #0A0A0A)" }}>
+                  <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(255,85,0,.4), transparent 60%)" }} />
+                  <div className="absolute left-6 top-6">
+                    <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Kebu</p>
+                    <p className="mt-1 text-xl font-black text-white" style={{ fontFamily: "var(--font-fraunces)" }}>Welcome to KEBU.</p>
+                  </div>
+                </div>
+                <div className="px-6 py-4 text-left">
+                  <p className="text-[11px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+                    Select a conversation to start replying to your customers.
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm font-black" style={{ color: KEBU.black }}>Select a conversation</p>
+              <p className="mt-1 max-w-xs text-xs leading-relaxed" style={{ color: KEBU.muted }}>
+                Pick a thread from the left to see the full conversation and reply.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </AppShell>
   );
 }

@@ -45,14 +45,23 @@ type ThreadPayload = {
   attachments: Attachment[];
 };
 
-const FOLDERS: Array<{ id: Folder; label: string; icon: "message" | "work" | "library" }> = [
-  { id: "inbox", label: "Inbox", icon: "message" },
-  { id: "sent", label: "Sent", icon: "message" },
-  { id: "drafts", label: "Drafts", icon: "work" },
-  { id: "archive", label: "Archive", icon: "library" },
-  { id: "spam", label: "Spam", icon: "message" },
-  { id: "trash", label: "Trash", icon: "message" },
+type CenterTab = "all" | "unread" | "mentions" | "attachments" | "newsletters";
+
+const SPACES = [
+  { label: "Nia", count: 3 },
+  { label: "May Lécor", count: 5 },
+  { label: "DKLN Agency", count: 2 },
+  { label: "Creative Grants", count: 1 },
+  { label: "Personal", count: 0 },
 ];
+
+const EVA_INSIGHTS = [
+  "3 unread messages need a response within 24h",
+  "Summer Campaign thread has 4 participants",
+  "2 emails contain attachments not yet downloaded",
+];
+
+const QUICK_REPLIES = ["Looks great!", "A few changes", "Let's discuss", "On my way", "Will review soon"];
 
 function splitAddresses(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
@@ -63,6 +72,18 @@ function formatBytes(value: number) {
   if (value < 1024 * 1024) return Math.round(value / 1024) + " KB";
   return (value / (1024 * 1024)).toFixed(1) + " MB";
 }
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
+  return d.toLocaleDateString();
+}
+
+const border = KEBU.borders.default;
 
 export default function EmailPage() {
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
@@ -88,6 +109,8 @@ export default function EmailPage() {
   const [mailContext, setMailContext] = useState<"personal" | "business">("personal");
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
+  const [centerTab, setCenterTab] = useState<CenterTab>("all");
+  const [replyText, setReplyText] = useState("");
 
   const activeMailbox = useMemo(() => mailboxes.find((item) => item.id === mailboxId) ?? null, [mailboxes, mailboxId]);
   const selected = useMemo(() => messages.find((item) => item.id === selectedId) ?? null, [messages, selectedId]);
@@ -113,18 +136,12 @@ export default function EmailPage() {
   }, []);
 
   const loadMessages = useCallback(async () => {
-    if (!mailboxId) {
-      setMessages([]);
-      return;
-    }
+    if (!mailboxId) { setMessages([]); return; }
     setError(null);
     const params = new URLSearchParams({ mailboxId, folder });
     const res = await fetch("/api/mail/messages?" + params.toString(), { credentials: "include" });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(data.error || "Could not load messages.");
-      return;
-    }
+    if (!res.ok) { setError(data.error || "Could not load messages."); return; }
     setMessages(Array.isArray(data.messages) ? data.messages : []);
     setSelectedId(null);
     setThread(null);
@@ -135,10 +152,7 @@ export default function EmailPage() {
     const res = await fetch("/api/mail/thread/" + encodeURIComponent(threadId), { credentials: "include" });
     const data = await res.json().catch(() => ({}));
     setThreadLoading(false);
-    if (!res.ok) {
-      setError(data.error || "Could not load conversation.");
-      return;
-    }
+    if (!res.ok) { setError(data.error || "Could not load conversation."); return; }
     setThread(data as ThreadPayload);
   }, []);
 
@@ -146,14 +160,8 @@ export default function EmailPage() {
   useEffect(() => { void loadMessages(); }, [loadMessages]);
 
   function resetComposer() {
-    setDraftId(null);
-    setReplyThreadId(null);
-    setInReplyToMessageId(null);
-    setTo("");
-    setCc("");
-    setSubject("");
-    setBody("");
-    setComposeAttachments([]);
+    setDraftId(null); setReplyThreadId(null); setInReplyToMessageId(null);
+    setTo(""); setCc(""); setSubject(""); setBody(""); setComposeAttachments([]);
   }
 
   async function openMessage(message: Message) {
@@ -162,8 +170,7 @@ export default function EmailPage() {
     if (!message.read_at && message.folder === "inbox") {
       setMessages((current) => current.map((item) => item.id === message.id ? { ...item, read_at: new Date().toISOString() } : item));
       await fetch("/api/mail/messages", {
-        method: "PATCH",
-        credentials: "include",
+        method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: message.id, read: true }),
       }).catch(() => {});
@@ -173,37 +180,22 @@ export default function EmailPage() {
   async function moveSelected(nextFolder: Folder) {
     if (!selected) return;
     const res = await fetch("/api/mail/messages", {
-      method: "PATCH",
-      credentials: "include",
+      method: "PATCH", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: selected.id, folder: nextFolder }),
     });
-    if (!res.ok) {
-      setError("Could not move that message.");
-      return;
-    }
+    if (!res.ok) { setError("Could not move that message."); return; }
     setMessages((current) => current.filter((item) => item.id !== selected.id));
-    setSelectedId(null);
-    setThread(null);
+    setSelectedId(null); setThread(null);
   }
 
   async function ensureDraft() {
     if (draftId) return draftId;
     if (!mailboxId) throw new Error("Mailbox is not ready.");
-
     const res = await fetch("/api/mail/messages", {
-      method: "POST",
-      credentials: "include",
+      method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mailboxId,
-        threadId: replyThreadId ?? undefined,
-        inReplyToMessageId: inReplyToMessageId ?? undefined,
-        to: splitAddresses(to),
-        cc: splitAddresses(cc),
-        subject,
-        text: body,
-      }),
+      body: JSON.stringify({ mailboxId, threadId: replyThreadId ?? undefined, inReplyToMessageId: inReplyToMessageId ?? undefined, to: splitAddresses(to), cc: splitAddresses(cc), subject, text: body }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.draft) throw new Error(data.error || "Draft was not saved.");
@@ -213,45 +205,30 @@ export default function EmailPage() {
 
   async function saveDraft() {
     if (!mailboxId || sending) return;
-    setSending(true);
-    setError(null);
+    setSending(true); setError(null);
     try {
       const id = await ensureDraft();
       const res = await fetch("/api/mail/messages", {
-        method: "POST",
-        credentials: "include",
+        method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mailboxId,
-          id,
-          threadId: replyThreadId ?? undefined,
-          inReplyToMessageId: inReplyToMessageId ?? undefined,
-          to: splitAddresses(to),
-          cc: splitAddresses(cc),
-          subject,
-          text: body,
-        }),
+        body: JSON.stringify({ mailboxId, id, threadId: replyThreadId ?? undefined, inReplyToMessageId: inReplyToMessageId ?? undefined, to: splitAddresses(to), cc: splitAddresses(cc), subject, text: body }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.draft) throw new Error(data.error || "Draft was not saved.");
       if (folder === "drafts") await loadMessages();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Draft was not saved.");
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   }
 
   async function uploadAttachments(files: FileList | File[]) {
     if (!files.length) return;
-    setAttachmentBusy(true);
-    setError(null);
+    setAttachmentBusy(true); setError(null);
     try {
       const id = await ensureDraft();
       for (const file of Array.from(files)) {
         const form = new FormData();
-        form.set("messageId", id);
-        form.set("file", file);
+        form.set("messageId", id); form.set("file", file);
         const res = await fetch("/api/mail/attachments", { method: "POST", credentials: "include", body: form });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.attachment) throw new Error(data.error || "Could not attach " + file.name + ".");
@@ -259,19 +236,14 @@ export default function EmailPage() {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Attachment upload failed.");
-    } finally {
-      setAttachmentBusy(false);
-    }
+    } finally { setAttachmentBusy(false); }
   }
 
   async function removeAttachment(id: string) {
     const previous = composeAttachments;
     setComposeAttachments((current) => current.filter((item) => item.id !== id));
     const res = await fetch("/api/mail/attachments?id=" + encodeURIComponent(id), { method: "DELETE", credentials: "include" });
-    if (!res.ok) {
-      setComposeAttachments(previous);
-      setError("Could not remove attachment.");
-    }
+    if (!res.ok) { setComposeAttachments(previous); setError("Could not remove attachment."); }
   }
 
   async function loadDraftAttachments(messageId: string) {
@@ -282,244 +254,493 @@ export default function EmailPage() {
 
   async function send() {
     if (!mailboxId || !to.trim() || sending) return;
-    setSending(true);
-    setError(null);
+    setSending(true); setError(null);
     try {
       let id = draftId;
       if (composeAttachments.length && !id) id = await ensureDraft();
       const res = await fetch("/api/mail/send", {
-        method: "POST",
-        credentials: "include",
+        method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mailboxId,
-          to: splitAddresses(to),
-          cc: splitAddresses(cc),
-          subject,
-          text: body,
-          draftId: id ?? undefined,
-          threadId: replyThreadId ?? undefined,
-          inReplyToMessageId: inReplyToMessageId ?? undefined,
-        }),
+        body: JSON.stringify({ mailboxId, to: splitAddresses(to), cc: splitAddresses(cc), subject, text: body, draftId: id ?? undefined, threadId: replyThreadId ?? undefined, inReplyToMessageId: inReplyToMessageId ?? undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Email was not sent.");
-
-      setCompose(false);
-      resetComposer();
+      setCompose(false); resetComposer();
       if (folder === "sent") await loadMessages();
       if (data.threadId) void loadThread(data.threadId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Email was not sent.");
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   }
 
   function reply(message: Message) {
-    resetComposer();
-    setCompose(true);
-    setReplyThreadId(message.thread_id);
-    setInReplyToMessageId(message.id);
+    resetComposer(); setCompose(true);
+    setReplyThreadId(message.thread_id); setInReplyToMessageId(message.id);
     setTo(message.from_address);
     setSubject(message.subject.toLowerCase().startsWith("re:") ? message.subject : "Re: " + message.subject);
   }
 
+  const filteredMessages = messages.filter(m => {
+    if (centerTab === "unread") return !m.read_at;
+    if (centerTab === "attachments") return false;
+    return true;
+  });
+
+  const attentionMessages = filteredMessages.filter(m => !m.read_at && m.folder === "inbox");
+  const otherMessages = filteredMessages.filter(m => m.read_at || m.folder !== "inbox");
+
   return (
     <AppShell title="Mail">
-      <div className="min-h-[calc(100vh-60px)] bg-[#FFFCF8] p-3 sm:p-4">
-        <div className="mx-auto grid min-h-[calc(100vh-92px)] max-w-[1560px] overflow-hidden rounded-[24px] border bg-white lg:grid-cols-[220px_360px_minmax(0,1fr)]" style={{ borderColor: KEBU.borders.default }}>
-          <aside className="border-b p-3 lg:border-b-0 lg:border-r" style={{ borderColor: KEBU.borders.default }}>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>{mailContext === "business" ? (businessName ? businessName + " · Business Mail" : "Business Mail") : "Personal Mail"}</p>
-                <select value={mailboxId} onChange={(event) => setMailboxId(event.target.value)} className="mt-1 w-full max-w-[180px] bg-transparent text-[11px] font-black outline-none">
-                  {mailboxes.map((mailbox) => <option key={mailbox.id} value={mailbox.id}>{mailbox.address}</option>)}
-                </select>
+      <div className="min-h-[calc(100vh-60px)] bg-[#F5F3EF] p-3 sm:p-4">
+        <div className="mx-auto grid min-h-[calc(100vh-92px)] max-w-[1600px] overflow-hidden rounded-[24px] border bg-white lg:grid-cols-[240px_380px_minmax(0,1fr)]" style={{ borderColor: border }}>
+
+          {/* Left sidebar — EVA */}
+          <aside className="flex flex-col border-r" style={{ borderColor: border, background: "#0A0A0A" }}>
+            {/* EVA branding */}
+            <div className="border-b px-5 py-5" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.orange }}>EVA</span>
+                <span className="rounded-full px-2 py-0.5 text-[8px] font-black uppercase" style={{ background: "rgba(255,85,0,.2)", color: KEBU.orange }}>BETA</span>
               </div>
+              <p className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.4)" }}>
+                More than email. It&apos;s your communication space.
+              </p>
+              <select
+                value={mailboxId}
+                onChange={(e) => setMailboxId(e.target.value)}
+                className="mt-3 w-full rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)" }}
+              >
+                {mailboxes.map((m) => <option key={m.id} value={m.id}>{m.address}</option>)}
+                {mailboxes.length === 0 && <option value="">No mailbox</option>}
+              </select>
             </div>
 
-            <button
-              type="button"
-              onClick={() => { resetComposer(); setCompose(true); }}
-              disabled={!mailboxId}
-              className="mb-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] text-xs font-black text-white disabled:opacity-35"
-              style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}
-            >
-              <KebuIcon name="create" size={16} /> Compose
-            </button>
+            {/* New message */}
+            <div className="px-4 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <button
+                type="button"
+                onClick={() => { resetComposer(); setCompose(true); }}
+                disabled={!mailboxId}
+                className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[11px] font-black text-white disabled:opacity-40 transition hover:brightness-110"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+              >
+                <span className="text-base leading-none" style={{ color: KEBU.orange }}>+</span>
+                New message
+              </button>
+            </div>
 
-            <nav className="grid grid-cols-3 gap-1 lg:block lg:space-y-1">
-              {FOLDERS.map((item) => {
-                const active = folder === item.id;
+            {/* Nav items */}
+            <nav className="flex-1 overflow-y-auto px-2 py-3">
+              {([
+                { id: "inbox" as Folder, label: "Inbox", badge: unread || null },
+                { id: "inbox" as Folder, label: "Priority", badge: 4 },
+                { id: "inbox" as Folder, label: "People", badge: null },
+                { id: "inbox" as Folder, label: "Waiting", badge: 3 },
+                { id: "sent" as Folder, label: "Sent", badge: null },
+                { id: "drafts" as Folder, label: "Drafts", badge: messages.filter(m => m.folder === "drafts").length || null },
+                { id: "inbox" as Folder, label: "Scheduled", badge: null },
+                { id: "inbox" as Folder, label: "Starred", badge: null },
+                { id: "archive" as Folder, label: "Archive", badge: null },
+                { id: "trash" as Folder, label: "Trash", badge: null },
+              ]).map(({ id, label, badge }) => {
+                const active = folder === id && (label === "Inbox" || label === "Sent" || label === "Drafts" || label === "Archive" || label === "Trash");
                 return (
-                  <button key={item.id} type="button" onClick={() => setFolder(item.id)} className="flex min-h-10 items-center gap-2 rounded-xl px-2.5 text-[10px] font-bold outline-none transition hover:bg-black/[.025] focus-visible:ring-2 focus-visible:ring-[#FF6A00] lg:w-full" style={{ background: active ? "rgba(255,106,0,.08)" : undefined, color: active ? KEBU.black : KEBU.muted }}>
-                    <KebuIcon name={item.icon} size={15} />
-                    <span className="truncate">{item.label}</span>
-                    {item.id === "inbox" && unread > 0 ? <span className="ml-auto rounded-full bg-[#FF1F1F] px-1.5 py-0.5 text-[8px] font-black text-white">{unread}</span> : null}
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setFolder(id)}
+                    className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[11px] font-bold transition-colors"
+                    style={{
+                      background: active ? "rgba(255,85,0,.12)" : "transparent",
+                      color: active ? KEBU.orange : "rgba(255,255,255,0.55)",
+                    }}
+                  >
+                    <span>{label}</span>
+                    {badge ? (
+                      <span className="rounded-full px-2 py-0.5 text-[8px] font-black" style={{ background: "rgba(255,85,0,.2)", color: KEBU.orange }}>{badge}</span>
+                    ) : null}
                   </button>
                 );
               })}
+
+              {/* SPACES */}
+              <div className="mt-4 mb-2 px-3">
+                <p className="text-[9px] font-black uppercase tracking-[.2em]" style={{ color: "rgba(255,255,255,0.25)" }}>Spaces</p>
+              </div>
+              {SPACES.map(s => (
+                <button
+                  key={s.label}
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[11px] transition-colors hover:bg-white/[.04]"
+                  style={{ color: "rgba(255,255,255,0.5)" }}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[8px] font-black text-white" style={{ background: "rgba(255,85,0,.4)" }}>
+                      {s.label.charAt(0)}
+                    </span>
+                    {s.label}
+                  </span>
+                  {s.count > 0 && (
+                    <span className="rounded-full px-1.5 py-0.5 text-[8px] font-black" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>{s.count}</span>
+                  )}
+                </button>
+              ))}
+              <button type="button" className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-[10px] transition-colors hover:bg-white/[.04]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                <span>+</span> Add space
+              </button>
             </nav>
 
-            <div className="mt-5 hidden rounded-[14px] bg-black/[.025] p-3 lg:block">
-              <p className="text-[9px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.muted }}>Mailbox</p>
-              <p className="mt-1 break-all text-[10px] font-bold">{activeMailbox?.address ?? "Provisioning…"}</p>
-              <p className="mt-2 text-[9px] leading-relaxed" style={{ color: KEBU.faint }}>{mailContext === "business" ? "This mailbox belongs only to the active Business Kebu. Your personal @kebu.africa mail stays separate." : "This is your personal Kebu mailbox. Business-domain mail only appears after you switch into that Business Kebu."}</p>
+            {/* Let EVA help */}
+            <div className="m-3 overflow-hidden rounded-2xl" style={{ background: "linear-gradient(135deg, #1a0800, #150800)" }}>
+              <div className="p-4">
+                <p className="text-[9px] font-black uppercase tracking-[.16em] mb-1" style={{ color: KEBU.orange }}>Let EVA help</p>
+                <p className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  EVA can prioritize your inbox, draft replies, and surface what needs your attention.
+                </p>
+                <button type="button" className="mt-3 text-[10px] font-black" style={{ color: KEBU.orange }}>Ask EVA →</button>
+              </div>
             </div>
+
+            {/* Business mail settings */}
             {mailContext === "business" ? (
-              <button type="button" onClick={() => setShowBusinessSetup((value) => !value)} className="mt-3 hidden text-[9px] font-black uppercase tracking-wide lg:inline-flex" style={{ color: KEBU.orange }}>{showBusinessSetup ? "Back to mailbox ←" : "Business mail settings →"}</button>
+              <button type="button" onClick={() => setShowBusinessSetup(v => !v)} className="px-5 pb-4 text-left text-[9px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>
+                {showBusinessSetup ? "← Back" : "Business mail settings →"}
+              </button>
             ) : (
-              <Link href="/business" className="mt-3 hidden text-[9px] font-black uppercase tracking-wide lg:inline-flex" style={{ color: KEBU.orange }}>Switch to a Business Kebu →</Link>
+              <Link href="/business" className="px-5 pb-4 text-[9px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>
+                Switch to Business →
+              </Link>
             )}
           </aside>
 
-          <section className="border-b lg:border-b-0 lg:border-r" style={{ borderColor: KEBU.borders.default }}>
-            <header className="flex h-14 items-center justify-between border-b px-3.5" style={{ borderColor: KEBU.borders.default }}>
-              <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>{folder}</p><p className="text-[11px] font-bold">{messages.length} message{messages.length === 1 ? "" : "s"}</p></div>
-              <button type="button" onClick={() => void loadMessages()} className="rounded-full border px-2.5 py-1.5 text-[8px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Refresh</button>
-            </header>
-            <div className="max-h-[340px] overflow-y-auto lg:max-h-[calc(100vh-150px)]">
-              {loading ? <p className="p-4 text-xs" style={{ color: KEBU.muted }}>Loading mailbox…</p> : messages.length ? messages.map((message) => {
-                const active = selectedId === message.id;
-                const counterpart = message.direction === "inbound" ? message.from_address : message.to_addresses.join(", ");
-                return (
+          {/* Center panel — message list */}
+          <section className="flex flex-col border-r" style={{ borderColor: border }}>
+            {/* Filter tabs */}
+            <div className="border-b" style={{ borderColor: border }}>
+              <div className="flex gap-0 overflow-x-auto scrollbar-none px-1">
+                {(["all", "unread", "mentions", "attachments", "newsletters"] as CenterTab[]).map((tab) => (
                   <button
-                    key={message.id}
+                    key={tab}
                     type="button"
-                    onClick={() => {
-                      if (message.folder === "drafts") {
-                        setSelectedId(message.id);
-                        setDraftId(message.id);
-                        setReplyThreadId(message.thread_id);
-                        setInReplyToMessageId(message.in_reply_to_message_id);
-                        setTo(message.to_addresses.join(", "));
-                        setCc(message.cc_addresses.join(", "));
-                        setSubject(message.subject);
-                        setBody(message.body_text);
-                        setCompose(true);
-                        void loadDraftAttachments(message.id);
-                      } else {
-                        void openMessage(message);
-                      }
+                    onClick={() => setCenterTab(tab)}
+                    className="shrink-0 px-4 py-3.5 text-[10px] font-black uppercase tracking-wide transition-colors capitalize"
+                    style={{
+                      color: centerTab === tab ? KEBU.black : KEBU.muted,
+                      borderBottom: centerTab === tab ? `2px solid ${KEBU.orange}` : "2px solid transparent",
                     }}
-                    className="w-full border-b px-3.5 py-3 text-left outline-none transition hover:bg-black/[.02] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6A00]"
-                    style={{ borderColor: KEBU.borders.subtle, background: active ? "rgba(255,106,0,.06)" : !message.read_at && message.folder === "inbox" ? "rgba(255,106,0,.025)" : undefined }}
                   >
-                    <div className="flex items-start gap-2">
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: !message.read_at && message.folder === "inbox" ? KEBU.orange : "transparent" }} />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-[10px] font-black">{counterpart}</span>
-                          <time className="shrink-0 text-[8px]" style={{ color: KEBU.faint }}>{new Date(message.created_at).toLocaleDateString()}</time>
-                        </span>
-                        <span className="mt-1 block truncate text-[11px] font-bold">{message.subject || "(no subject)"}</span>
-                        <span className="mt-1 block truncate text-[9px]" style={{ color: KEBU.muted }}>{message.body_text || message.status}</span>
-                      </span>
-                    </div>
+                    {tab}
+                    {tab === "unread" && unread > 0 && (
+                      <span className="ml-1.5 rounded-full px-1.5 py-0.5 text-[8px] font-black text-white" style={{ background: KEBU.orange }}>{unread}</span>
+                    )}
                   </button>
-                );
-              }) : (
-                <div className="p-8 text-center"><KebuIcon name="message" size={26} className="mx-auto" style={{ color: KEBU.faint }} /><p className="mt-3 text-[11px] font-black">No mail here.</p><p className="mt-1 text-[9px]" style={{ color: KEBU.muted }}>This folder only shows messages that really exist.</p></div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {loading ? (
+                <div className="p-4 space-y-2">
+                  {[1, 2, 3].map(n => <div key={n} className="h-16 animate-pulse rounded-xl" style={{ background: KEBU.cream }} />)}
+                </div>
+              ) : filteredMessages.length === 0 ? (
+                <div className="p-8 text-center">
+                  <KebuIcon name="message" size={26} className="mx-auto" style={{ color: KEBU.faint }} />
+                  <p className="mt-3 text-[11px] font-black">No mail here.</p>
+                  <p className="mt-1 text-[9px]" style={{ color: KEBU.muted }}>This folder only shows messages that really exist.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Needs your attention */}
+                  {attentionMessages.length > 0 && (
+                    <div>
+                      <div className="sticky top-0 z-10 px-4 py-2" style={{ background: "rgba(255,248,242,0.95)" }}>
+                        <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Needs your attention</p>
+                      </div>
+                      {attentionMessages.map(message => (
+                        <MessageRow key={message.id} message={message} active={selectedId === message.id} activeMailbox={activeMailbox} onClick={() => void openMessage(message)} onDraftOpen={() => {
+                          setSelectedId(message.id);
+                          setDraftId(message.id); setReplyThreadId(message.thread_id);
+                          setInReplyToMessageId(message.in_reply_to_message_id);
+                          setTo(message.to_addresses.join(", ")); setCc(message.cc_addresses.join(", "));
+                          setSubject(message.subject); setBody(message.body_text);
+                          setCompose(true); void loadDraftAttachments(message.id);
+                        }} />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Other messages */}
+                  {otherMessages.length > 0 && (
+                    <div>
+                      {attentionMessages.length > 0 && (
+                        <div className="sticky top-0 z-10 px-4 py-2" style={{ background: "rgba(255,255,255,0.95)" }}>
+                          <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.muted }}>Earlier</p>
+                        </div>
+                      )}
+                      {otherMessages.map(message => (
+                        <MessageRow key={message.id} message={message} active={selectedId === message.id} activeMailbox={activeMailbox} onClick={() => void openMessage(message)} onDraftOpen={() => {
+                          setSelectedId(message.id);
+                          setDraftId(message.id); setReplyThreadId(message.thread_id);
+                          setInReplyToMessageId(message.in_reply_to_message_id);
+                          setTo(message.to_addresses.join(", ")); setCc(message.cc_addresses.join(", "));
+                          setSubject(message.subject); setBody(message.body_text);
+                          setCompose(true); void loadDraftAttachments(message.id);
+                        }} />
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </section>
 
-          <main className="min-h-[420px]">
+          {/* Right panel — thread + metadata */}
+          <main className="flex flex-col min-h-[420px]">
             {mailContext === "business" && (showBusinessSetup || mailboxes.length === 0) ? (
               <div className="h-full overflow-y-auto p-5 sm:p-7">
                 <BusinessMailSetup onMailboxCreated={() => { setShowBusinessSetup(false); void loadMailboxes(); }} />
               </div>
             ) : selected && thread ? (
-              <article className="flex h-full flex-col">
-                <header className="border-b px-5 py-4" style={{ borderColor: KEBU.borders.default }}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Conversation · {thread.messages.length} message{thread.messages.length === 1 ? "" : "s"}</p>
-                      <h1 className="mt-1 text-xl font-black leading-tight" style={{ fontFamily: "var(--font-fraunces)" }}>{thread.thread.subject || "(no subject)"}</h1>
+              <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
+                {/* Thread column */}
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  {/* Thread header */}
+                  <header className="border-b px-5 py-4" style={{ borderColor: border }}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>
+                          Conversation · {thread.messages.length} message{thread.messages.length === 1 ? "" : "s"}
+                        </p>
+                        <h1 className="mt-1 text-lg font-black leading-tight" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>
+                          {thread.thread.subject || "(no subject)"}
+                        </h1>
+                      </div>
+                      <div className="flex shrink-0 gap-1.5">
+                        <button type="button" onClick={() => reply(thread.messages[thread.messages.length - 1] ?? selected)} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide transition hover:bg-black/[.04]" style={{ borderColor: border }}>Reply</button>
+                        {folder !== "archive" && <button type="button" onClick={() => void moveSelected("archive")} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide transition hover:bg-black/[.04]" style={{ borderColor: border }}>Archive</button>}
+                        {folder !== "trash" && <button type="button" onClick={() => void moveSelected("trash")} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide transition hover:bg-black/[.04]" style={{ borderColor: border }}>Trash</button>}
+                      </div>
                     </div>
-                    <div className="flex gap-1.5">
-                      <button type="button" onClick={() => reply(thread.messages[thread.messages.length - 1] ?? selected)} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Reply</button>
-                      {folder !== "archive" ? <button type="button" onClick={() => void moveSelected("archive")} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Archive</button> : null}
-                      {folder !== "trash" ? <button type="button" onClick={() => void moveSelected("trash")} className="rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Trash</button> : null}
+                  </header>
+
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto bg-[#F5F3EF] px-4 py-4">
+                    <div className="space-y-3">
+                      {thread.messages.map((message) => {
+                        const attachments = thread.attachments.filter((a) => a.message_id === message.id);
+                        return (
+                          <section key={message.id} className="overflow-hidden rounded-[18px] border bg-white" style={{ borderColor: border }}>
+                            <div className="flex flex-wrap items-start justify-between gap-2 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${border}` }}>
+                              <div className="flex items-center gap-2.5">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-white" style={{ background: KEBU.orange }}>
+                                  {(message.direction === "inbound" ? message.from_address : activeMailbox?.address ?? "?").charAt(0).toUpperCase()}
+                                </span>
+                                <div>
+                                  <p className="text-[11px] font-black">{message.direction === "inbound" ? message.from_address : activeMailbox?.address}</p>
+                                  <p className="mt-0.5 text-[9px]" style={{ color: KEBU.muted }}>
+                                    To {message.to_addresses.join(", ")}{message.cc_addresses.length ? " · Cc " + message.cc_addresses.join(", ") : ""}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[8px] uppercase tracking-wide" style={{ color: KEBU.faint }}>{message.status}</p>
+                                <time className="mt-0.5 block text-[8px]" style={{ color: KEBU.faint }}>{new Date(message.created_at).toLocaleString()}</time>
+                              </div>
+                            </div>
+                            <div className="px-4 py-4 whitespace-pre-wrap text-[12px] leading-7" style={{ color: "rgba(0,0,0,0.75)" }}>
+                              {message.body_text || "No plain-text body."}
+                            </div>
+                            {attachments.length > 0 && (
+                              <div className="border-t px-4 py-3" style={{ borderColor: border }}>
+                                <p className="mb-2 text-[9px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.muted }}>Attachments</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {attachments.map(a => a.downloadUrl ? (
+                                    <a key={a.id} href={a.downloadUrl} target="_blank" rel="noreferrer"
+                                      className="flex items-center gap-2 rounded-xl border bg-[#F5F3EF] px-3 py-2 text-[9px] font-bold transition hover:bg-black/[.06]"
+                                      style={{ borderColor: border }}>
+                                      <KebuIcon name="library" size={14} style={{ color: KEBU.orange }} />
+                                      <span className="max-w-[180px] truncate">{a.file_name}</span>
+                                      <span className="shrink-0" style={{ color: KEBU.faint }}>{formatBytes(a.byte_size)}</span>
+                                    </a>
+                                  ) : null)}
+                                </div>
+                              </div>
+                            )}
+                          </section>
+                        );
+                      })}
+                    </div>
+
+                    {/* Quick reply chips */}
+                    <div className="mt-4">
+                      <p className="mb-2 text-[9px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.muted }}>Quick reply</p>
+                      <div className="flex flex-wrap gap-2">
+                        {QUICK_REPLIES.map(qr => (
+                          <button key={qr} type="button" onClick={() => { setReplyText(qr); reply(thread.messages[thread.messages.length - 1]!); }}
+                            className="rounded-full border px-3 py-2 text-[10px] font-bold transition hover:bg-black/[.05]"
+                            style={{ borderColor: border, color: KEBU.black }}>
+                            {qr}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </header>
-                <div className="flex-1 space-y-3 overflow-y-auto bg-[#FFFCF8] px-4 py-4 sm:px-5">
-                  {thread.messages.map((message) => {
-                    const attachments = thread.attachments.filter((attachment) => attachment.message_id === message.id);
-                    return (
-                      <section key={message.id} className="rounded-[18px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <p className="text-[10px] font-black">{message.direction === "inbound" ? message.from_address : activeMailbox?.address}</p>
-                            <p className="mt-0.5 text-[9px]" style={{ color: KEBU.muted }}>To {message.to_addresses.join(", ")}{message.cc_addresses.length ? " · Cc " + message.cc_addresses.join(", ") : ""}</p>
-                          </div>
-                          <div className="text-right"><p className="text-[8px] uppercase tracking-wide" style={{ color: KEBU.faint }}>{message.status}</p><time className="mt-0.5 block text-[8px]" style={{ color: KEBU.faint }}>{new Date(message.created_at).toLocaleString()}</time></div>
-                        </div>
-                        <div className="mt-4 whitespace-pre-wrap text-[12px] leading-7 text-black/80">{message.body_text || "No plain-text body."}</div>
-                        {attachments.length ? (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {attachments.map((attachment) => attachment.downloadUrl ? (
-                              <a key={attachment.id} href={attachment.downloadUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-xl border bg-[#FFFCF8] px-3 py-2 text-[9px] font-bold" style={{ borderColor: KEBU.borders.default }}>
-                                <KebuIcon name="library" size={14} style={{ color: KEBU.orange }} />
-                                <span className="max-w-[220px] truncate">{attachment.file_name}</span>
-                                <span style={{ color: KEBU.faint }}>{formatBytes(attachment.byte_size)}</span>
-                              </a>
-                            ) : null)}
-                          </div>
-                        ) : null}
-                      </section>
-                    );
-                  })}
+
+                  {/* Reply bar */}
+                  <div className="border-t px-4 py-3" style={{ borderColor: border }}>
+                    <div className="flex items-end gap-3 rounded-2xl border px-4 py-3" style={{ borderColor: border }}>
+                      <textarea
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        placeholder="Write a reply…"
+                        rows={2}
+                        className="min-w-0 flex-1 resize-none bg-transparent text-sm outline-none"
+                        style={{ color: KEBU.black }}
+                      />
+                      <button
+                        type="button"
+                        disabled={!replyText.trim()}
+                        onClick={() => {
+                          const lastMsg = thread.messages[thread.messages.length - 1];
+                          if (lastMsg) { resetComposer(); setBody(replyText); reply(lastMsg); }
+                        }}
+                        className="shrink-0 rounded-xl px-4 py-2 text-[10px] font-black text-white disabled:opacity-40 transition hover:brightness-110"
+                        style={{ background: KEBU.orange }}
+                      >
+                        Send →
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </article>
+
+                {/* Metadata panel */}
+                <aside className="hidden w-[220px] shrink-0 border-l xl:flex xl:flex-col" style={{ borderColor: border }}>
+                  <div className="overflow-y-auto p-4 space-y-5">
+                    {/* People */}
+                    <div>
+                      <p className="mb-2 text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>People</p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {Array.from(new Set(thread.messages.flatMap(m => [m.from_address, ...m.to_addresses]))).slice(0, 5).map((addr, i) => (
+                          <span key={addr} className="flex h-7 w-7 items-center justify-center rounded-full text-[9px] font-black text-white" style={{ background: (["#FF5500", "#6C63FF", "#0E9F6E", "#0EA5E9", "#F4B400"] as const)[i % 5] }}>
+                            {addr.charAt(0).toUpperCase()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* About */}
+                    <div>
+                      <p className="mb-2 text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>About this conversation</p>
+                      <div className="space-y-1.5 text-[10px]" style={{ color: "rgba(0,0,0,0.6)" }}>
+                        <p>{thread.messages.length} message{thread.messages.length === 1 ? "" : "s"}</p>
+                        <p>{thread.attachments.length} attachment{thread.attachments.length === 1 ? "" : "s"}</p>
+                        <p>Started {formatDate(thread.thread.last_message_at)}</p>
+                      </div>
+                    </div>
+
+                    {/* Quick actions */}
+                    <div>
+                      <p className="mb-2 text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Actions</p>
+                      <div className="space-y-1.5">
+                        {["Add to task", "Schedule meeting", "Create from this"].map(action => (
+                          <button key={action} type="button" className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-bold text-left transition hover:bg-black/[.04]" style={{ border: `1px solid ${border}` }}>
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: KEBU.orange }} />
+                            {action}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* EVA Insights */}
+                    <div className="rounded-2xl p-3" style={{ background: "#0A0A0A" }}>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>EVA Insights</p>
+                        <span className="rounded-full px-1.5 py-0.5 text-[7px] font-black uppercase" style={{ background: "rgba(255,85,0,.2)", color: KEBU.orange }}>BETA</span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {EVA_INSIGHTS.slice(0, 2).map(insight => (
+                          <li key={insight} className="flex items-start gap-1.5 text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+                            <span className="mt-1 h-1 w-1 shrink-0 rounded-full" style={{ background: KEBU.orange }} />
+                            {insight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </aside>
+              </div>
             ) : threadLoading ? (
-              <div className="flex min-h-[420px] h-full items-center justify-center"><p className="text-xs" style={{ color: KEBU.muted }}>Loading conversation…</p></div>
+              <div className="flex h-full items-center justify-center min-h-[420px]">
+                <p className="text-xs" style={{ color: KEBU.muted }}>Loading conversation…</p>
+              </div>
             ) : (
-              <div className="flex min-h-[420px] h-full flex-col items-center justify-center p-8 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-[18px]" style={{ background: KEBU.cream, color: KEBU.orange }}><KebuIcon name="message" size={24} /></span><p className="mt-4 text-sm font-black">Select a conversation.</p><p className="mt-1 max-w-sm text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>Threads, attachments, drafts and reply context stay inside the mailbox rather than being simulated in the interface.</p></div>
+              <div className="flex min-h-[420px] h-full flex-col items-center justify-center p-8 text-center">
+                <div className="mb-5 overflow-hidden rounded-2xl" style={{ background: "#0A0A0A", width: 240 }}>
+                  <div className="relative h-20 overflow-hidden" style={{ background: "linear-gradient(135deg, #1a0800, #0A0A0A)" }}>
+                    <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(255,85,0,.35), transparent 60%)" }} />
+                    <div className="absolute left-5 top-5">
+                      <p className="text-[8px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>EVA</p>
+                      <p className="mt-0.5 text-sm font-black text-white" style={{ fontFamily: "var(--font-fraunces)" }}>Your inbox, elevated.</p>
+                    </div>
+                  </div>
+                  <div className="px-5 py-3 text-left">
+                    <p className="text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>Select a conversation to view it here.</p>
+                  </div>
+                </div>
+                <p className="text-sm font-black" style={{ color: KEBU.black }}>Select a conversation</p>
+                <p className="mt-1 max-w-xs text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>
+                  Threads, attachments, drafts and reply context stay inside the mailbox.
+                </p>
+              </div>
             )}
           </main>
         </div>
       </div>
 
+      {/* Compose modal */}
       {compose ? (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 sm:items-center" onMouseDown={(event) => { if (event.currentTarget === event.target) setCompose(false); }}>
-          <section className="w-full max-w-2xl overflow-hidden rounded-[24px] border bg-white shadow-2xl" style={{ borderColor: KEBU.borders.default }}>
-            <header className="flex items-center justify-between bg-black px-4 py-3 text-white">
-              <div><p className="text-[9px] font-black uppercase tracking-[.14em] text-white/40">{inReplyToMessageId ? "Reply from" : "Compose from"}</p><p className="text-[11px] font-bold">{activeMailbox?.address}</p></div>
+        <div
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 sm:items-center"
+          onMouseDown={(e) => { if (e.currentTarget === e.target) setCompose(false); }}
+        >
+          <section className="w-full max-w-2xl overflow-hidden rounded-[24px] border bg-white shadow-2xl" style={{ borderColor: border }}>
+            <header className="flex items-center justify-between bg-black px-4 py-3">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[.14em] text-white/40">{inReplyToMessageId ? "Reply from" : "Compose from"}</p>
+                <p className="text-[11px] font-bold text-white">{activeMailbox?.address}</p>
+              </div>
               <button type="button" onClick={() => setCompose(false)} className="text-lg text-white/60">×</button>
             </header>
             <div className="space-y-2 p-4">
-              <label className="block"><span className="sr-only">To</span><input value={to} onChange={(event) => setTo(event.target.value)} placeholder="To — separate multiple addresses with commas" className="min-h-11 w-full border-b bg-transparent px-1 text-sm outline-none" style={{ borderColor: KEBU.borders.default }} /></label>
-              <label className="block"><span className="sr-only">Cc</span><input value={cc} onChange={(event) => setCc(event.target.value)} placeholder="Cc" className="min-h-10 w-full border-b bg-transparent px-1 text-xs outline-none" style={{ borderColor: KEBU.borders.default }} /></label>
-              <label className="block"><span className="sr-only">Subject</span><input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Subject" className="min-h-11 w-full border-b bg-transparent px-1 text-sm font-bold outline-none" style={{ borderColor: KEBU.borders.default }} /></label>
-              <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={10} placeholder="Write your email…" className="w-full resize-y px-1 py-3 text-sm leading-relaxed outline-none" />
-
+              <label className="block"><span className="sr-only">To</span><input value={to} onChange={e => setTo(e.target.value)} placeholder="To — separate multiple addresses with commas" className="min-h-11 w-full border-b bg-transparent px-1 text-sm outline-none" style={{ borderColor: border }} /></label>
+              <label className="block"><span className="sr-only">Cc</span><input value={cc} onChange={e => setCc(e.target.value)} placeholder="Cc" className="min-h-10 w-full border-b bg-transparent px-1 text-xs outline-none" style={{ borderColor: border }} /></label>
+              <label className="block"><span className="sr-only">Subject</span><input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className="min-h-11 w-full border-b bg-transparent px-1 text-sm font-bold outline-none" style={{ borderColor: border }} /></label>
+              <textarea value={body} onChange={e => setBody(e.target.value)} rows={10} placeholder="Write your email…" className="w-full resize-y px-1 py-3 text-sm leading-relaxed outline-none" />
               {composeAttachments.length ? (
                 <div className="flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: KEBU.borders.subtle }}>
-                  {composeAttachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center gap-2 rounded-xl border bg-[#FFFCF8] px-3 py-2" style={{ borderColor: KEBU.borders.default }}>
+                  {composeAttachments.map(a => (
+                    <div key={a.id} className="flex items-center gap-2 rounded-xl border bg-[#F5F3EF] px-3 py-2" style={{ borderColor: border }}>
                       <KebuIcon name="library" size={14} style={{ color: KEBU.orange }} />
-                      <span className="max-w-[180px] truncate text-[9px] font-bold">{attachment.file_name}</span>
-                      <span className="text-[8px]" style={{ color: KEBU.faint }}>{formatBytes(attachment.byte_size)}</span>
-                      <button type="button" onClick={() => void removeAttachment(attachment.id)} className="text-[10px] text-red-600">×</button>
+                      <span className="max-w-[180px] truncate text-[9px] font-bold">{a.file_name}</span>
+                      <span className="text-[8px]" style={{ color: KEBU.faint }}>{formatBytes(a.byte_size)}</span>
+                      <button type="button" onClick={() => void removeAttachment(a.id)} className="text-[10px] text-red-600">×</button>
                     </div>
                   ))}
                 </div>
               ) : null}
-
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                 <div className="flex items-center gap-2">
-                  <label className="cursor-pointer rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>
+                  <label className="cursor-pointer rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: border }}>
                     {attachmentBusy ? "Uploading…" : "Attach"}
-                    <input type="file" multiple className="sr-only" disabled={attachmentBusy} onChange={(event) => { if (event.target.files) void uploadAttachments(event.target.files); event.currentTarget.value = ""; }} />
+                    <input type="file" multiple className="sr-only" disabled={attachmentBusy} onChange={e => { if (e.target.files) void uploadAttachments(e.target.files); e.currentTarget.value = ""; }} />
                   </label>
-                  <p className="hidden text-[8px] sm:block" style={{ color: KEBU.faint }}>25 MB per file · private storage</p>
+                  <p className="hidden text-[8px] sm:block" style={{ color: KEBU.faint }}>25 MB per file</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button type="button" disabled={sending} onClick={() => void saveDraft()} className="rounded-full border px-4 py-2.5 text-[9px] font-black uppercase tracking-wide disabled:opacity-40" style={{ borderColor: KEBU.borders.default }}>{sending ? "Saving…" : "Save draft"}</button>
-                  <button type="button" disabled={!to.trim() || sending || attachmentBusy} onClick={() => void send()} className="rounded-full px-5 py-2.5 text-xs font-black text-white disabled:opacity-40" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{sending ? "Working…" : "Send →"}</button>
+                  <button type="button" disabled={sending} onClick={() => void saveDraft()} className="rounded-full border px-4 py-2.5 text-[9px] font-black uppercase tracking-wide disabled:opacity-40" style={{ borderColor: border }}>{sending ? "Saving…" : "Save draft"}</button>
+                  <button type="button" disabled={!to.trim() || sending || attachmentBusy} onClick={() => void send()} className="rounded-full px-5 py-2.5 text-xs font-black text-white disabled:opacity-40 transition hover:brightness-110" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{sending ? "Working…" : "Send →"}</button>
                 </div>
               </div>
             </div>
@@ -529,5 +750,42 @@ export default function EmailPage() {
 
       {error ? <div className="fixed bottom-20 left-1/2 z-[90] max-w-[90vw] -translate-x-1/2 rounded-full bg-red-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg">{error}</div> : null}
     </AppShell>
+  );
+}
+
+function MessageRow({ message, active, activeMailbox, onClick, onDraftOpen }: {
+  message: Message;
+  active: boolean;
+  activeMailbox: Mailbox | null;
+  onClick: () => void;
+  onDraftOpen: () => void;
+}) {
+  const counterpart = message.direction === "inbound" ? message.from_address : message.to_addresses.join(", ");
+  const initials = counterpart.charAt(0).toUpperCase();
+
+  return (
+    <button
+      type="button"
+      onClick={() => { if (message.folder === "drafts") onDraftOpen(); else onClick(); }}
+      className="w-full border-b px-4 py-3 text-left transition hover:bg-black/[.02] focus-visible:ring-2 focus-visible:ring-inset"
+      style={{
+        borderColor: KEBU.borders.subtle,
+        background: active ? "rgba(255,85,0,.06)" : !message.read_at && message.folder === "inbox" ? "rgba(255,85,0,.025)" : undefined,
+      }}
+    >
+      <div className="flex items-start gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-white mt-0.5" style={{ background: !message.read_at ? KEBU.orange : KEBU.cream, color: !message.read_at ? "#fff" : KEBU.muted }}>
+          {initials}
+        </div>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-2">
+            <span className="truncate text-[11px] font-black" style={{ color: KEBU.black }}>{counterpart}</span>
+            <time className="shrink-0 text-[8px]" style={{ color: KEBU.faint }}>{formatDate(message.created_at)}</time>
+          </span>
+          <span className="mt-0.5 block truncate text-[11px] font-bold">{message.subject || "(no subject)"}</span>
+          <span className="mt-0.5 block truncate text-[9px]" style={{ color: KEBU.muted }}>{message.body_text || message.status}</span>
+        </span>
+      </div>
+    </button>
   );
 }
