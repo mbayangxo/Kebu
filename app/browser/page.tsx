@@ -220,7 +220,7 @@ export default function BrowserPage() {
                   <div className="mt-6 whitespace-pre-wrap text-[14px] leading-8 text-black/80">{page.text}</div>
                   <div className="sticky bottom-4 mt-10 flex flex-wrap justify-center gap-2 rounded-full border bg-white/95 p-2 shadow-xl backdrop-blur" style={{ borderColor: KEBU.borders.default }}>
                     <Link href={"/search?q=" + encodeURIComponent(page.title || page.finalUrl)} className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-wide hover:bg-black/[.04]">Search related</Link>
-                    <Link href="/opportunity/research" className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-wide hover:bg-black/[.04]">Save to research</Link>
+                    <Link href="/opportunity" className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-wide hover:bg-black/[.04]">Opportunities</Link>
                     <Link href="/email" className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-wide hover:bg-black/[.04]">Share by Mail</Link>
                     <Link href="/docs" className="rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-wide hover:bg-black/[.04]">Use in Docs</Link>
                   </div>

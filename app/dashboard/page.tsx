@@ -199,6 +199,16 @@ export default function KebuHomePage() {
                       </Link>
                     ))}
                   </section>
+
+                  <section className="relative overflow-hidden rounded-xl border p-5" style={{ borderColor: KEBU.borders.orangeStrong, background: KEBU.surface.invert }}>
+                    <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 opacity-20" style={{ background: "radial-gradient(circle at 90% 10%, #FF5500, transparent 60%)" }} aria-hidden />
+                    <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Opportunity OS</p>
+                    <p className="mt-2 text-lg font-black text-white" style={{ fontFamily: "var(--font-fraunces)" }}>Find funding for your idea.</p>
+                    <p className="mt-1 text-[11px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>Verified grants, loans, and fellowships for African and diaspora founders.</p>
+                    <Link href="/opportunity" className="mt-4 inline-flex rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide text-white" style={{ background: KEBU.orange }}>
+                      Browse opportunities →
+                    </Link>
+                  </section>
                 </main>
 
                 <aside className="space-y-4">
