@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getShopPaymentAdapter } from "@/lib/payments/registry";
 import { startShopOrderJokoCheckout } from "@/lib/shop/joko-order";
+import { xofToCauris, caurisRateBook } from "@/lib/shop/cauris";
 import {
   railFromProvider,
   recordPaymentLedgerEvent,
@@ -120,12 +121,27 @@ export async function startShopOrderProviderCheckout(opts: {
         fallbackInstructions: !joko.configured,
       };
     }
+    // Compute the Cauris conversion record at session-creation time.
+    // This snapshot must be stored on the order so that the paid event and any
+    // future refund/reconciliation use the *original* rate, not a recalculated one.
+    const rateBook = caurisRateBook();
+    const caurisConversion = xofToCauris(opts.amountXof, rateBook);
+    const conversionAt = new Date().toISOString();
+    const jokoLineage = {
+      joko_cauris_amount:  caurisConversion.cauris,
+      joko_xof_per_cauris: rateBook.xofPerCauris,
+      joko_rate_source:    rateBook.source,
+      joko_rate_as_of:     rateBook.asOf,
+      joko_conversion_at:  conversionAt,
+    };
+
     const persisted = await persistProviderFields(opts.admin, opts.orderId, {
       payment_provider: "joko",
       provider_reference: joko.reference,
       provider_payment_id: joko.paymentId ?? null,
       checkout_url: joko.paymentUrl,
-      updated_at: new Date().toISOString(),
+      ...jokoLineage,
+      updated_at: conversionAt,
     });
     if (!persisted.ok) {
       // Checkout URL still valid; joko_reference was written by startShopOrderJokoCheckout
@@ -137,16 +153,30 @@ export async function startShopOrderProviderCheckout(opts: {
         }),
       );
     }
+    // currency: "CAURIS" — settlement unit for Joko.
+    // amount_xof (ledger column) always holds the XOF face value; currency labels
+    // the settlement rail.  Full lineage (Cauris amount, rate, source, timestamp)
+    // goes in meta so downstream consumers can audit the conversion without
+    // recalculating at a potentially different rate.
     await recordPaymentLedgerEvent(opts.admin, {
       projectId: opts.projectId,
       orderId: opts.orderId,
       rail: "joko",
       eventType: "checkout_started",
       amountXof: opts.amountXof,
-      currency: "XOF",
+      currency: "CAURIS",
       provider: "joko",
       providerReference: joko.reference,
-      meta: { paymentId: joko.paymentId ?? null },
+      meta: {
+        paymentId:     joko.paymentId ?? null,
+        sourceCurrency: "XOF",
+        sourceAmountXof: opts.amountXof,
+        caurisAmount:  caurisConversion.cauris,
+        xofPerCauris:  rateBook.xofPerCauris,
+        rateSource:    rateBook.source,
+        rateAsOf:      rateBook.asOf,
+        conversionAt,
+      },
     });
     return {
       ok: true,

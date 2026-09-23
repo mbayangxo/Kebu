@@ -1045,20 +1045,59 @@ describe("T36: RLS authorization — service_role only", () => {
 // T37: Joko rail always records CAURIS currency (Item 11)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("T37: Joko ledger currency is XOF (amount_xof column stores XOF)", () => {
-  it("T37: adapter-checkout records XOF currency on joko checkout_started event — amount_xof is XOF-denominated", () => {
+describe("T37: Joko CAURIS monetary lineage", () => {
+  it("T37: adapter-checkout checkout_started uses currency CAURIS and records full conversion lineage in meta", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { readFileSync } = require("node:fs");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { join } = require("node:path");
     const src: string = readFileSync(join(process.cwd(), "lib/shop/adapter-checkout.ts"), "utf8");
-    // The joko checkout_started ledger event stores the XOF amount with currency: "XOF"
-    // (amount_xof column is always in XOF; labeling it CAURIS would mismatch the stored value)
-    const jokoXofBlock = src.match(/rail:\s*"joko"[\s\S]{0,500}currency:\s*"XOF"/);
-    expect(jokoXofBlock, "joko ledger event must use currency XOF to match amount_xof column").not.toBeNull();
-    // Must NOT store XOF amount with CAURIS label (that would be ~600x wrong for conversion)
-    const caurisMislabel = src.match(/rail:\s*"joko"[\s\S]{0,500}amountXof:[\s\S]{0,200}currency:\s*"CAURIS"/);
-    expect(caurisMislabel, "joko ledger must not label XOF amount as CAURIS").toBeNull();
+
+    // CAURIS is Joko's internal settlement layer — intentionally kept as the currency label.
+    const caurisLabel = src.match(/rail:\s*"joko"[\s\S]{0,800}currency:\s*"CAURIS"/);
+    expect(caurisLabel, "joko checkout_started must use currency CAURIS (settlement unit)").not.toBeNull();
+
+    // Full lineage must be present in meta: source amount, Cauris amount, rate, source, timestamp.
+    expect(src).toContain("sourceAmountXof");
+    expect(src).toContain("caurisAmount");
+    expect(src).toContain("xofPerCauris");
+    expect(src).toContain("rateSource");
+    expect(src).toContain("rateAsOf");
+    expect(src).toContain("conversionAt");
+
+    // The conversion must be computed via xofToCauris(), not a manual relabeling.
+    expect(src).toContain("xofToCauris");
+    expect(src).toContain("caurisRateBook");
+
+    // Lineage must be stored on the order for the paid/refund RPCs to use original rate.
+    expect(src).toContain("joko_cauris_amount");
+    expect(src).toContain("joko_xof_per_cauris");
+    expect(src).toContain("joko_rate_as_of");
+    expect(src).toContain("joko_conversion_at");
+  });
+
+  it("T37b: migration 20260923260000 restores CAURIS in paid event and includes lineage in meta", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require("node:fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { join } = require("node:path");
+    const sql: string = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260923260000_joko_cauris_lineage.sql"),
+      "utf8",
+    );
+    // CAURIS restored in complete_shop_payment (was accidentally overridden to XOF in 200000).
+    expect(sql).toContain("'CAURIS'");
+    // Lineage fields preserved from original conversion.
+    expect(sql).toContain("caurisAmount");
+    expect(sql).toContain("xofPerCauris");
+    expect(sql).toContain("rateAsOf");
+    expect(sql).toContain("conversionAt");
+    // Refund lineage carried through.
+    expect(sql).toContain("cauris_amount");
+    expect(sql).toContain("cauris_rate");
+    expect(sql).toContain("create_shop_refund");
+    expect(sql).toContain("complete_shop_refund");
+    expect(sql).toContain("service_role");
   });
 });
 
