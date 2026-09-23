@@ -12,6 +12,7 @@ export function KebuOfflineBanner() {
   const [offline, setOffline] = useState(false);
   const [showingBack, setShowingBack] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncFailed, setSyncFailed] = useState(false);
 
   useEffect(() => {
     function handleOffline() {
@@ -21,8 +22,10 @@ export function KebuOfflineBanner() {
     async function syncQueuedWork() {
       if (listOfflineQueue().length === 0) return;
       setSyncing(true);
+      setSyncFailed(false);
       try {
-        await flushOfflineQueue();
+        const result = await flushOfflineQueue();
+        setSyncFailed(result.failed > 0 || result.remaining > 0);
       } finally {
         setSyncing(false);
         try {
@@ -35,13 +38,7 @@ export function KebuOfflineBanner() {
 
     function handleOnline() {
       setShowingBack(true);
-      void syncQueuedWork().finally(() => {
-        // Keep the acknowledgement visible briefly after the sync attempt.
-        setTimeout(() => {
-          setOffline(false);
-          setShowingBack(false);
-        }, 1600);
-      });
+      void syncQueuedWork();
     }
 
     // Check initial state (in case already offline when component mounts)
@@ -60,7 +57,7 @@ export function KebuOfflineBanner() {
     };
   }, []);
 
-  if (!offline) return null;
+  if (!offline && !showingBack) return null;
 
   return (
     <div
@@ -72,7 +69,7 @@ export function KebuOfflineBanner() {
         left: 0,
         right: 0,
         zIndex: 9999,
-        background: showingBack ? "#16a34a" : KEBU.black,
+        background: showingBack && !syncFailed ? "#16a34a" : KEBU.black,
         color: "#fff",
         fontSize: "0.8rem",
         fontWeight: 600,
@@ -92,7 +89,7 @@ export function KebuOfflineBanner() {
           width: 7,
           height: 7,
           borderRadius: "50%",
-          background: showingBack ? "#86efac" : "#ef4444",
+          background: showingBack && !syncFailed ? "#86efac" : "#ef4444",
           flexShrink: 0,
           display: "inline-block",
         }}
@@ -100,7 +97,9 @@ export function KebuOfflineBanner() {
       {showingBack
         ? syncing
           ? "Back online — syncing queued changes…"
-          : "Back online"
+          : syncFailed
+            ? "Back online — some changes still need syncing. Kebu will retry."
+            : "Back online — queued changes synced."
         : "No connection — your supported changes are kept locally until reconnect."}
     </div>
   );
