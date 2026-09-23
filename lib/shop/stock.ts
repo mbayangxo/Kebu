@@ -64,7 +64,7 @@ export async function decrementCartStock(
 
 export async function reserveShopCheckout(
   admin: SupabaseClient,
-  opts: { orderId: string; projectId: string; productId: string; quantity: number; discountId?: string | null },
+  opts: { orderId: string; projectId: string; productId: string; quantity: number; discountId?: string | null; giftCardId?: string | null; giftCardAmountXof?: number | null },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data, error } = await admin.rpc("reserve_shop_checkout", {
     p_order_id: opts.orderId,
@@ -72,6 +72,8 @@ export async function reserveShopCheckout(
     p_product_id: opts.productId,
     p_quantity: opts.quantity,
     p_discount_id: opts.discountId ?? null,
+    p_gift_card_id: opts.giftCardId ?? null,
+    p_gift_card_amount_xof: opts.giftCardAmountXof ?? null,
     p_ttl_minutes: 20,
   });
   if (error || data !== true) return { ok: false, error: "Product or discount is no longer available." };

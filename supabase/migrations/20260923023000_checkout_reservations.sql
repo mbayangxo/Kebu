@@ -10,6 +10,8 @@ create table if not exists public.shop_checkout_reservations (
   product_id uuid not null references public.project_products(id),
   quantity integer not null check (quantity > 0),
   discount_id uuid references public.shop_discount_codes(id),
+  gift_card_id uuid references public.shop_gift_cards(id),
+  gift_card_amount_xof integer check (gift_card_amount_xof is null or gift_card_amount_xof >= 0),
   status text not null default 'active' check (status in ('active','committed','released','expired')),
   expires_at timestamptz not null,
   committed_at timestamptz,
@@ -31,6 +33,8 @@ create or replace function public.reserve_shop_checkout(
   p_product_id uuid,
   p_quantity integer,
   p_discount_id uuid default null,
+  p_gift_card_id uuid default null,
+  p_gift_card_amount_xof integer default null,
   p_ttl_minutes integer default 20
 )
 returns boolean
@@ -44,6 +48,8 @@ declare
   v_reserved bigint;
   v_discount public.shop_discount_codes%rowtype;
   v_discount_reserved bigint;
+  v_gift public.shop_gift_cards%rowtype;
+  v_gift_reserved bigint;
 begin
   if p_quantity is null or p_quantity < 1 then return false; end if;
   if p_ttl_minutes < 5 or p_ttl_minutes > 60 then return false; end if;
@@ -83,11 +89,20 @@ begin
     end if;
   end if;
 
-  insert into public.shop_checkout_reservations(order_id,project_id,product_id,quantity,discount_id,expires_at)
-  values(p_order_id,p_project_id,p_product_id,p_quantity,p_discount_id,now()+make_interval(mins=>p_ttl_minutes))
+  if p_gift_card_id is not null and coalesce(p_gift_card_amount_xof,0) > 0 then
+    select * into v_gift from public.shop_gift_cards where id=p_gift_card_id and project_id=p_project_id for update;
+    if not found or v_gift.status<>'active' or (v_gift.expires_at is not null and v_gift.expires_at<now()) then return false; end if;
+    select coalesce(sum(gift_card_amount_xof),0) into v_gift_reserved from public.shop_checkout_reservations where gift_card_id=p_gift_card_id and status='active' and expires_at>now();
+    if coalesce(v_gift.balance_xof,0)-v_gift_reserved < p_gift_card_amount_xof then return false; end if;
+  end if;
+
+  insert into public.shop_checkout_reservations(order_id,project_id,product_id,quantity,discount_id,gift_card_id,gift_card_amount_xof,expires_at)
+  values(p_order_id,p_project_id,p_product_id,p_quantity,p_discount_id,p_gift_card_id,p_gift_card_amount_xof,now()+make_interval(mins=>p_ttl_minutes))
   on conflict(order_id,product_id) do update
      set quantity=excluded.quantity,
          discount_id=excluded.discount_id,
+         gift_card_id=excluded.gift_card_id,
+         gift_card_amount_xof=excluded.gift_card_amount_xof,
          status='active',
          expires_at=excluded.expires_at,
          committed_at=null,
@@ -97,8 +112,8 @@ exception when unique_violation then
   return false;
 end;
 $$;
-revoke all on function public.reserve_shop_checkout(uuid,uuid,uuid,integer,uuid,integer) from public,anon,authenticated;
-grant execute on function public.reserve_shop_checkout(uuid,uuid,uuid,integer,uuid,integer) to service_role;
+revoke all on function public.reserve_shop_checkout(uuid,uuid,uuid,integer,uuid,uuid,integer,integer) from public,anon,authenticated;
+grant execute on function public.reserve_shop_checkout(uuid,uuid,uuid,integer,uuid,uuid,integer,integer) to service_role;
 
 create or replace function public.commit_shop_checkout(p_order_id uuid)
 returns boolean
@@ -127,6 +142,11 @@ begin
       update public.project_products set stock_qty=stock_qty-r.quantity,updated_at=now()
        where id=r.product_id and coalesce(stock_qty,0)>=r.quantity;
       if not found then raise exception 'reserved stock unavailable at commit'; end if;
+    end if;
+    if r.gift_card_id is not null and coalesce(r.gift_card_amount_xof,0)>0 then
+      update public.shop_gift_cards set balance_xof=balance_xof-r.gift_card_amount_xof, status=case when balance_xof-r.gift_card_amount_xof=0 then 'depleted' else 'active' end, updated_at=now()
+       where id=r.gift_card_id and status='active' and balance_xof>=r.gift_card_amount_xof;
+      if not found then raise exception 'reserved gift card unavailable at commit'; end if;
     end if;
     if r.discount_id is not null then
       update public.shop_discount_codes set uses_count=uses_count+1,updated_at=now()
