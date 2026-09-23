@@ -98,7 +98,9 @@ export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
 
-  const { programName, programDescription, forWho, amount, applyAt, country, userProfile } = await req.json() as {
+  let rawBody: unknown;
+  try { rawBody = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { programName, programDescription, forWho, amount, applyAt, country, userProfile } = rawBody as {
     programName: string;
     programDescription: string;
     forWho: string;

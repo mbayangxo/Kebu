@@ -25,7 +25,9 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
-  const { prompt, system } = await req.json();
+  let body: unknown;
+  try { body = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { prompt, system } = body as { prompt?: string; system?: string };
 
   if (!prompt) {
     return Response.json({ error: "prompt is required" }, { status: 400 });

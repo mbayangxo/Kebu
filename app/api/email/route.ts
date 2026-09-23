@@ -27,7 +27,9 @@ Rules:
 export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
-  const { name, gender, country, sector, stage, goal } = await req.json();
+  let body: unknown;
+  try { body = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { name, gender, country, sector, stage, goal } = body as { name?: string; gender?: string; country?: string; sector?: string; stage?: string; goal?: string };
 
   if (!country) {
     return Response.json({ error: "country is required" }, { status: 400 });

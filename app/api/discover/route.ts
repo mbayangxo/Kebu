@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
 
-  const { resources, specifics, country, capital } = await req.json();
+  let body: unknown;
+  try { body = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { resources, specifics, country, capital } = body as { resources?: unknown; specifics?: unknown; country?: string; capital?: string };
 
   const resourceList = Array.isArray(resources) ? resources.join(", ") : resources;
   const specificsList = Array.isArray(specifics) && specifics.length > 0

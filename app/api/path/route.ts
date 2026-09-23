@@ -25,7 +25,9 @@ export interface GeneratedPath {
 export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
-  const { goal, country, stage, topPrograms } = await req.json() as {
+  let rawBody: unknown;
+  try { rawBody = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { goal, country, stage, topPrograms } = rawBody as {
     goal: string;
     country: string;
     stage?: string;

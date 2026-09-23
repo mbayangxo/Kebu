@@ -1,0 +1,156 @@
+-- ============================================================================
+-- Gate 2 Security Audit — RLS Gaps & Hardening Notes
+-- Audited: 2026-09-23 on branch work/kebu-ecosystem-ux
+-- Status: DOCUMENTATION ONLY — do NOT apply without review
+-- ============================================================================
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- FINDING 1 (HIGH) — mail_audit_events SELECT policy over-shares personal events
+-- ────────────────────────────────────────────────────────────────────────────
+--
+-- Current policy in 20260920121000_kebu_business_mail_m3.sql:
+--
+--   create policy "Business mail members read audit"
+--     on public.mail_audit_events for select
+--     using (
+--       business_id is null           -- ← allows ANY authenticated user to see
+--       or exists (...)               --   rows where business_id is null
+--     );
+--
+-- Rows with business_id IS NULL represent personal mailbox audit events
+-- (the actor's own personal mail actions). Because there is no additional
+-- actor_user_id = auth.uid() guard, any authenticated user can enumerate
+-- another user's personal mail audit trail via the Data API.
+--
+-- Suggested fix (drop old policy, create corrected one):
+--
+-- drop policy if exists "Business mail members read audit" on public.mail_audit_events;
+-- create policy "Business mail members read audit"
+--   on public.mail_audit_events for select
+--   using (
+--     (business_id is null and actor_user_id = auth.uid())
+--     or (
+--       business_id is not null
+--       and exists (
+--         select 1 from public.business_members bm
+--         where bm.business_id = mail_audit_events.business_id
+--           and bm.user_id = auth.uid()
+--           and bm.status = 'active'
+--       )
+--     )
+--   );
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- FINDING 2 (MEDIUM) — /api/mcp uses Access-Control-Allow-Origin: *
+-- ────────────────────────────────────────────────────────────────────────────
+--
+-- File: app/api/mcp/route.ts
+--
+-- The MCP endpoint (service-role key, full table access) returns CORS headers:
+--   Access-Control-Allow-Origin: *
+--   Access-Control-Allow-Methods: POST, GET, OPTIONS
+--   Access-Control-Allow-Headers: Content-Type, Authorization
+--
+-- This allows any web origin to read responses from the endpoint. The gate is
+-- a long Bearer token (≥ 32 chars, timing-safe comparison) which is adequate
+-- for machine-to-machine use, but open CORS is inappropriate for an endpoint
+-- that bypasses all RLS.
+--
+-- Fix (no SQL required — code change in app/api/mcp/route.ts):
+-- Restrict the Allow-Origin header to a known internal origin, or use "null"
+-- (which blocks browsers while allowing curl/CLI):
+--
+--   function corsHeaders() {
+--     const origin = process.env.MCP_ALLOWED_ORIGIN ?? "null";
+--     return {
+--       "Access-Control-Allow-Origin": origin,
+--       "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+--       "Access-Control-Allow-Headers": "Content-Type, Authorization",
+--     };
+--   }
+--
+-- Add MCP_ALLOWED_ORIGIN to Vercel env (e.g. https://yourdomain.com or "null").
+-- This is tracked as a code fix (see API route auth gap notes).
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- FINDING 3 (LOW) — room_decisions has no DELETE policy
+-- ────────────────────────────────────────────────────────────────────────────
+--
+-- Migration 20260920085000_kebu_rooms.sql defines three policies on
+-- public.room_decisions: SELECT, INSERT, and UPDATE. There is no DELETE policy.
+--
+-- With RLS enabled, the absence of a DELETE policy means no authenticated user
+-- can delete a room decision (only service_role can). This may be intentional
+-- (immutable audit trail). If deletion should be allowed, add:
+--
+-- create policy "Creators delete room decisions" on public.room_decisions
+--   for delete using (created_by = auth.uid());
+--
+-- If intentional: add a comment to the migration clarifying this is by design.
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- FINDING 4 (INFO) — Pre-branch core tables not covered in these migrations
+-- ────────────────────────────────────────────────────────────────────────────
+--
+-- The following core tables are referenced throughout the codebase and modified
+-- by recent migrations, but their CREATE TABLE + initial RLS setup does not
+-- appear in the migrations directory visible on this branch. They were
+-- established in earlier migrations (pre-20260919) that are not present here:
+--
+--   - businesses
+--   - user_profiles
+--   - shop_orders / shop_order_items
+--   - help_requests
+--   - projects (partially: some policies added in 20260920033000)
+--   - project_products
+--   - business_members / business_owners
+--   - account_entitlements (insert/update revoked in 20260919101805)
+--   - site_domains / site_subscriptions
+--   - deployments (SELECT policy hardened in 20260919204303)
+--
+-- Action: run `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public'`
+-- on production to confirm RLS is enabled on all of the above. Any table where
+-- rowsecurity = false is a critical gap.
+--
+-- Supabase dashboard → Table Editor → [each table] → RLS tab also shows this.
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- FINDING 5 (INFO) — can_manage_business_mail uses bare auth.uid()
+-- ────────────────────────────────────────────────────────────────────────────
+--
+-- The function public.can_manage_business_mail (20260920121000) uses raw
+-- auth.uid() calls rather than the cached (select auth.uid()) pattern.
+-- This is a performance concern (extra function call per-row) but not a
+-- security issue, since it correctly checks membership.
+--
+-- Optional optimisation:
+--   where bm.user_id = (select auth.uid())
+--
+-- The same applies to can_send_mailbox in the same migration.
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- CONFIRMED SECURE (for the record)
+-- ────────────────────────────────────────────────────────────────────────────
+--
+-- The following were audited and found secure:
+--
+--   admin.ts          : "server-only" import, service key from env, no hardcoded secrets
+--   .env.local        : contains only placeholder values; .gitignore covers .env*
+--   requireUser()     : always calls supabase.auth.getUser() before data access
+--   /api/admin/*      : assertAdminCookie() + service client, CSRF header check
+--   /api/cron/*       : requireCronSecret() guards all cron endpoints
+--   complete_shop_payment : service_role only, validates amount/project/order
+--   afrique_ids       : owner-only SELECT, self-verify blocked at DB level
+--   opportunities     : locked to verified indigenous users via afrique_ids join
+--   platform_events/jobs : service_role only, events are append-only (trigger)
+--   support_access_sessions / privileged_audit_events : service_role only
+--   SECURITY DEFINER functions : all set search_path = public, pg_temp
+--   project_access_role : guards callers from probing other users' roles
+--   deployments       : only `status = 'live'` is publicly readable
+--   rect_quarantine   : RECT tables fully revoked from public/anon/authenticated

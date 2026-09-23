@@ -658,8 +658,13 @@ function err(id: unknown, code: number, message: string) {
 }
 
 function corsHeaders() {
+  // Restrict to a configured origin so browser requests from arbitrary sites
+  // cannot read service-role responses. Set MCP_ALLOWED_ORIGIN in Vercel env
+  // (e.g. https://yourdomain.com). Falls back to "null" which allows curl/CLI
+  // while blocking cross-origin browser requests.
+  const origin = process.env.MCP_ALLOWED_ORIGIN ?? "null";
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
