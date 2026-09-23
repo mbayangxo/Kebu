@@ -8,6 +8,7 @@ import { KEBU } from "@/lib/kebu-brand";
 import { BusinessMailSetup } from "@/app/components/mail/business-mail-setup";
 
 type Folder = "inbox" | "sent" | "drafts" | "archive" | "spam" | "trash";
+type NavLabel = "Inbox" | "Primary" | "Important" | "Promotions" | "Unsubscribed" | "Sent" | "Drafts" | "Spam" | "Archive" | "Trash";
 type Mailbox = {
   id: string;
   address: string;
@@ -99,6 +100,7 @@ export default function EmailPage() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [threadLoading, setThreadLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -110,6 +112,7 @@ export default function EmailPage() {
   const [mailContext, setMailContext] = useState<"personal" | "business">("personal");
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
+  const [activeNavLabel, setActiveNavLabel] = useState<NavLabel>("Inbox");
   const [centerTab, setCenterTab] = useState<CenterTab>("all");
   const [replyText, setReplyText] = useState("");
   const [showAddAccount, setShowAddAccount] = useState(false);
@@ -147,9 +150,11 @@ export default function EmailPage() {
   const loadMessages = useCallback(async () => {
     if (!mailboxId) { setMessages([]); return; }
     setError(null);
+    setMessagesLoading(true);
     const params = new URLSearchParams({ mailboxId, folder });
     const res = await fetch("/api/mail/messages?" + params.toString(), { credentials: "include" });
     const data = await res.json().catch(() => ({}));
+    setMessagesLoading(false);
     if (!res.ok) { setError(data.error || "Could not load messages."); return; }
     setMessages(Array.isArray(data.messages) ? data.messages : []);
     setSelectedId(null);
@@ -167,6 +172,11 @@ export default function EmailPage() {
 
   useEffect(() => { void loadMailboxes(); }, [loadMailboxes]);
   useEffect(() => { void loadMessages(); }, [loadMessages]);
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(t);
+  }, [error]);
 
   function resetComposer() {
     setDraftId(null); setReplyThreadId(null); setInReplyToMessageId(null);
@@ -282,11 +292,12 @@ export default function EmailPage() {
     } finally { setSending(false); }
   }
 
-  function reply(message: Message) {
+  function reply(message: Message, initialBody?: string) {
     resetComposer(); setCompose(true);
     setReplyThreadId(message.thread_id); setInReplyToMessageId(message.id);
     setTo(message.from_address);
     setSubject(message.subject.toLowerCase().startsWith("re:") ? message.subject : "Re: " + message.subject);
+    if (initialBody) setBody(initialBody);
   }
 
   const filteredMessages = messages.filter(m => {
@@ -514,10 +525,10 @@ export default function EmailPage() {
                 type="button"
                 onClick={() => { resetComposer(); setCompose(true); }}
                 disabled={!mailboxId}
-                className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[11px] font-black text-white disabled:opacity-40 transition hover:brightness-110"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[11px] font-black text-white disabled:opacity-40 transition hover:brightness-110 active:scale-95"
+                style={{ background: KEBU.orange, boxShadow: "0 2px 12px rgba(255,85,0,0.35)" }}
               >
-                <span className="text-base leading-none" style={{ color: KEBU.orange }}>+</span>
+                <span className="text-base leading-none">+</span>
                 New message
               </button>
             </div>
@@ -525,28 +536,23 @@ export default function EmailPage() {
             {/* Nav items */}
             <nav className="flex-1 overflow-y-auto px-2 py-3">
               {([
-                { id: "inbox" as Folder, label: "Inbox", badge: unread || null },
-                { id: "inbox" as Folder, label: "Primary", badge: null },
-                { id: "inbox" as Folder, label: "Important", badge: null },
-                { id: "inbox" as Folder, label: "Priority", badge: null },
-                { id: "inbox" as Folder, label: "Promotions", badge: null },
-                { id: "inbox" as Folder, label: "Unsubscribed", badge: null },
-                { id: "inbox" as Folder, label: "People", badge: null },
-                { id: "inbox" as Folder, label: "Waiting", badge: null },
-                { id: "sent" as Folder, label: "Sent", badge: null },
-                { id: "drafts" as Folder, label: "Drafts", badge: messages.filter(m => m.folder === "drafts").length || null },
-                { id: "inbox" as Folder, label: "Scheduled", badge: null },
-                { id: "inbox" as Folder, label: "Starred", badge: null },
-                { id: "spam" as Folder, label: "Spam", badge: null },
-                { id: "archive" as Folder, label: "Archive", badge: null },
-                { id: "trash" as Folder, label: "Trash", badge: null },
+                { id: "inbox" as Folder, label: "Inbox" as NavLabel, badge: unread || null },
+                { id: "inbox" as Folder, label: "Primary" as NavLabel, badge: null },
+                { id: "inbox" as Folder, label: "Important" as NavLabel, badge: null },
+                { id: "inbox" as Folder, label: "Promotions" as NavLabel, badge: null },
+                { id: "inbox" as Folder, label: "Unsubscribed" as NavLabel, badge: null },
+                { id: "sent" as Folder, label: "Sent" as NavLabel, badge: null },
+                { id: "drafts" as Folder, label: "Drafts" as NavLabel, badge: messages.filter(m => m.folder === "drafts").length || null },
+                { id: "spam" as Folder, label: "Spam" as NavLabel, badge: null },
+                { id: "archive" as Folder, label: "Archive" as NavLabel, badge: null },
+                { id: "trash" as Folder, label: "Trash" as NavLabel, badge: null },
               ]).map(({ id, label, badge }) => {
-                const active = folder === id && (label === "Inbox" || label === "Sent" || label === "Drafts" || label === "Spam" || label === "Archive" || label === "Trash");
+                const active = activeNavLabel === label;
                 return (
                   <button
                     key={label}
                     type="button"
-                    onClick={() => setFolder(id)}
+                    onClick={() => { setFolder(id); setActiveNavLabel(label); }}
                     className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[11px] font-bold transition-colors"
                     style={{
                       background: active ? "rgba(255,85,0,.12)" : "transparent",
@@ -637,9 +643,9 @@ export default function EmailPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {loading ? (
+              {(loading || messagesLoading) ? (
                 <div className="p-4 space-y-2">
-                  {[1, 2, 3].map(n => <div key={n} className="h-16 animate-pulse rounded-xl" style={{ background: KEBU.cream }} />)}
+                  {[1, 2, 3, 4].map(n => <div key={n} className="h-16 animate-pulse rounded-xl" style={{ background: KEBU.cream }} />)}
                 </div>
               ) : filteredMessages.length === 0 ? (
                 <div className="p-8 text-center">
@@ -775,7 +781,7 @@ export default function EmailPage() {
                       <p className="mb-2 text-[9px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.muted }}>Quick reply</p>
                       <div className="flex flex-wrap gap-2">
                         {QUICK_REPLIES.map(qr => (
-                          <button key={qr} type="button" onClick={() => { setReplyText(qr); reply(thread.messages[thread.messages.length - 1]!); }}
+                          <button key={qr} type="button" onClick={() => { const lastMsg = thread.messages[thread.messages.length - 1]; if (lastMsg) reply(lastMsg, qr); }}
                             className="rounded-full border px-3 py-2 text-[10px] font-bold transition hover:bg-black/[.05]"
                             style={{ borderColor: border, color: KEBU.black }}>
                             {qr}
@@ -801,7 +807,7 @@ export default function EmailPage() {
                         disabled={!replyText.trim()}
                         onClick={() => {
                           const lastMsg = thread.messages[thread.messages.length - 1];
-                          if (lastMsg) { resetComposer(); setBody(replyText); reply(lastMsg); }
+                          if (lastMsg) { setReplyText(""); reply(lastMsg, replyText); }
                         }}
                         className="shrink-0 rounded-xl px-4 py-2 text-[10px] font-black text-white disabled:opacity-40 transition hover:brightness-110"
                         style={{ background: KEBU.orange }}
@@ -945,7 +951,16 @@ export default function EmailPage() {
         </div>
       ) : null}
 
-      {error ? <div className="fixed bottom-20 left-1/2 z-[90] max-w-[90vw] -translate-x-1/2 rounded-full bg-red-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg">{error}</div> : null}
+      {error ? (
+        <button
+          type="button"
+          onClick={() => setError(null)}
+          className="fixed bottom-20 left-1/2 z-[90] flex items-center gap-2.5 -translate-x-1/2 rounded-full bg-red-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg max-w-[90vw] hover:bg-red-800 transition"
+        >
+          <span className="truncate">{error}</span>
+          <span className="shrink-0 opacity-60">×</span>
+        </button>
+      ) : null}
     </AppShell>
   );
 }
