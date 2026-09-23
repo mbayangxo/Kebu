@@ -12,10 +12,13 @@ import {
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { useDataMode } from "@/app/components/create/data-mode-provider";
 import { useRef, useState } from "react";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 
 export type BuilderEditorState = {
   selectedSectionId: string | null;
+  selectedElement?: BuilderElementSelection | null;
   onSelectSection: (sectionId: string) => void;
+  onSelectElement?: (selection: BuilderElementSelection) => void;
   onPatchSection: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => void;
   /** Switch the builder preview to another site page (keeps you in the editor). */
@@ -60,7 +63,7 @@ export function BuilderEditablePreview({
   return (
     <div
       ref={rootRef}
-      className={canvasFill ? "relative flex min-h-full w-full flex-1 flex-col" : "relative min-h-full"}
+      className={canvasFill ? "relative flex min-h-full w-full flex-1 flex-col bg-[#EEEDEA]" : "relative min-h-full bg-[#EEEDEA]"}
       onDragOver={(e) => {
         if (!onAssetDrop) return;
         if (
@@ -90,11 +93,11 @@ export function BuilderEditablePreview({
     >
       {dragOver ? (
         <div
-          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-lg border-2 border-dashed"
-          style={{ borderColor: "#FF5500", background: "rgba(255,85,0,0.12)" }}
+          className="pointer-events-none absolute inset-2 z-30 flex items-center justify-center rounded-[10px] border border-dashed shadow-[inset_0_0_0_1px_rgba(255,106,0,.08)]"
+          style={{ borderColor: "#FF6A00", background: "rgba(255,106,0,0.07)" }}
         >
-          <span className="rounded-full bg-black/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white">
-            Drop to add to site
+          <span className="rounded-md bg-black/85 px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-sm">
+            Drop media here
           </span>
         </div>
       ) : null}

@@ -200,7 +200,11 @@ export default function StudioBrandDnaPage() {
           </p>
         ) : null}
 
-        <div className="space-y-3 rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+        <form
+          onSubmit={(e) => { e.preventDefault(); void save(); }}
+          className="space-y-3 rounded-2xl p-5"
+          style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+        >
           {(
             [
               ["name", "Name"],
@@ -209,8 +213,8 @@ export default function StudioBrandDnaPage() {
               ["voiceTone", "Voice / tone"],
               ["photographyStyle", "Photography style"],
               ["visualRules", "Visual rules"],
-              ["customerNotes", "Customer"],
-              ["productsNotes", "Products"],
+              ["customerNotes", "Customer notes"],
+              ["productsNotes", "Products notes"],
               ["languages", "Languages (comma-separated)"],
             ] as const
           ).map(([key, label]) => (
@@ -240,14 +244,19 @@ export default function StudioBrandDnaPage() {
           ))}
 
           <div className="grid grid-cols-2 gap-3">
-            {(["primaryColor", "accentColor", "backgroundColor", "textColor"] as const).map((key) => (
+            {([
+              ["primaryColor", "Primary color"],
+              ["accentColor", "Accent color"],
+              ["backgroundColor", "Background color"],
+              ["textColor", "Text color"],
+            ] as const).map(([key, label]) => (
               <label key={key} className="flex items-center gap-2 text-xs font-bold">
                 <input
                   type="color"
                   value={form[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                 />
-                {key.replace("Color", "")}
+                {label}
               </label>
             ))}
           </div>
@@ -286,15 +295,14 @@ export default function StudioBrandDnaPage() {
           </div>
 
           <button
-            type="button"
+            type="submit"
             disabled={busy}
-            onClick={() => void save()}
             className="w-full rounded-full py-3 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
             style={{ background: KEBU.orange }}
           >
             {busy ? "Saving…" : dna ? "Update Brand DNA" : "Create Brand DNA"}
           </button>
-        </div>
+        </form>
       </main>
     </AppShell>
   );

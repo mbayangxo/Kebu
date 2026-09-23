@@ -396,8 +396,10 @@ export async function createCartOrder(opts: {
   }));
 
   const { error: itemsErr } = await opts.admin.from("shop_order_items").insert(itemRows);
-  if (itemsErr && !/does not exist|shop_order_items/i.test(itemsErr.message ?? "")) {
-    /* order header exists — items optional until migration applied */
+  if (itemsErr) {
+    // Items are required — delete the orphan order header and fail.
+    await opts.admin.from("shop_orders").delete().eq("id", order.id);
+    return { ok: false, error: "Could not save order items." };
   }
 
   if (giftCard && giftCardAmount > 0) {

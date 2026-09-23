@@ -49,6 +49,26 @@ describe("middleware custom domain routing", () => {
     expect(r.pathname).toBe("/");
   });
 
+  it("never rewrites a custom hostname merely because it looks valid", () => {
+    const r = resolveMiddlewareRewrite({
+      host: "attacker-controlled.example",
+      pathname: "/account",
+    });
+    expect(r.kind).toBe("none");
+    expect(r.slug).toBeNull();
+    expect(r.pathname).toBe("/account");
+  });
+
+  it("does not treat a Vercel preview hostname as a customer custom domain", () => {
+    const r = resolveMiddlewareRewrite({
+      host: "kebu-git-feature-example.vercel.app",
+      pathname: "/",
+      customDomainSlug: "should-not-be-used",
+    });
+    expect(r.kind).toBe("none");
+    expect(r.pathname).toBe("/");
+  });
+
   it("leaves main app host alone", () => {
     const r = resolveMiddlewareRewrite({
       host: "kebu.africa",

@@ -28,6 +28,7 @@ import {
 } from "@/lib/create/cutout-links";
 import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
 import { cssFontStack } from "@/lib/create/site-theme-fonts";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import "./artist-motion.css";
 import "./legally-blonde-tilda.css";
 
@@ -100,6 +101,9 @@ export type LegallyBlondeHeroProps = {
   layerLinks?: Record<string, string>;
   /** Paint order for built-in slots + extras (1 = back, 80 = front). Survives publish. */
   layerZIndex?: Record<string, number>;
+  layerOpacity?: Record<string, number>;
+  layerRotation?: Record<string, number>;
+  lockedLayers?: string[];
   hiddenLayers?: string[];
   /** When true, hero shows solid accent color — no photo background. */
   backgroundHidden?: boolean;
@@ -110,12 +114,23 @@ export type LegallyBlondeHeroProps = {
   scrollMode?: "viewport" | "parallax";
   /** Replace spinning Russian logo circle with editable brand text around the circle. */
   titleAsText?: boolean;
+  titleTextFontFamily?: string;
+  titleTextFontSize?: number;
+  titleTextFontWeight?: number;
+  titleTextLetterSpacing?: number;
+  titleTextLineHeight?: number;
+  titleTextColor?: string;
+  sectionMinHeightPx?: number;
+  embeddedFooterPaddingTop?: number;
+  embeddedFooterPaddingBottom?: number;
 };
 
 type EditorHooks = {
   sectionId?: string;
+  selectedElement?: BuilderElementSelection | null;
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
   onSelectSection?: (sectionId: string) => void;
+  onSelectElement?: (selection: BuilderElementSelection) => void;
   onNavigatePage?: (slug: string) => void;
 };
 
@@ -271,6 +286,14 @@ function renderLayer(
   if (move && (move.dx || move.dy)) {
     transformParts.push(`translate3d(${move.dx}px, ${move.dy}px, 0)`);
   }
+  const rotationKey = scaleKey || layer.id;
+  const rotation =
+    typeof props.layerRotation?.[rotationKey] === "number"
+      ? props.layerRotation[rotationKey]!
+      : undefined;
+  if (rotation !== undefined && rotation !== 0) {
+    transformParts.push(`rotate(${rotation}deg)`);
+  }
   // Skip scroll offset for layers with a looping CSS animation — the animation's keyframe
   // transform would override style.transform, making the scroll offset invisible.
   const hasLoopAnim = opts.motion && !opts.editing && (() => {
@@ -306,6 +329,10 @@ function renderLayer(
     cursor: editable ? "grab" : !opts.editing && layerHref ? "pointer" : undefined,
     outline: opts.selected ? "2px solid #FF5500" : undefined,
     outlineOffset: opts.selected ? 4 : undefined,
+    opacity:
+      typeof props.layerOpacity?.[scaleKey || layer.id] === "number"
+        ? props.layerOpacity?.[scaleKey || layer.id]
+        : baseStyle.opacity,
     zIndex: (() => {
       if (opts.selected) return 50;
       const fromMap =
@@ -385,11 +412,39 @@ function renderLayer(
         tabIndex={editable ? 0 : undefined}
         aria-label={props.title}
       >
-        <CircularBrandRing
-          text={props.title || "YOUR BRAND"}
-          color={props.accentColor || "#E9006B"}
-          spinning={opts.motion && !opts.editing && customMotion === "spin"}
-        />
+        <div className="relative">
+          <CircularBrandRing
+            text={props.title || "YOUR BRAND"}
+            color={props.accentColor || "#E9006B"}
+            spinning={opts.motion && !opts.editing && customMotion === "spin"}
+          />
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-[22%]">
+            <p
+              className="w-full break-words text-center uppercase"
+              style={{
+                color: props.titleTextColor || "#ffffff",
+                fontFamily:
+                  props.titleTextFontFamily || "Impact, Arial Black, Helvetica, sans-serif",
+                fontSize: `${Math.min(48, Math.max(8, Number(props.titleTextFontSize ?? 14)))}px`,
+                fontWeight: Math.min(
+                  900,
+                  Math.max(400, Number(props.titleTextFontWeight ?? 900)),
+                ),
+                letterSpacing: `${Math.min(
+                  0.5,
+                  Math.max(-0.05, Number(props.titleTextLetterSpacing ?? 0.12)),
+                )}em`,
+                lineHeight: Math.min(
+                  2,
+                  Math.max(0.8, Number(props.titleTextLineHeight ?? 1.15)),
+                ),
+                textShadow: "0 1px 8px rgba(0,0,0,0.55)",
+              }}
+            >
+              {props.title || "MAY LECOR"}
+            </p>
+          </div>
+        </div>
         {linkOverlay(props.title || "Open link")}
       </div>
     );
@@ -453,6 +508,7 @@ function ExtraCutoutItem({
   onMoved,
   scrollProgress = 0,
   motion = false,
+  opacity = 1,
 }: {
   photo: ExtraCutout;
   editing: boolean;
@@ -463,6 +519,7 @@ function ExtraCutoutItem({
   onMoved: (topPct: number, leftPct: number) => void;
   scrollProgress?: number;
   motion?: boolean;
+  opacity?: number;
 }) {
   const dragging = useRef(false);
   const role = photo.parallaxRole ?? (photo.id.includes("city") ? "city" : "none");
@@ -526,6 +583,7 @@ function ExtraCutoutItem({
         pointerEvents: editing || Boolean(photo.href) ? "auto" : "none",
         position: "absolute",
         willChange: parallaxY ? "transform" : undefined,
+        opacity,
       }}
       onPointerDown={onPointerDown}
       onClick={(e) => {
@@ -649,7 +707,13 @@ export function LegallyBlondeHeroLayout({
           currentSlug={pageSlug}
           fillCanvas={fillCanvas}
           onPatch={patch}
+          selectedElement={
+            editor?.selectedElement?.sectionId === sectionId ? editor.selectedElement : null
+          }
           onSelectSection={() => editor?.onSelectSection?.(sectionId)}
+          onSelectElement={(element) =>
+            editor?.onSelectElement?.({ ...element, sectionId })
+          }
           onNavigatePage={editor?.onNavigatePage}
         />
       </div>
@@ -684,7 +748,7 @@ export function LegallyBlondeHeroLayout({
         }),
       )}
       {extraCutouts
-        .filter((c) => c.src)
+        .filter((c) => c.src && !(props.hiddenLayers ?? []).includes(c.id))
         .map((photo) => {
           const scale = props.layerScales?.[photo.id] ?? 1;
           return (
@@ -693,9 +757,13 @@ export function LegallyBlondeHeroLayout({
             photo={{
               ...photo,
               widthPct: photo.widthPct * scale,
+              rotate:
+                typeof props.layerRotation?.[photo.id] === "number"
+                  ? props.layerRotation[photo.id]!
+                  : photo.rotate,
               zIndex:
                 typeof props.layerZIndex?.[photo.id] === "number"
-                  ? Math.min(40, props.layerZIndex[photo.id]!)
+                  ? Math.min(80, props.layerZIndex[photo.id]!)
                   : photo.zIndex,
             }}
             editing={editing}
@@ -714,6 +782,7 @@ export function LegallyBlondeHeroLayout({
               patch({ extraCutouts: next });
             }}
             scrollProgress={scrollProgress}
+            opacity={typeof props.layerOpacity?.[photo.id] === "number" ? props.layerOpacity[photo.id]! : 1}
             motion={editing ? false : motion}
           />
           );
@@ -738,6 +807,7 @@ export function LegallyBlondeHeroLayout({
       <SiteThemeFonts
         fontDisplay={props.displayFont && props.displayFont !== "Steelfish" ? props.displayFont : "Oswald"}
         fontBody="system-ui"
+        extraFamilies={props.titleTextFontFamily ? [props.titleTextFontFamily] : []}
       />
       <EditableSocialRail
         links={props.socialLinks ?? []}
@@ -763,7 +833,14 @@ export function LegallyBlondeHeroLayout({
       ) : null}
 
       {editing || viewportOnly || !motion ? (
-        <section className="relative mx-auto w-full overflow-hidden lb-viewport-hero" aria-label={props.title}>
+        <section
+          className="relative mx-auto w-full overflow-hidden lb-viewport-hero"
+          aria-label={props.title}
+          style={{
+            height: props.sectionMinHeightPx ? `${props.sectionMinHeightPx}px` : undefined,
+            backgroundColor: props.accentColor || undefined,
+          }}
+        >
           {heroArtboard}
         </section>
       ) : null}
@@ -785,7 +862,7 @@ export function LegallyBlondeHeroLayout({
                 }),
               )}
               {extraCutouts
-                .filter((c) => c.src)
+                .filter((c) => c.src && !(props.hiddenLayers ?? []).includes(c.id))
                 .map((photo) => {
                   const scale = props.layerScales?.[photo.id] ?? 1;
                   return (
@@ -794,9 +871,13 @@ export function LegallyBlondeHeroLayout({
                       photo={{
                         ...photo,
                         widthPct: photo.widthPct * scale,
+                        rotate:
+                          typeof props.layerRotation?.[photo.id] === "number"
+                            ? props.layerRotation[photo.id]!
+                            : photo.rotate,
                         zIndex:
                           typeof props.layerZIndex?.[photo.id] === "number"
-                            ? Math.min(40, props.layerZIndex[photo.id]!)
+                            ? Math.min(80, props.layerZIndex[photo.id]!)
                             : photo.zIndex,
                       }}
                       editing={false}
@@ -806,6 +887,7 @@ export function LegallyBlondeHeroLayout({
                       onSelect={() => undefined}
                       onMoved={() => undefined}
                       scrollProgress={scrollProgress}
+                      opacity={typeof props.layerOpacity?.[photo.id] === "number" ? props.layerOpacity[photo.id]! : 1}
                       motion={motion}
                     />
                   );

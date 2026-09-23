@@ -18,7 +18,6 @@ import { BusinessPressPanel } from "@/app/components/business/business-press-pan
 import { BusinessArtistCampaignsPanel } from "@/app/components/business/business-artist-campaigns-panel";
 import { BusinessArtistMediaPanel } from "@/app/components/business/business-artist-media-panel";
 import { KEBU } from "@/lib/kebu-brand";
-import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import { portalModulesForCategory } from "@/lib/business/portal-modules";
 
 type Business = {
@@ -141,7 +140,8 @@ export default function BusinessDashboardPage() {
   useEffect(() => {
     if (!readiness || readiness.model_version === "business-readiness-v3" || recalcBusy) return;
     void recalculate();
-  }, [readiness?.model_version]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readiness?.model_version]); // intentionally only re-runs when version changes
 
   async function recalculate() {
     if (recalcBusy) return;
@@ -236,11 +236,11 @@ export default function BusinessDashboardPage() {
                 Build website
               </Link>
               <Link
-                href="/business?tab=pulse"
+                href="/business?tab=analytics"
                 className="rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider"
                 style={{ border: `1px solid ${KEBU.border}` }}
               >
-                Pulse
+                Analytics
               </Link>
             </div>
           </div>

@@ -35,7 +35,9 @@ Rules:
 export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
-  const { name, what, for_who, amount, apply_at, indigenous_note, country, profile } = await req.json();
+  let body: unknown;
+  try { body = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { name, what, for_who, amount, apply_at, indigenous_note, country, profile } = body as { name?: string; what?: string; for_who?: string; amount?: string; apply_at?: string; indigenous_note?: string; country?: string; profile?: Record<string, unknown> };
 
   if (!name || !what) {
     return Response.json({ error: "name and what are required" }, { status: 400 });

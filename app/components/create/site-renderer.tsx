@@ -51,11 +51,14 @@ import "./kebu-scroll-entrance.css";
 import "./kebu-motion-effects.css";
 import { initScrollEntrances, ENTRANCE_MOTION } from "./kebu-scroll-entrance";
 import { KEBU_SITE_ROOT_CLASS } from "@/lib/create/site-responsive";
-import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
+import { SiteNav, NavResizeHandle } from "@/app/components/create/site-renderer-nav";
+import { QuizSection, type QuizStepDef } from "@/app/components/create/site-renderer-quiz";
 import { themeToCssVars } from "@/lib/create/site-aesthetics";
 import { dataModeSiteClass, preferSystemFonts, type DataMode } from "@/lib/create/data-mode";
 import { definitionHasShop } from "@/lib/create/site-shop";
 import { labelForSectionType } from "@/lib/create/builder-section-catalog";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
+import { builderDeviceFromWidth, type BuilderDevice } from "@/lib/create/builder-device";
 import { BuilderInlineSectionDivider } from "@/app/components/create/builder-inline-section-divider";
 import "./kebu-site-responsive.css";
 
@@ -115,10 +118,12 @@ function sectionAnchor(section: { id?: string; type: string }): string | undefin
 
 export type SiteRendererEditor = {
   selectedSectionId?: string | null;
+  selectedElement?: BuilderElementSelection | null;
   inlineEdit?: boolean;
   /** Force desktop/tablet/phone layout while editing in the builder. */
   editDevice?: import("@/lib/create/builder-device").BuilderDevice;
   onSelectSection?: (sectionId: string) => void;
+  onSelectElement?: (selection: BuilderElementSelection) => void;
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock?: (sectionId: string, blockId: string, x: number, y: number) => void;
   /** Switch the builder preview to another site page (keeps you in the editor). */
@@ -128,6 +133,14 @@ export type SiteRendererEditor = {
   onMoveSection?: (sectionId: string, direction: "up" | "down") => void;
   /** B8: insert section after id (null = top of page). */
   onAddSectionAfter?: (type: string, afterSectionId: string | null) => void | Promise<void>;
+};
+
+const BUILDER_MOTION_VARIANTS: Record<string, { initial: { opacity?: number; x?: number; y?: number; scale?: number }; animate: { opacity?: number; x?: number; y?: number; scale?: number } }> = {
+  fade: { initial: { opacity: 0 }, animate: { opacity: 1 } },
+  "fade-up": { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 } },
+  "slide-left": { initial: { opacity: 0, x: 36 }, animate: { opacity: 1, x: 0 } },
+  "slide-right": { initial: { opacity: 0, x: -36 }, animate: { opacity: 1, x: 0 } },
+  scale: { initial: { opacity: 0, scale: 0.97 }, animate: { opacity: 1, scale: 1 } },
 };
 
 const SECTION_PAD_MAP: Record<string, string> = {
@@ -147,23 +160,40 @@ function wrapEditorSection(
   sectionPaddingY?: string,
   /** Scroll-entrance preset ("fade-up" / "fade-in" / ...) — only set when theme.motion === "expressive". */
   motionPreset?: string,
+  presentation?: { minHeightPx?: number; maxWidthPx?: number; marginTopPx?: number; marginBottomPx?: number; overflow?: string; builderMotion?: { preset?: string; durationMs?: number; delayMs?: number } },
 ): ReactNode {
+  const ownMotion = presentation?.builderMotion?.preset;
+  const effectiveMotion = ownMotion && ownMotion !== "none" ? ownMotion : motionPreset;
+  const variant = effectiveMotion ? BUILDER_MOTION_VARIANTS[effectiveMotion] : undefined;
+  const presentationStyle: React.CSSProperties = {
+    minHeight: presentation?.minHeightPx ? `${presentation.minHeightPx}px` : undefined,
+    maxWidth: presentation?.maxWidthPx ? `${presentation.maxWidthPx}px` : undefined,
+    marginLeft: presentation?.maxWidthPx ? "auto" : undefined,
+    marginRight: presentation?.maxWidthPx ? "auto" : undefined,
+    marginTop: presentation?.marginTopPx ? `${presentation.marginTopPx}px` : undefined,
+    marginBottom: presentation?.marginBottomPx ? `${presentation.marginBottomPx}px` : undefined,
+    overflow: presentation?.overflow as React.CSSProperties["overflow"],
+  };
+  const padStyle = sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
+    ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
+    : {};
   if (!editor || !sectionId) {
-    const padStyle =
-      sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
-        ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
-        : undefined;
-    if (motionPreset) {
+    if (variant) {
       return (
-        <div className="kebu-entrance" data-motion={motionPreset} style={padStyle}>
+        <fx.div
+          initial={variant.initial}
+          whileInView={variant.animate}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: (presentation?.builderMotion?.durationMs ?? 500) / 1000, delay: (presentation?.builderMotion?.delayMs ?? 0) / 1000 }}
+          style={{ ...presentationStyle, ...padStyle }}
+        >
           {children}
-        </div>
+        </fx.div>
       );
     }
-    if (padStyle) {
-      return <div style={padStyle}>{children}</div>;
-    }
-    return children;
+    return Object.keys(presentationStyle).some((key) => presentationStyle[key as keyof React.CSSProperties] !== undefined) || Object.keys(padStyle).length
+      ? <div style={{ ...presentationStyle, ...padStyle }}>{children}</div>
+      : children;
   }
   const selected = editor.selectedSectionId === sectionId;
   const structural = sectionType ? STRUCTURAL_SECTION_TYPES.has(sectionType) : false;
@@ -174,18 +204,18 @@ function wrapEditorSection(
   return (
     <div
       data-section-id={sectionId}
-      data-motion={motionPreset || undefined}
+      data-motion={effectiveMotion || undefined}
       onClick={(e) => {
         e.stopPropagation();
         editor.onSelectSection?.(sectionId);
       }}
-      className={`group relative ${motionPreset ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
-      style={{ cursor: "pointer", ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
+      className={`group relative ${effectiveMotion ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#FF6A00] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#FF6A00]/45"}`}
+      style={{ cursor: "pointer", ...presentationStyle, ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
     >
       {selected && sectionType ? (
         <div
           className="absolute -left-px top-0 z-40 flex items-center gap-1 rounded-br-md px-2 py-0.5 text-[10px] font-semibold tracking-tight text-white shadow-sm"
-          style={{ background: "#2C6ECB" }}
+          style={{ background: "#111111" }}
         >
           <span aria-hidden className="opacity-80">
             ▦
@@ -202,14 +232,14 @@ function wrapEditorSection(
             <>
               <button
                 type="button"
-                className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
+                className="min-h-7 rounded-lg border border-black/10 bg-white/95 px-2 text-[10px] font-bold text-black shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 onClick={() => editor.onMoveSection?.(sectionId, "up")}
               >
                 ↑
               </button>
               <button
                 type="button"
-                className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
+                className="min-h-7 rounded-lg border border-black/10 bg-white/95 px-2 text-[10px] font-bold text-black shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
                 onClick={() => editor.onMoveSection?.(sectionId, "down")}
               >
                 ↓
@@ -219,7 +249,7 @@ function wrapEditorSection(
           {editor.onDuplicateSection ? (
             <button
               type="button"
-              className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
+              className="min-h-7 rounded-lg border border-black/10 bg-white/95 px-2 text-[10px] font-bold text-black shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
               onClick={() => editor.onDuplicateSection?.(sectionId)}
             >
               Duplicate
@@ -228,7 +258,7 @@ function wrapEditorSection(
           {editor.onDeleteSection ? (
             <button
               type="button"
-              className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold text-red-600 shadow"
+              className="min-h-7 rounded-lg border border-red-200 bg-white/95 px-2 text-[10px] font-bold text-red-600 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
               onClick={() => {
                 if (typeof window !== "undefined" && window.confirm("Remove this section from the page?")) {
                   editor.onDeleteSection?.(sectionId);
@@ -241,6 +271,38 @@ function wrapEditorSection(
         </div>
       ) : null}
       {children}
+      {selected && editor.onPatchSection && !structural ? (
+        <button
+          type="button"
+          aria-label="Resize section height"
+          title="Drag to resize section"
+          className="absolute bottom-0 left-1/2 z-40 flex h-5 w-24 -translate-x-1/2 translate-y-1/2 cursor-ns-resize items-center justify-center rounded-full border border-[#FF6A00]/35 bg-white shadow-md outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const handle = event.currentTarget;
+            handle.setPointerCapture(event.pointerId);
+            const sectionNode = handle.parentElement;
+            const startY = event.clientY;
+            const startHeight = sectionNode?.getBoundingClientRect().height ?? 0;
+            const onMove = (move: PointerEvent) => {
+              if (sectionNode) sectionNode.style.minHeight = `${Math.max(0, startHeight + move.clientY - startY)}px`;
+            };
+            const onUp = (up: PointerEvent) => {
+              handle.releasePointerCapture(up.pointerId);
+              handle.removeEventListener("pointermove", onMove);
+              handle.removeEventListener("pointerup", onUp);
+              const next = Math.round(Math.max(0, startHeight + up.clientY - startY));
+              editor.onPatchSection?.(sectionId, { minHeightPx: Math.min(4000, next) });
+            };
+            handle.addEventListener("pointermove", onMove);
+            handle.addEventListener("pointerup", onUp, { once: true });
+          }}
+        >
+          <span aria-hidden className="h-0.5 w-8 rounded-full bg-[#FF6A00]" />
+          <span className="sr-only">Resize section</span>
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -317,461 +379,6 @@ function findMotionHeroProps(definition: WebsiteDefinition): LegallyBlondeHeroPr
   return null;
 }
 
-/** Drag handle for resizing the nav bar height in editor mode. */
-function NavResizeHandle({ currentScale, onPatch }: { currentScale: number; onPatch: (s: number) => void }) {
-  return (
-    <div
-      className="absolute bottom-0 left-0 right-0 z-50 flex cursor-ns-resize items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-      style={{ height: 10, background: "rgba(44,110,203,0.3)" }}
-      title="Drag to resize nav bar height"
-      onMouseDown={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const startY = e.clientY;
-        const base = currentScale;
-        function onMove(ev: MouseEvent) {
-          const delta = ev.clientY - startY;
-          onPatch(Math.min(2.2, Math.max(0.7, base + delta / 80)));
-        }
-        function onUp() {
-          window.removeEventListener("mousemove", onMove);
-          window.removeEventListener("mouseup", onUp);
-        }
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
-      }}
-    >
-      <div className="h-0.5 w-10 rounded-full" style={{ background: "#2C6ECB" }} />
-    </div>
-  );
-}
-
-/** Site navigation — hamburger drawer on mobile, top bar or side nav on desktop, or always-hamburger mode. */
-function SiteNav({
-  brand,
-  brandEl,
-  links,
-  navBg,
-  navColor,
-  stickyClass,
-  padY,
-  padX,
-  fontPx,
-  gap,
-  maxWidth,
-  logoAlign,
-  layout,
-  navScale,
-  resolveHref,
-  onNavigate,
-  onNavResize,
-}: {
-  brand: string;
-  brandEl: ReactNode;
-  links: { label: string; href: string; children?: { label: string; href: string }[] }[];
-  navBg: string | undefined;
-  navColor: string;
-  stickyClass: string;
-  padY: number;
-  padX: number;
-  fontPx: number;
-  gap: number;
-  maxWidth: string | undefined;
-  logoAlign: "left" | "center" | "right";
-  layout?: "top" | "side" | "hamburger";
-  /** Current scale value, passed so the drag handle can compute correctly. */
-  navScale?: number;
-  resolveHref: (h: string) => string;
-  onNavigate?: (slug: string) => void;
-  /** Editor-only: callback for nav drag-resize handle at bottom of bar. */
-  onNavResize?: (newScale: number) => void;
-}) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
-
-  function slugFromHref(href: string): string | null {
-    const h = (href || "").trim();
-    if (!h || h === "#" || h.startsWith("http") || h.startsWith("mailto:")) return null;
-    const cleaned = h.replace(/^\//, "").split(/[?#]/)[0] ?? "";
-    return cleaned || "home";
-  }
-
-  function handleNav(href: string) {
-    const slug = slugFromHref(href);
-    if (onNavigate && slug) {
-      onNavigate(slug);
-    }
-    setDrawerOpen(false);
-    setOpenGroup(null);
-  }
-
-  const logoJustify = logoAlign === "center" ? "justify-center" : logoAlign === "right" ? "justify-end" : "justify-start";
-
-  /* Desktop link renderer */
-  function renderDesktopLink(l: { label: string; href: string; children?: { label: string; href: string }[] }) {
-    const hasChildren = l.children && l.children.length > 0;
-    if (!hasChildren) {
-      const slug = slugFromHref(l.href);
-      return onNavigate && slug ? (
-        <button
-          key={l.label}
-          type="button"
-          onClick={() => handleNav(l.href)}
-          className="kebu-nav-link"
-          style={{ fontSize: fontPx }}
-        >
-          {l.label}
-        </button>
-      ) : (
-        <a key={l.label} href={resolveHref(l.href)} className="kebu-nav-link" style={{ fontSize: fontPx }}>
-          {l.label}
-        </a>
-      );
-    }
-    const groupOpen = openGroup === l.label;
-    return (
-      <div key={l.label} className="relative">
-        <button
-          type="button"
-          onClick={() => {
-            // Mutually exclusive with the mobile drawer: opening a dropdown should never leave the
-            // drawer open underneath it (see kebu-z-layers.ts for why both being open was a real risk).
-            setDrawerOpen(false);
-            setOpenGroup(groupOpen ? null : l.label);
-          }}
-          className="kebu-nav-link flex items-center gap-1"
-          style={{ fontSize: fontPx }}
-        >
-          {l.label}
-          <span aria-hidden style={{ fontSize: "0.65em", opacity: 0.6, transform: groupOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s", display: "inline-block" }}>▾</span>
-        </button>
-        {groupOpen && (
-          <>
-            <div className="fixed inset-0" style={{ zIndex: Z_LAYERS.dropdownBackdrop }} onClick={() => setOpenGroup(null)} aria-hidden />
-            <div
-              className="absolute left-0 top-full mt-1 overflow-hidden rounded-xl shadow-xl"
-              style={{
-                zIndex: Z_LAYERS.dropdownPanel,
-                background: navBg || "#000",
-                border: "1px solid rgba(255,255,255,0.12)",
-                minWidth: l.children!.length > 4 ? 240 : 180,
-              }}
-            >
-              {l.children!.length > 4 ? (
-                /* Mega nav grid for 5+ children */
-                <div className="grid grid-cols-2 gap-0">
-                  {l.children!.map((child) => {
-                    const cslug = slugFromHref(child.href);
-                    const cls = "kebu-nav-dropdown-item text-left";
-                    return onNavigate && cslug ? (
-                      <button key={child.label} type="button" onClick={() => handleNav(child.href)} className={cls} style={{ color: navColor }}>{child.label}</button>
-                    ) : (
-                      <a key={child.label} href={resolveHref(child.href)} onClick={() => setOpenGroup(null)} className={cls} style={{ color: navColor }}>{child.label}</a>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* Standard dropdown list for 1–4 children */
-                <div className="flex flex-col">
-                  {l.children!.map((child) => {
-                    const cslug = slugFromHref(child.href);
-                    const cls = "kebu-nav-dropdown-item text-left";
-                    return onNavigate && cslug ? (
-                      <button key={child.label} type="button" onClick={() => handleNav(child.href)} className={cls} style={{ color: navColor }}>{child.label}</button>
-                    ) : (
-                      <a key={child.label} href={resolveHref(child.href)} onClick={() => setOpenGroup(null)} className={cls} style={{ color: navColor }}>{child.label}</a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
-
-  /* Mobile drawer link renderer */
-  function renderDrawerLink(l: { label: string; href: string; children?: { label: string; href: string }[] }) {
-    const hasChildren = l.children && l.children.length > 0;
-    if (!hasChildren) {
-      const slug = slugFromHref(l.href);
-      return onNavigate && slug ? (
-        <button
-          key={l.label}
-          type="button"
-          onClick={() => handleNav(l.href)}
-          className="kebu-nav-drawer-link"
-        >
-          {l.label}
-        </button>
-      ) : (
-        <a key={l.label} href={resolveHref(l.href)} onClick={() => setDrawerOpen(false)} className="kebu-nav-drawer-link">
-          {l.label}
-        </a>
-      );
-    }
-    const groupOpen = openGroup === l.label;
-    return (
-      <div key={l.label}>
-        <button
-          type="button"
-          onClick={() => setOpenGroup(groupOpen ? null : l.label)}
-          className="kebu-nav-drawer-link flex w-full items-center justify-between"
-        >
-          {l.label}
-          <span aria-hidden style={{ fontSize: "0.75em", opacity: 0.6, transform: groupOpen ? "rotate(180deg)" : "none", transition: "transform 0.18s", display: "inline-block" }}>▾</span>
-        </button>
-        {groupOpen && (
-          <div className="kebu-nav-drawer-children">
-            {l.children!.map((child) => {
-              const cslug = slugFromHref(child.href);
-              return onNavigate && cslug ? (
-                <button
-                  key={child.label}
-                  type="button"
-                  onClick={() => handleNav(child.href)}
-                  className="kebu-nav-drawer-child"
-                >
-                  {child.label}
-                </button>
-              ) : (
-                <a key={child.label} href={resolveHref(child.href)} onClick={() => setDrawerOpen(false)} className="kebu-nav-drawer-child">
-                  {child.label}
-                </a>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const alwaysHamburger = layout === "hamburger";
-
-  return (
-    <header
-      className={`kebu-site-nav relative ${stickyClass}`}
-      style={{
-        background: navBg,
-        color: navColor,
-        paddingTop: padY,
-        paddingBottom: padY,
-        paddingLeft: padX,
-        paddingRight: padX,
-      }}
-    >
-      <div
-        className="mx-auto flex w-full items-center justify-between"
-        style={{ maxWidth }}
-      >
-        {/* Brand */}
-        <div className={`flex shrink-0 ${logoAlign === "center" ? "absolute left-1/2 -translate-x-1/2" : ""}`}>
-          {brandEl}
-        </div>
-
-        {/* Desktop links — hidden on mobile, also hidden in hamburger-only layout */}
-        {!alwaysHamburger && (
-          <nav
-            className="kebu-site-nav__links hidden items-center sm:flex"
-            style={{ gap, fontSize: fontPx, marginLeft: logoAlign === "left" ? "auto" : undefined }}
-            aria-label="Site navigation"
-          >
-            {links.map((l) => renderDesktopLink(l))}
-          </nav>
-        )}
-
-        {/* Hamburger — mobile only by default; all sizes in hamburger layout */}
-        {links.length > 0 && (
-          <button
-            type="button"
-            onClick={() => { setDrawerOpen((v) => !v); setOpenGroup(null); }}
-            className={`kebu-nav-hamburger ${alwaysHamburger ? "" : "sm:hidden"}`}
-            aria-label={drawerOpen ? "Close menu" : "Open menu"}
-            aria-expanded={drawerOpen}
-            style={{ color: navColor }}
-          >
-            {drawerOpen ? (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            ) : (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h12"/></svg>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Drawer — mobile only by default; all sizes in hamburger layout */}
-      {drawerOpen && (
-        <>
-          <div
-            className={`fixed inset-0 ${alwaysHamburger ? "" : "sm:hidden"}`}
-            style={{ background: "rgba(0,0,0,0.35)", zIndex: Z_LAYERS.drawerBackdrop }}
-            onClick={() => setDrawerOpen(false)}
-            aria-hidden
-          />
-          <div
-            className={`kebu-nav-drawer ${alwaysHamburger ? "" : "sm:hidden"}`}
-            style={{ background: navBg || "#000", color: navColor, borderTop: "1px solid rgba(255,255,255,0.1)" }}
-          >
-            {links.map((l) => renderDrawerLink(l))}
-          </div>
-        </>
-      )}
-
-      {/* Editor-only drag-to-resize handle at the bottom edge */}
-      {onNavResize ? (
-        <NavResizeHandle currentScale={navScale ?? 1} onPatch={onNavResize} />
-      ) : null}
-    </header>
-  );
-}
-
-type QuizStepDef = { id: string; question: string; options: string[]; icon?: string };
-
-/**
- * Real, working multi-step quiz: pick an answer per step, then hand the full set of answers to
- * WhatsApp as a pre-filled message. Progress bar + back navigation, step transitions animate only
- * when `motionExpressive` is set (theme.motion === "expressive").
- */
-function QuizSection({
-  heading,
-  subheading,
-  ctaLabel,
-  steps,
-  whatsappPhone,
-  whatsappIntro,
-  fontDisplay,
-  motionExpressive,
-}: {
-  heading: string;
-  subheading: string;
-  ctaLabel: string;
-  steps: QuizStepDef[];
-  whatsappPhone: string;
-  whatsappIntro: string;
-  fontDisplay: string;
-  motionExpressive: boolean;
-}) {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-
-  if (steps.length === 0) return null;
-
-  const total = steps.length;
-  const isDone = stepIndex >= total;
-  const current = !isDone ? steps[stepIndex] : null;
-
-  function choose(option: string) {
-    if (!current) return;
-    setAnswers((prev) => ({ ...prev, [current.id]: option }));
-    setStepIndex((i) => i + 1);
-  }
-
-  function reset() {
-    setStepIndex(0);
-    setAnswers({});
-  }
-
-  const message = [
-    whatsappIntro,
-    ...steps.map((s) => `${s.question} → ${answers[s.id] ?? "(skipped)"}`),
-  ].join("\n");
-  const waHref = whatsAppOrderHref(whatsappPhone, message);
-  const progressPct = Math.round((Math.min(stepIndex, total) / total) * 100);
-
-  const stepContent = isDone ? (
-    <div className="text-center">
-      <p className="text-lg font-bold">All done.</p>
-      <p className="mt-2 text-sm opacity-70">Tap below to send your answers and get a real reply.</p>
-      <a
-        href={waHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-6 inline-block rounded-full px-6 py-3 text-sm font-bold text-white"
-        style={{ background: "var(--kebu-accent)" }}
-      >
-        {ctaLabel}
-      </a>
-      <button
-        type="button"
-        onClick={reset}
-        className="mt-4 block w-full text-center text-xs underline opacity-60"
-      >
-        Start over
-      </button>
-    </div>
-  ) : current ? (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-wider opacity-50">
-        Step {stepIndex + 1} of {total}
-      </p>
-      <p className="mt-2 text-xl font-bold" style={{ fontFamily: cssFontStack(fontDisplay) }}>
-        {current.icon ? <span className="mr-2">{current.icon}</span> : null}
-        {current.question}
-      </p>
-      <div className="mt-5 flex flex-col gap-2">
-        {current.options.map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => choose(opt)}
-            className="rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-colors hover:border-[var(--kebu-accent)] hover:bg-[var(--kebu-accent)] hover:text-white"
-            style={{ borderColor: "rgba(0,0,0,0.15)" }}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-      {stepIndex > 0 ? (
-        <button
-          type="button"
-          onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
-          className="mt-4 text-xs underline opacity-60"
-        >
-          ← Back
-        </button>
-      ) : null}
-    </div>
-  ) : null;
-
-  return (
-    <section className="kebu-section mx-auto max-w-xl px-5 py-16">
-      {heading ? (
-        <h2
-          className="text-center text-2xl font-bold"
-          style={{ fontFamily: cssFontStack(fontDisplay) }}
-        >
-          {heading}
-        </h2>
-      ) : null}
-      {subheading ? <p className="mt-2 text-center text-sm opacity-70">{subheading}</p> : null}
-      <div className="mt-5 h-1 w-full overflow-hidden rounded-full bg-black/10">
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${progressPct}%`, background: "var(--kebu-accent)" }}
-        />
-      </div>
-      <div className="mt-8 rounded-2xl border p-6" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
-        {motionExpressive ? (
-          <AnimatePresence mode="wait">
-            <fx.div
-              key={isDone ? "done" : current?.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              {stepContent}
-            </fx.div>
-          </AnimatePresence>
-        ) : (
-          stepContent
-        )}
-      </div>
-    </section>
-  );
-}
-
 /** Public/preview renderer — approved section types only. */
 export function SiteRenderer({
   definition,
@@ -797,6 +404,16 @@ export function SiteRenderer({
   dataMode?: DataMode;
 }) {
   const theme = definition.theme;
+  const [liveDevice, setLiveDevice] = useState<BuilderDevice>("desktop");
+  useEffect(() => {
+    if (editor?.editDevice) return;
+    const update = () => setLiveDevice(builderDeviceFromWidth(window.innerWidth));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [editor?.editDevice]);
+  const activeDevice = editor?.editDevice ?? liveDevice;
+
   /** Opt-in richer motion for aesthetics that specifically declare it — no-op for every other template. */
   const motionExpressive = theme.motion === "expressive";
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -817,7 +434,17 @@ export function SiteRenderer({
   const hasKdirection = page.sections.some(
     (s) => s.type === "kdirection-home" || s.type === "kdirection-page",
   );
-  const motionHero = findMotionHeroProps(definition);
+  const motionHeroRaw = findMotionHeroProps(definition);
+  const motionHero = motionHeroRaw
+    ? (mergeDeviceAwareSectionProps(
+        motionHeroRaw as unknown as Record<string, unknown>,
+        activeDevice,
+      ) as unknown as LegallyBlondeHeroProps)
+    : null;
+  const motionHeroSectionId =
+    definition.pages
+      .flatMap((candidatePage) => candidatePage.sections)
+      .find((candidateSection) => candidateSection.type === "legally-blonde-hero")?.id ?? null;
   const emailPopup = findEmailPopup(definition);
   const motionSite = motionHero !== null;
   const activeSlug = pageSlug && pageSlug !== "home" ? pageSlug : "home";
@@ -849,7 +476,7 @@ export function SiteRenderer({
           color: "#111",
           minHeight: mode === "preview" ? "100%" : "100vh",
           ...(editingPreview
-            ? { height: "100%", display: "flex", flexDirection: "column" as const }
+            ? { display: "flex", flexDirection: "column" as const }
             : {}),
         }
       : hasKdirection
@@ -979,12 +606,14 @@ export function SiteRenderer({
         const key = section.id ?? `${section.type}-${idx}`;
         const sectionId = section.id ?? key;
         const anchor = sectionAnchor(section);
+        // Published single-screen themes may intentionally fill the viewport. The editor must
+        // remain a normal document: its content can grow, scroll, and expose the footer below it.
         const fillViewport =
-          STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
+          !editingPreview && STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
         const sectionPaddingY = String((section.props as Record<string, unknown>)?.sectionPaddingY ?? "normal");
         const motionPreset = motionExpressive ? ENTRANCE_MOTION[section.type] : undefined;
         const wrap = (node: ReactNode) =>
-          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset);
+          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset, section.props as unknown as Parameters<typeof wrapEditorSection>[7]);
         const sectionEl = (() => {
         switch (section.type) {
           case "maylecor-home":
@@ -1031,7 +660,7 @@ export function SiteRenderer({
             );
           case "legally-blonde-hero": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const resolved = mergeDeviceAwareSectionProps(raw, device);
             return wrap(
               <LegallyBlondeHeroLayout
@@ -1058,15 +687,21 @@ export function SiteRenderer({
           }
           case "navigation": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               brand: String(readDeviceOverride(raw, device, "brand") ?? ""),
-              links: (raw.links as { label: string; href: string; children?: { label: string; href: string }[] }[] | undefined) ?? [],
+              links: (raw.links as { label: string; href: string; children?: { label: string; href: string; grandchildren?: { label: string; href: string }[] }[] }[] | undefined) ?? [],
               navScale: raw.navScale as number | undefined,
               navSize: raw.navSize as "compact" | "comfortable" | "large" | "fullscreen" | undefined,
-              navLayout: raw.navLayout as "top" | "side" | undefined,
+              navLayout: raw.navLayout as "top" | "side" | "hamburger" | undefined,
+              logoUrl: String(raw.logoUrl ?? ""),
+              logoAlt: String(raw.logoAlt ?? raw.brand ?? ""),
+              logoScale: Math.min(4, Math.max(0.5, Number(raw.logoScale ?? 1))),
+              fontFamily: String(raw.fontFamily ?? ""),
+              fontWeight: Number(raw.fontWeight ?? 700),
               logoAlign: (raw.logoAlign as "left" | "center" | "right" | undefined) ?? "left",
               navSticky: raw.navSticky !== false,
+              navStyle: raw.navStyle as "standard" | "mega" | undefined,
             };
             const patchNav = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
@@ -1084,11 +719,26 @@ export function SiteRenderer({
               const base = siteBase.replace(/\/$/, "");
               return base ? `${base}/${h}` : `/${h}`;
             };
-            const brandEl = (
+            const brandEl = p.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.logoUrl}
+                alt={p.logoAlt || p.brand || "Site logo"}
+                className="kebu-site-nav__logo block max-w-none object-contain"
+                style={{
+                  height: Math.max(24, Math.round(m.brandPx * 1.75 * p.logoScale)),
+                  width: "auto",
+                }}
+              />
+            ) : (
               <EditableText
                 tag="span"
-                className="kebu-site-nav__brand font-bold tracking-wide"
-                style={{ fontSize: m.brandPx }}
+                className="kebu-site-nav__brand tracking-wide"
+                style={{
+                  fontSize: m.brandPx,
+                  fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined,
+                  fontWeight: p.fontWeight,
+                }}
                 value={p.brand}
                 editor={editor}
                 onChange={(brand) => patchNav({ brand })}
@@ -1130,11 +780,11 @@ export function SiteRenderer({
                     {p.links.map((l) => {
                       const slug = l.href ? l.href.replace(/^\//, "").split(/[?#]/)[0] || "home" : null;
                       return editor?.onNavigatePage && slug ? (
-                        <button key={l.label} type="button" onClick={() => editor.onNavigatePage!(slug)} className="kebu-nav-link text-left">
+                        <button key={l.label} type="button" onClick={() => editor.onNavigatePage?.(slug)} className="kebu-nav-link text-left" style={{ fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined, fontWeight: p.fontWeight }}>
                           {l.label}
                         </button>
                       ) : (
-                        <a key={l.label} href={resolveNavHref(l.href)} className="kebu-nav-link">{l.label}</a>
+                        <a key={l.label} href={resolveNavHref(l.href)} className="kebu-nav-link" style={{ fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined, fontWeight: p.fontWeight }}>{l.label}</a>
                       );
                     })}
                   </nav>
@@ -1160,7 +810,10 @@ export function SiteRenderer({
                 layout={p.navLayout}
                 navScale={m.scale}
                 resolveHref={resolveNavHref}
+                navStyle={p.navStyle}
                 onNavigate={editor?.onNavigatePage}
+                fontFamily={p.fontFamily}
+                fontWeight={p.fontWeight}
                 onNavResize={
                   editor?.onPatchSection
                     ? (newScale) => patchNav({ navScale: newScale })
@@ -1171,7 +824,7 @@ export function SiteRenderer({
           }
           case "hero": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? ""),
               subheading: String(readDeviceOverride(raw, device, "subheading") ?? ""),
@@ -1270,7 +923,7 @@ export function SiteRenderer({
           }
           case "text": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: readDeviceOverride(raw, device, "heading") as string | undefined,
               body: String(readDeviceOverride(raw, device, "body") ?? ""),
@@ -1304,7 +957,7 @@ export function SiteRenderer({
           }
           case "features": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const layout = (raw.layout as "grid" | "moodboard" | undefined) ?? "grid";
             const heading = String(readDeviceOverride(raw, device, "heading") ?? "Features");
             const items =
@@ -1502,7 +1155,7 @@ export function SiteRenderer({
           }
           case "faq": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const heading = String(readDeviceOverride(raw, device, "heading") ?? "FAQ");
             const items =
               (readDeviceOverride(raw, device, "items") as
@@ -1554,7 +1207,7 @@ export function SiteRenderer({
           }
           case "products": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Products"),
               layout: raw.layout as "grid" | "grid-dense" | "list" | "featured" | undefined,
@@ -2097,6 +1750,7 @@ export function SiteRenderer({
                 y: number;
                 width: number;
                 fontSize: "sm" | "md" | "lg" | "xl" | "hero";
+                fontSizePx?: number;
                 align: "left" | "center" | "right";
                 color?: string;
                 fontFamily?: string;
@@ -2129,7 +1783,7 @@ export function SiteRenderer({
                       top: `${block.y}%`,
                       width: `${block.width}%`,
                       textAlign: block.align,
-                      fontSize: fontSizeMap[block.fontSize] ?? fontSizeMap.md,
+                      fontSize: block.fontSizePx ? `${Math.min(240, Math.max(6, block.fontSizePx))}px` : fontSizeMap[block.fontSize] ?? fontSizeMap.md,
                       fontFamily: block.fontFamily
                         ? cssFontStack(block.fontFamily)
                         : cssFontStack(theme.fontDisplay),
@@ -2313,6 +1967,9 @@ export function SiteRenderer({
               textColor?: string;
               paddingTop?: number;
               paddingBottom?: number;
+              fontFamily?: string;
+              legalName?: string;
+              copyrightYear?: number;
             };
             const hasCustomBg = Boolean(p.bgColor);
             const ptPx = p.paddingTop ?? 32;
@@ -2361,17 +2018,53 @@ export function SiteRenderer({
                   color: p.textColor || undefined,
                   paddingTop: ptPx,
                   paddingBottom: pbPx,
+                  fontFamily: p.fontFamily ? cssFontStack(p.fontFamily) : undefined,
                 }}
               >
                 {makeFooterDragHandle("top")}
-                <p>{p.text}</p>
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
-                  {(p.links ?? []).map((l) => (
-                    <a key={l.label} href={l.href} style={{ color: p.textColor ? "inherit" : undefined }}>
-                      {l.label}
-                    </a>
-                  ))}
-                </div>
+                <p>
+                  {p.text ||
+                    `© ${p.copyrightYear ?? new Date().getFullYear()} ${p.legalName || definition.title || ""}`.trim()}
+                </p>
+                <nav className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2" aria-label="Footer navigation">
+                  {(p.links ?? []).map((l) => {
+                    const raw = (l.href || "").trim();
+                    const slug =
+                      raw && raw !== "#" && !raw.startsWith("http") && !raw.startsWith("mailto:") && !raw.startsWith("tel:")
+                        ? (raw.replace(/^\//, "").split(/[?#]/)[0] || "home")
+                        : null;
+                    return editor?.onNavigatePage && slug ? (
+                      <button
+                        key={`${l.label}-${l.href}`}
+                        type="button"
+                        onClick={() => editor.onNavigatePage?.(slug)}
+                        className="hover:underline"
+                        style={{ color: p.textColor ? "inherit" : undefined }}
+                      >
+                        {l.label}
+                      </button>
+                    ) : (
+                      <a
+                        key={`${l.label}-${l.href}`}
+                        href={(() => {
+                          const href = (l.href || "").trim();
+                          if (!href || href === "#") return siteBase || "/";
+                          if (href.startsWith("http") || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return href;
+                          if (href.startsWith("/")) {
+                            const base = siteBase.replace(/\/$/, "");
+                            return base ? `${base}${href === "/" ? "" : href}` : href;
+                          }
+                          const base = siteBase.replace(/\/$/, "");
+                          return base ? `${base}/${href}` : `/${href}`;
+                        })()}
+                        className="hover:underline"
+                        style={{ color: p.textColor ? "inherit" : undefined }}
+                      >
+                        {l.label}
+                      </a>
+                    );
+                  })}
+                </nav>
                 {makeFooterDragHandle("bottom")}
               </footer>
             );
@@ -2453,7 +2146,7 @@ export function SiteRenderer({
           }
           case "editorial-hero": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Your headline here"),
               subheading: String(readDeviceOverride(raw, device, "subheading") ?? ""),
@@ -2529,7 +2222,7 @@ export function SiteRenderer({
           }
           case "split": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const device = activeDevice;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Your heading"),
               body: String(readDeviceOverride(raw, device, "body") ?? ""),
@@ -2620,13 +2313,9 @@ export function SiteRenderer({
               tileBackground?: string;
               tileColor?: string;
             };
-            const items = p.items?.length
-              ? p.items
-              : [
-                  { label: "Women", href: "#" },
-                  { label: "Men", href: "#" },
-                  { label: "Kids", href: "#" },
-                ];
+            const items = p.items?.length ? p.items : [];
+            // On a live site with no items configured, skip the section entirely — no dead placeholder links.
+            if (!items.length && mode === "live") return null;
             const cols = p.columns ?? 3;
             const colClass = cols === 2 ? "grid-cols-2" : cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-3";
             return wrap(
@@ -2643,41 +2332,45 @@ export function SiteRenderer({
                     {p.title}
                   </h2>
                 ) : null}
-                <div className={`grid gap-3 max-w-5xl mx-auto ${colClass}`}>
-                  {items.map((item, i) => (
-                    <a
-                      key={i}
-                      href={item.href || "#"}
-                      className="group relative overflow-hidden rounded-xl"
-                      style={{ aspectRatio: "4/5" }}
-                    >
-                      {item.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={item.image}
-                          alt={item.label}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div
-                          className="h-full w-full"
-                          style={{ background: p.tileBackground || theme.primary + "18" }}
-                        />
-                      )}
-                      <div
-                        className="absolute inset-x-0 bottom-0 p-4"
-                        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }}
+                {items.length === 0 ? (
+                  <p className="text-center text-sm opacity-40 py-6">Add categories in the editor to show tiles here.</p>
+                ) : (
+                  <div className={`grid gap-3 max-w-5xl mx-auto ${colClass}`}>
+                    {items.map((item, i) => (
+                      <a
+                        key={i}
+                        href={item.href && item.href !== "#" ? item.href : undefined}
+                        className="group relative overflow-hidden rounded-xl"
+                        style={{ aspectRatio: "4/5", cursor: item.href && item.href !== "#" ? "pointer" : "default" }}
                       >
-                        <p
-                          className="text-sm font-bold tracking-wide"
-                          style={{ color: p.tileColor || "#fff" }}
+                        {item.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.image}
+                            alt={item.label}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div
+                            className="h-full w-full"
+                            style={{ background: p.tileBackground || theme.primary + "18" }}
+                          />
+                        )}
+                        <div
+                          className="absolute inset-x-0 bottom-0 p-4"
+                          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }}
                         >
-                          {item.label}
-                        </p>
-                      </div>
-                    </a>
-                  ))}
-                </div>
+                          <p
+                            className="text-sm font-bold tracking-wide"
+                            style={{ color: p.tileColor || "#fff" }}
+                          >
+                            {item.label}
+                          </p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </section>,
             );
           }
@@ -2729,6 +2422,26 @@ export function SiteRenderer({
           accentColor={motionHero.accentColor}
           socialLinks={motionHero.socialLinks}
           siteBase={siteBase}
+          paddingTop={motionHero.embeddedFooterPaddingTop ?? 20}
+          paddingBottom={motionHero.embeddedFooterPaddingBottom ?? 20}
+          editing={editingPreview}
+          selected={editor?.selectedElement?.elementId === "siteFooter"}
+          onSelect={
+            editingPreview && editor?.onSelectElement && motionHeroSectionId
+              ? () =>
+                  editor.onSelectElement?.({
+                    sectionId: motionHeroSectionId,
+                    elementId: "siteFooter",
+                    kind: "control",
+                    label: "Footer",
+                  })
+              : undefined
+          }
+          onResize={
+            editingPreview && editor?.onPatchSection && motionHeroSectionId
+              ? (patch) => editor.onPatchSection?.(motionHeroSectionId, patch)
+              : undefined
+          }
         />
       ) : null}
     </>
@@ -2738,7 +2451,7 @@ export function SiteRenderer({
     <div
       ref={rootRef}
       className={`${rootClass} relative${sideNav ? " md:flex md:flex-row md:items-stretch" : ""}${
-        editingPreview && legallyBlondeOnly ? " flex h-full min-h-0 flex-col" : ""
+        editingPreview && legallyBlondeOnly ? " flex min-h-full flex-col" : ""
       }`}
       data-kebu-button={theme.buttonStyle ?? "solid"}
       style={{

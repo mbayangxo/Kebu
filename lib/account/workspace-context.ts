@@ -25,29 +25,26 @@ export const workspacePatchSchema = z.discriminatedUnion("mode", [
   }),
 ]);
 
+/**
+ * Null activeBusinessId is an explicit Personal Kebu choice.
+ * Never auto-enter a business merely because the user belongs to one business.
+ */
 export function resolveAccountContext(opts: {
   activeBusinessId: string | null;
   businesses: WorkspaceBusiness[];
 }): AccountWorkspaceContext {
   const { businesses } = opts;
-  let activeBusinessId = opts.activeBusinessId;
-
-  if (activeBusinessId && !businesses.some((b) => b.id === activeBusinessId)) {
-    activeBusinessId = null;
-  }
-
-  if (!activeBusinessId && businesses.length === 1) {
-    activeBusinessId = businesses[0]!.id;
-  }
+  const activeBusinessId =
+    opts.activeBusinessId && businesses.some((business) => business.id === opts.activeBusinessId)
+      ? opts.activeBusinessId
+      : null;
 
   const activeBusiness = activeBusinessId
-    ? (businesses.find((b) => b.id === activeBusinessId) ?? null)
+    ? (businesses.find((business) => business.id === activeBusinessId) ?? null)
     : null;
 
-  const mode: AccountContextMode = activeBusiness ? "business" : "personal";
-
   return {
-    mode,
+    mode: activeBusiness ? "business" : "personal",
     activeBusinessId: activeBusiness?.id ?? null,
     activeBusiness,
     businesses,

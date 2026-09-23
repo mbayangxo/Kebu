@@ -45,7 +45,22 @@ export async function goLiveWebsiteProject(opts: {
   }
 
   if (existingLive) {
-    await supabase.from("deployments").update({ status: "superseded" }).eq("id", existingLive.id);
+    const { error: supersedeErr } = await supabase
+      .from("deployments")
+      .update({ status: "superseded" })
+      .eq("id", existingLive.id);
+    if (supersedeErr) {
+      return {
+        ok: false,
+        error: "Could not safely replace the current live deployment.",
+        detail: supersedeErr.message,
+      };
+    }
+  }
+
+  async function restorePreviousLive() {
+    if (!existingLive) return;
+    await supabase.from("deployments").update({ status: "live" }).eq("id", existingLive.id);
   }
 
   const publicPath = `/sites/${normalized}`;
@@ -65,6 +80,7 @@ export async function goLiveWebsiteProject(opts: {
     .single();
 
   if (depErr || !deployment) {
+    await restorePreviousLive();
     return {
       ok: false,
       error: depErr?.message?.includes("does not exist")
@@ -86,9 +102,10 @@ export async function goLiveWebsiteProject(opts: {
 
   if (projectErr) {
     await supabase.from("deployments").update({ status: "failed" }).eq("id", deployment.id);
+    await restorePreviousLive();
     return {
       ok: false,
-      error: "Published snapshot saved but project status failed. Retry publish.",
+      error: "The new publish failed before activation. Your previous live version was restored.",
       detail: projectErr.message,
     };
   }

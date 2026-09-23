@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { BUILDER } from "@/lib/create/builder-ui";
 import { isValidPageSlug, normalizePageSlug } from "@/lib/create/builder-pages";
+import { GalaxyPanelHeader } from "@/app/components/galaxy/editor-primitives";
 
 export type BuilderPageRow = {
   id: string;
   slug: string;
   title: string;
   sort_order: number;
+  parent_id?: string | null;
 };
 
 export function BuilderPagesPanel({
@@ -19,6 +21,7 @@ export function BuilderPagesPanel({
   busy = false,
   onSelectPage,
   onRefresh,
+  onPagesChange,
   onError,
 }: {
   projectId: string;
@@ -28,6 +31,8 @@ export function BuilderPagesPanel({
   busy?: boolean;
   onSelectPage: (page: BuilderPageRow) => void;
   onRefresh: () => Promise<void>;
+  /** Optimistic local ordering: page movement must never blank/reload the whole Builder. */
+  onPagesChange: (pages: BuilderPageRow[]) => void;
   onError: (message: string | null) => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
@@ -35,7 +40,10 @@ export function BuilderPagesPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editSlug, setEditSlug] = useState("");
+  const [editParentId, setEditParentId] = useState<string>("");
   const [localBusy, setLocalBusy] = useState(false);
+  const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
+  const [dragIntent, setDragIntent] = useState<"before" | "child">("before");
 
   const sorted = [...pages].sort((a, b) => a.sort_order - b.sort_order);
   const working = busy || localBusy;
@@ -88,7 +96,7 @@ export function BuilderPagesPanel({
       const res = await fetch(`/api/projects/${projectId}/pages`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageId, title, slug }),
+        body: JSON.stringify({ pageId, title, slug, parentId: editParentId || null }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not update page."); return; }
@@ -99,48 +107,108 @@ export function BuilderPagesPanel({
     finally { setLocalBusy(false); }
   }
 
+  async function persistPageOrder(next: BuilderPageRow[], previous: BuilderPageRow[]) {
+    const normalized = next.map((page, index) => ({ ...page, sort_order: index }));
+    onPagesChange(normalized);
+    setLocalBusy(true);
+    onError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/pages`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: normalized.map((page) => page.id) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        onPagesChange(previous);
+        onError(typeof data.error === "string" ? data.error : "Could not reorder pages. Your previous order was restored.");
+        return;
+      }
+      const confirmed = Array.isArray(data.pages) ? (data.pages as BuilderPageRow[]) : normalized;
+      onPagesChange(confirmed);
+    } catch {
+      onPagesChange(previous);
+      onError("Network error while reordering. Your previous order was restored.");
+    } finally {
+      setLocalBusy(false);
+    }
+  }
+
   async function movePage(pageId: string, direction: "up" | "down") {
     const idx = sorted.findIndex((p) => p.id === pageId);
     if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const a = sorted[idx]!;
-    const b = sorted[swapIdx]!;
-    setLocalBusy(true); onError(null);
-    try {
-      const [resA, resB] = await Promise.all([
-        fetch(`/api/projects/${projectId}/pages`, {
-          method: "PATCH", credentials: "include",
+    const next = [...sorted];
+    [next[idx], next[swapIdx]] = [next[swapIdx]!, next[idx]!];
+    await persistPageOrder(next.map((page, index) => ({ ...page, sort_order: index })), sorted);
+  }
+
+  async function dropPage(targetPageId: string) {
+    const sourceId = draggedPageId;
+    const intent = dragIntent;
+    setDraggedPageId(null);
+    setDragIntent("before");
+    if (!sourceId || sourceId === targetPageId) return;
+
+    if (intent === "child") {
+      const previous = sorted;
+      const optimistic = sorted.map((page) =>
+        page.id === sourceId ? { ...page, parent_id: targetPageId } : page,
+      );
+      onPagesChange(optimistic);
+      setLocalBusy(true);
+      onError(null);
+      try {
+        const res = await fetch(`/api/projects/${projectId}/pages`, {
+          method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageId: a.id, sortOrder: b.sort_order }),
-        }),
-        fetch(`/api/projects/${projectId}/pages`, {
-          method: "PATCH", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageId: b.id, sortOrder: a.sort_order }),
-        }),
-      ]);
-      if (!resA.ok || !resB.ok) { onError("Could not reorder pages."); return; }
-      await onRefresh();
-    } catch { onError("Network error while reordering."); }
-    finally { setLocalBusy(false); }
+          body: JSON.stringify({ pageId: sourceId, parentId: targetPageId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          onPagesChange(previous);
+          onError(typeof data.error === "string" ? data.error : "Could not nest page. Your previous structure was restored.");
+          return;
+        }
+        await onRefresh();
+      } catch {
+        onPagesChange(previous);
+        onError("Network error while nesting page. Your previous structure was restored.");
+      } finally {
+        setLocalBusy(false);
+      }
+      return;
+    }
+
+    const from = sorted.findIndex((page) => page.id === sourceId);
+    const to = sorted.findIndex((page) => page.id === targetPageId);
+    if (from < 0 || to < 0) return;
+    const next = [...sorted];
+    const [moved] = next.splice(from, 1);
+    if (!moved) return;
+    next.splice(to, 0, moved);
+    await persistPageOrder(next.map((page, index) => ({ ...page, sort_order: index })), sorted);
   }
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: BUILDER.border }}>
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: BUILDER.muted }}>Pages</p>
-        <button
+      <GalaxyPanelHeader
+        eyebrow="Structure"
+        title="Pages"
+        description="Choose what you are editing, organize hierarchy, and control page URLs."
+        action={<button
           type="button"
           disabled={working}
           onClick={() => { setAdding((v) => !v); setEditingId(null); }}
-          className="text-[10px] font-bold"
+          className="min-h-8 rounded-full px-2.5 text-[9px] font-black uppercase tracking-wide outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] disabled:opacity-40"
           style={{ color: BUILDER.orange }}
         >
           {adding ? "Cancel" : "+ New page"}
-        </button>
-      </div>
+        </button>}
+      />
 
       {/* Add page form */}
       {adding ? (
@@ -173,7 +241,35 @@ export function BuilderPagesPanel({
           const active = p.id === editPageId || p.slug === previewPageSlug;
           const editing = editingId === p.id;
           return (
-            <li key={p.id} style={{ borderBottom: `1px solid ${BUILDER.border}` }}>
+            <li
+              key={p.id}
+              draggable={!working && !editing}
+              onDragStart={(event) => {
+                setDraggedPageId(p.id);
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(event) => {
+                if (!draggedPageId || draggedPageId === p.id) return;
+                event.preventDefault();
+                const rect = event.currentTarget.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                setDragIntent(x > rect.width * 0.34 ? "child" : "before");
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                void dropPage(p.id);
+              }}
+              onDragEnd={() => setDraggedPageId(null)}
+              style={{
+                borderBottom: `1px solid ${BUILDER.border}`,
+                opacity: draggedPageId === p.id ? 0.45 : 1,
+                cursor: working || editing ? "default" : "grab",
+                boxShadow: draggedPageId && draggedPageId !== p.id && dragIntent === "child"
+                  ? "inset 24px 0 0 rgba(255,106,0,.06)"
+                  : "none",
+              }}
+            >
               {editing ? (
                 /* Inline edit form */
                 <div className="px-3 py-2 space-y-1.5" style={{ background: BUILDER.surfaceMuted }}>
@@ -194,6 +290,16 @@ export function BuilderPagesPanel({
                     placeholder="slug"
                     disabled={working}
                   />
+                  <label className="block text-[9px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                    Parent page
+                    <select className="mt-1 w-full rounded px-2 py-1 text-xs normal-case font-normal" style={{ border: `1px solid ${BUILDER.border}` }}
+                      value={editParentId} onChange={(e) => setEditParentId(e.target.value)} disabled={working}>
+                      <option value="">Top level</option>
+                      {sorted.filter((candidate) => candidate.id !== p.id).map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>{candidate.title}</option>
+                      ))}
+                    </select>
+                  </label>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -225,15 +331,23 @@ export function BuilderPagesPanel({
                     paddingLeft: active ? "9px" : "12px",
                   }}
                 >
+                  <span
+                    aria-hidden
+                    className="shrink-0 select-none text-[12px]"
+                    style={{ color: BUILDER.muted }}
+                    title="Drag to reorder"
+                  >
+                    ⋮⋮
+                  </span>
                   {/* Page title — clicking selects the page to edit */}
                   <button
                     type="button"
                     className="min-w-0 flex-1 truncate py-2 text-left text-[12px] font-medium"
-                    style={{ color: active ? BUILDER.ink : "#3A3A3A" }}
+                    style={{ paddingLeft: p.parent_id ? "16px" : undefined, color: active ? BUILDER.ink : "#3A3A3A" }}
                     onClick={() => onSelectPage(p)}
                     title={`/${p.slug}`}
                   >
-                    {p.title}
+                    {p.parent_id ? "↳ " : ""}{p.title}
                   </button>
 
                   {/* Hover actions — inline single row */}
@@ -267,6 +381,7 @@ export function BuilderPagesPanel({
                         setEditingId(p.id);
                         setEditTitle(p.title);
                         setEditSlug(p.slug);
+                        setEditParentId(p.parent_id ?? "");
                         setAdding(false);
                       }}
                       className="px-1 py-1.5 text-[11px] leading-none"
@@ -295,6 +410,9 @@ export function BuilderPagesPanel({
           );
         })}
       </ul>
+      <p className="px-3 py-2 text-[9px]" style={{ color: BUILDER.faint }}>
+        Drag right onto a page to nest it as a sub-page. Drag left to reorder at the same level.
+      </p>
     </div>
   );
 }

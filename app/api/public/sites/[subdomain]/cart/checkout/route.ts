@@ -23,7 +23,7 @@ import {
   shopCartCheckoutSchema,
   upsertCartDraft,
 } from "@/lib/shop/cart-order";
-import { decrementCartStock, restoreProductStock } from "@/lib/shop/stock";
+import { reserveMultiShopCheckout, releaseShopCheckout } from "@/lib/shop/stock";
 import { assertProjectPlanLimit } from "@/lib/billing/enforce-limits";
 
 export const dynamic = "force-dynamic";
@@ -103,14 +103,6 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: resolved.error }, { status: 400 });
   }
 
-  const stock = await decrementCartStock(
-    admin,
-    resolved.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-  );
-  if (!stock.ok) {
-    return NextResponse.json({ error: stock.error }, { status: 409 });
-  }
-
   if (parsed.data.sessionKey) {
     await upsertCartDraft({
       admin,
@@ -126,6 +118,7 @@ export async function POST(req: Request, { params }: Params) {
     });
   }
 
+  // Create the order header first so we have an orderId for the reservation.
   const created = await createCartOrder({
     admin,
     projectId: live.project_id,
@@ -144,10 +137,19 @@ export async function POST(req: Request, { params }: Params) {
   });
 
   if (!created.ok) {
-    for (const l of resolved.lines) {
-      await restoreProductStock(admin, l.productId, l.quantity);
-    }
     return NextResponse.json({ error: created.error }, { status: 500 });
+  }
+
+  // Reserve inventory atomically with a TTL. On failure, cancel the order and return 409.
+  const reservation = await reserveMultiShopCheckout(admin, {
+    orderId: created.orderId,
+    projectId: live.project_id,
+    lines: resolved.lines.map((l) => ({ productId: l.productId, variantId: l.variantId ?? null, quantity: l.quantity })),
+  });
+  if (!reservation.ok) {
+    // Order exists but no reservation — mark it cancelled so it doesn't linger.
+    await admin.rpc("cancel_shop_order", { p_order_id: created.orderId, p_cancelled_by: "system_reservation_failed" });
+    return NextResponse.json({ error: reservation.error }, { status: 409 });
   }
 
   const { data: bizProject } = await admin

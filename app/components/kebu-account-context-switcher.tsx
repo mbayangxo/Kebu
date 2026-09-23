@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useKebuAccountContext } from "@/app/hooks/use-kebu-account-context";
 import { KEBU } from "@/lib/kebu-brand";
+import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 
 /** Personal Kebu ↔ Business Kebu (Kebu ID) switcher — server-persisted. */
 export function KebuAccountContextSwitcher({ compact = false }: { compact?: boolean }) {
@@ -55,7 +56,7 @@ export function KebuAccountContextSwitcher({ compact = false }: { compact?: bool
   if (compact) {
     return (
       <div className="px-3">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-white/45 mb-1">Account</p>
+        <p className="text-[9px] font-semibold text-white/45 mb-1">Account</p>
         <p className="text-[11px] font-semibold text-white truncate" title={label}>
           {label}
         </p>
@@ -66,10 +67,10 @@ export function KebuAccountContextSwitcher({ compact = false }: { compact?: bool
   return (
     <div className="px-3 pb-4" style={{ borderBottom: "1px solid rgba(255,85,0,0.15)" }}>
       <p className="text-[9px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: KEBU.orange }}>
-        Account context
+        Current space
       </p>
       <p className="text-[10px] text-white/50 mb-2 leading-snug">
-        One login — switch between personal and business workspaces.
+        Personal and business work stay separate. Switch without changing accounts.
       </p>
 
       <div className="space-y-1">
@@ -77,7 +78,7 @@ export function KebuAccountContextSwitcher({ compact = false }: { compact?: bool
           type="button"
           disabled={busy}
           onClick={() => void pickPersonal()}
-          className="w-full text-left rounded-lg px-2.5 py-2 text-[12px] font-semibold transition-colors disabled:opacity-60"
+          className="flex w-full items-center gap-2.5 text-left rounded-lg px-2.5 py-2 text-[12px] font-semibold transition-colors disabled:opacity-60"
           style={{
             background: context.mode === "personal" ? "rgba(255,85,0,0.25)" : "transparent",
             color: context.mode === "personal" ? KEBU.white : "rgba(255,255,255,0.75)",
@@ -85,7 +86,7 @@ export function KebuAccountContextSwitcher({ compact = false }: { compact?: bool
               context.mode === "personal" ? `1px solid ${KEBU.orange}` : "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          Personal Kebu
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/10"><KebuIcon name="people" size={14}/></span><span className="min-w-0 flex-1"><span className="block truncate">Personal</span><span className="block text-[9px] font-normal text-white/45">Only your work</span></span>
         </button>
 
         {context.businesses.map((b) => (
@@ -94,7 +95,7 @@ export function KebuAccountContextSwitcher({ compact = false }: { compact?: bool
             type="button"
             disabled={busy}
             onClick={() => void pickBusiness(b.id)}
-            className="w-full text-left rounded-lg px-2.5 py-2 text-[12px] font-semibold transition-colors disabled:opacity-60"
+            className="flex w-full items-center gap-2.5 text-left rounded-lg px-2.5 py-2 text-[12px] font-semibold transition-colors disabled:opacity-60"
             style={{
               background: context.activeBusinessId === b.id ? "rgba(255,85,0,0.25)" : "transparent",
               color: context.activeBusinessId === b.id ? KEBU.white : "rgba(255,255,255,0.75)",
@@ -104,8 +105,7 @@ export function KebuAccountContextSwitcher({ compact = false }: { compact?: bool
                   : "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <span className="block truncate">{b.name}</span>
-            <span className="block text-[9px] font-normal text-white/45 truncate">{b.publicKebuId}</span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/10"><KebuIcon name="spaces" size={14}/></span><span className="min-w-0 flex-1"><span className="block truncate">{b.name}</span><span className="block text-[9px] font-normal text-white/45 truncate">{b.publicKebuId}</span></span>
           </button>
         ))}
       </div>
@@ -113,14 +113,14 @@ export function KebuAccountContextSwitcher({ compact = false }: { compact?: bool
       {context.businesses.length === 0 ? (
         <Link
           href="/business/register"
-          className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-white/55 hover:text-[#FF5500]"
+          className="mt-2 inline-block text-[10px] font-semibold text-white/55 hover:text-[#FF5500]"
         >
           Create a business →
         </Link>
       ) : context.mode === "business" && context.activeBusiness ? (
         <Link
           href={`/business/${context.activeBusiness.id}`}
-          className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-white/55 hover:text-[#FF5500]"
+          className="mt-2 inline-block text-[10px] font-semibold text-white/55 hover:text-[#FF5500]"
         >
           Open business dashboard →
         </Link>

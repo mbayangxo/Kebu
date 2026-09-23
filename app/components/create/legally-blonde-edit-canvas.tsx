@@ -28,6 +28,9 @@ import {
   resolveCutoutHref,
 } from "@/lib/create/cutout-links";
 import { parseNavLayout, type NavSizePreset } from "@/lib/create/nav-chrome-size";
+import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
+import { cssFontStack } from "@/lib/create/site-theme-fonts";
+import type { BuilderElementKind, BuilderElementSelection } from "@/lib/create/builder-selection";
 import "./artist-motion.css";
 import "./legally-blonde-tilda.css";
 
@@ -98,6 +101,7 @@ type ExtraCut = {
   leftPct: number;
   widthPct: number;
   rotate?: number;
+  zIndex?: number;
 };
 
 type UploadTarget =
@@ -112,7 +116,9 @@ export function LegallyBlondeEditCanvas({
   currentSlug = "home",
   fillCanvas = true,
   onPatch,
+  selectedElement,
   onSelectSection,
+  onSelectElement,
   onNavigatePage,
 }: {
   props: Record<string, unknown>;
@@ -121,7 +127,9 @@ export function LegallyBlondeEditCanvas({
   currentSlug?: string;
   fillCanvas?: boolean;
   onPatch: (patch: Record<string, unknown>) => void;
+  selectedElement?: BuilderElementSelection | null;
   onSelectSection?: () => void;
+  onSelectElement?: (element: Omit<BuilderElementSelection, "sectionId">) => void;
   onNavigatePage?: (slug: string) => void;
 }) {
   const hiddenLayers = Array.isArray(props.hiddenLayers)
@@ -137,6 +145,72 @@ export function LegallyBlondeEditCanvas({
   const motions = (props.layerMotions as Record<string, LayerMotion>) ?? {};
   const layerLinks = (props.layerLinks as Record<string, string>) ?? {};
   const layerZ = (props.layerZIndex as Record<string, number>) ?? {};
+  const layerOpacity = (props.layerOpacity as Record<string, number>) ?? {};
+  const layerRotation = (props.layerRotation as Record<string, number>) ?? {};
+  const lockedLayers = Array.isArray(props.lockedLayers) ? (props.lockedLayers as string[]) : [];
+
+  function toggleLayerLocked(key: string) {
+    onPatch({
+      lockedLayers: lockedLayers.includes(key)
+        ? lockedLayers.filter((item) => item !== key)
+        : [...new Set([...lockedLayers, key])],
+    });
+  }
+
+  function hideLayer(key: string) {
+    onPatch({
+      hiddenLayers: [...new Set([...hiddenLayers, key])],
+      ...(key === "backgroundLayer" ? { backgroundHidden: true } : {}),
+    });
+    setSelectedKey(null);
+    setSelectedExtraId(null);
+    setEditingTitle(false);
+  }
+
+  function stepLayer(key: string, delta: -1 | 1) {
+    const current = typeof layerZ[key] === "number" ? layerZ[key]! : 10;
+    const next = Math.min(80, Math.max(1, current + delta));
+    const extras = extraCutouts.map((cut) =>
+      cut.id === key ? { ...cut, zIndex: next } : cut,
+    );
+    onPatch({
+      layerZIndex: { ...layerZ, [key]: next },
+      ...(extras.some((cut) => cut.id === key) ? { extraCutouts: extras } : {}),
+    });
+  }
+
+  function duplicateLayer(key: string, source: EditableCutoutSlot | ExtraCut) {
+    const nextId = `dup-${Date.now()}`;
+    const position = positions[key] ?? {
+      leftPct: source.leftPct,
+      topPct: source.topPct,
+    };
+    const currentScale = scales[key] ?? 1;
+    const duplicate: ExtraCut = {
+      id: nextId,
+      src: source.src,
+      alt: `${"label" in source ? source.label : source.alt || "Cutout"} copy`,
+      href: "href" in source ? source.href : layerLinks[key] ?? "",
+      leftPct: Math.min(90, position.leftPct + 3),
+      topPct: Math.min(90, position.topPct + 3),
+      widthPct: Math.max(4, source.widthPct * currentScale),
+      rotate: source.rotate ?? 0,
+      zIndex: Math.min(80, (typeof layerZ[key] === "number" ? layerZ[key]! : 10) + 1),
+    };
+    onPatch({
+      extraCutouts: [...extraCutouts, duplicate],
+      layerScales: { ...scales, [nextId]: 1 },
+      layerZIndex: { ...layerZ, [nextId]: duplicate.zIndex ?? 11 },
+      layerPositions: {
+        ...positions,
+        [nextId]: { leftPct: duplicate.leftPct, topPct: duplicate.topPct },
+      },
+    });
+    setSelectedExtraId(nextId);
+    setSelectedKey(null);
+    setEditingTitle(false);
+    selectElement(`extra:${nextId}`, "cutout", duplicate.alt || "Cutout copy");
+  }
 
   function bumpLayer(key: string, dir: "front" | "back") {
     // Collect z-indexes of ALL other layers so we can truly move to front/back
@@ -164,7 +238,19 @@ export function LegallyBlondeEditCanvas({
   const titleAsText = props.titleAsText === true;
   const title = String(props.title ?? "MAY LECOR");
   const accent = String(props.accentColor ?? "#E9006B");
+  const titleTypography = {
+    fontFamily: String(props.titleTextFontFamily ?? "Impact"),
+    fontSize: Math.min(48, Math.max(8, Number(props.titleTextFontSize ?? 14))),
+    fontWeight: Math.min(900, Math.max(400, Number(props.titleTextFontWeight ?? 900))),
+    letterSpacing: Math.min(0.5, Math.max(-0.05, Number(props.titleTextLetterSpacing ?? 0.12))),
+    lineHeight: Math.min(2, Math.max(0.8, Number(props.titleTextLineHeight ?? 1.15))),
+    color: String(props.titleTextColor ?? "#ffffff"),
+  };
   const parallax = props.scrollMode !== "viewport";
+  const sectionMinHeightPx = Math.min(
+    1800,
+    Math.max(360, Number(props.sectionMinHeightPx ?? 720)),
+  );
   const extraCutouts = Array.isArray(props.extraCutouts)
     ? (props.extraCutouts as ExtraCut[])
     : [];
@@ -174,6 +260,26 @@ export function LegallyBlondeEditCanvas({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedExtraId, setSelectedExtraId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
+  const [snapGuide, setSnapGuide] = useState({ x: false, y: false });
+
+  useEffect(() => {
+    // This canvas only mirrors element selections that belong to it. Section/control selections are
+    // owned by the parent Builder and must not erase the active child while pointer gestures are
+    // still settling; that was the source of the "cutout jumps back to hero" behavior.
+    if (!selectedElement) return;
+    if (selectedElement.kind === "control" || selectedElement.elementId === "heroCanvas") return;
+    if (selectedElement.kind === "cutout" && selectedElement.elementId.startsWith("extra:")) {
+      setSelectedExtraId(selectedElement.elementId.slice("extra:".length));
+      setSelectedKey(null);
+      setEditingTitle(false);
+      return;
+    }
+    const knownSlot = DEFAULT_SLOTS.some((slot) => slot.key === selectedElement.elementId);
+    if (!knownSlot && selectedElement.kind !== "background") return;
+    setSelectedKey(selectedElement.elementId);
+    setSelectedExtraId(null);
+    if (selectedElement.elementId !== "titleLogo") setEditingTitle(false);
+  }, [selectedElement]);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -292,17 +398,31 @@ export function LegallyBlondeEditCanvas({
 
   useEffect(() => {
     if (!parallax) return;
-    const el = scrollerRef.current;
-    if (!el) return;
+    const scene = scrollerRef.current;
+    if (!scene) return;
+    // The Builder must have one natural document scroller. Derive parallax progress from the
+    // scene's position in that viewport instead of creating a nested overflow-y canvas.
+    const scrollParent = (() => {
+      let node: HTMLElement | null = scene.parentElement;
+      while (node) {
+        const overflowY = window.getComputedStyle(node).overflowY;
+        if (overflowY === "auto" || overflowY === "scroll") return node;
+        node = node.parentElement;
+      }
+      return null;
+    })();
     const onScroll = () => {
-      const total = el.scrollHeight - el.clientHeight;
-      setScrollProgress(total > 0 ? Math.min(1, Math.max(0, el.scrollTop / total)) : 0);
+      const rect = scene.getBoundingClientRect();
+      const viewportHeight = scrollParent?.clientHeight ?? window.innerHeight;
+      const travel = Math.max(1, rect.height + viewportHeight);
+      setScrollProgress(Math.min(1, Math.max(0, (viewportHeight - rect.top) / travel)));
     };
     onScroll();
-    el.addEventListener("scroll", onScroll, { passive: true });
+    const target: EventTarget = scrollParent ?? window;
+    target.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
-      el.removeEventListener("scroll", onScroll);
+      target.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
   }, [parallax]);
@@ -319,6 +439,10 @@ export function LegallyBlondeEditCanvas({
     }
   }, [editingTitle]);
 
+  function selectElement(elementId: string, kind: BuilderElementKind, label: string) {
+    onSelectElement?.({ elementId, kind, label });
+  }
+
   function defaultMotion(key: string): LayerMotion {
     const preset = MAYLECOR_DEFAULT_LAYER_MOTIONS[key as keyof typeof MAYLECOR_DEFAULT_LAYER_MOTIONS];
     if (preset) return preset;
@@ -327,12 +451,9 @@ export function LegallyBlondeEditCanvas({
 
   const artboard = (
       <div
-        className={
-          fillCanvas
-            ? "relative h-full min-h-0 w-full flex-1 overflow-hidden"
-            : "relative min-h-[72vh] w-full overflow-hidden"
-        }
+        className="relative w-full flex-1 overflow-hidden"
         style={{
+          minHeight: sectionMinHeightPx,
           backgroundColor: String(props.accentColor ?? "#E9006B"),
           backgroundImage: bg ? `url(${bg})` : "none",
           backgroundSize: "cover",
@@ -345,7 +466,7 @@ export function LegallyBlondeEditCanvas({
           setSelectedKey(null);
           setSelectedExtraId(null);
           setEditingTitle(false);
-          onSelectSection?.();
+          selectElement("backgroundLayer", "background", "Background");
         }}
         onDoubleClick={(e) => {
           if (e.target !== e.currentTarget) return;
@@ -404,6 +525,7 @@ export function LegallyBlondeEditCanvas({
               titleEditing={isTitle && editingTitle}
               titleInputRef={titleFieldRef}
               accentColor={accent}
+              titleTypography={titleTypography}
               selected={selectedKey === slot.key}
               leftPct={pos.leftPct}
               topPct={pos.topPct}
@@ -416,18 +538,30 @@ export function LegallyBlondeEditCanvas({
               onLinkChange={(href) => saveLayerLink(slot.key, href)}
               onOpenLink={() => openCutoutLink(layerLinks[slot.key] ?? "")}
               zIndex={typeof layerZ[slot.key] === "number" ? layerZ[slot.key]! : 10}
+              opacity={typeof layerOpacity[slot.key] === "number" ? layerOpacity[slot.key]! : 1}
+              rotation={typeof layerRotation[slot.key] === "number" ? layerRotation[slot.key]! : slot.rotate ?? 0}
+              locked={lockedLayers.includes(slot.key)}
               onBringFront={() => bumpLayer(slot.key, "front")}
+              onBringForward={() => stepLayer(slot.key, 1)}
+              onSendBackward={() => stepLayer(slot.key, -1)}
               onSendBack={() => bumpLayer(slot.key, "back")}
+              onDuplicate={() => duplicateLayer(slot.key, slot)}
+              onToggleLock={() => toggleLayerLocked(slot.key)}
+              onHide={() => hideLayer(slot.key)}
               onSelect={() => {
                 setSelectedKey(slot.key);
                 setSelectedExtraId(null);
-                onSelectSection?.();
+                selectElement(
+                  slot.key,
+                  slot.key === "titleLogo" && titleAsText ? "text" : "image",
+                  slot.label,
+                );
               }}
               onStartTitleEdit={() => {
                 setSelectedKey(slot.key);
                 setEditingTitle(true);
                 onPatch({ titleAsText: true });
-                onSelectSection?.();
+                selectElement(slot.key, "text", slot.label);
               }}
               onEndTitleEdit={() => setEditingTitle(false)}
               onTitleChange={(v) => onPatch({ title: v, brandLabel: v, titleAsText: true })}
@@ -457,12 +591,13 @@ export function LegallyBlondeEditCanvas({
               }}
               baseWidthPct={slot.widthPct}
               scale={scale}
+              onSnapGuide={setSnapGuide}
             />
           );
         })}
 
         {extraCutouts
-          .filter((c) => c.src)
+          .filter((c) => c.src && !hiddenLayers.includes(c.id))
           .map((cut) => {
             const scale = scales[cut.id] ?? 1;
             const pos = positions[cut.id] ?? { leftPct: cut.leftPct, topPct: cut.topPct };
@@ -499,13 +634,21 @@ export function LegallyBlondeEditCanvas({
                 }}
                 onOpenLink={() => openCutoutLink(cut.href ?? "")}
                 zIndex={typeof layerZ[cut.id] === "number" ? layerZ[cut.id]! : 10}
+                opacity={typeof layerOpacity[cut.id] === "number" ? layerOpacity[cut.id]! : 1}
+                rotation={typeof layerRotation[cut.id] === "number" ? layerRotation[cut.id]! : cut.rotate ?? 0}
+                locked={lockedLayers.includes(cut.id)}
                 onBringFront={() => bumpLayer(cut.id, "front")}
+                onBringForward={() => stepLayer(cut.id, 1)}
+                onSendBackward={() => stepLayer(cut.id, -1)}
                 onSendBack={() => bumpLayer(cut.id, "back")}
+                onDuplicate={() => duplicateLayer(cut.id, cut)}
+                onToggleLock={() => toggleLayerLocked(cut.id)}
+                onHide={() => hideLayer(cut.id)}
                 onSelect={() => {
                   setSelectedExtraId(cut.id);
                   setSelectedKey(null);
                   setEditingTitle(false);
-                  onSelectSection?.();
+                  selectElement(`extra:${cut.id}`, "cutout", cut.alt || "Cutout");
                 }}
                 onReplaceImage={() => openUpload({ kind: "extra", id: cut.id })}
                 onDelete={() => {
@@ -535,9 +678,25 @@ export function LegallyBlondeEditCanvas({
                 }}
                 baseWidthPct={cut.widthPct}
                 scale={scale}
+                onSnapGuide={setSnapGuide}
               />
             );
           })}
+
+        {snapGuide.x ? (
+          <div
+            className="pointer-events-none absolute bottom-0 top-0 z-[90] w-px bg-[#FF6A00]/80"
+            style={{ left: "50%" }}
+            aria-hidden
+          />
+        ) : null}
+        {snapGuide.y ? (
+          <div
+            className="pointer-events-none absolute left-0 right-0 z-[90] h-px bg-[#FF6A00]/80"
+            style={{ top: "50%" }}
+            aria-hidden
+          />
+        ) : null}
 
         {parallax ? (
           <div className="pointer-events-none absolute bottom-3 right-3 z-[80] rounded-full bg-black/55 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-white/90">
@@ -579,18 +738,49 @@ export function LegallyBlondeEditCanvas({
             {toast}
           </div>
         ) : null}
+
+        <button
+          type="button"
+          aria-label="Resize hero section height"
+          className="absolute bottom-0 left-1/2 z-[95] h-3 w-20 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-white/80 bg-[#FF6A00] shadow"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            selectElement("heroCanvas", "control", "Hero section");
+            const startY = event.clientY;
+            const startHeight = sectionMinHeightPx;
+            const artboardEl = event.currentTarget.parentElement as HTMLElement | null;
+            let finalHeight = startHeight;
+            const onMove = (moveEvent: MouseEvent) => {
+              finalHeight = Math.min(
+                1800,
+                Math.max(360, Math.round(startHeight + (moveEvent.clientY - startY))),
+              );
+              if (artboardEl) artboardEl.style.minHeight = `${finalHeight}px`;
+            };
+            const onUp = () => {
+              window.removeEventListener("mousemove", onMove);
+              window.removeEventListener("mouseup", onUp);
+              if (finalHeight !== startHeight) onPatch({ sectionMinHeightPx: finalHeight });
+            };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp);
+          }}
+        />
       </div>
   );
 
   return (
     /* Fill the builder main pane edge-to-edge (Shopify-style) — no aspect-ratio strip. */
     <div
-      className={
-        fillCanvas
-          ? "relative flex h-full min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]"
-          : "relative flex min-h-[72vh] w-full flex-col bg-[#FFE4F0]"
-      }
+      className="relative flex min-h-0 w-full flex-1 flex-col bg-[#FFE4F0]"
     >
+      <SiteThemeFonts
+        fontDisplay={String(props.displayFont ?? "Oswald")}
+        fontBody="system-ui"
+        extraFamilies={[titleTypography.fontFamily]}
+      />
+
       <input
         ref={fileRef}
         type="file"
@@ -606,10 +796,10 @@ export function LegallyBlondeEditCanvas({
       {parallax ? (
         <div
           ref={scrollerRef}
-          className="lb-editor-parallax-scroll relative min-h-0 w-full flex-1 overflow-y-auto overscroll-contain"
+          className="lb-editor-parallax-scroll relative w-full"
         >
           <div className="lb-editor-scroll-scene">
-            <div className="lb-editor-scroll-pin">{artboard}</div>
+            {artboard}
           </div>
         </div>
       ) : (
@@ -625,6 +815,7 @@ function CutoutChip({
   titleEditing,
   titleInputRef,
   accentColor,
+  titleTypography,
   selected,
   leftPct,
   topPct,
@@ -647,14 +838,31 @@ function CutoutChip({
   onReplaceImage,
   onDelete,
   zIndex = 10,
+  opacity = 1,
+  rotation,
+  locked = false,
   onBringFront,
+  onBringForward,
+  onSendBackward,
   onSendBack,
+  onDuplicate,
+  onToggleLock,
+  onHide,
+  onSnapGuide,
 }: {
   slot: EditableCutoutSlot;
   titleText: string | null;
   titleEditing: boolean;
   titleInputRef?: React.RefObject<HTMLInputElement | null>;
   accentColor: string;
+  titleTypography?: {
+    fontFamily: string;
+    fontSize: number;
+    fontWeight: number;
+    letterSpacing: number;
+    lineHeight: number;
+    color: string;
+  };
   selected: boolean;
   leftPct: number;
   topPct: number;
@@ -677,8 +885,17 @@ function CutoutChip({
   onReplaceImage?: () => void;
   onDelete?: () => void;
   zIndex?: number;
+  opacity?: number;
+  rotation?: number;
+  locked?: boolean;
   onBringFront?: () => void;
+  onBringForward?: () => void;
+  onSendBackward?: () => void;
   onSendBack?: () => void;
+  onDuplicate?: () => void;
+  onToggleLock?: () => void;
+  onHide?: () => void;
+  onSnapGuide?: (guide: { x: boolean; y: boolean }) => void;
 }) {
   const moved = useRef(false);
   const [pulsing, setPulsing] = useState(false);
@@ -691,7 +908,7 @@ function CutoutChip({
     return () => window.removeEventListener("pointerdown", close);
   }, [ctxMenu]);
 
-  const baseRotate = slot.rotate ?? 0;
+  const baseRotate = rotation ?? slot.rotate ?? 0;
   const scrollTransform =
     scrollProgress > 0 && !pauseMotion
       ? cutoutScrollTransform(slot.key, scrollProgress, baseRotate)
@@ -702,6 +919,11 @@ function CutoutChip({
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     const t = e.target as HTMLElement;
     if (t.dataset?.resize === "1" || t.closest?.("[data-resize='1']")) return;
+    if (locked) {
+      e.stopPropagation();
+      onSelect();
+      return;
+    }
     if (t.closest?.("[data-chip-toolbar='1']")) return;
     if (t.closest?.("[data-link-field='1']")) return;
     if (titleEditing && t.closest?.("[data-title-edit='1']")) return;
@@ -738,8 +960,17 @@ function CutoutChip({
       const dx = ((ev.clientX - startX) / rect.width) * 100;
       const dy = ((ev.clientY - startY) / rect.height) * 100;
       if (Math.abs(dx) + Math.abs(dy) > 0.6) moved.current = true;
-      lastLeft = Math.min(90, Math.max(-5, originLeft + dx));
-      lastTop = Math.min(90, Math.max(-5, originTop + dy));
+      let nextLeft = Math.min(90, Math.max(-5, originLeft + dx));
+      let nextTop = Math.min(90, Math.max(-5, originTop + dy));
+      const widthPct = (el.getBoundingClientRect().width / rect.width) * 100;
+      const heightPct = (el.getBoundingClientRect().height / rect.height) * 100;
+      const snapX = Math.abs(nextLeft + widthPct / 2 - 50) <= 1.2;
+      const snapY = Math.abs(nextTop + heightPct / 2 - 50) <= 1.2;
+      if (snapX) nextLeft = 50 - widthPct / 2;
+      if (snapY) nextTop = 50 - heightPct / 2;
+      lastLeft = nextLeft;
+      lastTop = nextTop;
+      onSnapGuide?.({ x: snapX, y: snapY });
       el.style.left = `${lastLeft}%`;
       el.style.top = `${lastTop}%`;
     };
@@ -753,6 +984,7 @@ function CutoutChip({
       } catch {
         /* ignore */
       }
+      onSnapGuide?.({ x: false, y: false });
       if (moved.current) {
         onMoved(lastLeft, lastTop);
         return;
@@ -780,6 +1012,7 @@ function CutoutChip({
     e.stopPropagation();
     e.preventDefault();
     onSelect();
+    if (locked) return;
     const chip = e.currentTarget.parentElement as HTMLElement | null;
     const parent = chip?.offsetParent as HTMLElement | null;
     if (!parent || !chip) return;
@@ -817,9 +1050,9 @@ function CutoutChip({
             : 0;
       const delta = Math.abs(signed) > Math.abs(signedY) ? signed : signedY;
       const nextW = Math.min(70, Math.max(6, startW + delta));
-      const nextScale = nextW / Math.max(1, baseWidthPct);
-      onScaled(Math.min(3, Math.max(0.15, Number(nextScale.toFixed(3)))));
 
+      // Keep pointer movement entirely local to the canvas. Persist once on pointer-up so resizing
+      // never waits on React state, autosave, Supabase, or a parent re-render.
       // Anchor opposite corner when resizing from NW/NE/SW
       if (corner === "nw" || corner === "sw") {
         const dw = nextW - startW;
@@ -869,6 +1102,7 @@ function CutoutChip({
         userSelect: "none",
         WebkitUserSelect: "none",
         filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.25))",
+        opacity,
         outline: selected || titleEditing ? "2px solid #FF5500" : undefined,
         outlineOffset: 3,
       }}
@@ -886,6 +1120,29 @@ function CutoutChip({
       }}
       role="button"
       tabIndex={0}
+      onKeyDown={(event) => {
+        if (!selected && !titleEditing) return;
+        if (locked) return;
+        if ((event.key === "Delete" || event.key === "Backspace") && onDelete) {
+          event.preventDefault();
+          onDelete();
+          return;
+        }
+        const step = event.shiftKey ? 5 : 1;
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          onMoved(Math.max(-5, leftPct - step), topPct);
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          onMoved(Math.min(90, leftPct + step), topPct);
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          onMoved(leftPct, Math.max(-5, topPct - step));
+        } else if (event.key === "ArrowDown") {
+          event.preventDefault();
+          onMoved(leftPct, Math.min(90, topPct + step));
+        }
+      }}
       aria-label={
         titleText !== null
           ? "Drag to move · corners to resize · click to type"
@@ -911,8 +1168,25 @@ function CutoutChip({
           {href.trim() ? (
             <CtxItem onClick={() => { onOpenLink?.(); setCtxMenu(null); }}>Open link</CtxItem>
           ) : null}
+          {onDuplicate ? (
+            <CtxItem onClick={() => { onDuplicate(); setCtxMenu(null); }}>Duplicate</CtxItem>
+          ) : null}
+          {onToggleLock ? (
+            <CtxItem onClick={() => { onToggleLock(); setCtxMenu(null); }}>
+              {locked ? "Unlock" : "Lock"}
+            </CtxItem>
+          ) : null}
+          {onHide ? (
+            <CtxItem onClick={() => { onHide(); setCtxMenu(null); }}>Hide</CtxItem>
+          ) : null}
           {onBringFront ? (
             <CtxItem onClick={() => { onBringFront(); setCtxMenu(null); }}>Bring to Front</CtxItem>
+          ) : null}
+          {onBringForward ? (
+            <CtxItem onClick={() => { onBringForward(); setCtxMenu(null); }}>Bring Forward</CtxItem>
+          ) : null}
+          {onSendBackward ? (
+            <CtxItem onClick={() => { onSendBackward(); setCtxMenu(null); }}>Send Backward</CtxItem>
           ) : null}
           {onSendBack ? (
             <CtxItem onClick={() => { onSendBack(); setCtxMenu(null); }}>Send to Back</CtxItem>
@@ -944,8 +1218,18 @@ function CutoutChip({
                   <input
                     ref={titleInputRef}
                     autoFocus
-                    className="w-full bg-transparent text-center text-[11px] font-black uppercase tracking-[0.14em] text-white caret-white outline-none sm:text-sm"
-                    style={{ textShadow: "0 1px 8px rgba(0,0,0,0.55)" }}
+                    className="w-full bg-transparent text-center uppercase caret-white outline-none"
+                    style={{
+                      color: titleTypography?.color ?? "#ffffff",
+                      fontFamily: titleTypography?.fontFamily
+                        ? cssFontStack(titleTypography.fontFamily)
+                        : "Impact, Arial Black, Helvetica, sans-serif",
+                      fontSize: `${titleTypography?.fontSize ?? 14}px`,
+                      fontWeight: titleTypography?.fontWeight ?? 900,
+                      letterSpacing: `${titleTypography?.letterSpacing ?? 0.12}em`,
+                      lineHeight: titleTypography?.lineHeight ?? 1.15,
+                      textShadow: "0 1px 8px rgba(0,0,0,0.55)",
+                    }}
                     value={titleText}
                     placeholder="YOUR NAME"
                     aria-label="Type your name"
@@ -962,11 +1246,15 @@ function CutoutChip({
                 <p
                   className="pointer-events-none w-full break-words text-center font-black uppercase text-white"
                   style={{
-                    fontSize: "clamp(6px, 11%, 11px)",
-                    letterSpacing: "0.12em",
-                    lineHeight: 1.15,
+                    color: titleTypography?.color ?? "#ffffff",
+                    fontSize: `${titleTypography?.fontSize ?? 14}px`,
+                    letterSpacing: `${titleTypography?.letterSpacing ?? 0.12}em`,
+                    lineHeight: titleTypography?.lineHeight ?? 1.15,
+                    fontWeight: titleTypography?.fontWeight ?? 900,
                     textShadow: "0 1px 8px rgba(0,0,0,0.55)",
-                    fontFamily: "Impact, Arial Black, Helvetica, sans-serif",
+                    fontFamily: titleTypography?.fontFamily
+                      ? cssFontStack(titleTypography.fontFamily)
+                      : "Impact, Arial Black, Helvetica, sans-serif",
                   }}
                 >
                   {titleText || "MAY LECOR"}
@@ -986,7 +1274,7 @@ function CutoutChip({
       </div>
 
       {/* Shopify-style corner handles — drag with the mouse to make bigger / smaller */}
-      {(selected || titleEditing) ? (
+      {(selected || titleEditing) && !locked ? (
         <>
           <button
             type="button"
@@ -1021,16 +1309,7 @@ function CutoutChip({
             onPointerDown={(e) => onCornerResize(e, "se")}
           />
         </>
-      ) : (
-        <button
-          type="button"
-          data-resize="1"
-          aria-label={`Scale ${slot.label}`}
-          className="absolute -bottom-1 -right-1 z-40 h-4 w-4 cursor-nwse-resize rounded-sm border-2 border-white bg-[#FF5500]/80 shadow"
-          style={{ touchAction: "none" }}
-          onPointerDown={(e) => onCornerResize(e, "se")}
-        />
-      )}
+      ) : null}
     </div>
   );
 }

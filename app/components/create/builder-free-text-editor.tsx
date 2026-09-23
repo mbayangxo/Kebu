@@ -10,6 +10,7 @@ export type FreeTextBlock = {
   y: number;
   width: number;
   fontSize: "sm" | "md" | "lg" | "xl" | "hero";
+  fontSizePx?: number;
   align: "left" | "center" | "right";
   color?: string;
   fontFamily?: string;
@@ -47,6 +48,7 @@ export function BuilderFreeTextEditor({
         y: Math.min(80, 12 + blocks.length * 14),
         width: 80,
         fontSize: "lg",
+        fontSizePx: 20,
         align: "left",
         color: "",
         fontFamily: "",
@@ -136,20 +138,41 @@ export function BuilderFreeTextEditor({
           <div className="grid grid-cols-2 gap-2">
             <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
               Size
-              <select
-                className="mt-1 w-full rounded-lg px-2 py-1.5 text-xs"
-                style={{ border: `1px solid ${BUILDER.border}` }}
-                value={block.fontSize}
-                onChange={(e) =>
-                  patchBlock(block.id, { fontSize: e.target.value as FreeTextBlock["fontSize"] })
-                }
-              >
+              <div className="mt-1 flex items-center gap-1.5">
+                <input
+                  type="range"
+                  min="6"
+                  max="240"
+                  step="1"
+                  className="min-w-0 flex-1 accent-[#FF6A00]"
+                  value={block.fontSizePx ?? ({ sm: 14, md: 16, lg: 20, xl: 28, hero: 40 }[block.fontSize] ?? 16)}
+                  onChange={(e) => patchBlock(block.id, { fontSizePx: Number(e.target.value) })}
+                  aria-label={`Font size for text box ${index + 1}`}
+                />
+                <input
+                  type="number"
+                  min="6"
+                  max="240"
+                  step="1"
+                  className="w-[58px] rounded-lg px-1.5 py-1 text-xs tabular-nums"
+                  style={{ border: `1px solid ${BUILDER.border}` }}
+                  value={block.fontSizePx ?? ({ sm: 14, md: 16, lg: 20, xl: 28, hero: 40 }[block.fontSize] ?? 16)}
+                  onChange={(e) => patchBlock(block.id, { fontSizePx: Math.min(240, Math.max(6, Number(e.target.value) || 16)) })}
+                />
+              </div>
+              <div className="mt-1 flex gap-1">
                 {FONT_SIZES.map((s) => (
-                  <option key={s} value={s}>
+                  <button
+                    key={s}
+                    type="button"
+                    className="rounded-md border px-1.5 py-1 text-[9px] font-semibold"
+                    style={{ borderColor: BUILDER.border, background: block.fontSize === s && !block.fontSizePx ? BUILDER.orangeGlow : "#fff" }}
+                    onClick={() => patchBlock(block.id, { fontSize: s, fontSizePx: undefined })}
+                  >
                     {s}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </label>
             <label className="block text-[10px] uppercase tracking-wider" style={{ color: BUILDER.muted }}>
               Align

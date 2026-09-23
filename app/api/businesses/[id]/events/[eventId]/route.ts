@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { updateBusinessEventSchema, eventPublicPath } from "@/lib/events/schema";
@@ -66,6 +67,8 @@ export async function GET(_req: Request, { params }: Params) {
 
 /** Publish / update event fields. */
 export async function PATCH(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const { id: businessId, eventId } = await params;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;

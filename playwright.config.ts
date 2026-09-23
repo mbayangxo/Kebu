@@ -1,6 +1,7 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from "playwright/test";
 
 const baseURL = process.env.KEBU_E2E_BASE_URL ?? "http://127.0.0.1:3000";
+const protectionBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
 export default defineConfig({
   testDir: "./tests",
@@ -12,6 +13,12 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL,
+    extraHTTPHeaders: protectionBypass
+      ? {
+          "x-vercel-protection-bypass": protectionBypass,
+          "x-vercel-set-bypass-cookie": "true",
+        }
+      : undefined,
     trace: "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

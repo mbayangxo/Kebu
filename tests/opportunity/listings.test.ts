@@ -38,12 +38,4 @@ describe("opportunity listings", () => {
     expect(back.title).toBe("Test Grant");
   });
 
-  it("curated seed export is non-empty", async () => {
-    const { CURATED_OPPORTUNITY_SEED } = await import("@/lib/opportunity/curated-listings");
-    expect(CURATED_OPPORTUNITY_SEED.length).toBeGreaterThanOrEqual(3);
-    for (const opp of CURATED_OPPORTUNITY_SEED) {
-      expect(opp.source_url).toMatch(/^https?:\/\//);
-      expect(opp.source_name.length).toBeGreaterThan(0);
-    }
-  });
 });

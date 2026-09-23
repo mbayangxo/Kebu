@@ -11,7 +11,7 @@ describe("shop messaging", () => {
     expect(shopMessageBodySchema.parse({ body: "Do you ship to Dakar?" }).body).toContain("Dakar");
   });
   it("ships migration 050", () => {
-    const sql = readFileSync(join(process.cwd(), "supabase/migrations/050_shop_messaging.sql"), "utf8");
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations_archive/legacy/050_shop_messaging.sql"), "utf8");
     expect(sql).toContain("shop_message_threads");
     expect(sql).toContain("shop_messages");
     expect(sql).toContain("enable row level security");

@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -57,6 +58,8 @@ export async function GET(_req: Request, { params }: Params) {
 
 /** Update flow name / status / sender. */
 export async function PATCH(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -101,6 +104,8 @@ export async function PATCH(req: Request, { params }: Params) {
 
 /** Delete a flow (cascades steps + enrollments). */
 export async function DELETE(_req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(_req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

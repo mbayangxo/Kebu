@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getShopPaymentAdapter } from "@/lib/payments/registry";
 import { startShopOrderJokoCheckout } from "@/lib/shop/joko-order";
 import {
-  railFromPaymentPreference,
   railFromProvider,
   recordPaymentLedgerEvent,
 } from "@/lib/shop/payment-ledger";
@@ -192,10 +191,11 @@ export async function startShopOrderProviderCheckout(opts: {
   });
 
   if (!persisted.ok) {
+    console.error(JSON.stringify({ event: "shop.provider_persist_failed", orderId: opts.orderId, error: persisted.error }));
     return {
       ok: false,
       configured: true,
-      error: `Checkout created but order could not be updated (${persisted.error}). Apply migration 051 / APPLY_SHOP_ORDERS.sql.`,
+      error: "Checkout was created but could not be saved. Please contact support.",
     };
   }
 
@@ -218,72 +218,44 @@ export async function startShopOrderProviderCheckout(opts: {
   };
 }
 
+/**
+ * Mark a shop order paid via the atomic complete_shop_payment RPC.
+ * Used by non-Paystack webhook handlers (Joko, PayPal, Wave, Orange Money).
+ * Paystack has its own webhook route that calls the RPC directly.
+ */
 export async function markShopOrderPaidByProviderRef(
   admin: SupabaseClient,
   opts: {
     reference: string;
     paymentId?: string | null;
     provider?: string | null;
+    expectedOrderId?: string | null;
+    expectedProjectId?: string | null;
+    expectedAmountXof?: number | null;
   },
-): Promise<{ ok: true; orderId: string; projectId: string } | { ok: false; error: string }> {
-  let q = admin
-    .from("shop_orders")
-    .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-    .eq("provider_reference", opts.reference);
-  if (opts.provider) q = q.eq("payment_provider", opts.provider);
-  let { data: order } = await q.maybeSingle();
+): Promise<{ ok: true; orderId: string; projectId: string; alreadyPaid: boolean } | { ok: false; error: string }> {
+  const provider = opts.provider?.trim().toLowerCase();
+  if (!provider) return { ok: false, error: "Payment provider is required." };
 
-  if (!order) {
-    const byJoko = await admin
-      .from("shop_orders")
-      .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-      .eq("joko_reference", opts.reference)
-      .maybeSingle();
-    order = byJoko.data;
-  }
-
-  if (!order && opts.paymentId) {
-    const byProviderId = await admin
-      .from("shop_orders")
-      .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-      .eq("provider_payment_id", opts.paymentId)
-      .maybeSingle();
-    order = byProviderId.data;
-  }
-
-  if (!order) return { ok: false, error: "Order not found." };
-  if (order.payment_status === "paid") {
-    return { ok: true, orderId: order.id, projectId: order.project_id };
-  }
-
-  const patch: Record<string, unknown> = {
-    payment_status: "paid",
-    status: "contacted",
-    updated_at: new Date().toISOString(),
-  };
-  if (opts.paymentId) {
-    patch.provider_payment_id = opts.paymentId;
-  }
-
-  const { error } = await admin.from("shop_orders").update(patch).eq("id", order.id);
+  const { data: completed, error } = await admin.rpc("complete_shop_payment", {
+    p_reference: opts.reference,
+    p_provider: provider,
+    p_payment_id: opts.paymentId ?? null,
+    p_expected_order_id: opts.expectedOrderId ?? null,
+    p_expected_project_id: opts.expectedProjectId ?? null,
+    p_expected_amount_xof: opts.expectedAmountXof ?? null,
+  });
 
   if (error) return { ok: false, error: error.message };
 
-  const rail = railFromProvider(
-    opts.provider || (order as { payment_provider?: string }).payment_provider,
-  );
-  await recordPaymentLedgerEvent(admin, {
-    projectId: order.project_id,
-    orderId: order.id,
-    rail: rail === "unknown"
-      ? railFromPaymentPreference((order as { payment_preference?: string }).payment_preference)
-      : rail,
-    eventType: "paid",
-    amountXof: (order as { amount_xof?: number | null }).amount_xof ?? null,
-    provider: opts.provider ?? rail,
-    providerReference: opts.reference,
-    meta: { paymentId: opts.paymentId ?? null },
-  });
+  const rows = Array.isArray(completed) ? completed : completed ? [completed] : [];
+  if (rows.length === 0) return { ok: false, error: "Order not found." };
 
-  return { ok: true, orderId: order.id, projectId: order.project_id };
+  const paid = rows[0] as { order_id: string; project_id: string; already_paid: boolean };
+  return {
+    ok: true,
+    orderId: paid.order_id,
+    projectId: paid.project_id,
+    alreadyPaid: Boolean(paid.already_paid),
+  };
 }

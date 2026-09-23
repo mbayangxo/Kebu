@@ -1,0 +1,69 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { KebuIcon } from "@/app/components/kebu/kebu-icon";
+import { KEBU } from "@/lib/kebu-brand";
+import type { AccountWorkspaceContext } from "@/lib/account/workspace-context";
+
+export function KebuWorldSwitcher({ compact = false, dark = false }: { compact?: boolean; dark?: boolean }) {
+  const router = useRouter();
+  const [context, setContext] = useState<AccountWorkspaceContext | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/me/workspace", { credentials: "include" })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (!cancelled && data?.context) setContext(data.context); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  async function switchTo(value: string) {
+    if (busy) return;
+    setBusy(true);
+    const body = value === "personal" ? { mode: "personal" } : { mode: "business", businessId: value };
+    const res = await fetch("/api/me/workspace", {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok && data.context) {
+      setContext(data.context);
+      router.refresh();
+    }
+  }
+
+  const isCompact = compact;
+  const selectBg = dark ? "rgba(255,255,255,0.07)" : "white";
+  const selectBorder = dark ? "rgba(255,255,255,0.12)" : KEBU.borders.default;
+  const selectColor = dark ? "#FFFFFF" : KEBU.black;
+  const caretColor = dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
+
+  return (
+    <label className={isCompact ? "block" : "block px-2 pb-2"}>
+      <span className="sr-only">Current Kebu space</span>
+      <div className="relative">
+        <KebuIcon name="spaces" size={isCompact ? 13 : 15} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2" style={{ color: KEBU.orange }} />
+        <select
+          value={context?.activeBusinessId ?? "personal"}
+          disabled={busy}
+          onChange={(event) => void switchTo(event.target.value)}
+          className={isCompact
+            ? "min-h-7 w-full appearance-none rounded-lg border pl-6 pr-5 text-[10px] font-bold outline-none focus:ring-1 focus:ring-[#FF6A00]"
+            : "min-h-9 w-full appearance-none rounded-xl border pl-8 pr-7 text-[11px] font-bold outline-none focus:ring-2 focus:ring-[#FF6A00]"
+          }
+          style={{ background: selectBg, borderColor: selectBorder, color: selectColor }}
+        >
+          <option value="personal">Personal</option>
+          {(context?.businesses ?? []).map((business) => <option key={business.id} value={business.id}>{business.name}</option>)}
+        </select>
+        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px]" style={{ color: caretColor }}>▾</span>
+      </div>
+    </label>
+  );
+}

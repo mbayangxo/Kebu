@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
 import { maylecorAboutPageSections } from "@/lib/create/maylecor-about-bio";
 import { syncProjectChromeNavFromPages } from "@/lib/create/site-chrome";
@@ -19,12 +20,18 @@ const addPageSchema = z.object({
   seed: z.enum(["blank", "about-may"]).optional().default("blank"),
 });
 
-const patchPageSchema = z.object({
-  pageId: z.string().uuid(),
-  title: z.string().trim().min(1).max(120).optional(),
-  slug: slugSchema.optional(),
-  sortOrder: z.number().int().min(0).optional(),
-});
+const patchPageSchema = z.union([
+  z.object({
+    pageId: z.string().uuid(),
+    title: z.string().trim().min(1).max(120).optional(),
+    slug: slugSchema.optional(),
+    sortOrder: z.number().int().min(0).optional(),
+    parentId: z.string().uuid().nullable().optional(),
+  }),
+  z.object({
+    order: z.array(z.string().uuid()).min(1).max(12),
+  }),
+]);
 
 const deletePageSchema = z.object({
   pageId: z.string().uuid(),
@@ -48,6 +55,9 @@ async function assertOwnedProject(
 export async function POST(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
+
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
 
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
@@ -96,7 +106,7 @@ export async function POST(req: Request, { params }: Params) {
       title: parsed.data.title,
       sort_order: nextOrder,
     })
-    .select("id, slug, title, sort_order")
+    .select("id, slug, title, sort_order, parent_id")
     .single();
 
   if (pageError || !page) {
@@ -160,6 +170,9 @@ export async function PATCH(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -182,6 +195,39 @@ export async function PATCH(req: Request, { params }: Params) {
   const parsed = patchPageSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
+  }
+
+  if ("order" in parsed.data) {
+    const order = parsed.data.order;
+    if (new Set(order).size !== order.length) {
+      return NextResponse.json({ error: "Page order contains duplicates." }, { status: 400 });
+    }
+    const { data: projectPages, error: listError } = await supabase
+      .from("project_pages")
+      .select("id, project_id, slug, title, parent_id")
+      .eq("project_id", projectId);
+    if (listError) {
+      return NextResponse.json({ error: "Could not verify page order.", detail: listError.message }, { status: 500 });
+    }
+    if (!projectPages || projectPages.length !== order.length || projectPages.some((page) => !order.includes(page.id))) {
+      return NextResponse.json({ error: "Page order must include every page exactly once." }, { status: 400 });
+    }
+    const byId = new Map(projectPages.map((page) => [page.id, page]));
+    const rows = order.map((id, sort_order) => ({ ...byId.get(id)!, sort_order }));
+    const { error: reorderError } = await supabase
+      .from("project_pages")
+      .upsert(rows, { onConflict: "id" });
+    if (reorderError) {
+      return NextResponse.json({ error: "Could not reorder pages.", detail: reorderError.message }, { status: 500 });
+    }
+    try {
+      await syncProjectChromeNavFromPages(supabase as never, projectId);
+    } catch {
+      /* best-effort */
+    }
+    return NextResponse.json({
+      pages: rows.map(({ id, slug, title, sort_order, parent_id }) => ({ id, slug, title, sort_order, parent_id })),
+    });
   }
 
   const { data: page } = await supabase
@@ -210,19 +256,27 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.title) updates.title = parsed.data.title;
   if (parsed.data.slug) updates.slug = parsed.data.slug;
   if (parsed.data.sortOrder !== undefined) updates.sort_order = parsed.data.sortOrder;
+  if (parsed.data.parentId !== undefined) {
+    if (parsed.data.parentId === parsed.data.pageId) return NextResponse.json({ error: "A page cannot be its own parent." }, { status: 400 });
+    if (parsed.data.parentId) {
+      const { data: parent } = await supabase.from("project_pages").select("id").eq("id", parsed.data.parentId).eq("project_id", projectId).maybeSingle();
+      if (!parent) return NextResponse.json({ error: "Parent page not found in this site." }, { status: 400 });
+    }
+    updates.parent_id = parsed.data.parentId;
+  }
 
   const { data: updated, error } = await supabase
     .from("project_pages")
     .update(updates)
     .eq("id", parsed.data.pageId)
-    .select("id, slug, title, sort_order")
+    .select("id, slug, title, sort_order, parent_id")
     .single();
 
   if (error || !updated) {
     return NextResponse.json({ error: "Could not update page.", detail: error?.message }, { status: 500 });
   }
 
-  if (parsed.data.title || parsed.data.slug || parsed.data.sortOrder !== undefined) {
+  if (parsed.data.title || parsed.data.slug || parsed.data.sortOrder !== undefined || parsed.data.parentId !== undefined) {
     try {
       await syncProjectChromeNavFromPages(supabase as never, projectId);
     } catch {
@@ -237,6 +291,9 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
+
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
 
   const auth = await requireUser();
   if ("error" in auth) return auth.error;

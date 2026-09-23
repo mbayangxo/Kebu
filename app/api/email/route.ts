@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { aiRateLimit } from "@/lib/api-guard";
-import { ALL_COUNTRY_PROGRAMS } from "@/lib/data/all-country-programs";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -28,24 +27,15 @@ Rules:
 export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
-  const { name, gender, country, sector, stage, goal } = await req.json();
+  let body: unknown;
+  try { body = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { name, gender, country, sector, stage, goal } = body as { name?: string; gender?: string; country?: string; sector?: string; stage?: string; goal?: string };
 
   if (!country) {
     return Response.json({ error: "country is required" }, { status: 400 });
   }
 
-  const profile = ALL_COUNTRY_PROGRAMS.find(
-    (p) => p.country.toLowerCase() === country.toLowerCase()
-  );
-
-  const contextData = profile
-    ? `Programs available in ${profile.country}:
-Youth/Women funds: ${profile.youth_women_funds.map(p => `${p.name} (${p.amount || "amount varies"}) — ${p.what} — apply: ${p.apply_at || "contact ministry"}`).join("; ")}
-Development banks: ${profile.development_bank_programs.map(p => `${p.name} — ${p.what}`).join("; ")}
-Donor grants: ${profile.donor_grants.map(p => `${p.name} (${p.amount || "varies"}) — ${p.what} — apply: ${p.apply_at || "see website"}`).join("; ")}
-Startup/innovation: ${profile.startup_innovation.map(p => `${p.name} — ${p.what}`).join("; ")}
-Procurement portal: ${profile.procurement_portal || "see country ministry"} — ${profile.procurement_note}`
-    : `Country: ${country}. Use Tony Elumelu Foundation ($5,000, tefconnect.com), AfDB AFAWA (women entrepreneurs), and USAID programs as fallbacks.`;
+  const contextData = `Country: ${country}. Draw on your knowledge of real programs: national development banks (DER, BRS, BOAD for West Africa; DBN, BOI for Nigeria; Development Bank of South Africa; etc.), Tony Elumelu Foundation ($5,000, tefconnect.com), AfDB AFAWA (women entrepreneurs), EU–AU partnership grants, and USAID programs. Use real amounts and application links where you know them with confidence. If uncertain, direct to the official ministry or agency.`;
 
   const prompt = `Write a personalized opportunity digest email for:
 

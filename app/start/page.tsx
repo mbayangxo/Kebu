@@ -2,31 +2,30 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { KebuWorkspacePicker } from "@/app/components/kebu-workspace-picker";
 import { readStoredWorkspace, workspaceHome } from "@/lib/navigation/kebu-workspace";
 import { safeAuthNextPath } from "@/lib/auth/safe-next";
 
 function StartContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const next = safeAuthNextPath(searchParams.get("next"), "");
-  const force = searchParams.get("pick") === "1";
+  const params = useSearchParams();
+  const next = safeAuthNextPath(params.get("next"), "/dashboard");
 
   useEffect(() => {
-    if (force) return;
-    const stored = readStoredWorkspace();
-    if (stored && !next) {
-      router.replace(workspaceHome(stored));
+    if (params.get("pick") === "1") {
+      router.replace("/spaces");
+      return;
     }
-  }, [force, next, router]);
+    const stored = readStoredWorkspace();
+    if (stored) {
+      router.replace(params.get("next") ? next : workspaceHome(stored));
+      return;
+    }
+    router.replace("/welcome?next=" + encodeURIComponent(next));
+  }, [next, params, router]);
 
-  return <KebuWorkspacePicker nextPath={next || undefined} />;
+  return <p className="p-8 text-sm opacity-60">Opening your Kebu…</p>;
 }
 
 export default function StartPage() {
-  return (
-    <Suspense fallback={<p className="p-8 text-sm opacity-60">Loading…</p>}>
-      <StartContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<p className="p-8 text-sm opacity-60">Loading…</p>}><StartContent /></Suspense>;
 }

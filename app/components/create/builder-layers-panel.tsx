@@ -1,0 +1,208 @@
+"use client";
+
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
+import {
+  GalaxyBadge,
+  GalaxyButton,
+  GalaxyEmptyState,
+  GalaxyPanelHeader,
+} from "@/app/components/galaxy/editor-primitives";
+import { patchBuilderLayerStack } from "@/lib/create/builder-layer-model";
+
+type LayerRow = {
+  elementId: string;
+  kind: BuilderElementSelection["kind"];
+  label: string;
+  storageKey: string;
+};
+
+const BUILTIN_LAYERS: LayerRow[] = [
+  { elementId: "backgroundLayer", kind: "background", label: "Background", storageKey: "backgroundLayer" },
+  { elementId: "titleLogo", kind: "text", label: "Name circle", storageKey: "titleLogo" },
+  { elementId: "cutoutLeft", kind: "image", label: "Left cutout", storageKey: "cutoutLeft" },
+  { elementId: "cutoutAccent", kind: "image", label: "Center cutout", storageKey: "cutoutAccent" },
+  { elementId: "cutoutRight", kind: "image", label: "Right cutout", storageKey: "cutoutRight" },
+  { elementId: "cutoutSparkle", kind: "image", label: "Sparkle", storageKey: "cutoutSparkle" },
+];
+
+export function BuilderLayersPanel({
+  sectionId,
+  props,
+  selectedElement,
+  onSelect,
+  onPatch,
+}: {
+  sectionId: string;
+  props: Record<string, unknown>;
+  selectedElement: BuilderElementSelection | null;
+  onSelect: (selection: BuilderElementSelection) => void;
+  onPatch: (patch: Record<string, unknown>) => void;
+}) {
+  const hidden = Array.isArray(props.hiddenLayers) ? (props.hiddenLayers as string[]) : [];
+  const locked = Array.isArray(props.lockedLayers) ? (props.lockedLayers as string[]) : [];
+  const extras = Array.isArray(props.extraCutouts)
+    ? (props.extraCutouts as Array<{ id?: string; alt?: string; src?: string }>)
+    : [];
+
+  const rows: LayerRow[] = [
+    ...BUILTIN_LAYERS.filter((row) => {
+      if (row.storageKey === "backgroundLayer") return true;
+      if (row.storageKey === "titleLogo" && props.titleAsText === true) return true;
+      return Boolean(String(props[row.storageKey] ?? "").trim());
+    }).map((row) =>
+      row.storageKey === "titleLogo" && props.titleAsText !== true
+        ? { ...row, kind: "image" as const, label: "Name circle image" }
+        : row,
+    ),
+    ...extras
+      .filter((item) => item.id && item.src)
+      .map((item) => ({
+        elementId: `extra:${item.id}`,
+        kind: "cutout" as const,
+        label: item.alt?.trim() || "Cutout",
+        storageKey: String(item.id),
+      })),
+  ];
+
+  function toggleHidden(key: string) {
+    const currentlyHidden =
+      key === "backgroundLayer"
+        ? props.backgroundHidden === true || hidden.includes(key)
+        : hidden.includes(key);
+    const next = currentlyHidden
+      ? hidden.filter((item) => item !== key)
+      : [...new Set([...hidden, key])];
+    onPatch({
+      hiddenLayers: next,
+      ...(key === "backgroundLayer" ? { backgroundHidden: !currentlyHidden } : {}),
+    });
+  }
+
+  function toggleLocked(key: string) {
+    onPatch({
+      lockedLayers: locked.includes(key)
+        ? locked.filter((item) => item !== key)
+        : [...new Set([...locked, key])],
+    });
+  }
+
+  return (
+    <div>
+      <GalaxyPanelHeader
+        eyebrow="Canvas"
+        title="Layers"
+        description="See the freeform stack in one place. Select an object, control its depth, visibility, and lock state."
+      />
+      <div className="space-y-3 p-3">
+        {rows.length > 0 ? (
+          <>
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-black/40">{rows.length} objects</p>
+              <p className="text-[9px] text-black/35">Top rows sit above lower rows</p>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
+            {rows.map((row, index) => {
+          const active =
+            selectedElement?.sectionId === sectionId &&
+            selectedElement.elementId === row.elementId;
+          const isHidden =
+            row.storageKey === "backgroundLayer"
+              ? props.backgroundHidden === true || hidden.includes(row.storageKey)
+              : hidden.includes(row.storageKey);
+          const isLocked = locked.includes(row.storageKey);
+
+              return (
+            <div
+              key={row.elementId}
+              className="group/layer flex min-h-12 items-center gap-2 px-2.5 py-2"
+              style={{
+                borderTop: index === 0 ? undefined : "1px solid rgba(0,0,0,0.06)",
+                background: active ? "rgba(255,106,0,0.08)" : "#fff",
+              }}
+            >
+              <span aria-hidden className="cursor-grab select-none text-[12px] text-black/25">⋮⋮</span>
+              <button
+                type="button"
+                className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                onClick={() =>
+                  onSelect({
+                    sectionId,
+                    elementId: row.elementId,
+                    kind: row.kind,
+                    label: row.label,
+                  })
+                }
+              >
+                <span className="block truncate text-[12px] font-semibold text-black/80">
+                  {row.label}
+                </span>
+                <span className="mt-0.5 block text-[9px] uppercase tracking-wide text-black/40">
+                  {row.kind}
+                </span>
+              </button>
+
+              {isLocked ? <GalaxyBadge>Locked</GalaxyBadge> : null}
+
+              <select
+                className="max-w-[88px] rounded-md border border-black/10 bg-white px-1.5 py-1 text-[9px] font-bold text-black/55 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                defaultValue=""
+                aria-label={`Arrange ${row.label}`}
+                onChange={(event) => {
+                  const action = event.target.value as "front" | "forward" | "backward" | "back" | "";
+                  if (!action) return;
+                  onPatch(patchBuilderLayerStack(props, row.storageKey, action));
+                  event.currentTarget.value = "";
+                }}
+              >
+                <option value="">Arrange</option>
+                <option value="front">Bring to front</option>
+                <option value="forward">Bring forward</option>
+                <option value="backward">Send backward</option>
+                <option value="back">Send to back</option>
+              </select>
+
+              <button
+                type="button"
+                className="rounded-md px-1.5 py-1 text-[9px] font-bold text-black/50 hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                onClick={() => toggleHidden(row.storageKey)}
+                aria-label={isHidden ? `Show ${row.label}` : `Hide ${row.label}`}
+              >
+                {isHidden ? "Show" : "Hide"}
+              </button>
+              <button
+                type="button"
+                className="rounded-md px-1.5 py-1 text-[9px] font-bold text-black/50 hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+                onClick={() => toggleLocked(row.storageKey)}
+                aria-label={isLocked ? `Unlock ${row.label}` : `Lock ${row.label}`}
+              >
+                {isLocked ? "Unlock" : "Lock"}
+              </button>
+            </div>
+              );
+            })}
+          </div>
+          </>
+        ) : (
+          <GalaxyEmptyState
+            title="No editable layers"
+            detail="Select a freeform section on the canvas to see and arrange its objects."
+          />
+        )}
+
+        <GalaxyButton
+          className="w-full"
+          onClick={() =>
+            onSelect({
+              sectionId,
+              elementId: "heroCanvas",
+              kind: "control",
+              label: "Hero section",
+            })
+          }
+        >
+          Edit section height
+        </GalaxyButton>
+      </div>
+    </div>
+  );
+}

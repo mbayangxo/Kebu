@@ -1,360 +1,330 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { OpportunityOsShell } from "@/app/components/opportunity/opportunity-os-shell";
-import { CountryExplorerMosaic, type CountryCardData } from "@/app/components/opportunity/country-explorer-card";
-import { HopeStoryCard, PersonalizedPlanCard } from "@/app/components/opportunity/hope-story-card";
-import { Skeleton } from "@/app/components/kebu-skeleton";
+import { AppShell } from "@/app/components/app-shell";
+import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
-import type { OpportunityProfile } from "@/lib/opportunity/intake-schema";
+import type { Opportunity } from "@/lib/types";
 
-type ForYouPayload = {
-  needsIntake: boolean;
-  needsEntitlement?: boolean;
-  redirect?: string;
-  message?: string;
-  verifyHref?: string;
-  exploreHref?: string;
-  cardsHref?: string;
-  entitlement?: { status: string };
-  profile?: OpportunityProfile;
-  plan?: {
-    headline: string;
-    summary: string;
-    startSteps: string[];
-    resourceHints: { label: string; detail: string }[];
-  };
-  countries?: CountryCardData[];
-  stories?: Parameters<typeof HopeStoryCard>[0]["story"][];
+type FilterState = {
+  type: string;
+  sector: string;
+  country: string;
+  diaspora: boolean;
+  q: string;
 };
 
-export default function OpportunityOsHubPage() {
-  const router = useRouter();
-  const [data, setData] = useState<ForYouPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+const TYPE_LABELS: Record<string, string> = {
+  grant: "Grant",
+  loan: "Loan",
+  equity: "Equity",
+  prize: "Prize",
+  accelerator: "Accelerator",
+  incubator: "Incubator",
+  fellowship: "Fellowship",
+  scholarship: "Scholarship",
+  training: "Training",
+  other: "Other",
+};
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch("/api/opportunity/for-you", { credentials: "include" });
-    const json = (await res.json().catch(() => ({}))) as ForYouPayload & { error?: string };
-    if (res.status === 401) {
-      router.replace("/login?next=/opportunity");
-      return;
-    }
-    if (json.needsIntake) {
-      setData({ needsIntake: true });
-      setLoading(false);
-      return;
-    }
-    setData(json);
-    setLoading(false);
-  }, [router]);
+const SECTOR_OPTIONS = [
+  "Agriculture", "Technology", "Health", "Education", "Finance",
+  "Energy", "Manufacturing", "Media", "Tourism", "Real Estate",
+];
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+function formatAmount(opp: Opportunity): string {
+  if (!opp.amount) return "";
+  const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: opp.currency ?? "USD", maximumFractionDigits: 0 });
+  const lo = fmt.format(opp.amount);
+  if (opp.amount_max && opp.amount_max !== opp.amount) return `${lo} – ${fmt.format(opp.amount_max)}`;
+  return lo;
+}
 
-  if (loading) {
-    return (
-      <OpportunityOsShell title="Opportunity OS" headline="Opportunity OS" subhead="">
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="rounded-2xl p-4" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
-                <Skeleton height={11} width="50%" style={{ marginBottom: 8 }} />
-                <Skeleton height={32} width="65%" style={{ marginBottom: 6 }} />
-                <Skeleton height={10} width="40%" />
-              </div>
-            ))}
-          </div>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-2xl p-4 flex gap-4" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
-                <Skeleton width={40} height={40} radius={20} style={{ flexShrink: 0 }} />
-                <div className="flex-1">
-                  <Skeleton height={13} width="60%" style={{ marginBottom: 8 }} />
-                  <Skeleton height={11} width="80%" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </OpportunityOsShell>
-    );
-  }
+function deadlineColor(deadline: string | undefined): string {
+  if (!deadline) return KEBU.muted;
+  const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+  if (days < 0) return KEBU.faint;
+  if (days <= 14) return KEBU.red;
+  if (days <= 30) return "#D97706";
+  return KEBU.muted;
+}
 
-  if (data?.needsIntake) {
-    return (
-      <OpportunityOsShell
-        title="Opportunity OS"
-        headline="First, tell us about you"
-        subhead="We learn about you first — then countries, stories, grants, and plans match your goals. No business required."
-        heroVisual={
-          <div
-            className="rounded-full w-48 h-48 mx-auto flex items-center justify-center text-6xl"
-            style={{ background: `linear-gradient(135deg, ${KEBU.orange}33, ${KEBU.cream})` }}
-          >
-            🌍
-          </div>
-        }
-      >
-        <div className="max-w-lg">
-          <ul className="space-y-3 mb-8 text-sm" style={{ color: KEBU.muted }}>
-            <li>✓ What you want to do and what you enjoy</li>
-            <li>✓ Grants, loans, jobs, tenders, construction — what you need</li>
-            <li>✓ How much you can start with</li>
-            <li>✓ African leaders & heritage — hope built on real stories</li>
-          </ul>
-          <Link
-            href="/welcome?next=/opportunity"
-            className="inline-flex rounded-full px-10 py-4 text-sm font-bold text-white"
-            style={{ background: KEBU.orange }}
-          >
-            Tell Kebu about you — 3 minutes
-          </Link>
-        </div>
-      </OpportunityOsShell>
-    );
-  }
-
-  if (data?.needsEntitlement) {
-    const isPending = data.entitlement?.status === "pending";
-    return (
-      <OpportunityOsShell
-        title="Opportunity OS"
-        headline="Your personal opportunity feed is ready."
-        subhead="Grants, fellowships, and government tenders — filtered for your country, skills, and business stage. Verify once to unlock your feed."
-        heroVisual={
-          /* Blurred preview cards — show the value, create desire */
-          <div className="relative select-none" aria-hidden>
-            <div className="grid gap-2" style={{ filter: "blur(3px)", opacity: 0.55, pointerEvents: "none" }}>
-              {[
-                { label: "Grant", country: "KE", title: "Youth Innovation Fund", amount: "$45,000", tag: "15 days left", color: "#10B981" },
-                { label: "Tender", country: "GH", title: "Gov't Digital Services", amount: "$120K", tag: "Open now", color: "#0EA5E9" },
-                { label: "Fellowship", country: "NG", title: "EU Digital Fellowship", amount: "€18,000", tag: "8 days left", color: "#9333EA" },
-              ].map((card) => (
-                <div
-                  key={card.title}
-                  className="flex items-center gap-3 rounded-2xl px-4 py-3"
-                  style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-[10px] font-black text-white"
-                    style={{ background: card.color }}
-                  >
-                    {card.country}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-black uppercase tracking-[0.18em] mb-0.5" style={{ color: card.color }}>
-                      {card.label}
-                    </p>
-                    <p className="text-sm font-bold truncate">{card.title}</p>
-                    <p className="text-xs" style={{ color: KEBU.muted }}>{card.amount} · {card.tag}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {/* Frosted glass unlock overlay */}
-            <div
-              className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-3"
-              style={{
-                background: "rgba(255,251,247,0.72)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-                border: `1px solid rgba(255,85,0,0.15)`,
-              }}
-            >
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{ background: KEBU.orange, boxShadow: "0 8px 24px rgba(255,85,0,0.35)" }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-              </div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-center px-4" style={{ color: KEBU.black }}>
-                Your matches are locked
-              </p>
-              <p className="text-[11px] text-center px-6 leading-relaxed" style={{ color: KEBU.muted }}>
-                Verify your African identity to see opportunities filtered for you
-              </p>
-            </div>
-          </div>
-        }
-      >
-        {/* Value propositions */}
-        <div className="max-w-lg space-y-8">
-          <ul className="space-y-3">
-            {[
-              { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "2,400+ grants, fellowships, and tenders from 54 African countries" },
-              { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "Filtered daily to your location, skills, and business stage" },
-              { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "Verify once — your access stays active forever" },
-            ].map((item) => (
-              <li key={item.text} className="flex items-start gap-3">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={KEBU.orange} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-                  <path d={item.icon} />
-                </svg>
-                <span className="text-sm leading-relaxed" style={{ color: KEBU.black }}>{item.text}</span>
-              </li>
-            ))}
-          </ul>
-
-          {isPending ? (
-            <div
-              className="rounded-2xl px-5 py-4 flex items-center gap-4"
-              style={{ background: `rgba(255,85,0,0.07)`, border: `1px solid rgba(255,85,0,0.2)` }}
-            >
-              <div className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ background: KEBU.orange }} />
-              <div>
-                <p className="text-sm font-bold" style={{ color: KEBU.black }}>Verification in review</p>
-                <p className="text-xs mt-0.5" style={{ color: KEBU.muted }}>We'll notify you when access is granted — usually within 24 hours.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Link
-                href={data.verifyHref ?? "/account#african-id"}
-                className="flex items-center justify-between w-full rounded-2xl px-6 py-4 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-[0.98]"
-                style={{ background: KEBU.orange, boxShadow: "0 8px 32px rgba(255,85,0,0.30)" }}
-              >
-                <span>Verify African Access</span>
-                <span className="flex items-center gap-2 text-xs opacity-80">
-                  Takes 60 seconds
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </Link>
-              <p className="text-xs text-center" style={{ color: KEBU.faint }}>
-                No ID stored on our servers · African residents only ·{" "}
-                <Link href={data.exploreHref ?? "/opportunity/countries"} className="underline" style={{ color: KEBU.orange }}>
-                  Browse countries freely
-                </Link>
-              </p>
-            </div>
-          )}
-        </div>
-      </OpportunityOsShell>
-    );
-  }
-
-  const profile = data?.profile;
-  const plan = data?.plan;
-  const countries = data?.countries ?? [];
-  const stories = data?.stories ?? [];
+function OpportunityCard({ opp }: { opp: Opportunity }) {
+  const amount = formatAmount(opp);
+  const typeLabel = TYPE_LABELS[opp.type] ?? opp.type;
+  const dColor = deadlineColor(opp.deadline);
+  const deadlineDays = opp.deadline
+    ? Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / 86400000)
+    : null;
 
   return (
-    <OpportunityOsShell
-      title="Opportunity OS"
-      headline="Your Africa — filtered for you"
-      subhead={
-        profile?.enjoyDoing
-          ? `Focused on what you told us you enjoy: “${profile.enjoyDoing.slice(0, 100)}${profile.enjoyDoing.length > 100 ? "…" : ""}”`
-          : "Countries, resources, and stories matched to your goals."
-      }
-      heroVisual={
-        <div className="grid grid-cols-2 gap-2 rotate-[-2deg]">
-          {(profile?.interestPaths ?? []).slice(0, 4).map((p) => (
-            <span
-              key={p}
-              className="rounded-xl px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-center"
-              style={{ background: KEBU.orange, color: "#fff" }}
-            >
-              {p.replace(/_/g, " ")}
-            </span>
-          ))}
-        </div>
-      }
+    <article
+      className="rounded-[18px] border bg-white p-4 flex flex-col gap-3 transition hover:-translate-y-0.5"
+      style={{ borderColor: KEBU.borders.default, boxShadow: KEBU.shadow.card }}
     >
-      {plan ? (
-        <PersonalizedPlanCard
-          headline={plan.headline}
-          summary={plan.summary}
-          startSteps={plan.startSteps}
-          resourceHints={plan.resourceHints}
-        />
-      ) : null}
-
-      {stories.length > 0 ? (
-        <section className="mb-12">
-          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
-            Hope & heritage — people who built
-          </h2>
-          <p className="text-sm mb-6 max-w-2xl" style={{ color: KEBU.muted }}>
-            African leaders and legacies matched to your interests. Trust labels on every story.
-          </p>
-          <ul className="grid md:grid-cols-2 gap-5">
-            {stories.map((s) => (
-              <li key={s.id}>
-                <HopeStoryCard story={s} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <section className="mb-12">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-fraunces)" }}>
-              Countries for you
-            </h2>
-            <p className="text-sm mt-1" style={{ color: KEBU.muted }}>
-              Ranked by your interests and country picks — open for grants, programs, and resources.
-            </p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span
+              className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide"
+              style={{ background: "rgba(255,85,0,0.08)", color: KEBU.orange }}
+            >
+              {typeLabel}
+            </span>
+            <span className="text-[9px]" style={{ color: KEBU.faint }}>{opp.country}</span>
           </div>
-          <Link href="/opportunity/countries" className="text-xs font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
-            All countries →
-          </Link>
-          <Link href="/opportunity/listings" className="text-xs font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
-            Programs & listings →
-          </Link>
+          <h3 className="text-[13px] font-bold leading-snug" style={{ color: KEBU.black }}>
+            {opp.title}
+          </h3>
         </div>
-        {countries.length > 0 ? (
-          <CountryExplorerMosaic countries={countries} />
-        ) : (
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}
+        {opp.diaspora_allowed && (
+          <span
+            className="shrink-0 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wide"
+            style={{ background: "rgba(255,85,0,0.06)", color: KEBU.orange }}
           >
-            <p className="text-3xl mb-3">🌍</p>
-            <p className="font-bold mb-1" style={{ color: KEBU.black }}>Country profiles coming soon</p>
-            <p className="text-sm" style={{ color: KEBU.muted }}>
-              Kebu researchers are adding grants, programs, and opportunities country by country.
-            </p>
-            <Link
-              href="/opportunity/listings"
-              className="inline-block mt-4 text-sm font-bold underline"
+            Diaspora
+          </span>
+        )}
+      </div>
+
+      <p className="text-[11px] leading-relaxed line-clamp-2" style={{ color: KEBU.muted }}>
+        {opp.summary}
+      </p>
+
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex items-center gap-3 flex-wrap">
+          {amount && (
+            <span className="text-[11px] font-bold" style={{ color: KEBU.black }}>{amount}</span>
+          )}
+          {opp.deadline && (
+            <span className="text-[10px] font-semibold" style={{ color: dColor }}>
+              {deadlineDays !== null && deadlineDays < 0
+                ? "Closed"
+                : deadlineDays !== null && deadlineDays <= 30
+                ? `${deadlineDays}d left`
+                : new Date(opp.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            </span>
+          )}
+        </div>
+        <a
+          href={opp.source_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full px-3 py-1.5 text-[10px] font-bold text-white shrink-0"
+          style={{ background: KEBU.orange }}
+        >
+          Apply →
+        </a>
+      </div>
+
+      {opp.source_name && (
+        <p className="text-[9px]" style={{ color: KEBU.faint }}>via {opp.source_name}</p>
+      )}
+    </article>
+  );
+}
+
+function EntitlementGate() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+      <div
+        className="mb-6 flex h-20 w-20 items-center justify-center rounded-[22px]"
+        style={{ background: KEBU.surface.invert }}
+      >
+        <KebuIcon name="opportunity" size={34} style={{ color: KEBU.orange }} />
+      </div>
+      <h2
+        className="text-3xl font-black tracking-tight"
+        style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
+      >
+        Verified African Opportunity Access
+      </h2>
+      <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: KEBU.muted }}>
+        Opportunity OS is a curated database of verified grants, loans, fellowships,
+        and programs for African entrepreneurs and diaspora founders.
+        Access requires identity verification.
+      </p>
+      <div className="mt-8 flex flex-col sm:flex-row gap-3">
+        <Link
+          href="/account"
+          className="rounded-full px-6 py-3 text-sm font-bold text-white"
+          style={{ background: KEBU.orange }}
+        >
+          Verify identity to unlock
+        </Link>
+        <Link
+          href="/dashboard"
+          className="rounded-full border px-6 py-3 text-sm font-bold"
+          style={{ borderColor: KEBU.borders.default, color: KEBU.black }}
+        >
+          Back to home
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function OpportunityPage() {
+  const [listings, setListings] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [needsEntitlement, setNeedsEntitlement] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterState>({
+    type: "", sector: "", country: "", diaspora: false, q: "",
+  });
+
+  const load = useCallback(async (f: FilterState) => {
+    setLoading(true);
+    setError(null);
+    const params = new URLSearchParams();
+    if (f.type) params.set("type", f.type);
+    if (f.sector) params.set("sector", f.sector);
+    if (f.country) params.set("country", f.country);
+    if (f.diaspora) params.set("diaspora", "true");
+    if (f.q) params.set("q", f.q);
+    const res = await fetch(`/api/opportunity/listings?${params}`, { credentials: "include" });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      setError("Please log in to view opportunities.");
+    } else if (res.status === 403 && data.needsEntitlement) {
+      setNeedsEntitlement(true);
+    } else if (!res.ok) {
+      setError(data.error ?? "Could not load opportunities.");
+    } else {
+      setListings(data.listings ?? []);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void load(filters); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function applyFilter(patch: Partial<FilterState>) {
+    const next = { ...filters, ...patch };
+    setFilters(next);
+    void load(next);
+  }
+
+  if (!loading && needsEntitlement) {
+    return (
+      <AppShell title="Opportunity OS">
+        <EntitlementGate />
+      </AppShell>
+    );
+  }
+
+  const byType = filters.type
+    ? listings
+    : listings;
+
+  return (
+    <AppShell title="Opportunity OS">
+      <div className="mx-auto max-w-[1320px] px-4 py-6 sm:px-7">
+
+        <header className="mb-6">
+          <p className="text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>
+            Opportunity OS
+          </p>
+          <h1
+            className="mt-1 text-3xl font-black tracking-tight sm:text-4xl"
+            style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
+          >
+            Find your funding.
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: KEBU.muted }}>
+            Verified grants, loans, fellowships and accelerators for African and diaspora founders.
+          </p>
+        </header>
+
+        {/* Filters */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          <input
+            type="search"
+            placeholder="Search opportunities…"
+            value={filters.q}
+            onChange={(e) => applyFilter({ q: e.target.value })}
+            className="h-9 rounded-xl border bg-white px-3 text-[12px] font-semibold outline-none focus:ring-2 focus:ring-[#FF5500] w-full sm:w-60"
+            style={{ borderColor: KEBU.borders.default, color: KEBU.black }}
+          />
+          <select
+            value={filters.type}
+            onChange={(e) => applyFilter({ type: e.target.value })}
+            className="h-9 rounded-xl border bg-white px-3 text-[11px] font-bold outline-none focus:ring-2 focus:ring-[#FF5500] appearance-none pr-7"
+            style={{ borderColor: KEBU.borders.default, color: filters.type ? KEBU.black : KEBU.muted }}
+          >
+            <option value="">All types</option>
+            {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          <select
+            value={filters.sector}
+            onChange={(e) => applyFilter({ sector: e.target.value })}
+            className="h-9 rounded-xl border bg-white px-3 text-[11px] font-bold outline-none focus:ring-2 focus:ring-[#FF5500] appearance-none pr-7"
+            style={{ borderColor: KEBU.borders.default, color: filters.sector ? KEBU.black : KEBU.muted }}
+          >
+            <option value="">All sectors</option>
+            {SECTOR_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <label className="flex h-9 cursor-pointer items-center gap-2 rounded-xl border bg-white px-3 text-[11px] font-bold select-none"
+            style={{ borderColor: filters.diaspora ? KEBU.borders.orangeStrong : KEBU.borders.default, color: filters.diaspora ? KEBU.orange : KEBU.muted }}>
+            <input
+              type="checkbox"
+              checked={filters.diaspora}
+              onChange={(e) => applyFilter({ diaspora: e.target.checked })}
+              className="accent-[#FF5500]"
+            />
+            Diaspora-eligible
+          </label>
+          {(filters.type || filters.sector || filters.country || filters.diaspora || filters.q) && (
+            <button
+              type="button"
+              onClick={() => applyFilter({ type: "", sector: "", country: "", diaspora: false, q: "" })}
+              className="h-9 rounded-xl border px-3 text-[11px] font-bold transition"
+              style={{ borderColor: KEBU.borders.default, color: KEBU.muted }}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="rounded-[18px] border bg-white p-4 animate-pulse h-44"
+                style={{ borderColor: KEBU.borders.default }} />
+            ))}
+          </div>
+        ) : error ? (
+          <div
+            className="rounded-[18px] border p-8 text-center"
+            style={{ borderColor: KEBU.borders.default, background: KEBU.errorBg }}
+          >
+            <p className="text-sm font-semibold" style={{ color: KEBU.errorText }}>{error}</p>
+          </div>
+        ) : byType.length === 0 ? (
+          <div className="py-20 text-center">
+            <KebuIcon name="search" size={36} className="mx-auto mb-4" style={{ color: KEBU.faint }} />
+            <p className="text-sm font-semibold" style={{ color: KEBU.muted }}>No opportunities match your filters.</p>
+            <button
+              type="button"
+              onClick={() => applyFilter({ type: "", sector: "", country: "", diaspora: false, q: "" })}
+              className="mt-4 text-sm font-bold"
               style={{ color: KEBU.orange }}
             >
-              Browse all listings →
-            </Link>
+              Clear filters
+            </button>
           </div>
+        ) : (
+          <>
+            <p className="mb-4 text-[10px] font-semibold" style={{ color: KEBU.faint }}>
+              {byType.length} opportunit{byType.length === 1 ? "y" : "ies"} — verify deadlines and eligibility at the official source before applying.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {byType.map((opp) => <OpportunityCard key={opp.id} opp={opp} />)}
+            </div>
+          </>
         )}
-      </section>
-
-      <section
-        className="rounded-3xl p-8 text-center"
-        style={{ background: `linear-gradient(120deg, ${KEBU.black}, ${KEBU.orange})`, color: "#fff" }}
-      >
-        <h2 className="text-2xl font-bold mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>
-          Ready to build?
-        </h2>
-        <p className="text-sm opacity-90 mb-6 max-w-md mx-auto">
-          Turn research into a real site, store, or business identity on Kebu.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Link href="/create" className="rounded-full bg-white text-black px-6 py-3 text-xs font-bold uppercase tracking-wider">
-            Kebu Builder
-          </Link>
-          <Link href="/business/register" className="rounded-full border-2 border-white px-6 py-3 text-xs font-bold uppercase tracking-wider">
-            Register business
-          </Link>
-        </div>
-      </section>
-    </OpportunityOsShell>
+      </div>
+    </AppShell>
   );
 }

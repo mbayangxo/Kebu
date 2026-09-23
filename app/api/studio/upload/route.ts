@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
+import { sniffStudioMedia } from "@/lib/studio/media-signature";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,9 @@ const AUDIO_TYPES = new Set([
  * Path: {userId}/studio/{designId|misc}/{uuid}.ext
  */
 export async function POST(req: Request) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -43,12 +49,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Expected multipart form data." }, { status: 400 });
   }
 
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
   const designId = String(form.get("designId") ?? "").trim();
+  let uploadBusinessId = workspace.activeBusinessId;
+
   if (designId && /^[0-9a-f-]{36}$/i.test(designId)) {
     const access = await resolveStudioDesignAccess(supabase, { designId, userId: user.id });
     if (!access?.canEdit) {
       return NextResponse.json({ error: "Design not found or view-only." }, { status: 404 });
     }
+    const { data: designScope } = await supabase
+      .from("create_designs")
+      .select("business_id")
+      .eq("id", designId)
+      .maybeSingle();
+    if (!designScope) {
+      return NextResponse.json({ error: "Design not found." }, { status: 404 });
+    }
+    const designBusinessId = designScope.business_id ?? null;
+    if (designBusinessId !== workspace.activeBusinessId) {
+      return NextResponse.json(
+        { error: "Switch to the Kebu space that owns this design before uploading media." },
+        { status: 409 },
+      );
+    }
+    uploadBusinessId = designBusinessId;
   }
 
   const file = form.get("file");
@@ -108,6 +133,8 @@ export async function POST(req: Request) {
   const path = `${user.id}/studio/${folder}/${crypto.randomUUID()}.${ext}`;
 
   const bytes = new Uint8Array(await file.arrayBuffer());
+  const detected=sniffStudioMedia(bytes,mime);if(!detected)return NextResponse.json({error:"File contents do not match a supported media format."},{status:400});
+  if((isImage&&!detected.startsWith("image/"))||(isVideo&&!detected.startsWith("video/"))||(isAudio&&!detected.startsWith("audio/")))return NextResponse.json({error:"File contents do not match the selected media type."},{status:400});
   let uploadClient = supabase;
   try {
     const service = createServiceClient();
@@ -146,7 +173,7 @@ export async function POST(req: Request) {
 
   const kind = isVideo ? "video" : isAudio ? "audio" : "image";
   let uploadId: string | null = null;
-  if (kind === "image" || kind === "video") {
+  if (kind === "image" || kind === "video" || kind === "audio") {
     const { data: libraryRow } = await supabase
       .from("studio_uploads")
       .insert({
@@ -157,6 +184,7 @@ export async function POST(req: Request) {
         file_name: file.name?.slice(0, 200) || null,
         mime: mime || null,
         byte_size: file.size,
+        business_id: uploadBusinessId,
       })
       .select("id")
       .maybeSingle();

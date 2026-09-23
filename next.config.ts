@@ -10,9 +10,6 @@ const SECURITY_HEADERS = [
 const NO_STORE = "private, no-cache, no-store, max-age=0, must-revalidate";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [

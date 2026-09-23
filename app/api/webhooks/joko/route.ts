@@ -5,6 +5,7 @@ import { parseHostingPlan } from "@/lib/billing/subscriptions";
 import { parseKebuPlanId } from "@/lib/billing/pricing";
 import { verifyJokoWebhookSignature, sendJokoPartnerMessage } from "@/lib/joko/payments";
 import { normalizeWhatsAppPhone } from "@/lib/create/site-commerce";
+import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
 
@@ -228,7 +229,16 @@ export async function POST(req: NextRequest) {
 
   if (kind === "shop_order" && reference) {
     const { markShopOrderPaid } = await import("@/lib/shop/joko-order");
-    const paid = await markShopOrderPaid(supabase, reference, paymentId ?? null);
+    const amountXofRaw = payload.metadata?.amount_xof;
+    const expectedAmountXof = amountXofRaw ? Number(amountXofRaw) : null;
+    if (expectedAmountXof != null && (!Number.isInteger(expectedAmountXof) || expectedAmountXof <= 0)) {
+      return NextResponse.json({ error: "Invalid payment metadata." }, { status: 400 });
+    }
+    const paid = await markShopOrderPaid(supabase, reference, paymentId ?? null, {
+      orderId: payload.metadata?.order_id ?? null,
+      projectId: payload.metadata?.project_id ?? null,
+      amountXof: expectedAmountXof,
+    });
     if (!paid.ok) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }
@@ -241,6 +251,7 @@ export async function POST(req: NextRequest) {
       }),
     );
     void sendShopOrderPaidMessages(supabase, paid.orderId, paid.projectId);
+    await fulfillPaidDigitalOrder(supabase, paid.orderId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 
@@ -252,6 +263,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }
     void sendShopOrderPaidMessages(supabase, paid.orderId, paid.projectId);
+    await fulfillPaidDigitalOrder(supabase, paid.orderId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 

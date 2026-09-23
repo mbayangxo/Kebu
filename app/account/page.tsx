@@ -22,42 +22,33 @@ type BusinessRow = {
   logo_url?: string | null;
 };
 
-type SectionId = "personal" | "security" | "ids" | "data" | "billing" | null;
+type TabId = "account" | "business" | "payments" | "notifications" | "security" | "appearance";
 
-function ListRow({
-  title,
-  hint,
-  open,
-  onClick,
-}: {
-  title: string;
-  hint: string;
-  open: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-black/[0.03]"
-      aria-expanded={open}
-    >
-      <span>
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="block text-[11px] mt-0.5" style={{ color: KEBU.muted }}>
-          {hint}
-        </span>
-      </span>
-      <span className="text-xs font-bold" style={{ color: KEBU.orange }}>
-        {open ? "−" : "→"}
-      </span>
-    </button>
-  );
-}
+const TABS: Array<{ id: TabId; label: string }> = [
+  { id: "account", label: "Account" },
+  { id: "business", label: "Business" },
+  { id: "payments", label: "Payments" },
+  { id: "notifications", label: "Notifications" },
+  { id: "security", label: "Security" },
+  { id: "appearance", label: "Appearance" },
+];
+
+const PLAN_FEATURES = [
+  "Unlimited sites",
+  "Full access to Studio",
+  "AI tools & generation",
+  "Priority support",
+  "Advanced analytics",
+  "Custom domains",
+];
+
+const border = KEBU.borders.default;
 
 export default function AccountPage() {
   const { profile, loading, refresh } = useKebuUser();
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bio, setBio] = useState("");
   const [country, setCountry] = useState("");
   const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -66,7 +57,14 @@ export default function AccountPage() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [section, setSection] = useState<SectionId>("personal");
+  const [tab, setTab] = useState<TabId>("account");
+  const [notifState, setNotifState] = useState({
+    emailNotifications: true,
+    pushNotifications: false,
+    marketingEmails: true,
+    weeklyDigest: false,
+  });
+  const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -108,7 +106,7 @@ export default function AccountPage() {
 
   if (loading) {
     return (
-      <AppShell title="My Account">
+      <AppShell title="Settings">
         <p className="p-8 text-sm opacity-60">Loading…</p>
       </AppShell>
     );
@@ -116,9 +114,9 @@ export default function AccountPage() {
 
   if (!profile) {
     return (
-      <AppShell title="My Account">
+      <AppShell title="Settings">
         <div className="max-w-lg mx-auto px-6 py-16 text-center">
-          <h1 className="text-xl font-bold mb-3">Sign in to see your profile</h1>
+          <h1 className="text-xl font-bold mb-3">Sign in to manage your settings</h1>
           <Link href="/login?next=/account" className="font-bold text-sm underline" style={{ color: KEBU.orange }}>
             Sign in
           </Link>
@@ -130,10 +128,6 @@ export default function AccountPage() {
   const first = displayFirstName(profile.name, profile.email);
   const selected = businesses.find((b) => b.id === selectedId);
 
-  function toggle(id: SectionId) {
-    setSection((prev) => (prev === id ? null : id));
-  }
-
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -142,20 +136,14 @@ export default function AccountPage() {
     const res = await fetch("/api/me/profile", {
       method: "PATCH",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Kebu-Data-Mode": mode,
-      },
-      body: JSON.stringify({ name, residenceCountry: country || null }),
+      headers: { "Content-Type": "application/json", "X-Kebu-Data-Mode": mode },
+      body: JSON.stringify({ name, residenceCountry: country || null, phone: phone || null, bio: bio || null }),
     });
     const bytes = await measureResponseBytes(res);
     const ev = evaluateKb({ action: "save_profile", mode, usedBytes: bytes });
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     setBusy(false);
-    if (!res.ok) {
-      setError(data.error ?? "Could not save.");
-      return;
-    }
+    if (!res.ok) { setError(data.error ?? "Could not save."); return; }
     setNote(`${ev.summary} Profile saved.`);
     void refresh();
   }
@@ -168,267 +156,341 @@ export default function AccountPage() {
     const res = await fetch("/api/me/avatar", { method: "POST", credentials: "include", body: form });
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     setBusy(false);
-    if (!res.ok) {
-      setError(data.error ?? "Upload failed.");
-      return;
-    }
+    if (!res.ok) { setError(data.error ?? "Upload failed."); return; }
     setNote("Photo updated.");
     void refresh();
   }
 
   return (
-    <AppShell title="My Account">
-      <div className="max-w-xl mx-auto px-5 py-8 lg:py-10">
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="relative group shrink-0 rounded-full focus:outline-none focus-visible:ring-2"
-            style={{ "--ring-color": KEBU.orange } as React.CSSProperties}
-            aria-label="Change profile photo"
-          >
-            {profile.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatarUrl} alt="" className="w-16 h-16 rounded-full object-cover" />
-            ) : (
-              <span
-                className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-black text-white"
-                style={{ background: KEBU.orange }}
-              >
-                {first.charAt(0).toUpperCase()}
-              </span>
-            )}
-            {/* Camera overlay on hover */}
-            <span
-              className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: "rgba(0,0,0,0.45)" }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
-            </span>
-            {busy && (
-              <span className="absolute inset-0 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              </span>
-            )}
-          </button>
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold truncate" style={{ fontFamily: "var(--font-fraunces)" }}>
-              {first}
-            </h1>
-            <p className="text-xs truncate" style={{ color: KEBU.muted }}>
-              {profile.email}
-            </p>
-            <p className="text-[10px] mt-0.5" style={{ color: KEBU.orange }}>Tap photo to change</p>
+    <AppShell title="Settings">
+      <div className="min-h-screen px-6 py-10 sm:px-8" style={{ background: KEBU.bright }}>
+        <div className="mx-auto max-w-4xl">
+
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}>Settings</h1>
+            <p className="mt-1.5 text-sm" style={{ color: KEBU.muted }}>Manage your account, team and preferences.</p>
           </div>
-        </div>
 
-        <div className="rounded-xl border bg-white overflow-hidden divide-y" style={{ borderColor: KEBU.border }}>
-          <ListRow
-            title="Personal info"
-            hint="Name, photo, country"
-            open={section === "personal"}
-            onClick={() => toggle("personal")}
-          />
-          {section === "personal" ? (
-            <div className="px-4 py-4 space-y-3 bg-[#FFFBFA]">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void uploadAvatar(f);
+          {/* Tab bar */}
+          <div className="mb-8 flex gap-0 overflow-x-auto border-b scrollbar-none" style={{ borderColor: border }}>
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className="shrink-0 px-5 py-3 text-[12px] font-bold transition-colors"
+                style={{
+                  color: tab === t.id ? KEBU.black : KEBU.muted,
+                  borderBottom: tab === t.id ? `2px solid ${KEBU.orange}` : "2px solid transparent",
                 }}
-              />
-              <form onSubmit={(e) => void saveProfile(e)} className="space-y-3">
-                <label className="block text-sm">
-                  <span className="font-semibold">Name</span>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-                    required
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="font-semibold">Country</span>
-                  <input
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-                    placeholder="e.g. Senegal"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="rounded-full px-5 py-2 text-xs font-bold text-white disabled:opacity-60"
-                  style={{ background: KEBU.black }}
-                >
-                  Save
-                </button>
-              </form>
-            </div>
-          ) : null}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-          <ListRow
-            title="Password & security"
-            hint="Reset password via email"
-            open={section === "security"}
-            onClick={() => toggle("security")}
-          />
-          {section === "security" ? (
-            <div className="px-4 py-4 bg-[#FFFBFA] text-sm" style={{ color: KEBU.muted }}>
-              <p className="mb-3">Use the signed-in email flow to reset your password.</p>
-              <Link href="/login?reset=1" className="font-bold underline" style={{ color: KEBU.orange }}>
-                Reset password
-              </Link>
-            </div>
-          ) : null}
+          {/* Account tab */}
+          {tab === "account" && (
+            <div className="grid gap-5 lg:grid-cols-2">
 
-          <ListRow
-            title="IDs & scores"
-            hint="Afri ID · Kebu ID · readiness (private)"
-            open={section === "ids"}
-            onClick={() => toggle("ids")}
-          />
-          {section === "ids" ? (
-            <div className="px-4 py-4 space-y-4 bg-[#FFFBFA]">
-              <p className="text-[11px]" style={{ color: KEBU.muted }}>
-                Private business identity — keep this separate from everyday personal settings. Password lock for this
-                drawer is planned; treat as sensitive for now.
-              </p>
-              {profile.afriqueId ? (
-                <AfriqueIdCard
-                  afriqueId={profile.afriqueId}
-                  displayName={profile.name || first}
-                  onRefresh={() => void refresh()}
-                />
-              ) : (
-                <p className="text-sm" style={{ color: KEBU.muted }}>
-                  No Afri ID yet.{" "}
-                  <Link href="/welcome" className="font-bold underline" style={{ color: KEBU.orange }}>
-                    Personalize
+              {/* Profile card */}
+              <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+                <p className="mb-5 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Profile</p>
+
+                {/* Avatar row */}
+                <div className="mb-5 flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="relative group shrink-0 rounded-full focus:outline-none focus-visible:ring-2"
+                    aria-label="Change profile photo"
+                  >
+                    {profile.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={profile.avatarUrl} alt="" className="w-16 h-16 rounded-full object-cover" />
+                    ) : (
+                      <span className="flex h-16 w-16 items-center justify-center rounded-full text-xl font-black text-white" style={{ background: KEBU.orange }}>
+                        {first.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.45)" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </span>
+                    {busy && (
+                      <span className="absolute inset-0 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </span>
+                    )}
+                  </button>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black truncate" style={{ color: KEBU.black }}>{first}</p>
+                    <button type="button" onClick={() => fileRef.current?.click()} className="mt-0.5 text-[10px] font-bold" style={{ color: KEBU.orange }}>Edit photo</button>
+                  </div>
+                </div>
+
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadAvatar(f); }} />
+
+                <form onSubmit={(e) => void saveProfile(e)} className="space-y-4">
+                  <Field label="Full name">
+                    <input value={name} onChange={(e) => setName(e.target.value)} className="field-input" required />
+                  </Field>
+                  <Field label="Email">
+                    <input value={profile.email ?? ""} readOnly className="field-input opacity-60 cursor-not-allowed" />
+                  </Field>
+                  <Field label="Phone">
+                    <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 234 567 8900" className="field-input" />
+                  </Field>
+                  <Field label="Bio">
+                    <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="A few words about you…" className="field-input resize-none" />
+                  </Field>
+                  <button
+                    type="submit"
+                    disabled={busy}
+                    className="w-full rounded-full py-3 text-[11px] font-black text-white disabled:opacity-60 transition hover:brightness-110"
+                    style={{ background: KEBU.black }}
+                  >
+                    {busy ? "Saving…" : "Save changes"}
+                  </button>
+                </form>
+
+                {note && <p className="mt-3 text-xs text-green-700">{note}</p>}
+                {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
+              </div>
+
+              {/* Plan card */}
+              <div className="flex flex-col gap-4">
+                <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+                  <p className="mb-4 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Plan</p>
+                  <div className="flex items-start justify-between gap-3 mb-5">
+                    <div>
+                      <p className="text-xl font-black" style={{ color: KEBU.black }}>Kebu Pro</p>
+                      <p className="mt-0.5 text-sm font-bold" style={{ color: KEBU.muted }}>$8 / month</p>
+                    </div>
+                    <span className="rounded-full px-3 py-1 text-[9px] font-black uppercase" style={{ background: "rgba(255,85,0,.1)", color: KEBU.orange }}>Active</span>
+                  </div>
+                  <Link
+                    href="/billing/upgrade"
+                    className="mb-5 flex w-full items-center justify-center gap-2 rounded-full py-3 text-[11px] font-black text-white transition hover:brightness-110"
+                    style={{ background: KEBU.orange }}
+                  >
+                    Upgrade →
                   </Link>
-                </p>
-              )}
+                  <ul className="space-y-2.5">
+                    {PLAN_FEATURES.map((f) => (
+                      <li key={f} className="flex items-center gap-2.5 text-[12px]" style={{ color: KEBU.black }}>
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px] font-black text-white" style={{ background: KEBU.orange }}>✓</span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* IDs quick card */}
+                {selected && (
+                  <div className="rounded-2xl border bg-white p-5" style={{ borderColor: border }}>
+                    <p className="mb-3 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Kebu ID</p>
+                    <p className="text-sm font-bold">{selected.trading_name || selected.legal_name}</p>
+                    <p className="mt-0.5 font-mono text-xs" style={{ color: KEBU.orange }}>{selected.public_kebu_id}</p>
+                  </div>
+                )}
+
+                {/* Data mode */}
+                <div className="rounded-2xl border bg-white p-5" style={{ borderColor: border }}>
+                  <p className="mb-3 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Data mode</p>
+                  <DataModeControls />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Business tab */}
+          {tab === "business" && (
+            <div className="space-y-5">
               {bizLoading ? (
-                <p className="text-sm" style={{ color: KEBU.muted }}>
-                  Loading Kebu ID…
-                </p>
+                <p className="text-sm" style={{ color: KEBU.muted }}>Loading…</p>
               ) : businesses.length === 0 ? (
-                <p className="text-sm" style={{ color: KEBU.muted }}>
-                  No Kebu ID yet. Register from Opportunity / signup — not buried in this menu.
-                </p>
+                <div className="rounded-2xl border bg-white p-8 text-center" style={{ borderColor: border }}>
+                  <p className="font-bold mb-2" style={{ color: KEBU.black }}>No business registered yet</p>
+                  <p className="text-sm mb-4" style={{ color: KEBU.muted }}>Register your business to unlock workspace features.</p>
+                  <Link href="/welcome" className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-xs font-black text-white" style={{ background: KEBU.orange }}>Register business →</Link>
+                </div>
               ) : (
                 <>
-                  {businesses.length > 1 ? (
-                    <select
-                      className="w-full rounded-lg border px-3 py-2 text-sm bg-white"
-                      style={{ borderColor: KEBU.border }}
-                      value={selectedId ?? ""}
-                      onChange={(e) => setSelectedId(e.target.value)}
-                    >
+                  {businesses.length > 1 && (
+                    <select className="w-full rounded-xl border bg-white px-4 py-3 text-sm" style={{ borderColor: border }} value={selectedId ?? ""} onChange={(e) => setSelectedId(e.target.value)}>
                       {businesses.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.trading_name || b.legal_name} · {b.public_kebu_id}
-                        </option>
+                        <option key={b.id} value={b.id}>{b.trading_name || b.legal_name} · {b.public_kebu_id}</option>
                       ))}
                     </select>
-                  ) : null}
-                  {selected ? (
-                    <div className="rounded-lg border bg-white p-3" style={{ borderColor: KEBU.border }}>
-                      <p className="font-bold text-sm">{selected.trading_name || selected.legal_name}</p>
-                      <p className="text-xs font-mono" style={{ color: KEBU.orange }}>
-                        {selected.public_kebu_id}
-                      </p>
+                  )}
+                  {selected && (
+                    <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+                      <p className="text-[11px] font-black uppercase tracking-[.14em] mb-1" style={{ color: KEBU.orange }}>Business</p>
+                      <p className="text-lg font-black" style={{ color: KEBU.black }}>{selected.trading_name || selected.legal_name}</p>
+                      <p className="font-mono text-xs mt-0.5" style={{ color: KEBU.orange }}>{selected.public_kebu_id}</p>
+                      {readiness && selectedId && (
+                        <div className="mt-4">
+                          <BusinessReadinessCard readiness={readiness} businessId={selectedId} compact />
+                        </div>
+                      )}
                     </div>
-                  ) : null}
-                  {readiness && selectedId ? (
-                    <BusinessReadinessCard readiness={readiness} businessId={selectedId} compact />
-                  ) : null}
+                  )}
+                  {profile.afriqueId && (
+                    <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+                      <p className="text-[11px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.black }}>Afri ID</p>
+                      <AfriqueIdCard afriqueId={profile.afriqueId} displayName={profile.name || first} onRefresh={() => void refresh()} />
+                    </div>
+                  )}
                 </>
               )}
+              <Link href="/b2b" className="flex items-center justify-between rounded-2xl border bg-white px-5 py-4 transition hover:bg-black/[.02]" style={{ borderColor: border }}>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: KEBU.black }}>Alkebulan B2B profile</p>
+                  <p className="text-[11px]" style={{ color: KEBU.muted }}>Trade partners — separate from My KEBU</p>
+                </div>
+                <span className="text-sm font-black" style={{ color: KEBU.orange }}>→</span>
+              </Link>
             </div>
-          ) : null}
+          )}
 
-          <ListRow
-            title="Data mode"
-            hint="Normal · Saver · Ultra · Offline"
-            open={section === "data"}
-            onClick={() => toggle("data")}
-          />
-          {section === "data" ? (
-            <div className="px-4 py-4 bg-[#FFFBFA]">
-              <DataModeControls />
-            </div>
-          ) : null}
-
-          <ListRow
-            title="Hosting & billing"
-            hint="Plans and receipts"
-            open={section === "billing"}
-            onClick={() => toggle("billing")}
-          />
-          {section === "billing" ? (
-            <div className="px-4 py-4 bg-[#FFFBFA]">
+          {/* Payments tab */}
+          {tab === "payments" && (
+            <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+              <p className="mb-4 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Hosting & billing</p>
               <AccountHostingBilling />
             </div>
-          ) : null}
+          )}
 
-          <Link
-            href="/b2b"
-            className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-black/[0.03]"
-          >
-            <span>
-              <span className="block text-sm font-semibold">Alkebulan B2B profile</span>
-              <span className="block text-[11px] mt-0.5" style={{ color: KEBU.muted }}>
-                Trade partners — separate from My KEBU
-              </span>
-            </span>
-            <span className="text-xs font-bold" style={{ color: KEBU.orange }}>
-              →
-            </span>
-          </Link>
+          {/* Notifications tab */}
+          {tab === "notifications" && (
+            <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+              <p className="mb-5 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Notifications</p>
+              {(
+                [
+                  { key: "emailNotifications" as const, label: "Email notifications", sub: "Receive updates via email" },
+                  { key: "pushNotifications" as const, label: "Push notifications", sub: "Browser and mobile alerts" },
+                  { key: "marketingEmails" as const, label: "Marketing emails", sub: "Tips, features and product news" },
+                  { key: "weeklyDigest" as const, label: "Weekly digest", sub: "Summary of your activity every Monday" },
+                ] as const
+              ).map((row) => (
+                <div key={row.key} className="flex items-center justify-between py-3.5 border-b last:border-0" style={{ borderColor: border }}>
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: KEBU.black }}>{row.label}</p>
+                    <p className="text-[11px]" style={{ color: KEBU.muted }}>{row.sub}</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={notifState[row.key]}
+                    onClick={() => setNotifState((prev) => ({ ...prev, [row.key]: !prev[row.key] }))}
+                    className="relative h-6 w-10 rounded-full transition-colors"
+                    style={{ background: notifState[row.key] ? KEBU.orange : KEBU.borders.default }}
+                  >
+                    <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform" style={{ transform: notifState[row.key] ? "translateX(18px)" : "translateX(2px)" }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <Link
-            href={MY_SITES_HREF}
-            className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-black/[0.03]"
-          >
-            <span>
-              <span className="block text-sm font-semibold">My Sites</span>
-              <span className="block text-[11px] mt-0.5" style={{ color: KEBU.muted }}>
-                Edit websites
-              </span>
-            </span>
-            <span className="text-xs font-bold" style={{ color: KEBU.orange }}>
-              →
-            </span>
-          </Link>
+          {/* Security tab */}
+          {tab === "security" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+                <p className="mb-4 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Password & security</p>
+                <p className="text-sm mb-4" style={{ color: KEBU.muted }}>Use the signed-in email flow to reset your password. We'll send a secure link.</p>
+                <Link href="/login?reset=1" className="inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[11px] font-black transition hover:bg-black/[.04]" style={{ borderColor: border }}>
+                  Reset password →
+                </Link>
+              </div>
+              <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+                <p className="mb-3 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Active sessions</p>
+                <p className="text-sm" style={{ color: KEBU.muted }}>Session management coming soon.</p>
+              </div>
+            </div>
+          )}
 
-          <Link
-            href="/create/aesthetics"
-            className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-black/[0.03]"
-          >
-            <span>
-              <span className="block text-sm font-semibold">Aesthetic store</span>
-              <span className="block text-[11px] mt-0.5" style={{ color: KEBU.muted }}>
-                Browse looks
-              </span>
-            </span>
-            <span className="text-xs font-bold" style={{ color: KEBU.orange }}>
-              →
-            </span>
-          </Link>
+          {/* Appearance tab */}
+          {tab === "appearance" && (
+            <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
+              <p className="mb-5 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Appearance</p>
+              <p className="mb-4 text-sm" style={{ color: KEBU.muted }}>Choose how Kebu looks and feels for you.</p>
+              <div className="grid grid-cols-3 gap-3 max-w-xs">
+                {(
+                  [
+                    { id: "light" as const, label: "Light", bg: "#fff", swatch: "#e5e5e5" },
+                    { id: "dark" as const, label: "Dark", bg: "#0F0F0F", swatch: "#333" },
+                    { id: "system" as const, label: "System", bg: "linear-gradient(135deg,#fff 50%,#0F0F0F 50%)", swatch: "#ccc" },
+                  ] as const
+                ).map((theme) => {
+                  const isSelected = appearance === theme.id;
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => setAppearance(theme.id)}
+                      className="flex flex-col items-center gap-2 rounded-xl border p-3 transition"
+                      style={{
+                        borderColor: isSelected ? KEBU.orange : border,
+                        boxShadow: isSelected ? `0 0 0 2px ${KEBU.orange}` : "none",
+                      }}
+                    >
+                      <span className="h-10 w-full rounded-lg" style={{ background: theme.bg, border: `1px solid ${theme.swatch}` }} />
+                      <span className="text-[10px] font-bold" style={{ color: isSelected ? KEBU.orange : KEBU.black }}>{theme.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Quick links */}
+          {tab === "account" && (
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {[
+                { label: "My Sites", href: MY_SITES_HREF, sub: "Edit websites" },
+                { label: "Aesthetic store", href: "/create/aesthetics", sub: "Browse looks" },
+                { label: "B2B Profile", href: "/b2b", sub: "Trade partners" },
+              ].map((link) => (
+                <Link key={link.label} href={link.href} className="flex items-center justify-between rounded-2xl border bg-white px-4 py-4 transition hover:bg-black/[.02]" style={{ borderColor: border }}>
+                  <span>
+                    <span className="block text-sm font-bold" style={{ color: KEBU.black }}>{link.label}</span>
+                    <span className="text-[10px]" style={{ color: KEBU.muted }}>{link.sub}</span>
+                  </span>
+                  <span className="font-black" style={{ color: KEBU.orange }}>→</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
-
-        {note ? <p className="text-sm text-green-700 mt-6">{note}</p> : null}
-        {error ? <p className="text-sm text-red-600 mt-6">{error}</p> : null}
       </div>
+
+      <style>{`
+        .field-input {
+          width: 100%;
+          border: 1px solid ${border};
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-size: 13px;
+          outline: none;
+          background: #FAFAFA;
+          color: ${KEBU.black};
+          transition: border-color .15s;
+        }
+        .field-input:focus { border-color: ${KEBU.orange}; background: #fff; }
+      `}</style>
     </AppShell>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[.1em]" style={{ color: "rgba(0,0,0,0.5)" }}>{label}</span>
+      {children}
+    </label>
   );
 }

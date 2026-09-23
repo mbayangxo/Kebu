@@ -21,6 +21,13 @@ export const brandKitSchema = z.object({
   textColor: z.string().trim().max(40).default("#0F0D33"),
   fontDisplay: z.string().trim().max(80).default("Fraunces"),
   fontBody: z.string().trim().max(80).default("system-ui"),
+  logos: z.array(z.object({label:z.string().trim().max(40),url:imageUrl})).max(12).default([]),
+  colorRoles: z.record(z.string().max(40),z.string().max(40)).default({}),
+  typographyRoles: z.record(z.string().max(40),z.string().max(80)).default({}),
+  imageryRules: z.object({direction:z.string().max(500).default(""),avoid:z.array(z.string().max(120)).max(20).default([])}).default({direction:"",avoid:[]}),
+  voiceRules: z.object({voice:z.string().max(500).default(""),do:z.array(z.string().max(120)).max(20).default([]),dont:z.array(z.string().max(120)).max(20).default([])}).default({voice:"",do:[],dont:[]}),
+  approvedAssetIds: z.array(z.string().uuid()).max(200).default([]),
+  isDefault: z.boolean().default(false),
 });
 
 export type BrandKitInput = z.infer<typeof brandKitSchema>;
@@ -39,10 +46,11 @@ export type BrandKitRow = {
   font_body: string;
   created_at: string;
   updated_at: string;
+  logos?: {label:string;url:string}[]; color_roles?:Record<string,string>; typography_roles?:Record<string,string>; imagery_rules?:unknown; voice_rules?:unknown; approved_asset_ids?:string[]; is_default?:boolean;
 };
 
 export const BRAND_KIT_SELECT =
-  "id, owner_id, business_id, name, logo_url, primary_color, accent_color, background_color, text_color, font_display, font_body, created_at, updated_at";
+  "id, owner_id, business_id, name, logo_url, primary_color, accent_color, background_color, text_color, font_display, font_body, logos, color_roles, typography_roles, imagery_rules, voice_rules, approved_asset_ids, is_default, created_at, updated_at";
 
 export function brandKitToTheme(row: BrandKitRow): z.infer<typeof themeSchema> {
   return themeSchema.parse({

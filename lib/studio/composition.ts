@@ -70,6 +70,26 @@ export const compositionClipSchema = z.object({
   y: z.number().min(-4000).max(4000).default(0),
   scale: z.number().min(0.05).max(8).default(1),
   rotation: z.number().min(-360).max(360).default(0),
+  /** Optional live provenance back to an editable Studio design page. */
+  sourceDesignPageId: z.string().trim().max(40).nullable().optional(),
+  sourceDesignLayerId: z.string().trim().max(40).nullable().optional(),
+  designWidth: z.number().min(1).max(4096).optional(),
+  designHeight: z.number().min(1).max(4096).optional(),
+  /** Clips sharing a linkGroupId move together (for linked picture/audio or intentional groups). */
+  linkGroupId: z.string().trim().max(40).nullable().optional(),
+  sourceAudioClipId: z.string().trim().max(40).nullable().optional(),
+  /** Semantic design payload keeps imported layers editable instead of flattening to page images. */
+  designLayer: z.object({
+    type: z.enum(["text","rect","ellipse","image","video","line","icon","frame"]),
+    text: z.string().max(500).optional(), fontSize: z.number().optional(), fontFamily: z.string().max(80).optional(), fontWeight: z.string().max(20).optional(),
+    fontStyle: z.enum(["normal","italic"]).optional(), color: z.string().max(40).optional(), textAlign: z.enum(["left","center","right"]).optional(),
+    letterSpacing: z.number().optional(), lineHeight: z.number().optional(), textDecoration: z.enum(["none","underline","line-through"]).optional(), textTransform: z.enum(["none","uppercase","lowercase"]).optional(),
+    fill: z.string().max(40).optional(), fillType:z.enum(["solid","linear_gradient"]).optional(), gradientFrom:z.string().max(40).optional(), gradientTo:z.string().max(40).optional(), gradientAngle:z.number().optional(), blendMode:z.enum(["normal","multiply","screen","overlay","darken","lighten","soft-light"]).optional(), stroke: z.string().max(40).optional(), strokeWidth: z.number().optional(), cornerRadius: z.number().optional(),
+    shadowColor: z.string().max(40).optional(), shadowBlur: z.number().optional(), shadowX: z.number().optional(), shadowY: z.number().optional(),
+    imageUrl: z.union([z.literal(""),z.string().url().max(500)]).optional(), videoUrl: z.union([z.literal(""),z.string().url().max(500)]).optional(),
+    flipX:z.boolean().optional(),flipY:z.boolean().optional(),objectFit:z.enum(["cover","contain"]).optional(),cropX:z.number().optional(),cropY:z.number().optional(),cropW:z.number().optional(),cropH:z.number().optional(),
+    brightness:z.number().optional(),contrast:z.number().optional(),saturation:z.number().optional(),grayscale:z.number().optional(),blur:z.number().optional(),iconKey:z.string().max(40).optional(),frameStyle:z.enum(["corner","rounded","polaroid"]).optional(),
+  }).optional(),
   /** Optional link to storyboard scene */
   sceneId: z.string().trim().max(40).nullable().optional(),
   /** Caption track text (V7) */
@@ -98,6 +118,8 @@ export const compositionTrackSchema = z.object({
   kind: z.enum(COMPOSITION_TRACK_KINDS),
   name: z.string().trim().max(80).default("Track"),
   muted: z.boolean().default(false),
+  solo: z.boolean().default(false),
+  volume: z.number().min(0).max(2).default(1),
   locked: z.boolean().default(false),
   order: z.number().int().min(0).max(64).default(0),
 });
@@ -139,9 +161,13 @@ export const compositionAssetSchema = z.object({
   durationMs: z.number().int().min(0).max(600_000).optional().nullable(),
   width: z.number().int().min(0).max(8192).optional().nullable(),
   height: z.number().int().min(0).max(8192).optional().nullable(),
+  peaks: z.array(z.number().min(0).max(1)).max(1200).optional(),
+  provider: z.enum(["upload","rect_sound"]).optional().default("upload"),
+  licenseRef: z.string().trim().max(200).optional().nullable(),
 });
 
 export type CompositionAsset = z.infer<typeof compositionAssetSchema>;
+export type CompositionAssetInput = z.input<typeof compositionAssetSchema>;
 
 /**
  * Full composition document (Phase 1+).
@@ -160,6 +186,7 @@ export const studioCompositionSchema = z.object({
   assets: z.array(compositionAssetSchema).max(100).default([]),
   music: compositionMusicAnalysisSchema.nullable().optional(),
   snapToBeats: z.boolean().default(true),
+  masterVolume: z.number().min(0).max(2).default(1),
   markers: z
     .array(
       z.object({
@@ -271,17 +298,18 @@ export function compositionDurationMs(c: StudioComposition): number {
 
 export function addAssetToComposition(
   c: StudioComposition,
-  asset: CompositionAsset,
+  asset: CompositionAssetInput,
 ): StudioComposition {
-  if (c.assets.some((a) => a.id === asset.id || a.url === asset.url)) return c;
-  return { ...c, assets: [...c.assets, asset].slice(0, 100) };
+  const normalized = compositionAssetSchema.parse(asset);
+  if (c.assets.some((a) => a.id === normalized.id || a.url === normalized.url)) return c;
+  return { ...c, assets: [...c.assets, normalized].slice(0, 100) };
 }
 
 /** Place media on the first matching unlocked track at end (or playhead). */
 export function addClipFromAsset(
   c: StudioComposition,
   assetId: string,
-  opts?: { trackId?: string; atMs?: number },
+  opts?: { trackId?: string; atMs?: number; sourceDesignPageId?: string | null },
 ): StudioComposition | { error: string } {
   const asset = c.assets.find((a) => a.id === assetId);
   if (!asset) return { error: "Asset not in project." };
@@ -327,6 +355,7 @@ export function addClipFromAsset(
     scale: 1,
     rotation: 0,
     sceneId: null,
+    sourceDesignPageId: opts?.sourceDesignPageId ?? null,
   };
 
   return studioCompositionSchema.parse({
@@ -569,6 +598,7 @@ export function attachSoundtrack(
     url: opts.url,
     fileName: opts.fileName ?? "soundtrack",
     durationMs: opts.analysis.durationMs,
+    provider: "upload",
   };
   next = addAssetToComposition(next, asset);
 

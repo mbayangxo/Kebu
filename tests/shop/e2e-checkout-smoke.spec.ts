@@ -1,18 +1,49 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "playwright/test";
 
 /**
- * C3 — Checkout smoke (WhatsApp path — no PSP keys required).
- * Requires KEBU_E2E_BASE_URL and a published shop subdomain in KEBU_E2E_SHOP_SUBDOMAIN.
+ * Browser/API smoke against the exact Vercel deployment that emitted deployment_status.
+ * The fixture is an intentionally published non-production shop subdomain.
  */
 const shopSubdomain = process.env.KEBU_E2E_SHOP_SUBDOMAIN;
 
-test.describe("shop checkout smoke", () => {
-  test.skip(!shopSubdomain, "Set KEBU_E2E_SHOP_SUBDOMAIN to a live shop subdomain");
+test.describe("published shop preview", () => {
+  test.skip(!shopSubdomain, "Set KEBU_E2E_SHOP_SUBDOMAIN to a safe published test shop");
 
-  test("public shop loads products page", async ({ page }) => {
-    await page.goto(`/sites/${shopSubdomain}`);
+  test("published shop renders without server or browser failures", async ({ page }) => {
+    const browserErrors: string[] = [];
+    page.on("pageerror", (error) => browserErrors.push(error.message));
+    const response = await page.goto(`/sites/${shopSubdomain}`, { waitUntil: "domcontentloaded" });
+    expect(response).not.toBeNull();
+    expect(response?.status()).toBeLessThan(500);
     await expect(page.locator("body")).toBeVisible();
-    const title = await page.title();
-    expect(title.length).toBeGreaterThan(0);
+    await expect(page.locator("body")).not.toContainText("Service unavailable");
+    await expect(page.locator("body")).not.toContainText("Application error");
+    expect((await page.title()).trim().length).toBeGreaterThan(0);
+    expect(browserErrors).toEqual([]);
+  });
+
+  test("public order endpoint fails closed on malformed input without creating an order", async ({ request }) => {
+    const response = await request.post(`/api/public/sites/${shopSubdomain}/orders`, {
+      data: { productId: "not-a-uuid", quantity: -1 },
+      headers: { "Content-Type": "application/json" },
+    });
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe("Invalid order.");
+  });
+
+  test("unknown product cannot cross the live shop boundary", async ({ request }) => {
+    const response = await request.post(`/api/public/sites/${shopSubdomain}/orders`, {
+      data: {
+        productId: "00000000-0000-4000-8000-000000000001",
+        quantity: 1,
+        customerName: "Kebu E2E",
+        customerPhone: "+221700000000",
+        paymentPreference: "whatsapp",
+      },
+      headers: { "Content-Type": "application/json" },
+    });
+    expect([400, 404]).toContain(response.status());
+    expect(response.status()).toBeLessThan(500);
   });
 });

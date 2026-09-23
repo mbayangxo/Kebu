@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { mediaFilterCss } from "@/lib/studio/media-adjustments";
+import { layerMotionAtTime } from "@/lib/studio/layer-motion";
+import { applyStudioCanvasFill, studioCanvasCompositeOperation } from "@/lib/studio/layer-paint";
 
 export const CANVAS_DOC_VERSION = 2 as const;
 
@@ -25,17 +28,33 @@ export const canvasLayerSchema = z.object({
   rotation: z.number().min(-360).max(360).default(0),
   opacity: z.number().min(0).max(1).default(1),
   locked: z.boolean().optional().default(false),
+  hidden: z.boolean().optional().default(false),
   /** Shared id = group (move/align/delete together) */
   groupId: z.string().trim().max(40).nullable().optional(),
   text: z.string().trim().max(500).optional(),
   fontSize: z.number().min(8).max(200).optional(),
   fontFamily: z.string().trim().max(80).optional(),
   fontWeight: z.string().trim().max(20).optional(),
+  fontStyle: z.enum(["normal", "italic"]).optional(),
   color: z.string().trim().max(40).optional(),
   textAlign: z.enum(["left", "center", "right"]).optional(),
+  letterSpacing: z.number().min(-20).max(100).optional(),
+  lineHeight: z.number().min(0.6).max(3).optional(),
+  textDecoration: z.enum(["none", "underline", "line-through"]).optional(),
+  textTransform: z.enum(["none", "uppercase", "lowercase"]).optional(),
   fill: z.string().trim().max(40).optional(),
+  fillType: z.enum(["solid", "linear_gradient"]).optional(),
+  gradientFrom: z.string().trim().max(40).optional(),
+  gradientTo: z.string().trim().max(40).optional(),
+  gradientAngle: z.number().min(-360).max(360).optional(),
+  blendMode: z.enum(["normal","multiply","screen","overlay","darken","lighten","soft-light"]).optional(),
   stroke: z.string().trim().max(40).optional(),
   strokeWidth: z.number().min(0).max(40).optional(),
+  cornerRadius: z.number().min(0).max(1000).optional(),
+  shadowColor: z.string().trim().max(40).optional(),
+  shadowBlur: z.number().min(0).max(200).optional(),
+  shadowX: z.number().min(-200).max(200).optional(),
+  shadowY: z.number().min(-200).max(200).optional(),
   imageUrl: z.union([z.literal(""), z.string().trim().url().max(500)]).optional(),
   /** Short clip URL (mp4/webm) — Studio S8a video layer */
   videoUrl: z.union([z.literal(""), z.string().trim().url().max(500)]).optional(),
@@ -52,12 +71,27 @@ export const canvasLayerSchema = z.object({
   cropY: z.number().min(0).max(1).optional(),
   cropW: z.number().min(0.05).max(1).optional(),
   cropH: z.number().min(0.05).max(1).optional(),
+  /** Non-destructive image/video adjustments. Neutral = 1/1/1/0/0. */
+  brightness: z.number().min(0).max(2).optional(),
+  contrast: z.number().min(0).max(2).optional(),
+  saturation: z.number().min(0).max(3).optional(),
+  grayscale: z.number().min(0).max(1).optional(),
+  blur: z.number().min(0).max(40).optional(),
   /** Elements pack (S19) */
   iconKey: z.string().trim().max(40).optional(),
   frameStyle: z.enum(["corner", "rounded", "polaroid"]).optional(),
+  frameMediaKind: z.enum(["image","video"]).nullable().optional(),
+  frameMediaUrl: z.union([z.literal(""),z.string().trim().url().max(500)]).nullable().optional(),
+  frameFocalX: z.number().min(0).max(1).optional(),
+  frameFocalY: z.number().min(0).max(1).optional(),
+  sourceAssetId: z.string().trim().max(80).nullable().optional(),
+  /** Non-destructive entrance motion used by Studio preview and design→video conversion. */
+  animationPreset: z.enum(["none","fade","fade_up","slide_left","slide_right","scale","pop"]).optional(),
+  animationDurationMs: z.number().int().min(100).max(5000).optional(),
+  animationDelayMs: z.number().int().min(0).max(10000).optional(),
 });
 
-export type CanvasLayer = z.infer<typeof canvasLayerSchema>;
+export type CanvasLayer = Omit<z.infer<typeof canvasLayerSchema>, "hidden"> & { hidden?: boolean };
 
 export const canvasPageSchema = z.object({
   id: z.string().trim().min(1).max(40),
@@ -68,9 +102,12 @@ export const canvasPageSchema = z.object({
   layers: z.array(canvasLayerSchema).max(64).default([]),
   /** How long this page stays on the timeline (S8b) */
   durationMs: z.number().int().min(500).max(30_000).optional(),
+  /** Transition into this page when played/exported as motion. */
+  transitionKind: z.enum(["cut","fade","dissolve","slide"]).optional(),
+  transitionDurationMs: z.number().int().min(0).max(3000).optional(),
 });
 
-export type CanvasPage = z.infer<typeof canvasPageSchema>;
+export type CanvasPage = Omit<z.infer<typeof canvasPageSchema>, "layers"> & { layers: CanvasLayer[] };
 
 /** Soundtrack + beat grid (S8c-lite) — persisted on the design canvas. */
 export const canvasSoundtrackSchema = z.object({
@@ -129,7 +166,7 @@ export const canvasDocumentSchema = z.object({
     .optional(),
 });
 
-export type CanvasDocument = z.infer<typeof canvasDocumentSchema>;
+export type CanvasDocument = Omit<z.infer<typeof canvasDocumentSchema>, "layers" | "pages"> & { layers: CanvasLayer[]; pages: CanvasPage[] };
 
 export const STUDIO_DESIGN_TYPES = [
   "poster",
@@ -198,7 +235,7 @@ export function getPage(doc: CanvasDocument, pageId: string | null | undefined):
 export function updatePage(
   doc: CanvasDocument,
   pageId: string,
-  patch: Partial<Pick<CanvasPage, "name" | "width" | "height" | "backgroundColor" | "layers" | "durationMs">>,
+  patch: Partial<Pick<CanvasPage, "name" | "width" | "height" | "backgroundColor" | "layers" | "durationMs" | "transitionKind" | "transitionDurationMs">>,
 ): CanvasDocument {
   const pages = doc.pages.map((p) => (p.id === pageId ? { ...p, ...patch } : p));
   const active = pages.find((p) => p.id === pageId) ?? pages[0]!;
@@ -643,6 +680,18 @@ export function defaultCanvasDocument(
 }
 
 /** Accept legacy flat / v1 / v2 documents → always v2. */
+/** Backward-compatible blank-square helper retained for older Studio callers/tests. */
+export function emptyCanvasDocument(opts: { width: number; height: number }): CanvasDocument {
+  const doc = defaultCanvasDocument("instagram_post");
+  const page = doc.pages[0]!;
+  return canvasDocumentSchema.parse({
+    ...doc,
+    width: opts.width,
+    height: opts.height,
+    pages: [{ ...page, width: opts.width, height: opts.height }],
+  });
+}
+
 export function parseCanvasDocument(
   raw: unknown,
   designType: StudioDesignType = "poster",
@@ -799,6 +848,122 @@ function paintIconLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
   ctx.fillText(glyph, layer.x + layer.width / 2, layer.y + layer.height / 2);
 }
 
+function applyLayerShadow(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  ctx.shadowColor = layer.shadowColor ?? "rgba(0,0,0,0)";
+  ctx.shadowBlur = layer.shadowBlur ?? 0;
+  ctx.shadowOffsetX = layer.shadowX ?? 0;
+  ctx.shadowOffsetY = layer.shadowY ?? 0;
+}
+
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function transformedLayerText(layer: CanvasLayer): string {
+  const raw = layer.text ?? "";
+  if (layer.textTransform === "uppercase") return raw.toUpperCase();
+  if (layer.textTransform === "lowercase") return raw.toLowerCase();
+  return raw;
+}
+
+function textWidth(ctx: CanvasRenderingContext2D, text: string, letterSpacing: number): number {
+  if (!text) return 0;
+  return ctx.measureText(text).width + Math.max(0, text.length - 1) * letterSpacing;
+}
+
+function paintTextRun(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  letterSpacing: number,
+) {
+  if (!letterSpacing) {
+    ctx.fillText(text, x, y);
+    return;
+  }
+  let cursor = x;
+  for (const char of text) {
+    ctx.fillText(char, cursor, y);
+    cursor += ctx.measureText(char).width + letterSpacing;
+  }
+}
+
+function paintTextLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
+  const text = transformedLayerText(layer);
+  if (!text) return;
+  const fontSize = layer.fontSize ?? 24;
+  const lineHeight = fontSize * (layer.lineHeight ?? 1.2);
+  const letterSpacing = layer.letterSpacing ?? 0;
+  ctx.fillStyle = layer.color ?? "#FFFFFF";
+  ctx.font = `${layer.fontStyle ?? "normal"} ${layer.fontWeight ?? "400"} ${fontSize}px ${layer.fontFamily ?? "system-ui"}`;
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+
+  const paragraphs = text.split(/\n/);
+  const lines: string[] = [];
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      lines.push("");
+      continue;
+    }
+    let current = words[0]!;
+    for (const word of words.slice(1)) {
+      const candidate = current + " " + word;
+      if (textWidth(ctx, candidate, letterSpacing) <= layer.width) current = candidate;
+      else {
+        lines.push(current);
+        current = word;
+      }
+    }
+    lines.push(current);
+  }
+
+  let y = layer.y + fontSize;
+  for (const line of lines) {
+    if (y > layer.y + layer.height + lineHeight) break;
+    const width = textWidth(ctx, line, letterSpacing);
+    const x =
+      layer.textAlign === "center"
+        ? layer.x + (layer.width - width) / 2
+        : layer.textAlign === "right"
+          ? layer.x + layer.width - width
+          : layer.x;
+    paintTextRun(ctx, line, x, y, letterSpacing);
+
+    if (layer.textDecoration && layer.textDecoration !== "none" && line) {
+      const decorationY =
+        layer.textDecoration === "underline"
+          ? y + Math.max(1, fontSize * 0.08)
+          : y - fontSize * 0.32;
+      ctx.save();
+      ctx.strokeStyle = layer.color ?? "#FFFFFF";
+      ctx.lineWidth = Math.max(1, fontSize * 0.055);
+      ctx.beginPath();
+      ctx.moveTo(x, decorationY);
+      ctx.lineTo(x + width, decorationY);
+      ctx.stroke();
+      ctx.restore();
+    }
+    y += lineHeight;
+  }
+}
+
 export function exportCanvasToPngDataUrl(
   doc: CanvasDocument,
   scale = 1,
@@ -815,17 +980,26 @@ export function exportCanvasToPngDataUrl(
   ctx.fillStyle = page.backgroundColor;
   ctx.fillRect(0, 0, page.width, page.height);
   for (const layer of page.layers) {
-    if (layer.opacity <= 0) continue;
+    if (layer.hidden || layer.opacity <= 0) continue;
     ctx.save();
     ctx.globalAlpha = layer.opacity;
+    ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
     const cx = layer.x + layer.width / 2;
     const cy = layer.y + layer.height / 2;
     ctx.translate(cx, cy);
     ctx.rotate((layer.rotation * Math.PI) / 180);
     ctx.translate(-cx, -cy);
+    applyLayerShadow(ctx, layer);
+    const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
+    if (mediaFilter) ctx.filter = mediaFilter;
     if (layer.type === "rect") {
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
-      ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
+      if ((layer.cornerRadius ?? 0) > 0) {
+        roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+        ctx.fill();
+      } else {
+        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      }
     } else if (layer.type === "line") {
       paintLineLayer(ctx, layer);
     } else if (layer.type === "frame") {
@@ -843,19 +1017,10 @@ export function exportCanvasToPngDataUrl(
         0,
         Math.PI * 2,
       );
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
       ctx.fill();
     } else if (layer.type === "text" && layer.text) {
-      ctx.fillStyle = layer.color ?? "#FFFFFF";
-      ctx.font = `${layer.fontWeight ?? "400"} ${layer.fontSize ?? 24}px ${layer.fontFamily ?? "system-ui"}`;
-      ctx.textAlign = (layer.textAlign as CanvasTextAlign) ?? "left";
-      const tx =
-        layer.textAlign === "center"
-          ? layer.x + layer.width / 2
-          : layer.textAlign === "right"
-            ? layer.x + layer.width
-            : layer.x;
-      ctx.fillText(layer.text, tx, layer.y + (layer.fontSize ?? 24));
+      paintTextLayer(ctx, layer);
     }
     ctx.restore();
   }
@@ -898,17 +1063,29 @@ export async function exportCanvasToPngDataUrlAsync(
   const cache = opts?.videoCache;
 
   for (const layer of page.layers) {
-    if (layer.opacity <= 0) continue;
+    if (layer.hidden || layer.opacity <= 0) continue;
+    const motion = layerMotionAtTime(layer, pageLocal);
+    if (motion.opacityMultiplier <= 0) continue;
     ctx.save();
-    ctx.globalAlpha = layer.opacity;
+    ctx.globalAlpha = layer.opacity * motion.opacityMultiplier;
+    ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
     const cx = layer.x + layer.width / 2;
     const cy = layer.y + layer.height / 2;
-    ctx.translate(cx, cy);
+    ctx.translate(cx + motion.translateX, cy + motion.translateY);
     ctx.rotate((layer.rotation * Math.PI) / 180);
+    ctx.scale(motion.scale, motion.scale);
     ctx.translate(-cx, -cy);
+    applyLayerShadow(ctx, layer);
+    const mediaFilter = layer.type === "image" || layer.type === "video" ? mediaFilterCss(layer) : undefined;
+    if (mediaFilter) ctx.filter = mediaFilter;
     if (layer.type === "rect") {
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
-      ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
+      if ((layer.cornerRadius ?? 0) > 0) {
+        roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+        ctx.fill();
+      } else {
+        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+      }
     } else if (layer.type === "line") {
       paintLineLayer(ctx, layer);
     } else if (layer.type === "frame") {
@@ -926,23 +1103,18 @@ export async function exportCanvasToPngDataUrlAsync(
         0,
         Math.PI * 2,
       );
-      ctx.fillStyle = layer.fill ?? "#E05A2B";
+      applyStudioCanvasFill(ctx, layer, { x: layer.x, y: layer.y, width: layer.width, height: layer.height });
       ctx.fill();
     } else if (layer.type === "text" && layer.text) {
-      ctx.fillStyle = layer.color ?? "#FFFFFF";
-      ctx.font = `${layer.fontWeight ?? "400"} ${layer.fontSize ?? 24}px ${layer.fontFamily ?? "system-ui"}`;
-      ctx.textAlign = (layer.textAlign as CanvasTextAlign) ?? "left";
-      const tx =
-        layer.textAlign === "center"
-          ? layer.x + layer.width / 2
-          : layer.textAlign === "right"
-            ? layer.x + layer.width
-            : layer.x;
-      ctx.fillText(layer.text, tx, layer.y + (layer.fontSize ?? 24));
+      paintTextLayer(ctx, layer);
     } else if (layer.type === "image" && layer.imageUrl) {
       const img = await loadImageElement(layer.imageUrl);
       if (img) {
         ctx.save();
+        if ((layer.cornerRadius ?? 0) > 0) {
+          roundedRectPath(ctx, layer.x, layer.y, layer.width, layer.height, layer.cornerRadius ?? 0);
+          ctx.clip();
+        }
         ctx.translate(cx, cy);
         ctx.scale(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1);
         ctx.translate(-cx, -cy);

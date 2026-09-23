@@ -16,8 +16,16 @@
  *   { "mcpServers": { "kebu": { "type": "http", "url": "...", "headers": { "Authorization": "Bearer ..." } } } }
  */
 
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
+import { authRateLimit } from "@/lib/api-guard";
+
+export const runtime = "nodejs";
+
+function mcpEnabled(): boolean {
+  return process.env.MCP_ENABLED === "true";
+}
 
 // ─── Supabase service client (full access) ─────────────────────────────────
 
@@ -32,9 +40,11 @@ function serviceClient() {
 
 function authorized(req: NextRequest): boolean {
   const token = process.env.MCP_BEARER_TOKEN;
-  if (!token) return false;
+  if (!mcpEnabled() || !token || token.length < 32) return false;
   const auth = req.headers.get("authorization") ?? "";
-  return auth === `Bearer ${token}`;
+  const expected = createHash("sha256").update(`Bearer ${token}`).digest();
+  const received = createHash("sha256").update(auth).digest();
+  return timingSafeEqual(expected, received);
 }
 
 // ─── Tool definitions ────────────────────────────────────────────────────────
@@ -648,8 +658,13 @@ function err(id: unknown, code: number, message: string) {
 }
 
 function corsHeaders() {
+  // Restrict to a configured origin so browser requests from arbitrary sites
+  // cannot read service-role responses. Set MCP_ALLOWED_ORIGIN in Vercel env
+  // (e.g. https://yourdomain.com). Falls back to "null" which allows curl/CLI
+  // while blocking cross-origin browser requests.
+  const origin = process.env.MCP_ALLOWED_ORIGIN ?? "null";
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
@@ -663,6 +678,9 @@ export async function OPTIONS() {
 
 /** Discovery endpoint — returns server info without auth required. */
 export async function GET() {
+  if (!mcpEnabled()) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
   return Response.json(
     {
       name: "kebu",
@@ -689,6 +707,11 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!mcpEnabled()) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+  const limited = authRateLimit(req);
+  if (limited) return limited;
   if (!authorized(req)) {
     return err(null, -32001, "Unauthorized — set Authorization: Bearer <MCP_BEARER_TOKEN>");
   }

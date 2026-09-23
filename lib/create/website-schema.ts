@@ -83,6 +83,8 @@ export const themeSchema = z.object({
   customCss: z.string().trim().max(10000).optional(),
   /** ISO 4217 currency code (XOF, NGN, KES, GHS, ZAR, USD, EUR…). */
   currency: z.string().trim().max(8).optional(),
+  /** Base body font size in px (12–20). Defaults to 16. */
+  baseFontSize: z.number().min(12).max(20).optional(),
 });
 
 const safeHref = z
@@ -142,6 +144,31 @@ const deviceOverridesSchema = z
   })
   .optional();
 
+/** Builder-owned presentation metadata shared by every section type. */
+export const builderSectionMetaSchema = z.object({
+  sectionPaddingY: z.enum(["tight", "normal", "spacious", "open"]).optional(),
+  minHeightPx: z.number().int().min(0).max(4000).optional(),
+  maxWidthPx: z.number().int().min(320).max(2400).optional(),
+  marginTopPx: z.number().int().min(-400).max(800).optional(),
+  marginBottomPx: z.number().int().min(-400).max(800).optional(),
+  overflow: z.enum(["visible", "hidden", "clip"]).optional(),
+  builderMotion: z.object({
+    preset: z.enum(["none", "fade", "fade-up", "slide-left", "slide-right", "scale"]).default("none"),
+    durationMs: z.number().int().min(100).max(3000).default(500),
+    delayMs: z.number().int().min(0).max(3000).default(0),
+    trigger: z.enum(["load", "scroll"]).default("scroll"),
+  }).optional(),
+}).partial();
+
+export function parseSectionProps<T extends keyof typeof sectionPropsSchemas>(
+  type: T,
+  raw: Record<string, unknown>,
+) {
+  const content = sectionPropsSchemas[type].parse(raw);
+  const meta = builderSectionMetaSchema.parse(raw);
+  return { ...content, ...meta };
+}
+
 export const sectionPropsSchemas = {
   navigation: z.object({
     brand: z.string().trim().min(1).max(80),
@@ -173,11 +200,19 @@ export const sectionPropsSchemas = {
     navSize: z.enum(["compact", "comfortable", "large", "fullscreen"]).optional().default("comfortable"),
     navScale: z.number().min(0.7).max(2.2).optional().default(1),
     /** Top bar (regular) or left side rail. */
-    navLayout: z.enum(["top", "side"]).optional().default("top"),
+    navLayout: z.enum(["top", "side", "hamburger"]).optional().default("top"),
     /** Logo / brand alignment inside the nav bar. */
     logoAlign: z.enum(["left", "center", "right"]).optional().default("left"),
     /** Whether the nav bar sticks to the top on scroll. */
     navSticky: z.boolean().optional().default(true),
+    /** Uploaded brand mark and site identity. */
+    logoUrl: imageUrl.default(""),
+    logoAlt: z.string().trim().max(120).optional().default(""),
+    logoScale: z.number().min(0.5).max(4).optional().default(1),
+    faviconUrl: imageUrl.default(""),
+    /** Header typography can intentionally differ from the site body. */
+    fontFamily: z.string().trim().max(120).optional(),
+    fontWeight: z.number().int().min(100).max(900).optional(),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
@@ -885,6 +920,8 @@ export const sectionPropsSchemas = {
             y: z.number().min(0).max(100).default(8),
             width: z.number().min(15).max(100).default(84),
             fontSize: z.enum(["sm", "md", "lg", "xl", "hero"]).default("md"),
+            /** Exact editor size in px. Preserves old semantic sizes when omitted. */
+            fontSizePx: z.number().min(6).max(240).optional(),
             align: z.enum(["left", "center", "right"]).default("left"),
             color: z.string().trim().max(40).optional().default(""),
             fontFamily: z.string().trim().max(80).optional().default(""),
@@ -903,6 +940,9 @@ export const sectionPropsSchemas = {
       .default([]),
     bgColor: z.string().trim().max(32).optional(),
     textColor: z.string().trim().max(32).optional(),
+    fontFamily: z.string().trim().max(120).optional(),
+    legalName: z.string().trim().max(120).optional(),
+    copyrightYear: z.number().int().min(1900).max(2200).optional(),
     hidden: z.boolean().optional(),
     paddingTop: z.number().int().min(8).max(200).default(32),
     paddingBottom: z.number().int().min(8).max(200).default(32),
@@ -1029,6 +1069,21 @@ export const sectionPropsSchemas = {
       .record(z.string().trim().min(1).max(40), z.number().int().min(1).max(80))
       .optional()
       .default({}),
+    /** Per-layer opacity (0 = invisible, 1 = fully visible). */
+    layerOpacity: z
+      .record(z.string().trim().min(1).max(40), z.number().min(0).max(1))
+      .optional()
+      .default({}),
+    /** Per-layer rotation override in degrees. */
+    layerRotation: z
+      .record(z.string().trim().min(1).max(40), z.number().min(-180).max(180))
+      .optional()
+      .default({}),
+    /** Layers that remain visible but cannot be moved/resized until unlocked. */
+    lockedLayers: z.preprocess(
+      (v) => (Array.isArray(v) ? v : []),
+      z.array(z.string().trim().min(1).max(40)).max(32).default([]),
+    ),
     /** Built-in cutout keys the founder removed (do not fall back to Russian assets). */
     hiddenLayers: z.preprocess((v) => (Array.isArray(v) ? v : []), z.array(z.string().trim().min(1).max(40)).max(20).default([])),
     /** Solid accent color only — no photo background. */
@@ -1047,7 +1102,7 @@ export const sectionPropsSchemas = {
             leftPct: z.number().min(-20).max(110).default(40),
             widthPct: z.number().min(4).max(80).default(14),
             rotate: z.number().min(-45).max(45).optional().default(0),
-            zIndex: z.number().int().min(1).max(40).optional().default(12),
+            zIndex: z.number().int().min(1).max(80).optional().default(12),
             parallaxRole: z.enum(["city", "figure", "none"]).optional().default("none"),
           }),
         )
@@ -1062,7 +1117,20 @@ export const sectionPropsSchemas = {
     scrollMode: z.enum(["viewport", "parallax"]).optional().default("parallax"),
     /** false = use titleLogo image (May Lècor circle seal); true = CircularBrandRing text. */
     titleAsText: z.boolean().optional().default(false),
+    /** Typography for the editable name inside the circle. */
+    titleTextFontFamily: z.string().trim().max(120).optional().default("Impact"),
+    titleTextFontSize: z.number().min(6).max(240).optional().default(14),
+    titleTextFontWeight: z.number().int().min(400).max(900).optional().default(900),
+    titleTextLetterSpacing: z.number().min(-0.05).max(0.5).optional().default(0.12),
+    titleTextLineHeight: z.number().min(0.8).max(2).optional().default(1.15),
+    titleTextColor: z.string().trim().max(40).optional().default("#ffffff"),
+    /** Natural editor/published hero height; can be overridden per device. */
+    sectionMinHeightPx: z.number().int().min(360).max(1800).optional().default(720),
+    /** Embedded May footer spacing; editor can resize this without affecting the hero artboard. */
+    embeddedFooterPaddingTop: z.number().int().min(8).max(160).optional().default(20),
+    embeddedFooterPaddingBottom: z.number().int().min(8).max(160).optional().default(20),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "kdirection-home": z.object({
     brandLine1: z.string().trim().max(12).default("K"),
@@ -1283,6 +1351,16 @@ export const aiImproveBriefSchema = z.object({
     .optional(),
   /** Target page slug for A6 generate/rewrite on one page. */
   focusPageSlug: z.string().trim().max(80).optional(),
+  /** Optional exact Builder selection so Yande can operate on the thing the user clicked. */
+  focusElement: z
+    .object({
+      sectionId: z.string().trim().min(1).max(120),
+      elementId: z.string().trim().min(1).max(120),
+      kind: z.enum(["text", "image", "cutout", "background", "control"]),
+      label: z.string().trim().min(1).max(120),
+      device: z.enum(["desktop", "tablet", "mobile"]).optional(),
+    })
+    .optional(),
 });
 
 export type AiImproveBrief = z.infer<typeof aiImproveBriefSchema>;

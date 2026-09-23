@@ -10,6 +10,7 @@ import { builderRateLimit } from "@/lib/api-guard";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { recalculateAndStoreReadiness } from "@/lib/kebu-id/create-registration";
 import { z } from "zod";
+import { recordProjectFlow } from "@/lib/platform/flow-events";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,18 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   logCreate("website.published", { userId: user.id, projectId: id, subdomain });
+  await recordProjectFlow({
+    eventType: "website.published",
+    projectId: id,
+    actorUserId: user.id,
+    idempotencyKey: `website.published:${id}:${published.liveUrl}`,
+    payload: { subdomain, liveUrl: published.liveUrl },
+    notification: {
+      title: "Site published",
+      body: `${project.title} is live.`,
+      actionUrl: `/create/${id}`,
+    },
+  });
 
   return NextResponse.json({
     deployment: {

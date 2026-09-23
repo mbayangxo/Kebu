@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { BUILDER } from "@/lib/create/builder-ui";
+import { useBuilderAccordion } from "@/app/components/create/use-builder-accordion";
 
 export function PanelSection({
   title,
@@ -14,21 +15,22 @@ export function PanelSection({
   defaultOpen?: boolean;
   group?: string;
 }) {
+  const { open, setAccordionOpen } = useBuilderAccordion(group, defaultOpen);
+
   return (
     <details
-      open={defaultOpen}
-      name={group}
-      className="group/ps overflow-hidden"
-      style={{ border: `1px solid ${BUILDER.border}`, borderRadius: 10 }}
+      open={open}
+      onToggle={(event) => setAccordionOpen(event.currentTarget.open)}
+      className="group/ps border-b border-black/[0.07] bg-white"
     >
       <summary
-        className="flex cursor-pointer list-none items-center justify-between px-3 py-2 select-none"
-        style={{ background: "#FAFAF8", color: BUILDER.ink }}
+        className="flex min-h-9 cursor-pointer list-none items-center justify-between px-1 py-2 select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6A00]"
+        style={{ background: "#fff", color: BUILDER.ink }}
       >
-        <span className="text-[10px] font-bold uppercase tracking-wider">{title}</span>
-        <span className="text-[8px] text-[#ABABAB] transition-transform group-open/ps:rotate-180" aria-hidden>▼</span>
+        <span className="text-[10px] font-semibold">{title}</span>
+        <svg className="h-3 w-3 text-black/35 transition-transform group-open/ps:rotate-180" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </summary>
-      <div className="px-3 pb-3 pt-2 space-y-2">{children}</div>
+      <div className="space-y-3 px-1 pb-3 pt-1">{children}</div>
     </details>
   );
 }

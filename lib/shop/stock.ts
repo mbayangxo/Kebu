@@ -19,37 +19,15 @@ export async function decrementProductStock(
 ): Promise<{ ok: true; remaining: number | null } | { ok: false; error: string }> {
   if (quantity < 1) return { ok: false, error: "Invalid quantity." };
 
-  const { data: product, error } = await admin
-    .from("project_products")
-    .select("id, track_stock, stock_qty")
-    .eq("id", productId)
-    .maybeSingle();
+  const { data, error } = await admin.rpc("decrement_product_stock_atomic", {
+    p_product_id: productId,
+    p_quantity: quantity,
+  });
 
-  if (error && /track_stock|stock_qty/i.test(error.message ?? "")) {
-    return { ok: true, remaining: null };
-  }
-  if (error || !product) return { ok: false, error: "Product not found for stock." };
-  if (!product.track_stock) return { ok: true, remaining: null };
-
-  const current = typeof product.stock_qty === "number" ? product.stock_qty : 0;
-  if (current < quantity) {
-    return { ok: false, error: "Not enough stock for that product." };
-  }
-
-  const next = current - quantity;
-  const { data: updated, error: updErr } = await admin
-    .from("project_products")
-    .update({ stock_qty: next, updated_at: new Date().toISOString() })
-    .eq("id", productId)
-    .eq("track_stock", true)
-    .gte("stock_qty", quantity)
-    .select("stock_qty")
-    .maybeSingle();
-
-  if (updErr || !updated) {
-    return { ok: false, error: "Stock changed — refresh and try again." };
-  }
-  return { ok: true, remaining: updated.stock_qty };
+  if (error) return { ok: false, error: "Could not reserve stock." };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.ok) return { ok: false, error: "Not enough stock for that product." };
+  return { ok: true, remaining: typeof row.remaining === "number" ? row.remaining : null };
 }
 
 export async function restoreProductStock(
@@ -58,18 +36,10 @@ export async function restoreProductStock(
   quantity: number,
 ): Promise<void> {
   if (quantity < 1) return;
-  const { data: product } = await admin
-    .from("project_products")
-    .select("id, track_stock, stock_qty")
-    .eq("id", productId)
-    .maybeSingle();
-  if (!product?.track_stock) return;
-  const current = typeof product.stock_qty === "number" ? product.stock_qty : 0;
-  await admin
-    .from("project_products")
-    .update({ stock_qty: current + quantity, updated_at: new Date().toISOString() })
-    .eq("id", productId)
-    .eq("track_stock", true);
+  await admin.rpc("restore_product_stock_atomic", {
+    p_product_id: productId,
+    p_quantity: quantity,
+  });
 }
 
 /** Decrement each line; on failure restore prior decrements in reverse. */
@@ -89,4 +59,64 @@ export async function decrementCartStock(
     done.push(line);
   }
   return { ok: true };
+}
+
+
+export async function reserveShopCheckout(
+  admin: SupabaseClient,
+  opts: { orderId: string; projectId: string; productId: string; quantity: number; discountId?: string | null },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await admin.rpc("reserve_shop_checkout", {
+    p_order_id: opts.orderId,
+    p_project_id: opts.projectId,
+    p_product_id: opts.productId,
+    p_quantity: opts.quantity,
+    p_discount_id: opts.discountId ?? null,
+    p_ttl_minutes: 20,
+  });
+  if (error || data !== true) return { ok: false, error: "Product or discount is no longer available." };
+  return { ok: true };
+}
+
+export type MultiCheckoutLine = {
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+};
+
+/** Atomic all-or-nothing multi-line reservation via reserve_multi_shop_checkout RPC. */
+export async function reserveMultiShopCheckout(
+  admin: SupabaseClient,
+  opts: {
+    orderId: string;
+    projectId: string;
+    lines: MultiCheckoutLine[];
+    discountId?: string | null;
+    ttlMinutes?: number;
+  },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const lines = opts.lines.map((l) => ({
+    product_id: l.productId,
+    variant_id: l.variantId ?? null,
+    quantity: l.quantity,
+  }));
+  const { data, error } = await admin.rpc("reserve_multi_shop_checkout", {
+    p_order_id: opts.orderId,
+    p_project_id: opts.projectId,
+    p_lines: lines,
+    p_discount_id: opts.discountId ?? null,
+    p_ttl_minutes: opts.ttlMinutes ?? 20,
+  });
+  if (error || data !== true) return { ok: false, error: "One or more items are no longer available." };
+  return { ok: true };
+}
+
+export async function commitShopCheckout(admin: SupabaseClient, orderId: string): Promise<boolean> {
+  const { data, error } = await admin.rpc("commit_shop_checkout", { p_order_id: orderId });
+  return !error && data === true;
+}
+
+export async function releaseShopCheckout(admin: SupabaseClient, orderId: string): Promise<void> {
+  if (!orderId) return;
+  await admin.rpc("release_shop_checkout", { p_order_id: orderId });
 }

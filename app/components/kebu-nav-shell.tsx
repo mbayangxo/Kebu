@@ -2,485 +2,320 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { KebuMark } from "@/app/components/kebu-mark";
+import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
+import { useKebuUser } from "@/app/hooks/use-kebu-user";
+import { displayFirstName } from "@/lib/account/user-profile";
+import { KebuWorldSwitcher } from "@/app/components/kebu/kebu-world-switcher";
 
-/* ─── Icon ───────────────────────────────────────────────────────────────── */
-function Icon({ d, size = 19 }: { d: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} />
-    </svg>
-  );
-}
-
-const ICONS = {
-  home:      "M3 9l9-7 9 7v11a1 1 0 01-1 1h-5v-5H9v5H4a1 1 0 01-1-1z",
-  lightning: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
-  layers:    "M12 2l8 4.5v5L12 16l-8-4.5v-5L12 2zM4 6.5l8 4.5 8-4.5",
-  brush:     "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z",
-  bag:       "M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6zm4 10a2 2 0 104 0 2 2 0 00-4 0",
-  globe:     "M12 2a10 10 0 100 20A10 10 0 0012 2zM2 12h20M12 2c-3.5 4-3.5 16 0 20M12 2c3.5 4 3.5 16 0 20",
-  more:      "M5 12h.01M12 12h.01M19 12h.01",
-  collapse:  "M15 18l-6-6 6-6",
-  expand:    "M9 18l6-6-6-6",
-  messages:  "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
-  settings:  "M12 15a3 3 0 100-6 3 3 0 000 6zm7-3a7 7 0 01-.1 1.1l2.3 1.8-2.2 3.8-2.7-1.1c-.6.4-1.2.8-1.9 1L14 21h-4l-.4-2.8c-.7-.3-1.3-.6-1.9-1L5 18.4l-2.2-3.8 2.3-1.8A7 7 0 015 12a7 7 0 01.1-1.1L2.8 9.1 5 5.3l2.7 1.1c.6-.4 1.2-.8 1.9-1L10 3h4l.4 2.8c.7.3 1.3.6 1.9 1L19 5.6l2.2 3.8-2.3 1.8c.1.4.1.7.1 1z",
-} as const;
-
-/* ─── Product definitions ────────────────────────────────────────────────── */
-type NavItem = {
+type NavChild = {
   label: string;
   href: string;
-  exact?: boolean;
-  badgeKey?: "messages";
-  children?: { label: string; href: string; exact?: boolean }[];
+  icon: KebuIconName;
+  matchPrefixes?: string[];
+  badge?: "messages";
 };
 
-type Product = {
+type NavGroup = {
   id: string;
-  icon: keyof typeof ICONS;
   label: string;
-  href: string;
-  prefixes: string[];
-  items: NavItem[];
+  icon: KebuIconName;
+  href?: string;
+  children?: NavChild[];
+  matchPrefixes?: string[];
 };
 
-const PRODUCTS: Product[] = [
+const NAV: NavGroup[] = [
   {
-    id: "kebu",
+    id: "home",
+    label: "Home",
     icon: "home",
-    label: "Kebu",
     href: "/dashboard",
-    prefixes: ["/dashboard", "/welcome"],
-    items: [
-      { label: "Your Kebu", href: "/dashboard", exact: true },
-      { label: "Personalize", href: "/welcome" },
-    ],
+    matchPrefixes: ["/dashboard"],
   },
   {
-    id: "opportunity",
-    icon: "lightning",
-    label: "Opportunity",
-    href: "/opportunity",
-    prefixes: ["/opportunity"],
-    items: [
-      { label: "Browse", href: "/opportunity", exact: true },
-      { label: "Listings", href: "/opportunity/listings" },
+    id: "everyday",
+    label: "Everyday",
+    icon: "calendar",
+    children: [
+      { label: "Calendar", href: "/calendar", icon: "calendar" },
+      { label: "Tasks", href: "/tasks", icon: "work" },
+      { label: "Library", href: "/library", icon: "library" },
+      { label: "Docs", href: "/docs", icon: "work" },
     ],
+    matchPrefixes: ["/calendar", "/tasks", "/library", "/docs"],
   },
   {
-    id: "yande",
-    icon: "layers",
-    label: "Sites",
-    href: "/my-sites",
-    prefixes: ["/create", "/my-sites"],
-    items: [
-      { label: "My Sites", href: "/my-sites" },
-      { label: "Build a site", href: "/create/new" },
-      { label: "Aesthetic Gallery", href: "/create/aesthetics" },
+    id: "create",
+    label: "Create",
+    icon: "create",
+    children: [
+      { label: "Studio", href: "/studio", icon: "studio" },
+      { label: "Sites", href: "/my-sites", icon: "builder", matchPrefixes: ["/my-sites", "/create/sites", "/create/domains", "/create/aesthetics"] },
+      { label: "Code", href: "/create/code", icon: "work" },
+      { label: "Design", href: "/studio/new", icon: "create" },
+      { label: "Text", href: "/docs", icon: "work" },
+      { label: "Video", href: "/studio/video/new", icon: "studio" },
+      { label: "AI Tools", href: "/tools", icon: "yande" },
     ],
+    matchPrefixes: ["/studio", "/my-sites", "/create"],
   },
   {
-    id: "studio",
-    icon: "brush",
-    label: "Studio",
-    href: "/studio",
-    prefixes: ["/studio"],
-    items: [
-      { label: "My designs", href: "/studio", exact: true },
-      { label: "New design", href: "/studio/new" },
-      { label: "Brand DNA", href: "/studio/brand" },
-      { label: "Campaigns", href: "/studio/campaigns" },
+    id: "discover",
+    label: "Discover",
+    icon: "search",
+    children: [
+      { label: "Search", href: "/search", icon: "search" },
+      { label: "Browser", href: "/browser", icon: "search" },
+      { label: "Opportunity OS", href: "/opportunity", icon: "opportunity" },
     ],
+    matchPrefixes: ["/search", "/browser", "/opportunity"],
   },
   {
-    id: "shop",
-    icon: "bag",
-    label: "Shop",
-    href: "/shop",
-    prefixes: ["/shop"],
-    items: [
-      { label: "My Shops", href: "/shop", exact: true },
+    id: "connect",
+    label: "Connect",
+    icon: "message",
+    children: [
+      { label: "Mail", href: "/email", icon: "message" },
+      { label: "Chat", href: "/chat", icon: "message", badge: "messages" },
+      { label: "Messages", href: "/messages", icon: "message" },
     ],
+    matchPrefixes: ["/email", "/chat", "/messages"],
   },
   {
-    id: "alkebulan",
-    icon: "globe",
-    label: "Business",
-    href: "/b2b",
-    prefixes: ["/b2b", "/business", "/messages", "/ka-score"],
-    items: [
-      { label: "Marketplace", href: "/b2b", exact: true },
-      { label: "My Businesses", href: "/business", exact: true },
-      { label: "KA Score", href: "/ka-score" },
-      { label: "Messages", href: "/messages", badgeKey: "messages" },
+    id: "more",
+    label: "More",
+    icon: "more",
+    children: [
+      { label: "Business", href: "/business", icon: "spaces" },
+      { label: "Spaces", href: "/spaces", icon: "spaces" },
+      { label: "People", href: "/people", icon: "people" },
+      { label: "Shop", href: "/shop", icon: "commerce" },
+      { label: "Rooms", href: "/rooms", icon: "spaces" },
     ],
+    matchPrefixes: ["/business", "/spaces", "/people", "/shop", "/rooms"],
   },
 ];
 
-/* Mobile bottom tab order (5 max) */
-const MOBILE_TABS = ["kebu", "opportunity", "yande", "shop", "alkebulan"];
-
-/* ─── Helpers ────────────────────────────────────────────────────────────── */
-function active(pathname: string, href: string, exact?: boolean) {
-  if (exact) return pathname === href;
-  return pathname === href || pathname.startsWith(href + "/");
+function childActive(path: string, child: NavChild): boolean {
+  const prefixes = child.matchPrefixes ?? [child.href];
+  return prefixes.some((p) => path === p || path.startsWith(p + "/"));
 }
 
-function detectProduct(pathname: string): Product {
-  for (const p of PRODUCTS) {
-    if (p.prefixes.some((px) => pathname === px || pathname.startsWith(px + "/"))) return p;
-  }
-  return PRODUCTS[0]!;
+function groupActive(path: string, group: NavGroup): boolean {
+  if (group.href && (path === group.href || path.startsWith(group.href + "/"))) return true;
+  if (group.matchPrefixes) return group.matchPrefixes.some((p) => path === p || path.startsWith(p + "/"));
+  return group.children?.some((c) => childActive(path, c)) ?? false;
 }
 
-/* ─── Badge pill ─────────────────────────────────────────────────────────── */
-function Badge({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span style={{
-      background: KEBU.orange, color: "#fff",
-      fontSize: "0.6rem", fontWeight: 700, lineHeight: 1,
-      padding: "2px 5px", borderRadius: 999, minWidth: 16,
-      textAlign: "center", display: "inline-flex", alignItems: "center", justifyContent: "center",
-    }}>
-      {count > 99 ? "99+" : count}
-    </span>
-  );
-}
+export function KebuNavShell() {
+  const path = usePathname();
+  const { profile } = useKebuUser();
+  const [messages, setMessages] = useState(0);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const first = profile ? displayFirstName(profile.name, profile.email) : "";
 
-/* ─── Nav link ───────────────────────────────────────────────────────────── */
-function NavLink({
-  item, pathname, badges, indent = false, onClose,
-}: {
-  item: NavItem;
-  pathname: string;
-  badges: Record<string, number>;
-  indent?: boolean;
-  onClose?: () => void;
-}) {
-  const on = active(pathname, item.href, item.exact);
-  const badge = item.badgeKey ? (badges[item.badgeKey] ?? 0) : 0;
-  const anyChildOn = (item.children ?? []).some((c) => active(pathname, c.href, c.exact));
-  const [open, setOpen] = useState(on || anyChildOn);
-
-  if (item.children && item.children.length > 0) {
-    return (
-      <div>
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          style={{
-            width: "100%", display: "flex", alignItems: "center", gap: 6,
-            padding: "7px 14px", borderRadius: 6, border: "none", cursor: "pointer",
-            borderLeft: (on || anyChildOn) ? `2px solid ${KEBU.orange}` : "2px solid transparent",
-            fontSize: "0.8125rem", fontWeight: (on || anyChildOn) ? 600 : 400,
-            color: (on || anyChildOn) ? "#fff" : "rgba(255,255,255,0.52)",
-            background: (on || anyChildOn) ? "rgba(255,255,255,0.07)" : "transparent",
-            transition: "color 0.12s",
-          }}
-        >
-          <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
-          <span style={{ opacity: 0.4, fontSize: "0.55rem", transform: open ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>▶</span>
-        </button>
-        {open && (
-          <div style={{ marginTop: 1 }}>
-            {item.children.map((c) => (
-              <Link key={c.href} href={c.href} onClick={onClose} style={{
-                display: "block",
-                padding: "6px 14px 6px 24px", borderRadius: 6,
-                fontSize: "0.775rem",
-                fontWeight: active(pathname, c.href, c.exact) ? 600 : 400,
-                color: active(pathname, c.href, c.exact) ? "#fff" : "rgba(255,255,255,0.42)",
-                background: active(pathname, c.href, c.exact) ? "rgba(255,255,255,0.06)" : "transparent",
-                borderLeft: active(pathname, c.href, c.exact) ? `2px solid ${KEBU.orange}` : "2px solid transparent",
-                textDecoration: "none", transition: "color 0.12s",
-              }}>
-                {c.label}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <Link href={item.href} onClick={onClose} style={{
-      display: "flex", alignItems: "center", gap: 8,
-      padding: indent ? "7px 14px 7px 24px" : "7px 14px",
-      borderRadius: 6, textDecoration: "none",
-      borderLeft: on ? `2px solid ${KEBU.orange}` : "2px solid transparent",
-      fontSize: "0.8125rem", fontWeight: on ? 600 : 400,
-      color: on ? "#fff" : "rgba(255,255,255,0.52)",
-      background: on ? "rgba(255,255,255,0.07)" : "transparent",
-      transition: "color 0.12s, background 0.12s",
-    }}>
-      <span style={{ flex: 1 }}>{item.label}</span>
-      <Badge count={badge} />
-    </Link>
-  );
-}
-
-/* ─── Product panel (desktop) ────────────────────────────────────────────── */
-function ProductPanel({
-  product, pathname, badges, collapsed, onToggle,
-}: {
-  product: Product;
-  pathname: string;
-  badges: Record<string, number>;
-  collapsed: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div style={{
-      width: collapsed ? 0 : 188,
-      minWidth: collapsed ? 0 : 188,
-      overflow: "hidden",
-      transition: "width 0.2s ease, min-width 0.2s ease",
-      background: "rgba(255,255,255,0.03)",
-      borderRight: "1px solid rgba(255,255,255,0.05)",
-      display: "flex", flexDirection: "column",
-    }}>
-      {!collapsed && (
-        <>
-          <div style={{
-            padding: "14px 14px 10px",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-          }}>
-            <p style={{
-              fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.15em",
-              textTransform: "uppercase", color: "rgba(255,255,255,0.3)",
-            }}>
-              {product.label}
-            </p>
-          </div>
-
-          <nav style={{ flex: 1, overflowY: "auto", padding: "8px 8px 12px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {product.items.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} badges={badges} />
-            ))}
-          </nav>
-
-          <button
-            type="button"
-            onClick={onToggle}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "10px 14px",
-              border: "none", background: "none", cursor: "pointer",
-              borderTop: "1px solid rgba(255,255,255,0.05)",
-              fontSize: "0.7rem", color: "rgba(255,255,255,0.25)",
-            }}
-          >
-            <Icon d={ICONS.collapse} size={13} />
-            <span>Collapse</span>
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
-/* ─── Icon strip (desktop) ───────────────────────────────────────────────── */
-function IconStrip({
-  currentProductId, pathname, onExpand, isCollapsed,
-}: {
-  currentProductId: string;
-  pathname: string;
-  onExpand: () => void;
-  isCollapsed: boolean;
-}) {
-  return (
-    <div style={{
-      width: 52,
-      minWidth: 52,
-      background: KEBU.black,
-      borderRight: "1px solid rgba(255,255,255,0.07)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      padding: "12px 0",
-      gap: 0,
-    }}>
-      {/* Logo */}
-      <Link href="/dashboard" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, marginBottom: 8 }}>
-        <KebuMark size={24} />
-      </Link>
-
-      <div style={{ width: 28, height: 1, background: "rgba(255,255,255,0.08)", marginBottom: 8 }} />
-
-      {/* Product icons */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-        {PRODUCTS.map((p) => {
-          const isOn = p.id === currentProductId;
-          return (
-            <Link
-              key={p.id}
-              href={p.href}
-              onClick={isCollapsed ? onExpand : undefined}
-              title={p.label}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                width: 40, height: 40, borderRadius: 10,
-                color: isOn ? "#fff" : "rgba(255,255,255,0.38)",
-                background: isOn ? "rgba(255,85,0,0.18)" : "transparent",
-                border: isOn ? `1px solid rgba(255,85,0,0.3)` : "1px solid transparent",
-                transition: "background 0.12s, color 0.12s",
-                position: "relative",
-              }}
-            >
-              <Icon d={ICONS[p.icon]} size={18} />
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Expand button when panel is collapsed */}
-      {isCollapsed && (
-        <button
-          type="button"
-          onClick={onExpand}
-          title="Expand panel"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            width: 40, height: 40, borderRadius: 10,
-            border: "none", background: "none", cursor: "pointer",
-            color: "rgba(255,255,255,0.25)", marginBottom: 4,
-          }}
-        >
-          <Icon d={ICONS.expand} size={14} />
-        </button>
-      )}
-
-      {/* Settings */}
-      <div style={{ width: 28, height: 1, background: "rgba(255,255,255,0.08)", marginBottom: 8, marginTop: 4 }} />
-      <Link
-        href="/account"
-        title="Settings"
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          width: 40, height: 40, borderRadius: 10,
-          color: active(pathname, "/account") ? "#fff" : "rgba(255,255,255,0.3)",
-          background: active(pathname, "/account") ? "rgba(255,255,255,0.08)" : "transparent",
-          transition: "color 0.12s",
-        }}
-      >
-        <Icon d={ICONS.settings} size={17} />
-      </Link>
-    </div>
-  );
-}
-
-/* ─── Mobile bottom tabs ─────────────────────────────────────────────────── */
-function MobileBottomTabs({
-  currentProductId,
-  badges,
-}: {
-  currentProductId: string;
-  badges: Record<string, number>;
-}) {
-  const tabProducts = PRODUCTS.filter((p) => MOBILE_TABS.includes(p.id));
-
-  return (
-    <nav style={{
-      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
-      background: KEBU.black,
-      borderTop: "1px solid rgba(255,255,255,0.07)",
-      display: "flex", alignItems: "stretch",
-      height: 58,
-      paddingBottom: "env(safe-area-inset-bottom)",
-    }}>
-      {tabProducts.map((p) => {
-        const isOn = p.id === currentProductId;
-        const msgBadge = p.id === "alkebulan" ? (badges.messages ?? 0) : 0;
-        return (
-          <Link
-            key={p.id}
-            href={p.href}
-            style={{
-              flex: 1, display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center", gap: 3,
-              textDecoration: "none",
-              color: isOn ? KEBU.orange : "rgba(255,255,255,0.35)",
-              position: "relative",
-              transition: "color 0.12s",
-            }}
-          >
-            {msgBadge > 0 && (
-              <span style={{
-                position: "absolute", top: 6, right: "calc(50% - 14px)",
-                width: 7, height: 7, borderRadius: "50%", background: KEBU.orange,
-              }} />
-            )}
-            <Icon d={ICONS[p.icon]} size={20} />
-            <span style={{ fontSize: "0.6rem", fontWeight: isOn ? 700 : 500, letterSpacing: "0.02em" }}>
-              {p.label}
-            </span>
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
-/* ─── Main export ────────────────────────────────────────────────────────── */
-export function KebuNavShell({ children }: { children?: React.ReactNode }) {
-  const pathname = usePathname();
-  const currentProduct = detectProduct(pathname);
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
-  const [badges, setBadges] = useState<Record<string, number>>({ messages: 0 });
-
-  // Shop detail pages have their own ShopSideNav — hide the product panel to avoid double-sidebar
-  const isShopDetail = /^\/shop\/[^/]+/.test(pathname);
-  const showPanel = !isShopDetail && !panelCollapsed;
+  // Auto-open the active group
+  useEffect(() => {
+    const active = NAV.find((g) => g.id !== "home" && groupActive(path, g));
+    if (active) setOpenGroup(active.id);
+  }, [path]);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/messages/unread-count", { credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (!cancelled && typeof d?.count === "number") setBadges({ messages: d.count }); })
+      .then((d: { count?: number } | null) => { if (!cancelled && typeof d?.count === "number") setMessages(d.count); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  if (
+    path === "/" ||
+    isMarketingPath(path) ||
+    path.startsWith("/login") ||
+    path.startsWith("/signup") ||
+    path.startsWith("/welcome")
+  ) return null;
+
+  const bg = "#0F0F0F";
+  const border = "rgba(255,255,255,0.07)";
+  const textMuted = "rgba(255,255,255,0.5)";
+  const textDim = "rgba(255,255,255,0.35)";
+  const hoverBg = "rgba(255,255,255,0.06)";
 
   return (
     <>
       {/* Desktop sidebar */}
       <aside
-        className="hidden md:flex shrink-0 sticky top-0 h-screen"
-        style={{ zIndex: 40 }}
+        className="sticky top-0 hidden h-screen w-[160px] shrink-0 flex-col border-r md:flex"
+        style={{ background: bg, borderColor: border, overflowY: "auto" }}
       >
-        <IconStrip
-          currentProductId={currentProduct.id}
-          pathname={pathname}
-          isCollapsed={!showPanel}
-          onExpand={() => setPanelCollapsed(false)}
-        />
-        {!isShopDetail && (
-          <ProductPanel
-            product={currentProduct}
-            pathname={pathname}
-            badges={badges}
-            collapsed={panelCollapsed}
-            onToggle={() => setPanelCollapsed(true)}
-          />
-        )}
+        {/* Logo */}
+        <div className="px-4 pt-5 pb-3">
+          <Link href="/dashboard" className="flex items-center gap-1.5 group focus-visible:outline-none" aria-label="Kebu Home">
+            <KebuMark size={22} style={{ filter: "brightness(0) invert(1)" }} />
+            <span className="text-[15px] font-black tracking-[-0.04em] text-white">kebu</span>
+            <span className="text-[15px] font-black" style={{ color: KEBU.orange }}>•</span>
+          </Link>
+          <p className="mt-0.5 text-[8px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>ONE ID. MANY WORLDS.</p>
+        </div>
+
+        {/* User section */}
+        <div className="mx-3 mb-3 rounded-xl border overflow-hidden" style={{ borderColor: border, background: "rgba(255,255,255,0.04)" }}>
+          <Link href="/account" className="flex items-center gap-2.5 px-2.5 pt-2.5 pb-2 group focus-visible:outline-none">
+            {profile?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
+            ) : (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-black" style={{ background: KEBU.orange }}>
+                {(first || "K").charAt(0).toUpperCase()}
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-black text-white leading-none">{first || "My Kebu"}</p>
+              <p className="mt-0.5 text-[9px] text-white/40 leading-none">My account →</p>
+            </div>
+          </Link>
+          <div className="px-1.5 pb-1.5" style={{ borderTop: `1px solid ${border}` }}>
+            <KebuWorldSwitcher dark compact />
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-2 pb-2" aria-label="Main navigation">
+          {NAV.map((group) => {
+            const isHome = group.id === "home";
+            const active = groupActive(path, group);
+            const open = openGroup === group.id;
+
+            if (isHome) {
+              return (
+                <Link
+                  key={group.id}
+                  href={group.href!}
+                  aria-current={active ? "page" : undefined}
+                  className="flex min-h-9 items-center gap-2.5 rounded-xl px-2.5 text-[13px] font-semibold transition-colors hover:text-white focus-visible:outline-none mb-0.5"
+                  style={{ background: active ? "rgba(255,85,0,0.18)" : "transparent", color: active ? "#FFFFFF" : textMuted }}
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                    style={{ background: active ? "rgba(255,85,0,0.25)" : "rgba(255,255,255,0.06)", color: active ? KEBU.orange : textMuted }}>
+                    <KebuIcon name={group.icon} size={15} />
+                  </span>
+                  {group.label}
+                </Link>
+              );
+            }
+
+            return (
+              <div key={group.id} className="mb-0.5">
+                <button
+                  type="button"
+                  onClick={() => setOpenGroup((c) => c === group.id ? null : group.id)}
+                  aria-expanded={open}
+                  className="flex min-h-9 w-full items-center gap-2.5 rounded-xl px-2.5 text-left text-[13px] font-semibold transition-colors hover:text-white focus-visible:outline-none"
+                  style={{ background: active && !open ? "rgba(255,85,0,0.10)" : open ? hoverBg : "transparent", color: active || open ? "#FFFFFF" : textMuted }}
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                    style={{ background: active ? "rgba(255,85,0,0.25)" : "rgba(255,255,255,0.06)", color: active ? KEBU.orange : textMuted }}>
+                    <KebuIcon name={group.icon} size={15} />
+                  </span>
+                  <span className="flex-1 truncate">{group.label}</span>
+                  <span className="text-[10px] transition-transform" style={{ color: textDim, transform: open ? "rotate(90deg)" : "none" }}>›</span>
+                </button>
+
+                {open && group.children ? (
+                  <div className="ml-3 mt-0.5 space-y-0.5 pl-3 border-l" style={{ borderColor: border }}>
+                    {group.children.map((child) => {
+                      const ca = childActive(path, child);
+                      const count = child.badge === "messages" ? messages : 0;
+                      return (
+                        <Link
+                          key={child.href + child.label}
+                          href={child.href}
+                          aria-current={ca ? "page" : undefined}
+                          className="flex min-h-8 items-center gap-2 rounded-lg px-2.5 text-[12px] font-medium transition-colors hover:text-white focus-visible:outline-none"
+                          style={{ background: ca ? KEBU.orange : "transparent", color: ca ? "#FFFFFF" : textMuted }}
+                        >
+                          <KebuIcon name={child.icon} size={14} style={{ color: ca ? "#FFFFFF" : textMuted }} />
+                          <span className="flex-1 truncate">{child.label}</span>
+                          {count > 0 ? (
+                            <span className="rounded-full px-1.5 py-0.5 text-[8px] font-black text-white" style={{ background: KEBU.orange }}>
+                              {count > 99 ? "99+" : count}
+                            </span>
+                          ) : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+
+          {/* Separator */}
+          <div className="my-2 border-t" style={{ borderColor: border }} />
+
+          {/* + Add */}
+          <Link href="/create/new"
+            className="flex min-h-9 items-center gap-2.5 rounded-xl px-2.5 text-[13px] font-black transition-colors hover:text-white focus-visible:outline-none"
+            style={{ color: textMuted }}>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white text-[18px] font-black leading-none" style={{ background: KEBU.orange }}>+</span>
+            Add
+          </Link>
+        </nav>
+
+        {/* Bottom promo card */}
+        <div className="m-3 mt-0">
+          <div className="relative overflow-hidden rounded-2xl p-4" style={{ background: "linear-gradient(145deg,#1a0800,#2d1200)" }}>
+            <div className="absolute -right-6 -top-6 h-20 w-20 opacity-40" style={{ background: `radial-gradient(circle,${KEBU.orange},transparent 70%)` }} />
+            <p className="relative z-10 text-[12px] font-black leading-snug text-white">
+              Your ideas belong<br />somewhere{" "}
+              <span style={{ color: KEBU.orange }}>beautiful.</span>
+            </p>
+            <Link href="/create/new" className="relative z-10 mt-3 flex items-center gap-1 text-[10px] font-black" style={{ color: KEBU.orange }}>
+              Start creating <span>→</span>
+            </Link>
+          </div>
+        </div>
       </aside>
 
-      {/* Mobile bottom tabs */}
-      <div className="md:hidden">
-        <MobileBottomTabs currentProductId={currentProduct.id} badges={badges} />
-      </div>
+      {/* Mobile bottom nav */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(60px+env(safe-area-inset-bottom))] items-start justify-around border-t px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-md md:hidden"
+        style={{ background: "rgba(15,15,15,0.95)", borderColor: border }}
+        aria-label="Primary navigation"
+      >
+        <Link href="/dashboard" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/dashboard" ? KEBU.orange : textMuted }}>
+          <KebuIcon name="home" size={20} /><span>Home</span>
+        </Link>
+        <Link href="/search" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/search" || path.startsWith("/search/") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="search" size={20} /><span>Search</span>
+        </Link>
+        <Link href="/create/new" aria-label="Create" className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ background: `linear-gradient(135deg,${KEBU.orange},${KEBU.red})` }}>
+          <KebuIcon name="create" size={20} />
+        </Link>
+        <Link href="/library" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/library" || path.startsWith("/library/") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="library" size={20} /><span>Library</span>
+        </Link>
+        <Link href="/account" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/account" || path.startsWith("/account/") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="people" size={20} /><span>Profile</span>
+        </Link>
+      </nav>
     </>
   );
 }
 
-/* ─── Standalone sidebar for layouts that need it ────────────────────────── */
 export function KebuNavSidebar() {
   return <KebuNavShell />;
 }
+
+export type PortfolioNavSite = {
+  key: string;
+  title: string;
+  editorUrl: string | null;
+  previewPath: string | null;
+};

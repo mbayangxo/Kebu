@@ -7,11 +7,13 @@ import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuNavShell } from "@/app/components/kebu-nav-shell";
 import { KebuOfflineBanner } from "@/app/components/kebu-offline-banner";
 import { KebuCommandPalette, CommandPaletteTrigger } from "@/app/components/kebu-command-palette";
-import type { PortfolioNavSite } from "@/app/components/kebu-app-sidebar";
+import type { PortfolioNavSite } from "@/app/components/kebu-nav-shell";
 import { KebuAccountCorner } from "@/app/components/kebu-account-corner";
+import { KebuNotifications } from "@/app/components/kebu/kebu-notifications";
 import { DataModeProvider } from "@/app/components/create/data-mode-provider";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
+import { KebuWorldSwitcher } from "@/app/components/kebu/kebu-world-switcher";
 import { ToastProvider } from "@/app/components/kebu/toast";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import "@/app/components/create/kebu-site-responsive.css";
@@ -43,11 +45,13 @@ export function AppShell({
   children,
   portfolioSites = [],
   actions,
+  immersive = false,
 }: {
   title: string;
   children: React.ReactNode;
   portfolioSites?: PortfolioNavSite[];
   actions?: React.ReactNode;
+  immersive?: boolean;
 }) {
   const pathname = usePathname();
   const publicSurface =
@@ -62,6 +66,18 @@ export function AppShell({
 
   const fallback = fallbackForPath(pathname);
 
+  if (immersive) {
+    return (
+      <DataModeProvider>
+        <KebuOfflineBanner />
+        <KebuCommandPalette />
+        <div className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
+          {children}
+        </div>
+      </DataModeProvider>
+    );
+  }
+
   return (
     <DataModeProvider>
       <KebuOfflineBanner />
@@ -75,21 +91,18 @@ export function AppShell({
         <div className="flex-1 min-w-0 flex flex-col">
           <header
             className="sticky top-0 z-30 md:hidden"
-            style={{ background: KEBU.black, borderBottom: `2px solid ${KEBU.orange}` }}
+            style={{ background: KEBU.white, borderBottom: `1px solid ${KEBU.borders.default}` }}
           >
-            <div
-              className="h-[3px] w-full"
-              style={{ background: `linear-gradient(90deg, ${KEBU.red}, ${KEBU.orange})` }}
-            />
             <div className="flex items-center justify-between gap-2 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
-                <BackLink fallbackHref={fallback} variant="onDark" />
+                <BackLink fallbackHref={fallback} variant="strong" />
               </div>
-              <p className="text-sm font-bold truncate text-white flex-1 text-center" style={{ fontFamily: "var(--font-fraunces)" }}>
+              <p className="text-sm font-bold truncate flex-1 text-center" style={{ fontFamily: "var(--font-fraunces)" }}>
                 {title}
               </p>
               <div className="flex items-center gap-2 shrink-0">
-                <KebuAccountCorner onDark />
+                <KebuNotifications />
+                <KebuAccountCorner />
                 <Link href="/" className="shrink-0">
                   <KebuMark size={22} />
                 </Link>
@@ -98,24 +111,26 @@ export function AppShell({
           </header>
 
           <div
-            className="hidden md:flex items-center justify-between gap-3 px-8 lg:px-10 py-3.5 sticky top-0 z-30 backdrop-blur-md"
+            className="hidden md:flex items-center justify-between gap-3 px-6 lg:px-8 py-2.5 sticky top-0 z-30 backdrop-blur-md"
             style={{
               background: "rgba(255,251,247,0.92)",
               borderBottom: `1px solid rgba(255,85,0,0.15)`,
             }}
           >
-            <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               <BackLink fallbackHref={fallback} variant="strong" />
               <h1
-                className="text-sm font-bold truncate"
+                className="text-xs font-bold truncate opacity-60"
                 style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
               >
                 {title}
               </h1>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="w-[160px]"><KebuWorldSwitcher compact /></div>
               <CommandPaletteTrigger />
               {actions}
+              <KebuNotifications />
               <KebuAccountCorner />
             </div>
           </div>

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/opportunity/admin";
-import { isSupportAdminEmail, logSupportAccess } from "@/lib/create/support-access";
+import { logSupportAccess, resolveSupportAuthorization } from "@/lib/create/support-access";
+import { currentSupportSession } from "@/lib/create/support-session";
 
 export type ProjectAccessRow = {
   id: string;
@@ -62,7 +63,6 @@ export async function assertProjectEditorAccess(
 
   const service = createServiceClient();
   if (!service) {
-    if (!isSupportAdminEmail(opts.email)) return null;
     return null;
   }
 
@@ -103,9 +103,17 @@ export async function assertProjectEditorAccess(
     }
   }
 
-  if (!isSupportAdminEmail(opts.email)) {
-    return null;
-  }
+  const supportAuthorization = await resolveSupportAuthorization(service, {
+    id: opts.userId,
+    email: opts.email,
+  });
+  if (!supportAuthorization) return null;
+
+  const supportSession = await currentSupportSession({
+    userId: opts.userId,
+    projectId: opts.projectId,
+  });
+  if (!supportSession) return null;
 
   logSupportAccess({
     supportUserId: opts.userId,
@@ -113,6 +121,7 @@ export async function assertProjectEditorAccess(
     projectId: opts.projectId,
     ownerId: row.owner_id,
     action: opts.action ?? "open",
+    reason: supportSession.reason,
   });
 
   return { project: row, via: "support" };

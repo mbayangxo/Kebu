@@ -74,7 +74,7 @@ describe("shop cart checkout", () => {
 
   it("ships migration 046 with order items + cart drafts RLS", () => {
     const sql = readFileSync(
-      join(process.cwd(), "supabase/migrations/046_shop_cart_order_items.sql"),
+      join(process.cwd(), "supabase/migrations_archive/legacy/046_shop_cart_order_items.sql"),
       "utf8",
     );
     expect(sql).toContain("shop_order_items");

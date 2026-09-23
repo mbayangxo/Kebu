@@ -5,6 +5,11 @@ import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
 import { BUILDER } from "@/lib/create/builder-ui";
 import {
+  GalaxyEmptyState,
+  GalaxyPanelHeader,
+  GalaxyStatus,
+} from "@/app/components/galaxy/editor-primitives";
+import {
   KEBU_ASSET_DRAG_MIME,
   type KebuDragAsset,
 } from "@/lib/create/builder-media-drop";
@@ -81,17 +86,23 @@ export function SiteAssetsPanel({
   });
 
   return (
-    <div className="space-y-3">
+    <div>
+      <GalaxyPanelHeader
+        eyebrow="Library"
+        title="Assets"
+        description="Upload once, then reuse photos, video, and audio across this site."
+      />
+      <div className="space-y-3 p-3">
       {/* Upload section — collapsed by default to keep library front-and-center */}
-      <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BUILDER.border}` }}>
+      <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${BUILDER.border}` }}>
         <button
           type="button"
-          className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-wider"
-          style={{ color: BUILDER.ink, background: "#FAFAF8" }}
+          className="flex min-h-9 w-full items-center justify-between px-3 py-2 text-[10px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+          style={{ color: BUILDER.ink, background: BUILDER.surfaceMuted }}
           onClick={() => setUploadExpanded((v) => !v)}
         >
           <span>+ Upload new file</span>
-          <span style={{ fontSize: 8 }}>{uploadExpanded ? "▲" : "▼"}</span>
+          <svg className={`h-3 w-3 transition-transform ${uploadExpanded?"rotate-180":""}`} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         {uploadExpanded ? (
           <div className="px-3 pb-3 pt-2 space-y-2">
@@ -138,10 +149,10 @@ export function SiteAssetsPanel({
           <button
             key={id}
             type="button"
-            className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+            className="min-h-8 rounded-md px-2.5 py-1 text-[9px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
             style={{
-              background: filter === id ? BUILDER.ink : "#fff",
-              color: filter === id ? "#fff" : BUILDER.muted,
+              background: filter === id ? BUILDER.orangeGlow : "#fff",
+              color: filter === id ? BUILDER.ink : BUILDER.muted,
               border: `1px solid ${BUILDER.border}`,
             }}
             onClick={() => setFilter(id)}
@@ -151,8 +162,8 @@ export function SiteAssetsPanel({
         ))}
       </div>
 
-      {loading ? <p className="text-[10px] opacity-60">Loading…</p> : null}
-      {error ? <p className="text-[10px] text-red-600">{error}</p> : null}
+      {loading ? <GalaxyStatus tone="neutral">Loading assets…</GalaxyStatus> : null}
+      {error ? <GalaxyStatus tone="error">{error}</GalaxyStatus> : null}
 
       {visible.length > 0 ? (
         <div className="grid grid-cols-2 gap-2">
@@ -161,7 +172,7 @@ export function SiteAssetsPanel({
             return (
               <div
                 key={a.id}
-                className="overflow-hidden rounded-xl border"
+                className="overflow-hidden rounded-lg border transition hover:border-black/20"
                 style={{ borderColor: BUILDER.border, background: "#fff" }}
                 draggable
                 onDragStart={(e) => {
@@ -176,7 +187,7 @@ export function SiteAssetsPanel({
                 <div className="relative aspect-square bg-black/5">
                   {kind === "image" ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={a.url} alt={a.alt ?? ""} className="h-full w-full object-cover pointer-events-none" />
+                    <img src={a.url} alt={a.alt ?? ""} loading="lazy" decoding="async" className="h-full w-full object-cover pointer-events-none" />
                   ) : kind === "video" ? (
                      
                     <video src={a.url} className="h-full w-full object-cover pointer-events-none" muted />
@@ -192,7 +203,7 @@ export function SiteAssetsPanel({
                 <div className="p-1.5">
                   <button
                     type="button"
-                    className="w-full rounded-full py-1 text-[9px] font-bold uppercase tracking-wider text-white"
+                    className="w-full rounded-md py-1.5 text-[9px] font-semibold text-white"
                     style={{ background: BUILDER.ink }}
                     onClick={() => applyAsset(a.url, kind)}
                   >
@@ -204,10 +215,12 @@ export function SiteAssetsPanel({
           })}
         </div>
       ) : !loading ? (
-        <p className="text-[10px] opacity-50 text-center py-4">
-          No files yet — upload one above.
-        </p>
+        <GalaxyEmptyState
+          title="Your library is empty"
+          detail="Upload a photo, video, logo, or song above. It will stay available for this site."
+        />
       ) : null}
+      </div>
     </div>
   );
 }

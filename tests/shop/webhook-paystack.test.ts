@@ -6,15 +6,16 @@ function mkReq(url: string, init?: RequestInit): NextRequest {
   return new Request(url, init) as unknown as NextRequest;
 }
 
-const markShopOrderPaidByProviderRef = vi.fn();
 const createServiceClient = vi.fn();
-
-vi.mock("@/lib/shop/adapter-checkout", () => ({
-  markShopOrderPaidByProviderRef: (...args: unknown[]) => markShopOrderPaidByProviderRef(...args),
-}));
+const fulfillPaidDigitalOrder = vi.fn();
+const completeShopPayment = vi.fn();
 
 vi.mock("@/lib/opportunity/admin", () => ({
   createServiceClient: () => createServiceClient(),
+}));
+
+vi.mock("@/lib/shop/digital-downloads", () => ({
+  fulfillPaidDigitalOrder: (...args: unknown[]) => fulfillPaidDigitalOrder(...args),
 }));
 
 import { POST as paystackWebhook } from "@/app/api/webhooks/paystack/route";
@@ -23,11 +24,11 @@ describe("shop webhooks (C1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.PAYSTACK_SECRET_KEY = "sk_test_kebu";
-    createServiceClient.mockReturnValue({});
-    markShopOrderPaidByProviderRef.mockResolvedValue({
-      ok: true,
-      orderId: "order-1",
-      projectId: "proj-1",
+    createServiceClient.mockReturnValue({ rpc: completeShopPayment });
+    fulfillPaidDigitalOrder.mockResolvedValue(undefined);
+    completeShopPayment.mockResolvedValue({
+      data: [{ order_id: "order-1", project_id: "proj-1", already_paid: false }],
+      error: null,
     });
   });
 
@@ -53,9 +54,13 @@ describe("shop webhooks (C1)", () => {
     );
 
     expect(res.status).toBe(200);
-    expect(markShopOrderPaidByProviderRef).toHaveBeenCalledWith(
-      {},
-      expect.objectContaining({ reference: "KEBU-REF-001", provider: "paystack" }),
+    expect(completeShopPayment).toHaveBeenCalledWith(
+      "complete_shop_payment",
+      expect.objectContaining({ p_reference: "KEBU-REF-001", p_provider: "paystack" }),
+    );
+    expect(fulfillPaidDigitalOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ rpc: completeShopPayment }),
+      "order-1",
     );
   });
 
@@ -68,6 +73,6 @@ describe("shop webhooks (C1)", () => {
       }),
     );
     expect(res.status).toBe(401);
-    expect(markShopOrderPaidByProviderRef).not.toHaveBeenCalled();
+    expect(completeShopPayment).not.toHaveBeenCalled();
   });
 });

@@ -1,21 +1,23 @@
+import { GALAXY } from "@/lib/galaxy/tokens";
+
 /**
  * Builder UI tokens — theme-editor chrome (Shopify admin density).
  * Neutral gray workspace; accent reserved for primary actions.
  */
 export const BUILDER = {
-  bg: "#F1F1F1",
-  surface: "#FFFFFF",
-  surfaceMuted: "#F6F6F7",
-  ink: "#0A0A0A",
-  muted: "#616161",
-  faint: "#8C8C8C",
-  border: "#E3E3E3",
-  borderStrong: "#C9CCCF",
+  bg: GALAXY.color.canvas,
+  surface: GALAXY.color.surface,
+  surfaceMuted: GALAXY.color.surfaceMuted,
+  ink: GALAXY.color.ink,
+  muted: GALAXY.color.muted,
+  faint: GALAXY.color.faint,
+  border: GALAXY.color.border,
+  borderStrong: GALAXY.color.borderStrong,
   shadow: "0 1px 0 rgba(0,0,0,0.04)",
   shadowSoft: "0 1px 2px rgba(0,0,0,0.04)",
-  orange: "#FF5500",
-  orangeGlow: "rgba(255, 85, 0, 0.10)",
-  gradient: "linear-gradient(135deg, #FF5500 0%, #FF7733 50%, #E10600 100%)",
+  orange: GALAXY.color.orange,
+  orangeGlow: "rgba(255, 106, 0, 0.10)",
+  gradient: "linear-gradient(135deg, #FF6A00 0%, #FF8333 54%, #FF1F1F 100%)",
   yandeGradient: "linear-gradient(160deg, #F6F6F7 0%, #FFFFFF 45%, #F1F1F1 100%)",
 } as const;
 

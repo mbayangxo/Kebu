@@ -1,6 +1,8 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 import { parseStudioComposition, studioCompositionSchema } from "@/lib/studio/composition";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +12,9 @@ type Params = { params: Promise<{ id: string }> };
 const patchSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
   composition: studioCompositionSchema.optional(),
-  editMode: z.enum(["quick_edit", "smart_edit", "full_timeline"]).optional(),
+  editMode: z.enum(["quick_edit", "smart_edit", "full_timeline", "storyboard"]).optional(),
+  /** Optimistic concurrency token: prevents silent cross-tab/device overwrites. */
+  expectedUpdatedAt: z.string().datetime().optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
@@ -18,13 +22,16 @@ export async function GET(_req: Request, { params }: Params) {
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  const { data: project, error } = await supabase
+  let query = supabase
     .from("studio_video_projects")
-    .select("id, title, width, height, frame_rate, edit_mode, composition, owner_id, created_at, updated_at")
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .maybeSingle();
+    .select("id, title, width, height, frame_rate, edit_mode, composition, owner_id, business_id, source_design_id, created_at, updated_at")
+    .eq("id", id);
+  query = workspace.activeBusinessId
+    ? query.eq("business_id", workspace.activeBusinessId)
+    : query.is("business_id", null);
+  const { data: project, error } = await query.maybeSingle();
 
   if (error || !project) {
     return NextResponse.json(
@@ -50,10 +57,13 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function PATCH(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
   let body: unknown;
   try {
@@ -65,6 +75,33 @@ export async function PATCH(req: Request, { params }: Params) {
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid update." }, { status: 400 });
+  }
+
+  if (parsed.data.expectedUpdatedAt) {
+    let currentQuery = supabase
+      .from("studio_video_projects")
+      .select("updated_at")
+      .eq("id", id);
+    currentQuery = workspace.activeBusinessId
+      ? currentQuery.eq("business_id", workspace.activeBusinessId)
+      : currentQuery.is("business_id", null);
+    const { data: current } = await currentQuery.maybeSingle();
+    if (!current) {
+      return NextResponse.json({ error: "Project not found." }, { status: 404 });
+    }
+    if (
+      current.updated_at &&
+      new Date(current.updated_at).toISOString() !== new Date(parsed.data.expectedUpdatedAt).toISOString()
+    ) {
+      return NextResponse.json(
+        {
+          error: "This video changed somewhere else. Your local edit was kept; review the newer server version before overwriting it.",
+          code: "studio_video_version_conflict",
+          serverUpdatedAt: current.updated_at,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const patch: Record<string, unknown> = {};
@@ -83,12 +120,15 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   }
 
-  const { data: project, error } = await supabase
+  let updateQuery = supabase
     .from("studio_video_projects")
     .update(patch)
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .select("id, title, width, height, frame_rate, edit_mode, composition, updated_at")
+    .eq("id", id);
+  updateQuery = workspace.activeBusinessId
+    ? updateQuery.eq("business_id", workspace.activeBusinessId)
+    : updateQuery.is("business_id", null);
+  const { data: project, error } = await updateQuery
+    .select("id, title, width, height, frame_rate, edit_mode, composition, business_id, source_design_id, updated_at")
     .maybeSingle();
 
   if (error || !project) {
@@ -104,16 +144,22 @@ export async function PATCH(req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(_req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
   const { id } = await params;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  const { error } = await supabase
+  let deleteQuery = supabase
     .from("studio_video_projects")
     .delete()
-    .eq("id", id)
-    .eq("owner_id", user.id);
+    .eq("id", id);
+  deleteQuery = workspace.activeBusinessId
+    ? deleteQuery.eq("business_id", workspace.activeBusinessId)
+    : deleteQuery.is("business_id", null);
+  const { error } = await deleteQuery;
 
   if (error) {
     return NextResponse.json({ error: "Could not delete project." }, { status: 500 });

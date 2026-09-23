@@ -1,5 +1,5 @@
-import { KebuOpportunityHome } from "@/app/components/landing/kebu-opportunity-home";
+import { KebuStudioLanding } from "@/app/components/landing/kebu-studio-landing";
 
 export default function LandingPage() {
-  return <KebuOpportunityHome />;
+  return <KebuStudioLanding />;
 }

@@ -16,7 +16,7 @@
     "test:rls": "vitest run 'tests/**/*.rls.test.ts'",
     "test:e2e": "playwright test",
     "ci": "npm run typecheck && npm run lint && npm test && npm run build",
-    "db:apply:business": "node scripts/apply-business-migrations.mjs"
+    "migration:check": "node scripts/check-migration-hygiene.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
@@ -29,7 +29,7 @@
     "critters": "^0.0.23",
     "jszip": "^3.10.1",
     "motion": "^12.40.0",
-    "next": "16.2.4",
+    "next": "16.3.5",
     "pdf-lib": "^1.17.1",
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
@@ -44,7 +44,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "16.3.5",
     "pg": "^8.23.0",
     "playwright": "^1.61.0",
     "tailwindcss": "^4",

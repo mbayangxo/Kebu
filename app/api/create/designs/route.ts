@@ -1,49 +1,64 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { requireUser } from "@/lib/create/auth";
 import { createDesignSchema } from "@/lib/create/create-designs";
-import { defaultCanvasDocument, parseCanvasDocument, type StudioDesignType } from "@/lib/studio/canvas-document";
-import { canvasDocumentSchema } from "@/lib/studio/canvas-document";
+import {
+  canvasDocumentSchema,
+  defaultCanvasDocument,
+  parseCanvasDocument,
+  type StudioDesignType,
+} from "@/lib/studio/canvas-document";
 import { recalculateReadinessForBusiness } from "@/lib/kebu-id/recalculate-hooks";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
 
 export const dynamic = "force-dynamic";
 
-/** List owned + shared Studio designs. */
+type DesignListRow = {
+  id: string;
+  title: string;
+  design_type: string;
+  business_id: string | null;
+  owner_id: string;
+  folder_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** List Studio designs for the currently active Personal or Business Kebu space. */
 export async function GET() {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
-  let owned:
-    | {
-        id: string;
-        title: string;
-        design_type: string;
-        business_id: string | null;
-        owner_id: string;
-        folder_id?: string | null;
-        created_at: string;
-        updated_at: string;
-      }[]
-    | null = null;
+  let owned: DesignListRow[] | null = null;
   let ownedErr: { message?: string } | null = null;
 
   {
-    const first = await supabase
+    let first = supabase
       .from("create_designs")
       .select("id, title, design_type, business_id, owner_id, folder_id, created_at, updated_at")
-      .eq("owner_id", user.id)
-      .order("updated_at", { ascending: false });
-    if (first.error?.message?.includes("folder_id")) {
-      const fallback = await supabase
+      .eq("owner_id", user.id);
+    first = workspace.activeBusinessId
+      ? first.eq("business_id", workspace.activeBusinessId)
+      : first.is("business_id", null);
+
+    const firstResult = await first.order("updated_at", { ascending: false });
+
+    if (firstResult.error?.message?.includes("folder_id")) {
+      let fallback = supabase
         .from("create_designs")
         .select("id, title, design_type, business_id, owner_id, created_at, updated_at")
-        .eq("owner_id", user.id)
-        .order("updated_at", { ascending: false });
-      owned = fallback.data;
-      ownedErr = fallback.error;
+        .eq("owner_id", user.id);
+      fallback = workspace.activeBusinessId
+        ? fallback.eq("business_id", workspace.activeBusinessId)
+        : fallback.is("business_id", null);
+      const fallbackResult = await fallback.order("updated_at", { ascending: false });
+      owned = fallbackResult.data as DesignListRow[] | null;
+      ownedErr = fallbackResult.error;
     } else {
-      owned = first.data;
-      ownedErr = first.error;
+      owned = firstResult.data as DesignListRow[] | null;
+      ownedErr = firstResult.error;
     }
   }
 
@@ -64,33 +79,45 @@ export async function GET() {
     .eq("user_id", user.id)
     .eq("status", "active");
 
-  const sharedIds = (collabs ?? []).map((c) => c.design_id as string);
-  let shared: typeof owned = [];
+  const sharedIds = (collabs ?? []).map((collaborator) => collaborator.design_id as string);
+  let shared: DesignListRow[] = [];
   if (sharedIds.length) {
-    const { data } = await supabase
+    let sharedQuery = supabase
       .from("create_designs")
       .select("id, title, design_type, business_id, owner_id, folder_id, created_at, updated_at")
-      .in("id", sharedIds)
-      .order("updated_at", { ascending: false });
-    shared = data ?? [];
+      .in("id", sharedIds);
+    sharedQuery = workspace.activeBusinessId
+      ? sharedQuery.eq("business_id", workspace.activeBusinessId)
+      : sharedQuery.is("business_id", null);
+
+    const { data } = await sharedQuery.order("updated_at", { ascending: false });
+    shared = (data ?? []) as DesignListRow[];
   }
 
-  const roleByDesign = new Map((collabs ?? []).map((c) => [c.design_id as string, c.role as string]));
+  const roleByDesign = new Map((collabs ?? []).map((collaborator) => [
+    collaborator.design_id as string,
+    collaborator.role as string,
+  ]));
 
   return NextResponse.json({
-    designs: (owned ?? []).map((d) => ({ ...d, accessRole: "owner" as const })),
-    shared: (shared ?? []).map((d) => ({
-      ...d,
-      accessRole: (roleByDesign.get(d.id) === "editor" ? "editor" : "viewer") as "editor" | "viewer",
+    context: workspace.mode,
+    businessId: workspace.activeBusinessId,
+    designs: (owned ?? []).map((design) => ({ ...design, accessRole: "owner" as const })),
+    shared: shared.map((design) => ({
+      ...design,
+      accessRole: (roleByDesign.get(design.id) === "editor" ? "editor" : "viewer") as "editor" | "viewer",
     })),
   });
 }
 
-/** Create a new poster / flyer / social design. */
+/** Create a design inside the currently active Personal or Business Kebu space. */
 export async function POST(req: Request) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
 
   let body: unknown;
   try {
@@ -104,6 +131,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
+  if (
+    parsed.data.businessId !== undefined &&
+    parsed.data.businessId !== workspace.activeBusinessId
+  ) {
+    return NextResponse.json(
+      { error: "Switch to that Business Kebu space before creating business creative work." },
+      { status: 403 },
+    );
+  }
+
+  const businessId = workspace.activeBusinessId;
   const designType = (parsed.data.designType ?? "poster") as StudioDesignType;
   const canvas = parsed.data.canvas
     ? canvasDocumentSchema.safeParse(parsed.data.canvas).success
@@ -117,7 +155,7 @@ export async function POST(req: Request) {
     .from("create_designs")
     .insert({
       owner_id: user.id,
-      business_id: parsed.data.businessId ?? null,
+      business_id: businessId,
       design_type: parsed.data.designType,
       title: parsed.data.title,
       canvas,
@@ -126,9 +164,16 @@ export async function POST(req: Request) {
     .single();
 
   if (error || !design) {
-    return NextResponse.json({ error: "Could not create design." }, { status: 500 });
+    const code = error?.code ?? "";
+    const message =
+      code === "23514"
+        ? "This design format is not enabled in Studio yet."
+        : code === "42501"
+          ? "You do not have permission to create in this Kebu space."
+          : "Could not create design.";
+    return NextResponse.json({ error: message, code: code || undefined }, { status: 500 });
   }
 
-  await recalculateReadinessForBusiness(supabase, parsed.data.businessId);
-  return NextResponse.json({ design });
+  await recalculateReadinessForBusiness(supabase, businessId);
+  return NextResponse.json({ design, context: workspace.mode });
 }

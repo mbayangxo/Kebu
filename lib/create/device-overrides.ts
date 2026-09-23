@@ -68,10 +68,53 @@ export const DEVICE_OVERRIDE_KEYS = {
   "legally-blonde-hero": [
     "extraCutouts",
     "layerScales",
+    "layerZIndex",
+    "layerOpacity",
+    "layerRotation",
+    "layerPositions",
+    "lockedLayers",
     "hiddenLayers",
     "title",
     "subtitle",
+    "titleAsText",
+    "titleTextFontFamily",
+    "titleTextFontSize",
+    "titleTextFontWeight",
+    "titleTextLetterSpacing",
+    "titleTextLineHeight",
+    "titleTextColor",
+    "sectionMinHeightPx",
+    "embeddedFooterPaddingTop",
+    "embeddedFooterPaddingBottom",
     "navDisplay",
   ] as const,
   "kdirection-home": ["collagePhotos", "mission", "brandLine1", "brandLine2"] as const,
 };
+
+
+export function hasDeviceOverrideKeys(
+  props: Record<string, unknown>,
+  device: BuilderDevice,
+  keys: readonly string[],
+): boolean {
+  if (device === "desktop") return false;
+  const bucket = props.deviceOverrides as DeviceBucket | undefined;
+  const active = bucket?.[device];
+  if (!active) return false;
+  return keys.some((key) => Object.prototype.hasOwnProperty.call(active, key));
+}
+
+/** Remove selected responsive overrides so tablet/mobile inherits desktop again. */
+export function clearDeviceOverrideKeys(
+  props: Record<string, unknown>,
+  device: BuilderDevice,
+  keys: readonly string[],
+): Record<string, unknown> {
+  if (device === "desktop") return {};
+  const bucket = { ...((props.deviceOverrides as DeviceBucket | undefined) ?? {}) };
+  const current = { ...(bucket[device] ?? {}) };
+  for (const key of keys) delete current[key];
+  if (Object.keys(current).length === 0) delete bucket[device];
+  else bucket[device] = current;
+  return { deviceOverrides: bucket };
+}

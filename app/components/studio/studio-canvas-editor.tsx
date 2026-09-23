@@ -21,31 +21,54 @@ import {
   clipboardPayloadFromLayers,
   layersFromClipboardPayload,
   normalizeCrop,
+  nudgeLayersWithinArtboard,
   snapLayerPosition,
 } from "@/lib/studio/editor-craft";
+import { GalaxyEmptyState, GalaxyInspectorSection, GalaxyToolRail } from "@/app/components/galaxy/editor-primitives";
+import { StudioIcon } from "@/app/components/studio/studio-icons";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
+import type { BrandSpace } from "@/lib/studio/brand-space";
+import { StudioBrandSpacePanel } from "@/app/components/studio/studio-brand-space-panel";
+import { StudioThemesPanel } from "@/app/components/studio/studio-themes-panel";
 import { StudioBrandApplyPanel } from "@/app/components/studio/studio-brand-apply-panel";
+import { StudioToolsPanel } from "@/app/components/studio/studio-tools-panel";
 import { StudioLiveCursors } from "@/app/components/studio/studio-live-cursors";
+import { StudioMediaAdjustmentsPanel } from "@/app/components/studio/studio-media-adjustments-panel";
 import {
   STUDIO_ELEMENTS_PACK,
+  searchStudioElements,
   type StudioElementDef,
+  type StudioElementCategory,
 } from "@/lib/studio/elements-pack";
+import { mediaFilterCss } from "@/lib/studio/media-adjustments";
+import { layerMotionAtTime } from "@/lib/studio/layer-motion";
+import { fillFrameWithAsset, mediaLayerFromAsset, type StudioDroppedAsset } from "@/lib/studio/asset-canvas-operations";
+import { studioLayerFillCss, STUDIO_BLEND_MODES } from "@/lib/studio/layer-paint";
 import {
   cssStackForStudioFont,
   googleFontsHrefForStudioCatalog,
   studioFontFamilies,
 } from "@/lib/studio/fonts-catalog";
 
-type DragMode = "move" | "resize-se" | null;
+type DragMode =
+  | "move"
+  | "resize-nw"
+  | "resize-ne"
+  | "resize-sw"
+  | "resize-se"
+  | "rotate"
+  | null;
 
 function TimelineVideo({
   url,
   trimStartMs,
   pageLocalMs,
+  filterCss,
 }: {
   url: string;
   trimStartMs: number;
   pageLocalMs: number;
+  filterCss?: string;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -70,6 +93,7 @@ function TimelineVideo({
       ref={ref}
       src={url}
       className="w-full h-full object-cover pointer-events-none"
+      style={{ filter: filterCss }}
       muted
       playsInline
       preload="auto"
@@ -80,13 +104,17 @@ function TimelineVideo({
 const FONT_OPTIONS = studioFontFamilies();
 const STUDIO_FONTS_HREF = googleFontsHrefForStudioCatalog();
 
-const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string }[] = [
-  { mode: "left", label: "L", title: "Align left" },
-  { mode: "center-x", label: "C", title: "Align center" },
-  { mode: "right", label: "R", title: "Align right" },
+const STUDIO_RAIL=[{id:"elements",label:"Elements",icon:<StudioIcon name="elements"/>},{id:"layers",label:"Layers",icon:<StudioIcon name="layers"/>},{id:"uploads",label:"Media",icon:<StudioIcon name="uploads"/>},{id:"themes",label:"Themes",icon:<StudioIcon name="themes"/>},{id:"brand",label:"Brand",icon:<StudioIcon name="brand"/>},{id:"tools",label:"Tools",icon:<StudioIcon name="tools"/>}];
+
+const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string; minSelection?: number }[] = [
+  { mode: "left", label: "left", title: "Align left" },
+  { mode: "center-x", label: "center", title: "Align center" },
+  { mode: "right", label: "right", title: "Align right" },
   { mode: "top", label: "T", title: "Align top" },
   { mode: "center-y", label: "M", title: "Align middle" },
   { mode: "bottom", label: "B", title: "Align bottom" },
+  { mode: "distribute-h", label: "↔", title: "Distribute horizontally", minSelection: 3 },
+  { mode: "distribute-v", label: "↕", title: "Distribute vertically", minSelection: 3 },
 ];
 
 /**
@@ -110,6 +138,7 @@ export function StudioCanvasEditor({
   businessId = null,
   liveCursorsUserId = null,
   liveCursorsLabel = "You",
+  resolveMediaUrl = (url) => url,
 }: {
   designId: string;
   document: CanvasDocument;
@@ -130,6 +159,7 @@ export function StudioCanvasEditor({
   businessId?: string | null;
   liveCursorsUserId?: string | null;
   liveCursorsLabel?: string;
+  resolveMediaUrl?: (url: string) => string;
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const artboardRef = useRef<HTMLDivElement>(null);
@@ -141,8 +171,9 @@ export function StudioCanvasEditor({
     startX: number;
     startY: number;
     orig: CanvasLayer;
-    /** Snapshot of layers when move started (for group move) */
+    /** Snapshot of layers when move started (for group / multi-selection move). */
     origLayers: CanvasLayer[];
+    selectionIds: string[];
   } | null>(null);
   const [pan, setPan] = useState<{
     startX: number;
@@ -152,10 +183,24 @@ export function StudioCanvasEditor({
   } | null>(null);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [spaceHeld, setSpaceHeld] = useState(false);
+  const [marquee, setMarquee] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+    additive: boolean;
+    baseSelected: string[];
+  } | null>(null);
   const [zoom, setZoom] = useState(45);
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [elementQuery, setElementQuery] = useState("");
+  const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "brand">("elements");
+  const [brandSpace,setBrandSpace]=useState<BrandSpace|null>(null);
+  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "themes" | "brand" | "tools">("elements");
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [mobilePanel, setMobilePanel] = useState<"library" | "inspector" | null>(null);
+  const [draggedLayerId, setDraggedLayerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!STUDIO_FONTS_HREF) return;
@@ -231,7 +276,23 @@ export function StudioCanvasEditor({
     }
     if (layer.locked) return;
     e.stopPropagation();
-    selectLayer(layer, e.shiftKey);
+
+    let nextSelection: string[];
+    if (!e.shiftKey && selectedSet.has(layer.id) && selectedLayerIds.length > 1) {
+      // Preserve a marquee / shift multi-selection when the user starts dragging one
+      // of its members. Collapsing here makes multi-select feel broken.
+      nextSelection = expandSelectionWithGroups(layers, selectedLayerIds);
+    } else if (e.shiftKey) {
+      const toggled = selectedSet.has(layer.id)
+        ? selectedLayerIds.filter((id) => id !== layer.id)
+        : [...selectedLayerIds, layer.id];
+      nextSelection = expandSelectionWithGroups(layers, toggled);
+      onSelectLayers(nextSelection);
+    } else {
+      nextSelection = expandSelectionWithGroups(layers, [layer.id]);
+      onSelectLayers(nextSelection);
+    }
+
     if (readOnly) return;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const current = getPage(latestDoc.current, activePageId).layers;
@@ -242,6 +303,7 @@ export function StudioCanvasEditor({
       startY: e.clientY,
       orig: { ...layer },
       origLayers: current.map((l) => ({ ...l })),
+      selectionIds: nextSelection,
     });
   }
 
@@ -260,6 +322,29 @@ export function StudioCanvasEditor({
   }
 
   function pointerMove(e: React.PointerEvent) {
+    if (marquee) {
+      const rect = artboardRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const currentX = Math.max(0, Math.min(page.width, (e.clientX - rect.left) / displayScale));
+      const currentY = Math.max(0, Math.min(page.height, (e.clientY - rect.top) / displayScale));
+      const left = Math.min(marquee.startX, currentX);
+      const right = Math.max(marquee.startX, currentX);
+      const top = Math.min(marquee.startY, currentY);
+      const bottom = Math.max(marquee.startY, currentY);
+      const hitIds = layers
+        .filter((layer) => {
+          const layerRight = layer.x + layer.width;
+          const layerBottom = layer.y + layer.height;
+          return layerRight >= left && layer.x <= right && layerBottom >= top && layer.y <= bottom;
+        })
+        .map((layer) => layer.id);
+      const ids = marquee.additive
+        ? [...new Set([...marquee.baseSelected, ...hitIds])]
+        : hitIds;
+      setMarquee((current) => current ? { ...current, currentX, currentY } : current);
+      onSelectLayers(expandSelectionWithGroups(layers, ids));
+      return;
+    }
     if (pan) {
       setPanOffset({
         x: pan.origX + (e.clientX - pan.startX),
@@ -272,15 +357,13 @@ export function StudioCanvasEditor({
     const dy = (e.clientY - drag.startY) / displayScale;
     const orig = drag.orig;
     if (drag.mode === "move") {
-      const groupId = orig.groupId;
-      const moveIds = new Set<string>();
-      if (groupId) {
-        for (const l of drag.origLayers) {
-          if (l.groupId === groupId && !l.locked) moveIds.add(l.id);
-        }
-      } else {
-        moveIds.add(drag.layerId);
-      }
+      const moveIds = new Set(
+        drag.selectionIds.filter((id) => {
+          const candidate = drag.origLayers.find((layer) => layer.id === id);
+          return candidate && !candidate.locked && !candidate.hidden;
+        }),
+      );
+      if (!moveIds.size) moveIds.add(drag.layerId);
       const primary = drag.origLayers.find((l) => l.id === drag.layerId)!;
       const snapped = snapLayerPosition(
         primary,
@@ -300,25 +383,79 @@ export function StudioCanvasEditor({
         return { ...l, x: src.x + adjX, y: src.y + adjY };
       });
       setPageLayers(nextLayers, true);
-    } else if (drag.mode === "resize-se") {
-      updateLayer(
-        drag.layerId,
-        {
-          width: Math.max(24, orig.width + dx),
-          height: Math.max(24, orig.height + dy),
-        },
-        true,
-      );
+    } else if (drag.mode === "rotate") {
+      const artboardBox = artboardRef.current?.getBoundingClientRect();
+      if (!artboardBox) return;
+      const cx = artboardBox.left + (orig.x + orig.width / 2) * displayScale;
+      const cy = artboardBox.top + (orig.y + orig.height / 2) * displayScale;
+      const startAngle = Math.atan2(drag.startY - cy, drag.startX - cx);
+      const nextAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+      const degrees = orig.rotation + ((nextAngle - startAngle) * 180) / Math.PI;
+      const snapped = e.shiftKey ? Math.round(degrees / 15) * 15 : degrees;
+      updateLayer(drag.layerId, { rotation: Math.max(-360, Math.min(360, snapped)) }, true);
+    } else if (drag.mode?.startsWith("resize-")) {
+      let x = orig.x;
+      let y = orig.y;
+      let width = orig.width;
+      let height = orig.height;
+      const min = 24;
+      if (drag.mode.includes("e")) width = Math.max(min, orig.width + dx);
+      if (drag.mode.includes("s")) height = Math.max(min, orig.height + dy);
+      if (drag.mode.includes("w")) {
+        const nextWidth = Math.max(min, orig.width - dx);
+        x = orig.x + (orig.width - nextWidth);
+        width = nextWidth;
+      }
+      if (drag.mode.includes("n")) {
+        const nextHeight = Math.max(min, orig.height - dy);
+        y = orig.y + (orig.height - nextHeight);
+        height = nextHeight;
+      }
+      if (e.shiftKey) {
+        const ratio = orig.width / Math.max(1, orig.height);
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          height = Math.max(min, width / ratio);
+          if (drag.mode.includes("n")) y = orig.y + (orig.height - height);
+        } else {
+          width = Math.max(min, height * ratio);
+          if (drag.mode.includes("w")) x = orig.x + (orig.width - width);
+        }
+      }
+      updateLayer(drag.layerId, { x, y, width, height }, true);
     }
   }
 
   function pointerUp() {
+    if (marquee) {
+      setMarquee(null);
+      return;
+    }
     if (drag) {
       onChange(latestDoc.current);
     }
     setDrag(null);
     setSnapGuides({ v: null, h: null });
     setPan(null);
+  }
+
+  function beginMarquee(e: React.PointerEvent<HTMLDivElement>) {
+    if (spaceHeld || pan || e.button !== 0) return;
+    if (e.target !== e.currentTarget) return;
+    const rect = artboardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const startX = Math.max(0, Math.min(page.width, (e.clientX - rect.left) / displayScale));
+    const startY = Math.max(0, Math.min(page.height, (e.clientY - rect.top) / displayScale));
+    setMarquee({
+      startX,
+      startY,
+      currentX: startX,
+      currentY: startY,
+      additive: e.shiftKey,
+      baseSelected: e.shiftKey ? [...selectedLayerIds] : [],
+    });
+    if (!e.shiftKey) onSelectLayers([]);
   }
 
   function copySelected() {
@@ -386,8 +523,13 @@ export function StudioCanvasEditor({
       fontSize: 32,
       fontFamily: "Fraunces",
       fontWeight: "700",
+      fontStyle: "normal",
       color: "#FFFFFF",
       textAlign: "left",
+      letterSpacing: 0,
+      lineHeight: 1.2,
+      textDecoration: "none",
+      textTransform: "none",
       fill: type === "frame" ? "transparent" : "#E05A2B",
       ...extras,
     };
@@ -406,6 +548,8 @@ export function StudioCanvasEditor({
     });
   }
 
+  function placeDroppedAsset(asset:StudioDroppedAsset,clientX?:number,clientY?:number){if(readOnly)return;const frame=selected?.type==="frame"?selected:null;if(frame){const next=fillFrameWithAsset(frame,asset);setPageLayers(layers.map(l=>l.id===frame.id?next:l));onSelectLayers([frame.id]);return}const rect=artboardRef.current?.getBoundingClientRect();const x=rect&&clientX!=null?(clientX-rect.left)/displayScale:page.width/2,y=rect&&clientY!=null?(clientY-rect.top)/displayScale:page.height/2;const layer=mediaLayerFromAsset(asset,x,y,{width:page.width,height:page.height},newLayerId());setPageLayers([...layers,layer]);onSelectLayers([layer.id])}
+
   function deleteSelected() {
     if (!selectedLayerIds.length) return;
     const ids = new Set(expandSelectionWithGroups(layers, selectedLayerIds));
@@ -420,6 +564,19 @@ export function StudioCanvasEditor({
     if (!copies.length) return;
     setPageLayers([...layers, ...copies]);
     onSelectLayers(copies.map((c) => c.id));
+  }
+
+  function reorderLayerByDisplayTarget(dragId: string, targetId: string) {
+    if (readOnly || dragId === targetId) return;
+    const display = [...layers].reverse();
+    const from = display.findIndex((layer) => layer.id === dragId);
+    const target = display.findIndex((layer) => layer.id === targetId);
+    if (from < 0 || target < 0) return;
+    const nextDisplay = [...display];
+    const [moved] = nextDisplay.splice(from, 1);
+    const adjustedTarget = from < target ? target - 1 : target;
+    nextDisplay.splice(adjustedTarget, 0, moved!);
+    setPageLayers(nextDisplay.reverse());
   }
 
   function moveLayerZ(id: string, dir: -1 | 1) {
@@ -554,7 +711,7 @@ export function StudioCanvasEditor({
         const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
         const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
         const ids = new Set(expandSelectionWithGroups(layers, selectedLayerIds));
-        setPageLayers(layers.map((l) => (ids.has(l.id) && !l.locked ? { ...l, x: l.x + dx, y: l.y + dy } : l)));
+        setPageLayers(nudgeLayersWithinArtboard(layers, [...ids], dx, dy, { width: page.width, height: page.height }));
       } else if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         deleteSelected();
@@ -572,15 +729,27 @@ export function StudioCanvasEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLayerIds, doc, activePageId, onUndo, onRedo, readOnly]);
 
+  const multiSelectionBounds = selectedLayerIds.length > 1
+    ? (() => {
+        const selectedLayers = layers.filter((layer) => selectedSet.has(layer.id) && !layer.hidden);
+        if (selectedLayers.length < 2) return null;
+        const left = Math.min(...selectedLayers.map((layer) => layer.x));
+        const top = Math.min(...selectedLayers.map((layer) => layer.y));
+        const right = Math.max(...selectedLayers.map((layer) => layer.x + layer.width));
+        const bottom = Math.max(...selectedLayers.map((layer) => layer.y + layer.height));
+        return { left, top, width: right - left, height: bottom - top };
+      })()
+    : null;
+
   const canGroup = !readOnly && selectedLayerIds.length >= 2;
   const canUngroup =
     !readOnly && selectedLayerIds.some((id) => layers.find((l) => l.id === id)?.groupId);
   const canAlign = !readOnly && selectedLayerIds.length >= 1;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7.5rem)] min-h-[520px] bg-[#E8E6E1]">
+    <div className="relative flex h-[calc(100dvh-6.5rem)] min-h-[520px] flex-col bg-[#111214] text-white">
       {/* Top tool strip */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-black/10 bg-white px-3 py-2 shrink-0">
+      <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap border-b border-white/[.08] bg-[#101113] px-3 py-1.5 shrink-0">
         {readOnly ? (
           <span className="rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
             View only
@@ -590,7 +759,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !canUndo}
           onClick={() => onUndo?.()}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-white/60 hover:bg-[#17181B]/[.06] hover:text-white disabled:opacity-25"
         >
           Undo
         </button>
@@ -598,16 +767,16 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !canRedo}
           onClick={() => onRedo?.()}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Redo
         </button>
-        <span className="w-px h-5 bg-black/10" />
+        <span className="mx-1 h-4 w-px bg-black/[.08]" />
         <button
           type="button"
           disabled={readOnly || !selectedLayerIds.length}
           onClick={copySelected}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Copy
         </button>
@@ -615,7 +784,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly}
           onClick={pasteLayers}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Paste
         </button>
@@ -623,17 +792,17 @@ export function StudioCanvasEditor({
           type="button"
           disabled={readOnly || !selectedLayerIds.length}
           onClick={duplicateSelected}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
-          Duplicate
+          <span className="inline-flex items-center gap-1"><StudioIcon name="duplicate" className="h-3.5 w-3.5" />Duplicate</span>
         </button>
         <button
           type="button"
           disabled={readOnly || !selectedLayerIds.length}
           onClick={deleteSelected}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30" style={{ color: "#8B1E1E" }}
+          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-red-700/70 hover:bg-red-50 hover:text-red-800 disabled:opacity-25"
         >
-          Delete
+          <span className="inline-flex items-center gap-1"><StudioIcon name="trash" className="h-3.5 w-3.5" />Delete</span>
         </button>
         <span className="w-px h-5 bg-black/10" />
         {ALIGN_TOOLS.map((t) => (
@@ -641,11 +810,12 @@ export function StudioCanvasEditor({
             key={t.mode}
             type="button"
             title={t.title}
-            disabled={!canAlign}
+            disabled={!canAlign || selectedLayerIds.length < (t.minSelection ?? 1)}
             onClick={() => applyAlign(t.mode)}
-            className="rounded-lg w-7 h-7 text-[11px] font-bold border border-black/10 disabled:opacity-30"
+            aria-label={t.title}
+            className="rounded-lg w-8 h-8 text-[11px] font-bold border border-white/10 bg-[#17181B] hover:bg-black/[.035] focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-30"
           >
-            {t.label}
+            {t.mode==="left"||t.mode==="center-x"||t.mode==="right"?<StudioIcon name={`align-${t.label}` as "align-left"|"align-center"|"align-right"} className="mx-auto h-4 w-4"/>:t.label}
           </button>
         ))}
         <span className="w-px h-5 bg-black/10" />
@@ -653,7 +823,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={!canGroup}
           onClick={applyGroup}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Group
         </button>
@@ -661,7 +831,7 @@ export function StudioCanvasEditor({
           type="button"
           disabled={!canUngroup}
           onClick={applyUngroup}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Ungroup
         </button>
@@ -677,13 +847,13 @@ export function StudioCanvasEditor({
             max={120}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-28"
+            className="w-20 lg:w-28"
           />
           <span className="w-10 tabular-nums">{zoom}%</span>
         </label>
         <button
           type="button"
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10"
+          className="rounded-md px-2 py-1.5 text-[10px] font-semibold text-white/55 hover:bg-[#17181B]/[.06]"
           onClick={() => {
             const el = boardRef.current;
             if (!el) return;
@@ -697,23 +867,12 @@ export function StudioCanvasEditor({
       </div>
 
       <div className="flex flex-1 min-h-0">
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-[14px] border border-white/10 bg-[#151619]/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
         {/* Left: Elements / Layers */}
-        <aside className="w-[220px] shrink-0 border-r border-black/10 bg-white flex flex-col">
-          <div className="flex border-b border-black/10">
-            {(["elements", "layers", "uploads", "brand"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setLeftTab(t)}
-                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider ${
-                  leftTab === t ? "border-b-2 border-orange-600 text-orange-700" : "opacity-50"
-                }`}
-              >
-                {t === "uploads" ? "Library" : t === "brand" ? "Look" : t}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-2xl md:static md:flex md:w-[268px] md:shrink-0 md:rounded-none md:border-y-0 md:border-l-0 md:shadow-none`}>
+          <GalaxyToolRail items={STUDIO_RAIL} value={leftTab} onChange={(id)=>setLeftTab(id as typeof leftTab)}/><div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {leftTab === "themes" ? <StudioThemesPanel document={doc} readOnly={readOnly} onApply={onChange}/> : null}
+            {leftTab === "brand" ? <StudioBrandSpacePanel document={doc} readOnly={readOnly} onApply={onChange} onBrandSpace={setBrandSpace} onInsertLogo={(url,label)=>addLayer("image",{imageUrl:url,name:label,width:220,height:120,objectFit:"contain"})}/> : null}
             {leftTab === "brand" ? (
               <StudioBrandApplyPanel
                 document={doc}
@@ -723,107 +882,35 @@ export function StudioCanvasEditor({
                 onApply={(next) => onChange(next)}
               />
             ) : null}
+            {leftTab === "tools" ? (
+              <StudioToolsPanel readOnly={readOnly} onAction={(action) => {
+                if (action === "text") addLayer("text");
+                else setLeftTab(action);
+              }} />
+            ) : null}
             {leftTab === "elements" ? (
-              <>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50">
-                  {readOnly ? "Elements (view only)" : "Add"}
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => addLayer("text")}
-                    className="rounded-xl border border-black/10 bg-[#FFF8F0] px-2 py-3 text-xs font-bold hover:border-orange-400 disabled:opacity-40"
-                  >
-                    Text
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => addLayer("rect")}
-                    className="rounded-xl border border-black/10 bg-[#FFF8F0] px-2 py-3 text-xs font-bold hover:border-orange-400 disabled:opacity-40"
-                  >
-                    Rectangle
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => addLayer("ellipse")}
-                    className="rounded-xl border border-black/10 bg-[#FFF8F0] px-2 py-3 text-xs font-bold hover:border-orange-400 disabled:opacity-40"
-                  >
-                    Ellipse
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly || uploadBusy}
-                    onClick={() => fileRef.current?.click()}
-                    className="rounded-xl border border-black/10 bg-[#0F0D33] text-white px-2 py-3 text-xs font-bold disabled:opacity-50"
-                  >
-                    {uploadBusy ? "…" : "Image"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={readOnly || uploadBusy}
-                    onClick={() => videoFileRef.current?.click()}
-                    className="col-span-2 rounded-xl border border-black/10 bg-[#E05A2B] text-white px-2 py-3 text-xs font-bold disabled:opacity-50"
-                  >
-                    {uploadBusy ? "…" : "Short video"}
-                  </button>
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 pt-2">Lines · Frames</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {STUDIO_ELEMENTS_PACK.filter((e) => e.kind === "line" || e.kind === "frame").map((el) => (
-                    <button
-                      key={el.id}
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => addElement(el)}
-                      className="rounded-xl border border-black/10 bg-white px-2 py-2.5 text-[11px] font-bold hover:border-orange-400 disabled:opacity-40"
-                    >
-                      {el.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 pt-2">Icons</p>
+              <div className="space-y-3">
+                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">{readOnly?"Elements · view only":"Elements"}</p><p className="text-[9px] text-white/40">Shapes, frames, symbols and business graphics</p></div>
+                <input value={elementQuery} onChange={(e)=>setElementQuery(e.target.value)} placeholder="Search elements" className="w-full rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-xs"/>
+                <div className="flex gap-1 overflow-x-auto">{(["all","lines","frames","symbols","business","social","culture"] as const).map((value)=><button key={value} type="button" onClick={()=>setElementCategory(value)} className={`rounded-full px-2 py-1 text-[9px] font-bold capitalize ${elementCategory===value?"bg-white text-black":"bg-white/[.05] text-white/50"}`}>{value}</button>)}</div>
                 <div className="grid grid-cols-3 gap-2">
-                  {STUDIO_ELEMENTS_PACK.filter((e) => e.kind === "icon").map((el) => (
-                    <button
-                      key={el.id}
-                      type="button"
-                      disabled={readOnly}
-                      title={el.label}
-                      onClick={() => addElement(el)}
-                      className="rounded-xl border border-black/10 bg-[#FFF8F0] px-1 py-2 text-lg hover:border-orange-400 disabled:opacity-40"
-                    >
-                      {el.glyph}
-                    </button>
-                  ))}
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("text")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">T<br/><span className="font-normal text-white/40">Text</span></button>
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-white/40">Shape</span></button>
+                  <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-white/40">Circle</span></button>
                 </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(e) => void onFilePicked(e.target.files?.[0] ?? null, "image")}
-                />
-                <input
-                  ref={videoFileRef}
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime"
-                  className="hidden"
-                  onChange={(e) => void onFilePicked(e.target.files?.[0] ?? null, "video")}
-                />
-                {uploadError ? <p className="text-[11px]" style={{ color: "#8B1E1E" }}>{uploadError}</p> : null}
-                <p className="text-[10px] leading-relaxed opacity-50">
-                  Elements pack: structured icons, lines, and frames — editable layers, not freehand draw.
-                </p>
-              </>
+                <div className="grid grid-cols-2 gap-2">{searchStudioElements(elementQuery,elementCategory).map((el)=><button key={el.id} type="button" disabled={readOnly} title={el.label} onClick={()=>addElement(el)} className="flex min-h-[70px] flex-col items-center justify-center rounded-xl border border-white/10 bg-[#17181B] px-2 py-2 text-center hover:border-orange-400 disabled:opacity-40"><span className="text-2xl">{el.glyph ?? (el.kind==="frame"?"□":"━")}</span><span className="mt-1 text-[9px] font-bold">{el.label}</span></button>)}</div>
+                {searchStudioElements(elementQuery,elementCategory).length===0?<p className="rounded-xl border border-dashed border-black/15 p-4 text-center text-[10px] text-white/45">No elements match that search.</p>:null}
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"image")}/>
+                <input ref={videoFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"video")}/>
+              </div>
             ) : leftTab === "uploads" ? (
-              <StudioUploadsLibrary
+              <StudioUploadsLibrary approvedAssetIds={brandSpace?.approvedAssetIds??[]}
                 readOnly={readOnly}
+                designId={designId}
                 onPickImage={(url) =>
                   addLayer("image", { imageUrl: url, name: "Library", width: 320, height: 320 })
                 }
+                onDropAsset={()=>undefined}
                 onPickVideo={(url) =>
                   addLayer("video", {
                     videoUrl: url,
@@ -834,23 +921,48 @@ export function StudioCanvasEditor({
                 }
               />
             ) : (
-              <ul className="space-y-1">
-                {[...layers].reverse().map((l) => (
-                  <li key={l.id}>
-                    <button
-                      type="button"
-                      onClick={(e) => selectLayer(l, e.shiftKey)}
-                      className={`w-full text-left rounded-lg px-2 py-1.5 text-xs ${
-                        selectedSet.has(l.id) ? "bg-[#0F0D33] text-white" : "hover:bg-black/5"
-                      }`}
-                    >
-                      <span className="font-semibold">{l.name}</span>
-                      <span className="opacity-50 ml-1">· {l.type}</span>
-                      {l.groupId ? <span className="opacity-40 ml-1">⊞</span> : null}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em]">Layers</p><p className="text-[9px] text-white/40">Top layer appears first</p></div><span className="rounded-full bg-white/[.06] px-2 py-1 text-[9px] font-bold">{layers.length}</span></div>
+                <ul className="space-y-1">{[...layers].reverse().map((l) => (
+                  <li
+                    key={l.id}
+                    draggable={!readOnly}
+                    onDragStart={(event) => {
+                      if (readOnly) return;
+                      setDraggedLayerId(l.id);
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/x-kebu-studio-layer", l.id);
+                    }}
+                    onDragOver={(event) => {
+                      if (!readOnly && draggedLayerId && draggedLayerId !== l.id) {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                      }
+                    }}
+                    onDrop={(event) => {
+                      if (readOnly) return;
+                      event.preventDefault();
+                      const source = draggedLayerId || event.dataTransfer.getData("text/x-kebu-studio-layer");
+                      if (source) reorderLayerByDisplayTarget(source, l.id);
+                      setDraggedLayerId(null);
+                    }}
+                    onDragEnd={() => setDraggedLayerId(null)}
+                    className={`group flex items-center rounded-xl border ${selectedSet.has(l.id)?"border-black bg-white text-black":"border-transparent hover:border-white/10 hover:bg-[#17181B]"} ${draggedLayerId===l.id?"opacity-45":""}`}
+                  >
+                    {!readOnly ? <span className="cursor-grab px-1.5 text-[10px] opacity-35" aria-hidden>⋮⋮</span> : null}
+                    <button type="button" onClick={(e)=>selectLayer(l,e.shiftKey)} className="min-w-0 flex-1 px-2.5 py-2 text-left">
+                      <span className={`block truncate text-[10px] font-bold ${l.hidden?"line-through opacity-45":""}`}>{l.name}</span>
+                      <span className="text-[8px] opacity-45">{l.type}{l.groupId?" · grouped":""}{l.hidden?" · hidden":""}</span>
                     </button>
-                  </li>
-                ))}
-              </ul>
+                    {!readOnly ? (
+                      <>
+                        <button type="button" title={l.hidden?"Show layer":"Hide layer"} onClick={()=>updateLayer(l.id,{hidden:!l.hidden})} className="rounded-lg px-2 py-2 text-[10px] opacity-55 hover:bg-[#17181B]/10">{l.hidden?"◌":"◉"}</button>
+                        <button type="button" title={l.locked?"Unlock layer":"Lock layer"} onClick={()=>updateLayer(l.id,{locked:!l.locked})} className="mr-1 rounded-lg px-2 py-2 text-[10px] opacity-55 hover:bg-[#17181B]/10">{l.locked?"🔒":"○"}</button>
+                      </>
+                    ) : null}
+                  </li>))}
+                </ul>
+              </div>
             )}
           </div>
         </aside>
@@ -858,7 +970,9 @@ export function StudioCanvasEditor({
         {/* Center canvas */}
         <div
           ref={boardRef}
-          className={`flex-1 overflow-hidden p-6 flex justify-center items-start relative ${
+          onDragOver={(e)=>{if(e.dataTransfer.types.includes("application/x-kebu-studio-asset")){e.preventDefault();e.dataTransfer.dropEffect="copy"}}}
+          onDrop={(e)=>{const raw=e.dataTransfer.getData("application/x-kebu-studio-asset");if(!raw)return;e.preventDefault();try{const a=JSON.parse(raw) as {id?:string;kind:string;url:string;file_name?:string;width?:number|null;height?:number|null};if(a.kind==="image"||a.kind==="video")placeDroppedAsset({id:a.id,kind:a.kind,url:a.url,name:a.file_name,width:a.width,height:a.height},e.clientX,e.clientY)}catch{setUploadError("That asset could not be placed.")}}}
+          className={`min-w-0 flex-1 overflow-hidden p-3 sm:p-6 flex justify-center items-start relative ${
             spaceHeld || pan ? "cursor-grab" : ""
           } ${pan ? "cursor-grabbing" : ""}`}
           onPointerDown={boardPointerDown}
@@ -892,6 +1006,7 @@ export function StudioCanvasEditor({
             />
             <div
               className="absolute inset-0"
+              onPointerDown={beginMarquee}
               style={{
                 width: page.width,
                 height: page.height,
@@ -900,7 +1015,9 @@ export function StudioCanvasEditor({
               }}
             >
               {layers.map((layer) => {
+                if (layer.hidden) return null;
                 const selectedOn = selectedSet.has(layer.id);
+                const motion = layerMotionAtTime(layer, previewLocalMs);
                 return (
                   <div
                     key={layer.id}
@@ -910,8 +1027,14 @@ export function StudioCanvasEditor({
                       top: layer.y,
                       width: layer.width,
                       height: layer.height,
-                      transform: `rotate(${layer.rotation}deg)`,
-                      opacity: layer.opacity,
+                      transform: `translate(${motion.translateX}px, ${motion.translateY}px) rotate(${layer.rotation}deg) scale(${motion.scale})`,
+                      opacity: layer.opacity * motion.opacityMultiplier,
+                      mixBlendMode: layer.blendMode && layer.blendMode !== "normal" ? layer.blendMode : undefined,
+                      borderRadius: layer.cornerRadius ?? 0,
+                      filter:
+                        (layer.shadowBlur ?? 0) > 0 || (layer.shadowX ?? 0) !== 0 || (layer.shadowY ?? 0) !== 0
+                          ? `drop-shadow(${layer.shadowX ?? 0}px ${layer.shadowY ?? 0}px ${layer.shadowBlur ?? 0}px ${layer.shadowColor ?? "#00000055"})`
+                          : undefined,
                       cursor: spaceHeld ? "grab" : layer.locked ? "not-allowed" : "move",
                       pointerEvents: spaceHeld ? "none" : "auto",
                     }}
@@ -920,6 +1043,12 @@ export function StudioCanvasEditor({
                       pointerDown(e, layer, "move");
                     }}
                     onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
+                      if (readOnly || layer.type !== "text") return;
+                      e.stopPropagation();
+                      onSelectLayers([layer.id]);
+                      setEditingTextId(layer.id);
+                    }}
                   >
                     {layer.type === "text" ? (
                       <p
@@ -927,12 +1056,41 @@ export function StudioCanvasEditor({
                           fontSize: layer.fontSize,
                           fontFamily: cssStackForStudioFont(layer.fontFamily ?? "system-ui"),
                           fontWeight: layer.fontWeight,
+                          fontStyle: layer.fontStyle ?? "normal",
                           color: layer.color,
                           textAlign: layer.textAlign,
+                          letterSpacing: layer.letterSpacing != null ? `${layer.letterSpacing}px` : undefined,
+                          lineHeight: layer.lineHeight ?? 1.2,
+                          textDecoration: layer.textDecoration ?? "none",
+                          textTransform: layer.textTransform === "none" ? undefined : layer.textTransform,
                           margin: 0,
-                          lineHeight: 1.2,
-                          pointerEvents: "none",
+                          pointerEvents: editingTextId === layer.id ? "auto" : "none",
+                          cursor: editingTextId === layer.id ? "text" : undefined,
+                          outline: "none",
+                          whiteSpace: "pre-wrap",
                           wordBreak: "break-word",
+                        }}
+                        contentEditable={editingTextId === layer.id}
+                        suppressContentEditableWarning
+                        onPointerDown={(e) => {
+                          if (editingTextId === layer.id) e.stopPropagation();
+                        }}
+                        onInput={(e) => {
+                          if (editingTextId !== layer.id) return;
+                          updateLayer(layer.id, { text: e.currentTarget.innerText.slice(0, 500) }, true);
+                        }}
+                        onBlur={() => {
+                          if (editingTextId !== layer.id) return;
+                          onChange(latestDoc.current);
+                          setEditingTextId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (editingTextId !== layer.id) return;
+                          e.stopPropagation();
+                          if (e.key === "Escape" || ((e.metaKey || e.ctrlKey) && e.key === "Enter")) {
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                          }
                         }}
                       >
                         {layer.text}
@@ -941,7 +1099,7 @@ export function StudioCanvasEditor({
                       <div className="w-full h-full overflow-hidden pointer-events-none">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={layer.imageUrl}
+                          src={resolveMediaUrl(layer.imageUrl)}
                           alt=""
                           style={(() => {
                             const crop = normalizeCrop(layer);
@@ -953,23 +1111,25 @@ export function StudioCanvasEditor({
                               marginTop: `${(-crop.y / crop.h) * 100}%`,
                               objectFit: "fill" as const,
                               transform: `scale(${layer.flipX ? -1 : 1}, ${layer.flipY ? -1 : 1})`,
+                              filter: mediaFilterCss(layer),
                             };
                           })()}
                         />
                       </div>
                     ) : layer.type === "video" && layer.videoUrl ? (
                       <TimelineVideo
-                        url={layer.videoUrl}
+                        url={resolveMediaUrl(layer.videoUrl)}
                         trimStartMs={layer.trimStartMs ?? 0}
                         pageLocalMs={previewLocalMs}
+                        filterCss={mediaFilterCss(layer)}
                       />
                     ) : layer.type === "ellipse" ? (
                       <div
                         className="w-full h-full rounded-full pointer-events-none"
-                        style={{ background: layer.fill }}
+                        style={{ background: studioLayerFillCss(layer) }}
                       />
                     ) : layer.type === "line" ? (
-                      <div
+                      <><div
                         className="w-full pointer-events-none absolute left-0"
                         style={{
                           background: layer.fill ?? "#FFFFFF",
@@ -977,10 +1137,10 @@ export function StudioCanvasEditor({
                           top: "50%",
                           transform: "translateY(-50%)",
                         }}
-                      />
+                      />{layer.text==="→"?<span className="absolute right-[-2px] top-1/2 -translate-y-1/2 text-[22px] leading-none" style={{color:layer.stroke??layer.fill??"#111"}}>›</span>:null}</>
                     ) : layer.type === "frame" ? (
                       <div
-                        className="w-full h-full pointer-events-none box-border"
+                        className="w-full h-full pointer-events-none box-border overflow-hidden relative"
                         style={
                           layer.frameStyle === "polaroid"
                             ? {
@@ -996,9 +1156,8 @@ export function StudioCanvasEditor({
                               }
                         }
                       >
-                        {layer.frameStyle === "polaroid" ? (
-                          <div className="w-full h-full" style={{ background: "#E8E4DC" }} />
-                        ) : null}
+                        {layer.frameMediaUrl && layer.frameMediaKind==="image" ? <img src={resolveMediaUrl(layer.frameMediaUrl)} alt="" className="absolute inset-0 h-full w-full" style={{objectFit:"cover",objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameMediaUrl && layer.frameMediaKind==="video" ? <video src={resolveMediaUrl(layer.frameMediaUrl)} muted playsInline className="absolute inset-0 h-full w-full object-cover" style={{objectPosition:`${(layer.frameFocalX??.5)*100}% ${(layer.frameFocalY??.5)*100}%`}}/> : layer.frameStyle === "polaroid" ? <div className="w-full h-full" style={{ background: "#E8E4DC" }} /> : null}
+                        <div className="absolute inset-0" style={{border:`${layer.strokeWidth??6}px solid ${layer.stroke??"#fff"}`,borderRadius:layer.frameStyle==="rounded"?20:0}}/>
                       </div>
                     ) : layer.type === "icon" ? (
                       <div
@@ -1013,17 +1172,62 @@ export function StudioCanvasEditor({
                         {layer.text || "★"}
                       </div>
                     ) : (
-                      <div className="w-full h-full pointer-events-none" style={{ background: layer.fill }} />
+                      <div className="w-full h-full pointer-events-none" style={{ background: studioLayerFillCss(layer) }} />
                     )}
                     {selectedOn && !layer.locked && selectedLayerIds.length === 1 ? (
-                      <div
-                        className="absolute -right-1.5 -bottom-1.5 h-3.5 w-3.5 rounded-sm bg-orange-500 cursor-se-resize"
-                        onPointerDown={(e) => pointerDown(e, layer, "resize-se")}
-                      />
+                      <>
+                        {([
+                          ["-left-1.5 -top-1.5 cursor-nw-resize", "resize-nw"],
+                          ["-right-1.5 -top-1.5 cursor-ne-resize", "resize-ne"],
+                          ["-left-1.5 -bottom-1.5 cursor-sw-resize", "resize-sw"],
+                          ["-right-1.5 -bottom-1.5 cursor-se-resize", "resize-se"],
+                        ] as const).map(([classes, mode]) => (
+                          <div
+                            key={mode}
+                            className={`absolute ${classes} h-3.5 w-3.5 rounded-sm border border-white bg-orange-500`}
+                            onPointerDown={(e) => pointerDown(e, layer, mode)}
+                          />
+                        ))}
+                        <div className="absolute left-1/2 -top-8 h-6 w-px -translate-x-1/2 bg-orange-500" />
+                        <button
+                          type="button"
+                          aria-label="Rotate layer"
+                          className="absolute left-1/2 -top-11 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-white bg-orange-500 cursor-grab"
+                          onPointerDown={(e) => pointerDown(e, layer, "rotate")}
+                        />
+                      </>
                     ) : null}
                   </div>
                 );
               })}
+              {multiSelectionBounds ? (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute z-20 border-2 border-dashed border-[#FF6A00]"
+                  style={{
+                    left: multiSelectionBounds.left,
+                    top: multiSelectionBounds.top,
+                    width: multiSelectionBounds.width,
+                    height: multiSelectionBounds.height,
+                  }}
+                >
+                  <span className="absolute -left-px -top-5 rounded bg-[#FF6A00] px-1.5 py-0.5 text-[8px] font-black text-white">
+                    {selectedLayerIds.length} selected
+                  </span>
+                </div>
+              ) : null}
+              {marquee ? (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute z-30 border border-[#FF6A00] bg-[#FF6A00]/10"
+                  style={{
+                    left: Math.min(marquee.startX, marquee.currentX),
+                    top: Math.min(marquee.startY, marquee.currentY),
+                    width: Math.abs(marquee.currentX - marquee.startX),
+                    height: Math.abs(marquee.currentY - marquee.startY),
+                  }}
+                />
+              ) : null}
               {snapGuides.v != null ? (
                 <div
                   className="absolute top-0 bottom-0 w-px bg-pink-500 pointer-events-none z-20"
@@ -1041,10 +1245,8 @@ export function StudioCanvasEditor({
         </div>
 
         {/* Right: Properties */}
-        <aside className="w-[260px] shrink-0 border-l border-black/10 bg-white overflow-y-auto p-4 space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">
-            Properties{readOnly ? " · view only" : ""}
-          </p>
+        <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-white/10 bg-[#17181B] p-4 shadow-2xl md:static md:block md:w-[288px] md:shrink-0 md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none space-y-3`}>
+          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p></div>
           <fieldset disabled={readOnly} className="space-y-3 border-0 p-0 m-0 min-w-0 disabled:opacity-70">
           {selectedLayerIds.length > 1 ? (
             <p className="text-xs opacity-60">
@@ -1053,7 +1255,7 @@ export function StudioCanvasEditor({
           ) : null}
           {!selected ? (
             <div className="space-y-3">
-              <p className="text-xs opacity-60">Select a layer, or edit the page background.</p>
+              <GalaxyEmptyState title="Nothing selected" detail="Select something on the canvas to edit it, or adjust the page itself below." />
               <label className="block text-xs font-semibold">
                 Background
                 <input
@@ -1064,7 +1266,7 @@ export function StudioCanvasEditor({
                     if (readOnly) return;
                     onChange(updatePage(doc, activePageId, { backgroundColor: e.target.value }));
                   }}
-                  className="mt-1 w-full h-10 rounded-lg border border-black/10 disabled:opacity-50"
+                  className="mt-1 w-full h-10 rounded-lg border border-white/10 disabled:opacity-50"
                 />
               </label>
               <p className="text-[10px] opacity-50">
@@ -1072,24 +1274,72 @@ export function StudioCanvasEditor({
               </p>
             </div>
           ) : (
-            <div className="space-y-3 text-xs">
-              <label className="block font-semibold">
+            <div className="space-y-0 text-xs">
+              <GalaxyInspectorSection title="Layer"><label className="block font-semibold">
                 Name
                 <input
                   value={selected.name}
                   onChange={(e) => updateLayer(selected.id, { name: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                  className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                 />
-              </label>
-              {selected.type === "text" ? (
-                <>
+              </label></GalaxyInspectorSection>
+              <GalaxyInspectorSection title="Motion">
+                <label className="block font-semibold">
+                  Entrance
+                  <select
+                    value={selected.animationPreset ?? "none"}
+                    onChange={(e) => updateLayer(selected.id, { animationPreset: e.target.value as CanvasLayer["animationPreset"] })}
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                  >
+                    <option value="none">None</option>
+                    <option value="fade">Fade</option>
+                    <option value="fade_up">Fade up</option>
+                    <option value="slide_left">Slide from left</option>
+                    <option value="slide_right">Slide from right</option>
+                    <option value="scale">Scale in</option>
+                    <option value="pop">Pop</option>
+                  </select>
+                </label>
+                {(selected.animationPreset ?? "none") !== "none" ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block font-semibold">
+                      Duration ms
+                      <input
+                        type="number"
+                        min={100}
+                        max={5000}
+                        step={50}
+                        value={selected.animationDurationMs ?? 600}
+                        onChange={(e) => updateLayer(selected.id, { animationDurationMs: Math.max(100, Math.min(5000, Number(e.target.value) || 600)) })}
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                      />
+                    </label>
+                    <label className="block font-semibold">
+                      Delay ms
+                      <input
+                        type="number"
+                        min={0}
+                        max={10000}
+                        step={50}
+                        value={selected.animationDelayMs ?? 0}
+                        onChange={(e) => updateLayer(selected.id, { animationDelayMs: Math.max(0, Math.min(10000, Number(e.target.value) || 0)) })}
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                      />
+                    </label>
+                  </div>
+                ) : null}
+                <p className="text-[9px] leading-relaxed text-white/45">
+                  Motion previews against the page timeline and follows the design into editable video.
+                </p>
+              </GalaxyInspectorSection>
+              {selected.type === "text" ? (<GalaxyInspectorSection title="Typography">
                   <label className="block font-semibold">
                     Text
                     <textarea
                       value={selected.text ?? ""}
                       onChange={(e) => updateLayer(selected.id, { text: e.target.value })}
                       rows={3}
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     />
                   </label>
                   <label className="block font-semibold">
@@ -1097,7 +1347,7 @@ export function StudioCanvasEditor({
                     <select
                       value={selected.fontFamily ?? "system-ui"}
                       onChange={(e) => updateLayer(selected.id, { fontFamily: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     >
                       {FONT_OPTIONS.map((f) => (
                         <option key={f} value={f}>
@@ -1115,7 +1365,7 @@ export function StudioCanvasEditor({
                         max={200}
                         value={selected.fontSize ?? 24}
                         onChange={(e) => updateLayer(selected.id, { fontSize: Number(e.target.value) })}
-                        className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                       />
                     </label>
                     <label className="block font-semibold">
@@ -1124,7 +1374,7 @@ export function StudioCanvasEditor({
                         type="color"
                         value={selected.color ?? "#ffffff"}
                         onChange={(e) => updateLayer(selected.id, { color: e.target.value })}
-                        className="mt-1 w-full h-9 rounded-lg border border-black/10"
+                        className="mt-1 w-full h-9 rounded-lg border border-white/10"
                       />
                     </label>
                   </div>
@@ -1137,32 +1387,164 @@ export function StudioCanvasEditor({
                           textAlign: e.target.value as "left" | "center" | "right",
                         })
                       }
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     >
                       <option value="left">Left</option>
                       <option value="center">Center</option>
                       <option value="right">Right</option>
                     </select>
                   </label>
-                </>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block font-semibold">
+                      Weight
+                      <select
+                        value={selected.fontWeight ?? "400"}
+                        onChange={(e) => updateLayer(selected.id, { fontWeight: e.target.value })}
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                      >
+                        <option value="300">Light</option>
+                        <option value="400">Regular</option>
+                        <option value="500">Medium</option>
+                        <option value="600">Semi bold</option>
+                        <option value="700">Bold</option>
+                        <option value="800">Extra bold</option>
+                        <option value="900">Black</option>
+                      </select>
+                    </label>
+                    <label className="block font-semibold">
+                      Style
+                      <select
+                        value={selected.fontStyle ?? "normal"}
+                        onChange={(e) => updateLayer(selected.id, { fontStyle: e.target.value as "normal" | "italic" })}
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="italic">Italic</option>
+                      </select>
+                    </label>
+                    <label className="block font-semibold">
+                      Letter space
+                      <input
+                        type="number"
+                        min={-20}
+                        max={100}
+                        step={0.5}
+                        value={selected.letterSpacing ?? 0}
+                        onChange={(e) => updateLayer(selected.id, { letterSpacing: Number(e.target.value) })}
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                      />
+                    </label>
+                    <label className="block font-semibold">
+                      Line height
+                      <input
+                        type="number"
+                        min={0.6}
+                        max={3}
+                        step={0.05}
+                        value={selected.lineHeight ?? 1.2}
+                        onChange={(e) => updateLayer(selected.id, { lineHeight: Number(e.target.value) })}
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block font-semibold">
+                      Decoration
+                      <select
+                        value={selected.textDecoration ?? "none"}
+                        onChange={(e) => updateLayer(selected.id, { textDecoration: e.target.value as "none" | "underline" | "line-through" })}
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                      >
+                        <option value="none">None</option>
+                        <option value="underline">Underline</option>
+                        <option value="line-through">Strike</option>
+                      </select>
+                    </label>
+                    <label className="block font-semibold">
+                      Case
+                      <select
+                        value={selected.textTransform ?? "none"}
+                        onChange={(e) => updateLayer(selected.id, { textTransform: e.target.value as "none" | "uppercase" | "lowercase" })}
+                        className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                      >
+                        <option value="none">As typed</option>
+                        <option value="uppercase">UPPERCASE</option>
+                        <option value="lowercase">lowercase</option>
+                      </select>
+                    </label>
+                  </div>
+                </GalaxyInspectorSection>
               ) : null}
-              {(selected.type === "rect" || selected.type === "ellipse") && (
-                <label className="block font-semibold">
-                  Fill
-                  <input
-                    type="color"
-                    value={selected.fill ?? "#E05A2B"}
-                    onChange={(e) => updateLayer(selected.id, { fill: e.target.value })}
-                    className="mt-1 w-full h-9 rounded-lg border border-black/10"
-                  />
-                </label>
-              )}
+              {(selected.type === "rect" || selected.type === "ellipse") ? (
+                <GalaxyInspectorSection title="Fill">
+                  <label className="block font-semibold">
+                    Type
+                    <select
+                      value={selected.fillType ?? "solid"}
+                      onChange={(e) => updateLayer(selected.id, { fillType: e.target.value as CanvasLayer["fillType"] })}
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                    >
+                      <option value="solid">Solid</option>
+                      <option value="linear_gradient">Linear gradient</option>
+                    </select>
+                  </label>
+                  {(selected.fillType ?? "solid") === "solid" ? (
+                    <label className="block font-semibold">
+                      Color
+                      <input
+                        type="color"
+                        value={selected.fill ?? "#E05A2B"}
+                        onChange={(e) => updateLayer(selected.id, { fill: e.target.value })}
+                        className="mt-1 h-9 w-full rounded-lg border border-white/10"
+                      />
+                    </label>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block font-semibold">
+                          From
+                          <input
+                            type="color"
+                            value={selected.gradientFrom ?? selected.fill ?? "#FF6A00"}
+                            onChange={(e) => updateLayer(selected.id, { gradientFrom: e.target.value })}
+                            className="mt-1 h-9 w-full rounded-lg border border-white/10"
+                          />
+                        </label>
+                        <label className="block font-semibold">
+                          To
+                          <input
+                            type="color"
+                            value={selected.gradientTo ?? "#FF1F1F"}
+                            onChange={(e) => updateLayer(selected.id, { gradientTo: e.target.value })}
+                            className="mt-1 h-9 w-full rounded-lg border border-white/10"
+                          />
+                        </label>
+                      </div>
+                      <label className="block font-semibold">
+                        Angle · {Math.round(selected.gradientAngle ?? 135)}°
+                        <input
+                          type="range"
+                          min={-180}
+                          max={180}
+                          step={1}
+                          value={selected.gradientAngle ?? 135}
+                          onChange={(e) => updateLayer(selected.id, { gradientAngle: Number(e.target.value) })}
+                          className="mt-1 w-full"
+                        />
+                      </label>
+                      <div className="h-10 rounded-lg border border-white/10" style={{ background: studioLayerFillCss(selected) }} />
+                    </>
+                  )}
+                </GalaxyInspectorSection>
+              ) : null}
+              {selected.type==="frame"?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Frame media</p><p className="text-[10px] opacity-55">{selected.frameMediaUrl?"Drop another image/video to replace it.":"Select this frame, then drag media from the library onto the canvas."}</p>{selected.frameMediaUrl?<><label className="block font-semibold">Horizontal focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalX??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalX:Number(e.target.value)/100})} className="w-full"/></label><label className="block font-semibold">Vertical focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalY??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalY:Number(e.target.value)/100})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{frameMediaUrl:null,frameMediaKind:null,sourceAssetId:null})} className="text-[11px] underline">Remove frame media</button></>:null}</div>:null}
+              {brandSpace?<GalaxyInspectorSection title="Brand Space"><div className="space-y-2"><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-white/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-white/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div></GalaxyInspectorSection>:null}
               {selected.type === "image" ? (
                 <div className="space-y-2">
                   {selected.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={selected.imageUrl}
+                      src={resolveMediaUrl(selected.imageUrl)}
                       alt=""
                       className="w-full rounded-lg border max-h-28"
                       style={{
@@ -1182,14 +1564,14 @@ export function StudioCanvasEditor({
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="rounded-lg border border-black/10 px-2 py-1 text-[11px] font-semibold"
+                      className="rounded-lg border border-white/10 px-2 py-1 text-[11px] font-semibold"
                       onClick={() => updateLayer(selected.id, { flipX: !selected.flipX })}
                     >
                       Flip H
                     </button>
                     <button
                       type="button"
-                      className="rounded-lg border border-black/10 px-2 py-1 text-[11px] font-semibold"
+                      className="rounded-lg border border-white/10 px-2 py-1 text-[11px] font-semibold"
                       onClick={() => updateLayer(selected.id, { flipY: !selected.flipY })}
                     >
                       Flip V
@@ -1204,7 +1586,7 @@ export function StudioCanvasEditor({
                           objectFit: e.target.value as "cover" | "contain",
                         })
                       }
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     >
                       <option value="cover">Cover</option>
                       <option value="contain">Contain</option>
@@ -1252,13 +1634,17 @@ export function StudioCanvasEditor({
                   >
                     Reset crop
                   </button>
+                  <StudioMediaAdjustmentsPanel
+                    layer={selected}
+                    onChange={(patch) => updateLayer(selected.id, patch)}
+                  />
                 </div>
               ) : null}
               {selected.type === "video" ? (
                 <div className="space-y-2">
                   {selected.videoUrl ? (
                     <video
-                      src={selected.videoUrl}
+                      src={resolveMediaUrl(selected.videoUrl)}
                       className="w-full rounded-lg border object-cover max-h-28"
                       muted
                       controls
@@ -1277,6 +1663,10 @@ export function StudioCanvasEditor({
                     Trim controls the source start time on the timeline. Export seeks the clip
                     frame-by-frame (S8b).
                   </p>
+                  <StudioMediaAdjustmentsPanel
+                    layer={selected}
+                    onChange={(patch) => updateLayer(selected.id, patch)}
+                  />
                   <label className="block font-semibold">
                     Trim start (s)
                     <input
@@ -1290,7 +1680,7 @@ export function StudioCanvasEditor({
                           trimStartMs: Math.round(Math.max(0, Number(e.target.value) || 0) * 1000),
                         })
                       }
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     />
                   </label>
                   <label className="block font-semibold">
@@ -1312,11 +1702,97 @@ export function StudioCanvasEditor({
                           trimDurationMs: v === "" ? null : Math.round(Math.max(0.1, Number(v)) * 1000),
                         });
                       }}
-                      className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                     />
                   </label>
                 </div>
               ) : null}
+              {(["rect","ellipse","line","frame","icon"].includes(selected.type))?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Element style</p>{selected.type!=="icon"?<><label className="block font-semibold">Stroke<input type="color" value={selected.stroke??"#111111"} onChange={e=>updateLayer(selected.id,{stroke:e.target.value})} className="mt-1 h-8 w-full"/></label><label className="block font-semibold">Stroke width<input type="range" min="0" max="40" value={selected.strokeWidth??0} onChange={e=>updateLayer(selected.id,{strokeWidth:Number(e.target.value)})} className="w-full"/></label></>:null}{selected.type==="rect"||selected.type==="frame"?<label className="block font-semibold">Corners<input type="range" min="0" max="200" value={selected.cornerRadius??0} onChange={e=>updateLayer(selected.id,{cornerRadius:Number(e.target.value)})} className="w-full"/></label>:null}{selected.type==="line"?<><label className="block font-semibold">Line weight<input type="range" min="2" max="40" value={selected.height} onChange={e=>updateLayer(selected.id,{height:Number(e.target.value)})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{text:selected.text==="→"?"":"→"})} className="rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold">{selected.text==="→"?"Remove arrow":"Add arrow"}</button></>:null}</div>:null}
+              <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Position · size</p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["X", "x", selected.x],
+                  ["Y", "y", selected.y],
+                  ["Width", "width", selected.width],
+                  ["Height", "height", selected.height],
+                ] as const).map(([label, key, value]) => (
+                  <label key={key} className="block font-semibold">
+                    {label}
+                    <input
+                      type="number"
+                      value={Math.round(value * 10) / 10}
+                      onChange={(e) => updateLayer(selected.id, { [key]: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="pt-1 text-[10px] font-bold uppercase tracking-wider opacity-50">Effects</p>
+              <label className="block font-semibold">
+                Blend
+                <select
+                  value={selected.blendMode ?? "normal"}
+                  onChange={(e) => updateLayer(selected.id, { blendMode: e.target.value as CanvasLayer["blendMode"] })}
+                  className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                >
+                  {STUDIO_BLEND_MODES.map((mode) => <option key={mode} value={mode}>{mode === "normal" ? "Normal" : mode.replace("-", " ")}</option>)}
+                </select>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block font-semibold">
+                  Corner
+                  <input
+                    type="number"
+                    min={0}
+                    max={1000}
+                    value={selected.cornerRadius ?? 0}
+                    onChange={(e) => updateLayer(selected.id, { cornerRadius: Math.max(0, Number(e.target.value)) })}
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                  />
+                </label>
+                <label className="block font-semibold">
+                  Shadow blur
+                  <input
+                    type="number"
+                    min={0}
+                    max={200}
+                    value={selected.shadowBlur ?? 0}
+                    onChange={(e) => updateLayer(selected.id, { shadowBlur: Math.max(0, Number(e.target.value)) })}
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                  />
+                </label>
+                <label className="block font-semibold">
+                  Shadow X
+                  <input
+                    type="number"
+                    min={-200}
+                    max={200}
+                    value={selected.shadowX ?? 0}
+                    onChange={(e) => updateLayer(selected.id, { shadowX: Number(e.target.value) })}
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                  />
+                </label>
+                <label className="block font-semibold">
+                  Shadow Y
+                  <input
+                    type="number"
+                    min={-200}
+                    max={200}
+                    value={selected.shadowY ?? 0}
+                    onChange={(e) => updateLayer(selected.id, { shadowY: Number(e.target.value) })}
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
+                  />
+                </label>
+              </div>
+              <label className="block font-semibold">
+                Shadow color
+                <input
+                  type="color"
+                  value={(selected.shadowColor ?? "#000000").slice(0, 7)}
+                  onChange={(e) => updateLayer(selected.id, { shadowColor: e.target.value })}
+                  className="mt-1 h-9 w-full rounded-lg border border-white/10"
+                />
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block font-semibold">
                   Opacity
@@ -1337,7 +1813,7 @@ export function StudioCanvasEditor({
                     max={360}
                     value={selected.rotation ?? 0}
                     onChange={(e) => updateLayer(selected.id, { rotation: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-lg border border-black/10 px-2 py-1.5"
+                    className="mt-1 w-full rounded-lg border border-white/10 px-2 py-1.5"
                   />
                 </label>
               </div>
@@ -1363,7 +1839,7 @@ export function StudioCanvasEditor({
       </div>
 
       {/* Bottom page strip */}
-      <div className="shrink-0 border-t border-black/10 bg-white px-3 py-2 flex flex-wrap items-center gap-2">
+      <div className="shrink-0 border-t border-white/10 bg-[#101113] px-3 py-2 flex flex-wrap items-center gap-2">
         <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 mr-1">Pages</span>
         {doc.pages.map((p, i) => (
           <button
@@ -1376,7 +1852,7 @@ export function StudioCanvasEditor({
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold border ${
               p.id === activePageId
                 ? "border-orange-500 bg-[#FFF8F0] text-orange-800"
-                : "border-black/10 hover:bg-black/5"
+                : "border-white/10 hover:bg-white/[.06]"
             }`}
           >
             {p.name || `Page ${i + 1}`}
@@ -1387,7 +1863,7 @@ export function StudioCanvasEditor({
           type="button"
           onClick={addPage}
           disabled={readOnly || doc.pages.length >= 20}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Add page
         </button>
@@ -1395,7 +1871,7 @@ export function StudioCanvasEditor({
           type="button"
           onClick={duplicatePage}
           disabled={readOnly || doc.pages.length >= 20}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30"
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30"
         >
           Duplicate page
         </button>
@@ -1403,7 +1879,7 @@ export function StudioCanvasEditor({
           type="button"
           onClick={() => removePage(activePageId)}
           disabled={readOnly || doc.pages.length <= 1}
-          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-black/10 disabled:opacity-30" style={{ color: "#8B1E1E" }}
+          className="rounded-lg px-2.5 py-1 text-xs font-semibold border border-white/10 disabled:opacity-30" style={{ color: "#8B1E1E" }}
         >
           Delete page
         </button>

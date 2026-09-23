@@ -32,7 +32,9 @@ export interface ScanResult {
 export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
-  const { imageBase64, mediaType = "image/jpeg" } = await req.json() as {
+  let rawBody: unknown;
+  try { rawBody = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { imageBase64, mediaType = "image/jpeg" } = rawBody as {
     imageBase64: string;
     mediaType?: string;
   };

@@ -49,45 +49,46 @@ export default function NewStudioVideoPage() {
           </p>
         </div>
         <StudioEcosystemStrip compact />
-        <label className="block text-sm font-semibold">
-          Title
-          <input
-            className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 bg-white"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={120}
-          />
-        </label>
-        <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wider opacity-50">Aspect ratio</p>
-          <div className="grid gap-2">
-            {VIDEO_ASPECT_PRESETS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPresetId(p.id)}
-                className={`rounded-2xl border px-4 py-3 text-left text-sm ${
-                  presetId === p.id ? "border-orange-500 bg-white" : "border-black/10 bg-white/60"
-                }`}
-              >
-                <span className="font-semibold">{p.label}</span>
-                <span className="block text-xs opacity-50 mt-0.5">
-                  {p.width}×{p.height}
-                </span>
-              </button>
-            ))}
+        <form onSubmit={(e) => { e.preventDefault(); void create(); }} className="space-y-6">
+          <label className="block text-sm font-semibold">
+            Title
+            <input
+              className="mt-1 w-full rounded-xl border border-black/10 px-3 py-2 bg-white"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={120}
+            />
+          </label>
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider opacity-50">Aspect ratio</p>
+            <div className="grid gap-2">
+              {VIDEO_ASPECT_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPresetId(p.id)}
+                  className={`rounded-2xl border px-4 py-3 text-left text-sm ${
+                    presetId === p.id ? "border-orange-500 bg-white" : "border-black/10 bg-white/60"
+                  }`}
+                >
+                  <span className="font-semibold">{p.label}</span>
+                  <span className="block text-xs opacity-50 mt-0.5">
+                    {p.width}×{p.height}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        {error ? <p className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void create()}
-          className="rounded-full px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-          style={{ background: "#E05A2B" }}
-        >
-          {busy ? "Creating…" : "Open editor"}
-        </button>
+          {error ? <p role="alert" className="text-sm" style={{ color: "#8B1E1E" }}>{error}</p> : null}
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-full px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+            style={{ background: "#E05A2B" }}
+          >
+            {busy ? "Creating…" : "Open editor"}
+          </button>
+        </form>
       </div>
     </div>
   );
