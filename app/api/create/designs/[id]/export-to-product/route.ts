@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
+import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
+import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
 import { parseCanvasDocument, exportCanvasToPngDataUrl } from "@/lib/studio/canvas-document";
 import type { StudioDesignType } from "@/lib/studio/canvas-document";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
@@ -20,6 +23,9 @@ const exportSchema = z.object({
 
 /** Export a Studio design image onto a Shop product (new or existing). */
 export async function POST(req: Request, { params }: Params) {
+  const originBlocked = assertSameOriginMutation(req);
+  if (originBlocked) return originBlocked;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -40,17 +46,22 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
+  const access = await resolveStudioDesignAccess(supabase, { designId, userId: user.id });
+  if (!access?.canEdit) {
+    return NextResponse.json({ error: "Design not found or view-only." }, { status: 404 });
+  }
+
   const { data: design } = await supabase
     .from("create_designs")
-    .select("id, title, design_type, canvas")
+    .select("id, title, design_type, canvas, business_id")
     .eq("id", designId)
-    .eq("owner_id", user.id)
     .maybeSingle();
 
   if (!design) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
   }
 
+  const workspace = await loadActiveWorkspaceScope(supabase, user.id);
   const { data: project } = await supabase
     .from("projects")
     .select("id, business_id")
@@ -60,6 +71,13 @@ export async function POST(req: Request, { params }: Params) {
 
   if (!project) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+  if ((design.business_id ?? null) !== (project.business_id ?? null) ||
+      (design.business_id ?? null) !== (workspace.activeBusinessId ?? null)) {
+    return NextResponse.json(
+      { error: "Switch to the Kebu space that owns both this design and shop before exporting." },
+      { status: 409 },
+    );
   }
 
   const doc = parseCanvasDocument(design.canvas, design.design_type as StudioDesignType);
