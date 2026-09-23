@@ -191,10 +191,11 @@ export async function startShopOrderProviderCheckout(opts: {
   });
 
   if (!persisted.ok) {
+    console.error(JSON.stringify({ event: "shop.provider_persist_failed", orderId: opts.orderId, error: persisted.error }));
     return {
       ok: false,
       configured: true,
-      error: `Checkout created but order could not be updated (${persisted.error}). Apply migration 051 / APPLY_SHOP_ORDERS.sql.`,
+      error: "Checkout was created but could not be saved. Please contact support.",
     };
   }
 
@@ -217,6 +218,11 @@ export async function startShopOrderProviderCheckout(opts: {
   };
 }
 
+/**
+ * Mark a shop order paid via the atomic complete_shop_payment RPC.
+ * Used by non-Paystack webhook handlers (Joko, PayPal, Wave, Orange Money).
+ * Paystack has its own webhook route that calls the RPC directly.
+ */
 export async function markShopOrderPaidByProviderRef(
   admin: SupabaseClient,
   opts: {
@@ -239,11 +245,13 @@ export async function markShopOrderPaidByProviderRef(
     p_expected_project_id: opts.expectedProjectId ?? null,
     p_expected_amount_xof: opts.expectedAmountXof ?? null,
   });
-  const paid = Array.isArray(completed) ? completed[0] : completed;
 
   if (error) return { ok: false, error: error.message };
-  if (!paid?.order_id || !paid?.project_id) return { ok: false, error: "Order not found." };
 
+  const rows = Array.isArray(completed) ? completed : completed ? [completed] : [];
+  if (rows.length === 0) return { ok: false, error: "Order not found." };
+
+  const paid = rows[0] as { order_id: string; project_id: string; already_paid: boolean };
   return {
     ok: true,
     orderId: paid.order_id,

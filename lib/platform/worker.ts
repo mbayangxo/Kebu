@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { failPlatformJob } from "@/lib/platform/jobs";
 import { platformLog } from "@/lib/platform/observability";
+import { processRefund, restockFromRefund } from "@/lib/shop/refunds";
 
 type Job = { id:string; job_type:string; payload:Record<string,unknown>; attempts:number; max_attempts:number };
 
@@ -19,6 +20,37 @@ async function executeJob(admin: SupabaseClient, job: Job) {
     if(error) throw error;
     return;
   }
+
+  if (job.job_type === "payment.refund") {
+    const { refundId } = job.payload;
+    if (typeof refundId !== "string") throw new Error("payment.refund: missing refundId");
+    const result = await processRefund(admin, refundId);
+    if (!result.ok && !result.retryable) throw new Error(`Refund failed (non-retryable): ${result.error}`);
+    if (!result.ok) throw new Error(`Refund failed (retryable): ${result.error}`);
+    // Attempt restock after successful refund (best-effort — separate job can retry).
+    await restockFromRefund(admin, refundId).catch((e: unknown) => {
+      platformLog.error("refund.restock_failed", { refundId, error: String(e) });
+    });
+    return;
+  }
+
+  if (job.job_type === "payment.reconcile") {
+    const { refundId } = job.payload;
+    if (typeof refundId !== "string") throw new Error("payment.reconcile: missing refundId");
+    // Re-attempt committing a refund that succeeded at the PSP but failed at DB.
+    const result = await processRefund(admin, refundId);
+    if (!result.ok) throw new Error(`Reconcile failed: ${result.error}`);
+    return;
+  }
+
+  if (job.job_type === "refund.restock") {
+    const { refundId } = job.payload;
+    if (typeof refundId !== "string") throw new Error("refund.restock: missing refundId");
+    const result = await restockFromRefund(admin, refundId);
+    if (!result.ok) throw new Error(`Restock failed: ${result.reason}`);
+    return;
+  }
+
   throw new Error(`Unknown platform job type: ${job.job_type}`);
 }
 

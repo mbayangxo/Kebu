@@ -4,7 +4,13 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { PaymentAdapter, PaymentAdapterCheckoutInput, PaymentAdapterCheckoutResult } from "./adapters";
+import type {
+  PaymentAdapter,
+  PaymentAdapterCheckoutInput,
+  PaymentAdapterCheckoutResult,
+  PaymentAdapterRefundInput,
+  PaymentAdapterRefundResult,
+} from "./adapters";
 
 export function paystackConfigured(): boolean {
   return Boolean(process.env.PAYSTACK_SECRET_KEY?.trim());
@@ -99,6 +105,40 @@ export const paystackAdapter: PaymentAdapter = {
       ok: true,
       checkoutUrl: data.data.authorization_url,
       providerPaymentId: data.data.reference || input.reference,
+    };
+  },
+
+  async refund(input: PaymentAdapterRefundInput): Promise<PaymentAdapterRefundResult> {
+    const secret = process.env.PAYSTACK_SECRET_KEY?.trim();
+    if (!secret) return { ok: false, error: "Paystack not configured.", retryable: false };
+
+    const res = await fetch("https://api.paystack.co/refund", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        transaction: input.providerPaymentId,
+        amount: input.amountMinor,
+        currency: input.currency,
+      }),
+    });
+
+    const data = (await res.json().catch(() => ({}))) as {
+      status?: boolean;
+      message?: string;
+      data?: { id?: number; status?: string };
+    };
+
+    if (!res.ok || !data.status) {
+      const retryable = res.status >= 500 || res.status === 429;
+      return { ok: false, error: data.message || "Paystack refund failed.", retryable };
+    }
+
+    return {
+      ok: true,
+      providerRefundId: String(data.data?.id ?? input.idempotencyKey),
     };
   },
 };
