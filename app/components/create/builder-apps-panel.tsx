@@ -9,15 +9,16 @@ import {
 } from "@/app/components/galaxy/editor-primitives";
 import { BUILDER } from "@/lib/create/builder-ui";
 
-const APP_EMOJI: Record<string, string> = {
-  newsletter: "✉️",
-  form: "📋",
-  map: "📍",
-  whatsapp: "💬",
-  joko: "💳",
-  audio: "🎵",
-  video: "▶️",
-};
+function AppIcon({ type }: { type: string }) {
+  const common = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7 } as const;
+  if (type === "map") return <svg {...common} aria-hidden><path d="M12 21s6-5.2 6-11a6 6 0 10-12 0c0 5.8 6 11 6 11z"/><circle cx="12" cy="10" r="2"/></svg>;
+  if (type === "audio") return <svg {...common} aria-hidden><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>;
+  if (type === "video") return <svg {...common} aria-hidden><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M17 10l4-2v8l-4-2z"/></svg>;
+  if (type === "form") return <svg {...common} aria-hidden><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>;
+  if (type === "newsletter") return <svg {...common} aria-hidden><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></svg>;
+  if (type === "whatsapp") return <svg {...common} aria-hidden><path d="M20 11.5a8 8 0 01-11.8 7L4 20l1.5-4A8 8 0 1120 11.5z"/><path d="M9 8.5c.8 2.2 2.2 3.7 4.5 4.6"/></svg>;
+  return <svg {...common} aria-hidden><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 12h8M12 8v8"/></svg>;
+}
 
 export function BuilderAppsPanel({
   projectId,
@@ -62,8 +63,8 @@ export function BuilderAppsPanel({
                     }}
                     aria-label={`${app.label}${on ? " (on site)" : ""}`}
                   >
-                    <span className="text-[18px] leading-none select-none" aria-hidden>
-                      {APP_EMOJI[app.type] ?? "🔌"}
+                    <span className="leading-none select-none" aria-hidden>
+                      <AppIcon type={app.type} />
                     </span>
                     {on && (
                       <span
