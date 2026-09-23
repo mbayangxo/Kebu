@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
-import { verifyPaystackSignature } from "@/lib/payments/paystack-adapter";
+import { verifyPaystackSignature, paystackAmountToXof } from "@/lib/payments/paystack-adapter";
 import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
     data?: {
       reference?: string;
       id?: number;
+      amount?: number;
       status?: string;
       metadata?: { kebu_reference?: string; amount_xof?: string };
     };
@@ -39,14 +40,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing reference." }, { status: 400 });
   }
 
-  let expectedAmountXof: number | null = null;
+  // Always validate metadata.amount_xof format when present (reject malformed input early).
   const rawAmountXof = payload.data?.metadata?.amount_xof;
   if (rawAmountXof !== undefined) {
-    const parsed = Number(rawAmountXof);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
+    const metaParsed = Number(rawAmountXof);
+    if (!Number.isFinite(metaParsed) || metaParsed <= 0) {
       return NextResponse.json({ error: "Invalid amount_xof metadata." }, { status: 400 });
     }
-    expectedAmountXof = parsed;
+  }
+
+  // Use Paystack's own data.amount as the authoritative charge figure.
+  // Falls back to metadata when data.amount is absent (older webhook formats or non-XOF
+  // currencies where conversion requires a rate env var that may not be set).
+  let expectedAmountXof: number | null = null;
+  const paystackChargeAmount = payload.data?.amount;
+  if (paystackChargeAmount != null && Number.isFinite(paystackChargeAmount) && paystackChargeAmount > 0) {
+    const converted = paystackAmountToXof(paystackChargeAmount);
+    expectedAmountXof = converted !== null
+      ? converted
+      : rawAmountXof !== undefined ? Number(rawAmountXof) : null;
+  } else {
+    expectedAmountXof = rawAmountXof !== undefined ? Number(rawAmountXof) : null;
   }
 
   const admin = createServiceClient();

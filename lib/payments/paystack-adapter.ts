@@ -143,6 +143,30 @@ export const paystackAdapter: PaymentAdapter = {
   },
 };
 
+/**
+ * Convert a Paystack webhook `data.amount` (subunit) back to XOF face value.
+ * Inverse of paystackAmount(). Returns null when conversion is not possible
+ * (missing rate env var for non-XOF currencies).
+ */
+export function paystackAmountToXof(
+  paystackAmount: number,
+): number | null {
+  const currency = paystackCurrency();
+  if (currency === "XOF" || currency === "XAF") {
+    return Math.round(paystackAmount);
+  }
+  if (currency === "USD") {
+    const rate = Number(process.env.PAYSTACK_XOF_PER_USD ?? process.env.JOKO_XOF_PER_USD ?? "600");
+    const per = Number.isFinite(rate) && rate > 0 ? rate : 600;
+    return Math.round((paystackAmount / 100) * per);
+  }
+  const raw = process.env.PAYSTACK_XOF_PER_UNIT?.trim();
+  if (!raw) return null;
+  const per = Number(raw);
+  if (!Number.isFinite(per) || per <= 0) return null;
+  return Math.round((paystackAmount / 100) * per);
+}
+
 export function verifyPaystackSignature(rawBody: string, signature: string | null): boolean {
   const secret = process.env.PAYSTACK_SECRET_KEY?.trim();
   if (!secret || !signature) return false;

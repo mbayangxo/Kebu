@@ -250,9 +250,9 @@ begin
   if not v_any then return false; end if;
 
   -- Handle discount on first row that has it (discount applied once per order).
-  update public.shop_checkout_reservations r
+  update public.shop_checkout_reservations
      set status = 'committed', committed_at = now()
-   where r.order_id = p_order_id and r.status = 'active';
+   where order_id = p_order_id and status = 'active';
 
   -- Increment discount use count if any row carried a discount.
   declare

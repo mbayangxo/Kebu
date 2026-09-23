@@ -421,7 +421,29 @@ export async function createCartOrder(opts: {
       giftCardAmount,
     );
     if (!redeemed.ok) {
-      await opts.admin.rpc("cancel_shop_order", { p_order_id: order.order_id, p_cancelled_by: "system_gift_card_failed" });
+      // Gift-card redemption failed after the order was committed atomically.
+      // Cancel with retries: cancel_shop_order is idempotent, so retrying is safe.
+      // If all retries fail, the order stays active; log a critical alert so ops
+      // can resolve it — this is a narrow edge (DB unavailable mid-request).
+      let cancelOk = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const { error: cancelErr } = await opts.admin.rpc("cancel_shop_order", {
+            p_order_id: order.order_id,
+            p_cancelled_by: "system_gift_card_failed",
+          });
+          if (!cancelErr) { cancelOk = true; break; }
+        } catch { /* retry */ }
+        if (attempt < 2) await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+      }
+      if (!cancelOk) {
+        console.error(JSON.stringify({
+          event: "shop.gift_card_cancel_failed",
+          orderId: order.order_id,
+          giftCardError: redeemed.error,
+          alert: "ORDER_STUCK_PENDING_REQUIRES_MANUAL_CANCEL",
+        }));
+      }
       return { ok: false, error: redeemed.error };
     }
   }

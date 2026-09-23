@@ -75,3 +75,68 @@ export function shopPaymentAdapterStatus(): Record<
     },
   };
 }
+
+/**
+ * Provider capability matrix — honest per-provider support table.
+ *
+ * checkout:       Redirect-based PSP checkout session supported.
+ * webhook_paid:   Provider sends a verifiable webhook on payment success.
+ * server_refund:  Server-side API refund (adapter.refund) is implemented and callable.
+ * status_poll:    Server-side payment status lookup (adapter.getPaymentStatus) is available.
+ * amount_verify:  Provider sends an authoritative charge amount in the webhook payload
+ *                 (not just metadata Kebu supplied at checkout time).
+ * cauris_lineage: Amounts use Cauris (Joko internal settlement unit); full conversion
+ *                 lineage is stored on the order for refund/reconciliation.
+ * manual_only:    No server-side automation; operator resolves via WhatsApp/dashboard.
+ */
+export type ProviderCapability =
+  | "checkout"
+  | "webhook_paid"
+  | "server_refund"
+  | "status_poll"
+  | "amount_verify"
+  | "cauris_lineage"
+  | "manual_only";
+
+export const PROVIDER_CAPABILITY_MATRIX: Record<
+  string,
+  { label: string; supported: ProviderCapability[]; unsupported: ProviderCapability[] }
+> = {
+  paystack: {
+    label: "Paystack (card)",
+    supported: ["checkout", "webhook_paid", "server_refund", "amount_verify"],
+    unsupported: ["status_poll", "cauris_lineage"],
+  },
+  paypal: {
+    label: "PayPal",
+    supported: ["checkout", "webhook_paid"],
+    // PayPal refund API exists but adapter.refund is not yet implemented.
+    // PayPal IPN/webhook does carry authoritative amount (data.amount) but
+    // we are not using it yet; amount_verify is excluded until wired.
+    unsupported: ["server_refund", "status_poll", "amount_verify", "cauris_lineage"],
+  },
+  wave: {
+    label: "Wave",
+    supported: ["checkout", "webhook_paid"],
+    // Wave webhook payload does include checkout amount but the handler does not
+    // extract it for verification yet.
+    unsupported: ["server_refund", "status_poll", "amount_verify", "cauris_lineage"],
+  },
+  orange_money: {
+    label: "Orange Money",
+    supported: ["checkout", "webhook_paid"],
+    unsupported: ["server_refund", "status_poll", "amount_verify", "cauris_lineage"],
+  },
+  joko: {
+    label: "JOKO (Cauris)",
+    supported: ["checkout", "webhook_paid", "cauris_lineage"],
+    // Joko refund API is not yet implemented; amount_verify: joko webhook carries
+    // amount but the handler does not validate it against data.amount yet.
+    unsupported: ["server_refund", "status_poll", "amount_verify"],
+  },
+  manual_instructions: {
+    label: "Manual / WhatsApp",
+    supported: ["manual_only"],
+    unsupported: ["checkout", "webhook_paid", "server_refund", "status_poll", "amount_verify", "cauris_lineage"],
+  },
+};
