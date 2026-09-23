@@ -572,34 +572,47 @@ export default function ProjectEditorPage() {
     if (idx < 0 || swapIdx < 0 || swapIdx >= ordered.length) return;
     const a = ordered[idx]!;
     const b = ordered[swapIdx]!;
-    // Apply swap optimistically so the UI updates immediately without a reload
-    setSections((prev) =>
-      prev.map((s) => {
-        if (s.id === a.id) return { ...s, sort_order: b.sort_order };
-        if (s.id === b.id) return { ...s, sort_order: a.sort_order };
-        return s;
-      }),
-    );
+    const previousSections = sections;
+    const optimistic = sections.map((section) => {
+      if (section.id === a.id) return { ...section, sort_order: b.sort_order };
+      if (section.id === b.id) return { ...section, sort_order: a.sort_order };
+      return section;
+    });
+    setSections(optimistic);
     try {
-      const responses = await Promise.all([
-        fetch(`/api/projects/${projectId}/sections`, {
+      // Do not write the two halves concurrently: if one request fails after the other succeeds,
+      // Supabase can be left with duplicate sort_order values. Write one side, then the other, and
+      // compensate the first write if the second cannot be saved.
+      const first = await fetch(`/api/projects/${projectId}/sections`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionId: a.id, sortOrder: b.sort_order }),
+      });
+      if (!first.ok) throw new Error("first reorder write failed");
+      const second = await fetch(`/api/projects/${projectId}/sections`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionId: b.id, sortOrder: a.sort_order }),
+      });
+      if (!second.ok) {
+        const rollback = await fetch(`/api/projects/${projectId}/sections`, {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionId: a.id, sortOrder: b.sort_order }),
-        }),
-        fetch(`/api/projects/${projectId}/sections`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionId: b.id, sortOrder: a.sort_order }),
-        }),
-      ]);
-      if (responses.some((response) => !response.ok)) {
-        setError("Could not move that section. Kebu restored the last saved order.");
+          body: JSON.stringify({ sectionId: a.id, sortOrder: a.sort_order }),
+        });
+        if (!rollback.ok) {
+          setError("Section order needs recovery. Kebu is reloading the saved order.");
+        } else {
+          setError("Could not move that section. Kebu restored the last saved order.");
+        }
+        setSections(previousSections);
         await load();
       }
     } catch {
+      setSections(previousSections);
       setError("Network error while moving that section. Kebu restored the last saved order.");
       await load();
     }
