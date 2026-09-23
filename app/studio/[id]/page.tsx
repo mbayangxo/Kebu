@@ -848,8 +848,16 @@ export default function StudioEditorPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>{error}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0B0B0C] px-4 text-center">
+        <p className="text-sm font-semibold text-white/70" role="alert">{error}</p>
+        <div className="flex gap-3">
+          <Link href="/studio" className="rounded-full border border-white/10 px-4 py-2 text-[11px] font-black text-white/60 hover:bg-white/[.05]">
+            ← Back to Studio
+          </Link>
+          <button type="button" onClick={() => void load()} className="rounded-full px-4 py-2 text-[11px] font-black text-white" style={{ background: "#FF5500" }}>
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -933,6 +941,8 @@ export default function StudioEditorPage() {
           <div className="relative">
             <button
               type="button"
+              aria-label="More options"
+              aria-expanded={showMoreMenu}
               onClick={() => setShowMoreMenu((v) => !v)}
               className={`rounded-lg border px-3 py-1.5 text-[9px] font-black transition-colors ${showMoreMenu ? "border-white/20 bg-white/[.08] text-white" : "border-white/10 bg-white/[.04] text-white/70 hover:bg-white/[.08]"}`}
             >

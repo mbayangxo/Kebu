@@ -93,7 +93,10 @@ const border = "rgba(255,255,255,0.07)";
 const textMuted = "rgba(255,255,255,0.5)";
 const textDim = "rgba(255,255,255,0.3)";
 
-export default async function StudioHomePage() {
+type Props = { searchParams: Promise<{ cat?: string; mood?: string }> };
+
+export default async function StudioHomePage({ searchParams }: Props) {
+  const { cat: activeCat = "All", mood: activeMood = "For you" } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/studio");
@@ -250,6 +253,7 @@ export default async function StudioHomePage() {
           {/* Center: search */}
           <div className="hidden flex-1 max-w-sm lg:block">
             <input type="text" placeholder="Search templates, designs..."
+              aria-label="Search templates and designs"
               className="w-full h-8 rounded-full px-4 text-[11px] outline-none focus:ring-1 focus:ring-orange-500"
               style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }} />
           </div>
@@ -258,16 +262,16 @@ export default async function StudioHomePage() {
           <div className="flex items-center gap-2 shrink-0">
             <span className="hidden text-[10px] sm:block" style={{ color: "rgba(255,255,255,0.3)" }}>☁ All changes saved</span>
             <Link href="/account/upgrade" className="rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white" style={{ background: KEBU.orange }}>Upgrade</Link>
-            <button type="button" className="rounded-full w-8 h-8 flex items-center justify-center transition-colors hover:bg-white/10" style={{ color: textMuted }} aria-label="Notifications">
+            <Link href="/notifications" className="rounded-full w-8 h-8 flex items-center justify-center transition-colors hover:bg-white/10" style={{ color: textMuted }} aria-label="Notifications">
               🔔
-            </button>
+            </Link>
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-black" style={{ background: KEBU.orange }}>
               {avatarInitial}
             </span>
             <Link href="/studio/new"
               className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[10px] font-black uppercase tracking-wide"
               style={{ borderColor: KEBU.orange, color: KEBU.orange }}>
-              + New design ▼
+              + New design
             </Link>
           </div>
         </header>
@@ -311,16 +315,19 @@ export default async function StudioHomePage() {
           {/* Template category filter */}
           <section className="border-b px-6 py-4 sm:px-8" style={{ borderColor: border }}>
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {TEMPLATE_CATS.map((cat, i) => (
-                <button key={cat} type="button"
-                  className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide transition-colors"
-                  style={{ background: i === 0 ? KEBU.orange : "rgba(255,255,255,0.07)", color: i === 0 ? "#fff" : textMuted }}>
-                  {cat}
-                </button>
-              ))}
+              {TEMPLATE_CATS.map((cat) => {
+                const isActive = activeCat === cat;
+                return (
+                  <Link key={cat} href={`/studio?cat=${encodeURIComponent(cat)}`}
+                    className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide transition-colors"
+                    style={{ background: isActive ? KEBU.orange : "rgba(255,255,255,0.07)", color: isActive ? "#fff" : textMuted }}>
+                    {cat}
+                  </Link>
+                );
+              })}
               <span className="mx-2 text-[10px]" style={{ color: textDim }}>|</span>
-              <button type="button" className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide border" style={{ borderColor: "rgba(255,255,255,0.12)", color: textMuted }}>Templates</button>
-              <button type="button" className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide" style={{ color: textDim }}>My Projects</button>
+              <Link href="/studio/templates" className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide border" style={{ borderColor: "rgba(255,255,255,0.12)", color: textMuted }}>Templates</Link>
+              <Link href="/studio?cat=mine" className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide" style={{ color: activeCat === "mine" ? "#fff" : textDim }}>My Projects</Link>
             </div>
           </section>
 
@@ -401,7 +408,7 @@ export default async function StudioHomePage() {
                       <span className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm">▶</span>
                     </div>
                     <p className="mt-2 truncate text-[11px] font-black">{video.title}</p>
-                    <p className="mt-0.5 text-[9px] capitalize" style={{ color: "rgba(255,255,255,0.35)" }}>video · {video.edit_mode.replaceAll("_", " ")}</p>
+                    <p className="mt-0.5 text-[9px] capitalize" style={{ color: "rgba(255,255,255,0.35)" }}>video · {(video.edit_mode ?? "").replaceAll("_", " ")}</p>
                   </Link>
                 ))}
               </div>
@@ -412,13 +419,16 @@ export default async function StudioHomePage() {
           <section className="border-b px-6 py-8 sm:px-8" style={{ borderColor: border }}>
             <p className="mb-4 text-[9px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>Inspiration for you</p>
             <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
-              {INSPO_TABS.map((tab, i) => (
-                <button key={tab} type="button"
-                  className="shrink-0 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-wide transition-colors"
-                  style={{ background: i === 0 ? "rgba(255,255,255,0.12)" : "transparent", color: i === 0 ? "#fff" : "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                  {tab}
-                </button>
-              ))}
+              {INSPO_TABS.map((tab) => {
+                const isActive = activeMood === tab;
+                return (
+                  <Link key={tab} href={`/studio?mood=${encodeURIComponent(tab)}`}
+                    className="shrink-0 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-wide transition-colors"
+                    style={{ background: isActive ? "rgba(255,255,255,0.12)" : "transparent", color: isActive ? "#fff" : "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    {tab}
+                  </Link>
+                );
+              })}
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {FORMATS.slice(0, 4).map((format) => (
