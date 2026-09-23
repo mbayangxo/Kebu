@@ -98,6 +98,7 @@ export default function StudioEditorPage() {
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const docRef = useRef<CanvasDocument | null>(null);
   const saveGenerationRef = useRef(0);
+  const persistRef = useRef<((canvas: CanvasDocument, designType?: StudioDesignType) => Promise<void>) | null>(null);
 
   const canEdit = access?.canEdit !== false;
 
@@ -180,7 +181,15 @@ export default function StudioEditorPage() {
         if (local?.dirty) {
           initialDoc = local.canvas;
           initialDesignType = local.designType;
-          setSyncState("offline");
+          const localBase = local.serverUpdatedAt;
+          const serverVersion = d.updated_at ?? null;
+          if (localBase && serverVersion && new Date(localBase).toISOString() !== new Date(serverVersion).toISOString()) {
+            setConflictServer({ doc: serverDoc, updatedAt: serverVersion });
+            setSyncState("conflict");
+          } else {
+            setConflictServer(null);
+            setSyncState(typeof navigator !== "undefined" && navigator.onLine ? "syncing" : "offline");
+          }
         } else {
           setSyncState("online");
         }
@@ -198,6 +207,27 @@ export default function StudioEditorPage() {
       setHistory([]);
       setFuture([]);
       if (nextUserId) void hydrateOfflineMedia(nextUserId, initialDoc, true);
+      if (
+        nextUserId &&
+        studioOfflineSupported() &&
+        typeof navigator !== "undefined" &&
+        navigator.onLine
+      ) {
+        const local = await getStudioOfflineDraft(nextUserId, designId).catch(() => null);
+        const localBase = local?.serverUpdatedAt;
+        const serverVersion = d.updated_at ?? null;
+        const conflicts = Boolean(
+          local?.dirty &&
+          localBase &&
+          serverVersion &&
+          new Date(localBase).toISOString() !== new Date(serverVersion).toISOString(),
+        );
+        if (local?.dirty && !conflicts) {
+          queueMicrotask(() => {
+            if (docRef.current) void persistRef.current?.(docRef.current, local.designType);
+          });
+        }
+      }
     } catch {
       if (!studioOfflineSupported()) {
         setError("You are offline and this design is not available locally yet.");
@@ -383,6 +413,8 @@ export default function StudioEditorPage() {
     },
     [designId, canEdit, design?.business_id, design?.design_type, design?.title, access?.role, serverUpdatedAt, userId],
   );
+
+  persistRef.current = persist;
 
   async function acceptServerConflictVersion() {
     if (!conflictServer || !design) return;
