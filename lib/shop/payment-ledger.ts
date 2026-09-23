@@ -52,41 +52,60 @@ export function railFromProvider(provider: string | null | undefined): PaymentLe
   return railFromPaymentPreference(p);
 }
 
+const TERMINAL_EVENTS: Set<PaymentLedgerEventType> = new Set(["paid", "refunded"]);
+
+type LedgerEventOpts = {
+  projectId: string;
+  orderId?: string | null;
+  rail: PaymentLedgerRail;
+  eventType: PaymentLedgerEventType;
+  amountXof?: number | null;
+  /** Catalog amount often XOF; Joko ledger rows use currency CAURIS (pay unit). */
+  currency?: string;
+  provider?: string | null;
+  providerReference?: string | null;
+  meta?: Record<string, unknown>;
+};
+
+function buildLedgerRow(opts: LedgerEventOpts) {
+  return {
+    project_id: opts.projectId,
+    order_id: opts.orderId ?? null,
+    rail: opts.rail,
+    event_type: opts.eventType,
+    amount_xof: opts.amountXof ?? null,
+    currency: (opts.currency ?? "XOF").toUpperCase().slice(0, 12),
+    provider: (opts.provider ?? opts.rail).slice(0, 40),
+    provider_reference: (opts.providerReference ?? "").slice(0, 200),
+    meta: opts.meta ?? {},
+  };
+}
+
 /**
- * Append a payment ledger event. Never throws — order path must stay durable.
- * Table may be missing until migration 068.
+ * Append a non-terminal payment ledger event. Swallows errors — pre-terminal
+ * events (intent, checkout_started, awaiting) are observational, not durable.
  */
-export async function recordPaymentLedgerEvent(
-  svc: SupabaseClient,
-  opts: {
-    projectId: string;
-    orderId?: string | null;
-    rail: PaymentLedgerRail;
-    eventType: PaymentLedgerEventType;
-    amountXof?: number | null;
-    /** Catalog amount often XOF; Joko ledger rows use currency CAURIS (pay unit). */
-    currency?: string;
-    provider?: string | null;
-    providerReference?: string | null;
-    meta?: Record<string, unknown>;
-  },
-): Promise<void> {
+export async function recordPaymentLedgerEvent(svc: SupabaseClient, opts: LedgerEventOpts): Promise<void> {
+  if (TERMINAL_EVENTS.has(opts.eventType)) {
+    // Caller should use recordTerminalLedgerEvent for paid/refunded.
+    await recordTerminalLedgerEvent(svc, opts);
+    return;
+  }
   try {
-    const { error } = await svc.from("shop_payment_ledger_events").insert({
-      project_id: opts.projectId,
-      order_id: opts.orderId ?? null,
-      rail: opts.rail,
-      event_type: opts.eventType,
-      amount_xof: opts.amountXof ?? null,
-      currency: (opts.currency ?? "XOF").toUpperCase().slice(0, 12),
-      provider: (opts.provider ?? opts.rail).slice(0, 40),
-      provider_reference: (opts.providerReference ?? "").slice(0, 200),
-      meta: opts.meta ?? {},
-    });
+    const { error } = await svc.from("shop_payment_ledger_events").insert(buildLedgerRow(opts));
     if (error && !/does not exist|shop_payment_ledger/i.test(error.message ?? "")) {
-      /* swallow — logged by caller if needed */
+      /* swallow pre-terminal events */
     }
   } catch {
-    /* table missing until 068 */
+    /* table missing */
   }
+}
+
+/**
+ * Append a terminal payment ledger event (paid / refunded). Throws on failure —
+ * terminal financial facts must be durable.
+ */
+export async function recordTerminalLedgerEvent(svc: SupabaseClient, opts: LedgerEventOpts): Promise<void> {
+  const { error } = await svc.from("shop_payment_ledger_events").insert(buildLedgerRow(opts));
+  if (error) throw new Error(`Terminal ledger write failed (${opts.eventType}): ${error.message}`);
 }

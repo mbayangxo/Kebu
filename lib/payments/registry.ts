@@ -20,6 +20,24 @@ export {
   orangeMoneyConfigured,
 };
 
+/** Resolve adapter by provider name (used for refunds/status polling). */
+export function getPaymentAdapter(provider: string | null | undefined): import("./adapters").PaymentAdapter | null {
+  switch ((provider ?? "").toLowerCase()) {
+    case "paystack":
+    case "card":
+      return paystackAdapter;
+    case "paypal":
+      return paypalAdapter;
+    case "wave":
+      return waveAdapter;
+    case "orange_money":
+    case "orange":
+      return orangeMoneyAdapter;
+    default:
+      return null;
+  }
+}
+
 /** Resolve live capture adapter for a shop payment preference. */
 export function getShopPaymentAdapter(
   preference: string | null | undefined,

@@ -40,10 +40,30 @@ export type PaymentAdapterCheckoutResult =
   | { ok: true; checkoutUrl: string; providerPaymentId: string }
   | { ok: false; error: string; configured: boolean };
 
+export type PaymentAdapterRefundInput = {
+  providerPaymentId: string;
+  amountMinor: number;
+  currency: string;
+  idempotencyKey: string;
+  reason?: string;
+};
+
+export type PaymentAdapterRefundResult =
+  | { ok: true; providerRefundId: string }
+  | { ok: false; error: string; retryable: boolean };
+
+export type PaymentAdapterStatusResult =
+  | { ok: true; status: "pending" | "paid" | "failed" | "refunded" | "unknown" }
+  | { ok: false; error: string };
+
 /** Shared shape every PSP must implement when we wire live capture. */
 export type PaymentAdapter = {
   id: PaymentProviderId;
   /** True when env / merchant connect is ready for live charges. */
   isConfigured: () => boolean;
   createCheckout: (input: PaymentAdapterCheckoutInput) => Promise<PaymentAdapterCheckoutResult>;
+  /** Optional: adapters that support server-side refunds implement this. */
+  refund?: (input: PaymentAdapterRefundInput) => Promise<PaymentAdapterRefundResult>;
+  /** Optional: adapters that support payment status polling implement this. */
+  getPaymentStatus?: (providerPaymentId: string) => Promise<PaymentAdapterStatusResult>;
 };

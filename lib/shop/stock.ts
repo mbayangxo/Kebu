@@ -90,3 +90,63 @@ export async function decrementCartStock(
   }
   return { ok: true };
 }
+
+
+export async function reserveShopCheckout(
+  admin: SupabaseClient,
+  opts: { orderId: string; projectId: string; productId: string; quantity: number; discountId?: string | null },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data, error } = await admin.rpc("reserve_shop_checkout", {
+    p_order_id: opts.orderId,
+    p_project_id: opts.projectId,
+    p_product_id: opts.productId,
+    p_quantity: opts.quantity,
+    p_discount_id: opts.discountId ?? null,
+    p_ttl_minutes: 20,
+  });
+  if (error || data !== true) return { ok: false, error: "Product or discount is no longer available." };
+  return { ok: true };
+}
+
+export type MultiCheckoutLine = {
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+};
+
+/** Atomic all-or-nothing multi-line reservation via reserve_multi_shop_checkout RPC. */
+export async function reserveMultiShopCheckout(
+  admin: SupabaseClient,
+  opts: {
+    orderId: string;
+    projectId: string;
+    lines: MultiCheckoutLine[];
+    discountId?: string | null;
+    ttlMinutes?: number;
+  },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const lines = opts.lines.map((l) => ({
+    product_id: l.productId,
+    variant_id: l.variantId ?? null,
+    quantity: l.quantity,
+  }));
+  const { data, error } = await admin.rpc("reserve_multi_shop_checkout", {
+    p_order_id: opts.orderId,
+    p_project_id: opts.projectId,
+    p_lines: lines,
+    p_discount_id: opts.discountId ?? null,
+    p_ttl_minutes: opts.ttlMinutes ?? 20,
+  });
+  if (error || data !== true) return { ok: false, error: "One or more items are no longer available." };
+  return { ok: true };
+}
+
+export async function commitShopCheckout(admin: SupabaseClient, orderId: string): Promise<boolean> {
+  const { data, error } = await admin.rpc("commit_shop_checkout", { p_order_id: orderId });
+  return !error && data === true;
+}
+
+export async function releaseShopCheckout(admin: SupabaseClient, orderId: string): Promise<void> {
+  if (!orderId) return;
+  await admin.rpc("release_shop_checkout", { p_order_id: orderId });
+}
