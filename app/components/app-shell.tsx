@@ -93,7 +93,7 @@ export function AppShell({
             className="sticky top-0 z-30 md:hidden"
             style={{ background: KEBU.white, borderBottom: `1px solid ${KEBU.borders.default}` }}
           >
-                        <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0">
                 <BackLink fallbackHref={fallback} variant="strong" />
               </div>

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuIcon, type KebuIconName } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { useKebuUser } from "@/app/hooks/use-kebu-user";
 import { displayFirstName } from "@/lib/account/user-profile";
+import { KebuWorldSwitcher } from "@/app/components/kebu/kebu-world-switcher";
 
 type NavChild = {
   label: string;
@@ -164,8 +165,8 @@ export function KebuNavShell() {
         </div>
 
         {/* User section */}
-        <div className="mx-3 mb-3 rounded-xl border p-2.5" style={{ borderColor: border, background: "rgba(255,255,255,0.04)" }}>
-          <Link href="/account" className="flex items-center gap-2.5 group focus-visible:outline-none">
+        <div className="mx-3 mb-3 rounded-xl border overflow-hidden" style={{ borderColor: border, background: "rgba(255,255,255,0.04)" }}>
+          <Link href="/account" className="flex items-center gap-2.5 px-2.5 pt-2.5 pb-2 group focus-visible:outline-none">
             {profile?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
@@ -175,11 +176,13 @@ export function KebuNavShell() {
               </span>
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black text-white/50 leading-none">Personal</p>
-              <p className="mt-0.5 truncate text-[12px] font-black text-white leading-none">{first || "My Kebu"}</p>
+              <p className="truncate text-[12px] font-black text-white leading-none">{first || "My Kebu"}</p>
+              <p className="mt-0.5 text-[9px] text-white/40 leading-none">My account →</p>
             </div>
-            <span className="text-[10px]" style={{ color: textMuted }}>▼</span>
           </Link>
+          <div className="px-1.5 pb-1.5" style={{ borderTop: `1px solid ${border}` }}>
+            <KebuWorldSwitcher dark compact />
+          </div>
         </div>
 
         {/* Nav */}
@@ -289,17 +292,17 @@ export function KebuNavShell() {
         <Link href="/dashboard" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/dashboard" ? KEBU.orange : textMuted }}>
           <KebuIcon name="home" size={20} /><span>Home</span>
         </Link>
-        <Link href="/studio" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/studio") ? KEBU.orange : textMuted }}>
-          <KebuIcon name="studio" size={20} /><span>Studio</span>
+        <Link href="/search" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/search" || path.startsWith("/search/") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="search" size={20} /><span>Search</span>
         </Link>
         <Link href="/create/new" aria-label="Create" className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ background: `linear-gradient(135deg,${KEBU.orange},${KEBU.red})` }}>
           <KebuIcon name="create" size={20} />
         </Link>
-        <Link href="/opportunity" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/opportunity") ? KEBU.orange : textMuted }}>
-          <KebuIcon name="opportunity" size={20} /><span>Discover</span>
+        <Link href="/library" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/library" || path.startsWith("/library/") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="library" size={20} /><span>Library</span>
         </Link>
-        <Link href="/business" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path.startsWith("/business") ? KEBU.orange : textMuted }}>
-          <KebuIcon name="spaces" size={20} /><span>More</span>
+        <Link href="/account" className="flex min-w-12 flex-col items-center gap-1 text-[9px] font-bold" style={{ color: path === "/account" || path.startsWith("/account/") ? KEBU.orange : textMuted }}>
+          <KebuIcon name="people" size={20} /><span>Profile</span>
         </Link>
       </nav>
     </>
