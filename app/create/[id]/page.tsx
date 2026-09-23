@@ -466,6 +466,9 @@ export default function ProjectEditorPage() {
     }
     const section = data.section as Section;
     setSections((prev) => [...prev, section].sort((a, b) => a.sort_order - b.sort_order));
+    // Props history cannot safely cross structural CRUD: its snapshots do not recreate/delete DB rows.
+    setHistory([]);
+    setFuture([]);
     setSelectedSectionId(section.id);
     setSidebarTab("content");
     return section;
@@ -536,6 +539,8 @@ export default function ProjectEditorPage() {
       return;
     }
     setSections((prev) => prev.filter((s) => s.id !== sectionId));
+    setHistory([]);
+    setFuture([]);
   }
 
   async function reorderSections(orderedIds: string[]) {
@@ -560,6 +565,8 @@ export default function ProjectEditorPage() {
       // The server is canonical. Reload even after a partial/network failure so the canvas never
       // pretends an order was saved when Supabase disagrees.
       await load();
+      setHistory([]);
+      setFuture([]);
     }
   }
 
@@ -610,6 +617,9 @@ export default function ProjectEditorPage() {
         }
         setSections(previousSections);
         await load();
+      } else {
+        setHistory([]);
+        setFuture([]);
       }
     } catch {
       setSections(previousSections);
