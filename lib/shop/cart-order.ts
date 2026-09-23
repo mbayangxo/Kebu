@@ -360,47 +360,58 @@ export async function createCartOrder(opts: {
     insertOrder.shipping_quote_version = shippingQuote.quoteVersion;
   }
 
-  const { data: order, error } = await opts.admin
-    .from("shop_orders")
-    .insert(insertOrder)
-    .select("id, order_number, gift_public_id")
-    .single();
-
-  if (error || !order) {
-    return {
-      ok: false,
-      error: error?.message?.includes("does not exist")
-        ? "Orders table missing. Apply APPLY_SHOP_ORDERS.sql."
-        : error?.message?.includes("is_gift") || error?.message?.includes("recipient_")
-          ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
-          : error?.message?.includes("gift_card")
-            ? "Gift card columns missing. Apply migration 066."
-            : "Could not save cart order.",
-    };
-  }
-
+  // Build items array for the atomic RPC.
   const itemRows = opts.lines.map((l, i) => ({
-    order_id: order.id,
-    project_id: opts.projectId,
     product_id: l.productId,
-    variant_id: l.variantId,
-    variant_name: l.variantName,
+    variant_id: l.variantId ?? null,
+    variant_name: l.variantName ?? null,
     product_name: l.productName,
-    product_upc: l.upc,
-    product_sku: l.sku,
+    product_upc: l.upc ?? null,
+    product_sku: l.sku ?? null,
     price_label: l.priceLabel,
-    price_xof: l.priceXof,
+    price_xof: l.priceXof ?? null,
     quantity: l.quantity,
-    line_amount_xof: l.lineAmountXof,
+    line_amount_xof: l.lineAmountXof ?? null,
     sort_order: i,
   }));
 
-  const { error: itemsErr } = await opts.admin.from("shop_order_items").insert(itemRows);
-  if (itemsErr) {
-    // Items are required — delete the orphan order header and fail.
-    await opts.admin.from("shop_orders").delete().eq("id", order.id);
-    return { ok: false, error: "Could not save order items." };
+  // Build reservation lines for the atomic RPC.
+  const reservationLines = opts.lines.map((l) => ({
+    product_id: l.productId,
+    variant_id: l.variantId ?? null,
+    quantity: l.quantity,
+  }));
+
+  // Single atomic call: insert order header + items + reserve inventory.
+  // Any failure (including inventory shortage) rolls back the entire unit.
+  const { data: atomicRows, error: atomicErr } = await opts.admin.rpc(
+    "create_cart_order_atomic",
+    {
+      p_order: insertOrder,
+      p_items: itemRows,
+      p_lines: reservationLines,
+      p_discount_id: discount?.id ?? null,
+      p_ttl_minutes: 20,
+    },
+  );
+
+  if (atomicErr || !atomicRows || (atomicRows as unknown[]).length === 0) {
+    const msg = atomicErr?.message ?? "";
+    return {
+      ok: false,
+      error: msg.includes("inventory_unavailable")
+        ? "One or more items are no longer available in the requested quantity."
+        : msg.includes("does not exist")
+          ? "Orders table missing. Apply APPLY_SHOP_ORDERS.sql."
+          : msg.includes("is_gift") || msg.includes("recipient_")
+            ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
+            : msg.includes("gift_card")
+              ? "Gift card columns missing. Apply migration 066."
+              : "Could not save cart order.",
+    };
   }
+
+  const order = (atomicRows as { order_id: string; order_number: string; gift_public_id: string | null }[])[0]!;
 
   if (giftCard && giftCardAmount > 0) {
     const redeemed = await redeemGiftCardBalance(
@@ -410,7 +421,7 @@ export async function createCartOrder(opts: {
       giftCardAmount,
     );
     if (!redeemed.ok) {
-      await opts.admin.from("shop_orders").delete().eq("id", order.id);
+      await opts.admin.rpc("cancel_shop_order", { p_order_id: order.order_id, p_cancelled_by: "system_gift_card_failed" });
       return { ok: false, error: redeemed.error };
     }
   }
@@ -436,7 +447,7 @@ export async function createCartOrder(opts: {
 
   return {
     ok: true,
-    orderId: order.id,
+    orderId: order.order_id,
     orderNumber: order.order_number ?? orderNumber,
     amountXof: totalXof,
     discountPercent: discount?.percent_off ?? null,

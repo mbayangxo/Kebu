@@ -23,7 +23,7 @@ import {
   shopCartCheckoutSchema,
   upsertCartDraft,
 } from "@/lib/shop/cart-order";
-import { reserveMultiShopCheckout, releaseShopCheckout } from "@/lib/shop/stock";
+import { releaseShopCheckout } from "@/lib/shop/stock";
 import { assertProjectPlanLimit } from "@/lib/billing/enforce-limits";
 
 export const dynamic = "force-dynamic";
@@ -137,20 +137,10 @@ export async function POST(req: Request, { params }: Params) {
   });
 
   if (!created.ok) {
-    return NextResponse.json({ error: created.error }, { status: 500 });
+    const isInventory = created.error.includes("no longer available");
+    return NextResponse.json({ error: created.error }, { status: isInventory ? 409 : 500 });
   }
-
-  // Reserve inventory atomically with a TTL. On failure, cancel the order and return 409.
-  const reservation = await reserveMultiShopCheckout(admin, {
-    orderId: created.orderId,
-    projectId: live.project_id,
-    lines: resolved.lines.map((l) => ({ productId: l.productId, variantId: l.variantId ?? null, quantity: l.quantity })),
-  });
-  if (!reservation.ok) {
-    // Order exists but no reservation — mark it cancelled so it doesn't linger.
-    await admin.rpc("cancel_shop_order", { p_order_id: created.orderId, p_cancelled_by: "system_reservation_failed" });
-    return NextResponse.json({ error: reservation.error }, { status: 409 });
-  }
+  // Reservation was handled atomically inside create_cart_order_atomic.
 
   const { data: bizProject } = await admin
     .from("projects")
