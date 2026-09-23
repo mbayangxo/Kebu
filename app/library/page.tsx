@@ -15,18 +15,38 @@ function formatBytes(value: number | null) {
 const FILTER_TABS = ["All", "Images", "Videos", "Documents", "Audio", "Designs", "Brand", "Code", "Other"];
 
 const ACTION_TILES = [
-  { label: "Upload", sub: "Add files", icon: "create" as const, dark: true },
-  { label: "Create folder", sub: "Organise", icon: "spaces" as const, dark: false },
-  { label: "Capture", sub: "Camera", icon: "studio" as const, dark: false },
-  { label: "Import", sub: "Cloud", icon: "library" as const, dark: false },
-  { label: "Create with AI", sub: "Yande", icon: "yande" as const, dark: false },
+  { label: "Upload", sub: "Add files", icon: "create" as const, dark: true, href: "/studio" },
+  { label: "Create folder", sub: "Organise", icon: "spaces" as const, dark: false, href: "/library?action=new-folder" },
+  { label: "Capture", sub: "Camera", icon: "studio" as const, dark: false, href: "/studio?mode=capture" },
+  { label: "Import", sub: "Cloud", icon: "library" as const, dark: false, href: "/library?action=import" },
+  { label: "Create with AI", sub: "Yande", icon: "yande" as const, dark: false, href: "/yande" },
 ];
 
+function getUploadFilter(tab: string) {
+  if (tab === "All") return () => true;
+  return (u: { mime?: string | null; kind?: string | null }) => {
+    const mime = u.mime ?? "";
+    const kind = u.kind ?? "";
+    if (tab === "Images") return mime.startsWith("image/") || kind === "image";
+    if (tab === "Videos") return mime.startsWith("video/") || kind === "video";
+    if (tab === "Documents") return mime.includes("pdf") || mime.includes("document") || kind === "document";
+    if (tab === "Audio") return mime.startsWith("audio/") || kind === "audio";
+    if (tab === "Designs") return kind === "design";
+    if (tab === "Code") return kind === "code";
+    return true;
+  };
+}
 
-export default async function LibraryPage() {
+export default async function LibraryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/library");
+
+  const { filter: activeFilter = "All" } = await searchParams;
 
   const [uploadsResult, designsResult, projectsResult] = await Promise.all([
     supabase.from("studio_uploads").select("id, kind, url, file_name, mime, byte_size, created_at").eq("owner_id", user.id).order("created_at", { ascending: false }).limit(60),
@@ -38,6 +58,8 @@ export default async function LibraryPage() {
   const designs = designsResult.data ?? [];
   const projects = projectsResult.data ?? [];
 
+  const filteredUploads = uploads.filter(getUploadFilter(activeFilter));
+
   const totalCount = uploads.length + designs.length + projects.length;
   const totalBytes = uploads.reduce((sum, u) => sum + (u.byte_size ?? 0), 0);
 
@@ -47,11 +69,12 @@ export default async function LibraryPage() {
         {/* Body */}
         <div className="flex gap-0">
           <main className="flex-1 min-w-0 px-5 py-5 pb-8 sm:px-8 space-y-6">
-            {/* Action tiles */}
+            {/* Action tiles — each links to a real destination */}
             <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
               {ACTION_TILES.map((tile) => (
-                <button
+                <Link
                   key={tile.label}
+                  href={tile.href}
                   className="flex shrink-0 flex-col items-start rounded-2xl border p-4 w-36 hover:-translate-y-0.5 transition-transform"
                   style={{
                     background: tile.dark ? KEBU.black : "white",
@@ -72,30 +95,39 @@ export default async function LibraryPage() {
                   <p className="mt-0.5 text-[10px]" style={{ color: tile.dark ? "rgba(255,255,255,0.5)" : KEBU.faint }}>
                     {tile.sub}
                   </p>
-                </button>
+                </Link>
               ))}
             </div>
 
-            {/* Filter pills + controls */}
+            {/* Filter pills — URL-driven, active state from searchParams */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {FILTER_TABS.map((tab, i) => (
-                <button
+              {FILTER_TABS.map((tab) => (
+                <Link
                   key={tab}
+                  href={tab === "All" ? "/library" : `/library?filter=${encodeURIComponent(tab)}`}
                   className="shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition"
                   style={
-                    i === 0
+                    activeFilter === tab
                       ? { background: KEBU.black, color: "#fff" }
                       : { background: "white", color: KEBU.muted, border: "1px solid " + KEBU.borders.default }
                   }
                 >
                   {tab}
-                </button>
+                </Link>
               ))}
               <div className="ml-auto flex shrink-0 items-center gap-2">
-                <button className="rounded-xl border bg-white px-3 py-1.5 text-[11px] font-bold" style={{ borderColor: KEBU.borders.default }}>
+                <button
+                  className="rounded-xl border bg-white px-3 py-1.5 text-[11px] font-bold hover:bg-black/[.02] transition"
+                  style={{ borderColor: KEBU.borders.default }}
+                  title="Toggle grid / list view"
+                >
                   ⊞ Grid
                 </button>
-                <button className="rounded-xl border bg-white px-3 py-1.5 text-[11px] font-bold" style={{ borderColor: KEBU.borders.default }}>
+                <button
+                  className="rounded-xl border bg-white px-3 py-1.5 text-[11px] font-bold hover:bg-black/[.02] transition"
+                  style={{ borderColor: KEBU.borders.default }}
+                  title="Change sort order"
+                >
                   Sort ↕
                 </button>
               </div>
@@ -108,21 +140,27 @@ export default async function LibraryPage() {
                 <KebuIcon name="spaces" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
                 <p className="text-sm font-black">No folders yet.</p>
                 <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Create a folder to organize your files.</p>
-                <button className="mt-4 inline-flex rounded-full px-4 py-2 text-[10px] font-bold text-white" style={{ background: KEBU.black }}>
+                <Link
+                  href="/library?action=new-folder"
+                  className="mt-4 inline-flex rounded-full px-4 py-2 text-[10px] font-bold text-white hover:opacity-80 transition-opacity"
+                  style={{ background: KEBU.black }}
+                >
                   + New folder
-                </button>
+                </Link>
               </div>
             </section>
 
-            {/* Recent files */}
+            {/* Recent files — filtered by active tab */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Recent files</h2>
+                <h2 className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>
+                  {activeFilter === "All" ? "Recent files" : activeFilter}
+                </h2>
                 <Link href="/studio" className="text-[10px] font-bold" style={{ color: KEBU.orange }}>View all →</Link>
               </div>
-              {uploads.length > 0 ? (
+              {filteredUploads.length > 0 ? (
                 <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-                  {uploads.slice(0, 12).map((item) => (
+                  {filteredUploads.slice(0, 12).map((item) => (
                     <a
                       key={item.id}
                       href={item.url}
@@ -146,8 +184,21 @@ export default async function LibraryPage() {
               ) : (
                 <div className="rounded-2xl border border-dashed bg-white p-8 text-center" style={{ borderColor: KEBU.borders.default }}>
                   <KebuIcon name="library" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
-                  <p className="text-sm font-black">No files uploaded yet.</p>
-                  <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>Upload files through Studio — they appear here automatically.</p>
+                  <p className="text-sm font-black">
+                    {activeFilter === "All" ? "No files uploaded yet." : `No ${activeFilter.toLowerCase()} found.`}
+                  </p>
+                  <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
+                    {activeFilter === "All"
+                      ? "Upload files through Studio — they appear here automatically."
+                      : "Upload files in Studio and they'll show up here."}
+                  </p>
+                  <Link
+                    href="/studio"
+                    className="mt-4 inline-flex rounded-full px-4 py-2 text-[10px] font-bold text-white hover:opacity-80 transition-opacity"
+                    style={{ background: KEBU.black }}
+                  >
+                    Go to Studio
+                  </Link>
                 </div>
               )}
             </section>
@@ -186,7 +237,12 @@ export default async function LibraryPage() {
                   style={{ width: Math.min((totalBytes / (5 * 1024 * 1024 * 1024)) * 100, 100) + "%", background: KEBU.orange }}
                 />
               </div>
-              <p className="mt-1.5 text-[10px]" style={{ color: KEBU.faint }}>of 5 GB · Upgrade for more</p>
+              <p className="mt-1.5 text-[10px]" style={{ color: KEBU.faint }}>
+                of 5 GB ·{" "}
+                <Link href="/settings/billing" className="underline underline-offset-2 hover:text-black transition-colors">
+                  Upgrade for more
+                </Link>
+              </p>
             </div>
 
             {/* AI Library Assistant */}
@@ -208,10 +264,11 @@ export default async function LibraryPage() {
               </div>
               <div className="mt-1">
                 <input
-                  readOnly
                   placeholder="Ask Yande anything about your files…"
-                  className="w-full rounded-xl border px-3 py-2 text-[11px] outline-none"
+                  className="w-full rounded-xl border px-3 py-2 text-[11px] outline-none transition-colors"
                   style={{ borderColor: KEBU.borders.default, background: "#F5F4F1" }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = KEBU.orange; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = KEBU.borders.default; }}
                 />
               </div>
             </div>
