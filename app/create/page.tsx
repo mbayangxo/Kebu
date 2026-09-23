@@ -253,7 +253,7 @@ export default function CreateHubPage() {
             {TYPE_TABS.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => { setActiveTab(tab); setActiveFilter("All"); }}
                 className="shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold transition"
                 style={
                   activeTab === tab
@@ -386,13 +386,21 @@ export default function CreateHubPage() {
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed bg-white p-10 text-center" style={{ borderColor: KEBU.borders.default }}>
-                <p className="text-sm font-black">No projects yet.</p>
+                <p className="text-sm font-black">
+                  {activeTab !== "All" && activeTab !== "More"
+                    ? `No ${activeTab.toLowerCase()} projects yet.`
+                    : activeFilter !== "All"
+                    ? `No ${activeFilter.toLowerCase()} yet.`
+                    : "No projects yet."}
+                </p>
                 <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
-                  Start with a template or build from scratch.
+                  {activeTab !== "All" && activeTab !== "More"
+                    ? `Create your first ${activeTab.toLowerCase()} to get started.`
+                    : "Start with a template or build from scratch."}
                 </p>
                 <Link
                   href="/create/new"
-                  className="mt-4 inline-flex rounded-full px-4 py-2 text-[10px] font-bold text-white"
+                  className="mt-4 inline-flex rounded-full px-4 py-2 text-[10px] font-bold text-white hover:opacity-80 transition-opacity"
                   style={{ background: KEBU.black }}
                 >
                   + New project
@@ -468,13 +476,14 @@ export default function CreateHubPage() {
               <p className="text-base font-black mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>AI tools →</p>
               <div className="flex gap-2 flex-wrap">
                 {["Generate", "Edit", "Remove BG", "Resize", "Translate"].map((tool) => (
-                  <span
+                  <button
                     key={tool}
-                    className="rounded-full px-2.5 py-1 text-[10px] font-bold"
+                    className="rounded-full px-2.5 py-1 text-[10px] font-bold hover:opacity-75 transition-opacity"
                     style={{ background: "rgba(255,85,0,0.09)", color: KEBU.orange }}
+                    title={`Open ${tool} in Yande`}
                   >
                     {tool}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -485,13 +494,14 @@ export default function CreateHubPage() {
               <p className="text-base font-black mb-3" style={{ fontFamily: "var(--font-fraunces)" }}>Import from →</p>
               <div className="flex gap-2 flex-wrap">
                 {["Google Drive", "Dropbox", "Figma", "Canva"].map((src) => (
-                  <span
+                  <button
                     key={src}
-                    className="rounded-xl border px-2.5 py-1.5 text-[10px] font-bold"
+                    className="rounded-xl border px-2.5 py-1.5 text-[10px] font-bold hover:bg-black/[.03] transition-colors"
                     style={{ borderColor: KEBU.borders.default, color: KEBU.muted }}
+                    title={`Import from ${src}`}
                   >
                     {src}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
