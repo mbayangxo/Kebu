@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { YandeMark } from "@/app/components/yande-mark";
@@ -93,7 +92,6 @@ const TEMPLATES = [
     name: "Fashion Atelier",
     tag: "Fashion",
     desc: "Editorial storefront · Collections · Story",
-    img: "/templates/fashion-atelier/hero.jpg",
     bg: "#F5F0E8",
     dark: false,
   },
@@ -102,7 +100,6 @@ const TEMPLATES = [
     name: "Artist Gallery",
     tag: "Portfolio",
     desc: "Work gallery · About · Contact",
-    img: "/templates/artist-gallery/hero.jpg",
     bg: "#111111",
     dark: true,
   },
@@ -111,7 +108,6 @@ const TEMPLATES = [
     name: "Restaurant Table",
     tag: "Restaurant",
     desc: "Menu · Story · Contact",
-    img: "/templates/restaurant-table/hero.jpg",
     bg: "#F9F3E8",
     dark: false,
   },
@@ -356,7 +352,7 @@ export function KebuOpportunityHome() {
                 style={{ fontFamily: "var(--font-fraunces)", lineHeight: 1.0, color: "#FFFFFF" }}
                 className="font-bold text-[clamp(2.2rem,5vw,4rem)]"
               >
-                Designed for Africa.
+                Designed to become yours.
                 <br />
                 <span style={{ color: C.orange }}>Ready to publish.</span>
               </h2>
@@ -371,7 +367,7 @@ export function KebuOpportunityHome() {
           </div>
 
           <div className="grid sm:grid-cols-3 gap-4 lg:gap-5">
-            {TEMPLATES.map(({ slug, name, tag, desc, img, bg, dark }, i) => (
+            {TEMPLATES.map(({ slug, name, tag, desc, bg, dark }, i) => (
               <Link
                 key={slug}
                 href="/create/aesthetics"
@@ -383,14 +379,21 @@ export function KebuOpportunityHome() {
                   boxShadow: "0 8px 24px rgba(10,10,10,0.2)",
                 }}
               >
-                <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
-                  <Image
-                    src={img}
-                    alt={`${name} template`}
-                    fill
-                    sizes="(min-width: 640px) 33vw, 100vw"
-                    className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
-                  />
+                <div
+                  className="relative flex overflow-hidden p-6 transition-transform duration-500 group-hover:scale-[1.01]"
+                  style={{
+                    aspectRatio: "3/4",
+                    background: dark
+                      ? "radial-gradient(circle at 72% 18%, rgba(255,85,0,.35), transparent 30%), linear-gradient(155deg,#111,#241208)"
+                      : "radial-gradient(circle at 70% 24%, rgba(255,85,0,.22), transparent 26%), linear-gradient(155deg,#fff,#efe8dc)",
+                  }}
+                  aria-label={`${name} template preview`}
+                >
+                  <div className="mt-auto">
+                    <p className="text-[9px] font-black uppercase tracking-[.18em]" style={{ color: dark ? "rgba(255,255,255,.5)" : C.faint }}>{tag}</p>
+                    <p className="mt-2 max-w-[12rem] text-[clamp(1.8rem,4vw,3rem)] font-black leading-[.9]" style={{ color: dark ? "#fff" : C.ink, fontFamily: "var(--font-fraunces)" }}>{name}</p>
+                    <span className="mt-5 block h-1 w-12" style={{ background: C.orange }} />
+                  </div>
                 </div>
                 <div
                   className="p-5"
