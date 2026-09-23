@@ -253,7 +253,9 @@ export async function createCartOrder(opts: {
       amountXof: number | null;
       discountPercent: number | null;
       discountCode: string | null;
+      discountId: string | null;
       giftCardCode: string | null;
+      giftCardId: string | null;
       giftCardAmountXof: number | null;
       giftPublicId: string | null;
     }
@@ -417,7 +419,9 @@ export async function createCartOrder(opts: {
     amountXof: totalXof,
     discountPercent: discount?.percent_off ?? null,
     discountCode: discount?.code ?? null,
+    discountId: discount?.id ?? null,
     giftCardCode: giftCard && giftCardAmount > 0 ? giftCard.code : null,
+    giftCardId: giftCard && giftCardAmount > 0 ? giftCard.id : null,
     giftCardAmountXof: giftCardAmount > 0 ? giftCardAmount : null,
     giftPublicId:
       typeof order.gift_public_id === "string" ? order.gift_public_id : null,

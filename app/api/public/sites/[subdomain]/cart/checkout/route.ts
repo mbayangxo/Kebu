@@ -145,8 +145,8 @@ export async function POST(req: Request, { params }: Params) {
       projectId: live.project_id,
       productId: line.productId,
       quantity: line.quantity,
-      discountId: lineIndex === 0 && created.discountCode ? discountResult.discount?.id ?? null : null,
-      giftCardId: lineIndex === 0 && created.giftCardAmountXof ? giftCardResult.card?.id ?? null : null,
+      discountId: lineIndex === 0 ? created.discountId : null,
+      giftCardId: lineIndex === 0 ? created.giftCardId : null,
       giftCardAmountXof: lineIndex === 0 ? created.giftCardAmountXof : null,
     });
     if (!reservation.ok) {
