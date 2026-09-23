@@ -3,7 +3,6 @@ import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
-import { maylecorAboutPageSections } from "@/lib/create/maylecor-about-bio";
 import { syncProjectChromeNavFromPages } from "@/lib/create/site-chrome";
 import { z } from "zod";
 
@@ -16,8 +15,8 @@ const slugSchema = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(1).
 const addPageSchema = z.object({
   slug: slugSchema,
   title: z.string().trim().min(1).max(120),
-  /** Optional starter content — about-may seeds the full May Lècor bio. */
-  seed: z.enum(["blank", "about-may"]).optional().default("blank"),
+  /** Generic page creation only. Owner portfolio content is never exposed as a shared seed. */
+  seed: z.literal("blank").optional().default("blank"),
 });
 
 const patchPageSchema = z.union([
@@ -125,28 +124,20 @@ export async function POST(req: Request, { params }: Params) {
     heading: parsed.data.title,
     body: "Write your story here. Add gallery, FAQ, products, or forms from the left Sections panel.",
   };
-  const seedSections: Array<{ page_id: string; section_type: string; sort_order: number; props: Record<string, unknown> }> =
-    parsed.data.seed === "about-may"
-      ? maylecorAboutPageSections().map((section, sort_order) => ({
-          page_id: page.id,
-          section_type: section.type as string,
-          sort_order,
-          props: section.props as Record<string, unknown>,
-        }))
-      : [
-          {
-            page_id: page.id,
-            section_type: "hero",
-            sort_order: 0,
-            props: heroProps as Record<string, unknown>,
-          },
-          {
-            page_id: page.id,
-            section_type: "text",
-            sort_order: 1,
-            props: textProps as Record<string, unknown>,
-          },
-        ];
+  const seedSections: Array<{ page_id: string; section_type: string; sort_order: number; props: Record<string, unknown> }> = [
+    {
+      page_id: page.id,
+      section_type: "hero",
+      sort_order: 0,
+      props: heroProps as Record<string, unknown>,
+    },
+    {
+      page_id: page.id,
+      section_type: "text",
+      sort_order: 1,
+      props: textProps as Record<string, unknown>,
+    },
+  ];
 
   const { error: secError } = await supabase.from("project_sections").insert(seedSections);
 

@@ -1530,6 +1530,10 @@ export default function ProjectEditorPage() {
                   projectId={projectId}
                   commerce={seoSettings.commerce ?? {}}
                   onSaved={(next) => queueSiteSettingsSave({ seo: { commerce: next } })}
+                  onActivated={(next) => {
+                    setSeoSettings((current) => ({ ...current, commerce: next }));
+                    void load();
+                  }}
                 />
               )}
 

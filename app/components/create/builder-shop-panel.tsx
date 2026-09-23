@@ -67,13 +67,17 @@ export function BuilderShopPanel({
   projectId,
   commerce,
   onSaved,
+  onActivated,
 }: {
   projectId: string;
   commerce: Partial<SiteCommerce>;
   onSaved: (next: SiteCommerce) => void;
+  onActivated?: (next: SiteCommerce) => void;
 }) {
   const c = mergeSiteCommerce(commerce);
   const [productCount, setProductCount] = useState<number | null>(null);
+  const [activationState, setActivationState] = useState<"idle" | "activating" | "error">("idle");
+  const [activationError, setActivationError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}/products`, { credentials: "include" })
@@ -89,6 +93,31 @@ export function BuilderShopPanel({
 
   const [showMoreCurrencies, setShowMoreCurrencies] = useState(false);
 
+  async function activateShop() {
+    if (activationState === "activating") return;
+    setActivationState("activating");
+    setActivationError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/shop/activate`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setActivationState("error");
+        setActivationError(typeof data.error === "string" ? data.error : "Could not activate Shop.");
+        return;
+      }
+      const next = mergeSiteCommerce(data.commerce);
+      onActivated?.(next);
+      setActivationState("idle");
+    } catch {
+      setActivationState("error");
+      setActivationError("Network error while activating Shop.");
+    }
+  }
+
   if (!c.shopOpened) {
     return (
       <div className="flex flex-col gap-0 px-4 py-6">
@@ -99,7 +128,7 @@ export function BuilderShopPanel({
             <path d="M16 10a4 4 0 01-8 0" strokeLinecap="round" />
           </svg>
         </div>
-        <h2 className="text-[14px] font-black" style={{ color: BUILDER.ink }}>Add a shop to your site</h2>
+        <h2 className="text-[14px] font-black" style={{ color: BUILDER.ink }}>Activate Shop</h2>
         <p className="mt-1.5 text-[11px] leading-relaxed" style={{ color: BUILDER.muted }}>
           Accept orders by WhatsApp, mobile money or card. Manage your catalog, customers and
           payments in Kebu Shop — separate from the page editor.
@@ -108,13 +137,18 @@ export function BuilderShopPanel({
           type="button"
           className="mt-4 flex min-h-10 w-full items-center justify-center rounded-xl px-4 text-[12px] font-bold text-white"
           style={{ background: "#0A0A0A" }}
-          onClick={() => patch({ shopOpened: true })}
+          onClick={() => void activateShop()}
+          disabled={activationState === "activating"}
         >
-          Enable shop
+          {activationState === "activating" ? "Activating…" : "Activate Shop"}
         </button>
-        <p className="mt-2 text-center text-[9px]" style={{ color: BUILDER.muted }}>
-          You can turn it off at any time. Your site stays live either way.
-        </p>
+        {activationError ? (
+          <p role="alert" className="mt-2 text-[10px] text-red-700">{activationError}</p>
+        ) : (
+          <p className="mt-2 text-center text-[9px]" style={{ color: BUILDER.muted }}>
+            Kebu creates a Shop page once and keeps your catalog separate from the page design.
+          </p>
+        )}
       </div>
     );
   }
