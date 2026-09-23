@@ -43,11 +43,13 @@ export default function ChatPage() {
   const [composer, setComposer] = useState("");
   const [creating, setCreating] = useState(false);
   const [sending, setSending] = useState(false);
+  const [loadingChannels, setLoadingChannels] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const loadChannels = useCallback(async () => {
+    setLoadingChannels(true);
     setError(null);
     const workspaceRes = await fetch("/api/me/workspace", { credentials: "include" });
     const workspaceData = await workspaceRes.json().catch(() => ({}));
@@ -65,6 +67,7 @@ export default function ChatPage() {
     const list = Array.isArray(channelsData.channels) ? channelsData.channels as Channel[] : [];
     setChannels(list);
     setSelectedId((current) => current && list.some((channel) => channel.id === current) ? current : list[0]?.id ?? null);
+    setLoadingChannels(false);
   }, []);
 
   const loadMessages = useCallback(async (channelId: string) => {
@@ -181,7 +184,13 @@ export default function ChatPage() {
           </form>
 
           <div className="max-h-[310px] overflow-y-auto lg:max-h-[calc(100vh-300px)]">
-            {channels.length ? channels.map((channel) => {
+            {loadingChannels ? (
+              <div className="space-y-px p-2">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-14 animate-pulse rounded-xl" style={{ background: "rgba(0,0,0,0.04)" }} />
+                ))}
+              </div>
+            ) : channels.length ? channels.map((channel) => {
               const active = channel.id === selectedId;
               return (
                 <button

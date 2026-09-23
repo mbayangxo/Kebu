@@ -13,19 +13,19 @@ function parseFilter(raw: string | undefined): MySitesFilter {
   return "all";
 }
 
-type Props = { searchParams: Promise<{ filter?: string }> };
+type Props = { searchParams: Promise<{ filter?: string; category?: string }> };
 
-const TEMPLATE_CATS = ["Templates", "AI Builder", "Landing Pages", "Portfolios", "Stores", "Brands", "Events", "Blog", "All"];
+const TEMPLATE_CATS = ["All", "Landing Pages", "Portfolios", "Stores", "Brands", "Events", "Blog", "AI Builder"];
 
 const TEMPLATE_TILES = [
-  { label: "Agency", tag: "Business", accent: "#FF5500", bg: "#1a0800" },
-  { label: "Portfolio", tag: "Creative", accent: "#6C63FF", bg: "#0d0b1a" },
-  { label: "Store", tag: "Commerce", accent: "#0E9F6E", bg: "#071a10" },
-  { label: "Blog", tag: "Content", accent: "#0EA5E9", bg: "#071018" },
-  { label: "Event", tag: "Marketing", accent: "#F4B400", bg: "#181300" },
-  { label: "Startup", tag: "SaaS", accent: "#FF1F1F", bg: "#1a0707" },
-  { label: "Restaurant", tag: "Local", accent: "#A15CFF", bg: "#130a1a" },
-  { label: "Personal", tag: "Minimal", accent: "#333333", bg: "#101010" },
+  { label: "Agency", tag: "Business", accent: "#FF5500", bg: "#1a0800", cats: ["All", "Brands", "Landing Pages"] },
+  { label: "Portfolio", tag: "Creative", accent: "#6C63FF", bg: "#0d0b1a", cats: ["All", "Portfolios"] },
+  { label: "Store", tag: "Commerce", accent: "#0E9F6E", bg: "#071a10", cats: ["All", "Stores"] },
+  { label: "Blog", tag: "Content", accent: "#0EA5E9", bg: "#071018", cats: ["All", "Blog"] },
+  { label: "Event", tag: "Marketing", accent: "#F4B400", bg: "#181300", cats: ["All", "Events", "Landing Pages"] },
+  { label: "Startup", tag: "SaaS", accent: "#FF1F1F", bg: "#1a0707", cats: ["All", "Landing Pages", "Brands"] },
+  { label: "Restaurant", tag: "Local", accent: "#A15CFF", bg: "#130a1a", cats: ["All", "Stores"] },
+  { label: "Personal", tag: "Minimal", accent: "#333333", bg: "#101010", cats: ["All", "Portfolios", "Brands"] },
 ];
 
 const TOOLS = [
@@ -38,9 +38,14 @@ const TOOLS = [
 
 const border = KEBU.borders.default;
 
+function parseCategory(raw: string | undefined): string {
+  return TEMPLATE_CATS.includes(raw ?? "") ? (raw as string) : "All";
+}
+
 export default async function MySitesPage({ searchParams }: Props) {
-  const { filter: filterParam } = await searchParams;
+  const { filter: filterParam, category: categoryParam } = await searchParams;
   const initialFilter = parseFilter(filterParam);
+  const activeCategory = parseCategory(categoryParam);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -98,42 +103,57 @@ export default async function MySitesPage({ searchParams }: Props) {
           {/* Template filter tabs */}
           <section className="border-b px-6 py-4 sm:px-8" style={{ borderColor: border }}>
             <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {TEMPLATE_CATS.map((cat, i) => (
-                <button key={cat} type="button"
-                  className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide transition-colors"
-                  style={{
-                    background: i === 0 ? KEBU.orange : "transparent",
-                    color: i === 0 ? "#fff" : "rgba(0,0,0,0.45)",
-                    border: i === 0 ? "none" : `1px solid ${border}`,
-                  }}>
-                  {cat}
-                </button>
-              ))}
+              {TEMPLATE_CATS.map((cat) => {
+                const isActive = cat === activeCategory;
+                const href = cat === "AI Builder"
+                  ? "/create/sites?tab=ai"
+                  : `/my-sites?category=${encodeURIComponent(cat)}${filterParam ? `&filter=${filterParam}` : ""}`;
+                return (
+                  <Link key={cat} href={href}
+                    className="shrink-0 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wide transition-colors"
+                    style={{
+                      background: isActive ? KEBU.orange : "transparent",
+                      color: isActive ? "#fff" : "rgba(0,0,0,0.45)",
+                      border: isActive ? "none" : `1px solid ${border}`,
+                    }}>
+                    {cat}
+                  </Link>
+                );
+              })}
             </div>
           </section>
 
           {/* Template grid */}
           <section className="border-b px-6 py-8 sm:px-8" style={{ borderColor: border }}>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {TEMPLATE_TILES.map((tile) => (
-                <Link key={tile.label} href="/create/sites"
-                  className="group overflow-hidden rounded-2xl border transition hover:-translate-y-0.5 hover:shadow-md"
-                  style={{ borderColor: border }}>
-                  <div className="relative h-[140px] overflow-hidden" style={{ background: tile.bg }}>
-                    <div className="absolute inset-0 opacity-60" style={{ background: `radial-gradient(ellipse at 70% 30%,${tile.accent},transparent 55%)` }} />
-                    <div className="absolute inset-4 rounded-xl border border-white/10 bg-white/5" />
-                    <div className="absolute left-6 top-6">
-                      <span className="block h-1 w-8 rounded-full" style={{ background: tile.accent + "aa" }} />
-                      <span className="mt-1.5 block h-1 w-14 rounded-full" style={{ background: "rgba(255,255,255,0.2)" }} />
-                    </div>
-                  </div>
-                  <div className="px-4 py-3" style={{ background: "#fff" }}>
-                    <p className="text-[12px] font-black" style={{ color: KEBU.black }}>{tile.label}</p>
-                    <p className="text-[10px]" style={{ color: "rgba(0,0,0,0.4)" }}>{tile.tag}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            {(() => {
+              const visibleTiles = TEMPLATE_TILES.filter((t) => t.cats.includes(activeCategory));
+              return visibleTiles.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {visibleTiles.map((tile) => (
+                    <Link key={tile.label} href={`/create/sites?template=${encodeURIComponent(tile.label.toLowerCase())}`}
+                      className="group overflow-hidden rounded-2xl border transition hover:-translate-y-0.5 hover:shadow-md"
+                      style={{ borderColor: border }}>
+                      <div className="relative h-[140px] overflow-hidden" style={{ background: tile.bg }}>
+                        <div className="absolute inset-0 opacity-60" style={{ background: `radial-gradient(ellipse at 70% 30%,${tile.accent},transparent 55%)` }} />
+                        <div className="absolute inset-4 rounded-xl border border-white/10 bg-white/5" />
+                        <div className="absolute left-6 top-6">
+                          <span className="block h-1 w-8 rounded-full" style={{ background: tile.accent + "aa" }} />
+                          <span className="mt-1.5 block h-1 w-14 rounded-full" style={{ background: "rgba(255,255,255,0.2)" }} />
+                        </div>
+                      </div>
+                      <div className="px-4 py-3" style={{ background: "#fff" }}>
+                        <p className="text-[12px] font-black" style={{ color: KEBU.black }}>{tile.label}</p>
+                        <p className="text-[10px]" style={{ color: "rgba(0,0,0,0.4)" }}>{tile.tag}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-center py-4" style={{ color: "rgba(0,0,0,0.4)" }}>
+                  No templates in this category yet.
+                </p>
+              );
+            })()}
           </section>
 
           {/* Existing projects — full interactive component */}
@@ -166,7 +186,7 @@ export default async function MySitesPage({ searchParams }: Props) {
             ) : (
               <div className="space-y-2">
                 {allProjects.slice(0, 8).map((p) => (
-                  <div key={p.id} className="flex items-center gap-2.5 rounded-xl border p-2.5 transition hover:bg-black/[.02]" style={{ borderColor: border }}>
+                  <Link key={p.id} href={`/my-sites/${p.id}`} className="flex items-center gap-2.5 rounded-xl border p-2.5 transition hover:bg-black/[.02]" style={{ borderColor: border }}>
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-black text-white" style={{ background: KEBU.orange }}>
                       {(p.title ?? "S").charAt(0).toUpperCase()}
                     </div>
@@ -183,7 +203,7 @@ export default async function MySitesPage({ searchParams }: Props) {
                       }}>
                       {p.status ?? "draft"}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -193,17 +213,21 @@ export default async function MySitesPage({ searchParams }: Props) {
           <div className="border-b px-5 py-5" style={{ borderColor: border }}>
             <p className="mb-1 text-[11px] font-black uppercase tracking-[.12em]" style={{ color: KEBU.black }}>Build with AI</p>
             <p className="mb-3 text-[10px]" style={{ color: "rgba(0,0,0,0.45)" }}>Describe your site and AI will generate it.</p>
-            <textarea
-              placeholder="A portfolio for a fashion photographer..."
-              className="w-full resize-none rounded-xl border px-3 py-2.5 text-[11px] outline-none focus:ring-2"
-              rows={3}
-              style={{ borderColor: border, background: "rgba(0,0,0,0.02)", color: KEBU.black }}
-            />
-            <Link href="/create/sites?tab=ai"
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[10px] font-black uppercase tracking-wide text-white transition hover:brightness-110"
-              style={{ background: KEBU.orange }}>
-              ✦ Generate site
-            </Link>
+            <form method="GET" action="/create/sites">
+              <input type="hidden" name="tab" value="ai" />
+              <textarea
+                name="prompt"
+                placeholder="A portfolio for a fashion photographer..."
+                className="w-full resize-none rounded-xl border px-3 py-2.5 text-[11px] outline-none focus:ring-2"
+                rows={3}
+                style={{ borderColor: border, background: "rgba(0,0,0,0.02)", color: KEBU.black }}
+              />
+              <button type="submit"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[10px] font-black uppercase tracking-wide text-white transition hover:brightness-110"
+                style={{ background: KEBU.orange }}>
+                ✦ Generate site
+              </button>
+            </form>
           </div>
 
           {/* Tools */}

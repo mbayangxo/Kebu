@@ -7,8 +7,15 @@ import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 import type { SearchResult } from "@/lib/search/types";
 
-type SearchMode = "all" | "sites" | "business" | "designs" | "opportunities";
+type SearchMode = "all" | "sites" | "business" | "designs" | "opportunities" | "people";
 type Payload = { results: SearchResult[]; pages: SearchResult[]; mode?: SearchMode; opportunityAccess?: boolean };
+
+const PILL_MODE: Record<string, SearchMode> = {
+  "All": "all",
+  "Web": "sites",
+  "People": "people",
+  "Opportunities": "opportunities",
+};
 
 const FILTER_PILLS = ["All", "Web", "People", "Opportunities", "Challenges", "Products", "Places", "Knowledge", "Visual", "More"];
 
@@ -50,7 +57,8 @@ export default function SearchPage() {
       const controller = new AbortController(); abort.current = controller;
       setLoading(true); setFailed(false);
       try {
-        const r = await fetch(`/api/me/search?q=${encodeURIComponent(q)}&mode=all`, { credentials: "include", signal: controller.signal });
+        const mode: SearchMode = PILL_MODE[activePill] ?? "all";
+        const r = await fetch(`/api/me/search?q=${encodeURIComponent(q)}&mode=${mode}`, { credentials: "include", signal: controller.signal });
         if (!r.ok) throw new Error("search");
         setData(await r.json());
       } catch (e) {
@@ -58,7 +66,7 @@ export default function SearchPage() {
       } finally { if (!controller.signal.aborted) setLoading(false); }
     }, q ? 180 : 0);
     return () => clearTimeout(timer);
-  }, [q]);
+  }, [q, activePill]);
 
   const allResults = [...(data.pages ?? []), ...(data.results ?? [])];
   const hasResults = allResults.length > 0;
@@ -246,19 +254,10 @@ export default function SearchPage() {
               {/* Recent winners */}
               <section>
                 <h3 className="mb-3 text-[10px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.muted }}>Recent winners</h3>
-                <div className="space-y-2">
-                  {(["Nia A. Mensah", "Kwame Boateng", "Aminata Diallo"] as const).map((n, i) => (
-                    <div key={n} className="flex items-center gap-3 rounded-xl p-3" style={{ border: `1px solid ${KEBU.borders.default}` }}>
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white text-[10px] font-black"
-                        style={{ background: (["#6C63FF", "#FF5500", "#0E9F6E"] as const)[i] }}>
-                        {n.charAt(0)}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-[11px] font-bold">{n}</span>
-                        <span className="text-[9px]" style={{ color: KEBU.muted }}>Kebu Creator Grant</span>
-                      </span>
-                    </div>
-                  ))}
+                <div className="rounded-xl border border-dashed p-4 text-center" style={{ borderColor: KEBU.borders.default }}>
+                  <KebuIcon name="yande" size={22} className="mx-auto mb-2" style={{ color: KEBU.faint }} />
+                  <p className="text-[10px] font-semibold">Winners announced here</p>
+                  <p className="mt-1 text-[9px]" style={{ color: KEBU.muted }}>When a Kebu challenge closes, the winners will show up in this spot.</p>
                 </div>
               </section>
 
@@ -292,8 +291,14 @@ export default function SearchPage() {
                 Turn every search into an opportunity. Find co-founders, clients, and collaborators.
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
-                {["Find an opportunity", "Browse Kebu People", "Start a project"].map(label => (
-                  <Link key={label} href="/opportunities"
+                {(
+                  [
+                    { label: "Find an opportunity", href: "/opportunities" },
+                    { label: "Browse Kebu People", href: "/search?q=people" },
+                    { label: "Start a project", href: "/create" },
+                  ] as const
+                ).map(({ label, href }) => (
+                  <Link key={label} href={href}
                     className="rounded-full border px-5 py-2.5 text-[11px] font-black text-white transition hover:bg-white/10"
                     style={{ borderColor: "rgba(255,255,255,0.2)" }}>
                     {label}

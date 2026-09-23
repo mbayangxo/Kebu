@@ -29,6 +29,7 @@ export default function RoomPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [room, setRoom] = useState<Room | null>(null);
   const [payload, setPayload] = useState<Record<string, unknown>>({});
+  const [tabLoading, setTabLoading] = useState(true);
   const [text, setText] = useState("");
   const [secondary, setSecondary] = useState("");
   const [date, setDate] = useState("");
@@ -40,8 +41,10 @@ export default function RoomPage() {
   const load = useCallback(async () => {
     if (!id) return;
     setError(null);
+    setTabLoading(true);
     const res = await fetch("/api/rooms/" + id + "?tab=" + tab, { credentials: "include" });
     const data = await res.json().catch(() => ({}));
+    setTabLoading(false);
     if (!res.ok) { setError(data.error || "Could not load room."); return; }
     setRoom(data.room ?? null);
     setPayload(data);
@@ -156,52 +159,80 @@ export default function RoomPage() {
         ) : null}
 
         <div className="mt-4">
-          {tab === "overview" ? (
-            <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
-              <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-                <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Room focus</p>
-                <h2 className="mt-1 text-lg font-black">What is moving right now</h2>
-                <div className="mt-4 space-y-2">
-                  {items.slice(0, 8).map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl bg-black/[.025] px-3 py-3"><KebuIcon name={item.kind === "event" ? "calendar" : "work"} size={16} style={{ color: KEBU.orange }} /><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-bold">{item.title}</span><span className="text-[9px]" style={{ color: KEBU.muted }}>{item.kind}{item.due_at || item.start_at ? " · " + new Date(item.due_at || item.start_at || "").toLocaleString() : ""}</span></span></div>)}
-                  {!items.length ? <p className="text-[10px]" style={{ color: KEBU.muted }}>No tasks or events yet.</p> : null}
-                </div>
-              </section>
-              <div className="space-y-4">
-                <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Wall</p>{posts.slice(0, 3).map((post) => <p key={post.id} className="mt-3 border-t pt-3 text-[11px] leading-relaxed" style={{ borderColor: KEBU.borders.subtle }}>{post.body}</p>)}{!posts.length ? <p className="mt-2 text-[10px]" style={{ color: KEBU.muted }}>No updates yet.</p> : null}</section>
-                <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Decisions</p>{decisions.slice(0, 3).map((decision) => <div key={decision.id} className="mt-3"><p className="text-[11px] font-bold">{decision.title}</p><p className="text-[9px]" style={{ color: KEBU.muted }}>{decision.detail}</p></div>)}{!decisions.length ? <p className="mt-2 text-[10px]" style={{ color: KEBU.muted }}>Nothing recorded yet.</p> : null}</section>
-              </div>
+          {tabLoading ? (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 animate-pulse rounded-[18px]" style={{ background: "rgba(0,0,0,0.04)" }} />)}
             </div>
-          ) : null}
-
-          {tab === "wall" ? <List>{posts.map((post) => <Card key={post.id} title={profileById.get(post.author_id)?.name || "Room member"} meta={new Date(post.created_at).toLocaleString()} body={post.body} />)}</List> : null}
-          {tab === "tasks" || tab === "calendar" ? <List>{items.map((item) => <Card key={item.id} title={item.title} meta={(item.kind === "task" ? item.due_at : item.start_at) ? new Date((item.kind === "task" ? item.due_at : item.start_at) || "").toLocaleString() : item.status} body={item.body} />)}</List> : null}
-          {tab === "files" ? (
-            <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Room files</p><h2 className="mt-1 text-lg font-black">Shared private files</h2></div>
-                <label className="cursor-pointer rounded-full bg-black px-4 py-2.5 text-[9px] font-black uppercase tracking-wide text-white">
-                  {fileBusy ? "Uploading…" : "Upload file"}
-                  <input type="file" className="sr-only" disabled={fileBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadRoomFile(file); event.currentTarget.value = ""; }} />
-                </label>
-              </div>
-              <p className="mt-1 text-[9px] leading-relaxed" style={{ color: KEBU.muted }}>Stored in Kebu private storage. Download links are short-lived and only generated for room members.</p>
-              <div className="mt-4 divide-y" style={{ borderColor: KEBU.borders.subtle }}>
-                {roomFiles.map((file) => (
-                  <div key={file.id} className="flex items-center gap-3 py-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]" style={{ background: KEBU.cream, color: KEBU.orange }}><KebuIcon name="library" size={17} /></span>
-                    <div className="min-w-0 flex-1"><p className="truncate text-[11px] font-black">{file.file_name}</p><p className="mt-0.5 text-[8px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{file.mime} · {file.byte_size < 1048576 ? Math.max(1, Math.round(file.byte_size / 1024)) + " KB" : (file.byte_size / 1048576).toFixed(1) + " MB"}</p></div>
-                    {file.downloadUrl ? <a href={file.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full border px-3 py-2 text-[8px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Open</a> : null}
-                    <button type="button" onClick={() => void deleteRoomFile(file.id)} className="px-2 py-2 text-[8px] font-black uppercase tracking-wide text-red-600">Remove</button>
+          ) : (
+            <>
+              {tab === "overview" ? (
+                <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
+                  <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
+                    <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Room focus</p>
+                    <h2 className="mt-1 text-lg font-black">What is moving right now</h2>
+                    <div className="mt-4 space-y-2">
+                      {items.slice(0, 8).map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl bg-black/[.025] px-3 py-3"><KebuIcon name={item.kind === "event" ? "calendar" : "work"} size={16} style={{ color: KEBU.orange }} /><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-bold">{item.title}</span><span className="text-[9px]" style={{ color: KEBU.muted }}>{item.kind}{item.due_at || item.start_at ? " · " + new Date(item.due_at || item.start_at || "").toLocaleString() : ""}</span></span></div>)}
+                      {!items.length ? <p className="text-[10px]" style={{ color: KEBU.muted }}>No tasks or events yet.</p> : null}
+                    </div>
+                  </section>
+                  <div className="space-y-4">
+                    <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Wall</p>{posts.slice(0, 3).map((post) => <p key={post.id} className="mt-3 border-t pt-3 text-[11px] leading-relaxed" style={{ borderColor: KEBU.borders.subtle }}>{post.body}</p>)}{!posts.length ? <p className="mt-2 text-[10px]" style={{ color: KEBU.muted }}>No updates yet.</p> : null}</section>
+                    <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Decisions</p>{decisions.slice(0, 3).map((decision) => <div key={decision.id} className="mt-3"><p className="text-[11px] font-bold">{decision.title}</p><p className="text-[9px]" style={{ color: KEBU.muted }}>{decision.detail}</p></div>)}{!decisions.length ? <p className="mt-2 text-[10px]" style={{ color: KEBU.muted }}>Nothing recorded yet.</p> : null}</section>
                   </div>
-                ))}
-                {!roomFiles.length ? <p className="py-8 text-center text-[10px]" style={{ color: KEBU.muted }}>No files in this room yet.</p> : null}
-              </div>
-            </section>
-          ) : null}
-          {tab === "links" ? <List>{links.map((link) => <a key={link.id} href={link.url} target="_blank" rel="noreferrer" className="block rounded-[18px] border bg-white p-4 hover:-translate-y-0.5 transition" style={{ borderColor: KEBU.borders.default }}><p className="text-[12px] font-black">{link.label}</p><p className="mt-1 truncate text-[10px]" style={{ color: KEBU.orange }}>{link.url}</p></a>)}</List> : null}
-          {tab === "decisions" ? <List>{decisions.map((decision) => <Card key={decision.id} title={decision.title} meta={new Date(decision.decided_at).toLocaleString()} body={decision.detail} />)}</List> : null}
-          {tab === "people" ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{members.map((member) => { const p = profileById.get(member.user_id); const name = p?.name || p?.email || "Kebu member"; return <article key={member.user_id} className="rounded-[20px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full text-[11px] font-black text-white" style={{ background: "linear-gradient(135deg,#FF6A00,#FF1F1F)" }}>{name.charAt(0).toUpperCase()}</span><div><p className="text-[12px] font-black">{name}</p><p className="text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{member.role}</p></div></div></article>; })}{!members.length ? <p className="text-[10px]" style={{ color: KEBU.muted }}>No room members loaded.</p> : null}</div> : null}
-          {tab === "chat" ? <List>{messages.map((message) => <Card key={message.id} title={profileById.get(message.author_id)?.name || "Room member"} meta={new Date(message.created_at).toLocaleString()} body={message.body} />)}</List> : null}
+                </div>
+              ) : null}
+
+              {tab === "wall" ? (
+                posts.length ? <List>{posts.map((post) => <Card key={post.id} title={profileById.get(post.author_id)?.name || "Room member"} meta={new Date(post.created_at).toLocaleString()} body={post.body} />)}</List>
+                : <TabEmpty icon="people" message="Nothing on the wall yet." hint="Post an update above to share with the room." />
+              ) : null}
+              {tab === "tasks" || tab === "calendar" ? (
+                items.length ? <List>{items.map((item) => <Card key={item.id} title={item.title} meta={(item.kind === "task" ? item.due_at : item.start_at) ? new Date((item.kind === "task" ? item.due_at : item.start_at) || "").toLocaleString() : item.status} body={item.body} />)}</List>
+                : <TabEmpty icon="calendar" message={tab === "tasks" ? "No tasks yet." : "No events yet."} hint="Add one using the form above." />
+              ) : null}
+              {tab === "files" ? (
+                <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Room files</p><h2 className="mt-1 text-lg font-black">Shared private files</h2></div>
+                    <label className="cursor-pointer rounded-full bg-black px-4 py-2.5 text-[9px] font-black uppercase tracking-wide text-white">
+                      {fileBusy ? "Uploading…" : "Upload file"}
+                      <input type="file" className="sr-only" disabled={fileBusy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadRoomFile(file); event.currentTarget.value = ""; }} />
+                    </label>
+                  </div>
+                  <p className="mt-1 text-[9px] leading-relaxed" style={{ color: KEBU.muted }}>Stored in Kebu private storage. Download links are short-lived and only generated for room members.</p>
+                  <div className="mt-4 divide-y" style={{ borderColor: KEBU.borders.subtle }}>
+                    {roomFiles.map((file) => (
+                      <div key={file.id} className="flex items-center gap-3 py-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]" style={{ background: KEBU.cream, color: KEBU.orange }}><KebuIcon name="library" size={17} /></span>
+                        <div className="min-w-0 flex-1"><p className="truncate text-[11px] font-black">{file.file_name}</p><p className="mt-0.5 text-[8px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{file.mime} · {file.byte_size < 1048576 ? Math.max(1, Math.round(file.byte_size / 1024)) + " KB" : (file.byte_size / 1048576).toFixed(1) + " MB"}</p></div>
+                        {file.downloadUrl ? <a href={file.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full border px-3 py-2 text-[8px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Open</a> : null}
+                        <button type="button" onClick={() => void deleteRoomFile(file.id)} className="px-2 py-2 text-[8px] font-black uppercase tracking-wide text-red-600">Remove</button>
+                      </div>
+                    ))}
+                    {!roomFiles.length ? <p className="py-8 text-center text-[10px]" style={{ color: KEBU.muted }}>No files in this room yet.</p> : null}
+                  </div>
+                </section>
+              ) : null}
+              {tab === "links" ? (
+                links.length ? <List>{links.map((link) => <a key={link.id} href={link.url} target="_blank" rel="noreferrer" className="block rounded-[18px] border bg-white p-4 hover:-translate-y-0.5 transition" style={{ borderColor: KEBU.borders.default }}><p className="text-[12px] font-black">{link.label}</p><p className="mt-1 truncate text-[10px]" style={{ color: KEBU.orange }}>{link.url}</p></a>)}</List>
+                : <TabEmpty icon="arrowRight" message="No links saved yet." hint="Add a label and URL using the form above." />
+              ) : null}
+              {tab === "decisions" ? (
+                decisions.length ? <List>{decisions.map((decision) => <Card key={decision.id} title={decision.title} meta={new Date(decision.decided_at).toLocaleString()} body={decision.detail} />)}</List>
+                : <TabEmpty icon="universe" message="No decisions recorded yet." hint="Log a decision above so the team has a clear record." />
+              ) : null}
+              {tab === "people" ? (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {members.map((member) => { const p = profileById.get(member.user_id); const name = p?.name || p?.email || "Kebu member"; return <article key={member.user_id} className="rounded-[20px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full text-[11px] font-black text-white" style={{ background: "linear-gradient(135deg,#FF6A00,#FF1F1F)" }}>{name.charAt(0).toUpperCase()}</span><div><p className="text-[12px] font-black">{name}</p><p className="text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{member.role}</p></div></div></article>; })}
+                  {!members.length ? <p className="col-span-full text-[10px]" style={{ color: KEBU.muted }}>No room members loaded.</p> : null}
+                </div>
+              ) : null}
+              {tab === "chat" ? (
+                messages.length ? <List>{messages.map((message) => <Card key={message.id} title={profileById.get(message.author_id)?.name || "Room member"} meta={new Date(message.created_at).toLocaleString()} body={message.body} />)}</List>
+                : <TabEmpty icon="message" message="No messages yet." hint="Send the first message using the field above." />
+              ) : null}
+            </>
+          )}
         </div>
       </div>
     </AppShell>
@@ -213,4 +244,13 @@ function List({ children }: { children: React.ReactNode }) {
 }
 function Card({ title, meta, body }: { title: string; meta: string; body: string }) {
   return <article className="rounded-[18px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}><div className="flex items-baseline justify-between gap-3"><p className="text-[12px] font-black">{title}</p><p className="shrink-0 text-[8px]" style={{ color: KEBU.faint }}>{meta}</p></div>{body ? <p className="mt-3 whitespace-pre-wrap text-[11px] leading-relaxed text-black/75">{body}</p> : null}</article>;
+}
+function TabEmpty({ icon, message, hint }: { icon: import("@/app/components/kebu/kebu-icon").KebuIconName; message: string; hint: string }) {
+  return (
+    <div className="rounded-[22px] border border-dashed bg-white p-10 text-center" style={{ borderColor: KEBU.borders.default }}>
+      <KebuIcon name={icon} size={26} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
+      <p className="text-sm font-black">{message}</p>
+      <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>{hint}</p>
+    </div>
+  );
 }
