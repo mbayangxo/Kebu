@@ -370,6 +370,7 @@ export default function ProjectEditorPage() {
     updateChromeProps,
     saveDraftNow,
     persistProps,
+    restorePropsSnapshot,
     markAllSaved,
   } = useProjectAutosave({
       projectId,
@@ -464,10 +465,7 @@ export default function ProjectEditorPage() {
       return null;
     }
     const section = data.section as Section;
-    setSections((prev) => {
-      pushHistory(prev);
-      return [...prev, section].sort((a, b) => a.sort_order - b.sort_order);
-    });
+    setSections((prev) => [...prev, section].sort((a, b) => a.sort_order - b.sort_order));
     setSelectedSectionId(section.id);
     setSidebarTab("content");
     return section;
@@ -537,10 +535,7 @@ export default function ProjectEditorPage() {
       setError("Could not delete section.");
       return;
     }
-    setSections((prev) => {
-      pushHistory(prev);
-      return prev.filter((s) => s.id !== sectionId);
-    });
+    setSections((prev) => prev.filter((s) => s.id !== sectionId));
   }
 
   async function reorderSections(orderedIds: string[]) {
@@ -610,31 +605,22 @@ export default function ProjectEditorPage() {
     }
   }
 
-  function undo() {
-    setHistory((h) => {
-      if (h.length === 0) return h;
-      const prev = h[h.length - 1]!;
-      setFuture((f) => [sections, ...f]);
-      setSections(prev);
-      // Persist each section props best-effort
-      prev.forEach((s) => {
-        void persistProps(s.id, s.props);
-      });
-      return h.slice(0, -1);
-    });
+  async function undo() {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1]!;
+    setHistory((current) => current.slice(0, -1));
+    setFuture((current) => [sections, ...current]);
+    setSections(prev);
+    await restorePropsSnapshot(prev);
   }
 
-  function redo() {
-    setFuture((f) => {
-      if (f.length === 0) return f;
-      const next = f[0]!;
-      setHistory((h) => [...h, sections]);
-      setSections(next);
-      next.forEach((s) => {
-        void persistProps(s.id, s.props);
-      });
-      return f.slice(1);
-    });
+  async function redo() {
+    if (future.length === 0) return;
+    const next = future[0]!;
+    setFuture((current) => current.slice(1));
+    setHistory((current) => [...current.slice(-19), sections]);
+    setSections(next);
+    await restorePropsSnapshot(next);
   }
 
   async function payHostingWithJoko(opts?: {
@@ -1124,8 +1110,8 @@ export default function ProjectEditorPage() {
         onDevice={setDevice}
         canUndo={history.length > 0}
         canRedo={future.length > 0}
-        onUndo={undo}
-        onRedo={redo}
+        onUndo={() => void undo()}
+        onRedo={() => void redo()}
         publishing={publishing || improving}
         publishLabel={publishState?.hasUnpublishedChanges ? "Publish" : "Publish"}
         onPublish={() => void publish()}

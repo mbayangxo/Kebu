@@ -283,6 +283,23 @@ export function useProjectAutosave<T extends AutosaveSection>({
     });
   }
 
+  async function restorePropsSnapshot(snapshot: T[]): Promise<void> {
+    // Undo/redo must beat any debounced save created by the edit being reversed. Otherwise the
+    // stale timer can fire after Undo and silently put the newer value back in Supabase.
+    Object.keys(saveTimers.current).forEach((id) => {
+      clearTimeout(saveTimers.current[id]);
+      delete saveTimers.current[id];
+    });
+    Object.keys(historyWindows.current).forEach((id) => {
+      clearTimeout(historyWindows.current[id]);
+      delete historyWindows.current[id];
+    });
+    snapshot.forEach((section) => pendingSavesRef.current.add(`section:${section.id}`));
+    setSaveState("saving");
+    const results = await Promise.all(snapshot.map((section) => persistProps(section.id, section.props)));
+    if (results.every(Boolean)) setSaveState("saved");
+  }
+
   /**
    * "Save draft" button handler — and the real retry path. Flushes any pending (still-debouncing)
    * autosave timers immediately, then re-attempts every save that hasn't yet been CONFIRMED
@@ -390,6 +407,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
     updateProps,
     updateChromeProps,
     persistProps,
+    restorePropsSnapshot,
     markAllSaved,
     saveDraftNow,
   };
