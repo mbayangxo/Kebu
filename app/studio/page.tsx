@@ -43,13 +43,47 @@ const STUDIO_NAV = [
   { label: "AI Create", href: "/studio/new?tab=ai" },
   { label: "Brand Kit", href: "/studio/brand" },
   { label: "Assets", href: "/library" },
-  { label: "Text", href: "/studio/new?type=text" },
   { label: "Photos", href: "/studio/assets/photos" },
   { label: "Graphics", href: "/studio/assets/graphics" },
-  { label: "Video", href: "/studio/video/new" },
   { label: "Audio", href: "/studio/assets/audio" },
   { label: "Animations", href: "/studio/assets/animations" },
-  { label: "Apps", href: "/tools" },
+  { label: "Marketplace", href: "/create/aesthetics" },
+];
+
+const STUDIO_WORLDS = [
+  {
+    id: "design",
+    label: "Design",
+    tag: "Canva-like",
+    desc: "Posters, social media, brand graphics, business cards, and more.",
+    href: "/studio/new",
+    cta: "Open Design Studio →",
+    bg: "linear-gradient(145deg,#1a0800,#2a0f00)",
+    accent: "#FF5500",
+    formats: ["Instagram post", "Poster", "Flyer", "Business card"],
+  },
+  {
+    id: "video",
+    label: "Video & Motion",
+    tag: "CapCut-like",
+    desc: "Reels, stories, ads, animated graphics, and video timelines.",
+    href: "/studio/video/new",
+    cta: "Open Video Studio →",
+    bg: "linear-gradient(145deg,#0a0a1a,#0d0030)",
+    accent: "#6C63FF",
+    formats: ["Reels", "Stories", "Ads", "Animated graphics"],
+  },
+  {
+    id: "build",
+    label: "Build & Prototype",
+    tag: "Figma-like",
+    desc: "UI mockups, wireframes, presentations, and deck layouts.",
+    href: "/studio/new?type=presentation",
+    cta: "Open Builder Studio →",
+    bg: "linear-gradient(145deg,#001a0a,#003315)",
+    accent: "#0E9F6E",
+    formats: ["Presentations", "UI mockups", "Wireframes", "Pitch decks"],
+  },
 ];
 
 const INSPO_TABS = ["For you", "Trending", "Branding", "Editorial", "Minimal", "Bold", "Motion"];
@@ -149,8 +183,22 @@ export default async function StudioHomePage() {
           <Link href="/studio"
             className="mb-0.5 flex min-h-9 items-center rounded-xl px-2.5 text-[13px] font-black"
             style={{ background: "rgba(255,85,0,0.18)", color: "#FFFFFF" }}>
-            Studio
+            Studio Home
           </Link>
+
+          {/* Worlds */}
+          <p className="mt-3 mb-1 px-2.5 text-[8px] font-black uppercase tracking-[.18em]" style={{ color: "rgba(255,255,255,0.2)" }}>Worlds</p>
+          {STUDIO_WORLDS.map((world) => (
+            <Link key={world.id} href={world.href}
+              className="flex min-h-8 items-center gap-2 rounded-lg px-2.5 text-[11px] font-semibold transition-colors hover:bg-white/[0.06]"
+              style={{ color: textMuted }}>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: world.accent }} />
+              {world.label}
+            </Link>
+          ))}
+
+          {/* Tools */}
+          <p className="mt-3 mb-1 px-2.5 text-[8px] font-black uppercase tracking-[.18em]" style={{ color: "rgba(255,255,255,0.2)" }}>Resources</p>
           {STUDIO_NAV.map((item) => (
             <Link key={item.href} href={item.href}
               className="flex min-h-8 items-center rounded-lg px-2.5 text-[12px] font-medium transition-colors hover:bg-white/[0.06]"
@@ -227,50 +275,36 @@ export default async function StudioHomePage() {
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* Hero */}
-          <section className="border-b px-6 py-10 sm:px-8" style={{ borderColor: border }}>
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
-              <div className="flex flex-col justify-center">
-                <p className="text-[9px] font-black uppercase tracking-[.2em]" style={{ color: KEBU.orange }}>Kebu Studio</p>
-                <h2 className="mt-3 text-[clamp(2.2rem,5vw,4.5rem)] font-black leading-[.88] tracking-[-.06em]" style={{ fontFamily: "var(--font-fraunces)" }}>
-                  Ideas take<br />shape{" "}
-                  <em className="font-normal not-italic" style={{ color: KEBU.orange }}>here.</em>
-                </h2>
-                <p className="mt-4 max-w-md text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
-                  Design. Edit. Animate. Collaborate. All in one creative space built for what you make next.
-                </p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Link href="/studio/new"
-                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[11px] font-black uppercase tracking-[.12em] text-white"
-                    style={{ background: KEBU.orange }}>
-                    + Create new ▼
-                  </Link>
-                  <Link href="/studio/new?tab=ai"
-                    className="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-[11px] font-black uppercase tracking-[.12em]"
-                    style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
-                    + Start with AI
-                  </Link>
-                </div>
-              </div>
-
-              {/* Editorial photo mock */}
-              <div className="relative min-h-[280px] overflow-hidden rounded-3xl lg:min-h-[340px]">
-                <div className="absolute inset-0" style={{ background: "linear-gradient(145deg,#1a0d00,#0a0a0a 40%,#1a1a2e)" }} />
-                <div className="absolute inset-0 opacity-60" style={{ background: "radial-gradient(ellipse at 60% 30%,#FF5500,transparent 50%),radial-gradient(ellipse at 20% 70%,#6C63FF,transparent 45%)" }} />
-                {/* Photo overlay text */}
-                <div className="absolute left-6 top-6 right-6">
-                  <p className="text-[9px] font-black uppercase tracking-[.2em]" style={{ color: "rgba(255,255,255,0.4)" }}>More ideas</p>
-                  <p className="mt-1 text-lg font-black leading-tight text-white" style={{ fontFamily: "var(--font-fraunces)" }}>A brighter tomorrow</p>
-                </div>
-                {/* Bottom dark card */}
-                <div className="absolute bottom-4 left-4 right-4 rounded-2xl border p-4 backdrop-blur-sm"
-                  style={{ background: "rgba(0,0,0,0.6)", borderColor: "rgba(255,255,255,0.1)" }}>
-                  <p className="text-sm font-black text-white">A canvas for what&apos;s next.</p>
-                  <Link href="/studio" className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: "rgba(255,255,255,0.5)" }}>
-                    Watch video ▶
-                  </Link>
-                </div>
-              </div>
+          {/* Studio Worlds */}
+          <section className="border-b px-6 py-6 sm:px-8" style={{ borderColor: border }}>
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>Choose your world</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {STUDIO_WORLDS.map((world) => (
+                <Link key={world.id} href={world.href}
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-2xl p-5 min-h-[180px] hover:scale-[1.01] transition-transform"
+                  style={{ background: world.bg, border: `1px solid ${world.accent}22` }}>
+                  <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(ellipse at 80% 20%,${world.accent},transparent 60%)` }} />
+                  <div className="relative z-10">
+                    <span className="inline-block rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[.14em] mb-2"
+                      style={{ background: world.accent + "33", color: world.accent, border: `1px solid ${world.accent}44` }}>
+                      {world.tag}
+                    </span>
+                    <p className="text-base font-black text-white leading-tight">{world.label}</p>
+                    <p className="mt-1 text-[10px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>{world.desc}</p>
+                  </div>
+                  <div className="relative z-10 mt-4">
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {world.formats.map((f) => (
+                        <span key={f} className="rounded-full px-2 py-0.5 text-[8px] font-bold"
+                          style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.4)" }}>
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-black" style={{ color: world.accent }}>{world.cta}</span>
+                  </div>
+                </Link>
+              ))}
             </div>
           </section>
 
@@ -340,8 +374,7 @@ export default async function StudioHomePage() {
             <section className="border-b px-6 py-8 sm:px-8" style={{ borderColor: border }}>
               <div className="mb-4 flex items-end justify-between">
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>Continue where you left off</p>
-                  <h2 className="mt-1 text-2xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Your active work.</h2>
+                  <p className="text-[9px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>Recent work</p>
                 </div>
                 <span className="text-[10px]" style={{ color: textDim }}>{designs.length} designs · {videos.length} videos</span>
               </div>
@@ -406,8 +439,7 @@ export default async function StudioHomePage() {
           {/* Full library */}
           <section className="px-6 py-8 sm:px-8">
             <div className="mb-5">
-              <p className="text-[9px] font-black uppercase tracking-[.18em]" style={{ color: KEBU.orange }}>Your Studio</p>
-              <h2 className="mt-1 text-2xl font-black tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Everything you have made.</h2>
+              <p className="text-[9px] font-black uppercase tracking-[.18em]" style={{ color: textDim }}>Your work</p>
             </div>
             <StudioDesignLibrary initialOwned={designs} initialShared={shared} />
             <details className="mt-8 border-t pt-5" style={{ borderColor: border }}>
