@@ -224,66 +224,31 @@ export async function markShopOrderPaidByProviderRef(
     reference: string;
     paymentId?: string | null;
     provider?: string | null;
+    expectedOrderId?: string | null;
+    expectedProjectId?: string | null;
+    expectedAmountXof?: number | null;
   },
-): Promise<{ ok: true; orderId: string; projectId: string } | { ok: false; error: string }> {
-  let q = admin
-    .from("shop_orders")
-    .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-    .eq("provider_reference", opts.reference);
-  if (opts.provider) q = q.eq("payment_provider", opts.provider);
-  let { data: order } = await q.maybeSingle();
+): Promise<{ ok: true; orderId: string; projectId: string; alreadyPaid: boolean } | { ok: false; error: string }> {
+  const provider = opts.provider?.trim().toLowerCase();
+  if (!provider) return { ok: false, error: "Payment provider is required." };
 
-  if (!order) {
-    const byJoko = await admin
-      .from("shop_orders")
-      .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-      .eq("joko_reference", opts.reference)
-      .maybeSingle();
-    order = byJoko.data;
-  }
-
-  if (!order && opts.paymentId) {
-    const byProviderId = await admin
-      .from("shop_orders")
-      .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-      .eq("provider_payment_id", opts.paymentId)
-      .maybeSingle();
-    order = byProviderId.data;
-  }
-
-  if (!order) return { ok: false, error: "Order not found." };
-  if (order.payment_status === "paid") {
-    return { ok: true, orderId: order.id, projectId: order.project_id };
-  }
-
-  const patch: Record<string, unknown> = {
-    payment_status: "paid",
-    status: "contacted",
-    updated_at: new Date().toISOString(),
-  };
-  if (opts.paymentId) {
-    patch.provider_payment_id = opts.paymentId;
-  }
-
-  const { error } = await admin.from("shop_orders").update(patch).eq("id", order.id);
+  const { data: completed, error } = await admin.rpc("complete_shop_payment", {
+    p_reference: opts.reference,
+    p_provider: provider,
+    p_payment_id: opts.paymentId ?? null,
+    p_expected_order_id: opts.expectedOrderId ?? null,
+    p_expected_project_id: opts.expectedProjectId ?? null,
+    p_expected_amount_xof: opts.expectedAmountXof ?? null,
+  });
+  const paid = Array.isArray(completed) ? completed[0] : completed;
 
   if (error) return { ok: false, error: error.message };
+  if (!paid?.order_id || !paid?.project_id) return { ok: false, error: "Order not found." };
 
-  const rail = railFromProvider(
-    opts.provider || (order as { payment_provider?: string }).payment_provider,
-  );
-  await recordPaymentLedgerEvent(admin, {
-    projectId: order.project_id,
-    orderId: order.id,
-    rail: rail === "unknown"
-      ? railFromPaymentPreference((order as { payment_preference?: string }).payment_preference)
-      : rail,
-    eventType: "paid",
-    amountXof: (order as { amount_xof?: number | null }).amount_xof ?? null,
-    provider: opts.provider ?? rail,
-    providerReference: opts.reference,
-    meta: { paymentId: opts.paymentId ?? null },
-  });
-
-  return { ok: true, orderId: order.id, projectId: order.project_id };
+  return {
+    ok: true,
+    orderId: paid.order_id,
+    projectId: paid.project_id,
+    alreadyPaid: Boolean(paid.already_paid),
+  };
 }
