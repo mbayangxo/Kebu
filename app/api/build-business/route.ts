@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
   const denied = aiRateLimit(req);
   if (denied) return denied;
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try { body = (await req.json()) as Record<string, unknown>; } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
 
   const industry = clamp(body.industry, 100);
   const country = clamp(body.country, 100);

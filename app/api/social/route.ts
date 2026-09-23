@@ -42,7 +42,9 @@ type ContentFormat = "instagram" | "tiktok" | "twitter" | "linkedin" | "fact" | 
 export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
-  const { format, topic, country, sector, extra } = await req.json();
+  let body: unknown;
+  try { body = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { format, topic, country, sector, extra } = body as { format?: string; topic?: string; country?: string; sector?: string; extra?: string };
 
   if (!format || !topic) {
     return Response.json({ error: "format and topic are required" }, { status: 400 });

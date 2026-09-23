@@ -36,7 +36,9 @@ Rules:
 export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
-  const { country, budget, skills, interests, stage } = await req.json();
+  let body: unknown;
+  try { body = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
+  const { country, budget, skills, interests, stage } = body as { country?: string; budget?: string; skills?: unknown; interests?: unknown; stage?: string };
 
   const prompt = `Generate 3 specific business recommendations for this person:
 
