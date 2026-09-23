@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
-import { restoreProductStock } from "@/lib/shop/stock";
+import { releaseShopCheckout, restoreProductStock } from "@/lib/shop/stock";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import {
   fulfillShopOrder,
@@ -343,19 +343,27 @@ export async function PATCH(req: Request, { params }: Params) {
     (action === "status" && status === "cancelled") ||
     (result.order.status === "cancelled" && existing.status !== "cancelled")
   ) {
-    if (existing.product_id && existing.quantity > 0 && admin) {
-      const { data: items } = await db
-        .from("shop_order_items")
-        .select("product_id, quantity")
-        .eq("order_id", orderId);
-      if (items?.length) {
-        for (const it of items) {
-          if (it.product_id) {
-            await restoreProductStock(admin, it.product_id, it.quantity);
+    if (admin) {
+      const { data: paymentRow } = await db
+        .from("shop_orders")
+        .select("payment_status")
+        .eq("id", orderId)
+        .eq("project_id", projectId)
+        .maybeSingle();
+      if (paymentRow?.payment_status === "paid") {
+        const { data: items } = await db
+          .from("shop_order_items")
+          .select("product_id, quantity")
+          .eq("order_id", orderId);
+        if (items?.length) {
+          for (const it of items) {
+            if (it.product_id) await restoreProductStock(admin, it.product_id, it.quantity);
           }
+        } else if (existing.product_id && existing.quantity > 0) {
+          await restoreProductStock(admin, existing.product_id, existing.quantity);
         }
       } else {
-        await restoreProductStock(admin, existing.product_id, existing.quantity);
+        await releaseShopCheckout(admin, orderId);
       }
     }
   }
