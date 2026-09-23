@@ -63,7 +63,10 @@ export const DEVICE_OVERRIDE_KEYS = {
     "subheadingFontFamily", "subheadingFontSizePx", "imagePosition", "imageAnimation",
     "textAnimation", "minHeight", "align",
   ] as const,
-  navigation: ["brand"] as const,
+  navigation: [
+    "brand", "navScale", "navSize", "navLayout", "logoAlign", "logoScale",
+    "navSticky", "navStyle", "fontFamily", "fontWeight",
+  ] as const,
   text: [
     "heading", "body", "headingFontFamily", "headingFontSizePx", "bodyFontFamily",
     "bodyFontSizePx", "align", "sectionPaddingY",
