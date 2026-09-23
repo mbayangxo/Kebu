@@ -45,10 +45,10 @@ const FEATURED_TOOLS = [
 ];
 
 const FEATURED_COLLECTIONS = [
-  { label: "Creator Essentials", bg: "linear-gradient(135deg,#FF5500,#FF7733)", count: "8 tools" },
-  { label: "Business Toolkit", bg: "linear-gradient(135deg,#0A0A0A,#374151)", count: "6 tools" },
-  { label: "AI & Automation", bg: "linear-gradient(135deg,#4A1D96,#7C3AED)", count: "5 tools" },
-  { label: "Integrations", bg: "linear-gradient(135deg,#0E7490,#0EA5E9)", count: "4 tools" },
+  { label: "Creator Essentials", bg: "linear-gradient(135deg,#FF5500,#FF7733)", count: "8 tools", filter: "Create" },
+  { label: "Business Toolkit", bg: "linear-gradient(135deg,#0A0A0A,#374151)", count: "6 tools", filter: "Business" },
+  { label: "AI & Automation", bg: "linear-gradient(135deg,#4A1D96,#7C3AED)", count: "5 tools", filter: "Explore" },
+  { label: "Integrations", bg: "linear-gradient(135deg,#0E7490,#0EA5E9)", count: "4 tools", filter: "All" },
 ];
 
 const MY_TOOLS_PINNED = ["mail", "studio", "sites", "business", "calendar"];
@@ -96,8 +96,9 @@ export default function ToolsPage() {
                 ))}
               </div>
               <button
-                className="ml-3 shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold text-white"
+                className="ml-3 shrink-0 rounded-full px-4 py-1.5 text-[11px] font-bold text-white hover:opacity-80 transition-opacity"
                 style={{ background: KEBU.black }}
+                title="Browse and add tools to your workspace"
               >
                 + Add tool
               </button>
@@ -126,15 +127,17 @@ export default function ToolsPage() {
                       </div>
                     </Link>
                   ))}
-                  {/* More card */}
-                  <div
-                    className="flex shrink-0 flex-col items-center justify-center rounded-2xl w-52 h-52"
+                  {/* More card — clicking it shows all tools */}
+                  <button
+                    onClick={() => setActiveFilter("All")}
+                    className="flex shrink-0 flex-col items-center justify-center rounded-2xl w-52 h-52 hover:bg-black/10 transition-colors"
                     style={{ background: "rgba(10,10,10,0.05)" }}
                   >
                     <p className="text-sm font-black text-center leading-snug px-4" style={{ color: KEBU.muted }}>
                       More tools.<br />Bigger things.
                     </p>
-                  </div>
+                    <span className="mt-2 text-[11px]" style={{ color: KEBU.faint }}>Browse all →</span>
+                  </button>
                 </div>
               </section>
             )}
@@ -144,24 +147,41 @@ export default function ToolsPage() {
               <h2 className="text-[10px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.muted }}>
                 {activeFilter === "All" ? "All tools" : activeFilter}
               </h2>
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {filteredTools.map((tool) => (
-                  <Link
-                    key={tool.id}
-                    href={tool.href}
-                    className="flex flex-col items-center rounded-2xl border bg-white p-4 hover:-translate-y-0.5 hover:shadow-sm transition"
-                    style={{ borderColor: KEBU.borders.default }}
-                  >
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-xl"
-                      style={{ background: "rgba(255,85,0,0.09)", color: KEBU.orange }}
+              {filteredTools.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                  {filteredTools.map((tool) => (
+                    <Link
+                      key={tool.id}
+                      href={tool.href}
+                      className="flex flex-col items-center rounded-2xl border bg-white p-4 hover:-translate-y-0.5 hover:shadow-sm transition"
+                      style={{ borderColor: KEBU.borders.default }}
                     >
-                      <KebuIcon name={tool.icon as KebuIconName} size={18} />
-                    </span>
-                    <p className="mt-2.5 text-center text-[11px] font-black leading-tight">{tool.label}</p>
-                  </Link>
-                ))}
-              </div>
+                      <span
+                        className="flex h-10 w-10 items-center justify-center rounded-xl"
+                        style={{ background: "rgba(255,85,0,0.09)", color: KEBU.orange }}
+                      >
+                        <KebuIcon name={tool.icon as KebuIconName} size={18} />
+                      </span>
+                      <p className="mt-2.5 text-center text-[11px] font-black leading-tight">{tool.label}</p>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed bg-white px-5 py-10 text-center" style={{ borderColor: KEBU.borders.default }}>
+                  <KebuIcon name="search" size={24} className="mx-auto mb-2" style={{ color: KEBU.faint }} />
+                  <p className="text-[12px] font-black">No tools in this category yet.</p>
+                  <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>
+                    More tools are on the way.
+                  </p>
+                  <button
+                    onClick={() => setActiveFilter("All")}
+                    className="mt-3 inline-flex rounded-full px-4 py-2 text-[10px] font-bold text-white"
+                    style={{ background: KEBU.black }}
+                  >
+                    Show all tools
+                  </button>
+                </div>
+              )}
             </section>
 
             {/* Featured collections */}
@@ -174,6 +194,7 @@ export default function ToolsPage() {
                   {FEATURED_COLLECTIONS.map((col) => (
                     <button
                       key={col.label}
+                      onClick={() => setActiveFilter(col.filter)}
                       className="flex flex-col justify-between rounded-2xl p-4 h-28 text-left hover:-translate-y-0.5 transition-transform"
                       style={{ background: col.bg }}
                     >
@@ -220,12 +241,13 @@ export default function ToolsPage() {
                   </li>
                 ))}
               </ul>
-              <button
-                className="mt-3 w-full rounded-xl border px-3 py-2 text-[11px] font-bold hover:bg-black/[.02] transition text-left"
+              <Link
+                href="/settings/tools"
+                className="mt-3 flex w-full rounded-xl border px-3 py-2 text-[11px] font-bold hover:bg-black/[.02] transition text-left"
                 style={{ borderColor: KEBU.borders.subtle, color: KEBU.muted }}
               >
                 + Add or remove tools
-              </button>
+              </Link>
             </div>
           </aside>
         </div>
