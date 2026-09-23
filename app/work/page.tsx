@@ -23,7 +23,7 @@ export default function WorkHubPage() {
         </header>
         <div className="grid gap-3 py-6 sm:grid-cols-2 lg:grid-cols-3">
           {WORK.map(([label, description, href, icon], index) => (
-            <Link key={href} href={href} className="group min-h-[180px] rounded-[22px] border bg-white p-5 outline-none transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(10,10,10,.06)] focus-visible:ring-2 focus-visible:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }}>
+            <Link key={href} href={href} className="group min-h-[180px] rounded-[22px] border bg-white p-5 outline-none transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(10,10,10,.06)] focus-visible:ring-2 focus-visible:ring-[#FF5500]" style={{ borderColor: KEBU.borders.default }}>
               <div className="flex items-start justify-between">
                 <span className="flex h-10 w-10 items-center justify-center rounded-[12px]" style={{ background: index % 2 ? KEBU.black : "rgba(255,106,0,.09)", color: index % 2 ? KEBU.orange : KEBU.orange }}><KebuIcon name={icon as KebuIconName} size={18} /></span>
                 <span className="text-black/20 transition group-hover:translate-x-1">→</span>
