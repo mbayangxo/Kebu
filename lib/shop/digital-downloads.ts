@@ -39,7 +39,9 @@ function randomToken(): string {
 
 /**
  * Create a download record after an order is placed.
- * Safe to call idempotently — unique constraint on token handles re-runs.
+ * Idempotent: if a token already exists for (order_id, product_id), returns the
+ * existing token.  Concurrent callers are safe: the unique constraint on
+ * (order_id, product_id) serialises inserts; the loser reads the winner's row.
  */
 export async function createDigitalDownload(
   supabase: SupabaseClient,
@@ -52,6 +54,15 @@ export async function createDigitalDownload(
   if (!opts.product.is_digital || !opts.product.digital_file_path) {
     return { ok: false, error: "Product has no digital file." };
   }
+
+  // Fast path: return existing token rather than inserting a duplicate.
+  const { data: existing } = await supabase
+    .from("shop_digital_downloads")
+    .select("token")
+    .eq("order_id", opts.orderId)
+    .eq("product_id", opts.product.id)
+    .maybeSingle();
+  if (existing?.token) return { ok: true, token: existing.token };
 
   const token = randomToken();
   const expiresAt = new Date(
@@ -70,10 +81,70 @@ export async function createDigitalDownload(
   });
 
   if (error) {
+    // Unique-violation (23505): a concurrent call won the race — fetch its token.
+    if (error.code === "23505") {
+      const { data: concurrent } = await supabase
+        .from("shop_digital_downloads")
+        .select("token")
+        .eq("order_id", opts.orderId)
+        .eq("product_id", opts.product.id)
+        .maybeSingle();
+      if (concurrent?.token) return { ok: true, token: concurrent.token };
+    }
     return { ok: false, error: error.message };
   }
 
   return { ok: true, token };
+}
+
+/**
+ * Idempotent post-payment fulfillment for digital orders.
+ * Looks up every digital product in the order and calls createDigitalDownload
+ * for each.  Safe to call multiple times (duplicate webhooks, job retries).
+ */
+export async function fulfillPaidDigitalOrder(
+  admin: SupabaseClient,
+  orderId: string,
+): Promise<{ ok: true; fulfilled: number; skipped: number } | { ok: false; error: string }> {
+  const { data: order, error: orderErr } = await admin
+    .from("shop_orders")
+    .select("id, project_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (orderErr || !order) return { ok: false, error: orderErr?.message ?? "Order not found" };
+
+  const { data: items, error: itemsErr } = await admin
+    .from("shop_order_items")
+    .select("product_id")
+    .eq("order_id", orderId)
+    .not("product_id", "is", null);
+  if (itemsErr) return { ok: false, error: itemsErr.message };
+  if (!items?.length) return { ok: true, fulfilled: 0, skipped: 0 };
+
+  const productIds = [...new Set((items as { product_id: string }[]).map((i) => i.product_id))];
+  const { data: products, error: prodErr } = await admin
+    .from("project_products")
+    .select("id, is_digital, digital_file_path, digital_file_name, digital_dl_limit, digital_expires_hours")
+    .in("id", productIds)
+    .eq("is_digital", true);
+  if (prodErr) return { ok: false, error: prodErr.message };
+  if (!products?.length) return { ok: true, fulfilled: 0, skipped: 0 };
+
+  let fulfilled = 0;
+  let skipped = 0;
+  for (const product of products as DigitalProduct[]) {
+    const result = await createDigitalDownload(admin, {
+      orderId,
+      projectId: order.project_id as string,
+      product,
+    });
+    if (result.ok) {
+      fulfilled++;
+    } else {
+      return { ok: false, error: result.error };
+    }
+  }
+  return { ok: true, fulfilled, skipped };
 }
 
 /** Resolve and validate a download token. Returns null if expired / exhausted / not found. */

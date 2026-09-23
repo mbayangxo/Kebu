@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { failPlatformJob } from "@/lib/platform/jobs";
 import { platformLog } from "@/lib/platform/observability";
 import { processRefund, restockFromRefund } from "@/lib/shop/refunds";
+import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 
 type Job = { id:string; job_type:string; payload:Record<string,unknown>; attempts:number; max_attempts:number };
 
@@ -48,6 +49,30 @@ async function executeJob(admin: SupabaseClient, job: Job) {
     if (typeof refundId !== "string") throw new Error("refund.restock: missing refundId");
     const result = await restockFromRefund(admin, refundId);
     if (!result.ok) throw new Error(`Restock failed: ${result.reason}`);
+    return;
+  }
+
+  if (job.job_type === "order.cancel_gift_card_failed") {
+    const { orderId, cancelledBy } = job.payload;
+    if (typeof orderId !== "string") throw new Error("order.cancel_gift_card_failed: missing orderId");
+    const { data, error } = await admin.rpc("cancel_shop_order", {
+      p_order_id: orderId,
+      p_cancelled_by: typeof cancelledBy === "string" ? cancelledBy : "system_gift_card_failed",
+    });
+    if (error) throw new Error(`cancel_shop_order DB error: ${error.message}`);
+    const row = (Array.isArray(data) ? data[0] : data) as { ok: boolean; reason: string } | null;
+    // already_cancelled and order_already_paid are terminal-success states — job is done.
+    if (!row?.ok && row?.reason !== "order_not_found") {
+      throw new Error(`cancel_shop_order returned not-ok: ${row?.reason}`);
+    }
+    return;
+  }
+
+  if (job.job_type === "digital.fulfill") {
+    const { orderId } = job.payload;
+    if (typeof orderId !== "string") throw new Error("digital.fulfill: missing orderId");
+    const result = await fulfillPaidDigitalOrder(admin, orderId);
+    if (!result.ok) throw new Error(`digital fulfillment failed: ${result.error}`);
     return;
   }
 

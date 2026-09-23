@@ -441,8 +441,21 @@ export async function createCartOrder(opts: {
           event: "shop.gift_card_cancel_failed",
           orderId: order.order_id,
           giftCardError: redeemed.error,
-          alert: "ORDER_STUCK_PENDING_REQUIRES_MANUAL_CANCEL",
+          alert: "ORDER_STUCK_PENDING_ENQUEUING_RECOVERY_JOB",
         }));
+        // Enqueue a durable recovery job. cancel_shop_order is idempotent so the
+        // worker can safely retry. idempotency_key prevents a duplicate job if the
+        // request is somehow replayed after a partial commit.
+        try {
+          await opts.admin.from("platform_jobs").insert({
+            job_type: "order.cancel_gift_card_failed",
+            payload: { orderId: order.order_id, cancelledBy: "system_gift_card_failed" },
+            idempotency_key: `gift_card_cancel:${order.order_id}`,
+            max_attempts: 10,
+          });
+        } catch {
+          // Unique conflict = job already queued; any other insert error is logged above.
+        }
       }
       return { ok: false, error: redeemed.error };
     }

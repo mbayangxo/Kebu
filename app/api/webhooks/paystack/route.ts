@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
 import { verifyPaystackSignature, paystackAmountToXof } from "@/lib/payments/paystack-adapter";
-import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
 
@@ -105,10 +104,18 @@ export async function POST(req: NextRequest) {
     }),
   );
   if (!paid.alreadyPaid) {
+    // Enqueue a durable idempotent fulfillment job. The worker handles
+    // retries; duplicate webhooks will hit the unique idempotency_key and be
+    // silently ignored. Payment is already recorded regardless of job status.
     try {
-      await fulfillPaidDigitalOrder(admin, paid.orderId);
+      await admin.from("platform_jobs").insert({
+        job_type: "digital.fulfill",
+        payload: { orderId: paid.orderId },
+        idempotency_key: `digital_fulfill:${paid.orderId}`,
+        max_attempts: 10,
+      });
     } catch {
-      /* digital fulfillment is best-effort — payment is already recorded */
+      /* best-effort — payment is already recorded */
     }
   }
   return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId, alreadyPaid: paid.alreadyPaid });
