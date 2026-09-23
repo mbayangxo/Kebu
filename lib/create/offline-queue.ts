@@ -78,15 +78,30 @@ export type OfflineQueueItem =
 /** In-memory fallback when localStorage is missing (SSR / tests). */
 let memoryQueue: OfflineQueueItem[] = [];
 
+function queueItemKey(item: OfflineQueueItem): string {
+  if (item.kind === "save_section") return `section:${item.payload.projectId}:${item.payload.sectionId}`;
+  if (item.kind === "save_site_chrome") return `chrome:${item.payload.projectId}:${item.payload.part}`;
+  return item.id;
+}
+
+function normalizeRecoveredQueue(items: OfflineQueueItem[]): OfflineQueueItem[] {
+  const latest = new Map<string, OfflineQueueItem>();
+  for (const item of items) {
+    const recovered = item.status === "syncing" ? { ...item, status: "queued" as const } : item;
+    latest.set(queueItemKey(recovered), recovered);
+  }
+  return [...latest.values()].slice(-40);
+}
+
 function readQueue(): OfflineQueueItem[] {
   if (typeof window === "undefined" || !window.localStorage) {
-    return [...memoryQueue];
+    return normalizeRecoveredQueue(memoryQueue);
   }
   try {
     const raw = window.localStorage.getItem(OFFLINE_QUEUE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as OfflineQueueItem[]) : [];
+    return Array.isArray(parsed) ? normalizeRecoveredQueue(parsed as OfflineQueueItem[]) : [];
   } catch {
     return [...memoryQueue];
   }
@@ -135,8 +150,7 @@ export function enqueueSaveSection(payload: OfflineSaveSectionPayload): OfflineQ
       !(
         i.kind === "save_section" &&
         i.payload.projectId === payload.projectId &&
-        i.payload.sectionId === payload.sectionId &&
-        i.status !== "syncing"
+        i.payload.sectionId === payload.sectionId
       ),
   );
   const item: OfflineQueueItem = {
@@ -157,8 +171,7 @@ export function enqueueSaveSiteChrome(payload: OfflineSaveSiteChromePayload): Of
       !(
         i.kind === "save_site_chrome" &&
         i.payload.projectId === payload.projectId &&
-        i.payload.part === payload.part &&
-        i.status !== "syncing"
+        i.payload.part === payload.part
       ),
   );
   const item: OfflineQueueItem = {
@@ -334,7 +347,9 @@ async function flushEventRegister(
 
 /** Flush queued items. Caller must be online. Never marks success without HTTP ok. */
 export async function flushOfflineQueue(): Promise<FlushResult> {
-  const items = readQueue().filter((i) => i.status !== "syncing");
+  // A browser can close after persisting "syncing" but before the request finishes. readQueue()
+  // recovers that state back to queued, so no edit is stranded forever after a crash/reload.
+  const items = readQueue();
   let synced = 0;
   let failed = 0;
 
