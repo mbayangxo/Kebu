@@ -26,6 +26,12 @@ export type OfflineSaveSectionPayload = {
   props: Record<string, unknown>;
 };
 
+export type OfflineSaveSiteChromePayload = {
+  projectId: string;
+  part: "header" | "footer";
+  props: Record<string, unknown>;
+};
+
 export type OfflineEventRegisterPayload = {
   publicId: string;
   guestName: string;
@@ -50,6 +56,14 @@ export type OfflineQueueItem =
       createdAt: string;
       status: "queued" | "syncing" | "failed";
       payload: OfflineSaveSectionPayload;
+      lastError?: string;
+    }
+  | {
+      id: string;
+      kind: "save_site_chrome";
+      createdAt: string;
+      status: "queued" | "syncing" | "failed";
+      payload: OfflineSaveSiteChromePayload;
       lastError?: string;
     }
   | {
@@ -134,6 +148,44 @@ export function enqueueSaveSection(payload: OfflineSaveSectionPayload): OfflineQ
   };
   writeQueue([...withoutDup, item]);
   return item;
+}
+
+/** Coalesce: one pending site-chrome save per project/part (latest props win). */
+export function enqueueSaveSiteChrome(payload: OfflineSaveSiteChromePayload): OfflineQueueItem {
+  const withoutDup = readQueue().filter(
+    (i) =>
+      !(
+        i.kind === "save_site_chrome" &&
+        i.payload.projectId === payload.projectId &&
+        i.payload.part === payload.part &&
+        i.status !== "syncing"
+      ),
+  );
+  const item: OfflineQueueItem = {
+    id: newId(),
+    kind: "save_site_chrome",
+    createdAt: new Date().toISOString(),
+    status: "queued",
+    payload,
+  };
+  writeQueue([...withoutDup, item]);
+  return item;
+}
+
+export function discardQueuedSectionSave(projectId: string, sectionId: string): void {
+  writeQueue(
+    readQueue().filter(
+      (i) => !(i.kind === "save_section" && i.payload.projectId === projectId && i.payload.sectionId === sectionId),
+    ),
+  );
+}
+
+export function discardQueuedSiteChrome(projectId: string, part: "header" | "footer"): void {
+  writeQueue(
+    readQueue().filter(
+      (i) => !(i.kind === "save_site_chrome" && i.payload.projectId === projectId && i.payload.part === part),
+    ),
+  );
 }
 
 export function enqueueEventRegister(payload: OfflineEventRegisterPayload): OfflineQueueItem {
@@ -221,6 +273,35 @@ async function flushSaveSection(item: Extract<OfflineQueueItem, { kind: "save_se
   return true;
 }
 
+async function flushSaveSiteChrome(
+  item: Extract<OfflineQueueItem, { kind: "save_site_chrome" }>,
+): Promise<boolean> {
+  const res = await fetch(`/api/projects/${item.payload.projectId}/site-chrome`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Kebu-Data-Mode": "offline",
+      "X-Kebu-Offline-Sync": "1",
+    },
+    body: JSON.stringify(
+      item.payload.part === "header"
+        ? { header: item.payload.props }
+        : { footer: item.payload.props },
+    ),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    updateOfflineQueueItem(item.id, {
+      status: "failed",
+      lastError: typeof data.error === "string" ? data.error : `HTTP ${res.status}`,
+    });
+    return false;
+  }
+  removeOfflineQueueItem(item.id);
+  return true;
+}
+
 async function flushEventRegister(
   item: Extract<OfflineQueueItem, { kind: "event_register" }>,
 ): Promise<boolean> {
@@ -263,6 +344,7 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
       let ok = false;
       if (item.kind === "place_order") ok = await flushPlaceOrder(item);
       else if (item.kind === "save_section") ok = await flushSaveSection(item);
+      else if (item.kind === "save_site_chrome") ok = await flushSaveSiteChrome(item);
       else ok = await flushEventRegister(item);
       if (ok) synced += 1;
       else failed += 1;

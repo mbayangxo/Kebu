@@ -10,7 +10,13 @@ import {
 } from "@/lib/create/site-chrome";
 import { resolveClientDataMode } from "@/lib/create/data-mode";
 import { measureResponseBytes, evaluateKb } from "@/lib/create/kb-budget";
-import { enqueueSaveSection, isBrowserOnline } from "@/lib/create/offline-queue";
+import {
+  discardQueuedSectionSave,
+  discardQueuedSiteChrome,
+  enqueueSaveSection,
+  enqueueSaveSiteChrome,
+  isBrowserOnline,
+} from "@/lib/create/offline-queue";
 import type { PublishState } from "@/lib/create/publish-state";
 
 /** The minimal shape this hook needs from a builder section — kept narrow so it doesn't depend on
@@ -131,6 +137,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
             ok = false;
             break;
           }
+          discardQueuedSectionSave(projectId, sectionId);
           if (data.section && !slot.latest) {
             setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, ...data.section } : s)));
           }
@@ -178,7 +185,12 @@ export function useProjectAutosave<T extends AutosaveSection>({
         slot.latest = null;
         const mode = resolveClientDataMode();
         if (!isBrowserOnline() || mode === "offline") {
-          setSaveState("queued"); setKbSaveNote("Site header/footer queued until Syncing…"); ok = false; break;
+          enqueueSaveSiteChrome({ projectId, part, props: snapshot });
+          setSaveState("queued");
+          setKbSaveNote("Site header/footer not saved on server yet — queued until reconnect.");
+          setError(null);
+          ok = false;
+          break;
         }
         setSaveState("saving");
         try {
@@ -193,6 +205,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
             setError(typeof data.error === "string" ? data.error : "Could not save site header/footer.");
             ok = false; break;
           }
+          discardQueuedSiteChrome(projectId, part);
           if (data.siteChrome && !slot.latest) {
             const confirmed = parseSiteChrome(data.siteChrome);
             setSiteChrome((current) => {
@@ -208,7 +221,12 @@ export function useProjectAutosave<T extends AutosaveSection>({
           }
           setError(null);
         } catch {
-          setSaveState("queued"); setKbSaveNote("Site header/footer queued until Syncing…"); ok = false; break;
+          enqueueSaveSiteChrome({ projectId, part, props: snapshot });
+          setSaveState("queued");
+          setKbSaveNote("Site header/footer not saved on server yet — queued until reconnect.");
+          setError(null);
+          ok = false;
+          break;
         }
         snapshot = slot.latest;
       }
@@ -304,6 +322,17 @@ export function useProjectAutosave<T extends AutosaveSection>({
     );
     return pendingSavesRef.current.size === 0;
   }
+
+  // Re-attempt the latest in-memory snapshots immediately when connectivity returns. Successful
+  // writes also remove their matching durable offline-queue entries, so reconnect cannot replay an
+  // older header/section over a newer edit.
+  useEffect(() => {
+    const onOnline = () => {
+      if (pendingSavesRef.current.size > 0) void saveDraftNow();
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [projectId, sections, siteChrome]);
 
   // Warn before the user leaves with edits that haven't been CONFIRMED saved yet — covers the 500ms
   // autosave debounce window as well as anything still "queued" (offline) or "error" (failed) from a

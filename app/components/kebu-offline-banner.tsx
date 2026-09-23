@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
+import { flushOfflineQueue, listOfflineQueue } from "@/lib/create/offline-queue";
 
 /**
  * Offline detection banner — shows when connection drops, disappears when back.
@@ -10,24 +11,45 @@ import { KEBU } from "@/lib/kebu-brand";
 export function KebuOfflineBanner() {
   const [offline, setOffline] = useState(false);
   const [showingBack, setShowingBack] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     function handleOffline() {
       setOffline(true);
       setShowingBack(false);
     }
+    async function syncQueuedWork() {
+      if (listOfflineQueue().length === 0) return;
+      setSyncing(true);
+      try {
+        await flushOfflineQueue();
+      } finally {
+        setSyncing(false);
+        try {
+          window.dispatchEvent(new Event("kebu-offline-queue-flushed"));
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
     function handleOnline() {
       setShowingBack(true);
-      // Show "back online" briefly then hide
-      setTimeout(() => {
-        setOffline(false);
-        setShowingBack(false);
-      }, 2400);
+      void syncQueuedWork().finally(() => {
+        // Keep the acknowledgement visible briefly after the sync attempt.
+        setTimeout(() => {
+          setOffline(false);
+          setShowingBack(false);
+        }, 1600);
+      });
     }
 
     // Check initial state (in case already offline when component mounts)
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setOffline(true);
+    } else if (typeof navigator !== "undefined") {
+      // Recover durable work left by a previous offline/crashed session.
+      void syncQueuedWork();
     }
 
     window.addEventListener("offline", handleOffline);
@@ -76,8 +98,10 @@ export function KebuOfflineBanner() {
         }}
       />
       {showingBack
-        ? "Back online"
-        : "No connection — check your network. Changes may not save."}
+        ? syncing
+          ? "Back online — syncing queued changes…"
+          : "Back online"
+        : "No connection — your supported changes are kept locally until reconnect."}
     </div>
   );
 }
