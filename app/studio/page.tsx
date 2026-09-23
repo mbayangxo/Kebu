@@ -18,7 +18,11 @@ type FormatCard = {
 
 const FORMATS: FormatCard[] = [
   { type: "instagram_post", label: "Instagram post", sublabel: "1080 × 1080", href: "/studio/new?type=instagram_post", aspect: 1, accent: "#FF6A00" },
-  { type: "instagram_story", label: "Story / Reel", sublabel: "1080 × 1920", href: "/studio/new?type=instagram_story", aspect: 9 / 16, accent: "#FF1F1F" },
+  { type: "instagram_story", label: "Instagram Story", sublabel: "1080 × 1920", href: "/studio/new?type=instagram_story", aspect: 9 / 16, accent: "#FF1F1F" },
+  { type: "instagram_reel", label: "Instagram Reel", sublabel: "1080 × 1920", href: "/studio/new?type=instagram_reel", aspect: 9 / 16, accent: "#FF6A00" },
+  { type: "tiktok_vertical", label: "TikTok", sublabel: "1080 × 1920", href: "/studio/new?type=tiktok_vertical", aspect: 9 / 16, accent: "#111111" },
+  { type: "youtube_thumbnail", label: "YouTube thumbnail", sublabel: "1280 × 720", href: "/studio/new?type=youtube_thumbnail", aspect: 16 / 9, accent: "#FF1F1F" },
+  { type: "spotify_artist_header", label: "Spotify artist header", sublabel: "2660 × 1140", href: "/studio/new?type=spotify_artist_header", aspect: 2660 / 1140, accent: "#1DB954" },
   { type: "poster", label: "Poster", sublabel: "900 × 1200", href: "/studio/new?type=poster", aspect: 900 / 1200, accent: "#A15CFF" },
   { type: "flyer", label: "Flyer", sublabel: "816 × 1056", href: "/studio/new?type=flyer", aspect: 816 / 1056, accent: "#0EA5E9" },
   { type: "business_card", label: "Business card", sublabel: "1050 × 600", href: "/studio/new?type=business_card", aspect: 1050 / 600, accent: "#0E9F6E" },
@@ -30,12 +34,10 @@ const FORMATS: FormatCard[] = [
 const TEMPLATE_CATS = ["All", "Social Media", "Presentations", "Posters", "Videos", "Web", "Documents", "Marketing", "Custom Size"];
 
 const TOOLS = [
-  { label: "AI Design", desc: "Generate from a prompt", href: "/studio/new?tab=ai", accent: "#FF5500" },
-  { label: "Remove Background", desc: "One-click removal", href: "/studio/tools/bg-remove", accent: "#6C63FF" },
-  { label: "Magic Resize", desc: "Resize to any format", href: "/studio/tools/resize", accent: "#0EA5E9" },
-  { label: "Text to Image", desc: "Turn text into visuals", href: "/studio/new?tab=ai", accent: "#0E9F6E" },
-  { label: "Text to Video", desc: "AI-powered video", href: "/studio/video/new", accent: "#F4B400" },
-  { label: "Translate", desc: "Multi-language content", href: "/studio/tools/translate", accent: "#FF1F1F" },
+  { label: "AI Design", desc: "Generate an editable first direction", href: "/studio/new?tab=ai", accent: "#FF5500" },
+  { label: "Video editor", desc: "Create and edit motion projects", href: "/studio/video/new", accent: "#6C63FF" },
+  { label: "Brand Kit", desc: "Logos, fonts, colors and reusable identity", href: "/studio/brand", accent: "#0E9F6E" },
+  { label: "Templates", desc: "Start from an editable design", href: "/studio/templates", accent: "#F4B400" },
 ];
 
 const STUDIO_NAV = [
@@ -43,10 +45,6 @@ const STUDIO_NAV = [
   { label: "AI Create", href: "/studio/new?tab=ai" },
   { label: "Brand Kit", href: "/studio/brand" },
   { label: "Assets", href: "/library" },
-  { label: "Photos", href: "/studio/assets/photos" },
-  { label: "Graphics", href: "/studio/assets/graphics" },
-  { label: "Audio", href: "/studio/assets/audio" },
-  { label: "Animations", href: "/studio/assets/animations" },
   { label: "Marketplace", href: "/create/aesthetics" },
 ];
 

@@ -174,6 +174,19 @@ export const STUDIO_DESIGN_TYPES = [
   "flyer",
   "instagram_post",
   "instagram_story",
+  "instagram_reel",
+  "tiktok_vertical",
+  "youtube_thumbnail",
+  "youtube_banner",
+  "spotify_artist_header",
+  "press_kit",
+  "media_kit",
+  "brand_deck",
+  "pitch_deck",
+  "lookbook",
+  "packaging",
+  "logo",
+  "email_graphic",
   "facebook_post",
   "whatsapp_status",
   "banner",
@@ -185,8 +198,29 @@ export type StudioDesignType = (typeof STUDIO_DESIGN_TYPES)[number];
 export function artboardSize(designType: StudioDesignType): { width: number; height: number } {
   switch (designType) {
     case "instagram_story":
+    case "instagram_reel":
+    case "tiktok_vertical":
     case "whatsapp_status":
       return { width: 1080, height: 1920 };
+    case "youtube_thumbnail":
+      return { width: 1280, height: 720 };
+    case "youtube_banner":
+      return { width: 2560, height: 1440 };
+    case "spotify_artist_header":
+      return { width: 2660, height: 1140 };
+    case "press_kit":
+    case "media_kit":
+      return { width: 816, height: 1056 };
+    case "brand_deck":
+    case "pitch_deck":
+      return { width: 1920, height: 1080 };
+    case "lookbook":
+      return { width: 1600, height: 2000 };
+    case "packaging":
+    case "logo":
+      return { width: 1200, height: 1200 };
+    case "email_graphic":
+      return { width: 1200, height: 600 };
     case "instagram_post":
     case "social_square":
     case "facebook_post":
@@ -1046,6 +1080,8 @@ export async function exportCanvasToPngDataUrlAsync(
     /** Time within the page clip — seeks video layers (S8b timeline) */
     pageLocalTimeMs?: number;
     videoCache?: Map<string, HTMLVideoElement>;
+    /** Preserve alpha instead of painting the artboard background. */
+    transparentBackground?: boolean;
   },
 ): Promise<string | null> {
   if (typeof document === "undefined") return null;
@@ -1056,8 +1092,10 @@ export async function exportCanvasToPngDataUrlAsync(
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   ctx.scale(scale, scale);
-  ctx.fillStyle = page.backgroundColor;
-  ctx.fillRect(0, 0, page.width, page.height);
+  if (!opts?.transparentBackground) {
+    ctx.fillStyle = page.backgroundColor;
+    ctx.fillRect(0, 0, page.width, page.height);
+  }
 
   const pageLocal = opts?.pageLocalTimeMs ?? 0;
   const cache = opts?.videoCache;
@@ -1235,6 +1273,36 @@ export function downloadPngDataUrl(dataUrl: string, filename: string) {
   a.download = filename.endsWith(".png") ? filename : `${filename}.png`;
   a.click();
 }
+
+export async function exportCanvasToJpegDataUrlAsync(
+  doc: CanvasDocument,
+  scale = 1,
+  pageId?: string,
+  quality = 0.92,
+): Promise<string | null> {
+  const png = await exportCanvasToPngDataUrlAsync(doc, scale, pageId);
+  if (!png || typeof document === "undefined") return null;
+  const image = await loadImageElement(png);
+  if (!image) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth || image.width;
+  canvas.height = image.naturalHeight || image.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0);
+  return canvas.toDataURL("image/jpeg", Math.max(0.1, Math.min(1, quality)));
+}
+
+export function downloadJpegDataUrl(dataUrl: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = /\.jpe?g$/i.test(filename) ? filename : `${filename}.jpg`;
+  a.click();
+}
+
+
 
 export function downloadBlob(blob: Blob, filename: string) {
   const a = document.createElement("a");

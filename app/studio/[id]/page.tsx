@@ -14,7 +14,9 @@ import { StudioTimelinePanel } from "@/app/components/studio/studio-timeline-pan
 import { StudioCoachPanel } from "@/app/components/studio/studio-coach-panel";
 import {
   downloadBlob,
+  downloadJpegDataUrl,
   downloadPngDataUrl,
+  exportCanvasToJpegDataUrlAsync,
   exportCanvasToPngDataUrlAsync,
   parseCanvasDocument,
   type CanvasDocument,
@@ -618,6 +620,39 @@ export default function StudioEditorPage() {
     setExportNote("PNG downloaded.");
   }
 
+  async function downloadTransparentPng() {
+    if (!doc || !design) return;
+    setExportNote("Rendering transparent PNG…");
+    const dataUrl = await exportCanvasToPngDataUrlAsync(
+      documentWithResolvedMedia(doc),
+      1,
+      activePageId || undefined,
+      { transparentBackground: true },
+    );
+    if (!dataUrl) {
+      setExportNote("Could not render transparent PNG.");
+      return;
+    }
+    downloadPngDataUrl(dataUrl, `${design.title || "kebu-studio"}-transparent`);
+    setExportNote("Transparent PNG downloaded with a real alpha channel.");
+  }
+
+  async function downloadJpeg() {
+    if (!doc || !design) return;
+    setExportNote("Rendering JPEG…");
+    const dataUrl = await exportCanvasToJpegDataUrlAsync(
+      documentWithResolvedMedia(doc),
+      1,
+      activePageId || undefined,
+    );
+    if (!dataUrl) {
+      setExportNote("Could not render JPEG.");
+      return;
+    }
+    downloadJpegDataUrl(dataUrl, design.title || "kebu-studio");
+    setExportNote("JPEG downloaded.");
+  }
+
   async function downloadZip() {
     if (!doc || !design) return;
     setPackBusy(true);
@@ -995,6 +1030,20 @@ export default function StudioEditorPage() {
                       className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white sm:hidden"
                     >
                       Download PNG
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { void downloadJpeg(); setShowMoreMenu(false); }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white"
+                    >
+                      Download JPEG
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { void downloadTransparentPng(); setShowMoreMenu(false); }}
+                      className="flex w-full items-center px-4 py-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[.05] hover:text-white"
+                    >
+                      Download transparent PNG
                     </button>
                     <button
                       type="button"

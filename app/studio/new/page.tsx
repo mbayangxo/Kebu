@@ -26,10 +26,10 @@ const PRESET_ACCENTS: Record<string, string> = {
 };
 
 const MOSAIC = [
-  { src: "/templates/maylecor/portrait.jpg", alt: "Portrait reference", className: "col-span-2 row-span-2" },
-  { src: "/templates/maylecor/city-skyline.png", alt: "City reference", className: "col-span-1 row-span-1" },
-  { src: "/templates/legally-blonde/hero-photo.png", alt: "Editorial reference", className: "col-span-1 row-span-2" },
-  { src: "/templates/kdirection/portrait.jpg", alt: "Artist reference", className: "col-span-1 row-span-1" },
+  { label: "Social", accent: "#FF6A00", className: "col-span-2 row-span-2" },
+  { label: "Poster", accent: "#111111", className: "col-span-1 row-span-1" },
+  { label: "Video", accent: "#6C63FF", className: "col-span-1 row-span-2" },
+  { label: "Brand", accent: "#0E9F6E", className: "col-span-1 row-span-1" },
 ];
 
 function FormatGlyph({ preset }: { preset: StudioCreatePreset }) {
@@ -169,11 +169,13 @@ function NewStudioDesignInner() {
           </div>
 
           <div className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {MOSAIC.map((image) => (
-              <div key={image.src} className={"relative min-h-[120px] overflow-hidden rounded-[18px] bg-black " + image.className}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={image.src} alt={image.alt} className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+            {MOSAIC.map((item) => (
+              <div
+                key={item.label}
+                className={"relative flex min-h-[120px] items-end overflow-hidden rounded-[18px] p-4 " + item.className}
+                style={{ background: item.accent }}
+              >
+                <span className="text-[11px] font-black uppercase tracking-[.16em] text-white">{item.label}</span>
               </div>
             ))}
           </div>
