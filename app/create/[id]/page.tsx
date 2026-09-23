@@ -1959,7 +1959,6 @@ export default function ProjectEditorPage() {
                         setImproveInstruction(`Update only ${selectedElement.label}. `);
                         setImproveMode("free");
                         setYandeOpen(true);
-                        setYandeDialOpen(false);
                       }}
                       onPatch={(patch) =>
                         applyDeviceAwarePatch(
