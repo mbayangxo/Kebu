@@ -22,7 +22,6 @@ import {
   projectUsesEmbeddedNav,
   type SiteChrome,
 } from "@/lib/create/site-chrome";
-import { defaultMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
@@ -407,7 +406,7 @@ export default function ProjectEditorPage() {
                 label: p.title,
                 href: p.slug === "home" ? "/" : `/${p.slug}`,
               }))
-          : defaultMaylecorNavLinks();
+          : [{ label: "Home", href: "/" }];
       nextProps = {
         brand: project?.title?.trim() || "My site",
         links,
@@ -442,7 +441,7 @@ export default function ProjectEditorPage() {
   async function duplicateSection(sectionId: string) {
     const source = sections.find((s) => s.id === sectionId);
     if (!source) return;
-    await addSection(source.section_type, { ...source.props });
+    await addSection(source.section_type, { ...source.props }, source.id);
   }
 
   /** Media library → canvas / current page (photo collage, video, or audio). */
@@ -510,17 +509,28 @@ export default function ProjectEditorPage() {
   }
 
   async function reorderSections(orderedIds: string[]) {
-    await Promise.all(
-      orderedIds.map((id, index) =>
-        fetch(`/api/projects/${projectId}/sections`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionId: id, sortOrder: index }),
-        }),
-      ),
-    );
-    await load();
+    setError(null);
+    try {
+      const responses = await Promise.all(
+        orderedIds.map((id, index) =>
+          fetch(`/api/projects/${projectId}/sections`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sectionId: id, sortOrder: index }),
+          }),
+        ),
+      );
+      if (responses.some((response) => !response.ok)) {
+        setError("Could not reorder every section. Kebu restored the last saved order.");
+      }
+    } catch {
+      setError("Network error while reordering sections. Kebu restored the last saved order.");
+    } finally {
+      // The server is canonical. Reload even after a partial/network failure so the canvas never
+      // pretends an order was saved when Supabase disagrees.
+      await load();
+    }
   }
 
   async function moveSection(sectionId: string, direction: -1 | 1) {
@@ -540,20 +550,29 @@ export default function ProjectEditorPage() {
         return s;
       }),
     );
-    await Promise.all([
-      fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionId: a.id, sortOrder: b.sort_order }),
-      }),
-      fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionId: b.id, sortOrder: a.sort_order }),
-      }),
-    ]);
+    try {
+      const responses = await Promise.all([
+        fetch(`/api/projects/${projectId}/sections`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sectionId: a.id, sortOrder: b.sort_order }),
+        }),
+        fetch(`/api/projects/${projectId}/sections`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sectionId: b.id, sortOrder: a.sort_order }),
+        }),
+      ]);
+      if (responses.some((response) => !response.ok)) {
+        setError("Could not move that section. Kebu restored the last saved order.");
+        await load();
+      }
+    } catch {
+      setError("Network error while moving that section. Kebu restored the last saved order.");
+      await load();
+    }
   }
 
   function undo() {
