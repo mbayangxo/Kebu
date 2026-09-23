@@ -13,7 +13,7 @@ import type { NextRequest } from "next/server";
 type OrderRow = {
   id: string; project_id: string; payment_status: string; provider_payment_id: string | null;
   amount_xof: number; payment_provider: string; payment_preference: string; status: string;
-  provider_reference: string;
+  provider_reference: string; checkout_url?: string | null;
 };
 type RefundRow = {
   id: string; order_id: string; project_id: string; provider: string;
@@ -964,6 +964,7 @@ describe("T34: PSP checkout idempotency", () => {
       payment_provider: "paystack",
       provider_reference: "ref-psp-idem-123",
       provider_payment_id: null,
+      checkout_url: "https://paystack.test/checkout/abc123",
       amount_xof: 15000,
       payment_preference: "card",
       status: "pending",
@@ -988,6 +989,7 @@ describe("T34: PSP checkout idempotency", () => {
     if (result.ok) {
       expect(result.reference).toBe("ref-psp-idem-123");
       expect(result.provider).toBe("paystack");
+      expect(result.paymentUrl).toBe("https://paystack.test/checkout/abc123");
     }
   });
 });
@@ -1043,16 +1045,20 @@ describe("T36: RLS authorization — service_role only", () => {
 // T37: Joko rail always records CAURIS currency (Item 11)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("T37: Joko CAURIS currency consistency", () => {
-  it("T37: adapter-checkout records CAURIS currency on joko checkout_started ledger event", () => {
+describe("T37: Joko ledger currency is XOF (amount_xof column stores XOF)", () => {
+  it("T37: adapter-checkout records XOF currency on joko checkout_started event — amount_xof is XOF-denominated", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { readFileSync } = require("node:fs");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { join } = require("node:path");
     const src: string = readFileSync(join(process.cwd(), "lib/shop/adapter-checkout.ts"), "utf8");
-    // The joko checkout_started ledger call must use CAURIS, not XOF
-    const jokoBlock = src.match(/rail:\s*"joko"[\s\S]{0,500}currency:\s*"CAURIS"/);
-    expect(jokoBlock, "joko ledger event must use currency CAURIS").not.toBeNull();
+    // The joko checkout_started ledger event stores the XOF amount with currency: "XOF"
+    // (amount_xof column is always in XOF; labeling it CAURIS would mismatch the stored value)
+    const jokoXofBlock = src.match(/rail:\s*"joko"[\s\S]{0,500}currency:\s*"XOF"/);
+    expect(jokoXofBlock, "joko ledger event must use currency XOF to match amount_xof column").not.toBeNull();
+    // Must NOT store XOF amount with CAURIS label (that would be ~600x wrong for conversion)
+    const caurisMislabel = src.match(/rail:\s*"joko"[\s\S]{0,500}amountXof:[\s\S]{0,200}currency:\s*"CAURIS"/);
+    expect(caurisMislabel, "joko ledger must not label XOF amount as CAURIS").toBeNull();
   });
 });
 

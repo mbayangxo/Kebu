@@ -60,7 +60,7 @@ export async function startShopOrderProviderCheckout(opts: {
   // without creating a new external session.
   const { data: existingOrder } = await opts.admin
     .from("shop_orders")
-    .select("payment_status, payment_provider, provider_reference, provider_payment_id")
+    .select("payment_status, payment_provider, provider_reference, provider_payment_id, checkout_url")
     .eq("id", opts.orderId)
     .maybeSingle();
   if (
@@ -70,10 +70,18 @@ export async function startShopOrderProviderCheckout(opts: {
   ) {
     const provider = existingOrder.payment_provider as string;
     const reference = existingOrder.provider_reference as string;
-    const base = opts.appUrl.replace(/\/$/, "");
-    const q = `order=${encodeURIComponent(opts.orderId)}&psp=${encodeURIComponent(provider)}`;
-    const paymentUrl = `${base}/sites/order-thanks?${q}`;
-    return { ok: true, paymentUrl, provider, reference };
+    const checkoutUrl = existingOrder.checkout_url as string | null;
+    if (!checkoutUrl) {
+      // Session predates checkout_url column; can't safely resume without creating a
+      // duplicate charge. Tell the caller to show the manual payment instructions.
+      return {
+        ok: false,
+        configured: true,
+        fallbackInstructions: true,
+        error: "Your previous checkout session expired. Please use WhatsApp or the manual payment instructions to complete your order.",
+      };
+    }
+    return { ok: true, paymentUrl: checkoutUrl, provider, reference };
   }
 
   const email = opts.customerEmail?.trim() || "";
@@ -116,6 +124,7 @@ export async function startShopOrderProviderCheckout(opts: {
       payment_provider: "joko",
       provider_reference: joko.reference,
       provider_payment_id: joko.paymentId ?? null,
+      checkout_url: joko.paymentUrl,
       updated_at: new Date().toISOString(),
     });
     if (!persisted.ok) {
@@ -134,7 +143,7 @@ export async function startShopOrderProviderCheckout(opts: {
       rail: "joko",
       eventType: "checkout_started",
       amountXof: opts.amountXof,
-      currency: "CAURIS",
+      currency: "XOF",
       provider: "joko",
       providerReference: joko.reference,
       meta: { paymentId: joko.paymentId ?? null },
@@ -206,6 +215,7 @@ export async function startShopOrderProviderCheckout(opts: {
     payment_provider: provider,
     provider_reference: reference,
     provider_payment_id: result.providerPaymentId,
+    checkout_url: result.checkoutUrl,
     amount_xof: opts.amountXof,
     updated_at: new Date().toISOString(),
   });
