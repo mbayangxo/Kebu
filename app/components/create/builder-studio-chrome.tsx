@@ -24,16 +24,7 @@ export type BuilderStudioTab =
   | "shop"
   | "history";
 
-const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[
-,
-,
-,
-,
-,
-,
-,
-,
-] = [
+const RAIL: { id: BuilderStudioTab; label: string; icon: ReactNode }[] = [
   {
     id: "content",
     label: "Add",
