@@ -201,7 +201,6 @@ export default function ProjectEditorPage() {
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
   const [yandeOpen, setYandeOpen] = useState(false);
-  const [yandeDialOpen, setYandeDialOpen] = useState(false);
   const [improveMode, setImproveMode] = useState<"free" | "redesign" | "page" | "rewrite" | "convert">(
     "free",
   );
@@ -1148,6 +1147,11 @@ export default function ProjectEditorPage() {
           const match = pages.find((p) => p.id === pageId);
           if (match) setPreviewPageSlug(match.slug);
         }}
+        onYande={() => {
+          setImproveMode("free");
+          setYandeOpen((open) => !open);
+        }}
+        yandeOpen={yandeOpen}
       />
 
       {billing && !billing.billingExempt && !billing.canPublish && !flagshipCanvas ? (
@@ -2079,86 +2083,7 @@ export default function ProjectEditorPage() {
           </>
         )}
 
-        {/* Dial backdrop — captures click-outside to dismiss speed-dial */}
-        {yandeDialOpen && !yandeOpen ? (
-          <div
-            className="absolute inset-0 z-20"
-            onClick={() => setYandeDialOpen(false)}
-            aria-hidden="true"
-          />
-        ) : null}
-
-        {/* Yande FAB + speed-dial — lower-right corner */}
-        <div className="absolute bottom-4 right-4 z-30 flex flex-col items-end gap-2">
-
-          {/* Speed-dial mini-buttons */}
-          {yandeDialOpen && !yandeOpen ? (
-            <>
-              {(
-                [
-                  { label: "Redesign page", mode: "redesign" as const, color: "#7C3AED" },
-                  { label: "Improve content", mode: "free" as const, color: "#FF5500" },
-                  { label: "Ask Yande", mode: "free" as const, color: "#0F0D33" },
-                ] as const
-              ).map(({ label, mode, color }) => (
-                <div key={label} className="flex items-center justify-end gap-2">
-                  <span
-                    className="rounded-full px-3 py-1 text-[11px] font-semibold whitespace-nowrap"
-                    style={{ background: "#fff", color: BUILDER.ink, boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}
-                  >
-                    {label}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImproveMode(mode);
-                      setYandeOpen(true);
-                      setYandeDialOpen(false);
-                    }}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-105 active:scale-95"
-                    style={{ background: color }}
-                    aria-label={label}
-                  >
-                    {mode === "redesign" ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                        <path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.7L12 14.5l-5 3.6 1.9-5.7L4 8.8h6.1z" strokeLinejoin="round" />
-                      </svg>
-                    ) : mode === "free" && label === "Ask Yande" ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinejoin="round" />
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                        <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              ))}
-            </>
-          ) : null}
-
-          {/* Main FAB button */}
-          <button
-            type="button"
-            aria-label={yandeOpen ? "Close Yande" : yandeDialOpen ? "Close menu" : "Open Yande"}
-            onClick={() => {
-              if (yandeOpen) {
-                setYandeOpen(false);
-              } else {
-                setYandeDialOpen((o) => !o);
-              }
-            }}
-            className="flex min-h-10 items-center gap-2 rounded-full border bg-white px-3 py-2 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-            style={{ borderColor: BUILDER.borderStrong, boxShadow: "0 4px 16px rgba(10,10,10,0.14)" }}
-          >
-            <YandeMark size={26} />
-            <span className="text-[10px] font-bold" style={{ color: BUILDER.ink }}>
-              {yandeOpen ? "Close" : yandeDialOpen ? "Close" : "Ask Yande"}
-            </span>
-          </button>
-        </div>
-
+        {/* Yande is invoked from the editor chrome so it never covers site content. */}
         {/* Yande right-side sliding panel */}
         {yandeOpen ? (
           <>

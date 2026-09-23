@@ -188,6 +188,8 @@ export function BuilderStudioChrome({
   pages,
   activePageId,
   onPageChange,
+  onYande,
+  yandeOpen,
 }: {
   projectId: string;
   title: string;
@@ -209,6 +211,8 @@ export function BuilderStudioChrome({
   pages?: { id: string; title: string; slug: string }[];
   activePageId?: string;
   onPageChange?: (pageId: string) => void;
+  onYande?: () => void;
+  yandeOpen?: boolean;
   minimal?: boolean;
   floating?: boolean;
 }) {
@@ -324,6 +328,22 @@ export function BuilderStudioChrome({
             </button>
           ))}
         </div>
+
+        {onYande ? (
+          <button
+            type="button"
+            onClick={onYande}
+            aria-pressed={Boolean(yandeOpen)}
+            className="hidden rounded-lg px-2.5 py-1.5 text-[10px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:inline"
+            style={{
+              color: yandeOpen ? "#fff" : BUILDER.ink,
+              border: `1px solid ${yandeOpen ? BUILDER.ink : BUILDER.borderStrong}`,
+              background: yandeOpen ? BUILDER.ink : BUILDER.surface,
+            }}
+          >
+            {yandeOpen ? "Close Yande" : "Ask Yande"}
+          </button>
+        ) : null}
 
         <Link
           href={`/create/${projectId}/preview`}
