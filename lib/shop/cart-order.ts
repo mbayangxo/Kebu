@@ -4,7 +4,6 @@ import { allocateShopOrderNumber } from "@/lib/shop/codes";
 import { applyPercentOff, resolveActiveDiscount, incrementDiscountUse } from "@/lib/shop/discounts";
 import {
   giftCardApplyAmount,
-  redeemGiftCardBalance,
   resolveActiveGiftCard,
 } from "@/lib/shop/gift-cards";
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
@@ -398,27 +397,6 @@ export async function createCartOrder(opts: {
   const { error: itemsErr } = await opts.admin.from("shop_order_items").insert(itemRows);
   if (itemsErr && !/does not exist|shop_order_items/i.test(itemsErr.message ?? "")) {
     /* order header exists — items optional until migration applied */
-  }
-
-  if (giftCard && giftCardAmount > 0) {
-    const redeemed = await redeemGiftCardBalance(
-      opts.admin,
-      giftCard.id,
-      giftCard.balance_xof,
-      giftCardAmount,
-    );
-    if (!redeemed.ok) {
-      await opts.admin.from("shop_orders").delete().eq("id", order.id);
-      return { ok: false, error: redeemed.error };
-    }
-  }
-
-  if (discount) {
-    try {
-      await incrementDiscountUse(opts.admin, discount.id);
-    } catch {
-      /* best-effort */
-    }
   }
 
   try {

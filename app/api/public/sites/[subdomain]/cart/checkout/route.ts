@@ -139,20 +139,21 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: created.error }, { status: 500 });
   }
 
-  const reservedLines: string[] = [];
-  for (const line of resolved.lines) {
+  for (const [lineIndex, line] of resolved.lines.entries()) {
     const reservation = await reserveShopCheckout(admin, {
       orderId: created.orderId,
       projectId: live.project_id,
       productId: line.productId,
       quantity: line.quantity,
+      discountId: lineIndex === 0 && created.discountCode ? discountResult.discount?.id ?? null : null,
+      giftCardId: lineIndex === 0 && created.giftCardAmountXof ? giftCardResult.card?.id ?? null : null,
+      giftCardAmountXof: lineIndex === 0 ? created.giftCardAmountXof : null,
     });
     if (!reservation.ok) {
       await releaseShopCheckout(admin, created.orderId);
       await admin.from("shop_orders").delete().eq("id", created.orderId).eq("project_id", live.project_id);
       return NextResponse.json({ error: reservation.error }, { status: 409 });
     }
-    reservedLines.push(line.productId);
   }
 
   const { data: bizProject } = await admin
