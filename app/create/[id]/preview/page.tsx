@@ -5,7 +5,8 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import { CreateShell } from "@/app/components/create/create-shell";
-import { buildDefinitionFromProjectParts } from "@/lib/create/editor-definition";
+import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
+import { parseSiteChrome } from "@/lib/create/site-chrome";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 
 // postMessage protocol between the Builder canvas iframe and page.tsx
@@ -48,7 +49,7 @@ function ProjectPreviewInner() {
         setSubdomain(data.project?.subdomain ?? null);
         // Only use the fetched definition if the parent hasn't already pushed a live one
         if (!parentDefinitionRef.current) {
-          setDefinition(buildDefinitionFromProjectParts(data.project, pageRows, sections));
+          setDefinition(buildEditorPreviewDefinition(data.project, pageRows, sections, parseSiteChrome(data.siteChrome)));
         }
         if (pageRows[0]?.slug) setPreviewPageSlug(pageRows[0].slug);
       }
