@@ -97,6 +97,7 @@ export default function StudioEditorPage() {
   const dragBaseline = useRef<CanvasDocument | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const docRef = useRef<CanvasDocument | null>(null);
+  const saveGenerationRef = useRef(0);
 
   const canEdit = access?.canEdit !== false;
 
@@ -301,6 +302,7 @@ export default function StudioEditorPage() {
         return;
       }
 
+      const generation = ++saveGenerationRef.current;
       setSaveState("saving");
       setSyncState("syncing");
       try {
@@ -347,6 +349,7 @@ export default function StudioEditorPage() {
         }
 
         const nextUpdatedAt = typeof data.design.updated_at === "string" ? data.design.updated_at : new Date().toISOString();
+        if (generation !== saveGenerationRef.current) return;
         setServerUpdatedAt(nextUpdatedAt);
         if (designType) {
           setDesign((current) => current ? { ...current, design_type: designType, updated_at: nextUpdatedAt } : current);
@@ -373,6 +376,7 @@ export default function StudioEditorPage() {
         setSaveState("saved");
         setTimeout(() => setSaveState("idle"), 1800);
       } catch {
+        if (generation !== saveGenerationRef.current) return;
         setSaveState("offline");
         setSyncState("offline");
       }
