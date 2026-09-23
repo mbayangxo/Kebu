@@ -1,9 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { commitShopCheckout } from "@/lib/shop/stock";
 import { getShopPaymentAdapter } from "@/lib/payments/registry";
 import { startShopOrderJokoCheckout } from "@/lib/shop/joko-order";
 import {
-  railFromPaymentPreference,
   railFromProvider,
   recordPaymentLedgerEvent,
 } from "@/lib/shop/payment-ledger";
