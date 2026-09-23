@@ -10,6 +10,7 @@ import {
   defaultSiteChrome,
   parseSiteChrome,
   patchSiteChromePart,
+  removeSiteChromePart,
   siteChromeSchema,
 } from "@/lib/create/site-chrome";
 import { sectionPropsSchemas } from "@/lib/create/website-schema";
@@ -20,8 +21,8 @@ type Params = { params: Promise<{ id: string }> };
 
 const patchSchema = z.object({
   enabled: z.boolean().optional(),
-  header: sectionPropsSchemas.navigation.partial().optional(),
-  footer: sectionPropsSchemas.footer.partial().optional(),
+  header: sectionPropsSchemas.navigation.partial().nullable().optional(),
+  footer: sectionPropsSchemas.footer.partial().nullable().optional(),
 });
 
 /** Read universal header/footer chrome for a project. */
@@ -43,10 +44,13 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const project = access.project;
-  let chrome = parseSiteChrome(project.site_chrome);
-  if (!chrome.header && !chrome.footer) {
-    chrome = defaultSiteChrome(project.title ?? "My site");
-  }
+  const hasStoredChrome =
+    project.site_chrome !== null &&
+    project.site_chrome !== undefined &&
+    typeof project.site_chrome === "object";
+  const chrome = hasStoredChrome
+    ? parseSiteChrome(project.site_chrome)
+    : defaultSiteChrome(project.title ?? "My site");
 
   return NextResponse.json({ siteChrome: chrome });
 }
@@ -87,18 +91,25 @@ export async function PATCH(req: Request, { params }: Params) {
   const db = dbForProjectAccess(supabase, access.via);
   const project = access.project;
 
-  let chrome = parseSiteChrome(project.site_chrome);
-  if (!chrome.header && !chrome.footer) {
-    chrome = defaultSiteChrome(project.title ?? "My site");
-  }
+  const hasStoredChrome =
+    project.site_chrome !== null &&
+    project.site_chrome !== undefined &&
+    typeof project.site_chrome === "object";
+  let chrome = hasStoredChrome
+    ? parseSiteChrome(project.site_chrome)
+    : defaultSiteChrome(project.title ?? "My site");
 
   if (parsed.data.enabled !== undefined) {
     chrome = { ...chrome, enabled: parsed.data.enabled };
   }
-  if (parsed.data.header) {
+  if (parsed.data.header === null) {
+    chrome = removeSiteChromePart(chrome, "header");
+  } else if (parsed.data.header) {
     chrome = patchSiteChromePart(chrome, "header", parsed.data.header);
   }
-  if (parsed.data.footer) {
+  if (parsed.data.footer === null) {
+    chrome = removeSiteChromePart(chrome, "footer");
+  } else if (parsed.data.footer) {
     chrome = patchSiteChromePart(chrome, "footer", parsed.data.footer);
   }
 

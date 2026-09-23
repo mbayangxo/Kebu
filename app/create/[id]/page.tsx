@@ -20,6 +20,7 @@ import {
   isChromeSectionId,
   parseSiteChrome,
   projectUsesEmbeddedNav,
+  removeSiteChromePart,
   type SiteChrome,
 } from "@/lib/create/site-chrome";
 import type { SiteSeo } from "@/lib/create/site-seo";
@@ -380,6 +381,40 @@ export default function ProjectEditorPage() {
       setPublishState,
       setError,
     });
+
+  async function removeChromePart(part: "header" | "footer") {
+    if (!siteChrome) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setError(`Reconnect to remove the site ${part}. Other supported edits can remain queued offline.`);
+      return;
+    }
+    const label = part === "header" ? "navigation" : "footer";
+    if (!window.confirm(`Remove the site ${label}? You can add it again later.`)) return;
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/site-chrome`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(part === "header" ? { header: null } : { footer: null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : `Could not remove site ${label}.`);
+        return;
+      }
+      setSiteChrome(
+        data.siteChrome && typeof data.siteChrome === "object"
+          ? parseSiteChrome(data.siteChrome)
+          : removeSiteChromePart(siteChrome, part),
+      );
+      setSelectedSectionId(null);
+      setSelectedElement(null);
+      setLeftPanelOpen(false);
+    } catch {
+      setError(`Network error while removing site ${label}.`);
+    }
+  }
 
   async function addSection(
     type: string,
@@ -1522,6 +1557,7 @@ export default function ProjectEditorPage() {
                       selected={selectedSectionId === CHROME_HEADER_ID}
                       onSelect={() => selectSectionForInspector(CHROME_HEADER_ID)}
                       onPatch={(patch) => updateChromeProps("header", patch)}
+                      onRemove={() => void removeChromePart("header")}
                       projectId={projectId}
                       pages={pages}
                     />
@@ -1766,6 +1802,7 @@ export default function ProjectEditorPage() {
                         selected={selectedSectionId === CHROME_HEADER_ID}
                         onSelect={() => setSelectedSectionId(CHROME_HEADER_ID)}
                         onPatch={(patch) => updateChromeProps("header", patch)}
+                        onRemove={() => void removeChromePart("header")}
                         projectId={projectId}
                         pages={pages}
                       />
@@ -1807,6 +1844,7 @@ export default function ProjectEditorPage() {
                         selected={selectedSectionId === CHROME_FOOTER_ID}
                         onSelect={() => selectSectionForInspector(CHROME_FOOTER_ID)}
                         onPatch={(patch) => updateChromeProps("footer", patch)}
+                        onRemove={() => void removeChromePart("footer")}
                         projectId={projectId}
                         pages={pages}
                       />

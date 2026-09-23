@@ -169,6 +169,20 @@ export function applySiteChromeToDefinition(
   };
 }
 
+export function removeSiteChromePart(
+  chrome: SiteChrome,
+  part: "header" | "footer",
+): SiteChrome {
+  const next: SiteChrome =
+    part === "header"
+      ? { ...chrome, header: undefined }
+      : { ...chrome, footer: undefined };
+  return {
+    ...next,
+    enabled: Boolean(next.header || next.footer),
+  };
+}
+
 export function patchSiteChromePart(
   chrome: SiteChrome,
   part: "header" | "footer",

@@ -21,6 +21,7 @@ export function BuilderSiteChromePanel({
   selected,
   onSelect,
   onPatch,
+  onRemove,
   projectId,
   pages = [],
 }: {
@@ -29,6 +30,7 @@ export function BuilderSiteChromePanel({
   selected: boolean;
   onSelect: () => void;
   onPatch: (patch: Record<string, unknown>) => void;
+  onRemove?: () => void;
   projectId: string;
   pages?: Array<{ id: string; slug: string; title: string }>;
 }) {
@@ -208,6 +210,20 @@ export function BuilderSiteChromePanel({
             </PanelSection>
           </>
         )}
+        {onRemove ? (
+          <div className="border-t border-black/[0.07] pt-3">
+            <button
+              type="button"
+              onClick={onRemove}
+              className="w-full rounded-lg border border-red-100 bg-white px-3 py-2 text-[11px] font-semibold text-red-700 outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              {part === "header" ? "Remove navigation" : "Remove footer"}
+            </button>
+            <p className="mt-1.5 text-[9px] leading-relaxed text-black/40">
+              You can add it again later. Existing pages and page content are not deleted.
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );
