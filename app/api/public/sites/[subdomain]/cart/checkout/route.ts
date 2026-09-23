@@ -241,10 +241,13 @@ export async function POST(req: Request, { params }: Params) {
       if (started.ok) {
         paymentUrl = started.paymentUrl;
         paymentMessage = `Cart saved. Complete ${started.provider} payment — paid only after the webhook confirms.`;
-      } else if (started.fallbackInstructions) {
-        paymentMessage = `Cart saved. ${started.error}`;
       } else {
-        paymentMessage = `Cart saved. Checkout failed: ${started.error}`;
+        await releaseShopCheckout(admin, created.orderId);
+        if (started.fallbackInstructions) {
+          paymentMessage = `Cart saved. ${started.error} Inventory is not being held; retry checkout when ready.`;
+        } else {
+          paymentMessage = `Cart saved. Checkout failed: ${started.error} Inventory is not being held.`;
+        }
       }
     }
   }
