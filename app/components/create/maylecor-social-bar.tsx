@@ -1,7 +1,5 @@
 "use client";
 
-import { MAYLECOR_SOCIAL_DEFAULTS } from "@/lib/create/maylecor-defaults";
-
 export type MaylecorSocialLink = {
   label: string;
   iconUrl: string;
@@ -18,16 +16,16 @@ export function MaylecorSocialBar({
   variant = "pill",
   className = "",
 }: {
-  /** undefined / null = May defaults; [] = intentionally empty (left-nav cleared). */
+  /** Missing/empty links mean no social rail. Private template seeds own their initial defaults. */
   links?: MaylecorSocialLink[] | null;
   accentColor?: string;
   /** pill = floating row; rail = vertical; footer = large centered icons */
   variant?: "pill" | "rail" | "footer";
   className?: string;
 }) {
-  const items = (
-    links == null ? MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s })) : links
-  ).filter((l) => String(l.href ?? "").trim() && String(l.href) !== "#");
+  const items = (links ?? []).filter(
+    (link) => String(link.href ?? "").trim() && String(link.href) !== "#",
+  );
 
   if (!items.length) return null;
 
