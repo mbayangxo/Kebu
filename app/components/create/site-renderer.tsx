@@ -835,6 +835,11 @@ export function SiteRenderer({
               image: raw.image as string | undefined,
               overlayOpacity: (raw.overlayOpacity as number | undefined) ?? 0.42,
               minHeight: (raw.minHeight as string | undefined) ?? "80vh",
+              imagePosition: String(raw.imagePosition ?? "50% 50%"),
+              headingFontFamily: String(raw.headingFontFamily ?? ""),
+              headingFontSizePx: Number(raw.headingFontSizePx ?? 0),
+              subheadingFontFamily: String(raw.subheadingFontFamily ?? ""),
+              subheadingFontSizePx: Number(raw.subheadingFontSizePx ?? 0),
             };
             const patchHero = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
@@ -868,7 +873,7 @@ export function SiteRenderer({
                     src={p.image}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
-                    style={{ opacity: 0.88 }}
+                    style={{ opacity: 0.88, objectPosition: p.imagePosition }}
                   />
                 ) : null}
                 <div
@@ -889,7 +894,10 @@ export function SiteRenderer({
                     <EditableText
                       tag="h1"
                       className="text-5xl font-bold leading-[1.04] tracking-tight sm:text-7xl"
-                      style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                      style={{
+                        fontFamily: p.headingFontFamily ? cssFontStack(p.headingFontFamily) : cssFontStack(theme.fontDisplay),
+                        fontSize: p.headingFontSizePx > 0 ? `${p.headingFontSizePx}px` : undefined,
+                      }}
                       value={p.heading}
                       editor={editor}
                       onChange={(heading) => patchHero({ heading })}
@@ -898,7 +906,11 @@ export function SiteRenderer({
                       <EditableText
                         tag="p"
                         className="mt-5 text-base leading-relaxed sm:text-lg"
-                        style={{ opacity: hasImage ? 0.85 : 0.72 }}
+                        style={{
+                          opacity: hasImage ? 0.85 : 0.72,
+                          fontFamily: p.subheadingFontFamily ? cssFontStack(p.subheadingFontFamily) : undefined,
+                          fontSize: p.subheadingFontSizePx > 0 ? `${p.subheadingFontSizePx}px` : undefined,
+                        }}
                         value={p.subheading}
                         editor={editor}
                         onChange={(subheading) => patchHero({ subheading })}
@@ -927,6 +939,10 @@ export function SiteRenderer({
             const p = {
               heading: readDeviceOverride(raw, device, "heading") as string | undefined,
               body: String(readDeviceOverride(raw, device, "body") ?? ""),
+              headingFontFamily: String(raw.headingFontFamily ?? ""),
+              headingFontSizePx: Number(raw.headingFontSizePx ?? 0),
+              bodyFontFamily: String(raw.bodyFontFamily ?? ""),
+              bodyFontSizePx: Number(raw.bodyFontSizePx ?? 0),
             };
             const patchText = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
@@ -939,7 +955,10 @@ export function SiteRenderer({
                   <EditableText
                     tag="h2"
                     className="text-2xl font-bold mb-3"
-                    style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                    style={{
+                      fontFamily: p.headingFontFamily ? cssFontStack(p.headingFontFamily) : cssFontStack(theme.fontDisplay),
+                      fontSize: p.headingFontSizePx > 0 ? `${p.headingFontSizePx}px` : undefined,
+                    }}
                     value={p.heading}
                     editor={editor}
                     onChange={(heading) => patchText({ heading })}
@@ -948,6 +967,10 @@ export function SiteRenderer({
                 <EditableText
                   tag="p"
                   className="leading-relaxed opacity-80 whitespace-pre-wrap"
+                  style={{
+                    fontFamily: p.bodyFontFamily ? cssFontStack(p.bodyFontFamily) : undefined,
+                    fontSize: p.bodyFontSizePx > 0 ? `${p.bodyFontSizePx}px` : undefined,
+                  }}
                   value={p.body}
                   editor={editor}
                   onChange={(body) => patchText({ body })}

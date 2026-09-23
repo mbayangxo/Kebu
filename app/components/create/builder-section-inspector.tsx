@@ -237,6 +237,20 @@ function SectionContent({
           <textarea className={INPUT + " min-h-[60px]"} style={INPUT_STYLE} value={String(p.subheading ?? "")} onChange={(e) => up({ subheading: e.target.value })} placeholder="Subheading" />
         </PanelField>
         <div className="grid grid-cols-2 gap-2">
+          <PanelField label="Heading font">
+            <input className={INPUT} style={INPUT_STYLE} value={String(p.headingFontFamily ?? "")} onChange={(e) => up({ headingFontFamily: e.target.value || undefined })} placeholder="Site display font" />
+          </PanelField>
+          <PanelField label="Heading size · px">
+            <input type="number" min={16} max={240} className={INPUT} style={INPUT_STYLE} value={Number(p.headingFontSizePx ?? 64)} onChange={(e) => up({ headingFontSizePx: Math.max(16, Math.min(240, Number(e.target.value) || 16)) })} />
+          </PanelField>
+          <PanelField label="Subheading font">
+            <input className={INPUT} style={INPUT_STYLE} value={String(p.subheadingFontFamily ?? "")} onChange={(e) => up({ subheadingFontFamily: e.target.value || undefined })} placeholder="Site body font" />
+          </PanelField>
+          <PanelField label="Subheading size · px">
+            <input type="number" min={10} max={96} className={INPUT} style={INPUT_STYLE} value={Number(p.subheadingFontSizePx ?? 18)} onChange={(e) => up({ subheadingFontSizePx: Math.max(10, Math.min(96, Number(e.target.value) || 10)) })} />
+          </PanelField>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
           <PanelField label="Button text">
             <input className={INPUT} style={INPUT_STYLE} value={String(p.buttonLabel ?? "")} onChange={(e) => up({ buttonLabel: e.target.value })} placeholder="Button label" />
           </PanelField>
@@ -249,6 +263,15 @@ function SectionContent({
     if (activeTab === "Design") return (
       <div className="space-y-3">
         <SectionPhotoField projectId={projectId} label="Background image" value={String(p.image ?? "")} onChange={(url) => up({ image: url })} />
+        <PanelField label="Image crop / focal point">
+          <select className={INPUT} style={INPUT_STYLE} value={String(p.imagePosition ?? "50% 50%")} onChange={(e) => up({ imagePosition: e.target.value })}>
+            <option value="50% 50%">Center</option>
+            <option value="50% 20%">Top</option>
+            <option value="50% 80%">Bottom</option>
+            <option value="20% 50%">Left</option>
+            <option value="80% 50%">Right</option>
+          </select>
+        </PanelField>
         <div className="grid grid-cols-2 gap-2">
           <PanelField label="Background color">
             <input type="color" className="h-8 w-full cursor-pointer rounded border-0 p-0" value={String(p.background ?? "#0A0A0A")} onChange={(e) => up({ background: e.target.value })} />
@@ -286,6 +309,20 @@ function SectionContent({
       <PanelField label="Body text">
         <textarea className={INPUT + " min-h-[80px]"} style={INPUT_STYLE} value={String(p.body ?? "")} onChange={(e) => up({ body: e.target.value })} placeholder="Write your content here" />
       </PanelField>
+      <div className="grid grid-cols-2 gap-2">
+        <PanelField label="Heading font">
+          <input className={INPUT} style={INPUT_STYLE} value={String(p.headingFontFamily ?? "")} onChange={(e) => up({ headingFontFamily: e.target.value || undefined })} placeholder="Site display font" />
+        </PanelField>
+        <PanelField label="Heading size · px">
+          <input type="number" min={12} max={160} className={INPUT} style={INPUT_STYLE} value={Number(p.headingFontSizePx ?? 32)} onChange={(e) => up({ headingFontSizePx: Math.max(12, Math.min(160, Number(e.target.value) || 12)) })} />
+        </PanelField>
+        <PanelField label="Body font">
+          <input className={INPUT} style={INPUT_STYLE} value={String(p.bodyFontFamily ?? "")} onChange={(e) => up({ bodyFontFamily: e.target.value || undefined })} placeholder="Site body font" />
+        </PanelField>
+        <PanelField label="Body size · px">
+          <input type="number" min={8} max={96} className={INPUT} style={INPUT_STYLE} value={Number(p.bodyFontSizePx ?? 16)} onChange={(e) => up({ bodyFontSizePx: Math.max(8, Math.min(96, Number(e.target.value) || 8)) })} />
+        </PanelField>
+      </div>
     </div>
   );
 
