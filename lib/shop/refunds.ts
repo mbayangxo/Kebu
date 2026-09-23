@@ -54,6 +54,25 @@ export async function processRefund(
     return { ok: false, error: "Refund previously failed", retryable: false };
   }
 
+  // PSP already confirmed; only the DB write is missing — skip the PSP call.
+  if (refund.status === "reconciling") {
+    if (!refund.provider_refund_id) {
+      return { ok: false, error: "Reconciling refund has no provider_refund_id", retryable: false };
+    }
+    const { data: commitData, error: commitErr } = await admin.rpc("complete_shop_refund", {
+      p_refund_id: refundId,
+      p_provider_refund_id: refund.provider_refund_id,
+    });
+    if (commitErr) {
+      return { ok: false, error: `Reconcile DB commit failed: ${commitErr.message}`, retryable: true };
+    }
+    const commitRow = Array.isArray(commitData) ? commitData[0] : commitData;
+    if (!commitRow?.ok) {
+      return { ok: false, error: `complete_shop_refund returned not-ok: ${commitRow?.reason ?? "unknown"}`, retryable: false };
+    }
+    return { ok: true, providerRefundId: refund.provider_refund_id };
+  }
+
   // Check attempt ceiling.
   if (refund.attempts >= refund.max_attempts) {
     await admin.from("shop_refunds").update({ status: "failed", failure_reason: "max_attempts_exceeded" }).eq("id", refundId);

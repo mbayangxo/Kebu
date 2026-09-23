@@ -21,7 +21,6 @@ import {
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
 import { startShopOrderProviderCheckout } from "@/lib/shop/adapter-checkout";
 import { allocateShopOrderNumber } from "@/lib/shop/codes";
-import { decrementProductStock, restoreProductStock } from "@/lib/shop/stock";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { notifyShopOwnerOfOrder, resolveOrderChannel } from "@/lib/shop/notify-owner";
@@ -181,11 +180,6 @@ export async function POST(req: Request, { params }: Params) {
 
   const customerEmail = input.customerEmail?.trim().toLowerCase() || null;
 
-  const stockCheck = await decrementProductStock(svc, sold.id, input.quantity);
-  if (!stockCheck.ok) {
-    return NextResponse.json({ error: stockCheck.error }, { status: 409 });
-  }
-
   const { data: projectRow } = await svc
     .from("projects")
     .select("id, country_code, title, owner_id, business_id")
@@ -272,11 +266,43 @@ export async function POST(req: Request, { params }: Params) {
     insertBase.shipping_quote_version = shippingQuote.quoteVersion;
   }
 
-  const { data: order, error } = await svc
-    .from("shop_orders")
-    .insert(insertBase)
-    .select("id, order_number, gift_public_id")
-    .single();
+  // Pre-compute amounts so they are set atomically with the order row.
+  const rawAmountXof = soldPriceXof != null ? soldPriceXof * input.quantity : null;
+  const discountedAmountXof =
+    rawAmountXof != null && discount
+      ? applyPercentOff(rawAmountXof, discount.percent_off)
+      : rawAmountXof;
+  if (rawAmountXof != null) insertBase.amount_xof_before_discount = rawAmountXof;
+  if (discountedAmountXof != null) insertBase.amount_xof = discountedAmountXof;
+
+  // Single-item arrays for the atomic RPC.
+  const itemRows = [
+    {
+      product_id: sold.id,
+      variant_id: variantId ?? null,
+      variant_name: variantId && product ? soldName.slice(product.name.length + 2, -1) : null,
+      product_name: soldName,
+      product_upc: productUpc ?? null,
+      product_sku: productSku ?? null,
+      price_label: soldPriceLabel,
+      price_xof: soldPriceXof ?? null,
+      quantity: input.quantity,
+      line_amount_xof: soldPriceXof != null ? soldPriceXof * input.quantity : null,
+      sort_order: 0,
+    },
+  ];
+  const reservationLines = [
+    { product_id: sold.id, variant_id: variantId ?? null, quantity: input.quantity },
+  ];
+
+  const { data: atomicRows, error } = await svc.rpc("create_cart_order_atomic", {
+    p_order: insertBase,
+    p_items: itemRows,
+    p_lines: reservationLines,
+    p_discount_id: discount?.id ?? null,
+    p_ttl_minutes: 20,
+  });
+  const order = Array.isArray(atomicRows) ? atomicRows[0] : atomicRows;
 
   async function afterOrderSaved(
     orderId: string,
@@ -284,24 +310,7 @@ export async function POST(req: Request, { params }: Params) {
     giftPublicId: string | null = null,
   ) {
     const unitXof = soldPriceXof;
-    const { error: itemErr } = await svc.from("shop_order_items").insert({
-      order_id: orderId,
-      project_id: dep.project_id,
-      product_id: sold.id,
-      variant_id: variantId,
-      variant_name: variantId && product ? soldName.slice(product.name.length + 2, -1) : null,
-      product_name: soldName,
-      product_upc: productUpc,
-      product_sku: productSku,
-      price_label: soldPriceLabel,
-      price_xof: unitXof,
-      quantity: input.quantity,
-      line_amount_xof: unitXof != null ? unitXof * input.quantity : null,
-      sort_order: 0,
-    });
-    if (itemErr && !/does not exist|shop_order_items/i.test(itemErr.message ?? "")) {
-      logCreate("shop.order_item_failed", { orderId, message: itemErr.message });
-    }
+    // Items already inserted atomically by create_cart_order_atomic RPC.
 
     if (discount) {
       try {
@@ -469,19 +478,7 @@ export async function POST(req: Request, { params }: Params) {
       input.paymentPreference ?? "",
     );
     if (livePref) {
-      let amountXof = unitXof != null ? unitXof * input.quantity : null;
-      if (amountXof != null && discount) {
-        const before = amountXof;
-        amountXof = applyPercentOff(amountXof, discount.percent_off);
-        await svc
-          .from("shop_orders")
-          .update({
-            amount_xof_before_discount: before,
-            amount_xof: amountXof,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", orderId);
-      }
+      const amountXof = discountedAmountXof;
       if (amountXof == null || amountXof <= 0) {
         paymentMessage =
           "Order saved. Add a numeric XOF price on the product for live checkout — or confirm on WhatsApp.";
@@ -549,89 +546,13 @@ export async function POST(req: Request, { params }: Params) {
     });
   }
 
-  if (error || !order) {
-    // Channel constraint / column may predate 067 — retry with legacy channel or without.
-    if (
-      error?.message &&
-      /channel|source_detail/i.test(error.message) &&
-      orderChannel !== "whatsapp"
-    ) {
-      const legacyChannel = ["whatsapp", "demo", "web"].includes(orderChannel)
-        ? orderChannel
-        : "web";
-      const retryChannel = await svc
-        .from("shop_orders")
-        .insert({ ...insertBase, channel: legacyChannel })
-        .select("id, order_number, gift_public_id")
-        .single();
-      if (!retryChannel.error && retryChannel.data) {
-        return afterOrderSaved(
-          retryChannel.data.id,
-          (retryChannel.data as { order_number?: string }).order_number ?? orderNumber,
-          typeof (retryChannel.data as { gift_public_id?: string }).gift_public_id === "string"
-            ? (retryChannel.data as { gift_public_id: string }).gift_public_id
-            : null,
-        );
-      }
-      const { channel: _drop, ...withoutChannel } = insertBase;
-      void _drop;
-      const retryNoChannel = await svc
-        .from("shop_orders")
-        .insert(withoutChannel)
-        .select("id, order_number, gift_public_id")
-        .single();
-      if (!retryNoChannel.error && retryNoChannel.data) {
-        return afterOrderSaved(
-          retryNoChannel.data.id,
-          (retryNoChannel.data as { order_number?: string }).order_number ?? orderNumber,
-          typeof (retryNoChannel.data as { gift_public_id?: string }).gift_public_id === "string"
-            ? (retryNoChannel.data as { gift_public_id: string }).gift_public_id
-            : null,
-        );
-      }
+  if (error || !order?.order_id) {
+    if (error?.message?.includes("inventory_unavailable")) {
+      return NextResponse.json(
+        { error: "Product is no longer available in the requested quantity." },
+        { status: 409 },
+      );
     }
-    // Pre-041/042/044/045/048/059 DBs may lack newer columns — retry without them.
-    if (
-      error?.message &&
-      /payment_preference|customer_email|discount_|order_number|product_upc|product_sku|customer_user_id|is_gift|recipient_|gift_|buyer_country|shipping_/i.test(
-        error.message,
-      )
-    ) {
-      const retry = await svc
-        .from("shop_orders")
-        .insert({
-          project_id: dep.project_id,
-          product_id: sold.id,
-          product_name: soldName,
-          price_label: sold.price_label ?? "",
-          quantity: input.quantity,
-          customer_name: input.customerName,
-          customer_phone: input.customerPhone,
-          customer_note: [
-            input.customerNote ?? "",
-            input.paymentPreference ? `Pay preference: ${input.paymentPreference}` : "",
-            customerEmail ? `Email: ${customerEmail}` : "",
-            discount ? `Discount: ${discount.code} (−${discount.percent_off}%)` : "",
-            productUpc ? `UPC: ${productUpc}` : "",
-            input.isGift
-              ? `Gift for: ${input.recipientName} (${input.recipientPhone})${input.giftMessage ? ` — ${input.giftMessage}` : ""}`
-              : "",
-            orderChannel ? `Channel: ${orderChannel}` : "",
-            `Ref: ${orderNumber}`,
-          ]
-            .filter(Boolean)
-            .join("\n")
-            .slice(0, 400),
-          status: "pending",
-          channel: "whatsapp",
-        })
-        .select("id")
-        .single();
-      if (!retry.error && retry.data) {
-        return afterOrderSaved(retry.data.id, orderNumber, null);
-      }
-    }
-    await restoreProductStock(svc, sold.id, input.quantity);
     logCreate("shop.order_failed", { subdomain, message: error?.message });
     return NextResponse.json(
       {
@@ -647,10 +568,8 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   return afterOrderSaved(
-    order.id,
-    (order as { order_number?: string }).order_number ?? orderNumber,
-    typeof (order as { gift_public_id?: string }).gift_public_id === "string"
-      ? (order as { gift_public_id: string }).gift_public_id
-      : null,
+    order.order_id,
+    order.order_number ?? orderNumber,
+    order.gift_public_id ?? null,
   );
 }

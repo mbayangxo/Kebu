@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
 import { verifyPaystackSignature } from "@/lib/payments/paystack-adapter";
+import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,12 @@ export async function POST(req: NextRequest) {
 
   let payload: {
     event?: string;
-    data?: { reference?: string; id?: number; status?: string; metadata?: { kebu_reference?: string } };
+    data?: {
+      reference?: string;
+      id?: number;
+      status?: string;
+      metadata?: { kebu_reference?: string; amount_xof?: string };
+    };
   };
   try {
     payload = JSON.parse(rawBody) as typeof payload;
@@ -33,6 +39,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing reference." }, { status: 400 });
   }
 
+  let expectedAmountXof: number | null = null;
+  const rawAmountXof = payload.data?.metadata?.amount_xof;
+  if (rawAmountXof !== undefined) {
+    const parsed = Number(rawAmountXof);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return NextResponse.json({ error: "Invalid amount_xof metadata." }, { status: 400 });
+    }
+    expectedAmountXof = parsed;
+  }
+
   const admin = createServiceClient();
   if (!admin) {
     return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
@@ -42,6 +58,7 @@ export async function POST(req: NextRequest) {
     reference,
     paymentId: payload.data?.id != null ? String(payload.data.id) : payload.data?.reference,
     provider: "paystack",
+    expectedAmountXof,
   });
 
   if (!paid.ok) {
@@ -70,7 +87,15 @@ export async function POST(req: NextRequest) {
       orderId: paid.orderId,
       projectId: paid.projectId,
       reference,
+      alreadyPaid: paid.alreadyPaid,
     }),
   );
-  return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
+  if (!paid.alreadyPaid) {
+    try {
+      await fulfillPaidDigitalOrder(admin, paid.orderId);
+    } catch {
+      /* digital fulfillment is best-effort — payment is already recorded */
+    }
+  }
+  return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId, alreadyPaid: paid.alreadyPaid });
 }

@@ -699,7 +699,7 @@ describe("T22–T23: Ledger durability", () => {
 // T24–T25: markShopOrderPaidByProviderRef routes through complete_shop_payment
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
+import { markShopOrderPaidByProviderRef, startShopOrderProviderCheckout } from "@/lib/shop/adapter-checkout";
 
 describe("T24–T25: Unified payment path", () => {
   beforeEach(() => {
@@ -856,5 +856,289 @@ describe("T30: Terminal ledger is durable", () => {
         projectId: "p", orderId: "o", rail: "paystack", eventType: "paid", amountXof: 1000,
       }),
     ).resolves.not.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T31: Reconciling-status refund skips PSP (Item 9)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T31: Reconciling refund skips PSP", () => {
+  beforeEach(() => { resetState(); vi.clearAllMocks(); });
+
+  it("T31: processRefund with status=reconciling calls complete_shop_refund directly without PSP fetch", async () => {
+    refunds["refund-rec"] = {
+      id: "refund-rec", order_id: "order-1", project_id: "proj-1",
+      provider: "paystack", requested_amount_xof: 5000, currency: "XOF",
+      status: "reconciling", provider_refund_id: "psp-refund-99",
+      idempotency_key: "ik-rec", attempts: 1, max_attempts: 5,
+      restock_status: "pending", provider_capture_reference: "ref-cap",
+    };
+
+    const rpcSpy = vi.fn().mockImplementation(async (name: string) => {
+      if (name === "complete_shop_refund") return { data: [{ ok: true }], error: null };
+      return { data: null, error: null };
+    });
+    const admin = {
+      from: (table: string) => makeMockQuery(table),
+      rpc: rpcSpy,
+    } as unknown as import("@supabase/supabase-js").SupabaseClient;
+
+    const fetchSpy = vi.spyOn(global, "fetch").mockRejectedValue(new Error("PSP must not be called"));
+    const result = await processRefund(admin, "refund-rec");
+    fetchSpy.mockRestore();
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.providerRefundId).toBe("psp-refund-99");
+    expect(rpcSpy).toHaveBeenCalledWith("complete_shop_refund", expect.objectContaining({
+      p_refund_id: "refund-rec",
+      p_provider_refund_id: "psp-refund-99",
+    }));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T32: Duplicate webhook does not re-fulfill digital order (Item 13)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T32: Duplicate fulfillment guard", () => {
+  beforeEach(() => { resetState(); vi.clearAllMocks(); });
+
+  it("T32: second webhook with already_paid=true skips fulfillPaidDigitalOrder", async () => {
+    // Seed as already paid
+    seedOrder("order-dup-ff", {
+      provider_reference: "ref-dup-ff",
+      payment_status: "paid",
+      payment_provider: "paystack",
+    });
+    seedReservation("order-dup-ff", "prod-1", 1);
+    rpc.mockImplementation(makeCompleteShopPaymentRpc(makeAdmin()));
+    fulfillPaidDigitalOrder.mockResolvedValue(undefined);
+
+    const { POST } = await import("@/app/api/webhooks/paystack/route");
+    const res = await POST(makeWebhookRequest({
+      event: "charge.success",
+      data: { status: "success", reference: "ref-dup-ff", id: 300, metadata: { kebu_reference: "ref-dup-ff" } },
+    }));
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.alreadyPaid).toBe(true);
+    expect(fulfillPaidDigitalOrder).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T33: restore_product_stock_atomic migration (Item 8)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T33: restore_product_stock_atomic migration", () => {
+  it("T33: migration defines restore_product_stock_atomic with FOR UPDATE lock and track_stock guard", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require("node:fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { join } = require("node:path");
+    const sql: string = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260923230000_restore_product_stock_atomic.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("restore_product_stock_atomic");
+    expect(sql).toContain("for update");
+    expect(sql).toContain("track_stock");
+    expect(sql).toContain("p_quantity");
+    expect(sql).toContain("service_role");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T34: PSP checkout idempotency (Item 6)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T34: PSP checkout idempotency", () => {
+  beforeEach(() => { resetState(); vi.clearAllMocks(); });
+
+  it("T34: startShopOrderProviderCheckout returns existing session without PSP call when awaiting_payment + provider_reference set", async () => {
+    orders["order-psp-idem"] = {
+      id: "order-psp-idem", project_id: "proj-1",
+      payment_status: "awaiting_payment",
+      payment_provider: "paystack",
+      provider_reference: "ref-psp-idem-123",
+      provider_payment_id: null,
+      amount_xof: 15000,
+      payment_preference: "card",
+      status: "pending",
+    };
+
+    const adminMock = makeAdmin() as unknown as import("@supabase/supabase-js").SupabaseClient;
+    const fetchSpy = vi.spyOn(global, "fetch").mockRejectedValue(new Error("PSP must not be called"));
+
+    const result = await startShopOrderProviderCheckout({
+      admin: adminMock,
+      orderId: "order-psp-idem",
+      projectId: "proj-1",
+      amountXof: 15000,
+      productName: "Test Product",
+      paymentPreference: "card",
+      appUrl: "https://example.com",
+    });
+
+    fetchSpy.mockRestore();
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.reference).toBe("ref-psp-idem-123");
+      expect(result.provider).toBe("paystack");
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T35: create_cart_order_atomic migration raises inventory_unavailable (Item 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T35: Atomic cart order migration", () => {
+  it("T35: migration defines create_cart_order_atomic with inventory_unavailable exception and service_role grant", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require("node:fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { join } = require("node:path");
+    const sql: string = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260923220000_atomic_cart_order.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("create_cart_order_atomic");
+    expect(sql).toContain("inventory_unavailable");
+    expect(sql).toContain("service_role");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T36: All financial RPCs revoke from public/anon/authenticated (Item 14)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T36: RLS authorization — service_role only", () => {
+  it("T36: every commerce migration grants to service_role and revokes from lesser roles", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require("node:fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { join } = require("node:path");
+    const migrations = [
+      "20260923185000_converge_shop_payment_completion.sql",
+      "20260923200000_commerce_multi_line_reservations.sql",
+      "20260923210000_shop_refunds.sql",
+      "20260923220000_atomic_cart_order.sql",
+      "20260923230000_restore_product_stock_atomic.sql",
+    ];
+    for (const m of migrations) {
+      const sql: string = readFileSync(join(process.cwd(), `supabase/migrations/${m}`), "utf8");
+      expect(sql, `${m} must grant to service_role`).toContain("service_role");
+      expect(sql.toLowerCase(), `${m} must revoke from lesser roles`).toMatch(
+        /revoke[\s\S]{0,200}from[\s\S]{0,200}(public|anon|authenticated)/,
+      );
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T37: Joko rail always records CAURIS currency (Item 11)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T37: Joko CAURIS currency consistency", () => {
+  it("T37: adapter-checkout records CAURIS currency on joko checkout_started ledger event", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require("node:fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { join } = require("node:path");
+    const src: string = readFileSync(join(process.cwd(), "lib/shop/adapter-checkout.ts"), "utf8");
+    // The joko checkout_started ledger call must use CAURIS, not XOF
+    const jokoBlock = src.match(/rail:\s*"joko"[\s\S]{0,500}currency:\s*"CAURIS"/);
+    expect(jokoBlock, "joko ledger event must use currency CAURIS").not.toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T38: Provider capability matrix — unsupported refund handled (Item 7)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T38: Provider capability matrix", () => {
+  beforeEach(() => { resetState(); vi.clearAllMocks(); });
+
+  it("T38: processRefund with unknown provider marks failed with retryable=false", async () => {
+    refunds["refund-unknownpsp"] = {
+      id: "refund-unknownpsp", order_id: "order-1", project_id: "proj-1",
+      provider: "unknown_psp_xyz", requested_amount_xof: 5000, currency: "XOF",
+      status: "pending", provider_refund_id: null,
+      idempotency_key: "ik-unknownpsp", attempts: 0, max_attempts: 5,
+      restock_status: "pending", provider_capture_reference: "ref-cap",
+    };
+
+    const admin = {
+      from: (table: string) => makeMockQuery(table),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as unknown as import("@supabase/supabase-js").SupabaseClient;
+
+    const result = await processRefund(admin, "refund-unknownpsp");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.retryable).toBe(false);
+      expect(result.error).toMatch(/does not support refunds/i);
+    }
+    expect(refunds["refund-unknownpsp"]?.status).toBe("failed");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T39: complete_shop_payment uses FOR UPDATE (Items 1, 5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T39: Concurrency — FOR UPDATE in payment completion", () => {
+  it("T39: complete_shop_payment migration uses FOR UPDATE to prevent payment/cancellation race", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require("node:fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { join } = require("node:path");
+    const sql: string = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260923185000_converge_shop_payment_completion.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("for update");
+    expect(sql).toContain("complete_shop_payment");
+    // Idempotent commit via on conflict do nothing
+    expect(sql).toContain("on conflict");
+    expect(sql).toContain("service_role");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T40: Reservation expiry guard in SQL (Item 4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("T40: SKIP LOCKED and reservation expiry SQL guards", () => {
+  it("T40a: reservation migration enforces expiry check in commit_shop_checkout", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require("node:fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { join } = require("node:path");
+    const sql: string = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260923200000_commerce_multi_line_reservations.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("commit_shop_checkout");
+    expect(sql).toContain("expires_at");
+    expect(sql).toContain("checkout reservation expired");
+  });
+
+  it("T40b: platform_jobs migration uses SKIP LOCKED for safe concurrent job claiming", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { readFileSync } = require("node:fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { join } = require("node:path");
+    const sql: string = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260923240000_platform_jobs.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("claim_platform_jobs");
+    expect(sql).toContain("skip locked");
+    expect(sql).toContain("service_role");
   });
 });

@@ -56,6 +56,26 @@ export async function startShopOrderProviderCheckout(opts: {
   paymentPreference: string;
   appUrl: string;
 }): Promise<AdapterCheckoutStart> {
+  // Idempotency: if a PSP session already exists for this order, return it
+  // without creating a new external session.
+  const { data: existingOrder } = await opts.admin
+    .from("shop_orders")
+    .select("payment_status, payment_provider, provider_reference, provider_payment_id")
+    .eq("id", opts.orderId)
+    .maybeSingle();
+  if (
+    existingOrder?.payment_status === "awaiting_payment" &&
+    existingOrder.provider_reference &&
+    existingOrder.payment_provider
+  ) {
+    const provider = existingOrder.payment_provider as string;
+    const reference = existingOrder.provider_reference as string;
+    const base = opts.appUrl.replace(/\/$/, "");
+    const q = `order=${encodeURIComponent(opts.orderId)}&psp=${encodeURIComponent(provider)}`;
+    const paymentUrl = `${base}/sites/order-thanks?${q}`;
+    return { ok: true, paymentUrl, provider, reference };
+  }
+
   const email = opts.customerEmail?.trim() || "";
   if (
     (opts.paymentPreference === "card" || opts.paymentPreference === "paypal") &&
