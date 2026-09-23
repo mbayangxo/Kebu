@@ -228,7 +228,16 @@ export async function POST(req: NextRequest) {
 
   if (kind === "shop_order" && reference) {
     const { markShopOrderPaid } = await import("@/lib/shop/joko-order");
-    const paid = await markShopOrderPaid(supabase, reference, paymentId ?? null);
+    const amountXofRaw = payload.metadata?.amount_xof;
+    const expectedAmountXof = amountXofRaw ? Number(amountXofRaw) : null;
+    if (expectedAmountXof != null && (!Number.isInteger(expectedAmountXof) || expectedAmountXof <= 0)) {
+      return NextResponse.json({ error: "Invalid payment metadata." }, { status: 400 });
+    }
+    const paid = await markShopOrderPaid(supabase, reference, paymentId ?? null, {
+      orderId: payload.metadata?.order_id ?? null,
+      projectId: payload.metadata?.project_id ?? null,
+      amountXof: expectedAmountXof,
+    });
     if (!paid.ok) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }
