@@ -11,6 +11,7 @@ import {
 } from "@/lib/shop/fulfillment";
 import { SHOP_CARRIERS } from "@/lib/shop/carriers";
 import { assertShopProjectAccess } from "@/lib/shop/shop-project-access";
+import { railFromProvider, recordPaymentLedgerEvent } from "@/lib/shop/payment-ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -277,6 +278,20 @@ export async function PATCH(req: Request, { params }: Params) {
 
   if (action === "refund") {
     const refundNote = typeof rec.refundNote === "string" ? rec.refundNote.slice(0, 500) : null;
+    const { data: existingRefund } = await db
+      .from("shop_orders")
+      .select("id, payment_status, amount_xof, payment_provider, provider_reference")
+      .eq("id", orderId)
+      .eq("project_id", projectId)
+      .maybeSingle();
+    if (!existingRefund) return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    if (existingRefund.payment_status === "refunded") {
+      return NextResponse.json({ order: existingRefund, carriers: SHOP_CARRIERS, alreadyRefunded: true });
+    }
+    if (existingRefund.payment_status !== "paid") {
+      return NextResponse.json({ error: "Only a paid order can be refunded." }, { status: 409 });
+    }
+
     const { data: refunded, error: refundErr } = await db
       .from("shop_orders")
       .update({
@@ -287,20 +302,30 @@ export async function PATCH(req: Request, { params }: Params) {
       })
       .eq("id", orderId)
       .eq("project_id", projectId)
+      .eq("payment_status", "paid")
       .select("*")
-      .single();
+      .maybeSingle();
 
-    if (refundErr || !refunded) {
-      return NextResponse.json(
-        {
-          error: refundErr?.message?.includes("refunded")
-            ? "Apply migration 066_remaining_slices.sql."
-            : "Could not refund order.",
-        },
-        { status: 500 },
-      );
+    if (refundErr) return NextResponse.json({ error: "Could not refund order." }, { status: 500 });
+    if (!refunded) {
+      const { data: raced } = await db.from("shop_orders").select("*").eq("id", orderId).eq("project_id", projectId).maybeSingle();
+      if (raced?.payment_status === "refunded") return NextResponse.json({ order: raced, carriers: SHOP_CARRIERS, alreadyRefunded: true });
+      return NextResponse.json({ error: "Refund state changed; reload the order." }, { status: 409 });
     }
 
+    const admin = createServiceClient();
+    if (admin) {
+      await recordPaymentLedgerEvent(admin, {
+        projectId,
+        orderId,
+        rail: railFromProvider(existingRefund.payment_provider),
+        eventType: "refunded",
+        amountXof: existingRefund.amount_xof ?? null,
+        provider: existingRefund.payment_provider ?? "unknown",
+        providerReference: existingRefund.provider_reference ?? null,
+        meta: { refundNote },
+      });
+    }
     return NextResponse.json({ order: refunded, carriers: SHOP_CARRIERS });
   }
 
