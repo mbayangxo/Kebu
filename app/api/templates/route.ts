@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { ensureTemplatesSeeded } from "@/lib/create/ensure-templates";
 import { isPublicTemplateSlug, publicTemplateSeeds } from "@/lib/create/templates-seed";
-import { FLAGSHIP_TEMPLATE_SLUGS } from "@/lib/create/template-visuals";
 
 export const dynamic = "force-dynamic";
 
@@ -24,23 +23,19 @@ function codePublicTemplates(): TemplateRow[] {
   }));
 }
 
-/** Prefer flagship (May Lecor, K-Direction), then the rest alphabetically by name. */
+/** Public template discovery is deliberately generic. Owner-only portfolio seeds (May Lecor, K-Direction, etc.) are filtered before this point and must never influence public ranking or labels. */
 function sortTemplates(rows: TemplateRow[]): TemplateRow[] {
-  const flagshipOrder = new Map<string, number>(
-    FLAGSHIP_TEMPLATE_SLUGS.map((slug, i) => [slug, i]),
-  );
   return [...rows].sort((a, b) => {
-    const ai = flagshipOrder.has(a.slug) ? flagshipOrder.get(a.slug)! : 1000;
-    const bi = flagshipOrder.has(b.slug) ? flagshipOrder.get(b.slug)! : 1000;
-    if (ai !== bi) return ai - bi;
-    return a.name.localeCompare(b.name);
+    const category = a.category.localeCompare(b.category);
+    return category !== 0 ? category : a.name.localeCompare(b.name);
   });
 }
 
 /**
  * List public website templates.
- * Always merges code seeds so May Lecor / K-Direction appear even when
- * `site_templates` was seeded before those layouts were made public.
+ * Always merges current public code seeds with active database rows. Owner portfolio
+ * seeds are excluded by `publicTemplateSeeds` / `isPublicTemplateSlug` and never leak
+ * into the shared gallery, even if an older database row still exists.
  */
 export async function GET() {
   const auth = await requireUser();
@@ -73,7 +68,7 @@ export async function GET() {
       bySlug.set(t.slug, {
         id: t.id,
         slug: t.slug,
-        // Prefer current code names/descriptions (May Lecor labeling) over stale DB copy
+        // Prefer current public code metadata over a stale DB copy
         name: seed?.name ?? t.name,
         category: seed?.category ?? t.category,
         description: seed?.description ?? t.description,
