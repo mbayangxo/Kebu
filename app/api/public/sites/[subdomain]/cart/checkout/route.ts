@@ -23,7 +23,7 @@ import {
   shopCartCheckoutSchema,
   upsertCartDraft,
 } from "@/lib/shop/cart-order";
-import { decrementCartStock, restoreProductStock } from "@/lib/shop/stock";
+import { reserveShopCheckout, releaseShopCheckout } from "@/lib/shop/stock";
 import { assertProjectPlanLimit } from "@/lib/billing/enforce-limits";
 
 export const dynamic = "force-dynamic";
@@ -103,14 +103,6 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: resolved.error }, { status: 400 });
   }
 
-  const stock = await decrementCartStock(
-    admin,
-    resolved.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-  );
-  if (!stock.ok) {
-    return NextResponse.json({ error: stock.error }, { status: 409 });
-  }
-
   if (parsed.data.sessionKey) {
     await upsertCartDraft({
       admin,
@@ -144,10 +136,23 @@ export async function POST(req: Request, { params }: Params) {
   });
 
   if (!created.ok) {
-    for (const l of resolved.lines) {
-      await restoreProductStock(admin, l.productId, l.quantity);
-    }
     return NextResponse.json({ error: created.error }, { status: 500 });
+  }
+
+  const reservedLines: string[] = [];
+  for (const line of resolved.lines) {
+    const reservation = await reserveShopCheckout(admin, {
+      orderId: created.orderId,
+      projectId: live.project_id,
+      productId: line.productId,
+      quantity: line.quantity,
+    });
+    if (!reservation.ok) {
+      await releaseShopCheckout(admin, created.orderId);
+      await admin.from("shop_orders").delete().eq("id", created.orderId).eq("project_id", live.project_id);
+      return NextResponse.json({ error: reservation.error }, { status: 409 });
+    }
+    reservedLines.push(line.productId);
   }
 
   const { data: bizProject } = await admin
