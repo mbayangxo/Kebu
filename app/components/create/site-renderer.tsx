@@ -2313,13 +2313,9 @@ export function SiteRenderer({
               tileBackground?: string;
               tileColor?: string;
             };
-            const items = p.items?.length
-              ? p.items
-              : [
-                  { label: "Women", href: "#" },
-                  { label: "Men", href: "#" },
-                  { label: "Kids", href: "#" },
-                ];
+            const items = p.items?.length ? p.items : [];
+            // On a live site with no items configured, skip the section entirely — no dead placeholder links.
+            if (!items.length && mode === "live") return null;
             const cols = p.columns ?? 3;
             const colClass = cols === 2 ? "grid-cols-2" : cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-3";
             return wrap(
@@ -2336,41 +2332,45 @@ export function SiteRenderer({
                     {p.title}
                   </h2>
                 ) : null}
-                <div className={`grid gap-3 max-w-5xl mx-auto ${colClass}`}>
-                  {items.map((item, i) => (
-                    <a
-                      key={i}
-                      href={item.href || "#"}
-                      className="group relative overflow-hidden rounded-xl"
-                      style={{ aspectRatio: "4/5" }}
-                    >
-                      {item.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={item.image}
-                          alt={item.label}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div
-                          className="h-full w-full"
-                          style={{ background: p.tileBackground || theme.primary + "18" }}
-                        />
-                      )}
-                      <div
-                        className="absolute inset-x-0 bottom-0 p-4"
-                        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }}
+                {items.length === 0 ? (
+                  <p className="text-center text-sm opacity-40 py-6">Add categories in the editor to show tiles here.</p>
+                ) : (
+                  <div className={`grid gap-3 max-w-5xl mx-auto ${colClass}`}>
+                    {items.map((item, i) => (
+                      <a
+                        key={i}
+                        href={item.href && item.href !== "#" ? item.href : undefined}
+                        className="group relative overflow-hidden rounded-xl"
+                        style={{ aspectRatio: "4/5", cursor: item.href && item.href !== "#" ? "pointer" : "default" }}
                       >
-                        <p
-                          className="text-sm font-bold tracking-wide"
-                          style={{ color: p.tileColor || "#fff" }}
+                        {item.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.image}
+                            alt={item.label}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div
+                            className="h-full w-full"
+                            style={{ background: p.tileBackground || theme.primary + "18" }}
+                          />
+                        )}
+                        <div
+                          className="absolute inset-x-0 bottom-0 p-4"
+                          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }}
                         >
-                          {item.label}
-                        </p>
-                      </div>
-                    </a>
-                  ))}
-                </div>
+                          <p
+                            className="text-sm font-bold tracking-wide"
+                            style={{ color: p.tileColor || "#fff" }}
+                          >
+                            {item.label}
+                          </p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </section>,
             );
           }
