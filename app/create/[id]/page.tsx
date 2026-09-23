@@ -1465,20 +1465,29 @@ export default function ProjectEditorPage() {
               )}
 
               {sidebarTab === "extensions" && (
-                <BuilderAppsPanel
-                  projectId={projectId}
-                  sectionTypes={editPageSections.map((section) => section.section_type)}
-                  onAdd={async (type) => {
-                    await addSection(type);
-                    setSidebarTab("content");
-                    setLeftPanelOpen(true);
-                  }}
-                />
-              )}
-
-
-              {sidebarTab === "connections" && (
-                <BuilderConnectionsPanel projectId={projectId} />
+                <div className="space-y-4">
+                  <BuilderAppsPanel
+                    projectId={projectId}
+                    sectionTypes={editPageSections.map((section) => section.section_type)}
+                    onAdd={async (type) => {
+                      await addSection(type);
+                      setSidebarTab("content");
+                      setLeftPanelOpen(true);
+                    }}
+                  />
+                  <div className="border-t px-3 pt-4" style={{ borderColor: BUILDER.border }}>
+                    <p className="mb-2 text-[10px] font-black uppercase tracking-[0.1em]" style={{ color: BUILDER.muted }}>
+                      Connections
+                    </p>
+                    <BuilderConnectionsPanel projectId={projectId} />
+                  </div>
+                  <div className="border-t px-3 pb-3 pt-4" style={{ borderColor: BUILDER.border }}>
+                    <p className="mb-2 text-[10px] font-black uppercase tracking-[0.1em]" style={{ color: BUILDER.muted }}>
+                      Blog
+                    </p>
+                    <BuilderBlogPanel projectId={projectId} />
+                  </div>
+                </div>
               )}
 
               {sidebarTab === "shop" && (
@@ -1744,7 +1753,6 @@ export default function ProjectEditorPage() {
                 </div>
               )}
 
-              {!selectedSectionId && <BuilderBlogPanel projectId={projectId} />}
 
               {!selectedSectionId && (
               <div className="px-2 py-1.5 space-y-1.5" style={{ background: "#ffffff" }}>
