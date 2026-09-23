@@ -45,6 +45,7 @@ export function BuilderSiteChromePanel({
     logoUrl?: string;
     logoAlt?: string;
     logoScale?: number;
+    logoAnimation?: "none" | "fade-up" | "soft-zoom" | "float";
     faviconUrl?: string;
     fontFamily?: string;
     fontWeight?: number;
@@ -99,6 +100,11 @@ export function BuilderSiteChromePanel({
               </GalaxyFieldLabel>
               <GalaxyFieldLabel label={`Logo size · ${Number(headerProps.logoScale ?? 1).toFixed(1)}×`}>
                 <input type="range" min="0.5" max="4" step="0.1" className="mt-2 w-full accent-[#FF6A00]" value={Number(headerProps.logoScale ?? 1)} onChange={(event) => onPatch({ logoScale: Number(event.target.value) })} />
+              </GalaxyFieldLabel>
+              <GalaxyFieldLabel label="Logo animation">
+                <select className={INPUT} value={headerProps.logoAnimation ?? "none"} onChange={(event) => onPatch({ logoAnimation: event.target.value })}>
+                  <option value="none">None</option><option value="fade-up">Fade up</option><option value="soft-zoom">Soft zoom</option><option value="float">Gentle float</option>
+                </select>
               </GalaxyFieldLabel>
               <SectionPhotoField projectId={projectId} label="Favicon / browser icon" value={String(headerProps.faviconUrl ?? "")} onChange={(faviconUrl) => onPatch({ faviconUrl })} />
               <label className="flex min-h-10 cursor-pointer items-center justify-between rounded-lg bg-black/[0.025] px-2.5">

@@ -209,6 +209,7 @@ export const sectionPropsSchemas = {
     logoUrl: imageUrl.default(""),
     logoAlt: z.string().trim().max(120).optional().default(""),
     logoScale: z.number().min(0.5).max(4).optional().default(1),
+    logoAnimation: z.enum(["none", "fade-up", "soft-zoom", "float"]).optional().default("none"),
     faviconUrl: imageUrl.default(""),
     /** Header typography can intentionally differ from the site body. */
     fontFamily: z.string().trim().max(120).optional(),
@@ -231,6 +232,8 @@ export const sectionPropsSchemas = {
     headingFontSizePx: z.number().int().min(16).max(240).optional(),
     subheadingFontFamily: z.string().trim().max(120).optional(),
     subheadingFontSizePx: z.number().int().min(10).max(96).optional(),
+    imageAnimation: z.enum(["none", "fade-up", "soft-zoom", "float"]).optional().default("none"),
+    textAnimation: z.enum(["none", "fade-up", "soft-zoom", "float"]).optional().default("none"),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),

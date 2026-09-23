@@ -697,6 +697,7 @@ export function SiteRenderer({
               logoUrl: String(raw.logoUrl ?? ""),
               logoAlt: String(raw.logoAlt ?? raw.brand ?? ""),
               logoScale: Math.min(4, Math.max(0.5, Number(raw.logoScale ?? 1))),
+              logoAnimation: String(raw.logoAnimation ?? "none"),
               fontFamily: String(raw.fontFamily ?? ""),
               fontWeight: Number(raw.fontWeight ?? 700),
               logoAlign: (raw.logoAlign as "left" | "center" | "right" | undefined) ?? "left",
@@ -724,7 +725,7 @@ export function SiteRenderer({
               <img
                 src={p.logoUrl}
                 alt={p.logoAlt || p.brand || "Site logo"}
-                className="kebu-site-nav__logo block max-w-none object-contain"
+                className={`kebu-site-nav__logo block max-w-none object-contain kebu-motion-${p.logoAnimation}`}
                 style={{
                   height: Math.max(24, Math.round(m.brandPx * 1.75 * p.logoScale)),
                   width: "auto",
@@ -840,6 +841,8 @@ export function SiteRenderer({
               headingFontSizePx: Number(raw.headingFontSizePx ?? 0),
               subheadingFontFamily: String(raw.subheadingFontFamily ?? ""),
               subheadingFontSizePx: Number(raw.subheadingFontSizePx ?? 0),
+              imageAnimation: String(raw.imageAnimation ?? "none"),
+              textAnimation: String(raw.textAnimation ?? "none"),
             };
             const patchHero = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
@@ -872,7 +875,7 @@ export function SiteRenderer({
                   <img
                     src={p.image}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
+                    className={`absolute inset-0 h-full w-full object-cover kebu-motion-${p.imageAnimation}`}
                     style={{ opacity: 0.88, objectPosition: p.imagePosition }}
                   />
                 ) : null}
@@ -885,7 +888,7 @@ export function SiteRenderer({
                   }}
                 />
                 <div className={`relative z-10 w-full px-6 pb-16 pt-32 sm:px-12 ${isCenter ? "text-center" : ""}`}>
-                  <div className={isCenter ? "mx-auto max-w-2xl" : "max-w-2xl"}>
+                  <div className={`${isCenter ? "mx-auto max-w-2xl" : "max-w-2xl"} kebu-motion-${p.textAnimation}`}>
                     {device !== "desktop" && editor?.inlineEdit ? (
                       <p className="mb-2 text-[10px] uppercase tracking-wider opacity-60">
                         Editing {device} copy

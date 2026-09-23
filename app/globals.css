@@ -803,3 +803,14 @@ input:focus, select:focus, textarea:focus {
   .shop-topbar-title { font-size: 1.125rem; }
   .shop-panel-card { padding: 18px 16px; }
 }
+
+/* Builder-authored site motion. Keep motion structured, deterministic, and respectful of reduced-motion. */
+@keyframes kebu-site-fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes kebu-site-soft-zoom { from { opacity: .72; transform: scale(.965); } to { opacity: 1; transform: scale(1); } }
+@keyframes kebu-site-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.kebu-motion-fade-up { animation: kebu-site-fade-up .7s cubic-bezier(.2,.8,.2,1) both; }
+.kebu-motion-soft-zoom { animation: kebu-site-soft-zoom .8s cubic-bezier(.2,.8,.2,1) both; }
+.kebu-motion-float { animation: kebu-site-float 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .kebu-motion-fade-up,.kebu-motion-soft-zoom,.kebu-motion-float { animation: none !important; transform: none !important; }
+}

@@ -273,6 +273,18 @@ function SectionContent({
           </select>
         </PanelField>
         <div className="grid grid-cols-2 gap-2">
+          <PanelField label="Photo animation">
+            <select className={INPUT} style={INPUT_STYLE} value={String(p.imageAnimation ?? "none")} onChange={(e) => up({ imageAnimation: e.target.value })}>
+              <option value="none">None</option><option value="fade-up">Fade up</option><option value="soft-zoom">Soft zoom</option><option value="float">Gentle float</option>
+            </select>
+          </PanelField>
+          <PanelField label="Words animation">
+            <select className={INPUT} style={INPUT_STYLE} value={String(p.textAnimation ?? "none")} onChange={(e) => up({ textAnimation: e.target.value })}>
+              <option value="none">None</option><option value="fade-up">Fade up</option><option value="soft-zoom">Soft zoom</option><option value="float">Gentle float</option>
+            </select>
+          </PanelField>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
           <PanelField label="Background color">
             <input type="color" className="h-8 w-full cursor-pointer rounded border-0 p-0" value={String(p.background ?? "#0A0A0A")} onChange={(e) => up({ background: e.target.value })} />
           </PanelField>
