@@ -1978,12 +1978,26 @@ export default function ProjectEditorPage() {
               {selectedSectionId && !selectedElement && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
                 <BuilderSectionInspector
                   key={section.id}
-                  section={section}
+                  section={{
+                    ...section,
+                    props: mergeDeviceAwareSectionProps(
+                      section.props as Record<string, unknown>,
+                      device,
+                    ),
+                  }}
                   projectId={projectId}
                   pages={pages}
                   themeDisplayFont={(project?.theme as ThemeTokens | undefined)?.fontDisplay ?? previewDefinition?.theme?.fontDisplay}
                   themeBodyFont={(project?.theme as ThemeTokens | undefined)?.fontBody ?? previewDefinition?.theme?.fontBody}
-                  onUpdateProps={(patch) => updateProps(section.id, patch)}
+                  onUpdateProps={(patch) =>
+                    applyDeviceAwarePatch(
+                      updateProps,
+                      section.id,
+                      section.props as Record<string, unknown>,
+                      device,
+                      patch,
+                    )
+                  }
                   onMoveUp={() => void moveSection(section.id, -1)}
                   onMoveDown={() => void moveSection(section.id, 1)}
                   onDuplicate={() => void duplicateSection(section.id)}

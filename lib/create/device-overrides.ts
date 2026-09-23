@@ -58,9 +58,16 @@ export function mergeDeviceAwareSectionProps(
 
 /** Keys that support per-device editing (W9 + freeform mobile layout). */
 export const DEVICE_OVERRIDE_KEYS = {
-  hero: ["heading", "subheading", "buttonLabel"] as const,
+  hero: [
+    "heading", "subheading", "buttonLabel", "headingFontFamily", "headingFontSizePx",
+    "subheadingFontFamily", "subheadingFontSizePx", "imagePosition", "imageAnimation",
+    "textAnimation", "minHeight", "align",
+  ] as const,
   navigation: ["brand"] as const,
-  text: ["heading", "body"] as const,
+  text: [
+    "heading", "body", "headingFontFamily", "headingFontSizePx", "bodyFontFamily",
+    "bodyFontSizePx", "align", "sectionPaddingY",
+  ] as const,
   features: ["heading", "items"] as const,
   faq: ["heading", "items"] as const,
   products: ["heading"] as const,
