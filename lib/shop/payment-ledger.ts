@@ -72,7 +72,7 @@ export async function recordPaymentLedgerEvent(
   },
 ): Promise<void> {
   try {
-    const { error } = await svc.from("shop_payment_ledger_events").insert({
+    const row = {
       project_id: opts.projectId,
       order_id: opts.orderId ?? null,
       rail: opts.rail,
@@ -82,7 +82,12 @@ export async function recordPaymentLedgerEvent(
       provider: (opts.provider ?? opts.rail).slice(0, 40),
       provider_reference: (opts.providerReference ?? "").slice(0, 200),
       meta: opts.meta ?? {},
-    });
+    };
+    const terminal = Boolean(opts.orderId && ["paid", "refunded", "cancelled"].includes(opts.eventType));
+    const write = terminal
+      ? svc.from("shop_payment_ledger_events").upsert(row, { onConflict: "order_id,event_type", ignoreDuplicates: true })
+      : svc.from("shop_payment_ledger_events").insert(row);
+    const { error } = await write;
     if (error && !/does not exist|shop_payment_ledger/i.test(error.message ?? "")) {
       /* swallow — logged by caller if needed */
     }
