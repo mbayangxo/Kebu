@@ -691,18 +691,18 @@ export function SiteRenderer({
             const p = {
               brand: String(readDeviceOverride(raw, device, "brand") ?? ""),
               links: (raw.links as { label: string; href: string; children?: { label: string; href: string; grandchildren?: { label: string; href: string }[] }[] }[] | undefined) ?? [],
-              navScale: raw.navScale as number | undefined,
-              navSize: raw.navSize as "compact" | "comfortable" | "large" | "fullscreen" | undefined,
-              navLayout: raw.navLayout as "top" | "side" | "hamburger" | undefined,
+              navScale: readDeviceOverride(raw, device, "navScale") as number | undefined,
+              navSize: readDeviceOverride(raw, device, "navSize") as "compact" | "comfortable" | "large" | "fullscreen" | undefined,
+              navLayout: readDeviceOverride(raw, device, "navLayout") as "top" | "side" | "hamburger" | undefined,
               logoUrl: String(raw.logoUrl ?? ""),
               logoAlt: String(raw.logoAlt ?? raw.brand ?? ""),
-              logoScale: Math.min(4, Math.max(0.5, Number(raw.logoScale ?? 1))),
+              logoScale: Math.min(4, Math.max(0.5, Number(readDeviceOverride(raw, device, "logoScale") ?? 1))),
               logoAnimation: String(raw.logoAnimation ?? "none"),
-              fontFamily: String(raw.fontFamily ?? ""),
-              fontWeight: Number(raw.fontWeight ?? 700),
-              logoAlign: (raw.logoAlign as "left" | "center" | "right" | undefined) ?? "left",
-              navSticky: raw.navSticky !== false,
-              navStyle: raw.navStyle as "standard" | "mega" | undefined,
+              fontFamily: String(readDeviceOverride(raw, device, "fontFamily") ?? ""),
+              fontWeight: Number(readDeviceOverride(raw, device, "fontWeight") ?? 700),
+              logoAlign: (readDeviceOverride(raw, device, "logoAlign") as "left" | "center" | "right" | undefined) ?? "left",
+              navSticky: readDeviceOverride(raw, device, "navSticky") !== false,
+              navStyle: readDeviceOverride(raw, device, "navStyle") as "standard" | "mega" | undefined,
             };
             const patchNav = (patch: Record<string, unknown>) =>
               applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
