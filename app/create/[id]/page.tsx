@@ -1998,6 +1998,22 @@ export default function ProjectEditorPage() {
                       patch,
                     )
                   }
+                  responsiveDevice={device}
+                  responsiveOverrideActive={hasDeviceOverrideKeys(
+                    section.props as Record<string, unknown>,
+                    device,
+                    DEVICE_OVERRIDE_KEYS[section.section_type as keyof typeof DEVICE_OVERRIDE_KEYS] ?? [],
+                  )}
+                  onResetResponsive={() =>
+                    updateProps(
+                      section.id,
+                      clearDeviceOverrideKeys(
+                        section.props as Record<string, unknown>,
+                        device,
+                        DEVICE_OVERRIDE_KEYS[section.section_type as keyof typeof DEVICE_OVERRIDE_KEYS] ?? [],
+                      ),
+                    )
+                  }
                   onMoveUp={() => void moveSection(section.id, -1)}
                   onMoveDown={() => void moveSection(section.id, 1)}
                   onDuplicate={() => void duplicateSection(section.id)}

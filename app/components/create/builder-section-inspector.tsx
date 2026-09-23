@@ -114,6 +114,9 @@ type Props = {
   onMoveDown: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  responsiveDevice?: "desktop" | "tablet" | "phone";
+  responsiveOverrideActive?: boolean;
+  onResetResponsive?: () => void;
 };
 
 export function BuilderSectionInspector({
@@ -127,6 +130,9 @@ export function BuilderSectionInspector({
   onMoveDown,
   onDuplicate,
   onDelete,
+  responsiveDevice = "desktop",
+  responsiveOverrideActive = false,
+  onResetResponsive,
 }: Props) {
   const tabs = SECTION_TABS[section.section_type] ?? ["Layout"];
   const [activeTab, setActiveTab] = useState(tabs[0] ?? "Layout");
@@ -142,6 +148,18 @@ export function BuilderSectionInspector({
 
   return (
     <div className="flex flex-col">
+      {responsiveDevice !== "desktop" ? (
+        <div className="flex items-center justify-between gap-2 border-b px-3 py-2" style={{ borderColor: BUILDER.border, background: "#FFF7ED" }}>
+          <p className="text-[10px] font-semibold" style={{ color: BUILDER.ink }}>
+            Editing {responsiveDevice === "phone" ? "phone" : "tablet"} only
+          </p>
+          {responsiveOverrideActive && onResetResponsive ? (
+            <button type="button" onClick={onResetResponsive} className="text-[10px] font-bold underline underline-offset-2" style={{ color: "#C2410C" }}>
+              Use desktop values
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {/* ── Action row ── */}
       <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
         <button
