@@ -114,7 +114,7 @@ type Props = {
   onMoveDown: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
-  responsiveDevice?: "desktop" | "tablet" | "phone";
+  responsiveDevice?: "desktop" | "tablet" | "mobile";
   responsiveOverrideActive?: boolean;
   onResetResponsive?: () => void;
 };
@@ -151,7 +151,7 @@ export function BuilderSectionInspector({
       {responsiveDevice !== "desktop" ? (
         <div className="flex items-center justify-between gap-2 border-b px-3 py-2" style={{ borderColor: BUILDER.border, background: "#FFF7ED" }}>
           <p className="text-[10px] font-semibold" style={{ color: BUILDER.ink }}>
-            Editing {responsiveDevice === "phone" ? "phone" : "tablet"} only
+            Editing {responsiveDevice === "mobile" ? "mobile" : "tablet"} only
           </p>
           {responsiveOverrideActive && onResetResponsive ? (
             <button type="button" onClick={onResetResponsive} className="text-[10px] font-bold underline underline-offset-2" style={{ color: "#C2410C" }}>
