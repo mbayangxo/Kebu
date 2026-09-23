@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
-import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import type { HomeSummary } from "@/lib/account/home-summary";
 
 type Business = {
@@ -214,10 +213,10 @@ function BusinessWorkspaceInner() {
 
   const stats = [
     { n: (summary?.sites ?? []).length, label: "Projects", href: "/my-sites" },
-    { n: pulseStats?.pendingOrders ?? 0, label: "Tasks", href: "/tasks" },
+    { n: pulseStats?.pendingOrders ?? 0, label: "Orders", href: "/shop" },
     { n: businesses.length, label: "Businesses", href: "/business?tab=projects" },
-    { n: (summary?.sites ?? []).filter((s) => s.status === "live").length, label: "Assets", href: "/library" },
-    { n: pulseStats?.openMessages ?? 0, label: "Opportunities", href: "/opportunity" },
+    { n: (summary?.sites ?? []).filter((s) => s.status === "live").length, label: "Live sites", href: "/my-sites" },
+    { n: pulseStats?.openMessages ?? 0, label: "Messages", href: "/messages" },
   ];
 
   return (
@@ -327,10 +326,10 @@ function BusinessWorkspaceInner() {
                     </button>
                     <p className="mt-1 text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>Your creative & business workspace</p>
                   </div>
-                  <Link href="/business/register"
+                  <Link href={activeWorkspace ? `/business/${activeWorkspace.id}/edit` : "/business/register"}
                     className="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-wide text-white transition hover:bg-white/10"
                     style={{ borderColor: "rgba(255,255,255,0.3)" }}>
-                    Edit workspace
+                    {activeWorkspace ? "Edit workspace" : "Register business"}
                   </Link>
                 </div>
               </div>

@@ -228,7 +228,7 @@ export default function KebuHomePage() {
                   </section>
                 ) : null}
 
-                {/* Ideas are everywhere — opportunity section */}
+                {/* Opportunity OS section */}
                 <section>
                   <div className="mb-4 flex items-center justify-between">
                     <div>
@@ -237,21 +237,17 @@ export default function KebuHomePage() {
                     </div>
                     <Link href="/opportunity" className="text-[10px] font-semibold" style={{ color: KEBU.orange }}>Browse all →</Link>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {[
-                      { tag: "Grant", title: "Creative Africa Fund", sub: "$50,000 · Global", href: "/opportunity" },
-                      { tag: "Job", title: "Creative Director", sub: "Paris, France · Remote", href: "/opportunity" },
-                      { tag: "Program", title: "AI for Creators", sub: "Google · 12 weeks", href: "/opportunity" },
-                    ].map((opp) => (
-                      <Link key={opp.title} href={opp.href}
-                        className="group overflow-hidden rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
-                        style={{ borderColor: KEBU.borders.default, background: KEBU.white }}>
-                        <span className="inline-flex rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-wide text-white" style={{ background: KEBU.orange }}>{opp.tag}</span>
-                        <p className="mt-3 font-black leading-tight">{opp.title}</p>
-                        <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>{opp.sub}</p>
-                      </Link>
-                    ))}
-                  </div>
+                  <Link href="/opportunity"
+                    className="flex items-center justify-between rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-sm"
+                    style={{ borderColor: KEBU.borders.default, background: KEBU.white }}>
+                    <div>
+                      <p className="font-black leading-tight" style={{ color: KEBU.black }}>Grants, Jobs &amp; Programs</p>
+                      <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
+                        Discover curated opportunities for African creators and founders.
+                      </p>
+                    </div>
+                    <span className="ml-4 shrink-0 text-lg font-black" style={{ color: KEBU.orange }}>→</span>
+                  </Link>
                 </section>
               </div>
 

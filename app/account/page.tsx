@@ -58,6 +58,13 @@ export default function AccountPage() {
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>("account");
+  const [notifState, setNotifState] = useState({
+    emailNotifications: true,
+    pushNotifications: false,
+    marketingEmails: true,
+    weeklyDigest: false,
+  });
+  const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -130,7 +137,7 @@ export default function AccountPage() {
       method: "PATCH",
       credentials: "include",
       headers: { "Content-Type": "application/json", "X-Kebu-Data-Mode": mode },
-      body: JSON.stringify({ name, residenceCountry: country || null }),
+      body: JSON.stringify({ name, residenceCountry: country || null, phone: phone || null, bio: bio || null }),
     });
     const bytes = await measureResponseBytes(res);
     const ev = evaluateKb({ action: "save_profile", mode, usedBytes: bytes });
@@ -362,19 +369,27 @@ export default function AccountPage() {
           {tab === "notifications" && (
             <div className="rounded-2xl border bg-white p-6" style={{ borderColor: border }}>
               <p className="mb-5 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Notifications</p>
-              {[
-                { label: "Email notifications", sub: "Receive updates via email", on: true },
-                { label: "Push notifications", sub: "Browser and mobile alerts", on: false },
-                { label: "Marketing emails", sub: "Tips, features and product news", on: true },
-                { label: "Weekly digest", sub: "Summary of your activity every Monday", on: false },
-              ].map((row) => (
-                <div key={row.label} className="flex items-center justify-between py-3.5 border-b last:border-0" style={{ borderColor: border }}>
+              {(
+                [
+                  { key: "emailNotifications" as const, label: "Email notifications", sub: "Receive updates via email" },
+                  { key: "pushNotifications" as const, label: "Push notifications", sub: "Browser and mobile alerts" },
+                  { key: "marketingEmails" as const, label: "Marketing emails", sub: "Tips, features and product news" },
+                  { key: "weeklyDigest" as const, label: "Weekly digest", sub: "Summary of your activity every Monday" },
+                ] as const
+              ).map((row) => (
+                <div key={row.key} className="flex items-center justify-between py-3.5 border-b last:border-0" style={{ borderColor: border }}>
                   <div>
                     <p className="text-sm font-bold" style={{ color: KEBU.black }}>{row.label}</p>
                     <p className="text-[11px]" style={{ color: KEBU.muted }}>{row.sub}</p>
                   </div>
-                  <button type="button" className="relative h-6 w-10 rounded-full transition-colors" style={{ background: row.on ? KEBU.orange : KEBU.borders.default }}>
-                    <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform" style={{ transform: row.on ? "translateX(18px)" : "translateX(2px)" }} />
+                  <button
+                    type="button"
+                    aria-pressed={notifState[row.key]}
+                    onClick={() => setNotifState((prev) => ({ ...prev, [row.key]: !prev[row.key] }))}
+                    className="relative h-6 w-10 rounded-full transition-colors"
+                    style={{ background: notifState[row.key] ? KEBU.orange : KEBU.borders.default }}
+                  >
+                    <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform" style={{ transform: notifState[row.key] ? "translateX(18px)" : "translateX(2px)" }} />
                   </button>
                 </div>
               ))}
@@ -404,16 +419,30 @@ export default function AccountPage() {
               <p className="mb-5 text-[11px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.black }}>Appearance</p>
               <p className="mb-4 text-sm" style={{ color: KEBU.muted }}>Choose how Kebu looks and feels for you.</p>
               <div className="grid grid-cols-3 gap-3 max-w-xs">
-                {[
-                  { label: "Light", bg: "#fff", border: "#e5e5e5" },
-                  { label: "Dark", bg: "#0F0F0F", border: "#333" },
-                  { label: "System", bg: "linear-gradient(135deg,#fff 50%,#0F0F0F 50%)", border: "#ccc" },
-                ].map((theme) => (
-                  <button key={theme.label} type="button" className="flex flex-col items-center gap-2 rounded-xl border p-3 transition hover:border-orange-400" style={{ borderColor: border }}>
-                    <span className="h-10 w-full rounded-lg" style={{ background: theme.bg, border: `1px solid ${theme.border}` }} />
-                    <span className="text-[10px] font-bold" style={{ color: KEBU.black }}>{theme.label}</span>
-                  </button>
-                ))}
+                {(
+                  [
+                    { id: "light" as const, label: "Light", bg: "#fff", swatch: "#e5e5e5" },
+                    { id: "dark" as const, label: "Dark", bg: "#0F0F0F", swatch: "#333" },
+                    { id: "system" as const, label: "System", bg: "linear-gradient(135deg,#fff 50%,#0F0F0F 50%)", swatch: "#ccc" },
+                  ] as const
+                ).map((theme) => {
+                  const isSelected = appearance === theme.id;
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => setAppearance(theme.id)}
+                      className="flex flex-col items-center gap-2 rounded-xl border p-3 transition"
+                      style={{
+                        borderColor: isSelected ? KEBU.orange : border,
+                        boxShadow: isSelected ? `0 0 0 2px ${KEBU.orange}` : "none",
+                      }}
+                    >
+                      <span className="h-10 w-full rounded-lg" style={{ background: theme.bg, border: `1px solid ${theme.swatch}` }} />
+                      <span className="text-[10px] font-bold" style={{ color: isSelected ? KEBU.orange : KEBU.black }}>{theme.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

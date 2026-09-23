@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import type { AccountWorkspaceContext } from "@/lib/account/workspace-context";
@@ -18,23 +19,26 @@ type Room = {
 
 const TOP_TABS = ["All rooms", "Joined", "Owned", "Starred", "Archived"];
 
-const QUICK_ACTIONS = [
-  { label: "Create room", icon: "create" as const, primary: true },
-  { label: "Invite people", icon: "people" as const },
-  { label: "Start a chat", icon: "message" as const },
-  { label: "Add files", icon: "library" as const },
-  { label: "Create task", icon: "work" as const },
-  { label: "Schedule", icon: "calendar" as const },
-  { label: "Share link", icon: "arrowRight" as const },
+const QUICK_ACTIONS: { label: string; icon: "create"|"people"|"message"|"library"|"work"|"calendar"|"arrowRight"; primary?: boolean; href?: string; action?: string }[] = [
+  { label: "Create room", icon: "create", primary: true, action: "create" },
+  { label: "Invite people", icon: "people", href: "/people" },
+  { label: "Start a chat", icon: "message", href: "/messages" },
+  { label: "Add files", icon: "library", href: "/library" },
+  { label: "Create task", icon: "work", href: "/tasks" },
+  { label: "Schedule", icon: "calendar", href: "/calendar" },
+  { label: "Share link", icon: "arrowRight", action: "share" },
 ];
 
 const ROOM_TYPE_FILTERS = ["All", "Projects", "Teams", "Communities", "Learning", "Events", "Private"];
 
-const SUGGESTED_ROOMS = [
-  { name: "Women in Tech", count: "1.8K members" },
-  { name: "African Founders", count: "3.2K members" },
-  { name: "Creative Africa", count: "2.1K members" },
-];
+const ROOM_TYPE_MAP: Record<string, string[]> = {
+  Projects: ["project"],
+  Teams: ["team"],
+  Communities: ["community"],
+  Learning: ["learning"],
+  Events: ["event"],
+  Private: ["private"],
+};
 
 const ROOM_GRADIENTS = [
   "linear-gradient(135deg,#FF6A00,#FF1F1F)",
@@ -60,6 +64,7 @@ function timeAgo(dateStr: string) {
 }
 
 export default function RoomsPage() {
+  const router = useRouter();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [workspace, setWorkspace] = useState<AccountWorkspaceContext | null>(null);
   const [name, setName] = useState("");
@@ -86,6 +91,20 @@ export default function RoomsPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  function handleQuickAction(action: typeof QUICK_ACTIONS[number]) {
+    if (action.action === "create") { setShowCreateModal(true); return; }
+    if (action.action === "share") {
+      void navigator.clipboard?.writeText(window.location.href).catch(() => null);
+      return;
+    }
+    if (action.href) router.push(action.href);
+  }
+
+  const filteredRooms = rooms.filter((r) => {
+    if (activeTypeFilter === "All") return true;
+    return (ROOM_TYPE_MAP[activeTypeFilter] ?? []).includes(r.room_type);
+  });
 
   async function createRoom() {
     if (!name.trim() || creating) return;
@@ -144,7 +163,8 @@ export default function RoomsPage() {
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action.label}
-                  onClick={action.label === "Create room" ? () => setShowCreateModal(true) : undefined}
+                  type="button"
+                  onClick={() => handleQuickAction(action)}
                   className="flex shrink-0 flex-col items-center gap-1.5 rounded-2xl border bg-white px-3.5 py-3 hover:bg-black/[.02] hover:-translate-y-0.5 transition"
                   style={{
                     borderColor: action.primary ? "transparent" : KEBU.borders.default,
@@ -195,9 +215,9 @@ export default function RoomsPage() {
             )}
 
             {/* Room cards grid */}
-            {rooms.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
-                {rooms.map((room, index) => (
+            {filteredRooms.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredRooms.map((room, index) => (
                   <Link
                     key={room.id}
                     href={"/rooms/" + room.id}
@@ -224,39 +244,43 @@ export default function RoomsPage() {
                         <h2 className="truncate text-[13px] font-black">{room.name}</h2>
                         <button className="shrink-0 text-black/30 text-[11px]" onClick={(e) => e.preventDefault()}>···</button>
                       </div>
-                      {/* Member row */}
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <div className="flex -space-x-1.5">
-                          {[0, 1, 2].map((i) => (
-                            <div
-                              key={i}
-                              className="h-5 w-5 rounded-full border-2 border-white"
-                              style={{ background: ONLINE_COLORS[i % ONLINE_COLORS.length] }}
-                            />
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="h-1.5 w-1.5 rounded-full" style={{ background: "#10B981" }} />
-                          <span className="text-[10px]" style={{ color: KEBU.faint }}>
-                            {(index % 5) + 1} online
-                          </span>
-                        </div>
-                        <span className="ml-auto text-[9px] uppercase tracking-wide" style={{ color: KEBU.faint }}>
-                          {room.room_type} · {timeAgo(room.updated_at)}
+                      <div className="mt-2.5 flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide" style={{ background: "rgba(255,85,0,0.09)", color: KEBU.orange }}>
+                          {room.room_type}
+                        </span>
+                        <span className="text-[9px] uppercase tracking-wide" style={{ color: KEBU.faint }}>
+                          {timeAgo(room.updated_at)}
                         </span>
                       </div>
                     </div>
                   </Link>
                 ))}
               </div>
+            ) : rooms.length > 0 ? (
+              <div className="rounded-2xl border border-dashed bg-white p-10 text-center" style={{ borderColor: KEBU.borders.default }}>
+                <KebuIcon name="search" size={24} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
+                <p className="text-sm font-black">No {activeTypeFilter.toLowerCase()} rooms yet.</p>
+                <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
+                  Try a different filter, or create a room of this type.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setActiveTypeFilter("All"); }}
+                  className="mt-4 inline-flex rounded-full border px-4 py-2 text-[10px] font-bold"
+                  style={{ borderColor: KEBU.borders.default }}
+                >
+                  Clear filter
+                </button>
+              </div>
             ) : (
               <div className="rounded-2xl border border-dashed bg-white p-12 text-center" style={{ borderColor: KEBU.borders.default }}>
                 <KebuIcon name="spaces" size={30} className="mx-auto mb-3" style={{ color: KEBU.faint }} />
-                <p className="text-sm font-black">No rooms in this space yet.</p>
+                <p className="text-sm font-black">No rooms yet.</p>
                 <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
                   Create one for a project, team, client or community.
                 </p>
                 <button
+                  type="button"
                   onClick={() => setShowCreateModal(true)}
                   className="mt-4 inline-flex rounded-full px-4 py-2 text-[10px] font-bold text-white"
                   style={{ background: KEBU.black }}
@@ -287,9 +311,9 @@ export default function RoomsPage() {
                     />
                   ))}
                 </div>
-                <button className="rounded-full border border-white/20 px-3.5 py-1.5 text-[11px] font-bold text-white hover:border-white/40 transition">
+                <Link href="/rooms/discover" className="rounded-full border border-white/20 px-3.5 py-1.5 text-[11px] font-bold text-white hover:border-white/40 transition">
                   Browse
-                </button>
+                </Link>
               </div>
             </div>
           </main>
@@ -340,28 +364,21 @@ export default function RoomsPage() {
               )}
             </div>
 
-            {/* Suggested rooms */}
+            {/* Discover rooms */}
             <div className="rounded-2xl border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-              <p className="text-[10px] font-black uppercase tracking-[.14em] mb-3" style={{ color: KEBU.muted }}>
-                Suggested rooms
+              <p className="text-[10px] font-black uppercase tracking-[.14em] mb-2" style={{ color: KEBU.muted }}>
+                Discover
               </p>
-              <ul className="space-y-2">
-                {SUGGESTED_ROOMS.map((sr) => (
-                  <li key={sr.name} className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 shrink-0 rounded-xl" style={{ background: "rgba(255,85,0,0.09)" }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-[11px] font-bold">{sr.name}</p>
-                      <p className="text-[9px]" style={{ color: KEBU.faint }}>{sr.count}</p>
-                    </div>
-                    <button
-                      className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold hover:bg-black/[.03] transition"
-                      style={{ borderColor: KEBU.borders.default }}
-                    >
-                      Join
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <p className="text-[11px] mb-3" style={{ color: KEBU.faint }}>
+                Find communities, teams and spaces to join.
+              </p>
+              <Link
+                href="/rooms/discover"
+                className="flex items-center justify-center gap-1.5 rounded-full py-2 text-[10px] font-black uppercase tracking-wide text-white transition hover:brightness-110"
+                style={{ background: KEBU.black }}
+              >
+                Browse rooms →
+              </Link>
             </div>
           </aside>
         </div>
