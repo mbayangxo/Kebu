@@ -51,6 +51,7 @@ import { BUILDER_DEVICE_FRAME } from "@/lib/create/builder-device";
 import {
   applyDeviceAwarePatch,
   clearDeviceOverrideKeys,
+  DEVICE_OVERRIDE_KEYS,
   hasDeviceOverrideKeys,
   mergeDeviceAwareSectionProps,
 } from "@/lib/create/device-overrides";
