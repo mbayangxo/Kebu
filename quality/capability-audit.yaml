@@ -1,0 +1,83 @@
+# Kebu capability audit configuration
+version: 1
+governing_spec: docs/KEBU_PRODUCT_DEPTH_QUALITY.md
+ledger: docs/CAPABILITY_AUDIT_LEDGER.md
+
+maturity:
+  - missing
+  - foundation
+  - partial
+  - functional
+  - reliable
+  - release-ready
+  - mature
+
+evidence_states: [PASS, FAIL, PARTIAL, BLOCKED, N/A, UNKNOWN]
+
+mandatory_dimensions:
+  - ui
+  - domain_engine
+  - api_or_server
+  - persistence
+  - authorization_rls
+  - failure_recovery
+  - reopen
+  - tests
+  - security
+  - observability
+
+conditional_dimensions:
+  - external_provider
+  - storage
+  - offline_reconnect
+  - compatibility
+  - accessibility
+  - performance
+  - visual_regression
+
+critical_journeys:
+  studio_media_to_export:
+    product: studio
+    steps: [import_media, timeline_edit, captions, save, reopen, offline_edit, reconnect, export]
+  commerce_order_lifecycle:
+    product: commerce
+    steps: [product_variant, inventory, storefront, cart, checkout, payment, order, notify, fulfill, return_refund, reconcile]
+  mail_external_round_trip:
+    product: mail
+    steps: [mailbox, external_send, external_receive, external_reply, inbound_webhook, thread, attachment, duplicate_webhook, bounce_complaint]
+  site_publish_round_trip:
+    product: sites
+    steps: [create, edit, save, reopen, preview, publish, public_render, update, compatibility]
+  work_collaboration:
+    product: work
+    steps: [space, room, invite_permission, message, file, task, document, event, reconnect, search, notification, revoke]
+  account_tenant_isolation:
+    product: account
+    steps: [personal_context, business_context, work_context, action, cross_tenant_denial]
+  search_yande_shared_commands:
+    product: intelligence
+    steps: [source_mutation, index, permission_search, open_result, yande_command, source_verification]
+
+promotion_rules:
+  reliable:
+    forbid_states: [FAIL, UNKNOWN]
+    require_failure_recovery: true
+    require_authorization_rls: true
+  release-ready:
+    forbid_states: [FAIL, PARTIAL, UNKNOWN]
+    allow_blocked_external_only: true
+    require_critical_journeys: true
+
+anti_fake_patterns:
+  review:
+    - "TODO"
+    - "FIXME"
+    - "NOT_IMPLEMENTED"
+    - "placeholder"
+    - "demo"
+    - "mock"
+    - "fake"
+    - "Math.random"
+    - "href=\"#\""
+    - "catch {}"
+  policy: "Matches are findings, not automatic failures; test/demo and intentional placeholders require explicit allowlisting and production-path proof."
