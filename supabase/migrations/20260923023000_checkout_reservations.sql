@@ -125,6 +125,7 @@ declare
   r public.shop_checkout_reservations%rowtype;
   v_count integer := 0;
 begin
+  perform pg_advisory_xact_lock(hashtextextended(p_order_id::text, 0));
   if exists(select 1 from public.shop_checkout_reservations where order_id=p_order_id and status='committed') and
      not exists(select 1 from public.shop_checkout_reservations where order_id=p_order_id and status='active') then
     return true;
@@ -173,6 +174,7 @@ set search_path = public
 as $$
 declare v_count integer;
 begin
+  perform pg_advisory_xact_lock(hashtextextended(p_order_id::text, 0));
   update public.shop_checkout_reservations
      set status=case when expires_at<=now() then 'expired' else 'released' end,
          released_at=now()
