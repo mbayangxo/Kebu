@@ -24,12 +24,16 @@ const CONNECTED = [
 
 export default function SpacesPage() {
   const [summary, setSummary] = useState<HomeSummary | null>(null);
+  const [summaryState, setSummaryState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     fetch("/api/me/home", { credentials: "include" })
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => setSummary(data?.summary ?? null))
-      .catch(() => {});
+      .then((res) => res.ok ? res.json() : Promise.reject(res.status))
+      .then((data) => {
+        setSummary(data?.summary ?? null);
+        setSummaryState("ready");
+      })
+      .catch(() => setSummaryState("error"));
   }, []);
 
   return (
@@ -56,28 +60,40 @@ export default function SpacesPage() {
           </div>
         </section>
 
+        {summaryState === "error" ? (
+          <div role="alert" className="mb-4 rounded-xl border px-4 py-3 text-xs font-semibold" style={{ borderColor: KEBU.status.errorBorder, background: KEBU.status.errorBg, color: KEBU.status.errorText }}>Could not load your spaces. Refresh to try again.</div>
+        ) : null}
+
         <section className="grid gap-3 lg:grid-cols-3">
           <article className="rounded-[22px] border bg-black p-5 text-white" style={{ borderColor: KEBU.borders.default }}>
             <p className="text-[9px] font-black uppercase tracking-[.14em] text-white/45">Personal</p>
             <h2 className="mt-2 text-2xl" style={{ fontFamily: "var(--font-fraunces)" }}>Personal Kebu</h2>
             <p className="mt-2 text-[11px] leading-relaxed text-white/55">Discovery, creative work, messages and files that are not tied to a business.</p>
-            <Link href="/dashboard" className="mt-5 inline-flex text-[10px] font-black uppercase tracking-wide text-[#FF6A00]">Open personal home →</Link>
+            <Link href="/dashboard" className="mt-5 inline-flex text-[10px] font-black uppercase tracking-wide" style={{ color: KEBU.orange }}>Open personal home →</Link>
           </article>
 
-          {(summary?.businesses ?? []).map((business) => (
+          {summaryState === "loading" ? (
+            <article className="animate-pulse rounded-[22px] border bg-white p-5" style={{ borderColor: KEBU.borders.default }}>
+              <div className="h-2 w-16 rounded-full" style={{ background: KEBU.borders.default }} />
+              <div className="mt-3 h-4 w-32 rounded-full" style={{ background: KEBU.borders.default }} />
+              <div className="mt-2 h-2 w-24 rounded-full" style={{ background: KEBU.borders.subtle }} />
+            </article>
+          ) : null}
+
+          {summaryState === "ready" ? (summary?.businesses ?? []).map((business) => (
             <article key={business.id} className="rounded-[22px] border bg-white p-5" style={{ borderColor: KEBU.borders.default }}>
               <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Business</p>
               <h2 className="mt-2 text-xl font-black">{business.name}</h2>
               <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>{business.role}</p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link href={"/business/" + business.id} className="rounded-full bg-black px-3 py-2 text-[10px] font-bold text-white">Open space</Link>
-                <Link href="/email" className="rounded-full border px-3 py-2 text-[10px] font-bold" style={{ borderColor: KEBU.borders.default }}>Mail</Link>
-                <Link href="/shop" className="rounded-full border px-3 py-2 text-[10px] font-bold" style={{ borderColor: KEBU.borders.default }}>Shop</Link>
+                <Link href={"/email?business=" + business.id} className="rounded-full border px-3 py-2 text-[10px] font-bold" style={{ borderColor: KEBU.borders.default }}>Mail</Link>
+                <Link href={"/shop?business=" + business.id} className="rounded-full border px-3 py-2 text-[10px] font-bold" style={{ borderColor: KEBU.borders.default }}>Shop</Link>
               </div>
             </article>
-          ))}
+          )) : null}
 
-          {(summary?.businesses.length ?? 0) === 0 ? (
+          {summaryState === "ready" && (summary?.businesses.length ?? 0) === 0 ? (
             <article className="rounded-[22px] border border-dashed bg-white p-5" style={{ borderColor: KEBU.borders.default }}>
               <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>New space</p>
               <h2 className="mt-2 text-xl font-black">Start something</h2>
