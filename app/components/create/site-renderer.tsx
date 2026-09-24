@@ -229,11 +229,7 @@ function wrapEditorSection(
             <button
               type="button"
               className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold text-red-600 shadow"
-              onClick={() => {
-                if (typeof window !== "undefined" && window.confirm("Remove this section from the page?")) {
-                  editor.onDeleteSection?.(sectionId);
-                }
-              }}
+              onClick={() => editor.onDeleteSection?.(sectionId)}
             >
               Remove
             </button>

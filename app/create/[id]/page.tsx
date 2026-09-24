@@ -1060,6 +1060,10 @@ export default function ProjectEditorPage() {
     if (improving || !aiPreview) return;
     setImproving(true);
     setError(null);
+    // Flush any pending debounced section saves before applying — the AI apply
+    // server-side replaces sections wholesale, so any in-flight autosave must complete
+    // before that replacement so it cannot race back and overwrite the fresh server state.
+    await saveDraftNow();
     try {
       const res = await fetch(`/api/projects/${projectId}/ai-improve/apply`, {
         method: "POST",
@@ -1147,7 +1151,12 @@ export default function ProjectEditorPage() {
     },
     onDeleteSection: (id: string) => {
       if (isChromeSectionId(id)) return;
-      void deleteSection(id);
+      // Route canvas "Remove" through the same inline confirmation as the sidebar —
+      // selects the section and arms the confirm state so the sidebar shows "Remove? / Cancel / Remove".
+      setSelectedSectionId(id);
+      setSidebarTab("content");
+      setLeftPanelOpen(true);
+      setPendingConfirm({ kind: "remove", sectionId: id });
     },
     onMoveSection: (id: string, dir: "up" | "down") => {
       if (isChromeSectionId(id)) return;
@@ -1590,6 +1599,8 @@ export default function ProjectEditorPage() {
             />
             <aside
               ref={leftPanelRef}
+              aria-label="Section editor"
+              aria-modal={leftPanelOpen && (bp === "xs" || bp === "sm" || bp === "md") ? true : undefined}
               className={`${
                 !leftPanelOpen
                   ? "hidden lg:hidden"
@@ -1942,7 +1953,7 @@ export default function ProjectEditorPage() {
                         onReorder={(ids) => void reorderSections(ids)}
                         onMoveUp={(id) => void moveSection(id, -1)}
                         onMoveDown={(id) => void moveSection(id, 1)}
-                        onRemove={(id) => void deleteSection(id)}
+                        onRemove={(id) => { setSelectedSectionId(id); setSidebarTab("content"); setPendingConfirm({ kind: "remove", sectionId: id }); }}
                         onToggleHidden={(id) => {
                           const s = sections.find((x) => x.id === id);
                           if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
@@ -1984,7 +1995,7 @@ export default function ProjectEditorPage() {
                       onReorder={(ids) => void reorderSections(ids)}
                       onMoveUp={(id) => void moveSection(id, -1)}
                       onMoveDown={(id) => void moveSection(id, 1)}
-                      onRemove={(id) => void deleteSection(id)}
+                      onRemove={(id) => { setSelectedSectionId(id); setSidebarTab("content"); setPendingConfirm({ kind: "remove", sectionId: id }); }}
                       onToggleHidden={(id) => {
                         const s = sections.find((x) => x.id === id);
                         if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
@@ -4363,6 +4374,7 @@ export default function ProjectEditorPage() {
             </aside>
 
             <section
+              aria-label="Site canvas"
               className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
               style={{
                 background: maylecorRussianLayout

@@ -82,6 +82,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
   );
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const kbNoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * Section/chrome saves not yet CONFIRMED successful, keyed "section:<id>" or "chrome:header"/
@@ -133,6 +134,12 @@ export function useProjectAutosave<T extends AutosaveSection>({
       const bytes = await measureResponseBytes(res);
       const ev = evaluateKb({ action: "save_section", mode, usedBytes: bytes });
       setKbSaveNote(ev.summary);
+      // Auto-dismiss the within-budget note after 4 s so it doesn't linger forever.
+      // Over-budget notes stay until the next save clears them — they need attention.
+      if (ev.withinBudget) {
+        if (kbNoteTimer.current) clearTimeout(kbNoteTimer.current);
+        kbNoteTimer.current = setTimeout(() => { setKbSaveNote(null); }, 4000);
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSaveStateWithTerminals("error");
@@ -421,9 +428,11 @@ export function useProjectAutosave<T extends AutosaveSection>({
   useEffect(() => {
     const timers = saveTimers.current;
     const chromeTmr = chromeSaveTimer;
+    const kbTmr = kbNoteTimer;
     return () => {
       Object.values(timers).forEach(clearTimeout);
       if (chromeTmr.current) clearTimeout(chromeTmr.current);
+      if (kbTmr.current) clearTimeout(kbTmr.current);
     };
   }, []);
 
