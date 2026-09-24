@@ -2030,6 +2030,7 @@ export default function ProjectEditorPage() {
                               <span className="text-[11px] font-medium" style={{ color: "#B91C1C" }}>Remove?</span>
                               <button
                                 type="button"
+                                autoFocus
                                 className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium"
                                 style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }}
                                 onClick={() => setPendingConfirm(null)}
@@ -2038,7 +2039,6 @@ export default function ProjectEditorPage() {
                               </button>
                               <button
                                 type="button"
-                                autoFocus
                                 className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
                                 style={{ border: "1px solid #FECACA", background: "#FEF2F2", color: "#B91C1C" }}
                                 onClick={() => { setPendingConfirm(null); void deleteSection(section.id); }}

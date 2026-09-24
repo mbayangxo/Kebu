@@ -83,6 +83,8 @@ export function useProjectAutosave<T extends AutosaveSection>({
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const kbNoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Ref-mirror of pendingTerminals so setSaveStateWithTerminals can read it synchronously. */
+  const pendingTerminalsRef = useRef<TerminalItem[]>([]);
 
   /**
    * Section/chrome saves not yet CONFIRMED successful, keyed "section:<id>" or "chrome:header"/
@@ -100,7 +102,9 @@ export function useProjectAutosave<T extends AutosaveSection>({
   }
 
   function setSaveStateWithTerminals(base: SaveState) {
-    setSaveState(base);
+    // If there are terminal items (permanently failed saves), always escalate to "needs-attention"
+    // so the user sees that action is required, regardless of the base save state.
+    setSaveState(pendingTerminalsRef.current.length > 0 ? "needs-attention" : computeSaveState(base, []));
   }
 
   async function persistProps(sectionId: string, props: Record<string, unknown>) {
@@ -399,6 +403,15 @@ export function useProjectAutosave<T extends AutosaveSection>({
       );
     }
   }
+
+  // Keep pendingTerminalsRef in sync so setSaveStateWithTerminals can read it synchronously.
+  // Also escalate saveState to "needs-attention" when new terminals arrive.
+  useEffect(() => {
+    pendingTerminalsRef.current = pendingTerminals;
+    if (pendingTerminals.length > 0) {
+      setSaveState("needs-attention");
+    }
+  }, [pendingTerminals]);
 
   // Flush any queued offline saves when connectivity returns, and surface terminal results.
   useEffect(() => {
