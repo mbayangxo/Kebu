@@ -320,6 +320,16 @@ export default function ProjectEditorPage() {
   const [editPageId, setEditPageId] = useState("");
   const [publishState, setPublishState] = useState<PublishState | null>(null);
   const [appOrigin, setAppOrigin] = useState("");
+  /**
+   * Tracks which destructive sidebar action awaits inline confirmation.
+   * Cleared automatically when the selected section changes so stale prompts
+   * can never fire on the wrong section.
+   */
+  type ConfirmAction =
+    | { kind: "remove"; sectionId: string }
+    | { kind: "regenerate"; sectionId: string; deviceLabel: string }
+    | { kind: "reset-auto"; sectionId: string; deviceLabel: string };
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmAction | null>(null);
   const bp = useBreakpoint();
   const leftPanelRef = useRef<HTMLElement | null>(null);
   const mobileAddSectionTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -338,6 +348,9 @@ export default function ProjectEditorPage() {
         : "Draft site created from your words. Yande AI was not used this time (no key or generation fell back). You still have a full editable multi-page site.",
     );
   }, []);
+
+  // Clear any pending inline confirmation when the selected section changes.
+  useEffect(() => { setPendingConfirm(null); }, [selectedSectionId]);
 
   useEffect(() => {
     if (!previewFullscreen) return;
@@ -1975,18 +1988,37 @@ export default function ProjectEditorPage() {
                           >
                             Duplicate
                           </button>
-                          <button
-                            type="button"
-                            className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
-                            style={{ border: "1px solid #FECACA", color: "#B91C1C" }}
-                            onClick={() => {
-                              if (window.confirm(`Remove "${labelForSectionType(section.section_type)}" from this page?`)) {
-                                void deleteSection(section.id);
-                              }
-                            }}
-                          >
-                            Remove
-                          </button>
+                          {pendingConfirm?.kind === "remove" && pendingConfirm.sectionId === section.id ? (
+                            <span className="flex items-center gap-1.5" role="group" aria-label="Confirm remove section">
+                              <span className="text-[11px] font-medium" style={{ color: "#B91C1C" }}>Remove?</span>
+                              <button
+                                type="button"
+                                className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium"
+                                style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }}
+                                onClick={() => setPendingConfirm(null)}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                autoFocus
+                                className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
+                                style={{ border: "1px solid #FECACA", background: "#FEF2F2", color: "#B91C1C" }}
+                                onClick={() => { setPendingConfirm(null); void deleteSection(section.id); }}
+                              >
+                                Remove
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
+                              style={{ border: "1px solid #FECACA", color: "#B91C1C" }}
+                              onClick={() => setPendingConfirm({ kind: "remove", sectionId: section.id })}
+                            >
+                              Remove
+                            </button>
+                          )}
                         </div>
 
                       {/* Responsive state indicator — shown only on tablet/phone device preview */}
@@ -2019,37 +2051,81 @@ export default function ProjectEditorPage() {
                                 </button>
                               )}
                               {rsState === "custom" && isComposable && (
-                                <button
-                                  type="button"
-                                  className="rounded-md px-2.5 py-1 text-[11px] font-medium"
-                                  style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
-                                  onClick={() => {
-                                    if (window.confirm(`Regenerate ${deviceLabel} layout from desktop? This will overwrite your ${deviceLabel}-specific changes.`)) {
-                                      const generated = generateDeviceOverrides(section.section_type, section.props);
-                                      const updated = storeAutoOverrides(section.props, generated);
-                                      updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
-                                    }
-                                  }}
-                                >
-                                  Regenerate
-                                </button>
-                              )}
-                              {rsState === "needs-review" && (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
-                                    style={{ border: "1px solid #FDE68A", color: "#92400E", background: "#FFFBEB" }}
-                                    onClick={() => {
-                                      if (window.confirm(`Regenerate ${deviceLabel} layout from desktop? This will overwrite your ${deviceLabel}-specific changes.`)) {
+                                pendingConfirm?.kind === "regenerate" && pendingConfirm.sectionId === section.id ? (
+                                  <span className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Confirm regenerate layout">
+                                    <span className="text-[11px] font-medium" style={{ color: "#1D4ED8" }}>Overwrite {deviceLabel} changes?</span>
+                                    <button
+                                      type="button"
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                      onClick={() => setPendingConfirm(null)}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      autoFocus
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}
+                                      onClick={() => {
+                                        setPendingConfirm(null);
                                         const generated = generateDeviceOverrides(section.section_type, section.props);
                                         const updated = storeAutoOverrides(section.props, generated);
                                         updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
-                                      }
-                                    }}
+                                      }}
+                                    >
+                                      Regenerate
+                                    </button>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                    style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                    onClick={() => setPendingConfirm({ kind: "regenerate", sectionId: section.id, deviceLabel })}
                                   >
                                     Regenerate
                                   </button>
+                                )
+                              )}
+                              {rsState === "needs-review" && (
+                                <>
+                                  {pendingConfirm?.kind === "regenerate" && pendingConfirm.sectionId === section.id ? (
+                                    <span className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Confirm regenerate layout">
+                                      <span className="text-[11px] font-medium" style={{ color: "#92400E" }}>Overwrite {deviceLabel} changes?</span>
+                                      <button
+                                        type="button"
+                                        className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                        style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                        onClick={() => setPendingConfirm(null)}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="button"
+                                        autoFocus
+                                        className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                        style={{ border: "1px solid #FDE68A", background: "#FFFBEB", color: "#92400E" }}
+                                        onClick={() => {
+                                          setPendingConfirm(null);
+                                          const generated = generateDeviceOverrides(section.section_type, section.props);
+                                          const updated = storeAutoOverrides(section.props, generated);
+                                          updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                        }}
+                                      >
+                                        Regenerate
+                                      </button>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: "1px solid #FDE68A", color: "#92400E", background: "#FFFBEB" }}
+                                      onClick={() => setPendingConfirm({ kind: "regenerate", sectionId: section.id, deviceLabel })}
+                                    >
+                                      Regenerate
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     className="rounded-md px-2.5 py-1 text-[11px] font-medium"
@@ -2064,19 +2140,40 @@ export default function ProjectEditorPage() {
                                 </>
                               )}
                               {(rsState === "custom" || rsState === "needs-review") && (
-                                <button
-                                  type="button"
-                                  className="rounded-md px-2.5 py-1 text-[11px] font-medium"
-                                  style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.muted, background: "#fff" }}
-                                  onClick={() => {
-                                    if (window.confirm(`Reset ${deviceLabel} to auto-designed? All ${deviceLabel}-specific customizations will be removed.`)) {
-                                      // Pass undefined to clear deviceOverrides — getResponsiveState treats absent/undefined as "auto"
-                                      updateProps(section.id, { deviceOverrides: undefined });
-                                    }
-                                  }}
-                                >
-                                  Reset to Auto
-                                </button>
+                                pendingConfirm?.kind === "reset-auto" && pendingConfirm.sectionId === section.id ? (
+                                  <span className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Confirm reset to auto">
+                                    <span className="text-[11px] font-medium" style={{ color: "#92400E" }}>Remove {deviceLabel} customizations?</span>
+                                    <button
+                                      type="button"
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                      onClick={() => setPendingConfirm(null)}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      autoFocus
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: `1px solid ${BUILDER.border}`, background: "#fff", color: BUILDER.muted }}
+                                      onClick={() => {
+                                        setPendingConfirm(null);
+                                        updateProps(section.id, { deviceOverrides: undefined });
+                                      }}
+                                    >
+                                      Reset
+                                    </button>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                    style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.muted, background: "#fff" }}
+                                    onClick={() => setPendingConfirm({ kind: "reset-auto", sectionId: section.id, deviceLabel })}
+                                  >
+                                    Reset to Auto
+                                  </button>
+                                )
                               )}
                             </div>
                           </div>
@@ -4251,7 +4348,7 @@ export default function ProjectEditorPage() {
             >
               <div
                 className={`mx-auto flex min-h-0 flex-1 w-full ${
-                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:p-8"
+                  wideCanvas ? "overflow-y-auto p-0 pb-16 sm:pb-0" : "overflow-y-auto items-start p-5 pb-20 sm:pb-8 sm:p-8"
                 }`}
               >
                 <div
