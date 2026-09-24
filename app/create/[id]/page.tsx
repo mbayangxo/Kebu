@@ -389,6 +389,28 @@ export default function ProjectEditorPage() {
     };
   }, [leftPanelOpen, bp]);
 
+  // Global Cmd/Ctrl+Z = Undo, Cmd/Ctrl+Shift+Z = Redo.
+  // Suppress when focus is inside a text-editing element so native browser undo still works there.
+  // Use a ref so the event listener always dispatches to the latest undo/redo without re-registering.
+  const undoRedoRef = useRef({ undo, redo });
+  useEffect(() => { undoRedoRef.current = { undo, redo }; });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key !== "z") return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      const editable = (e.target as HTMLElement | null)?.isContentEditable;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || editable) return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        undoRedoRef.current.redo();
+      } else {
+        undoRedoRef.current.undo();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -629,7 +651,8 @@ export default function ProjectEditorPage() {
   async function duplicateSection(sectionId: string) {
     const source = sections.find((s) => s.id === sectionId);
     if (!source) return;
-    await addSection(source.section_type, { ...source.props });
+    // Insert the duplicate immediately after the original, not appended at the end.
+    await addSection(source.section_type, { ...source.props }, sectionId);
   }
 
   /** Media library → canvas / current page (photo collage, video, or audio). */
@@ -694,6 +717,8 @@ export default function ProjectEditorPage() {
       pushHistory(prev);
       return prev.filter((s) => s.id !== sectionId);
     });
+    // Clear selection so the sidebar doesn't show a stale inspector for the deleted section.
+    setSelectedSectionId((prev) => (prev === sectionId ? null : prev));
   }
 
   async function reorderSections(orderedIds: string[]) {
@@ -719,14 +744,15 @@ export default function ProjectEditorPage() {
     const newOrdered = [...ordered];
     [newOrdered[idx], newOrdered[swapIdx]] = [newOrdered[swapIdx]!, newOrdered[idx]!];
     const newOrderedIds = newOrdered.map((s) => s.id);
-    // Optimistic UI update using dense rank matching the new order
-    setSections((prev) =>
-      prev.map((s) => {
+    // Optimistic UI update using dense rank matching the new order; push to undo history first.
+    setSections((prev) => {
+      pushHistory(prev);
+      return prev.map((s) => {
         const newIdx = newOrderedIds.indexOf(s.id);
         if (newIdx === -1) return s;
         return { ...s, sort_order: newIdx };
-      }),
-    );
+      });
+    });
     await fetch(`/api/projects/${projectId}/sections/reorder`, {
       method: "POST",
       credentials: "include",
