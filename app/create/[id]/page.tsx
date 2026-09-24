@@ -4386,8 +4386,17 @@ export default function ProjectEditorPage() {
             >
               <div
                 className={`mx-auto flex min-h-0 flex-1 w-full ${
-                  wideCanvas ? "overflow-y-auto p-0 pb-16 sm:pb-0" : "overflow-y-auto items-start p-5 pb-20 sm:pb-8 sm:p-8"
+                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:pb-8 sm:p-8"
                 }`}
+                style={
+                  // On mobile (<sm), add safe-area padding so content clears MobileActionBar
+                  // (≈52px) + device home indicator. Inline style only applied below sm breakpoint.
+                  (bp === "xs" || bp === "sm") ? {
+                    paddingBottom: wideCanvas
+                      ? "calc(4rem + env(safe-area-inset-bottom, 0px))"
+                      : "calc(5rem + env(safe-area-inset-bottom, 0px))",
+                  } : undefined
+                }
               >
                 <div
                   className={`mx-auto bg-white ${
@@ -4485,8 +4494,15 @@ export default function ProjectEditorPage() {
           />
         ) : null}
 
-        {/* Yande FAB + speed-dial — bottom-right */}
-        <div className="absolute bottom-5 right-5 z-30 flex flex-col items-end gap-2">
+        {/* Yande FAB + speed-dial — bottom-right; on mobile lift above MobileActionBar */}
+        <div
+          className="absolute right-5 z-30 flex flex-col items-end gap-2"
+          style={{
+            bottom: (bp === "xs" || bp === "sm")
+              ? "calc(3.75rem + env(safe-area-inset-bottom, 0px))"
+              : "1.25rem",
+          }}
+        >
 
           {/* Speed-dial mini-buttons — open by default on builder load */}
           {yandeDialOpen && !yandeOpen ? (
@@ -4741,8 +4757,15 @@ export default function ProjectEditorPage() {
       </Sheet>
       {kbSaveNote ? (
         <p
-          className="pointer-events-none fixed left-3 bottom-3 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
-          style={{ background: "rgba(255,251,247,0.95)", color: "#166534", border: "1px solid #E8E6DF" }}
+          className="pointer-events-none fixed left-3 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
+          style={{
+            bottom: (bp === "xs" || bp === "sm")
+              ? "calc(3.75rem + env(safe-area-inset-bottom, 0px))"
+              : "0.75rem",
+            background: "rgba(255,251,247,0.95)",
+            color: "#166534",
+            border: "1px solid #E8E6DF",
+          }}
         >
           {kbSaveNote}
         </p>

@@ -445,10 +445,12 @@ export function buildSiteJsonLd(input: SiteJsonLdInput): Record<string, unknown>
 }
 
 export function siteJsonLdScriptPayload(input: SiteJsonLdInput): string {
+  // Replace </script to prevent a "</script>" in user content from breaking out of
+  // the <script type="application/ld+json"> tag. The JSON parser ignores the escape.
   return JSON.stringify({
     "@context": "https://schema.org",
     "@graph": buildSiteJsonLd(input),
-  });
+  }).replace(/<\/script/gi, "<\\/script");
 }
 
 /** Block common XSS / injection patterns in serialized section props. */

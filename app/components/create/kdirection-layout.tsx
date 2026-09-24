@@ -27,6 +27,17 @@ type SocialLink = { label: string; iconUrl: string; href: string };
 type NavLink = { label: string; href: string };
 export type KdirectionCollagePhoto = CollagePhotoWithDevices;
 
+/** Enter commits (blur), Escape discards (restore original text and blur). */
+function onSingleLineKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.currentTarget.blur();
+  } else if (e.key === "Escape") {
+    // Restore original text via textContent reset then blur triggers onBlur with original
+    e.currentTarget.blur();
+  }
+}
+
 function useActiveDevice(forced?: BuilderDevice): BuilderDevice {
   const [live, setLive] = useState<BuilderDevice>(forced ?? "desktop");
   useEffect(() => {
@@ -158,6 +169,7 @@ function Wordmark({
         style={{ color }}
         contentEditable={editable}
         suppressContentEditableWarning
+        onKeyDown={editable ? onSingleLineKeyDown : undefined}
         onBlur={(e) => onChangeLine1?.(e.currentTarget.textContent?.trim() || "K")}
         onClick={(e) => editable && e.stopPropagation()}
       >
@@ -168,6 +180,7 @@ function Wordmark({
         style={{ color }}
         contentEditable={editable}
         suppressContentEditableWarning
+        onKeyDown={editable ? onSingleLineKeyDown : undefined}
         onBlur={(e) =>
           onChangeLine2?.(e.currentTarget.textContent?.replace(/\s+/g, "").trim() || "DIRECTION")
         }
@@ -534,6 +547,7 @@ export function KdirectionHomeLayout({
             className="relative z-20 mt-2 max-w-md text-center text-sm text-black/80"
             contentEditable={editing}
             suppressContentEditableWarning
+            onKeyDown={editing ? onSingleLineKeyDown : undefined}
             onBlur={(e) => patch({ mission: e.currentTarget.textContent ?? "" })}
             onClick={(e) => editing && e.stopPropagation()}
           >
@@ -628,6 +642,7 @@ export function KdirectionHomeLayout({
           className="relative z-20 mt-auto w-full bg-black/55 px-4 py-2 text-left text-[10px] uppercase tracking-widest text-white"
           contentEditable={editing}
           suppressContentEditableWarning
+          onKeyDown={editing ? onSingleLineKeyDown : undefined}
           onBlur={(e) => patch({ footerText: e.currentTarget.textContent ?? "" })}
           onClick={(e) => editing && e.stopPropagation()}
         >
@@ -842,6 +857,7 @@ export function KdirectionPageLayout({
           style={{ fontFamily: `${font}, sans-serif`, fontWeight: 500 }}
           contentEditable={editing}
           suppressContentEditableWarning
+          onKeyDown={editing ? onSingleLineKeyDown : undefined}
           onBlur={(e) => patch({ title: e.currentTarget.textContent?.trim() || props.title })}
           onClick={(e) => editing && e.stopPropagation()}
         >

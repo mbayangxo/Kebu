@@ -202,6 +202,7 @@ function wrapEditorSection(
             <>
               <button
                 type="button"
+                aria-label="Move section up"
                 className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
                 onClick={() => editor.onMoveSection?.(sectionId, "up")}
               >
@@ -209,6 +210,7 @@ function wrapEditorSection(
               </button>
               <button
                 type="button"
+                aria-label="Move section down"
                 className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
                 onClick={() => editor.onMoveSection?.(sectionId, "down")}
               >
@@ -219,6 +221,7 @@ function wrapEditorSection(
           {editor.onDuplicateSection ? (
             <button
               type="button"
+              aria-label="Duplicate section"
               className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
               onClick={() => editor.onDuplicateSection?.(sectionId)}
             >
@@ -228,6 +231,7 @@ function wrapEditorSection(
           {editor.onDeleteSection ? (
             <button
               type="button"
+              aria-label="Remove section"
               className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold text-red-600 shadow"
               onClick={() => editor.onDeleteSection?.(sectionId)}
             >

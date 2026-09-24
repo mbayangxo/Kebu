@@ -21,6 +21,7 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showNewPost, setShowNewPost] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     title: "",
     slug: "",
@@ -103,7 +104,6 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
   }
 
   async function removePost(postId: string) {
-    if (!window.confirm("Delete this post?")) return;
     setBusy(true);
     try {
       await fetch(`/api/projects/${projectId}/blog-posts`, {
@@ -148,14 +148,35 @@ export function BuilderBlogPanel({ projectId }: { projectId: string }) {
               >
                 {post.status === "published" ? "Unpublish" : "Publish"}
               </button>
-              <button
-                type="button"
-                disabled={busy}
-                className="text-[10px] font-bold text-red-600 px-2 py-1"
-                onClick={() => void removePost(post.id)}
-              >
-                Delete
-              </button>
+              {confirmDeleteId === post.id ? (
+                <span className="flex gap-1 items-center">
+                  <span className="text-[10px] text-red-600 font-semibold">Sure?</span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="text-[10px] font-bold text-red-600 px-2 py-1 underline"
+                    onClick={() => { setConfirmDeleteId(null); void removePost(post.id); }}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[10px] px-2 py-1"
+                    onClick={() => setConfirmDeleteId(null)}
+                  >
+                    No
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="text-[10px] font-bold text-red-600 px-2 py-1"
+                  onClick={() => setConfirmDeleteId(post.id)}
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </li>
         ))}
