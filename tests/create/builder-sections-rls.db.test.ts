@@ -88,7 +88,7 @@ async function applyMigrations(dbUrl: string): Promise<void> {
     `);
     await c.query(`
       CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
-      $$ SELECT current_setting('request.jwt.claim.sub', true)::uuid $$
+      $$ SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid $$
     `);
     await c.query(`
       CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS
