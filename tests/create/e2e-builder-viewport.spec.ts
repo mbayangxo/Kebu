@@ -70,7 +70,11 @@ test.describe("viewport breakpoint contract (unit)", () => {
 // confirm the server is healthy — any non-5xx response counts)
 // -------------------------------------------------------------------------
 
+const HAS_LIVE_SERVER = Boolean(process.env.KEBU_E2E_BASE_URL);
+
 test.describe("site responds at each canonical viewport", () => {
+  test.skip(!HAS_LIVE_SERVER, "Set KEBU_E2E_BASE_URL to enable server health checks");
+
   for (const vp of VIEWPORTS) {
     test(`${vp.label} (${vp.width}×${vp.height}) — server responds`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });

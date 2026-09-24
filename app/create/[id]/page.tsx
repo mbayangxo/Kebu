@@ -496,6 +496,17 @@ export default function ProjectEditorPage() {
     };
   }, [load]);
 
+  // Flush or cancel the settings debounce on unmount so the timer doesn't fire
+  // after the component has unmounted (setState-after-unmount / silent data loss).
+  useEffect(() => {
+    return () => {
+      if (settingsTimer.current) {
+        clearTimeout(settingsTimer.current);
+        settingsTimer.current = null;
+      }
+    };
+  }, []);
+
   function pushHistory(prev: Section[]) {
     setHistory((h) => [...h.slice(-19), prev]);
     setFuture([]);
@@ -861,6 +872,8 @@ export default function ProjectEditorPage() {
     setPublishing(true);
     setError(null);
     try {
+      // Flush any pending section saves before publishing — ensures the server sees the latest content.
+      await saveDraftNow();
       await persistSiteSettings(subdomainInput.trim(), seoSettings);
       const res = await fetch(`/api/projects/${projectId}/publish`, {
         method: "POST",
