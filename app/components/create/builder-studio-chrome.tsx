@@ -268,7 +268,7 @@ export function BuilderStudioChrome({
               aria-label={label}
               aria-pressed={device === id}
               onClick={() => onDevice(id)}
-              className="flex h-7 w-7 items-center justify-center rounded"
+              className="relative flex h-11 w-11 items-center justify-center rounded"
               style={{
                 background: device === id ? "#fff" : "transparent",
                 color: device === id ? BUILDER.ink : BUILDER.muted,

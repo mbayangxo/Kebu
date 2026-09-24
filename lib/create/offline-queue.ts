@@ -251,30 +251,33 @@ async function flushEventRegister(
   return true;
 }
 
-/** Flush queued items. Caller must be online. Never marks success without HTTP ok. */
+/** Flush queued items in parallel. Never marks success without HTTP ok. */
 export async function flushOfflineQueue(): Promise<FlushResult> {
   const items = readQueue().filter((i) => i.status !== "syncing");
+  items.forEach((item) => updateOfflineQueueItem(item.id, { status: "syncing", lastError: undefined }));
+
+  const results = await Promise.allSettled(
+    items.map(async (item) => {
+      try {
+        if (item.kind === "place_order") return await flushPlaceOrder(item);
+        if (item.kind === "save_section") return await flushSaveSection(item);
+        return await flushEventRegister(item);
+      } catch (e) {
+        updateOfflineQueueItem(item.id, {
+          status: "failed",
+          lastError: e instanceof Error ? e.message : "Network error",
+        });
+        return false;
+      }
+    }),
+  );
+
   let synced = 0;
   let failed = 0;
-
-  for (const item of items) {
-    updateOfflineQueueItem(item.id, { status: "syncing", lastError: undefined });
-    try {
-      let ok = false;
-      if (item.kind === "place_order") ok = await flushPlaceOrder(item);
-      else if (item.kind === "save_section") ok = await flushSaveSection(item);
-      else ok = await flushEventRegister(item);
-      if (ok) synced += 1;
-      else failed += 1;
-    } catch (e) {
-      failed += 1;
-      updateOfflineQueueItem(item.id, {
-        status: "failed",
-        lastError: e instanceof Error ? e.message : "Network error",
-      });
-    }
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value) synced += 1;
+    else failed += 1;
   }
-
   return { synced, failed, remaining: readQueue().length };
 }
 

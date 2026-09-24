@@ -10,7 +10,7 @@ import {
 } from "@/lib/create/site-chrome";
 import { resolveClientDataMode } from "@/lib/create/data-mode";
 import { measureResponseBytes, evaluateKb } from "@/lib/create/kb-budget";
-import { enqueueSaveSection, isBrowserOnline } from "@/lib/create/offline-queue";
+import { enqueueSaveSection, flushOfflineQueue, isBrowserOnline } from "@/lib/create/offline-queue";
 import type { PublishState } from "@/lib/create/publish-state";
 
 /** The minimal shape this hook needs from a builder section — kept narrow so it doesn't depend on
@@ -237,6 +237,15 @@ export function useProjectAutosave<T extends AutosaveSection>({
       }),
     );
   }
+
+  // Flush any queued offline saves when connectivity returns.
+  useEffect(() => {
+    const onOnline = () => {
+      void flushOfflineQueue();
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
 
   // Warn before the user leaves with edits that haven't been CONFIRMED saved yet — covers the 500ms
   // autosave debounce window as well as anything still "queued" (offline) or "error" (failed) from a

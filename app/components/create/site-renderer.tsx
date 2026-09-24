@@ -985,6 +985,8 @@ export function SiteRenderer({
         const motionPreset = motionExpressive ? ENTRANCE_MOTION[section.type] : undefined;
         const wrap = (node: ReactNode) =>
           wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset);
+        const _device = editor?.editDevice ?? "desktop";
+        const _ep = mergeDeviceAwareSectionProps(section.props as Record<string, unknown>, _device);
         const sectionEl = (() => {
         switch (section.type) {
           case "maylecor-home":
@@ -1450,7 +1452,7 @@ export function SiteRenderer({
             );
           }
           case "testimonials": {
-            const p = section.props as { heading?: string; items?: { quote: string; name: string; role?: string }[] };
+            const p = _ep as { heading?: string; items?: { quote: string; name: string; role?: string }[] };
             const items = p.items ?? [];
             const accentColor = theme.accent || theme.primary;
             return wrap(
@@ -1747,7 +1749,7 @@ export function SiteRenderer({
             );
           }
           case "contact": {
-            const p = section.props as { heading?: string; email?: string; phone?: string; address?: string };
+            const p = _ep as { heading?: string; email?: string; phone?: string; address?: string };
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 max-w-3xl mx-auto scroll-mt-20">
                 <EditableText
@@ -1767,7 +1769,7 @@ export function SiteRenderer({
             );
           }
           case "form": {
-            const p = section.props as import("@/lib/create/site-forms").SiteFormSectionProps;
+            const p = _ep as import("@/lib/create/site-forms").SiteFormSectionProps;
             const liveSubForm =
               mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase) ?? undefined) : undefined;
             return wrap(
@@ -1796,7 +1798,7 @@ export function SiteRenderer({
             );
           }
           case "blog-list": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               subheading?: string;
               postsPerPage?: number;
@@ -1816,7 +1818,7 @@ export function SiteRenderer({
             );
           }
           case "newsletter": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               subheading?: string;
               buttonLabel?: string;
@@ -1848,7 +1850,7 @@ export function SiteRenderer({
             );
           }
           case "whatsapp": {
-            const p = section.props as { label?: string; phone: string; message?: string };
+            const p = _ep as { label?: string; phone: string; message?: string };
             const href = whatsAppOrderHref(p.phone ?? "", p.message ?? "");
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 text-center scroll-mt-20">
@@ -1865,7 +1867,7 @@ export function SiteRenderer({
             );
           }
           case "image": {
-            const p = section.props as { src?: string; alt?: string; caption?: string };
+            const p = _ep as { src?: string; alt?: string; caption?: string };
             if (!p.src) return null;
             return wrap(
               <figure key={key} className="kebu-section px-5 max-w-4xl mx-auto">
@@ -1876,7 +1878,7 @@ export function SiteRenderer({
             );
           }
           case "gallery": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               items?: { src: string; alt?: string; href?: string }[];
               layout?: "grid" | "single" | "featured";
@@ -1993,7 +1995,7 @@ export function SiteRenderer({
             );
           }
           case "video": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               src?: string;
               title?: string;
@@ -2044,7 +2046,7 @@ export function SiteRenderer({
             );
           }
           case "audio": {
-            const p = section.props as { heading?: string; src: string; title?: string; artist?: string };
+            const p = _ep as { heading?: string; src: string; title?: string; artist?: string };
             if (!p.src) return null;
             const src = p.src.trim();
             const isHosted = isDirectAudioUrl(src);
@@ -2086,7 +2088,7 @@ export function SiteRenderer({
             );
           }
           case "free-text": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               minHeight?: number;
               backgroundImage?: string;
@@ -2239,7 +2241,7 @@ export function SiteRenderer({
             );
           }
           case "map": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               address?: string;
               latitude: number;
@@ -2264,7 +2266,7 @@ export function SiteRenderer({
             );
           }
           case "events": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               items?: {
                 title: string;
@@ -2306,7 +2308,7 @@ export function SiteRenderer({
             );
           }
           case "footer": {
-            const p = section.props as {
+            const p = _ep as {
               text?: string;
               links?: { label: string; href: string }[];
               bgColor?: string;
@@ -2377,7 +2379,7 @@ export function SiteRenderer({
             );
           }
           case "announcement-bar": {
-            const p = section.props as {
+            const p = _ep as {
               text?: string;
               background?: string;
               color?: string;
@@ -2415,7 +2417,7 @@ export function SiteRenderer({
             );
           }
           case "marquee": {
-            const p = section.props as {
+            const p = _ep as {
               items?: string[];
               speed?: number;
               background?: string;

@@ -52,6 +52,7 @@ import {
 } from "@/app/components/create/data-mode-provider";
 import { useProjectAutosave } from "./use-project-autosave";
 import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
+import { MobileActionBar } from "@/app/components/create/mobile-action-bar";
 
 /**
  * Code-split the heaviest sidebar/panel views that are hidden behind a tab or a closed-by-default
@@ -175,6 +176,7 @@ export default function ProjectEditorPage() {
   const [createNote, setCreateNote] = useState<string | null>(null);
   const [history, setHistory] = useState<Section[][]>([]);
   const [future, setFuture] = useState<Section[][]>([]);
+  const [mobileAddSectionOpen, setMobileAddSectionOpen] = useState(false);
   const [pages, setPages] = useState<Array<{ id: string; slug: string; title: string; sort_order: number }>>([]);
   const [siteChrome, setSiteChrome] = useState<SiteChrome | null>(null);
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
@@ -4247,7 +4249,7 @@ export default function ProjectEditorPage() {
               style={{
                 width: "100%",
                 maxWidth: device === "desktop" ? "100%" : BUILDER_DEVICE_FRAME[device],
-                minHeight: "calc(100vh - 6rem)",
+                minHeight: "calc(100dvh - 6rem)",
                 borderRadius: device === "mobile" ? 28 : 12,
               }}
             >
@@ -4266,6 +4268,40 @@ export default function ProjectEditorPage() {
                 editor={canvasEditor}
               />
             </div>
+          </div>
+        </div>
+      ) : null}
+      {/* Mobile action bar — surfaces Undo/Redo/Add on phones where the header controls are sm:hidden */}
+      {project && !flagshipCanvas ? (
+        <MobileActionBar
+          canUndo={history.length > 0}
+          canRedo={future.length > 0}
+          onUndo={undo}
+          onRedo={redo}
+          pageTitle={pages.find((p) => p.id === editPageId)?.title ?? "Page"}
+          onPagePicker={() => { setSidebarTab("pages"); setLeftPanelOpen(true); }}
+          onAddSection={() => setMobileAddSectionOpen(true)}
+        />
+      ) : null}
+      {mobileAddSectionOpen ? (
+        <div
+          className="fixed inset-0 sm:hidden"
+          style={{ zIndex: Z_LAYERS.drawerPanel + 1 }}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Close"
+            onClick={() => setMobileAddSectionOpen(false)}
+          />
+          <div
+            className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-white py-4"
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)", maxHeight: "70dvh", overflowY: "auto" }}
+          >
+            <AddSectionPicker
+              pageTitle={pages.find((p) => p.id === editPageId)?.title ?? "Page"}
+              onAdd={async (type) => { setMobileAddSectionOpen(false); await addSection(type); }}
+            />
           </div>
         </div>
       ) : null}
