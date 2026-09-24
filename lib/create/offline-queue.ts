@@ -357,6 +357,8 @@ export type TerminalItem = {
   kind: OfflineQueueItem["kind"];
   lastError?: string;
   description: string;
+  /** For save_section items: the section that failed to save. */
+  sectionId?: string;
 };
 
 /** Human-readable description of a terminal item for the recovery UI. */
@@ -632,6 +634,7 @@ async function _runFlush(): Promise<FlushResult> {
     kind: i.kind,
     lastError: i.lastError,
     description: describeTerminalItem(i),
+    sectionId: i.kind === "save_section" ? i.payload.sectionId : undefined,
   }));
 
   return { synced, failed, remaining: readQueue().length, terminalItems };

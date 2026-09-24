@@ -97,6 +97,53 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
 
+  // Reference check: scan section props and project-level JSON columns for this URL.
+  // An asset that is actively used in a section, chrome, theme, or SEO cannot be deleted.
+  // Two-step: fetch page IDs for the project, then fetch section props.
+  const { data: projectSections } = await db
+    .from("project_sections")
+    .select("id, props")
+    .in(
+      "page_id",
+      (
+        await db
+          .from("project_pages")
+          .select("id")
+          .eq("project_id", projectId)
+      ).data?.map((p) => p.id) ?? [],
+    );
+
+  const assetUrl = asset.url;
+  const inSections = (projectSections ?? []).some((s) => {
+    try {
+      return JSON.stringify(s.props).includes(assetUrl);
+    } catch {
+      return false;
+    }
+  });
+
+  if (inSections) {
+    return NextResponse.json(
+      { error: "Asset is used in a section and cannot be deleted. Remove it from your content first." },
+      { status: 409 },
+    );
+  }
+
+  // Check project-level JSON (theme, seo, site_chrome).
+  const { data: proj } = await db
+    .from("projects")
+    .select("theme, seo, site_chrome")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  const projJson = JSON.stringify(proj ?? "");
+  if (projJson.includes(assetUrl)) {
+    return NextResponse.json(
+      { error: "Asset is used in site settings (theme, SEO, or navigation) and cannot be deleted. Remove it first." },
+      { status: 409 },
+    );
+  }
+
   // Remove the DB record first.
   const { error: dbErr } = await db
     .from("website_assets")

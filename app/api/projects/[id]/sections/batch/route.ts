@@ -12,14 +12,22 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
-const reorderBodySchema = z.object({
-  orderedIds: z.array(z.string().uuid()).min(1).max(200),
+const batchUpdateSchema = z.object({
+  updates: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        props: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .min(1)
+    .max(50),
 });
 
 /**
- * Atomically assign dense sort_order (0, 1, 2 …) for an ordered list of section IDs
- * using the `reorder_sections` PostgreSQL RPC, which wraps all UPDATEs in a single
- * transaction with FOR UPDATE locking so concurrent calls cannot interleave.
+ * Atomically update props on multiple sections via the `batch_update_section_props`
+ * PostgreSQL RPC.  All updates commit together or all roll back — a multi-section
+ * undo/redo cannot leave the database in a half-applied state.
  */
 export async function POST(req: Request, { params }: Params) {
   const limited = builderRateLimit(req);
@@ -41,7 +49,7 @@ export async function POST(req: Request, { params }: Params) {
     userId: user.id,
     email: user.email,
     projectId,
-    action: "sections.reorder",
+    action: "sections.batch_update",
   });
   if (!access) return NextResponse.json({ error: "Project not found." }, { status: 404 });
 
@@ -54,29 +62,22 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const parsed = reorderBodySchema.safeParse(body);
+  const parsed = batchUpdateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { orderedIds } = parsed.data;
-
-  // Single transactional RPC — all section sort_order updates commit or all roll back.
-  const { data: reordered, error } = await db.rpc("reorder_sections", {
+  const { data: updated, error } = await db.rpc("batch_update_section_props", {
     p_project_id: projectId,
-    p_ordered_ids: orderedIds,
+    p_updates: parsed.data.updates,
   });
 
   if (error) {
     return NextResponse.json(
-      { error: "Failed to reorder sections.", detail: error.message },
+      { error: "Batch update failed.", detail: error.message },
       { status: 500 },
     );
   }
 
-  if (!reordered || reordered === 0) {
-    return NextResponse.json({ error: "No matching sections found." }, { status: 404 });
-  }
-
-  return NextResponse.json({ reordered });
+  return NextResponse.json({ updated: updated ?? 0 });
 }

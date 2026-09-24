@@ -155,14 +155,18 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Could not create default section.", detail: secError.message }, { status: 500 });
   }
 
+  let navSyncError: string | undefined;
   try {
     await syncProjectChromeNavFromPages(db as never, projectId);
-  } catch {
-    /* chrome sync is best-effort */
+  } catch (err) {
+    navSyncError = err instanceof Error ? err.message : "nav sync failed";
   }
 
   logCreate("pages.add", { userId: user.id, projectId, pageId: page.id, slug: page.slug });
-  return NextResponse.json({ page }, { status: 201 });
+  return NextResponse.json(
+    { page, ...(navSyncError ? { navSyncError, navSyncStale: true } : {}) },
+    { status: 201 },
+  );
 }
 
 /** Rename, re-slug, or reorder a page. */
@@ -235,15 +239,19 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Could not update page.", detail: error?.message }, { status: 500 });
   }
 
+  let navSyncError: string | undefined;
   if (parsed.data.title || parsed.data.slug || parsed.data.sortOrder !== undefined) {
     try {
       await syncProjectChromeNavFromPages(db as never, projectId);
-    } catch {
-      /* best-effort */
+    } catch (err) {
+      navSyncError = err instanceof Error ? err.message : "nav sync failed";
     }
   }
 
-  return NextResponse.json({ page: updated });
+  return NextResponse.json({
+    page: updated,
+    ...(navSyncError ? { navSyncError, navSyncStale: true } : {}),
+  });
 }
 
 /** Remove a page (must leave at least one). */
@@ -305,12 +313,16 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Could not delete page.", detail: error.message }, { status: 500 });
   }
 
+  let navSyncError: string | undefined;
   try {
     await syncProjectChromeNavFromPages(db as never, projectId);
-  } catch {
-    /* best-effort */
+  } catch (err) {
+    navSyncError = err instanceof Error ? err.message : "nav sync failed";
   }
 
   logCreate("pages.delete", { userId: user.id, projectId, pageId: parsed.data.pageId });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    ...(navSyncError ? { navSyncError, navSyncStale: true } : {}),
+  });
 }

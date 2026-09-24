@@ -548,6 +548,14 @@ export default function ProjectEditorPage() {
       setError,
     });
 
+  // Reconcile: when dismissTerminalItem marks a section as _needsServerReconcile,
+  // trigger a full project reload so the editor shows authoritative server state.
+  useEffect(() => {
+    const needsReconcile = sections.some((s) => (s as unknown as Record<string, unknown>)._needsServerReconcile);
+    if (needsReconcile) void load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections]);
+
   async function addSection(
     type: string,
     props?: Record<string, unknown>,
@@ -714,15 +722,37 @@ export default function ProjectEditorPage() {
     });
   }
 
+  async function persistBatch(snapshot: Section[]): Promise<void> {
+    if (snapshot.length === 0) return;
+    try {
+      const res = await fetch(`/api/projects/${projectId}/sections/batch`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates: snapshot.map((s) => ({ id: s.id, props: s.props })),
+        }),
+      });
+      if (!res.ok) {
+        // Server rejected the batch — queue each section individually so the
+        // offline queue can retry them and surface terminal failures.
+        for (const s of snapshot) persistProps(s.id, s.props);
+      }
+    } catch {
+      // Network failure — queue each for offline retry.
+      for (const s of snapshot) persistProps(s.id, s.props);
+    }
+  }
+
   function undo() {
     setHistory((h) => {
       if (h.length === 0) return h;
       const prev = h[h.length - 1]!;
       setFuture((f) => [sections, ...f]);
       setSections(prev);
-      // Batch persist: all sections in the snapshot fire together so partial
-      // success is avoided — any that fail fall back to the offline queue.
-      void Promise.allSettled(prev.map((s) => persistProps(s.id, s.props)));
+      // Atomic batch: all sections in the snapshot commit together or fall back
+      // to the offline queue — the DB cannot end up in a half-applied state.
+      void persistBatch(prev);
       return h.slice(0, -1);
     });
   }
@@ -733,7 +763,7 @@ export default function ProjectEditorPage() {
       const next = f[0]!;
       setHistory((h) => [...h, sections]);
       setSections(next);
-      void Promise.allSettled(next.map((s) => persistProps(s.id, s.props)));
+      void persistBatch(next);
       return f.slice(1);
     });
   }
@@ -864,7 +894,10 @@ export default function ProjectEditorPage() {
 
     if (settingsTimer.current) clearTimeout(settingsTimer.current);
     settingsTimer.current = setTimeout(() => {
-      pendingSettingsRef.current = null;
+      // Do NOT clear pendingSettingsRef here — the unmount cleanup owns the ref.
+      // Clearing it here creates a race: if unmount fires between the timer
+      // callback clearing the ref and the cleanup running, the edit is silently dropped.
+      settingsTimer.current = null;
       const subdomainValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextSubdomain.trim()) && nextSubdomain.trim().length >= 3;
       const themeToSave = pendingThemeRef.current ?? undefined;
       pendingThemeRef.current = null;

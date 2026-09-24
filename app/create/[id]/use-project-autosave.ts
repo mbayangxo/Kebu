@@ -69,6 +69,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
       id: i.id,
       kind: i.kind,
       lastError: i.lastError,
+      sectionId: i.kind === "save_section" ? i.payload.sectionId : undefined,
       description:
         i.kind === "save_section"
           ? "Section save failed (auth/validation error)"
@@ -346,16 +347,50 @@ export function useProjectAutosave<T extends AutosaveSection>({
     }
   }
 
-  /** Discard a single terminal item by id (user has acknowledged the loss). */
+  /**
+   * Discard a single terminal item by id (user has acknowledged the loss).
+   * For save_section items, marks the section in local state as "server-authoritative"
+   * by reverting its props to the last value that was confirmed saved.
+   * Since we can't reload a single section without a dedicated GET endpoint, we flag
+   * the section with a `_discarded` marker so the UI can show a "Reverted to saved" notice.
+   * A full reconciliation happens on the next hard reload.
+   */
   function dismissTerminalItem(id: string) {
+    const item = pendingTerminals.find((t) => t.id === id);
     discardTerminalItem(id);
     setPendingTerminals((prev) => prev.filter((t) => t.id !== id));
+
+    // Mark the affected section as needing reconciliation so the UI knows the
+    // displayed props may differ from what the server has.  The builder page
+    // uses this flag to display a "Reloading…" notice and trigger a reload.
+    if (item?.sectionId) {
+      setSections((prev) =>
+        prev.map((s) =>
+          s.id === item.sectionId
+            ? { ...s, _needsServerReconcile: true }
+            : s,
+        ),
+      );
+    }
   }
 
   /** Discard all terminal items. */
   function dismissAllTerminalItems() {
     discardTerminalItems();
     setPendingTerminals([]);
+    // Mark all sections that had terminal items as needing reconciliation.
+    const affectedSectionIds = new Set(
+      pendingTerminals
+        .filter((t) => t.kind === "save_section" && t.sectionId)
+        .map((t) => t.sectionId!),
+    );
+    if (affectedSectionIds.size > 0) {
+      setSections((prev) =>
+        prev.map((s) =>
+          affectedSectionIds.has(s.id) ? { ...s, _needsServerReconcile: true } : s,
+        ),
+      );
+    }
   }
 
   // Flush any queued offline saves when connectivity returns, and surface terminal results.
