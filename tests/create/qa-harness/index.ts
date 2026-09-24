@@ -28,6 +28,45 @@ const QA_ANON  = process.env.SUPABASE_QA_ANON_KEY ?? "";
 const QA_SVC   = process.env.SUPABASE_QA_SERVICE_ROLE_KEY ?? "";
 const PROD_URL = process.env.SUPABASE_PROD_URL ?? "";
 const QA_REF   = process.env.SUPABASE_QA_PROJECT_REF ?? "";
+
+// ── Credential redaction ──────────────────────────────────────────────────────
+
+/**
+ * Tokens that must never appear in logs, error messages, or test output.
+ * We build this list once at import time from the live env. Each entry is
+ * redacted to "<REDACTED>" in sanitizeForLog().
+ */
+const SECRET_TOKENS: string[] = [
+  QA_SVC,
+  process.env.SUPABASE_QA_DB_URL ?? "",
+].filter((v) => v.length > 10); // short/empty values are not secrets
+
+/**
+ * Strips known secret tokens from a string before it goes to any log output.
+ * Does NOT guarantee zero-leakage — use it defensively on error messages.
+ */
+export function sanitizeForLog(value: string): string {
+  let out = value;
+  for (const token of SECRET_TOKENS) {
+    if (token) out = out.split(token).join("<REDACTED>");
+  }
+  return out;
+}
+
+/**
+ * Wraps an error so its message is redacted before it propagates to Vitest's
+ * reporter. Throw this instead of the original when catching Supabase errors
+ * whose `.message` might echo back auth headers or DB URLs.
+ */
+export function sanitizeError(err: unknown): Error {
+  if (err instanceof Error) {
+    const clean = sanitizeForLog(err.message);
+    const wrapped = new Error(clean);
+    wrapped.stack = err.stack ? sanitizeForLog(err.stack) : clean;
+    return wrapped;
+  }
+  return new Error(sanitizeForLog(String(err)));
+}
 const DESIGNATED = process.env.SUPABASE_QA_DESIGNATED ?? "";
 
 // ── Safeguards ────────────────────────────────────────────────────────────────
@@ -159,7 +198,7 @@ export async function createTestUser(label: string): Promise<TestIdentity> {
   });
 
   if (error || !data?.user) {
-    throw new Error(`QA harness: failed to create test user "${label}": ${error?.message}`);
+    throw sanitizeError(new Error(`QA harness: failed to create test user "${label}": ${error?.message ?? "unknown"}`));
   }
 
   _toDelete.push(data.user.id);
@@ -170,7 +209,7 @@ export async function createTestUser(label: string): Promise<TestIdentity> {
   });
   const { error: signInError } = await userClient.auth.signInWithPassword({ email, password });
   if (signInError) {
-    throw new Error(`QA harness: failed to sign in test user "${label}": ${signInError.message}`);
+    throw sanitizeError(new Error(`QA harness: failed to sign in test user "${label}": ${signInError.message}`));
   }
 
   return { userId: data.user.id, email, password, client: userClient };
