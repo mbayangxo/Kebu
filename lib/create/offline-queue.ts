@@ -1,9 +1,28 @@
 /**
- * Offline action queue — never claim “saved” until the server acknowledges.
+ * Offline action queue — never claim "saved" until the server acknowledges.
  * Kinds: place_order · save_section · event_register.
+ *
+ * Ordering guarantee: same-resource mutations never dispatch concurrently —
+ * a syncing item for a resource blocks the next item for that resource until
+ * the server acknowledges. Independent resources run in parallel (bounded at
+ * MAX_CONCURRENT).
+ *
+ * Retryability:
+ *   HTTP 4xx → "terminal" (visible to user, not retried — auth/validation error)
+ *   HTTP 5xx / network → "failed" (retried on next flush)
+ *
+ * Overflow: hard cap at QUEUE_CAP items. save_section coalesces so the
+ * practical limit is unique sections being edited. Reaching the cap throws
+ * "offline_queue_full" — never a silent drop of the newest item.
+ *
+ * Stuck syncing: items left at "syncing" after a crash/reload are reset to
+ * "queued" by resetStuckSyncingItems(), called once on app boot.
  */
 
 export const OFFLINE_QUEUE_KEY = "kebu_offline_queue_v1";
+
+const QUEUE_CAP = 200;
+const MAX_CONCURRENT = 6;
 
 export type OfflinePlaceOrderPayload = {
   subdomain: string;
@@ -35,12 +54,14 @@ export type OfflineEventRegisterPayload = {
   ticketTypeId?: string;
 };
 
+export type OfflineItemStatus = "queued" | "syncing" | "failed" | "terminal";
+
 export type OfflineQueueItem =
   | {
       id: string;
       kind: "place_order";
       createdAt: string;
-      status: "queued" | "syncing" | "failed";
+      status: OfflineItemStatus;
       payload: OfflinePlaceOrderPayload;
       lastError?: string;
     }
@@ -48,7 +69,7 @@ export type OfflineQueueItem =
       id: string;
       kind: "save_section";
       createdAt: string;
-      status: "queued" | "syncing" | "failed";
+      status: OfflineItemStatus;
       payload: OfflineSaveSectionPayload;
       lastError?: string;
     }
@@ -56,12 +77,12 @@ export type OfflineQueueItem =
       id: string;
       kind: "event_register";
       createdAt: string;
-      status: "queued" | "syncing" | "failed";
+      status: OfflineItemStatus;
       payload: OfflineEventRegisterPayload;
       lastError?: string;
     };
 
-/** In-memory fallback when localStorage is missing (SSR / tests). */
+/** In-memory fallback when localStorage is missing (SSR / node tests). */
 let memoryQueue: OfflineQueueItem[] = [];
 
 function readQueue(): OfflineQueueItem[] {
@@ -79,13 +100,12 @@ function readQueue(): OfflineQueueItem[] {
 }
 
 function writeQueue(items: OfflineQueueItem[]): void {
-  const next = items.slice(0, 40);
-  memoryQueue = next;
+  memoryQueue = items;
   if (typeof window === "undefined" || !window.localStorage) return;
   try {
-    window.localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(next));
+    window.localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(items));
   } catch {
-    /* ignore */
+    /* storage quota exceeded — items remain in memoryQueue */
   }
   try {
     window.dispatchEvent(new Event("kebu-offline-queue-changed"));
@@ -102,7 +122,38 @@ function newId(): string {
   return `oq_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Returns the logical resource key for an item.
+ * Items with the same key must not execute concurrently.
+ */
+function getResourceKey(item: OfflineQueueItem): string {
+  if (item.kind === "save_section") {
+    return `save_section:${item.payload.projectId}:${item.payload.sectionId}`;
+  }
+  // Orders and event registrations are each unique — no ordering constraint needed.
+  return item.id;
+}
+
+/**
+ * Reset items stuck at "syncing" after a browser crash or force-reload.
+ * Call once during app boot before any flush.
+ */
+export function resetStuckSyncingItems(): void {
+  const items = readQueue();
+  const hasSyncing = items.some((i) => i.status === "syncing");
+  if (!hasSyncing) return;
+  writeQueue(
+    items.map((i) =>
+      i.status === "syncing" ? ({ ...i, status: "queued" } as OfflineQueueItem) : i,
+    ),
+  );
+}
+
 export function enqueuePlaceOrder(payload: OfflinePlaceOrderPayload): OfflineQueueItem {
+  const current = readQueue();
+  if (current.length >= QUEUE_CAP) {
+    throw new Error("offline_queue_full");
+  }
   const item: OfflineQueueItem = {
     id: newId(),
     kind: "place_order",
@@ -110,13 +161,14 @@ export function enqueuePlaceOrder(payload: OfflinePlaceOrderPayload): OfflineQue
     status: "queued",
     payload,
   };
-  writeQueue([...readQueue(), item]);
+  writeQueue([...current, item]);
   return item;
 }
 
 /** Coalesce: one pending save per section (latest props win). */
 export function enqueueSaveSection(payload: OfflineSaveSectionPayload): OfflineQueueItem {
-  const withoutDup = readQueue().filter(
+  const current = readQueue();
+  const withoutDup = current.filter(
     (i) =>
       !(
         i.kind === "save_section" &&
@@ -125,6 +177,10 @@ export function enqueueSaveSection(payload: OfflineSaveSectionPayload): OfflineQ
         i.status !== "syncing"
       ),
   );
+  // After coalescing, check capacity against the deduped list.
+  if (withoutDup.length >= QUEUE_CAP) {
+    throw new Error("offline_queue_full");
+  }
   const item: OfflineQueueItem = {
     id: newId(),
     kind: "save_section",
@@ -137,6 +193,10 @@ export function enqueueSaveSection(payload: OfflineSaveSectionPayload): OfflineQ
 }
 
 export function enqueueEventRegister(payload: OfflineEventRegisterPayload): OfflineQueueItem {
+  const current = readQueue();
+  if (current.length >= QUEUE_CAP) {
+    throw new Error("offline_queue_full");
+  }
   const item: OfflineQueueItem = {
     id: newId(),
     kind: "event_register",
@@ -144,7 +204,7 @@ export function enqueueEventRegister(payload: OfflineEventRegisterPayload): Offl
     status: "queued",
     payload,
   };
-  writeQueue([...readQueue(), item]);
+  writeQueue([...current, item]);
   return item;
 }
 
@@ -162,7 +222,9 @@ export type FlushResult = {
   remaining: number;
 };
 
-async function flushPlaceOrder(item: Extract<OfflineQueueItem, { kind: "place_order" }>): Promise<boolean> {
+async function flushPlaceOrder(
+  item: Extract<OfflineQueueItem, { kind: "place_order" }>,
+): Promise<boolean> {
   const res = await fetch(`/api/public/sites/${encodeURIComponent(item.payload.subdomain)}/orders`, {
     method: "POST",
     headers: {
@@ -185,9 +247,11 @@ async function flushPlaceOrder(item: Extract<OfflineQueueItem, { kind: "place_or
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    const error = typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+    const isTerminal = res.status >= 400 && res.status < 500;
     updateOfflineQueueItem(item.id, {
-      status: "failed",
-      lastError: typeof data.error === "string" ? data.error : `HTTP ${res.status}`,
+      status: isTerminal ? "terminal" : "failed",
+      lastError: error,
     });
     return false;
   }
@@ -195,7 +259,9 @@ async function flushPlaceOrder(item: Extract<OfflineQueueItem, { kind: "place_or
   return true;
 }
 
-async function flushSaveSection(item: Extract<OfflineQueueItem, { kind: "save_section" }>): Promise<boolean> {
+async function flushSaveSection(
+  item: Extract<OfflineQueueItem, { kind: "save_section" }>,
+): Promise<boolean> {
   const res = await fetch(`/api/projects/${item.payload.projectId}/sections`, {
     method: "PATCH",
     credentials: "include",
@@ -211,9 +277,11 @@ async function flushSaveSection(item: Extract<OfflineQueueItem, { kind: "save_se
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    const error = typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+    const isTerminal = res.status >= 400 && res.status < 500;
     updateOfflineQueueItem(item.id, {
-      status: "failed",
-      lastError: typeof data.error === "string" ? data.error : `HTTP ${res.status}`,
+      status: isTerminal ? "terminal" : "failed",
+      lastError: error,
     });
     return false;
   }
@@ -241,9 +309,11 @@ async function flushEventRegister(
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    const error = typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+    const isTerminal = res.status >= 400 && res.status < 500;
     updateOfflineQueueItem(item.id, {
-      status: "failed",
-      lastError: typeof data.error === "string" ? data.error : `HTTP ${res.status}`,
+      status: isTerminal ? "terminal" : "failed",
+      lastError: error,
     });
     return false;
   }
@@ -251,37 +321,96 @@ async function flushEventRegister(
   return true;
 }
 
-/** Flush queued items in parallel. Never marks success without HTTP ok. */
-export async function flushOfflineQueue(): Promise<FlushResult> {
-  const items = readQueue().filter((i) => i.status !== "syncing");
-  items.forEach((item) => updateOfflineQueueItem(item.id, { status: "syncing", lastError: undefined }));
+async function dispatchItem(item: OfflineQueueItem): Promise<boolean> {
+  try {
+    if (item.kind === "place_order") return await flushPlaceOrder(item);
+    if (item.kind === "save_section") return await flushSaveSection(item);
+    return await flushEventRegister(item);
+  } catch (e) {
+    // Network failure or unexpected throw → retryable
+    updateOfflineQueueItem(item.id, {
+      status: "failed",
+      lastError: e instanceof Error ? e.message : "Network error",
+    });
+    return false;
+  }
+}
 
-  const results = await Promise.allSettled(
-    items.map(async (item) => {
-      try {
-        if (item.kind === "place_order") return await flushPlaceOrder(item);
-        if (item.kind === "save_section") return await flushSaveSection(item);
-        return await flushEventRegister(item);
-      } catch (e) {
-        updateOfflineQueueItem(item.id, {
-          status: "failed",
-          lastError: e instanceof Error ? e.message : "Network error",
-        });
-        return false;
-      }
-    }),
+/** Flush mutex — prevents two concurrent flush calls from interleaving. */
+let activeFlush: Promise<FlushResult> | null = null;
+
+/**
+ * Flush queued (and retryable-failed) items.
+ *
+ * Safe scheduling:
+ * - Items whose resource already has a syncing item are skipped this pass
+ *   (they will be picked up by the next flush once the in-flight request
+ *   completes, preserving the ordering guarantee).
+ * - Independent resources run in parallel, bounded at MAX_CONCURRENT.
+ * - Concurrent flush() calls coalesce: the second caller receives the same
+ *   promise as the first.
+ */
+export function flushOfflineQueue(): Promise<FlushResult> {
+  if (activeFlush) return activeFlush;
+  activeFlush = _runFlush().finally(() => {
+    activeFlush = null;
+  });
+  return activeFlush;
+}
+
+async function _runFlush(): Promise<FlushResult> {
+  const allItems = readQueue();
+
+  // Resource keys that already have a syncing item — don't start new work for these.
+  const syncingKeys = new Set(
+    allItems.filter((i) => i.status === "syncing").map(getResourceKey),
+  );
+
+  // Candidates: queued or retryable-failed, resource not already in flight.
+  const candidates = allItems.filter(
+    (i) =>
+      (i.status === "queued" || i.status === "failed") &&
+      !syncingKeys.has(getResourceKey(i)),
+  );
+
+  if (candidates.length === 0) {
+    return { synced: 0, failed: 0, remaining: readQueue().length };
+  }
+
+  // Mark as syncing atomically before any async work.
+  candidates.forEach((item) =>
+    updateOfflineQueueItem(item.id, { status: "syncing", lastError: undefined }),
   );
 
   let synced = 0;
   let failed = 0;
-  for (const r of results) {
-    if (r.status === "fulfilled" && r.value) synced += 1;
-    else failed += 1;
+
+  // Process in bounded-concurrency batches.
+  for (let i = 0; i < candidates.length; i += MAX_CONCURRENT) {
+    const chunk = candidates.slice(i, i + MAX_CONCURRENT);
+    const results = await Promise.allSettled(chunk.map((item) => dispatchItem(item)));
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value) synced += 1;
+      else failed += 1;
+    }
   }
+
   return { synced, failed, remaining: readQueue().length };
 }
 
 export function isBrowserOnline(): boolean {
   if (typeof navigator === "undefined") return true;
   return navigator.onLine !== false;
+}
+
+// ─── test helpers (only call from test files) ────────────────────────────────
+
+/** Replaces the entire queue. Use only in tests. */
+export function _setQueueForTesting(items: OfflineQueueItem[]): void {
+  memoryQueue = items;
+}
+
+/** Resets the flush mutex. Use only in tests. */
+export function _resetFlushStateForTesting(): void {
+  activeFlush = null;
 }
