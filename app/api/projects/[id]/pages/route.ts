@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { builderRateLimit } from "@/lib/api-guard";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
 import { maylecorAboutPageSections } from "@/lib/create/maylecor-about-bio";
@@ -46,6 +47,9 @@ async function assertOwnedProject(
 
 /** Add a page with a default hero section. */
 export async function POST(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -157,6 +161,9 @@ export async function POST(req: Request, { params }: Params) {
 
 /** Rename, re-slug, or reorder a page. */
 export async function PATCH(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -235,6 +242,9 @@ export async function PATCH(req: Request, { params }: Params) {
 
 /** Remove a page (must leave at least one). */
 export async function DELETE(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 

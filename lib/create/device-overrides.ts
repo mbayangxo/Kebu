@@ -1,6 +1,21 @@
 import type { BuilderDevice } from "./builder-device";
 
-type DeviceBucket = Partial<Record<BuilderDevice, Record<string, unknown>>>;
+/** Metadata stored inside deviceOverrides to track responsive state. */
+export type ResponsiveStateMeta = {
+  mode: "auto" | "custom" | "needs-review";
+  baseHash?: string;
+};
+
+/**
+ * The persisted shape for section.props.deviceOverrides.
+ * Device slots (tablet/mobile) hold per-device prop overrides; _state is
+ * non-device metadata used by the responsive state machine.
+ */
+export type DeviceBucket = {
+  tablet?: Record<string, unknown>;
+  mobile?: Record<string, unknown>;
+  _state?: ResponsiveStateMeta;
+};
 
 /** Read device-specific prop overrides from section props (W9). */
 export function readDeviceOverride(
@@ -9,8 +24,9 @@ export function readDeviceOverride(
   key: string,
 ): unknown {
   if (device === "desktop") return props[key];
+  const slot = device as "tablet" | "mobile";
   const bucket = props.deviceOverrides as DeviceBucket | undefined;
-  const override = bucket?.[device]?.[key];
+  const override = bucket?.[slot]?.[key];
   return override !== undefined ? override : props[key];
 }
 
@@ -23,8 +39,9 @@ export function patchDeviceProp(
   if (device === "desktop") {
     return { ...props, ...patch };
   }
-  const bucket = { ...((props.deviceOverrides as DeviceBucket) ?? {}) };
-  bucket[device] = { ...(bucket[device] ?? {}), ...patch };
+  const slot = device as "tablet" | "mobile";
+  const bucket: DeviceBucket = { ...((props.deviceOverrides as DeviceBucket) ?? {}) };
+  bucket[slot] = { ...(bucket[slot] ?? {}), ...patch };
   return { ...props, deviceOverrides: bucket };
 }
 
@@ -50,8 +67,9 @@ export function mergeDeviceAwareSectionProps(
   device: BuilderDevice,
 ): Record<string, unknown> {
   if (device === "desktop") return props;
+  const slot = device as "tablet" | "mobile";
   const bucket = props.deviceOverrides as DeviceBucket | undefined;
-  const override = bucket?.[device];
+  const override = bucket?.[slot];
   if (!override || typeof override !== "object") return props;
   return { ...props, ...override };
 }
@@ -62,8 +80,9 @@ export function hasDeviceOverrides(
   device: BuilderDevice,
 ): boolean {
   if (device === "desktop") return false;
+  const slot = device as "tablet" | "mobile";
   const bucket = props.deviceOverrides as DeviceBucket | undefined;
-  const overrideKeys = bucket?.[device] ? Object.keys(bucket[device]!) : [];
+  const overrideKeys = bucket?.[slot] ? Object.keys(bucket[slot]!) : [];
   return overrideKeys.some((k) => !k.startsWith("_"));
 }
 
@@ -84,9 +103,7 @@ export function getResponsiveState(props: Record<string, unknown>): ResponsiveSt
   if (!hasDeviceOverrides(props, "tablet") && !hasDeviceOverrides(props, "mobile")) {
     return "auto";
   }
-  const state = (props.deviceOverrides as DeviceBucket | undefined)?._state as
-    | { mode?: string; baseHash?: string }
-    | undefined;
+  const state = (props.deviceOverrides as DeviceBucket | undefined)?._state;
   if (!state) return "custom";
   if (state.mode === "needs-review") return "needs-review";
   // Check whether base props changed since overrides were applied.
@@ -101,11 +118,8 @@ export function getResponsiveState(props: Record<string, unknown>): ResponsiveSt
 export function markResponsiveCustom(
   props: Record<string, unknown>,
 ): Record<string, unknown> {
-  const bucket = { ...((props.deviceOverrides as DeviceBucket) ?? {}) };
-  (bucket as Record<string, unknown>)._state = {
-    mode: "custom",
-    baseHash: hashBaseProps(props),
-  };
+  const bucket: DeviceBucket = { ...((props.deviceOverrides as DeviceBucket) ?? {}) };
+  bucket._state = { mode: "custom", baseHash: hashBaseProps(props) };
   return { ...props, deviceOverrides: bucket };
 }
 
@@ -118,10 +132,7 @@ export function storeAutoOverrides(
     ...((props.deviceOverrides as DeviceBucket) ?? {}),
     ...overrides,
   };
-  (bucket as Record<string, unknown>)._state = {
-    mode: "auto",
-    baseHash: hashBaseProps(props),
-  };
+  bucket._state = { mode: "auto", baseHash: hashBaseProps(props) };
   return { ...props, deviceOverrides: bucket };
 }
 
@@ -195,4 +206,11 @@ export const DEVICE_OVERRIDE_KEYS: Partial<Record<string, readonly string[]>> = 
   "maylecor-home": ["artistName"],
   "maylecor-music": ["artistName"],
   "kdirection-page": ["title", "subtitle", "body"],
+  /** Utility / overlay sections — basic show/hide per device only. */
+  map: ["heading", "address"],
+  events: ["heading", "items"],
+  quiz: ["heading", "subheading", "ctaLabel"],
+  "email-popup": ["heading", "body", "buttonLabel", "enabled"],
+  whatsapp: ["label", "phone"],
+  joko: ["label", "phone", "jokoPayLink"],
 };

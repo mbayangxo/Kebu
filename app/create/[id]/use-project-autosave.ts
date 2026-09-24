@@ -70,10 +70,17 @@ export function useProjectAutosave<T extends AutosaveSection>({
     const mode = resolveClientDataMode();
     const offline = !isBrowserOnline() || mode === "offline";
     if (offline) {
-      enqueueSaveSection({ projectId, sectionId, props });
-      setSaveState("queued");
-      setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setError(null);
+      try {
+        enqueueSaveSection({ projectId, sectionId, props });
+        setSaveState("queued");
+        setKbSaveNote("Not saved on server yet — queued until Syncing…");
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.message === "offline_queue_full") {
+          setSaveState("error");
+          setError("Offline queue is full — reconnect to sync your changes.");
+        }
+      }
       return;
     }
     setSaveState("saving");
@@ -118,11 +125,22 @@ export function useProjectAutosave<T extends AutosaveSection>({
       pendingSavesRef.current.delete(`section:${sectionId}`);
       setSaveState(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
       setError(null);
-    } catch {
-      enqueueSaveSection({ projectId, sectionId, props });
-      setSaveState("queued");
-      setKbSaveNote("Not saved on server yet — queued until Syncing…");
-      setError(null);
+    } catch (fetchErr) {
+      try {
+        enqueueSaveSection({ projectId, sectionId, props });
+        setSaveState("queued");
+        setKbSaveNote("Not saved on server yet — queued until Syncing…");
+        setError(null);
+      } catch (queueErr) {
+        if (queueErr instanceof Error && queueErr.message === "offline_queue_full") {
+          setSaveState("error");
+          setError("Offline queue is full — reconnect to sync your changes.");
+        } else {
+          setSaveState("error");
+          setError("Could not save this change. Please try again.");
+          void fetchErr;
+        }
+      }
     }
   }
 

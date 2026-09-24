@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.KEBU_E2E_BASE_URL ?? "http://127.0.0.1:3000";
+const baseURL = process.env.KEBU_E2E_BASE_URL ?? "https://localhost:3000";
 
 export default defineConfig({
   testDir: "./tests",
@@ -13,6 +13,20 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "on-first-retry",
+    ignoreHTTPSErrors: true,
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Use the pre-installed Chromium in the CCR environment
+        launchOptions: {
+          executablePath:
+            process.env.CHROMIUM_EXECUTABLE_PATH ??
+            "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+        },
+      },
+    },
+  ],
 });

@@ -57,6 +57,12 @@ import { Sheet } from "@/app/components/create/sheet";
 import { useBreakpoint } from "@/lib/create/use-breakpoint";
 import { acquireScrollLock, releaseScrollLock } from "@/lib/create/scroll-lock";
 import { useFocusTrap } from "@/lib/create/use-focus-trap";
+import {
+  getResponsiveState,
+  markResponsiveCustom,
+  storeAutoOverrides,
+} from "@/lib/create/device-overrides";
+import { generateDeviceOverrides, COMPOSABLE_SECTION_TYPES } from "@/lib/create/responsive-composer";
 
 /**
  * Code-split the heaviest sidebar/panel views that are hidden behind a tab or a closed-by-default
@@ -316,8 +322,8 @@ export default function ProjectEditorPage() {
   const leftPanelRef = useRef<HTMLElement | null>(null);
   const mobileAddSectionTriggerRef = useRef<HTMLButtonElement | null>(null);
 
-  // Focus-trap the left panel when it's open as a mobile full-screen overlay.
-  useFocusTrap(leftPanelRef, leftPanelOpen && bp === "xs");
+  // Focus-trap the left panel when it's open as a mobile/tablet overlay (below lg = 1024px).
+  useFocusTrap(leftPanelRef, leftPanelOpen && bp !== "lg" && bp !== "xl");
 
   useEffect(() => {
     setAppOrigin(window.location.origin);
@@ -354,9 +360,9 @@ export default function ProjectEditorPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [yandeOpen]);
 
-  // Scroll-lock + Escape for the left panel when it's a mobile full-screen overlay.
+  // Scroll-lock + Escape for the left panel when it's a mobile/tablet overlay (below lg = 1024px).
   useEffect(() => {
-    if (!(leftPanelOpen && bp === "xs")) return;
+    if (!(leftPanelOpen && bp !== "lg" && bp !== "xl")) return;
     acquireScrollLock();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setLeftPanelOpen(false);
@@ -1436,23 +1442,23 @@ export default function ProjectEditorPage() {
             <aside
               ref={leftPanelRef}
               className={`${
-                leftPanelOpen
-                  ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[280px] sm:max-w-[92vw]"
-                  : "hidden"
+                !leftPanelOpen
+                  ? "hidden lg:hidden"
+                  : bp === "xs" || bp === "sm"
+                    ? "fixed inset-0 w-full z-[900]"
+                    : bp === "md"
+                      ? "fixed inset-y-0 left-0 right-auto w-[300px] z-[900]"
+                      : "relative w-[280px]"
               } shrink-0 min-h-0 overflow-y-auto border-r`}
               style={{
                 borderColor: "#E5E5E5",
                 background: "#FAFAFA",
-                // Only matters at the mobile fixed-overlay width (below sm); at sm:relative this is an
-                // ordinary flex sibling and doesn't overlap anything, so a fixed z-index here is harmless.
-                zIndex: leftPanelOpen ? Z_LAYERS.drawerPanel : undefined,
+                zIndex: leftPanelOpen && (bp === "xs" || bp === "sm" || bp === "md") ? Z_LAYERS.drawerPanel : undefined,
               }}
             >
-              {/* Mobile only: editing takes the full screen (a fixed 280px sidebar squeezed the live
-                  preview into an unreadable sliver — docs/product/KEBU-BUILDER-UX-STANDARD.md). "Done"
-                  is the same dismissal already wired to the rail's toggle-tap behavior. */}
+              {/* Mobile/tablet overlay: "Done" dismisses back to canvas. Hidden when docked at lg+. */}
               <div
-                className="sm:hidden sticky top-0 z-10 flex items-center justify-between border-b px-3 py-2.5"
+                className="lg:hidden sticky top-0 z-10 flex items-center justify-between border-b px-3 py-2.5"
                 style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
               >
                 <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
@@ -1872,6 +1878,101 @@ export default function ProjectEditorPage() {
                             Remove
                           </button>
                         </div>
+
+                      {/* Responsive state indicator — shown only on tablet/phone device preview */}
+                      {device !== "desktop" && !isChromeSectionId(section.id) && (() => {
+                        const rsState = getResponsiveState(section.props);
+                        const isComposable = COMPOSABLE_SECTION_TYPES.has(section.section_type);
+                        const deviceLabel = device === "tablet" ? "Tablet" : "Phone";
+                        const bgColor = rsState === "needs-review" ? "#FEF3C7" : rsState === "custom" ? "#EFF6FF" : "#F0FDF4";
+                        const textColor = rsState === "needs-review" ? "#92400E" : rsState === "custom" ? "#1D4ED8" : "#15803D";
+                        const statusLabel = rsState === "needs-review" ? "⚠ Needs review" : rsState === "custom" ? "✦ Customized" : "✦ Auto-designed";
+                        return (
+                          <div className="mx-3 my-2 rounded-lg overflow-hidden border" style={{ borderColor: rsState === "needs-review" ? "#FDE68A" : rsState === "custom" ? "#BFDBFE" : "#BBF7D0" }}>
+                            <div className="flex items-center justify-between px-3 py-2" style={{ background: bgColor }}>
+                              <span className="text-[11px] font-semibold" style={{ color: textColor }}>
+                                {deviceLabel}: {statusLabel}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 px-3 py-2" style={{ background: "#FAFAFA" }}>
+                              {rsState === "auto" && isComposable && (
+                                <button
+                                  type="button"
+                                  className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                  style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                  onClick={() => {
+                                    const updated = markResponsiveCustom(section.props);
+                                    updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                  }}
+                                >
+                                  Customize
+                                </button>
+                              )}
+                              {rsState === "custom" && isComposable && (
+                                <button
+                                  type="button"
+                                  className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                  style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                  onClick={() => {
+                                    if (window.confirm(`Regenerate ${deviceLabel} layout from desktop? This will overwrite your ${deviceLabel}-specific changes.`)) {
+                                      const generated = generateDeviceOverrides(section.section_type, section.props);
+                                      const updated = storeAutoOverrides(section.props, generated);
+                                      updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                    }
+                                  }}
+                                >
+                                  Regenerate
+                                </button>
+                              )}
+                              {rsState === "needs-review" && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                    style={{ border: "1px solid #FDE68A", color: "#92400E", background: "#FFFBEB" }}
+                                    onClick={() => {
+                                      if (window.confirm(`Regenerate ${deviceLabel} layout from desktop? This will overwrite your ${deviceLabel}-specific changes.`)) {
+                                        const generated = generateDeviceOverrides(section.section_type, section.props);
+                                        const updated = storeAutoOverrides(section.props, generated);
+                                        updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                      }
+                                    }}
+                                  >
+                                    Regenerate
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                    style={{ border: "1px solid #FDE68A", color: "#92400E", background: "#FFFBEB" }}
+                                    onClick={() => {
+                                      const updated = markResponsiveCustom(section.props);
+                                      updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                    }}
+                                  >
+                                    Keep — mark reviewed
+                                  </button>
+                                </>
+                              )}
+                              {(rsState === "custom" || rsState === "needs-review") && (
+                                <button
+                                  type="button"
+                                  className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                  style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.muted, background: "#fff" }}
+                                  onClick={() => {
+                                    if (window.confirm(`Reset ${deviceLabel} to auto-designed? All ${deviceLabel}-specific customizations will be removed.`)) {
+                                      // Pass undefined to clear deviceOverrides — getResponsiveState treats absent/undefined as "auto"
+                                      updateProps(section.id, { deviceOverrides: undefined });
+                                    }
+                                  }}
+                                >
+                                  Reset to Auto
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       <SidebarDetails title="Content" group="section-inspector">
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">

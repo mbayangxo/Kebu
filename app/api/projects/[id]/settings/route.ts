@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash, createHmac } from "crypto";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
 import { siteSeoSchema, validateCustomCss } from "@/lib/create/site-seo";
 import { themeSchema } from "@/lib/create/website-schema";
@@ -40,6 +41,9 @@ const settingsSchema = z.object({
 
 /** Update publish subdomain + SEO/favicon settings for an owned project. */
 export async function PATCH(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 

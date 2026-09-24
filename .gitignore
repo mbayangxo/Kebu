@@ -48,3 +48,7 @@ next-env.d.ts
 .agents/
 .claude/skills/
 skills-lock.json
+
+# Playwright artifacts
+test-results/
+playwright-report/

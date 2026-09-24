@@ -150,6 +150,42 @@ function countdownComposer(props: BaseProps): DeviceOverrideBag {
   return {};
 }
 
+function testimonialsComposer(props: BaseProps): DeviceOverrideBag {
+  const desktopCols = Number(props.columns ?? 3);
+  const tabletCols = Math.min(desktopCols, 2);
+  return {
+    tablet: desktopCols !== tabletCols ? { columns: tabletCols } : {},
+    mobile: { columns: 1 },
+  };
+}
+
+function blogListComposer(props: BaseProps): DeviceOverrideBag {
+  const pp = Number(props.postsPerPage ?? 6);
+  return {
+    tablet: pp > 4 ? { postsPerPage: 4 } : {},
+    mobile: { postsPerPage: Math.min(pp, 3) },
+  };
+}
+
+function faqComposer(_props: BaseProps): DeviceOverrideBag {
+  // FAQ accordion stacks naturally; no layout transform needed.
+  return { tablet: {}, mobile: {} };
+}
+
+function announcementBarComposer(_props: BaseProps): DeviceOverrideBag {
+  // Bar is full-width at all widths; no column/layout transform needed.
+  return { tablet: {}, mobile: {} };
+}
+
+function marqueeComposer(props: BaseProps): DeviceOverrideBag {
+  // Slow the marquee slightly on mobile to keep it readable on narrow screens.
+  const speed = Number(props.speed ?? 40);
+  return {
+    tablet: {},
+    mobile: speed > 30 ? { speed: Math.round(speed * 0.75) } : {},
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Composer registry
 // ---------------------------------------------------------------------------
@@ -166,6 +202,11 @@ const COMPOSERS: Record<string, Composer> = {
   stats: statsComposer,
   features: featuresComposer,
   countdown: countdownComposer,
+  testimonials: testimonialsComposer,
+  "blog-list": blogListComposer,
+  faq: faqComposer,
+  "announcement-bar": announcementBarComposer,
+  marquee: marqueeComposer,
 };
 
 /**
