@@ -53,6 +53,10 @@ import {
 import { useProjectAutosave } from "./use-project-autosave";
 import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 import { MobileActionBar } from "@/app/components/create/mobile-action-bar";
+import { Sheet } from "@/app/components/create/sheet";
+import { useBreakpoint } from "@/lib/create/use-breakpoint";
+import { acquireScrollLock, releaseScrollLock } from "@/lib/create/scroll-lock";
+import { useFocusTrap } from "@/lib/create/use-focus-trap";
 
 /**
  * Code-split the heaviest sidebar/panel views that are hidden behind a tab or a closed-by-default
@@ -84,6 +88,131 @@ const YandeAssistant = dynamic(
   () => import("@/app/components/create/yande-assistant").then((m) => m.YandeAssistant),
   { ssr: false },
 );
+
+type YandePanelBodyProps = {
+  aiPreview: {
+    definition: import("@/lib/create/website-schema").WebsiteDefinition;
+    intents: string[];
+    sectionChanges: import("@/lib/create/ai-improve-merge").AiSectionChange[];
+    acceptedSectionIds: Set<string>;
+    repaired: boolean;
+  } | null;
+  improving: boolean;
+  improveMode: "free" | "redesign" | "page" | "rewrite" | "convert";
+  improveInstruction: string;
+  improveNote: string | null;
+  setImproveMode: (mode: "free" | "redesign" | "page" | "rewrite" | "convert") => void;
+  setImproveInstruction: (value: string) => void;
+  setAiPreview: import("react").Dispatch<import("react").SetStateAction<YandePanelBodyProps["aiPreview"]>>;
+  applyAiPreview: () => void;
+  discardAiPreview: () => void;
+  previewWithAi: () => void;
+};
+
+function YandePanelBody({
+  aiPreview,
+  improving,
+  improveMode,
+  improveInstruction,
+  improveNote,
+  setImproveMode,
+  setImproveInstruction,
+  setAiPreview,
+  applyAiPreview,
+  discardAiPreview,
+  previewWithAi,
+}: YandePanelBodyProps) {
+  return (
+    <>
+      {/* Mode selector */}
+      {!aiPreview ? (
+        <div
+          className="flex shrink-0 flex-wrap gap-1 border-b px-3 py-2"
+          style={{ borderColor: "#E5E5E5" }}
+        >
+          {(
+            [
+              ["free", "Improve"],
+              ["redesign", "Redesign"],
+              ["page", "Page"],
+              ["rewrite", "Rewrite"],
+              ["convert", "Convert"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setImproveMode(id)}
+              className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+              style={{
+                background: improveMode === id ? BUILDER.ink : "#F0F0F0",
+                color: improveMode === id ? "#fff" : BUILDER.muted,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {/* AI preview panel when active */}
+      {aiPreview ? (
+        <div className="shrink-0 border-b px-3 py-3" style={{ borderColor: "#E5E5E5" }}>
+          <BuilderAiPreviewPanel
+            intents={aiPreview.intents}
+            sectionChanges={aiPreview.sectionChanges}
+            acceptedSectionIds={aiPreview.acceptedSectionIds}
+            onApply={applyAiPreview}
+            onDiscard={discardAiPreview}
+            onToggleSection={(sectionId) => {
+              setAiPreview((prev) => {
+                if (!prev) return prev;
+                const next = new Set(prev.acceptedSectionIds);
+                if (next.has(sectionId)) next.delete(sectionId);
+                else next.add(sectionId);
+                return { ...prev, acceptedSectionIds: next };
+              });
+            }}
+            onSelectAll={() => {
+              setAiPreview((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
+                    }
+                  : prev,
+              );
+            }}
+            onClearAll={() => {
+              setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
+            }}
+            busy={improving}
+          />
+        </div>
+      ) : null}
+
+      {/* Yande assistant input */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <YandeAssistant
+          variant="improve"
+          value={improveInstruction}
+          onChange={setImproveInstruction}
+          onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
+          busy={improving}
+          submitLabel={aiPreview ? "Apply" : "Preview"}
+        />
+        {improveNote ? (
+          <p
+            className="mt-3 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
+            style={{ background: "#F4F4F5", color: BUILDER.muted }}
+          >
+            {improveNote}
+          </p>
+        ) : null}
+      </div>
+    </>
+  );
+}
 
 function SidebarDetails({ title, children, defaultOpen = true, group }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean; group?: string }) {
   return (
@@ -183,6 +312,13 @@ export default function ProjectEditorPage() {
   const [editPageId, setEditPageId] = useState("");
   const [publishState, setPublishState] = useState<PublishState | null>(null);
   const [appOrigin, setAppOrigin] = useState("");
+  const bp = useBreakpoint();
+  const leftPanelRef = useRef<HTMLElement | null>(null);
+  const mobileAddSectionTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Focus-trap the left panel when it's open as a mobile full-screen overlay.
+  useFocusTrap(leftPanelRef, leftPanelOpen && bp === "xs");
+
   useEffect(() => {
     setAppOrigin(window.location.origin);
     const q = new URLSearchParams(window.location.search);
@@ -201,11 +337,10 @@ export default function ProjectEditorPage() {
       if (e.key === "Escape") setPreviewFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    acquireScrollLock();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      releaseScrollLock();
     };
   }, [previewFullscreen]);
 
@@ -218,6 +353,20 @@ export default function ProjectEditorPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [yandeOpen]);
+
+  // Scroll-lock + Escape for the left panel when it's a mobile full-screen overlay.
+  useEffect(() => {
+    if (!(leftPanelOpen && bp === "xs")) return;
+    acquireScrollLock();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLeftPanelOpen(false);
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      releaseScrollLock();
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [leftPanelOpen, bp]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1285,6 +1434,7 @@ export default function ProjectEditorPage() {
               }
             />
             <aside
+              ref={leftPanelRef}
               className={`${
                 leftPanelOpen
                   ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[280px] sm:max-w-[92vw]"
@@ -4057,8 +4207,8 @@ export default function ProjectEditorPage() {
           </button>
         </div>
 
-        {/* Yande right-side sliding panel */}
-        {yandeOpen ? (
+        {/* Yande right-side panel — absolute on sm+, Sheet on xs (phone) */}
+        {yandeOpen && bp !== "xs" ? (
           <>
             {/* click-outside backdrop (transparent) */}
             <div
@@ -4102,96 +4252,44 @@ export default function ProjectEditorPage() {
                   </svg>
                 </button>
               </div>
-
-              {/* Mode selector */}
-              {!aiPreview ? (
-                <div
-                  className="flex shrink-0 flex-wrap gap-1 border-b px-3 py-2"
-                  style={{ borderColor: "#E5E5E5" }}
-                >
-                  {(
-                    [
-                      ["free", "Improve"],
-                      ["redesign", "Redesign"],
-                      ["page", "Page"],
-                      ["rewrite", "Rewrite"],
-                      ["convert", "Convert"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setImproveMode(id)}
-                      className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
-                      style={{
-                        background: improveMode === id ? BUILDER.ink : "#F0F0F0",
-                        color: improveMode === id ? "#fff" : BUILDER.muted,
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-
-              {/* AI preview panel when active */}
-              {aiPreview ? (
-                <div className="shrink-0 border-b px-3 py-3" style={{ borderColor: "#E5E5E5" }}>
-                  <BuilderAiPreviewPanel
-                    intents={aiPreview.intents}
-                    sectionChanges={aiPreview.sectionChanges}
-                    acceptedSectionIds={aiPreview.acceptedSectionIds}
-                    onApply={() => void applyAiPreview()}
-                    onDiscard={discardAiPreview}
-                    onToggleSection={(sectionId) => {
-                      setAiPreview((prev) => {
-                        if (!prev) return prev;
-                        const next = new Set(prev.acceptedSectionIds);
-                        if (next.has(sectionId)) next.delete(sectionId);
-                        else next.add(sectionId);
-                        return { ...prev, acceptedSectionIds: next };
-                      });
-                    }}
-                    onSelectAll={() => {
-                      setAiPreview((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
-                            }
-                          : prev,
-                      );
-                    }}
-                    onClearAll={() => {
-                      setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
-                    }}
-                    busy={improving}
-                  />
-                </div>
-              ) : null}
-
-              {/* Yande assistant input */}
-              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-                <YandeAssistant
-                  variant="improve"
-                  value={improveInstruction}
-                  onChange={setImproveInstruction}
-                  onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
-                  busy={improving}
-                  submitLabel={aiPreview ? "Apply" : "Preview"}
-                />
-                {improveNote ? (
-                  <p
-                    className="mt-3 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
-                    style={{ background: "#F4F4F5", color: BUILDER.muted }}
-                  >
-                    {improveNote}
-                  </p>
-                ) : null}
-              </div>
+              {/* Mode selector + AI preview + assistant — shared with Sheet below */}
+              <YandePanelBody
+                aiPreview={aiPreview}
+                improving={improving}
+                improveMode={improveMode}
+                improveInstruction={improveInstruction}
+                improveNote={improveNote}
+                setImproveMode={setImproveMode}
+                setImproveInstruction={setImproveInstruction}
+                setAiPreview={setAiPreview}
+                applyAiPreview={() => void applyAiPreview()}
+                discardAiPreview={discardAiPreview}
+                previewWithAi={() => void previewWithAi()}
+              />
             </div>
           </>
         ) : null}
+        {/* On xs (phone) Yande opens as a bottom Sheet so it doesn't cover the canvas */}
+        <Sheet
+          open={yandeOpen && bp === "xs"}
+          onClose={() => setYandeOpen(false)}
+          title="Yande AI"
+          maxHeight="80dvh"
+        >
+          <YandePanelBody
+            aiPreview={aiPreview}
+            improving={improving}
+            improveMode={improveMode}
+            improveInstruction={improveInstruction}
+            improveNote={improveNote}
+            setImproveMode={setImproveMode}
+            setImproveInstruction={setImproveInstruction}
+            setAiPreview={setAiPreview}
+            applyAiPreview={() => void applyAiPreview()}
+            discardAiPreview={discardAiPreview}
+            previewWithAi={() => void previewWithAi()}
+          />
+        </Sheet>
       </main>
 
       {previewFullscreen && canvasDefinition ? (
@@ -4283,28 +4381,18 @@ export default function ProjectEditorPage() {
           onAddSection={() => setMobileAddSectionOpen(true)}
         />
       ) : null}
-      {mobileAddSectionOpen ? (
-        <div
-          className="fixed inset-0 sm:hidden"
-          style={{ zIndex: Z_LAYERS.drawerPanel + 1 }}
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40"
-            aria-label="Close"
-            onClick={() => setMobileAddSectionOpen(false)}
-          />
-          <div
-            className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-white py-4"
-            style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)", maxHeight: "70dvh", overflowY: "auto" }}
-          >
-            <AddSectionPicker
-              pageTitle={pages.find((p) => p.id === editPageId)?.title ?? "Page"}
-              onAdd={async (type) => { setMobileAddSectionOpen(false); await addSection(type); }}
-            />
-          </div>
-        </div>
-      ) : null}
+      <Sheet
+        open={mobileAddSectionOpen}
+        onClose={() => setMobileAddSectionOpen(false)}
+        title="Add section"
+        maxHeight="70dvh"
+        triggerRef={mobileAddSectionTriggerRef}
+      >
+        <AddSectionPicker
+          pageTitle={pages.find((p) => p.id === editPageId)?.title ?? "Page"}
+          onAdd={async (type) => { setMobileAddSectionOpen(false); await addSection(type); }}
+        />
+      </Sheet>
       {kbSaveNote ? (
         <p
           className="pointer-events-none fixed left-3 bottom-3 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
