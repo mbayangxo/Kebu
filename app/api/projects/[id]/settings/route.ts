@@ -3,7 +3,7 @@ import { createHash, createHmac } from "crypto";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
-import { siteSeoSchema } from "@/lib/create/site-seo";
+import { siteSeoSchema, validateCustomCss } from "@/lib/create/site-seo";
 import { themeSchema } from "@/lib/create/website-schema";
 import { builderRateLimit } from "@/lib/api-guard";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
@@ -144,6 +144,13 @@ export async function PATCH(req: Request, { params }: Params) {
     const currentTheme =
       project.theme && typeof project.theme === "object" ? (project.theme as Record<string, unknown>) : {};
     const merged = themeSchema.parse({ ...currentTheme, ...parsed.data.theme });
+    // Security: validate custom CSS before persisting.
+    if (merged.customCss) {
+      const cssError = validateCustomCss(merged.customCss);
+      if (cssError) {
+        return NextResponse.json({ error: cssError }, { status: 400 });
+      }
+    }
     patch.theme = merged;
   }
 

@@ -388,6 +388,26 @@ function SiteNav({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
+  const hamburgerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Escape closes the mobile drawer; focus returns to the hamburger button.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setDrawerOpen(false);
+        hamburgerRef.current?.focus({ preventScroll: true });
+      }
+    }
+    document.addEventListener("keydown", onKey, true);
+    // Move focus into the drawer so screen-reader/keyboard users can navigate it.
+    const firstFocusable = drawerRef.current?.querySelector<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    firstFocusable?.focus({ preventScroll: true });
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [drawerOpen]);
 
   function slugFromHref(href: string): string | null {
     const h = (href || "").trim();
@@ -584,11 +604,13 @@ function SiteNav({
         {/* Hamburger — mobile only by default; all sizes in hamburger layout */}
         {links.length > 0 && (
           <button
+            ref={hamburgerRef}
             type="button"
             onClick={() => { setDrawerOpen((v) => !v); setOpenGroup(null); }}
             className={`kebu-nav-hamburger ${alwaysHamburger ? "" : "sm:hidden"}`}
             aria-label={drawerOpen ? "Close menu" : "Open menu"}
             aria-expanded={drawerOpen}
+            aria-controls="kebu-nav-drawer"
             style={{ color: navColor }}
           >
             {drawerOpen ? (
@@ -606,10 +628,15 @@ function SiteNav({
           <div
             className={`fixed inset-0 ${alwaysHamburger ? "" : "sm:hidden"}`}
             style={{ background: "rgba(0,0,0,0.35)", zIndex: Z_LAYERS.drawerBackdrop }}
-            onClick={() => setDrawerOpen(false)}
-            aria-hidden
+            onClick={() => { setDrawerOpen(false); hamburgerRef.current?.focus({ preventScroll: true }); }}
+            aria-hidden="true"
           />
           <div
+            ref={drawerRef}
+            id="kebu-nav-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${brand} navigation`}
             className={`kebu-nav-drawer ${alwaysHamburger ? "" : "sm:hidden"}`}
             style={{ background: navBg || "#000", color: navColor, borderTop: "1px solid rgba(255,255,255,0.1)" }}
           >

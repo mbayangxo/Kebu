@@ -469,3 +469,62 @@ export function containsUnsafeSiteContent(blob: string): boolean {
   ];
   return blocked.some((token) => lower.includes(token));
 }
+
+/**
+ * Validate custom CSS submitted through the theme editor.
+ *
+ * Rejects:
+ * - @import rules that could load external resources (tracking, data exfiltration).
+ * - CSS expression() — IE-era arbitrary JS execution.
+ * - url() references to non-image data URIs (e.g. data:text/html, data:application/js).
+ * - Binding to the builder chrome's own structural selectors ([data-kebu-builder] etc.)
+ *   that could break the editing UI.
+ *
+ * Returns null on pass, or an error string describing the violation.
+ */
+export function validateCustomCss(css: string): string | null {
+  if (!css || typeof css !== "string") return null;
+  const lower = css.toLowerCase();
+
+  // Block @import — can load arbitrary external stylesheets/fonts for tracking.
+  if (/@import\s/i.test(css)) {
+    return "Custom CSS may not contain @import rules.";
+  }
+
+  // Block expression() — IE arbitrary JS eval.
+  if (/expression\s*\(/i.test(css)) {
+    return "Custom CSS may not use expression().";
+  }
+
+  // Block url() with javascript: or vbscript:
+  if (/url\s*\(\s*['"']?\s*(?:javascript|vbscript):/i.test(css)) {
+    return "Custom CSS may not reference javascript: or vbscript: URLs.";
+  }
+
+  // Block url() with data: URIs that aren't images (images are fine, other MIME types are not).
+  const dataUriMatches = css.match(/url\s*\(\s*['"]?\s*data:([^;,)'"]+)/gi) ?? [];
+  for (const match of dataUriMatches) {
+    const mimeMatch = match.match(/data:([^;,)'"]+)/i);
+    const mime = mimeMatch?.[1]?.toLowerCase() ?? "";
+    if (!mime.startsWith("image/") && mime !== "") {
+      return `Custom CSS may not reference data: URIs with MIME type "${mime}".`;
+    }
+  }
+
+  // Block targeting the builder's structural elements.
+  const builderSelectors = [
+    "[data-kebu-builder]",
+    "[data-kebu-sheet",
+    "[data-kebu-drawer",
+    "[data-kebu-viewport-safe",
+    ".kebu-sheet-panel",
+    ".kebu-drawer-panel",
+  ];
+  for (const sel of builderSelectors) {
+    if (lower.includes(sel.toLowerCase())) {
+      return `Custom CSS may not target builder elements (${sel}).`;
+    }
+  }
+
+  return null;
+}

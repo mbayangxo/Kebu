@@ -952,6 +952,7 @@ export const sectionPropsSchemas = {
     ...socialRailFields,
     motionEnabled: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "maylecor-music": z.object({
     artistName: z.string().trim().min(1).max(80),
@@ -986,6 +987,7 @@ export const sectionPropsSchemas = {
     ...socialRailFields,
     motionEnabled: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "legally-blonde-hero": z.object({
     title: z.string().trim().min(1).max(120),
@@ -1103,6 +1105,7 @@ export const sectionPropsSchemas = {
     /** false = use titleLogo image (May Lècor circle seal); true = CircularBrandRing text. */
     titleAsText: z.boolean().optional().default(false),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "kdirection-home": z.object({
     brandLine1: z.string().trim().max(12).default("K"),
@@ -1176,6 +1179,7 @@ export const sectionPropsSchemas = {
     footerText: z.string().trim().max(160).default(""),
     motionEnabled: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "kdirection-page": z.object({
     title: z.string().trim().min(1).max(120),
@@ -1197,6 +1201,7 @@ export const sectionPropsSchemas = {
     socialLinks: socialLinksSchema.default([]),
     footerText: z.string().trim().max(160).default(""),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
 } as const;
 
