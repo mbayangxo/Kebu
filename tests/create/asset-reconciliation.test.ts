@@ -13,6 +13,7 @@
  *   8. Retry safety — partial errors do not corrupt clean records
  *   9. DB fetch failure — returns immediately with error
  *  10. Storage list failure — falls back to marking all DB records stale
+ *  11. URL-encoding safety — percent-encoded DB URLs match literal storage names
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -460,12 +461,106 @@ describe("asset reconciliation — storage list failure", () => {
   });
 });
 
+// ── 11. URL-encoding safety ───────────────────────────────────────────────────
+//
+// The storage API returns literal filenames (e.g. "my photo.jpg") while the DB
+// may store the asset URL percent-encoded (e.g. "my%20photo.jpg").  Comparing
+// reconstructed public URLs directly would treat such a file as an orphan and
+// delete it.  The fix is to compare decoded storage paths, which normalises both
+// sides to the same representation.
+
+describe("asset reconciliation — URL-encoding safety", () => {
+  it("does NOT delete a storage object whose DB URL is percent-encoded (spaces)", async () => {
+    // The storage API returns the literal filename with a space.
+    const literalName = "my photo.jpg";
+    // The DB URL was stored with %20 encoding (as browsers/Supabase would generate it).
+    const encodedUrl =
+      `${SUPABASE_URL}/storage/v1/object/public/site-assets/${FOLDER}/my%20photo.jpg`;
+
+    const { client, deleteCalls } = makeClient({
+      dbAssets: [{ id: "a1", url: encodedUrl, stale_at: null }],
+      storageObjects: [makeStorageObj(literalName, 60)],
+    });
+
+    const result = await reconcileProjectAssets(
+      client as never,
+      PROJECT_ID,
+      OWNER_ID,
+      SUPABASE_URL,
+      { now: NOW },
+    );
+
+    // The file should NOT be treated as an orphan.
+    expect(result.orphansDeleted).toBe(0);
+    expect(deleteCalls).toHaveLength(0);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("does NOT delete a storage object whose DB URL has other percent-encoded chars", async () => {
+    // Parentheses and plus signs in filenames are sometimes percent-encoded in URLs.
+    const literalName = "hero (final)+v2.png";
+    const encodedUrl =
+      `${SUPABASE_URL}/storage/v1/object/public/site-assets/${FOLDER}/hero%20(final)%2Bv2.png`;
+
+    const { client, deleteCalls } = makeClient({
+      dbAssets: [{ id: "a2", url: encodedUrl, stale_at: null }],
+      storageObjects: [makeStorageObj(literalName, 60)],
+    });
+
+    const result = await reconcileProjectAssets(
+      client as never,
+      PROJECT_ID,
+      OWNER_ID,
+      SUPABASE_URL,
+      { now: NOW },
+    );
+
+    expect(result.orphansDeleted).toBe(0);
+    expect(deleteCalls).toHaveLength(0);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("still deletes an actual orphan alongside URL-encoded matched files", async () => {
+    const matchedLiteral = "matched photo.jpg";
+    const matchedEncodedUrl =
+      `${SUPABASE_URL}/storage/v1/object/public/site-assets/${FOLDER}/matched%20photo.jpg`;
+    const orphanName = "orphan-file.jpg"; // no DB record at all
+
+    const { client, deleteCalls } = makeClient({
+      dbAssets: [{ id: "a1", url: matchedEncodedUrl, stale_at: null }],
+      storageObjects: [
+        makeStorageObj(matchedLiteral, 60),
+        makeStorageObj(orphanName, 60),
+      ],
+    });
+
+    const result = await reconcileProjectAssets(
+      client as never,
+      PROJECT_ID,
+      OWNER_ID,
+      SUPABASE_URL,
+      { now: NOW },
+    );
+
+    // Only the real orphan is deleted; the matched (encoded) file is preserved.
+    expect(result.orphansDeleted).toBe(1);
+    expect(deleteCalls).toContain(`${FOLDER}/${orphanName}`);
+    expect(deleteCalls).not.toContain(`${FOLDER}/${matchedLiteral}`);
+    expect(result.errors).toHaveLength(0);
+  });
+});
+
 // ── Utility functions ─────────────────────────────────────────────────────────
 
 describe("asset reconciliation — utility functions", () => {
   it("extractStoragePath extracts path from well-formed public URL", () => {
     const url = "https://abc.supabase.co/storage/v1/object/public/site-assets/user/proj/img.jpg";
     expect(extractStoragePath(url)).toBe("user/proj/img.jpg");
+  });
+
+  it("extractStoragePath decodes percent-encoded paths", () => {
+    const url = "https://abc.supabase.co/storage/v1/object/public/site-assets/user/proj/my%20photo.jpg";
+    expect(extractStoragePath(url)).toBe("user/proj/my photo.jpg");
   });
 
   it("extractStoragePath returns null for non-storage URLs", () => {

@@ -133,9 +133,17 @@ export async function reconcileProjectAssets(
   // Build a set of known storage paths (full path from bucket root, e.g. userId/projId/file.jpg).
   const knownPaths = new Set<string>(objects.map((o) => `${folder}/${o.name}`));
 
-  // Build a set of DB asset URLs for Direction 1 cross-check:
-  // "is this storage object referenced by any DB record?"
-  const dbAssetUrls = new Set<string>(assets.map((a) => a.url));
+  // Build a set of decoded storage paths from DB asset URLs for Direction 1 cross-check.
+  // Using decoded paths (via extractStoragePath) rather than reconstructed URLs avoids a
+  // URL-encoding mismatch: obj.name from the storage API is the literal filename (e.g.
+  // "my photo.jpg"), while a DB URL may store it percent-encoded ("my%20photo.jpg").
+  // Comparing reconstructed URLs would wrongly treat such files as orphans and delete them.
+  const dbAssetPaths = new Set<string>(
+    assets.flatMap((a) => {
+      const p = extractStoragePath(a.url);
+      return p ? [p] : [];
+    }),
+  );
 
   // ── Direction 2: DB record exists but storage object is missing ──────────────
 
@@ -182,10 +190,9 @@ export async function reconcileProjectAssets(
 
   for (const obj of objects) {
     const objPath = `${folder}/${obj.name}`;
-    const objUrl = buildPublicUrl(supabaseUrl, objPath);
 
-    // Check if any DB record references this URL.
-    if (dbAssetUrls.has(objUrl)) continue;
+    // Compare decoded storage paths, not reconstructed URLs, to avoid encoding mismatches.
+    if (dbAssetPaths.has(objPath)) continue;
 
     // Apply grace period — a newly uploaded object might not have a DB record yet.
     const createdAt = obj.created_at ? new Date(obj.created_at).getTime() : 0;
