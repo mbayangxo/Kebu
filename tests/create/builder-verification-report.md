@@ -1,7 +1,7 @@
 # Builder Verification Gate — Final Report
 
 **Date**: 2026-09-24  
-**Local HEAD**: 77af9d2  
+**Local HEAD**: 519644d  
 **Remote HEAD**: 9d58624 (frozen — NO PUSH performed)  
 **Branch**: claude/alkebulan-files-migration-aty6p0  
 
@@ -92,7 +92,7 @@ app-launch @ tablet-1024, ngo-impact @ desktop-1440 — all body text readable (
 
 ## Security Audit (Task 3): SECURITY DEFINER RPC Cross-User Mutation
 
-### Vulnerability Found: IDOR in both atomic RPCs
+### Vulnerability Found and Fixed: IDOR in both atomic RPCs
 
 **Functions**: `public.reorder_sections` and `public.batch_update_section_props`
 
@@ -106,18 +106,55 @@ app-launch @ tablet-1024, ngo-impact @ desktop-1440 — all body text readable (
 **Severity**: High — any authenticated user can mutate any other user's section ordering
 and section props given their project ID.
 
-**Fix applied** (`supabase/migrations/20260924010000_builder_atomic_rpcs.sql`):
-Both functions now open with:
+### Authorization model traced (lib/create/project-access.ts)
+
+Three legitimate access paths:
+1. **Owner** (`via: "owner"`): `auth.uid() = owner_id` — user's Supabase client, RLS applies
+2. **Team member** (`via: "team"`): active `business_members` row; API layer uses service_role client; `auth.uid() IS NULL` at DB level
+3. **Support admin** (`via: "support"`): email allowlist; API layer uses service_role client; `auth.uid() IS NULL` at DB level
+
+`studio_design_collaborators` covers Studio only (`create_designs`); Builder `projects` is strictly owner-only.
+
+### Fix v1 (broken — eb877dc, reverted in same commit)
+
+Initial guard broke team/support access:
 ```sql
-IF NOT EXISTS (
+IF NOT EXISTS (SELECT 1 FROM projects WHERE id = p_project_id AND owner_id = auth.uid())
+```
+`auth.uid() IS NULL` for service_role calls → EXISTS returns false → rejected legitimate team/support access.
+
+### Fix v2 (correct — in production migration)
+
+```sql
+-- auth.uid() IS NULL → service_role (team/support, pre-validated by API layer); passes through
+-- auth.uid() IS NOT NULL → authenticated user; must own the project
+IF auth.uid() IS NOT NULL AND NOT EXISTS (
   SELECT 1 FROM projects WHERE id = p_project_id AND owner_id = auth.uid()
 ) THEN
   RAISE EXCEPTION 'access denied: project % does not belong to caller', p_project_id
     USING ERRCODE = 'insufficient_privilege';
 END IF;
 ```
-This guard runs before any mutation, raises with `insufficient_privilege`, and
-prevents cross-user access at the SQL level regardless of RLS.
+
+Also added `REVOKE EXECUTE ... FROM PUBLIC` on both functions. `auth.uid()` stub uses
+`NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid` to prevent cast failure on empty string.
+
+### Regression tests (tests/create/builder-rpc-authz.db.test.ts)
+
+10 PostgreSQL integration tests (all pass with local PostgreSQL via DATABASE_URL):
+
+| Test | Guard condition | Expected |
+|---|---|---|
+| owner reorder | auth.uid() = owner_id | 0 rows updated → 3 ✅ |
+| owner batch-update | auth.uid() = owner_id | 2 updated ✅ |
+| stranger reorder | auth.uid() ≠ owner_id | raises `insufficient_privilege` ✅ |
+| stranger batch-update | auth.uid() ≠ owner_id | raises, sections untouched ✅ |
+| service_role reorder | auth.uid() IS NULL | passes through, 3 updated ✅ |
+| service_role batch-update | auth.uid() IS NULL | passes through, 2 updated ✅ |
+| nonexistent project | auth.uid() ≠ nobody | raises `insufficient_privilege` ✅ |
+| service_role cross-project | auth.uid() IS NULL | 0 rows (WHERE scoping) ✅ |
+| anon EXECUTE | no grant on anon role | permission denied ✅ |
+| revoked-member-as-stranger | auth.uid() ≠ owner_id | raises `insufficient_privilege` ✅ |
 
 ---
 
@@ -158,9 +195,11 @@ Raised JSON stringify/parse budget from 5ms to 8ms (median semantics; measured ~
 
 ## Vitest Suite
 
-**Total**: 1434 passed | 18 skipped | 0 failed (178 test files)
+**Total**: 1434 passed | 28 skipped | 0 failed (179 test files)
 
-Skipped = DB integration tests requiring real Supabase connection (marked `[PostgreSQL integration]` / `[BLOCKED]` — expected behavior without live DB).
+Skipped = DB integration tests requiring live DATABASE_URL (25 pass when `DATABASE_URL` is set; 3 are `[BLOCKED]` stubs requiring real Supabase Auth — intentional).
+
+**With DATABASE_URL set**: 25 PostgreSQL integration tests pass (3 skipped BLOCKED stubs), zero test failures across all 179 files.
 
 ---
 
@@ -177,12 +216,21 @@ Not executed — covered by the 237 Playwright tests which run actual SiteRender
 against all 32 aesthetic families at full viewport range.
 
 ### Task 6: Gallery lifecycle verification (instantiation / data isolation)
-Not executed — requires builder auth session to instantiate a project from a template.
-Could be verified by integration tests against a running Supabase instance.
+BLOCKED — requires builder auth session to instantiate a project from a template.
+Requires real Supabase GoTrue credentials; cannot be run in this environment.
 
 ### Task 7: Builder browser performance measurements
 BLOCKED — requires authenticated builder session (auth middleware redirects unauthenticated).
 Not possible without real Supabase credentials in the test environment.
+
+### Tasks 4–8 (authenticated Builder journey, User A/B isolation, abuse cases)
+BLOCKED — all require a real Supabase instance with GoTrue JWT auth.
+- Complete authenticated Builder journey (create → Gallery → edit → publish)
+- User A cannot read/write User B's project, assets, pages, sections, settings, publication
+- Browser performance measurements against authenticated Builder
+- Abuse cases (rapid clicks, network loss during save/upload, two tabs, oversized uploads, etc.)
+
+These are NOT verified by SiteRenderer or unit tests. Do not claim them as done.
 
 ---
 
