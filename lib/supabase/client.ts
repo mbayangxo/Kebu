@@ -8,8 +8,10 @@ let browserClient: ReturnType<typeof createBrowserClient> | undefined;
 export function createClient() {
   if (browserClient) return browserClient;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co";
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder";
+  // Use || (not ??) so that an explicit empty-string env var (as set in test
+  // environments to bypass auth middleware) also falls through to the placeholder.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
 
   browserClient = createBrowserClient(url, key, {
     cookieOptions: {

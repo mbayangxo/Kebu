@@ -20,6 +20,16 @@ DECLARE
   v_count  int := 0;
   v_rows   int;
 BEGIN
+  -- Ownership guard: SECURITY DEFINER bypasses RLS, so we enforce ownership
+  -- explicitly. Raises an exception if the caller does not own the project,
+  -- preventing cross-user mutation (IDOR).
+  IF NOT EXISTS (
+    SELECT 1 FROM projects WHERE id = p_project_id AND owner_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'access denied: project % does not belong to caller', p_project_id
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
   FOR v_entry IN SELECT * FROM jsonb_array_elements(p_updates)
   LOOP
     UPDATE project_sections
@@ -61,6 +71,15 @@ DECLARE
   v_count int := 0;
   v_rows  int;
 BEGIN
+  -- Ownership guard: SECURITY DEFINER bypasses RLS, so we enforce ownership
+  -- explicitly. Raises an exception if the caller does not own the project.
+  IF NOT EXISTS (
+    SELECT 1 FROM projects WHERE id = p_project_id AND owner_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'access denied: project % does not belong to caller', p_project_id
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
   -- Lock rows to prevent concurrent reorders from interleaving.
   PERFORM id
   FROM    project_sections
