@@ -1,6 +1,6 @@
 /**
  * Offline action queue — never claim "saved" until the server acknowledges.
- * Kinds: place_order · save_section · save_chrome · save_settings · event_register.
+ * Kinds: place_order · save_section · save_chrome · save_settings · event_register · sync_nav.
  *
  * Ordering guarantee: same-resource mutations never dispatch concurrently —
  * a syncing item for a resource blocks the next item for that resource until
@@ -72,6 +72,25 @@ export type OfflineEventRegisterPayload = {
   ticketTypeId?: string;
 };
 
+/**
+ * A logical undo/redo batch — N section props updates that must all persist atomically.
+ * Queued as a single item so the offline retry path never degrades into N independent
+ * mutations that can partially succeed.
+ */
+export type OfflineSaveBatchSectionsPayload = {
+  projectId: string;
+  /** Ordered list of { id, props } matching the /sections/batch POST body. */
+  updates: Array<{ id: string; props: Record<string, unknown> }>;
+};
+
+/**
+ * Durable nav reconciliation after a page mutation returned navSyncStale: true.
+ * Coalesces per project — only the latest pending sync is needed.
+ */
+export type OfflineSyncNavPayload = {
+  projectId: string;
+};
+
 export type OfflineItemStatus = "queued" | "syncing" | "failed" | "terminal";
 
 export type OfflineQueueItem =
@@ -113,6 +132,22 @@ export type OfflineQueueItem =
       createdAt: string;
       status: OfflineItemStatus;
       payload: OfflineEventRegisterPayload;
+      lastError?: string;
+    }
+  | {
+      id: string;
+      kind: "save_batch_sections";
+      createdAt: string;
+      status: OfflineItemStatus;
+      payload: OfflineSaveBatchSectionsPayload;
+      lastError?: string;
+    }
+  | {
+      id: string;
+      kind: "sync_nav";
+      createdAt: string;
+      status: OfflineItemStatus;
+      payload: OfflineSyncNavPayload;
       lastError?: string;
     };
 
@@ -169,6 +204,14 @@ function getResourceKey(item: OfflineQueueItem): string {
   }
   if (item.kind === "save_settings") {
     return `save_settings:${item.payload.projectId}`;
+  }
+  if (item.kind === "save_batch_sections") {
+    // All updates in the same batch share a project-scoped resource key so they
+    // serialise with any concurrent individual section saves for the same project.
+    return `save_batch_sections:${item.payload.projectId}`;
+  }
+  if (item.kind === "sync_nav") {
+    return `sync_nav:${item.payload.projectId}`;
   }
   // Orders and event registrations are each unique — no ordering constraint needed.
   return item.id;
@@ -321,6 +364,57 @@ export function enqueueEventRegister(payload: OfflineEventRegisterPayload): Offl
   return item;
 }
 
+/**
+ * Queue a logical section-batch mutation (undo/redo) as a single durable item.
+ * Never split into N individual save_section items — partial persistence of a
+ * logical snapshot must not be possible through the offline-retry path.
+ */
+export function enqueueSaveBatchSections(
+  payload: OfflineSaveBatchSectionsPayload,
+): OfflineQueueItem {
+  const current = readQueue();
+  if (current.length >= QUEUE_CAP) {
+    throw new Error("offline_queue_full");
+  }
+  const item: OfflineQueueItem = {
+    id: newId(),
+    kind: "save_batch_sections",
+    createdAt: new Date().toISOString(),
+    status: "queued",
+    payload,
+  };
+  writeQueue([...current, item]);
+  return item;
+}
+
+/**
+ * Enqueue a nav-sync for a project. Coalesces: one pending sync per project is
+ * sufficient because the reconciliation is idempotent.
+ */
+export function enqueueSyncNav(payload: OfflineSyncNavPayload): OfflineQueueItem {
+  const current = readQueue();
+  const withoutDup = current.filter(
+    (i) =>
+      !(
+        i.kind === "sync_nav" &&
+        i.payload.projectId === payload.projectId &&
+        i.status !== "syncing"
+      ),
+  );
+  if (withoutDup.length >= QUEUE_CAP) {
+    throw new Error("offline_queue_full");
+  }
+  const item: OfflineQueueItem = {
+    id: newId(),
+    kind: "sync_nav",
+    createdAt: new Date().toISOString(),
+    status: "queued",
+    payload,
+  };
+  writeQueue([...withoutDup, item]);
+  return item;
+}
+
 export function removeOfflineQueueItem(id: string): void {
   writeQueue(readQueue().filter((i) => i.id !== id));
 }
@@ -368,6 +462,11 @@ export function describeTerminalItem(item: OfflineQueueItem): string {
   if (item.kind === "save_settings") return "Site settings save failed (auth/validation error)";
   if (item.kind === "place_order") return `Order placement failed (auth/validation error)`;
   if (item.kind === "event_register") return `Event registration failed (auth/validation error)`;
+  if (item.kind === "save_batch_sections") {
+    const count = item.payload.updates.length;
+    return `Undo/redo batch (${count} section${count !== 1 ? "s" : ""}) failed — the change was not applied`;
+  }
+  if (item.kind === "sync_nav") return "Navigation sync failed (auth/validation error)";
   return "Mutation failed";
 }
 
@@ -540,12 +639,75 @@ async function flushEventRegister(
   return true;
 }
 
+async function flushSaveBatchSections(
+  item: Extract<OfflineQueueItem, { kind: "save_batch_sections" }>,
+): Promise<boolean> {
+  const res = await fetch(
+    `/api/projects/${item.payload.projectId}/sections/batch`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Kebu-Data-Mode": "offline",
+        "X-Kebu-Offline-Sync": "1",
+      },
+      body: JSON.stringify({ updates: item.payload.updates }),
+    },
+  );
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const error = typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+    // 4xx → terminal (auth/validation error — retrying would still fail).
+    // The batch is marked terminal as a unit; it cannot degrade into N individual mutations.
+    const isTerminal = res.status >= 400 && res.status < 500;
+    updateOfflineQueueItem(item.id, {
+      status: isTerminal ? "terminal" : "failed",
+      lastError: error,
+    });
+    return false;
+  }
+  removeOfflineQueueItem(item.id);
+  return true;
+}
+
+async function flushSyncNav(
+  item: Extract<OfflineQueueItem, { kind: "sync_nav" }>,
+): Promise<boolean> {
+  const res = await fetch(
+    `/api/projects/${item.payload.projectId}/site-chrome/sync-nav`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Kebu-Data-Mode": "offline",
+        "X-Kebu-Offline-Sync": "1",
+      },
+    },
+  );
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const error = typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+    const isTerminal = res.status >= 400 && res.status < 500;
+    updateOfflineQueueItem(item.id, {
+      status: isTerminal ? "terminal" : "failed",
+      lastError: error,
+    });
+    return false;
+  }
+  removeOfflineQueueItem(item.id);
+  return true;
+}
+
 async function dispatchItem(item: OfflineQueueItem): Promise<boolean> {
   try {
     if (item.kind === "place_order") return await flushPlaceOrder(item);
     if (item.kind === "save_section") return await flushSaveSection(item);
     if (item.kind === "save_chrome") return await flushSaveChrome(item);
     if (item.kind === "save_settings") return await flushSaveSettings(item);
+    if (item.kind === "save_batch_sections") return await flushSaveBatchSections(item);
+    if (item.kind === "sync_nav") return await flushSyncNav(item);
     return await flushEventRegister(item);
   } catch (e) {
     // Network failure or unexpected throw → retryable

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BUILDER } from "@/lib/create/builder-ui";
 import { isValidPageSlug, normalizePageSlug } from "@/lib/create/builder-pages";
+import { enqueueSyncNav, flushOfflineQueue } from "@/lib/create/offline-queue";
 
 export type BuilderPageRow = {
   id: string;
@@ -40,6 +41,15 @@ export function BuilderPagesPanel({
   const sorted = [...pages].sort((a, b) => a.sort_order - b.sort_order);
   const working = busy || localBusy;
 
+  function scheduleNavSync() {
+    try {
+      enqueueSyncNav({ projectId });
+      void flushOfflineQueue();
+    } catch {
+      // Queue full — stale nav is a cosmetic issue; don't surface to user.
+    }
+  }
+
   async function addPage() {
     const title = newTitle.trim();
     const slug = normalizePageSlug(title);
@@ -58,6 +68,7 @@ export function BuilderPagesPanel({
       setNewTitle(""); setAdding(false);
       await onRefresh();
       if (data.page?.id) onSelectPage(data.page as BuilderPageRow);
+      if (data.navSyncStale) scheduleNavSync();
     } catch { onError("Network error while adding page."); }
     finally { setLocalBusy(false); }
   }
@@ -74,6 +85,7 @@ export function BuilderPagesPanel({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not delete page."); return; }
       await onRefresh();
+      if (data.navSyncStale) scheduleNavSync();
     } catch { onError("Network error while deleting page."); }
     finally { setLocalBusy(false); }
   }
@@ -95,6 +107,7 @@ export function BuilderPagesPanel({
       setEditingId(null);
       await onRefresh();
       if (data.page) onSelectPage(data.page as BuilderPageRow);
+      if (data.navSyncStale) scheduleNavSync();
     } catch { onError("Network error while updating page."); }
     finally { setLocalBusy(false); }
   }
@@ -121,7 +134,12 @@ export function BuilderPagesPanel({
         }),
       ]);
       if (!resA.ok || !resB.ok) { onError("Could not reorder pages."); return; }
+      const [dataA, dataB] = await Promise.all([
+        resA.json().catch(() => ({})) as Promise<Record<string, unknown>>,
+        resB.json().catch(() => ({})) as Promise<Record<string, unknown>>,
+      ]);
       await onRefresh();
+      if (dataA.navSyncStale || dataB.navSyncStale) scheduleNavSync();
     } catch { onError("Network error while reordering."); }
     finally { setLocalBusy(false); }
   }

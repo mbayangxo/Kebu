@@ -15,6 +15,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   enqueueSaveChrome,
   enqueueSaveSettings,
+  enqueueSaveBatchSections,
+  enqueueSyncNav,
   flushOfflineQueue,
   listOfflineQueue,
   discardTerminalItem,
@@ -25,6 +27,7 @@ import {
   type OfflineQueueItem,
   type OfflineSaveChromePayload,
   type OfflineSaveSettingsPayload,
+  type OfflineSaveBatchSectionsPayload,
 } from "@/lib/create/offline-queue";
 
 function okResponse(status = 200) {
@@ -540,5 +543,197 @@ describe("page nav sync — non-swallowed errors", () => {
     // response JSON so clients can detect stale navigation and trigger a reload.
     // Applies to POST (add page), PATCH (rename/reorder), DELETE (remove page).
     expect(true).toBe(true);
+  });
+});
+
+// ─── 15. save_batch_sections — atomicity guarantee ───────────────────────────
+
+describe("offline queue — save_batch_sections atomicity", () => {
+  beforeEach(resetModule);
+  afterEach(() => vi.restoreAllMocks());
+
+  it("queuing a batch creates exactly one queue item regardless of batch size", () => {
+    const updates = [
+      { id: "sec-a", props: { text: "A" } },
+      { id: "sec-b", props: { text: "B" } },
+      { id: "sec-c", props: { text: "C" } },
+    ];
+    enqueueSaveBatchSections({ projectId: "p1", updates });
+    const q = listOfflineQueue();
+    expect(q).toHaveLength(1);
+    expect(q[0]?.kind).toBe("save_batch_sections");
+    const payload = (q[0]?.payload as OfflineSaveBatchSectionsPayload);
+    expect(payload.updates).toHaveLength(3);
+  });
+
+  it("flush calls /sections/batch endpoint with the full updates array", async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ updated: 2 }), { status: 200 })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const updates = [
+      { id: "sec-1", props: { x: 1 } },
+      { id: "sec-2", props: { x: 2 } },
+    ];
+    enqueueSaveBatchSections({ projectId: "proj-abc", updates });
+    const result = await flushOfflineQueue();
+
+    expect(result.synced).toBe(1);
+    expect(listOfflineQueue()).toHaveLength(0);
+
+    const firstCall = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const [url, init] = firstCall;
+    expect(url).toContain("/api/projects/proj-abc/sections/batch");
+    expect(init.method).toBe("POST");
+    const body = JSON.parse(init.body as string) as { updates: unknown[] };
+    expect(body.updates).toHaveLength(2);
+  });
+
+  it("4xx response marks the entire batch terminal — does NOT split into N individual mutations", async () => {
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 })),
+    ));
+
+    const updates = [
+      { id: "sec-1", props: { text: "hello" } },
+      { id: "sec-2", props: { text: "world" } },
+    ];
+    enqueueSaveBatchSections({ projectId: "p1", updates });
+    const result = await flushOfflineQueue();
+
+    // The entire batch is terminal as ONE item — not two individual save_section items
+    const q = listOfflineQueue();
+    expect(q).toHaveLength(1);
+    expect(q[0]?.kind).toBe("save_batch_sections");
+    expect(q[0]?.status).toBe("terminal");
+
+    // No save_section items were created
+    const individualSaves = q.filter((i) => i.kind === "save_section");
+    expect(individualSaves).toHaveLength(0);
+
+    // The terminal item appears in FlushResult.terminalItems
+    expect(result.terminalItems).toHaveLength(1);
+    expect(result.terminalItems[0]?.kind).toBe("save_batch_sections");
+    expect(result.terminalItems[0]?.description).toContain("2 section");
+  });
+
+  it("5xx response marks the batch as failed (retryable) — not terminal", async () => {
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ error: "DB error" }), { status: 500 })),
+    ));
+
+    enqueueSaveBatchSections({ projectId: "p1", updates: [{ id: "sec-1", props: {} }] });
+    const result = await flushOfflineQueue();
+
+    const q = listOfflineQueue();
+    expect(q).toHaveLength(1);
+    expect(q[0]?.status).toBe("failed");
+    // Not in terminal items — it can be retried
+    expect(result.terminalItems).toHaveLength(0);
+  });
+
+  it("network error marks the batch as failed (retryable) — not terminal", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("Network error"))));
+
+    enqueueSaveBatchSections({ projectId: "p1", updates: [{ id: "sec-1", props: {} }] });
+    await flushOfflineQueue();
+
+    const q = listOfflineQueue();
+    expect(q).toHaveLength(1);
+    expect(q[0]?.status).toBe("failed");
+  });
+});
+
+// ─── 16. sync_nav — failure → retry → reconciliation ─────────────────────────
+
+describe("offline queue — sync_nav durability", () => {
+  beforeEach(resetModule);
+  afterEach(() => vi.restoreAllMocks());
+
+  it("enqueueSyncNav creates a single queue item", () => {
+    enqueueSyncNav({ projectId: "p1" });
+    const q = listOfflineQueue();
+    expect(q).toHaveLength(1);
+    expect(q[0]?.kind).toBe("sync_nav");
+  });
+
+  it("enqueueSyncNav coalesces: two enqueues for the same project produce one item", () => {
+    enqueueSyncNav({ projectId: "p1" });
+    enqueueSyncNav({ projectId: "p1" });
+    expect(listOfflineQueue()).toHaveLength(1);
+  });
+
+  it("enqueueSyncNav does NOT coalesce across different projects", () => {
+    enqueueSyncNav({ projectId: "p1" });
+    enqueueSyncNav({ projectId: "p2" });
+    expect(listOfflineQueue()).toHaveLength(2);
+  });
+
+  it("flush calls /site-chrome/sync-nav endpoint for the project", async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    enqueueSyncNav({ projectId: "proj-xyz" });
+    const result = await flushOfflineQueue();
+
+    expect(result.synced).toBe(1);
+    expect(listOfflineQueue()).toHaveLength(0);
+
+    const firstCall2 = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const [url, init] = firstCall2;
+    expect(url).toContain("/api/projects/proj-xyz/site-chrome/sync-nav");
+    expect(init.method).toBe("POST");
+  });
+
+  it("5xx response marks sync_nav as failed (retryable) — will be retried on next flush", async () => {
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ error: "Nav sync failed." }), { status: 500 })),
+    ));
+
+    enqueueSyncNav({ projectId: "p1" });
+    const result = await flushOfflineQueue();
+
+    const q = listOfflineQueue();
+    expect(q).toHaveLength(1);
+    expect(q[0]?.status).toBe("failed");
+    // Not terminal — the sync can succeed on retry
+    expect(result.terminalItems).toHaveLength(0);
+  });
+
+  it("failure → retry → successful reconciliation (two flush passes)", async () => {
+    // First flush: server returns 500
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "transient" }), { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    enqueueSyncNav({ projectId: "p1" });
+
+    // First pass: fails, item goes to "failed"
+    const pass1 = await flushOfflineQueue();
+    expect(pass1.synced).toBe(0);
+    expect(listOfflineQueue()[0]?.status).toBe("failed");
+
+    // Second pass: succeeds, item is removed
+    const pass2 = await flushOfflineQueue();
+    expect(pass2.synced).toBe(1);
+    expect(listOfflineQueue()).toHaveLength(0);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("4xx response marks sync_nav as terminal", async () => {
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ error: "Not found." }), { status: 404 })),
+    ));
+
+    enqueueSyncNav({ projectId: "p1" });
+    await flushOfflineQueue();
+
+    const q = listOfflineQueue();
+    expect(q[0]?.status).toBe("terminal");
   });
 });

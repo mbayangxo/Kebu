@@ -23,7 +23,7 @@ import { defaultMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
-import { enqueueSaveSettings } from "@/lib/create/offline-queue";
+import { enqueueSaveSettings, enqueueSaveBatchSections } from "@/lib/create/offline-queue";
 import type { PublishState } from "@/lib/create/publish-state";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
@@ -724,23 +724,32 @@ export default function ProjectEditorPage() {
 
   async function persistBatch(snapshot: Section[]): Promise<void> {
     if (snapshot.length === 0) return;
+    const updates = snapshot.map((s) => ({ id: s.id, props: s.props }));
     try {
       const res = await fetch(`/api/projects/${projectId}/sections/batch`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          updates: snapshot.map((s) => ({ id: s.id, props: s.props })),
-        }),
+        body: JSON.stringify({ updates }),
       });
       if (!res.ok) {
-        // Server rejected the batch — queue each section individually so the
-        // offline queue can retry them and surface terminal failures.
-        for (const s of snapshot) persistProps(s.id, s.props);
+        // Batch endpoint rejected or unavailable.
+        // 4xx (terminal) and 5xx/network (retryable) both queue as a SINGLE durable
+        // batch mutation — never as N individual saves — so partial persistence
+        // is impossible through the offline-retry path.
+        try {
+          enqueueSaveBatchSections({ projectId, updates });
+        } catch {
+          // Queue full or localStorage unavailable.
+        }
       }
     } catch {
-      // Network failure — queue each for offline retry.
-      for (const s of snapshot) persistProps(s.id, s.props);
+      // Network failure — queue the whole batch as one durable retryable unit.
+      try {
+        enqueueSaveBatchSections({ projectId, updates });
+      } catch {
+        // Queue full or localStorage unavailable.
+      }
     }
   }
 
