@@ -1,7 +1,7 @@
 # Builder Verification Gate — Final Report
 
 **Date**: 2026-09-24  
-**Local HEAD**: 519644d  
+**Local HEAD**: b60819f  
 **Remote HEAD**: 9d58624 (frozen — NO PUSH performed)  
 **Branch**: claude/alkebulan-files-migration-aty6p0  
 
@@ -209,28 +209,100 @@ Skipped = DB integration tests requiring live DATABASE_URL (25 pass when `DATABA
 
 ---
 
-## Remaining Blocked Items
+## Local Supabase Stack — Attempt and Outcome
+
+### What was attempted
+
+A local Supabase stack via `npx supabase@latest start` was attempted to run real GoTrue auth, PostgREST, and real JWT sessions without connecting to any production project.
+
+**Docker daemon**: Running (`dockerd` started successfully at `/tmp/docker.sock`, Docker 29.3.1).  
+**Supabase CLI**: Available via `npx supabase@latest 2.117.0`.  
+**Config**: `supabase/config.toml` generated (`supabase init`), project_id = "kebu", Postgres major_version = 17.
+
+**Cached images** (from a prior session):
+```
+ghcr.io/supabase/kong:2.8.1
+ghcr.io/supabase/postgres-meta:v0.99.0
+ghcr.io/supabase/postgrest:v16.2
+ghcr.io/supabase/storage-api:v1.72.1
+supabase/edge-runtime:v1.74.3
+supabase/gotrue:v2.196.0
+supabase/logflare:1.50.6
+timberio/vector:0.53.0-alpine
+```
+
+**Critical missing images** (not in cache, cannot be pulled):
+- `supabase/postgres:17.6.1.167` — the database itself
+- `supabase/realtime:v2.130.0` — realtime subscriptions
+- `supabase/studio:2026.08.24-sha-8ec45b2` — web UI (non-essential for tests)
+- `supabase/mailpit:v1.30.2` — email testing (non-essential for tests)
+
+### Why it fails
+
+The egress proxy blocks blob downloads from both CDN endpoints that serve container images:
+- `d2glxqk2uabbnd.cloudfront.net` — Amazon ECR (`public.ecr.aws`) CDN blob store → **Forbidden**
+- `pkg-containers.githubusercontent.com` — GitHub Container Registry blob store → **Forbidden**
+
+The Supabase CLI tries both registries and retries 3× with exponential backoff. All attempts get HTTP 403.
+
+Without `supabase/postgres`, there is no database. The stack cannot start regardless of which other services are disabled.
+
+### What is required to unblock
+
+**Option A — Local Supabase (preferred, no external project needed)**
+
+Add to the egress proxy allowlist:
+- `public.ecr.aws` (Amazon ECR registry index)
+- `d2glxqk2uabbnd.cloudfront.net` (ECR CDN blob endpoint)
+- `ghcr.io` (GitHub Container Registry index)
+- `pkg-containers.githubusercontent.com` (GHCR blob CDN endpoint)
+
+With these unblocked, `supabase start` would pull the ~2GB of missing images and a fully isolated local stack would be available for all remaining tests.
+
+**Option B — Dedicated external Supabase project (requires explicit approval before use)**
+
+A non-production Supabase project (never production data, never production secrets) with:
+
+| Credential | Purpose |
+|---|---|
+| `SUPABASE_URL` | PostgREST + GoTrue API endpoint |
+| `SUPABASE_ANON_KEY` | Client-side anon access |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-role path simulation |
+| `SUPABASE_DB_URL` | Direct postgres:// connection for migration |
+| 2 test user email + password pairs | Owner A, Owner B sessions |
+| 1 business team member email + password | Editor via assertProjectEditorAccess |
+
+Migrations from `supabase/migrations/` would be applied to this project before any tests run.
+
+---
+
+## Remaining Blocked Items (require real Supabase Auth + GoTrue JWT)
+
+None of the items below are claimed as verified. All require Option A or B above.
+
+### Task 3b: Real PostgREST authorization tests
+BLOCKED — local PostgreSQL role simulation (SET ROLE) proves SQL logic but cannot validate:
+- Real JWT cryptographic validation by GoTrue
+- PostgREST's automatic role switch from JWT claim
+- SECURITY DEFINER privilege elevation under a real authenticated connection
 
 ### Task 5: Content-stress rendering
-Not executed — covered by the 237 Playwright tests which run actual SiteRenderer
-against all 32 aesthetic families at full viewport range.
+Not executed — covered by the 237 Playwright tests (32 aesthetics × 7 viewports).
 
-### Task 6: Gallery lifecycle verification (instantiation / data isolation)
-BLOCKED — requires builder auth session to instantiate a project from a template.
-Requires real Supabase GoTrue credentials; cannot be run in this environment.
+### Task 6: Gallery lifecycle verification
+BLOCKED — requires authenticated GoTrue session to instantiate from template.
 
-### Task 7: Builder browser performance measurements
-BLOCKED — requires authenticated builder session (auth middleware redirects unauthenticated).
-Not possible without real Supabase credentials in the test environment.
+### Task 7: Builder browser performance
+BLOCKED — auth middleware redirects unauthenticated visitors; no way to measure real Builder perf.
 
-### Tasks 4–8 (authenticated Builder journey, User A/B isolation, abuse cases)
-BLOCKED — all require a real Supabase instance with GoTrue JWT auth.
-- Complete authenticated Builder journey (create → Gallery → edit → publish)
-- User A cannot read/write User B's project, assets, pages, sections, settings, publication
-- Browser performance measurements against authenticated Builder
-- Abuse cases (rapid clicks, network loss during save/upload, two tabs, oversized uploads, etc.)
+### Tasks 4 + 8: Authenticated Builder journey + abuse cases
+BLOCKED — all require real Supabase with GoTrue-issued JWTs:
+- Gallery → Aesthetic → instantiate → Builder → text → assets → sections → undo/redo → pages → settings → Desktop/Tablet/Phone → Customize → preview → publish → republish
+- Aesthetic immutability across users selecting the same Aesthetic
+- User A cannot read/write User B's project, pages, sections, assets, settings, publication state
+- Rapid clicks, network loss during save/upload, two tabs, oversized uploads, repeated Publish, orientation changes, long/empty content, Yande+inspector coexistence
 
-These are NOT verified by SiteRenderer or unit tests. Do not claim them as done.
+These are explicitly **not** verified by SiteRenderer, unit tests, or role-simulated DB tests.
 
 ---
 
