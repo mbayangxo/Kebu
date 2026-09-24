@@ -30,7 +30,7 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { data: assets, error } = await db
     .from("website_assets")
-    .select("id, url, kind, alt, created_at")
+    .select("id, url, kind, alt, created_at, stale_at")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
     .limit(48);

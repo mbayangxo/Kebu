@@ -3,6 +3,7 @@ import { failPlatformJob } from "@/lib/platform/jobs";
 import { platformLog } from "@/lib/platform/observability";
 import { processRefund, restockFromRefund } from "@/lib/shop/refunds";
 import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
+import { reconcileProjectAssets } from "@/lib/create/asset-reconciliation";
 
 type Job = { id:string; job_type:string; payload:Record<string,unknown>; attempts:number; max_attempts:number };
 
@@ -73,6 +74,28 @@ async function executeJob(admin: SupabaseClient, job: Job) {
     if (typeof orderId !== "string") throw new Error("digital.fulfill: missing orderId");
     const result = await fulfillPaidDigitalOrder(admin, orderId);
     if (!result.ok) throw new Error(`digital fulfillment failed: ${result.error}`);
+    return;
+  }
+
+  if (job.job_type === "asset.reconcile") {
+    const { projectId, ownerId } = job.payload;
+    if (typeof projectId !== "string") throw new Error("asset.reconcile: missing projectId");
+    if (typeof ownerId !== "string") throw new Error("asset.reconcile: missing ownerId");
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+    const result = await reconcileProjectAssets(admin, projectId, ownerId, supabaseUrl);
+    if (result.errors.length > 0) {
+      platformLog.error("asset.reconcile_errors", { projectId, errors: result.errors });
+      // Non-fatal per-object errors are logged but do not fail the job unless ALL work failed.
+      if (result.orphansDeleted === 0 && result.staleMarked === 0 && result.errors.length > 0
+          && result.checked > 0) {
+        throw new Error(`Reconciliation errors: ${result.errors.slice(0, 3).join("; ")}`);
+      }
+    }
+    platformLog.info("asset.reconcile_done", {
+      projectId,
+      orphansDeleted: result.orphansDeleted,
+      staleMarked: result.staleMarked,
+    });
     return;
   }
 
