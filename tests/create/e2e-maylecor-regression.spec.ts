@@ -1,6 +1,16 @@
 /**
  * May Lècor Renderer Regression — Item 5
  *
+ * Gate status: PARTIAL
+ *   - Tests run against an inline HTML fixture that mirrors maylecor-layout.tsx's
+ *     structural properties — NOT the real React component rendering.
+ *   - These tests verify CSS layout contracts (positioning, overflow, sizing)
+ *     but cannot catch React hydration bugs, Tailwind class regressions, or
+ *     data-driven rendering differences from real project fixtures.
+ *
+ * For COMPLETE coverage, a live server with a seeded May Lècor project
+ * (KEBU_E2E_BASE_URL + KEBU_E2E_BUILDER_COOKIE + KEBU_E2E_PROJECT_ID) is required.
+ *
  * Tests the structural contracts of the May Lècor home layout at each device
  * width. The layout is defined in app/components/create/maylecor-layout.tsx
  * and uses Tailwind responsive classes.
@@ -16,18 +26,11 @@
  *   - Primary content (name, CTA) is visible
  *   - No horizontal overflow at any viewport
  *
- * Missing fixture data (no real images/props from a live project) is noted
- * per the requirement: "If missing fixture data, document exactly what is
- * missing."
- *
  * MISSING for full live regression:
  *   - Real image URLs (backgroundImage, portraitMain, collageTop, etc.)
  *   - Actual Tailwind CSS (CDN is blocked in this environment, so CSS is
  *     hand-inlined below for the structural properties being tested)
  *   - React hydration + CSS animation behavior
- *
- * These are documented so they can be addressed in a CI environment with
- * a live server and pre-loaded fixture data.
  */
 
 import { test, expect } from "@playwright/test";

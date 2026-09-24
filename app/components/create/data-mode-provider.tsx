@@ -173,7 +173,7 @@ export function useDataMode(): DataModeContextValue {
       queueCount: 0,
       lastKb: null,
       reportKb: (action, usedBytes) => evaluateKb({ action, mode: "data_saver", usedBytes }),
-      flushQueue: async () => ({ synced: 0, failed: 0, remaining: 0 }),
+      flushQueue: async () => ({ synced: 0, failed: 0, remaining: 0, terminalItems: [] }),
       refreshQueueCount: () => {},
       syncing: false,
     };

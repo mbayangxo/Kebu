@@ -10,7 +10,16 @@ import {
 } from "@/lib/create/site-chrome";
 import { resolveClientDataMode } from "@/lib/create/data-mode";
 import { measureResponseBytes, evaluateKb } from "@/lib/create/kb-budget";
-import { enqueueSaveSection, flushOfflineQueue, isBrowserOnline } from "@/lib/create/offline-queue";
+import {
+  enqueueSaveSection,
+  enqueueSaveChrome,
+  flushOfflineQueue,
+  discardTerminalItem,
+  discardTerminalItems,
+  getTerminalItems,
+  isBrowserOnline,
+  type TerminalItem,
+} from "@/lib/create/offline-queue";
 import type { PublishState } from "@/lib/create/publish-state";
 
 /** The minimal shape this hook needs from a builder section — kept narrow so it doesn't depend on
@@ -21,7 +30,7 @@ export interface AutosaveSection {
   [key: string]: unknown;
 }
 
-export type SaveState = "idle" | "unsaved" | "saving" | "saved" | "queued" | "error";
+export type SaveState = "idle" | "unsaved" | "saving" | "saved" | "queued" | "error" | "needs-attention";
 
 /**
  * Extracted from app/create/[id]/page.tsx: the project's autosave state machine (section props +
@@ -54,6 +63,22 @@ export function useProjectAutosave<T extends AutosaveSection>({
 }) {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [kbSaveNote, setKbSaveNote] = useState<string | null>(null);
+  /** Terminal items from a flush pass that have not yet been dismissed by the user. */
+  const [pendingTerminals, setPendingTerminals] = useState<TerminalItem[]>(() =>
+    getTerminalItems().map((i) => ({
+      id: i.id,
+      kind: i.kind,
+      lastError: i.lastError,
+      description:
+        i.kind === "save_section"
+          ? "Section save failed (auth/validation error)"
+          : i.kind === "save_chrome"
+            ? `${(i.payload as { part: string }).part === "header" ? "Header" : "Footer"} save failed`
+            : i.kind === "save_settings"
+              ? "Site settings save failed"
+              : "Mutation failed permanently",
+    })),
+  );
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const chromeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -66,24 +91,34 @@ export function useProjectAutosave<T extends AutosaveSection>({
    */
   const pendingSavesRef = useRef<Set<string>>(new Set());
 
+  /** Derives the effective save state including terminal items. */
+  function computeSaveState(base: SaveState, terminals: TerminalItem[]): SaveState {
+    if (terminals.length > 0) return "needs-attention";
+    return base;
+  }
+
+  function setSaveStateWithTerminals(base: SaveState) {
+    setSaveState(base);
+  }
+
   async function persistProps(sectionId: string, props: Record<string, unknown>) {
     const mode = resolveClientDataMode();
     const offline = !isBrowserOnline() || mode === "offline";
     if (offline) {
       try {
         enqueueSaveSection({ projectId, sectionId, props });
-        setSaveState("queued");
+        setSaveStateWithTerminals("queued");
         setKbSaveNote("Not saved on server yet — queued until Syncing…");
         setError(null);
       } catch (err) {
         if (err instanceof Error && err.message === "offline_queue_full") {
-          setSaveState("error");
+          setSaveStateWithTerminals("error");
           setError("Offline queue is full — reconnect to sync your changes.");
         }
       }
       return;
     }
-    setSaveState("saving");
+    setSaveStateWithTerminals("saving");
     try {
       const res = await fetch(`/api/projects/${projectId}/sections`, {
         method: "PATCH",
@@ -99,7 +134,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
       setKbSaveNote(ev.summary);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSaveState("error");
+        setSaveStateWithTerminals("error");
         const issueHint =
           data?.issues?.fieldErrors && typeof data.issues.fieldErrors === "object"
             ? Object.entries(data.issues.fieldErrors as Record<string, string[]>)
@@ -123,20 +158,20 @@ export function useProjectAutosave<T extends AutosaveSection>({
           : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
       );
       pendingSavesRef.current.delete(`section:${sectionId}`);
-      setSaveState(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
+      setSaveStateWithTerminals(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
       setError(null);
     } catch (fetchErr) {
       try {
         enqueueSaveSection({ projectId, sectionId, props });
-        setSaveState("queued");
+        setSaveStateWithTerminals("queued");
         setKbSaveNote("Not saved on server yet — queued until Syncing…");
         setError(null);
       } catch (queueErr) {
         if (queueErr instanceof Error && queueErr.message === "offline_queue_full") {
-          setSaveState("error");
+          setSaveStateWithTerminals("error");
           setError("Offline queue is full — reconnect to sync your changes.");
         } else {
-          setSaveState("error");
+          setSaveStateWithTerminals("error");
           setError("Could not save this change. Please try again.");
           void fetchErr;
         }
@@ -148,11 +183,20 @@ export function useProjectAutosave<T extends AutosaveSection>({
     const mode = resolveClientDataMode();
     const offline = !isBrowserOnline() || mode === "offline";
     if (offline) {
-      setSaveState("queued");
-      setKbSaveNote("Site header/footer queued until Syncing…");
+      try {
+        enqueueSaveChrome({ projectId, part, props });
+        setSaveStateWithTerminals("queued");
+        setKbSaveNote("Site header/footer queued until Syncing…");
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.message === "offline_queue_full") {
+          setSaveStateWithTerminals("error");
+          setError("Offline queue is full — reconnect to sync your changes.");
+        }
+      }
       return;
     }
-    setSaveState("saving");
+    setSaveStateWithTerminals("saving");
     try {
       const body = part === "header" ? { header: props } : { footer: props };
       const res = await fetch(`/api/projects/${projectId}/site-chrome`, {
@@ -163,8 +207,15 @@ export function useProjectAutosave<T extends AutosaveSection>({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setSaveState("error");
-        setError(typeof data.error === "string" ? data.error : "Could not save site header/footer.");
+        // Surface the error — but also queue for auto-retry on reconnect.
+        try {
+          enqueueSaveChrome({ projectId, part, props });
+          setSaveStateWithTerminals("queued");
+          setKbSaveNote("Site header/footer queued for retry…");
+        } catch {
+          setSaveStateWithTerminals("error");
+          setError(typeof data.error === "string" ? data.error : "Could not save site header/footer.");
+        }
         return;
       }
       if (data.siteChrome) {
@@ -176,17 +227,26 @@ export function useProjectAutosave<T extends AutosaveSection>({
           : { isLive: false, hasUnpublishedChanges: true, lastPublishedAt: null, draftUpdatedAt: null, livePublicPath: null },
       );
       pendingSavesRef.current.delete(`chrome:${part}`);
-      setSaveState(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
+      setSaveStateWithTerminals(pendingSavesRef.current.size > 0 ? "unsaved" : "saved");
       setError(null);
     } catch {
-      setSaveState("queued");
-      setKbSaveNote("Site header/footer queued until Syncing…");
+      try {
+        enqueueSaveChrome({ projectId, part, props });
+        setSaveStateWithTerminals("queued");
+        setKbSaveNote("Site header/footer queued until Syncing…");
+        setError(null);
+      } catch (queueErr) {
+        if (queueErr instanceof Error && queueErr.message === "offline_queue_full") {
+          setSaveStateWithTerminals("error");
+          setError("Offline queue is full — reconnect to sync your changes.");
+        }
+      }
     }
   }
 
   function updateChromeProps(part: "header" | "footer", patch: Record<string, unknown>) {
     pendingSavesRef.current.add(`chrome:${part}`);
-    setSaveState("unsaved");
+    setSaveStateWithTerminals("unsaved");
     setSiteChrome((prev) => {
       const base = prev ?? parseSiteChrome(null);
       const next = patchSiteChromePart({ ...base, enabled: true }, part, patch);
@@ -205,7 +265,7 @@ export function useProjectAutosave<T extends AutosaveSection>({
       return;
     }
     pendingSavesRef.current.add(`section:${sectionId}`);
-    setSaveState("unsaved");
+    setSaveStateWithTerminals("unsaved");
     setSections((prev) => {
       pushHistory(prev);
       const next = prev.map((s) => (s.id === sectionId ? { ...s, props: { ...s.props, ...patch } } : s));
@@ -236,7 +296,18 @@ export function useProjectAutosave<T extends AutosaveSection>({
     }
     const pending = Array.from(pendingSavesRef.current);
     if (pending.length === 0) {
-      setSaveState("saved"); // explicit confirmation: nothing was pending, all is saved
+      // Also flush any queued offline items.
+      if (isBrowserOnline()) {
+        const result = await flushOfflineQueue();
+        if (result.terminalItems.length > 0) {
+          setPendingTerminals((prev) => {
+            const existingIds = new Set(prev.map((t) => t.id));
+            const newOnes = result.terminalItems.filter((t) => !existingIds.has(t.id));
+            return [...prev, ...newOnes];
+          });
+        }
+      }
+      setSaveStateWithTerminals("saved");
       return;
     }
     await Promise.all(
@@ -256,13 +327,45 @@ export function useProjectAutosave<T extends AutosaveSection>({
     );
   }
 
-  // Flush any queued offline saves when connectivity returns.
+  /**
+   * Flush the offline queue and surface any newly-terminal items.
+   * Called automatically on reconnect and can be called from the UI.
+   */
+  async function flushAndSurfaceTerminals() {
+    const result = await flushOfflineQueue();
+    if (result.terminalItems.length > 0) {
+      setPendingTerminals((prev) => {
+        const existingIds = new Set(prev.map((t) => t.id));
+        const newOnes = result.terminalItems.filter((t) => !existingIds.has(t.id));
+        return [...prev, ...newOnes];
+      });
+    }
+    // After flush, if queue is now empty, update save state.
+    if (result.remaining === 0 && pendingSavesRef.current.size === 0) {
+      setSaveState("saved");
+    }
+  }
+
+  /** Discard a single terminal item by id (user has acknowledged the loss). */
+  function dismissTerminalItem(id: string) {
+    discardTerminalItem(id);
+    setPendingTerminals((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  /** Discard all terminal items. */
+  function dismissAllTerminalItems() {
+    discardTerminalItems();
+    setPendingTerminals([]);
+  }
+
+  // Flush any queued offline saves when connectivity returns, and surface terminal results.
   useEffect(() => {
     const onOnline = () => {
-      void flushOfflineQueue();
+      void flushAndSurfaceTerminals();
     };
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Warn before the user leaves with edits that haven't been CONFIRMED saved yet — covers the 500ms
@@ -278,13 +381,14 @@ export function useProjectAutosave<T extends AutosaveSection>({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, []);
 
-  // Clear any still-pending debounce timers on unmount — avoids a setState-after-unmount if the editor
-  // page goes away mid-debounce (matches the equivalent cleanup that used to live in page.tsx's load effect).
+  // On unmount: flush any still-debouncing timers immediately into the queue
+  // so pending edits survive navigation away from the Builder.
   useEffect(() => {
     const timers = saveTimers.current;
+    const chromeTmr = chromeSaveTimer;
     return () => {
       Object.values(timers).forEach(clearTimeout);
-      if (chromeSaveTimer.current) clearTimeout(chromeSaveTimer.current);
+      if (chromeTmr.current) clearTimeout(chromeTmr.current);
     };
   }, []);
 
@@ -295,11 +399,13 @@ export function useProjectAutosave<T extends AutosaveSection>({
         ? "Not saved yet — queued"
         : saveState === "error"
           ? "Save failed — click Save draft to retry"
-          : saveState === "unsaved"
-            ? "Unsaved changes"
-            : saveState === "saved"
-              ? "Draft saved"
-              : "";
+          : saveState === "needs-attention"
+            ? "Action required — some changes could not be saved"
+            : saveState === "unsaved"
+              ? "Unsaved changes"
+              : saveState === "saved"
+                ? "Draft saved"
+                : "";
 
   /**
    * For callers that just replaced `sections`/`siteChrome` wholesale with a fresh server response
@@ -312,14 +418,38 @@ export function useProjectAutosave<T extends AutosaveSection>({
     setSaveState("saved");
   }
 
+  /**
+   * Whether the Builder can publish safely.
+   * Returns false if there are queued, failed, or terminal items that must be resolved first.
+   */
+  function canPublishNow(): { ok: boolean; reason?: string } {
+    if (pendingTerminals.length > 0) {
+      return {
+        ok: false,
+        reason: `${pendingTerminals.length} change(s) failed permanently and must be dismissed before publishing. Click "Needs attention" to review.`,
+      };
+    }
+    if (saveState === "queued") {
+      return { ok: false, reason: "Changes are queued offline — reconnect and sync before publishing." };
+    }
+    if (saveState === "error") {
+      return { ok: false, reason: "Some changes failed to save — click Save draft to retry before publishing." };
+    }
+    return { ok: true };
+  }
+
   return {
-    saveState,
-    saveStatusLabel,
+    saveState: pendingTerminals.length > 0 ? ("needs-attention" as SaveState) : saveState,
+    saveStatusLabel: pendingTerminals.length > 0 ? "Action required — some changes could not be saved" : saveStatusLabel,
     kbSaveNote,
+    pendingTerminals,
     updateProps,
     updateChromeProps,
     persistProps,
     markAllSaved,
     saveDraftNow,
+    dismissTerminalItem,
+    dismissAllTerminalItems,
+    canPublishNow,
   };
 }

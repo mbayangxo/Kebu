@@ -23,6 +23,7 @@ import { defaultMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
+import { enqueueSaveSettings } from "@/lib/create/offline-queue";
 import type { PublishState } from "@/lib/create/publish-state";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
@@ -280,6 +281,7 @@ export default function ProjectEditorPage() {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
+  const pendingSettingsRef = useRef<{ subdomain?: string; seo?: SiteSeo; theme?: Partial<ThemeTokens> } | null>(null);
   // Ref to the iframe used for mobile/tablet device preview (see below)
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
   const [billing, setBilling] = useState<{
@@ -496,16 +498,26 @@ export default function ProjectEditorPage() {
     };
   }, [load]);
 
-  // Flush or cancel the settings debounce on unmount so the timer doesn't fire
-  // after the component has unmounted (setState-after-unmount / silent data loss).
+  // On unmount: flush any pending settings into the offline queue so they survive navigation.
+  // Clears the debounce timer to prevent setState-after-unmount.
   useEffect(() => {
     return () => {
       if (settingsTimer.current) {
         clearTimeout(settingsTimer.current);
         settingsTimer.current = null;
       }
+      const pending = pendingSettingsRef.current;
+      if (pending) {
+        try {
+          enqueueSaveSettings({ projectId, ...pending });
+        } catch {
+          /* best-effort — queue may be full */
+        }
+        pendingSettingsRef.current = null;
+      }
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   function pushHistory(prev: Section[]) {
     setHistory((h) => [...h.slice(-19), prev]);
@@ -521,6 +533,10 @@ export default function ProjectEditorPage() {
     saveDraftNow,
     persistProps,
     markAllSaved,
+    pendingTerminals,
+    dismissTerminalItem,
+    dismissAllTerminalItems,
+    canPublishNow,
   } = useProjectAutosave({
       projectId,
       sections,
@@ -660,16 +676,14 @@ export default function ProjectEditorPage() {
   }
 
   async function reorderSections(orderedIds: string[]) {
-    await Promise.all(
-      orderedIds.map((id, index) =>
-        fetch(`/api/projects/${projectId}/sections`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionId: id, sortOrder: index }),
-        }),
-      ),
-    );
+    // Single atomic request — assigns dense rank (0, 1, 2…) server-side, eliminating
+    // the N-concurrent-PATCH read-then-write race.
+    await fetch(`/api/projects/${projectId}/sections/reorder`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds }),
+    });
     await load();
   }
 
@@ -680,30 +694,24 @@ export default function ProjectEditorPage() {
     const idx = ordered.findIndex((s) => s.id === sectionId);
     const swapIdx = idx + direction;
     if (idx < 0 || swapIdx < 0 || swapIdx >= ordered.length) return;
-    const a = ordered[idx]!;
-    const b = ordered[swapIdx]!;
-    // Apply swap optimistically so the UI updates immediately without a reload
+    // Build the new desired order after the swap, then use the atomic reorder endpoint.
+    const newOrdered = [...ordered];
+    [newOrdered[idx], newOrdered[swapIdx]] = [newOrdered[swapIdx]!, newOrdered[idx]!];
+    const newOrderedIds = newOrdered.map((s) => s.id);
+    // Optimistic UI update using dense rank matching the new order
     setSections((prev) =>
       prev.map((s) => {
-        if (s.id === a.id) return { ...s, sort_order: b.sort_order };
-        if (s.id === b.id) return { ...s, sort_order: a.sort_order };
-        return s;
+        const newIdx = newOrderedIds.indexOf(s.id);
+        if (newIdx === -1) return s;
+        return { ...s, sort_order: newIdx };
       }),
     );
-    await Promise.all([
-      fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionId: a.id, sortOrder: b.sort_order }),
-      }),
-      fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionId: b.id, sortOrder: a.sort_order }),
-      }),
-    ]);
+    await fetch(`/api/projects/${projectId}/sections/reorder`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds: newOrderedIds }),
+    });
   }
 
   function undo() {
@@ -712,10 +720,9 @@ export default function ProjectEditorPage() {
       const prev = h[h.length - 1]!;
       setFuture((f) => [sections, ...f]);
       setSections(prev);
-      // Persist each section props best-effort
-      prev.forEach((s) => {
-        void persistProps(s.id, s.props);
-      });
+      // Batch persist: all sections in the snapshot fire together so partial
+      // success is avoided — any that fail fall back to the offline queue.
+      void Promise.allSettled(prev.map((s) => persistProps(s.id, s.props)));
       return h.slice(0, -1);
     });
   }
@@ -726,9 +733,7 @@ export default function ProjectEditorPage() {
       const next = f[0]!;
       setHistory((h) => [...h, sections]);
       setSections(next);
-      next.forEach((s) => {
-        void persistProps(s.id, s.props);
-      });
+      void Promise.allSettled(next.map((s) => persistProps(s.id, s.props)));
       return f.slice(1);
     });
   }
@@ -850,8 +855,16 @@ export default function ProjectEditorPage() {
       });
     }
 
+    // Track pending settings so unmount can flush them to the offline queue.
+    pendingSettingsRef.current = {
+      subdomain: nextSubdomain.trim() || undefined,
+      seo: nextSeo,
+      theme: patch.theme,
+    };
+
     if (settingsTimer.current) clearTimeout(settingsTimer.current);
     settingsTimer.current = setTimeout(() => {
+      pendingSettingsRef.current = null;
       const subdomainValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextSubdomain.trim()) && nextSubdomain.trim().length >= 3;
       const themeToSave = pendingThemeRef.current ?? undefined;
       pendingThemeRef.current = null;
@@ -867,6 +880,11 @@ export default function ProjectEditorPage() {
     if (publishing) return;
     if (!subdomainInput.trim()) {
       setError("Set your Kebu site address under Domain & SEO before publishing.");
+      return;
+    }
+    const publishCheck = canPublishNow();
+    if (!publishCheck.ok) {
+      setError(publishCheck.reason ?? "Cannot publish while changes are pending or failed.");
       return;
     }
     setPublishing(true);
@@ -1204,7 +1222,7 @@ export default function ProjectEditorPage() {
         onSaveDraft={() => void saveDraftNow()}
         savingDraft={saveState === "saving"}
         saveLabelColor={
-          saveState === "error" ? "#CC1A1A"
+          saveState === "needs-attention" || saveState === "error" ? "#CC1A1A"
           : saveState === "unsaved" || saveState === "queued" ? "#D97706"
           : saveState === "saved" ? "#009E40"
           : "#8C8C8C"
@@ -1321,6 +1339,43 @@ export default function ProjectEditorPage() {
               Open Domain &amp; SEO
             </Link>
           ) : null}
+        </div>
+      ) : null}
+
+      {pendingTerminals.length > 0 ? (
+        <div
+          className="border-b px-4 py-2.5 text-xs"
+          style={{ background: "#FFF1F0", borderColor: "#FCA5A5", color: "#7F1D1D" }}
+          role="alert"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <strong>Action required — {pendingTerminals.length} change{pendingTerminals.length !== 1 ? "s" : ""} could not be saved</strong>
+              <ul className="mt-1 space-y-0.5">
+                {pendingTerminals.map((t) => (
+                  <li key={t.id} className="flex items-center gap-2">
+                    <span>{t.description}{t.lastError ? ` (${t.lastError})` : ""}</span>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                      style={{ background: "#FCA5A5", color: "#7F1D1D" }}
+                      onClick={() => dismissTerminalItem(t.id)}
+                    >
+                      Discard
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button
+              type="button"
+              className="shrink-0 rounded px-2 py-1 text-[11px] font-semibold"
+              style={{ background: "#FCA5A5", color: "#7F1D1D" }}
+              onClick={() => dismissAllTerminalItems()}
+            >
+              Dismiss all
+            </button>
+          </div>
         </div>
       ) : null}
 

@@ -1,6 +1,6 @@
 /**
  * Offline action queue — never claim "saved" until the server acknowledges.
- * Kinds: place_order · save_section · event_register.
+ * Kinds: place_order · save_section · save_chrome · save_settings · event_register.
  *
  * Ordering guarantee: same-resource mutations never dispatch concurrently —
  * a syncing item for a resource blocks the next item for that resource until
@@ -11,9 +11,9 @@
  *   HTTP 4xx → "terminal" (visible to user, not retried — auth/validation error)
  *   HTTP 5xx / network → "failed" (retried on next flush)
  *
- * Overflow: hard cap at QUEUE_CAP items. save_section coalesces so the
- * practical limit is unique sections being edited. Reaching the cap throws
- * "offline_queue_full" — never a silent drop of the newest item.
+ * Overflow: hard cap at QUEUE_CAP items. save_section/save_chrome/save_settings
+ * coalesce so the practical limit is unique resources being edited. Reaching the
+ * cap throws "offline_queue_full" — never a silent drop.
  *
  * Stuck syncing: items left at "syncing" after a crash/reload are reset to
  * "queued" by resetStuckSyncingItems(), called once on app boot.
@@ -45,6 +45,24 @@ export type OfflineSaveSectionPayload = {
   props: Record<string, unknown>;
 };
 
+/** Header or footer props for a project. */
+export type OfflineSaveChromePayload = {
+  projectId: string;
+  part: "header" | "footer";
+  props: Record<string, unknown>;
+};
+
+/**
+ * Site settings — any combination of subdomain/SEO/theme may be included.
+ * Coalesces so only the latest write per project is queued.
+ */
+export type OfflineSaveSettingsPayload = {
+  projectId: string;
+  subdomain?: string;
+  seo?: Record<string, unknown>;
+  theme?: Record<string, unknown>;
+};
+
 export type OfflineEventRegisterPayload = {
   publicId: string;
   guestName: string;
@@ -71,6 +89,22 @@ export type OfflineQueueItem =
       createdAt: string;
       status: OfflineItemStatus;
       payload: OfflineSaveSectionPayload;
+      lastError?: string;
+    }
+  | {
+      id: string;
+      kind: "save_chrome";
+      createdAt: string;
+      status: OfflineItemStatus;
+      payload: OfflineSaveChromePayload;
+      lastError?: string;
+    }
+  | {
+      id: string;
+      kind: "save_settings";
+      createdAt: string;
+      status: OfflineItemStatus;
+      payload: OfflineSaveSettingsPayload;
       lastError?: string;
     }
   | {
@@ -130,6 +164,12 @@ function getResourceKey(item: OfflineQueueItem): string {
   if (item.kind === "save_section") {
     return `save_section:${item.payload.projectId}:${item.payload.sectionId}`;
   }
+  if (item.kind === "save_chrome") {
+    return `save_chrome:${item.payload.projectId}:${item.payload.part}`;
+  }
+  if (item.kind === "save_settings") {
+    return `save_settings:${item.payload.projectId}`;
+  }
   // Orders and event registrations are each unique — no ordering constraint needed.
   return item.id;
 }
@@ -177,13 +217,86 @@ export function enqueueSaveSection(payload: OfflineSaveSectionPayload): OfflineQ
         i.status !== "syncing"
       ),
   );
-  // After coalescing, check capacity against the deduped list.
   if (withoutDup.length >= QUEUE_CAP) {
     throw new Error("offline_queue_full");
   }
   const item: OfflineQueueItem = {
     id: newId(),
     kind: "save_section",
+    createdAt: new Date().toISOString(),
+    status: "queued",
+    payload,
+  };
+  writeQueue([...withoutDup, item]);
+  return item;
+}
+
+/** Coalesce: one pending chrome save per part per project (latest props win). */
+export function enqueueSaveChrome(payload: OfflineSaveChromePayload): OfflineQueueItem {
+  const current = readQueue();
+  const withoutDup = current.filter(
+    (i) =>
+      !(
+        i.kind === "save_chrome" &&
+        i.payload.projectId === payload.projectId &&
+        i.payload.part === payload.part &&
+        i.status !== "syncing"
+      ),
+  );
+  if (withoutDup.length >= QUEUE_CAP) {
+    throw new Error("offline_queue_full");
+  }
+  const item: OfflineQueueItem = {
+    id: newId(),
+    kind: "save_chrome",
+    createdAt: new Date().toISOString(),
+    status: "queued",
+    payload,
+  };
+  writeQueue([...withoutDup, item]);
+  return item;
+}
+
+/**
+ * Coalesce: one pending settings save per project.
+ * Merges with any existing non-syncing queued save so the latest values win
+ * without doubling the queue entry count.
+ */
+export function enqueueSaveSettings(payload: OfflineSaveSettingsPayload): OfflineQueueItem {
+  const current = readQueue();
+  const existing = current.find(
+    (i) =>
+      i.kind === "save_settings" &&
+      i.payload.projectId === payload.projectId &&
+      i.status !== "syncing",
+  );
+  if (existing && existing.kind === "save_settings") {
+    // Merge latest values into the existing queued item — latest write wins per field.
+    const merged: OfflineSaveSettingsPayload = {
+      ...existing.payload,
+      ...payload,
+      seo: payload.seo ?? existing.payload.seo,
+      theme: payload.theme ?? existing.payload.theme,
+      subdomain: payload.subdomain ?? existing.payload.subdomain,
+    };
+    const updated = { ...existing, payload: merged } as OfflineQueueItem;
+    writeQueue(current.map((i) => (i.id === existing.id ? updated : i)));
+    return updated;
+  }
+  const withoutDup = current.filter(
+    (i) =>
+      !(
+        i.kind === "save_settings" &&
+        i.payload.projectId === payload.projectId &&
+        i.status !== "syncing"
+      ),
+  );
+  if (withoutDup.length >= QUEUE_CAP) {
+    throw new Error("offline_queue_full");
+  }
+  const item: OfflineQueueItem = {
+    id: newId(),
+    kind: "save_settings",
     createdAt: new Date().toISOString(),
     status: "queued",
     payload,
@@ -216,10 +329,52 @@ export function updateOfflineQueueItem(id: string, patch: Partial<OfflineQueueIt
   writeQueue(readQueue().map((i) => (i.id === id ? ({ ...i, ...patch } as OfflineQueueItem) : i)));
 }
 
+/** Remove all terminal items from the queue. Returns the count discarded. */
+export function discardTerminalItems(): number {
+  const items = readQueue();
+  const terminals = items.filter((i) => i.status === "terminal");
+  if (terminals.length === 0) return 0;
+  writeQueue(items.filter((i) => i.status !== "terminal"));
+  return terminals.length;
+}
+
+/** Remove a single terminal item by id. No-op if not terminal. */
+export function discardTerminalItem(id: string): void {
+  const items = readQueue();
+  const item = items.find((i) => i.id === id);
+  if (item && item.status === "terminal") {
+    writeQueue(items.filter((i) => i.id !== id));
+  }
+}
+
+/** Return all currently-terminal items (for surfacing in the UI). */
+export function getTerminalItems(): OfflineQueueItem[] {
+  return readQueue().filter((i) => i.status === "terminal");
+}
+
+export type TerminalItem = {
+  id: string;
+  kind: OfflineQueueItem["kind"];
+  lastError?: string;
+  description: string;
+};
+
+/** Human-readable description of a terminal item for the recovery UI. */
+export function describeTerminalItem(item: OfflineQueueItem): string {
+  if (item.kind === "save_section") return `Section save failed (auth/validation error)`;
+  if (item.kind === "save_chrome") return `${item.payload.part === "header" ? "Header" : "Footer"} save failed (auth/validation error)`;
+  if (item.kind === "save_settings") return "Site settings save failed (auth/validation error)";
+  if (item.kind === "place_order") return `Order placement failed (auth/validation error)`;
+  if (item.kind === "event_register") return `Event registration failed (auth/validation error)`;
+  return "Mutation failed";
+}
+
 export type FlushResult = {
   synced: number;
   failed: number;
   remaining: number;
+  /** Items that hit a terminal (4xx) error during this flush pass. */
+  terminalItems: TerminalItem[];
 };
 
 async function flushPlaceOrder(
@@ -289,6 +444,68 @@ async function flushSaveSection(
   return true;
 }
 
+async function flushSaveChrome(
+  item: Extract<OfflineQueueItem, { kind: "save_chrome" }>,
+): Promise<boolean> {
+  const body =
+    item.payload.part === "header"
+      ? { header: item.payload.props }
+      : { footer: item.payload.props };
+  const res = await fetch(`/api/projects/${item.payload.projectId}/site-chrome`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Kebu-Data-Mode": "offline",
+      "X-Kebu-Offline-Sync": "1",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const error = typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+    const isTerminal = res.status >= 400 && res.status < 500;
+    updateOfflineQueueItem(item.id, {
+      status: isTerminal ? "terminal" : "failed",
+      lastError: error,
+    });
+    return false;
+  }
+  removeOfflineQueueItem(item.id);
+  return true;
+}
+
+async function flushSaveSettings(
+  item: Extract<OfflineQueueItem, { kind: "save_settings" }>,
+): Promise<boolean> {
+  const body: Record<string, unknown> = {};
+  if (item.payload.subdomain !== undefined) body.subdomain = item.payload.subdomain;
+  if (item.payload.seo !== undefined) body.seo = item.payload.seo;
+  if (item.payload.theme !== undefined) body.theme = item.payload.theme;
+  const res = await fetch(`/api/projects/${item.payload.projectId}/settings`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Kebu-Data-Mode": "offline",
+      "X-Kebu-Offline-Sync": "1",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const error = typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+    const isTerminal = res.status >= 400 && res.status < 500;
+    updateOfflineQueueItem(item.id, {
+      status: isTerminal ? "terminal" : "failed",
+      lastError: error,
+    });
+    return false;
+  }
+  removeOfflineQueueItem(item.id);
+  return true;
+}
+
 async function flushEventRegister(
   item: Extract<OfflineQueueItem, { kind: "event_register" }>,
 ): Promise<boolean> {
@@ -325,6 +542,8 @@ async function dispatchItem(item: OfflineQueueItem): Promise<boolean> {
   try {
     if (item.kind === "place_order") return await flushPlaceOrder(item);
     if (item.kind === "save_section") return await flushSaveSection(item);
+    if (item.kind === "save_chrome") return await flushSaveChrome(item);
+    if (item.kind === "save_settings") return await flushSaveSettings(item);
     return await flushEventRegister(item);
   } catch (e) {
     // Network failure or unexpected throw → retryable
@@ -349,6 +568,8 @@ let activeFlush: Promise<FlushResult> | null = null;
  * - Independent resources run in parallel, bounded at MAX_CONCURRENT.
  * - Concurrent flush() calls coalesce: the second caller receives the same
  *   promise as the first.
+ * - terminalItems in the result lists any items that became terminal this
+ *   flush pass so callers can surface them in the UI.
  */
 export function flushOfflineQueue(): Promise<FlushResult> {
   if (activeFlush) return activeFlush;
@@ -359,6 +580,12 @@ export function flushOfflineQueue(): Promise<FlushResult> {
 }
 
 async function _runFlush(): Promise<FlushResult> {
+  const terminalBefore = new Set(
+    readQueue()
+      .filter((i) => i.status === "terminal")
+      .map((i) => i.id),
+  );
+
   const allItems = readQueue();
 
   // Resource keys that already have a syncing item — don't start new work for these.
@@ -374,7 +601,7 @@ async function _runFlush(): Promise<FlushResult> {
   );
 
   if (candidates.length === 0) {
-    return { synced: 0, failed: 0, remaining: readQueue().length };
+    return { synced: 0, failed: 0, remaining: readQueue().length, terminalItems: [] };
   }
 
   // Mark as syncing atomically before any async work.
@@ -395,7 +622,19 @@ async function _runFlush(): Promise<FlushResult> {
     }
   }
 
-  return { synced, failed, remaining: readQueue().length };
+  // Collect newly-terminal items (became terminal during this flush pass).
+  const afterItems = readQueue();
+  const newTerminals = afterItems.filter(
+    (i) => i.status === "terminal" && !terminalBefore.has(i.id),
+  );
+  const terminalItems: TerminalItem[] = newTerminals.map((i) => ({
+    id: i.id,
+    kind: i.kind,
+    lastError: i.lastError,
+    description: describeTerminalItem(i),
+  }));
+
+  return { synced, failed, remaining: readQueue().length, terminalItems };
 }
 
 export function isBrowserOnline(): boolean {

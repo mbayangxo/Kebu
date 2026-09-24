@@ -18,9 +18,12 @@
  *   4. Section actions area is fully functional (confirmed via unit tests
  *      rather than live Builder, since auth is required to load real sections).
  *
- * Tests that REQUIRE a running authenticated server are marked with
- * test.skip and their preconditions documented so they can be enabled
- * in a CI environment with a seeded test project.
+ * Gate status:
+ *   COMPLETE — tests 2, 3, 4 (CSS/badge contracts, inline HTML — no auth needed)
+ *   BLOCKED  — tests 1, 5+ (server health checks and live Builder smoke tests)
+ *              Require KEBU_E2E_BASE_URL + KEBU_E2E_BUILDER_COOKIE + KEBU_E2E_PROJECT_ID.
+ *              These tests are test.skip'd and will not run in standard CI without
+ *              those env vars pointing to a live authenticated server with a seeded project.
  */
 
 import { test, expect } from "@playwright/test";
