@@ -251,7 +251,7 @@ describe.skipIf(SKIP)("builder RPC authorization guard [PostgreSQL integration]"
        ORDER BY sort_order`,
       [projectId],
     );
-    expect(after.map(r => r.id)).toEqual(reversed);
+    expect(after.map((r: { id: string; sort_order: number }) => r.id)).toEqual(reversed);
   });
 
   // ── 2. Owner: batch_update_section_props succeeds ────────────────────────────
@@ -384,7 +384,7 @@ describe.skipIf(SKIP)("builder RPC authorization guard [PostgreSQL integration]"
       `SELECT sort_order FROM public.project_sections WHERE page_id = $1 ORDER BY sort_order`,
       [fixture2.pageId],
     );
-    expect(check.map(r => r.sort_order)).toEqual([0, 1]);
+    expect(check.map((r: { sort_order: number }) => r.sort_order)).toEqual([0, 1]);
   });
 
   // ── 9. No anon EXECUTE grant (function call raises permission error) ──────────
