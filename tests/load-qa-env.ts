@@ -15,8 +15,8 @@ if (existsSync(envFile)) {
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();
     const value = trimmed.slice(eqIdx + 1).trim();
-    // Don't overwrite vars already set by the shell
-    if (!(key in process.env)) {
+    // Don't overwrite non-empty shell exports, but do fill in missing/empty ones
+    if (!process.env[key]) {
       process.env[key] = value;
     }
     loaded++;
