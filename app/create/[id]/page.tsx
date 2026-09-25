@@ -314,7 +314,7 @@ export default function ProjectEditorPage() {
   const [history, setHistory] = useState<Section[][]>([]);
   const [future, setFuture] = useState<Section[][]>([]);
   const [mobileAddSectionOpen, setMobileAddSectionOpen] = useState(false);
-  const [pages, setPages] = useState<Array<{ id: string; slug: string; title: string; sort_order: number }>>([]);
+  const [pages, setPages] = useState<Array<{ id: string; slug: string; title: string; sort_order: number; device_layouts?: unknown }>>([]);
   const [siteChrome, setSiteChrome] = useState<SiteChrome | null>(null);
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
   const [editPageId, setEditPageId] = useState("");
@@ -590,6 +590,39 @@ export default function ProjectEditorPage() {
     if (needsReconcile) void load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sections]);
+
+  // Updates per-device section ordering/visibility for the current page.
+  // Writes to the project_pages.device_layouts column via PATCH.
+  async function updatePageDeviceLayouts(
+    pageId: string,
+    patch: { tablet?: { sectionOrder?: string[]; hiddenSections?: string[] } | null; mobile?: { sectionOrder?: string[]; hiddenSections?: string[] } | null },
+  ) {
+    const page = pages.find((p) => p.id === pageId);
+    if (!page) return;
+    const current = (page.device_layouts ?? {}) as { tablet?: unknown; mobile?: unknown };
+    const next = { ...current, ...patch };
+    // Optimistic update
+    setPages((prev) => prev.map((p) => p.id === pageId ? { ...p, device_layouts: next } : p));
+    try {
+      const res = await fetch(`/api/projects/${projectId}/pages`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageId, deviceLayouts: next }),
+      });
+      if (!res.ok) {
+        // Roll back optimistic update on failure
+        setPages((prev) => prev.map((p) => p.id === pageId ? { ...p, device_layouts: current } : p));
+      } else {
+        const json = await res.json().catch(() => ({}));
+        if (json.page) {
+          setPages((prev) => prev.map((p) => p.id === pageId ? { ...p, ...json.page } : p));
+        }
+      }
+    } catch {
+      setPages((prev) => prev.map((p) => p.id === pageId ? { ...p, device_layouts: current } : p));
+    }
+  }
 
   async function addSection(
     type: string,
@@ -1131,6 +1164,7 @@ export default function ProjectEditorPage() {
 
   const canvasEditor = {
     selectedSectionId,
+    editDevice: device,
     onSelectSection: (id: string) => {
       setSelectedSectionId(id);
       setSidebarTab("content");
@@ -1245,6 +1279,35 @@ export default function ProjectEditorPage() {
     [sections, editPageId, chromeActive],
   );
 
+  // Device-specific section order from page.device_layouts
+  const editPage = pages.find((p) => p.id === editPageId);
+  const editPageDeviceLayouts = (editPage?.device_layouts ?? {}) as { tablet?: { sectionOrder?: string[]; hiddenSections?: string[] }; mobile?: { sectionOrder?: string[]; hiddenSections?: string[] } };
+  const activeDeviceLayout = device !== "desktop" ? editPageDeviceLayouts[device as "tablet" | "mobile"] : undefined;
+  // For device mode: sections in device-specific order (device_layouts.sectionOrder overrides sort_order)
+  const deviceOrderedSections = useMemo(() => {
+    if (device === "desktop" || !activeDeviceLayout?.sectionOrder?.length) return editPageSections;
+    const orderMap = new Map(activeDeviceLayout.sectionOrder.map((id, i) => [id, i]));
+    const inOrder = editPageSections.filter((s) => orderMap.has(s.id)).sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999));
+    const remainder = editPageSections.filter((s) => !orderMap.has(s.id));
+    return [...inOrder, ...remainder];
+  }, [editPageSections, device, activeDeviceLayout]);
+
+  // Reorder sections for the current non-desktop device by writing to device_layouts
+  function moveDeviceSection(sectionId: string, direction: -1 | 1) {
+    const ordered = deviceOrderedSections;
+    const idx = ordered.findIndex((s) => s.id === sectionId);
+    if (idx < 0) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= ordered.length) return;
+    const newOrder = ordered.map((s) => s.id);
+    [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
+    if (editPageId) {
+      void updatePageDeviceLayouts(editPageId, {
+        [device]: { ...(activeDeviceLayout ?? {}), sectionOrder: newOrder },
+      });
+    }
+  }
+
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
   /**
    * Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames.
@@ -1266,7 +1329,7 @@ export default function ProjectEditorPage() {
     if (!iframe || !canvasDefinition || wideCanvas) return;
     const send = () => {
       iframe.contentWindow?.postMessage(
-        { type: "kebu:definition:update", definition: canvasDefinition, pageSlug: previewPageSlug },
+        { type: "kebu:definition:update", definition: canvasDefinition, pageSlug: previewPageSlug, editDevice: device },
         window.location.origin,
       );
     };
@@ -1941,7 +2004,7 @@ export default function ProjectEditorPage() {
                       }
                     >
                       <BuilderSectionListDnd
-                        sections={editPageSections.map((s) => ({
+                        sections={deviceOrderedSections.map((s) => ({
                           id: s.id,
                           section_type: s.section_type,
                           sort_order: s.sort_order,
@@ -1950,9 +2013,9 @@ export default function ProjectEditorPage() {
                         }))}
                         selectedSectionId={selectedSectionId}
                         onSelect={(id) => setSelectedSectionId(id)}
-                        onReorder={(ids) => void reorderSections(ids)}
-                        onMoveUp={(id) => void moveSection(id, -1)}
-                        onMoveDown={(id) => void moveSection(id, 1)}
+                        onReorder={device === "desktop" ? (ids) => void reorderSections(ids) : () => {}}
+                        onMoveUp={(id) => device === "desktop" ? void moveSection(id, -1) : moveDeviceSection(id, -1)}
+                        onMoveDown={(id) => device === "desktop" ? void moveSection(id, 1) : moveDeviceSection(id, 1)}
                         onRemove={(id) => { setSelectedSectionId(id); setSidebarTab("content"); setPendingConfirm({ kind: "remove", sectionId: id }); }}
                         onToggleHidden={(id) => {
                           const s = sections.find((x) => x.id === id);
@@ -1983,7 +2046,7 @@ export default function ProjectEditorPage() {
                     }
                   >
                     <BuilderSectionListDnd
-                      sections={editPageSections.map((s) => ({
+                      sections={deviceOrderedSections.map((s) => ({
                         id: s.id,
                         section_type: s.section_type,
                         sort_order: s.sort_order,
@@ -1992,9 +2055,9 @@ export default function ProjectEditorPage() {
                       }))}
                       selectedSectionId={selectedSectionId}
                       onSelect={(id) => setSelectedSectionId(id)}
-                      onReorder={(ids) => void reorderSections(ids)}
-                      onMoveUp={(id) => void moveSection(id, -1)}
-                      onMoveDown={(id) => void moveSection(id, 1)}
+                      onReorder={device === "desktop" ? (ids) => void reorderSections(ids) : () => {}}
+                      onMoveUp={(id) => device === "desktop" ? void moveSection(id, -1) : moveDeviceSection(id, -1)}
+                      onMoveDown={(id) => device === "desktop" ? void moveSection(id, 1) : moveDeviceSection(id, 1)}
                       onRemove={(id) => { setSelectedSectionId(id); setSidebarTab("content"); setPendingConfirm({ kind: "remove", sectionId: id }); }}
                       onToggleHidden={(id) => {
                         const s = sections.find((x) => x.id === id);
@@ -2011,11 +2074,11 @@ export default function ProjectEditorPage() {
                     <div key={section.id} className="pb-2">
                       {/* Section actions — always visible */}
                       <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
-                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, -1)}>
-                            ↑ Move up
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => device === "desktop" ? void moveSection(section.id, -1) : moveDeviceSection(section.id, -1)}>
+                            ↑ Move up{device !== "desktop" ? ` (${device === "tablet" ? "Tablet" : "Phone"})` : ""}
                           </button>
-                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => void moveSection(section.id, 1)}>
-                            ↓ Move down
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => device === "desktop" ? void moveSection(section.id, 1) : moveDeviceSection(section.id, 1)}>
+                            ↓ Move down{device !== "desktop" ? ` (${device === "tablet" ? "Tablet" : "Phone"})` : ""}
                           </button>
                           <button
                             type="button"
@@ -4364,9 +4427,188 @@ export default function ProjectEditorPage() {
                             checked={Boolean(section.props.hidden)}
                             onChange={(e) => updateProps(section.id, { hidden: e.target.checked })}
                           />
-                          Hide section
+                          Hide section (all devices)
                         </label>
+                        {/* Per-device visibility — writes to _visibility.hideOn */}
+                        {!isChromeSectionId(section.id) && (
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                              Show on device
+                            </p>
+                            {(
+                              [
+                                ["desktop", "Desktop"],
+                                ["tablet", "Tablet"],
+                                ["mobile", "Phone"],
+                              ] as const
+                            ).map(([dev, label]) => {
+                              const vis = (section.props._visibility as { hideOn?: string[]; showOn?: string[] } | undefined) ?? {};
+                              const isHidden = (vis.hideOn ?? []).includes(dev);
+                              return (
+                                <label key={dev} className="flex items-center gap-2 text-[11px]">
+                                  <input
+                                    type="checkbox"
+                                    checked={!isHidden}
+                                    onChange={(e) => {
+                                      const cur = (section.props._visibility as { hideOn?: string[]; showOn?: string[] } | undefined) ?? {};
+                                      const hideOn = (cur.hideOn ?? []).filter((d) => d !== dev);
+                                      if (!e.target.checked) hideOn.push(dev);
+                                      updateProps(section.id, {
+                                        _visibility: hideOn.length > 0 ? { hideOn } : null,
+                                      });
+                                    }}
+                                  />
+                                  {label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
                       </SidebarDetails>
+                      {/* Motion entrance animation controls */}
+                      {!isChromeSectionId(section.id) && (
+                      <SidebarDetails title="Motion" defaultOpen={false} group="section-inspector">
+                        {(() => {
+                          const motionProp = section.props._motion as { specs?: { trigger?: string; transform?: Record<string, unknown>; durationMs?: number; delayMs?: number; easing?: string; reducedMotionFallback?: string }[]; reducedMotionFallback?: string } | undefined;
+                          const enabled = Boolean(motionProp?.specs?.length);
+                          const spec = motionProp?.specs?.[0];
+                          const opFrom = typeof spec?.transform?.opacityFrom === "number" ? spec.transform.opacityFrom : 0;
+                          const tyFrom = typeof spec?.transform?.translateYFrom === "string" ? parseFloat(spec.transform.translateYFrom as string) : 24;
+                          const dur = spec?.durationMs ?? 600;
+                          const del = spec?.delayMs ?? 0;
+                          const rmf = (motionProp?.reducedMotionFallback ?? "instant") as "instant" | "none";
+
+                          function writeMotion(patch: Partial<{ opacityFrom: number; tyFrom: number; durationMs: number; delayMs: number; rmf: "instant" | "none" }>) {
+                            const next = {
+                              specs: [{
+                                target: "self",
+                                trigger: "scroll-enter" as const,
+                                transform: {
+                                  opacityFrom: patch.opacityFrom ?? opFrom,
+                                  opacityTo: 1,
+                                  translateYFrom: `${patch.tyFrom ?? tyFrom}px`,
+                                  translateYTo: "0px",
+                                },
+                                durationMs: patch.durationMs ?? dur,
+                                delayMs: patch.delayMs ?? del,
+                                easing: "ease-out" as const,
+                                scrollThreshold: 0.15,
+                                replay: false,
+                              }],
+                              reducedMotionFallback: patch.rmf ?? rmf,
+                            };
+                            updateProps(section.id, { _motion: next });
+                          }
+
+                          return (
+                            <div className="space-y-3">
+                              <label className="flex items-center gap-2 text-[11px]">
+                                <input
+                                  type="checkbox"
+                                  checked={enabled}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      writeMotion({});
+                                    } else {
+                                      updateProps(section.id, { _motion: null });
+                                    }
+                                  }}
+                                />
+                                Scroll-enter entrance
+                              </label>
+                              {enabled && (
+                                <>
+                                  <div className="space-y-1.5">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                      Fade in (opacity start)
+                                    </p>
+                                    <input
+                                      type="range"
+                                      min={0} max={1} step={0.05}
+                                      value={opFrom}
+                                      onChange={(e) => writeMotion({ opacityFrom: parseFloat(e.target.value) })}
+                                      className="w-full"
+                                      aria-label="Fade start opacity"
+                                    />
+                                    <div className="flex justify-between text-[9px]" style={{ color: BUILDER.muted }}>
+                                      <span>Invisible (0)</span><span>Opaque (1)</span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                      Slide up (px)
+                                    </p>
+                                    <input
+                                      type="range"
+                                      min={0} max={80} step={4}
+                                      value={tyFrom}
+                                      onChange={(e) => writeMotion({ tyFrom: parseInt(e.target.value) })}
+                                      className="w-full"
+                                      aria-label="Slide up distance"
+                                    />
+                                    <div className="flex justify-between text-[9px]" style={{ color: BUILDER.muted }}>
+                                      <span>None (0px)</span><span>Far (80px)</span>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                        Duration (ms)
+                                      </p>
+                                      <input
+                                        type="number"
+                                        min={100} max={2000} step={50}
+                                        value={dur}
+                                        onChange={(e) => writeMotion({ durationMs: Math.max(100, Math.min(2000, parseInt(e.target.value) || 600)) })}
+                                        className="w-full rounded px-2 py-1 text-[11px]"
+                                        style={{ border: `1px solid ${BUILDER.border}` }}
+                                        aria-label="Duration in milliseconds"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                        Delay (ms)
+                                      </p>
+                                      <input
+                                        type="number"
+                                        min={0} max={1500} step={50}
+                                        value={del}
+                                        onChange={(e) => writeMotion({ delayMs: Math.max(0, Math.min(1500, parseInt(e.target.value) || 0)) })}
+                                        className="w-full rounded px-2 py-1 text-[11px]"
+                                        style={{ border: `1px solid ${BUILDER.border}` }}
+                                        aria-label="Delay in milliseconds"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                      Reduced motion
+                                    </p>
+                                    <div className="flex gap-1">
+                                      {(["instant", "none"] as const).map((id) => (
+                                        <button
+                                          key={id}
+                                          type="button"
+                                          onClick={() => writeMotion({ rmf: id })}
+                                          className="flex-1 rounded py-1 text-[9px] font-bold uppercase"
+                                          style={{
+                                            background: rmf === id ? BUILDER.ink : BUILDER.surfaceMuted,
+                                            color: rmf === id ? "#fff" : BUILDER.muted,
+                                            border: `1px solid ${BUILDER.border}`,
+                                          }}
+                                        >
+                                          {id === "instant" ? "Instant" : "Skip"}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </SidebarDetails>
+                      )}
                     </div>
                   ))}
               </>

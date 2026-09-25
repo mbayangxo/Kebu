@@ -239,7 +239,7 @@ export async function PATCH(req: Request, { params }: Params) {
     .from("project_pages")
     .update(updates)
     .eq("id", parsed.data.pageId)
-    .select("id, slug, title, sort_order")
+    .select("id, slug, title, sort_order, device_layouts")
     .single();
 
   if (error || !updated) {

@@ -32,7 +32,7 @@ const EXT_KEY_MAP: Record<SectionExtKey, string> = {
 function extractSectionExtensions(props: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const k of SECTION_EXT_KEYS) {
-    if (k in props && props[k] !== undefined) {
+    if (k in props && props[k] != null) {
       out[EXT_KEY_MAP[k]] = props[k];
     }
   }

@@ -10,7 +10,7 @@ import type { WebsiteDefinition } from "@/lib/create/website-schema";
 
 // postMessage protocol between the Builder canvas iframe and page.tsx
 type PreviewInboundMsg =
-  | { type: "kebu:definition:update"; definition: WebsiteDefinition; pageSlug: string }
+  | { type: "kebu:definition:update"; definition: WebsiteDefinition; pageSlug: string; editDevice?: "desktop" | "tablet" | "mobile" }
   | { type: "kebu:definition:request" };
 
 function ProjectPreviewInner() {
@@ -23,7 +23,7 @@ function ProjectPreviewInner() {
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
   const [subdomain, setSubdomain] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   // When embedded in the Builder's device preview iframe, track whether we're using the parent's
   // live definition (via postMessage) or the fetched saved one.
   const parentDefinitionRef = useRef<WebsiteDefinition | null>(null);
@@ -71,6 +71,7 @@ function ProjectPreviewInner() {
         parentDefinitionRef.current = msg.definition;
         setDefinition(msg.definition);
         setPreviewPageSlug(msg.pageSlug);
+        if (msg.editDevice) setDevice(msg.editDevice);
       } else if (msg?.type === "kebu:definition:request") {
         // Parent is asking us to signal readiness again (e.g. after a page change)
         window.parent.postMessage({ type: "kebu:preview:ready" }, window.location.origin);
@@ -92,6 +93,7 @@ function ProjectPreviewInner() {
             mode="preview"
             pageSlug={previewPageSlug}
             siteBase={subdomain ? `/sites/${subdomain}` : undefined}
+            editor={{ editDevice: device }}
           />
         ) : null}
       </div>
