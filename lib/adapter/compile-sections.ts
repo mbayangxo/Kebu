@@ -68,10 +68,8 @@ export function compileSections(pages: IRPage[]): SectionCompilationResult {
   let compilationBlocked = false;
 
   // Track which capabilities had overflows (for dedup)
-  const motionOverflowSections: string[] = [];
   const deviceCompOverflowSections: string[] = [];
   const a11yOverflowSections: string[] = [];
-  const visibilityOverflowSections: string[] = [];
   const unsupportedTypeSections: string[] = [];
 
   // Sort pages by slug for determinism
@@ -152,8 +150,15 @@ export function compileSections(pages: IRPage[]): SectionCompilationResult {
         compiledProps.deviceOverrides = section.deviceOverrides;
       }
 
-      // hidden flag passthrough
-      // (hidden is typically in props already, but ensure it isn't lost)
+      // Phase 3B: motion specs compile natively as _motion in props
+      if (section.motionSpecs && section.motionSpecs.length > 0) {
+        compiledProps._motion = section.motionSpecs;
+      }
+
+      // Phase 3B: responsive visibility compiles natively as _visibility in props
+      if (section.responsiveVisibility) {
+        compiledProps._visibility = section.responsiveVisibility;
+      }
 
       const compiledSection: CompiledSection = {
         type: section.sectionType,
@@ -165,23 +170,17 @@ export function compileSections(pages: IRPage[]): SectionCompilationResult {
       sectionsCompiled++;
 
       // ── Record EXTENSION_REQUIRED overflows ───────────────────────────────
+      // Phase 3B: motion and responsive-visibility are now NATIVE (compiled above).
+      // Only track remaining EXTENSION_REQUIRED capabilities here.
 
       let sectionHasOverflow = false;
 
-      if (section.motionSpecs && section.motionSpecs.length > 0) {
-        motionOverflowSections.push(sectionId);
-        sectionHasOverflow = true;
-      }
       if (section.deviceCompositions && section.deviceCompositions.length > 0) {
         deviceCompOverflowSections.push(sectionId);
         sectionHasOverflow = true;
       }
       if (section.accessibilityMetadata) {
         a11yOverflowSections.push(sectionId);
-        sectionHasOverflow = true;
-      }
-      if (section.responsiveVisibility) {
-        visibilityOverflowSections.push(sectionId);
         sectionHasOverflow = true;
       }
 
@@ -198,20 +197,6 @@ export function compileSections(pages: IRPage[]): SectionCompilationResult {
   }
 
   // ── Build capability entries from overflow tracking ────────────────────────
-
-  if (motionOverflowSections.length > 0) {
-    capabilityEntries.push({
-      capability: "motion",
-      classification: "EXTENSION_REQUIRED",
-      behavior: "preserved-in-ir",
-      preservedIn: "ir-field",
-      detail:
-        `${motionOverflowSections.length} section(s) have structural MotionSpec data ` +
-        "preserved in AdapterDesignIR. Not compiled to WebsiteDefinition — would require " +
-        "EXT-WD-001 (motionSpecs field on section/page).",
-      affectedSectionIds: motionOverflowSections,
-    });
-  }
 
   if (deviceCompOverflowSections.length > 0) {
     capabilityEntries.push({
@@ -238,20 +223,6 @@ export function compileSections(pages: IRPage[]): SectionCompilationResult {
         "preserved in AdapterDesignIR. Not compiled to WebsiteDefinition — would require " +
         "EXT-WD-003 (a11y field on section).",
       affectedSectionIds: a11yOverflowSections,
-    });
-  }
-
-  if (visibilityOverflowSections.length > 0) {
-    capabilityEntries.push({
-      capability: "responsive-visibility",
-      classification: "EXTENSION_REQUIRED",
-      behavior: "preserved-in-ir",
-      preservedIn: "ir-field",
-      detail:
-        `${visibilityOverflowSections.length} section(s) have responsive visibility rules ` +
-        "preserved in AdapterDesignIR. Not compiled to WebsiteDefinition — would require " +
-        "EXT-WD-004 (responsiveVisibility field on section).",
-      affectedSectionIds: visibilityOverflowSections,
     });
   }
 

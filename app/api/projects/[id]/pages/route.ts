@@ -10,6 +10,7 @@ import {
   dbForProjectAccess,
 } from "@/lib/create/project-access";
 import { z } from "zod";
+import { pageDeviceLayoutsSchema } from "@/lib/create/website-extensions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ const patchPageSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
   slug: slugSchema.optional(),
   sortOrder: z.number().int().min(0).optional(),
+  /** Per-device section ordering and visibility overrides. null clears the layouts. */
+  deviceLayouts: pageDeviceLayoutsSchema.or(z.null()).optional(),
 });
 
 const deletePageSchema = z.object({
@@ -227,6 +230,10 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.title) updates.title = parsed.data.title;
   if (parsed.data.slug) updates.slug = parsed.data.slug;
   if (parsed.data.sortOrder !== undefined) updates.sort_order = parsed.data.sortOrder;
+  if ("deviceLayouts" in parsed.data) {
+    // null clears the column; undefined means not provided (no-op)
+    updates.device_layouts = parsed.data.deviceLayouts ?? null;
+  }
 
   const { data: updated, error } = await db
     .from("project_pages")

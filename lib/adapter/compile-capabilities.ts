@@ -47,22 +47,23 @@ export const TARGET_CAPABILITY_MAP: Record<CapabilityName, CapabilityClassificat
   // in WebsiteDefinition. Products section uses static inline items only.
   "commerce-product-bindings": "EXTENSION_REQUIRED",
 
-  // WebsiteDefinition only has theme.motion: "none" | "expressive" (binary).
-  // Full MotionSpec (trigger, scroll-relationship, looping, reduced-motion, etc.)
-  // cannot be expressed. The binary flag will NOT be set to "expressive" based on IR
-  // motionSpecs alone — that would constitute silent flattening.
-  "motion": "EXTENSION_REQUIRED",
+  // Phase 3B: SectionMotion specs stored as _motion inside section props and lifted
+  // to section.motion at WebsiteDefinition build time. initScrollEntrances applies
+  // CSS-custom-property-driven entrance animations from the spec. prefers-reduced-motion
+  // is respected via the spec's reducedMotionFallback field.
+  "motion": "NATIVE",
 
   // Scripted scroll effects, custom event handlers, etc. not in WD schema.
   "custom-interactions": "EXTENSION_REQUIRED",
 
-  // Per-device independent section lists (not delta overrides). WD only supports
-  // delta deviceOverrides (tablet/mobile record of prop overrides), not full
-  // independent layouts per device.
-  "device-independent-compositions": "EXTENSION_REQUIRED",
+  // Phase 3B: page.deviceLayouts[tablet|mobile] stored in project_pages.device_layouts
+  // JSONB column. SiteRenderer applies hiddenSections filtering and sectionOrder
+  // reordering before the section render loop for non-desktop devices.
+  "device-independent-compositions": "NATIVE",
 
-  // hideOn/showOn per section are not in WD schema.
-  "responsive-visibility": "EXTENSION_REQUIRED",
+  // Phase 3B: section.visibility.hideOn / showOn applied in SiteRenderer before
+  // the section render loop, filtered per _device. Fully native — no extension needed.
+  "responsive-visibility": "NATIVE",
 
   // ariaLabel, ariaRole, focusable, altTexts, headingLevel, ariaHidden — none in WD.
   "accessibility-metadata": "EXTENSION_REQUIRED",
@@ -78,34 +79,9 @@ export const TARGET_CAPABILITY_MAP: Record<CapabilityName, CapabilityClassificat
 // implementation. They will be reviewed before any Builder schema changes.
 
 export const PROPOSED_EXTENSIONS: ExtensionRequirement[] = [
-  {
-    id: "EXT-WD-001",
-    capability: "motion",
-    description:
-      "Add structured MotionSpec array to section and page schemas, replacing the binary " +
-      "theme.motion flag for richer motion representation.",
-    proposedExtension:
-      "In websiteSectionSchema: add `motionSpecs?: MotionSpec[]` optional field. " +
-      "In websitePageSchema: add `motionSpecs?: MotionSpec[]` optional field. " +
-      "In themeSchema: add `motionSpecs?: MotionSpec[]` optional field for IR-level specs. " +
-      "Keep `motion: 'none' | 'expressive'` as a coarse fallback.",
-    affectedSchemas: ["websiteSectionSchema", "websitePageSchema", "themeSchema"],
-    backwardCompatible: true,
-    priority: "high",
-  },
-  {
-    id: "EXT-WD-002",
-    capability: "device-independent-compositions",
-    description:
-      "Add full per-device section lists to section and page schemas. " +
-      "Current deviceOverrides only supports delta prop overrides, not independent layouts.",
-    proposedExtension:
-      "In websiteSectionSchema: add `deviceCompositions?: Array<{ device: 'desktop' | 'tablet' | 'mobile'; sections: WebsiteSection[] }>` optional field. " +
-      "In websitePageSchema: add `deviceCompositions?: Array<{ device: 'desktop' | 'tablet' | 'mobile'; sections: WebsiteSection[] }>` optional field.",
-    affectedSchemas: ["websiteSectionSchema", "websitePageSchema"],
-    backwardCompatible: true,
-    priority: "high",
-  },
+  // EXT-WD-001 (motion) and EXT-WD-002 (device-independent-compositions) and
+  // EXT-WD-004 (responsive-visibility) were promoted to NATIVE in Phase 3B.
+  // They are no longer extension requirements; entries removed to keep the list accurate.
   {
     id: "EXT-WD-003",
     capability: "accessibility-metadata",
@@ -113,17 +89,6 @@ export const PROPOSED_EXTENSIONS: ExtensionRequirement[] = [
       "Add accessibility metadata to section schema for screen-reader and ARIA support.",
     proposedExtension:
       "In websiteSectionSchema: add `a11y?: { ariaLabel?: string; ariaRole?: string; focusable?: boolean; reducedMotionSafe?: boolean; altTexts?: Record<string,string>; headingLevel?: number; ariaHidden?: boolean }` optional field.",
-    affectedSchemas: ["websiteSectionSchema"],
-    backwardCompatible: true,
-    priority: "medium",
-  },
-  {
-    id: "EXT-WD-004",
-    capability: "responsive-visibility",
-    description:
-      "Add per-section show/hide rules by device breakpoint.",
-    proposedExtension:
-      "In websiteSectionSchema: add `responsiveVisibility?: { hideOn?: Array<'desktop' | 'tablet' | 'mobile'>; showOn?: Array<'desktop' | 'tablet' | 'mobile'> }` optional field.",
     affectedSchemas: ["websiteSectionSchema"],
     backwardCompatible: true,
     priority: "medium",

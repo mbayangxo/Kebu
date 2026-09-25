@@ -123,32 +123,30 @@ export function buildGapReport(): GapReportRow[] {
     {
       adapterCapability: "device-independent-compositions",
       currentWdCapability:
-        "deviceOverrides: { tablet?, mobile? } on sections — DELTA overrides only. " +
-        "No independent full section list per device.",
+        "page.deviceLayouts: { tablet?: DeviceLayout, mobile?: DeviceLayout } — " +
+        "per-device section ordering (sectionOrder) and visibility (hiddenSections). " +
+        "Stored in project_pages.device_layouts JSONB column (Phase 3B).",
       compilationBehavior:
-        "EXTENSION_REQUIRED. Delta deviceOverrides compile. " +
-        "Independent per-device layouts (deviceCompositions) preserved in IR only.",
-      recommendedExtension:
-        "EXT-WD-002: Add deviceCompositions?: Array<{ device; sections: WebsiteSection[] }> " +
-        "to websiteSectionSchema and websitePageSchema.",
-      extensionId: "EXT-WD-002",
-      priority: "high",
+        "NATIVE (Phase 3B). page.deviceLayouts persists through build and publish path. " +
+        "SiteRenderer applies sectionOrder + hiddenSections for non-desktop devices. " +
+        "Desktop is always canonical; tablet/mobile override it non-destructively.",
+      recommendedExtension: "None required — fully implemented in Phase 3B.",
+      extensionId: null,
+      priority: "n/a",
     },
     {
       adapterCapability: "motion",
       currentWdCapability:
-        "theme.motion: 'none' | 'expressive' — binary flag only. " +
-        "No per-section trigger, easing, scroll-relationship, reduced-motion fallback.",
+        "section.motion (SectionMotionSchema) — per-section declarative specs with trigger, " +
+        "transform, durationMs, easing, scrollThreshold, staggerMs, reducedMotionFallback. " +
+        "Stored as props._motion in section JSONB, lifted to section.motion at compile time (Phase 3B).",
       compilationBehavior:
-        "EXTENSION_REQUIRED. Binary theme.motion flag compiles if set. " +
-        "Structural MotionSpec data (trigger, easing, looping, reducedMotionFallback, etc.) " +
-        "preserved in IR. NOT flattened to 'expressive' — that would be silent data loss.",
-      recommendedExtension:
-        "EXT-WD-001: Add motionSpecs?: MotionSpec[] to websiteSectionSchema and websitePageSchema. " +
-        "Keep theme.motion as a coarse fallback. " +
-        "High priority: loss of reducedMotionFallback is an accessibility concern.",
-      extensionId: "EXT-WD-001",
-      priority: "high",
+        "NATIVE (Phase 3B). section.motion specs stored, built, published, and rendered. " +
+        "initScrollEntrances applies CSS custom-property-driven entrance animations. " +
+        "prefers-reduced-motion respected via spec.reducedMotionFallback field.",
+      recommendedExtension: "None required — fully implemented in Phase 3B.",
+      extensionId: null,
+      priority: "n/a",
     },
     {
       adapterCapability: "custom-interactions",
@@ -183,14 +181,15 @@ export function buildGapReport(): GapReportRow[] {
     {
       adapterCapability: "responsive-visibility",
       currentWdCapability:
-        "No per-section hideOn / showOn fields in WebsiteDefinition.",
+        "section.visibility: { hideOn?: Device[], showOn?: Device[] } — " +
+        "per-section device-level show/hide rules stored in websiteSectionSchema (Phase 3B).",
       compilationBehavior:
-        "EXTENSION_REQUIRED. Responsive visibility rules preserved in IR only.",
-      recommendedExtension:
-        "EXT-WD-004: Add responsiveVisibility?: { hideOn?: Device[]; showOn?: Device[] } " +
-        "to websiteSectionSchema.",
-      extensionId: "EXT-WD-004",
-      priority: "medium",
+        "NATIVE (Phase 3B). section.visibility applied in SiteRenderer before the section " +
+        "render loop, filtering sections by the active device. " +
+        "Stored as props._visibility in section JSONB, lifted to section.visibility at compile time.",
+      recommendedExtension: "None required — fully implemented in Phase 3B.",
+      extensionId: null,
+      priority: "n/a",
     },
     {
       adapterCapability: "accessibility-metadata",

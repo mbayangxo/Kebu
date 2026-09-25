@@ -818,12 +818,12 @@ describe("Fixture 3 — motion is not silently flattened", () => {
     expect(result.websiteDefinition?.theme.motion).toBe("expressive");
   });
 
-  it("section-level MotionSpec data is preserved in IR report, not compiled to WD", () => {
+  it("section-level MotionSpec data is compiled natively via _motion prop (Phase 3B)", () => {
     const result = compileIR(fixture3);
-    // The motion capability should be EXTENSION_REQUIRED in the report
+    // Phase 3B: motion is NATIVE — the capability entry must exist and be compiled
     const motionEntry = result.report.capabilities.find((e) => e.capability === "motion");
     expect(motionEntry).toBeDefined();
-    expect(motionEntry?.behavior).toBe("preserved-in-ir");
+    expect(motionEntry?.behavior).toBe("compiled");
   });
 
   it("MotionSpec fields (reducedMotionFallback, easing, trigger) are NOT in compiled sections", () => {
@@ -834,23 +834,26 @@ describe("Fixture 3 — motion is not silently flattened", () => {
     expect(hero?.props?.motionSpecs).toBeUndefined();
   });
 
-  it("report records motion as EXTENSION_REQUIRED with affected section IDs", () => {
+  it("report records motion as NATIVE after Phase 3B", () => {
     const result = compileIR(fixture3);
     const motionEntry = result.report.capabilities.find((e) => e.capability === "motion");
-    expect(motionEntry?.classification).toBe("EXTENSION_REQUIRED");
-    expect(motionEntry?.affectedSectionIds?.length).toBeGreaterThan(0);
+    // Phase 3B: motion is now NATIVE — section.motion wired end-to-end
+    expect(motionEntry?.classification).toBe("NATIVE");
+    expect(motionEntry?.behavior).toBe("compiled");
   });
 
-  it("report includes EXT-WD-001 in extensionsRequired", () => {
+  it("EXT-WD-001 is no longer in extensionsRequired (motion is NATIVE after Phase 3B)", () => {
     const result = compileIR(fixture3);
     const ext = result.report.extensionsRequired.find((e) => e.id === "EXT-WD-001");
-    expect(ext).toBeDefined();
-    expect(ext?.capability).toBe("motion");
+    // EXT-WD-001 removed from PROPOSED_EXTENSIONS — motion is now natively supported
+    expect(ext).toBeUndefined();
   });
 
-  it("materialLossDetected is true (motion not compiled)", () => {
+  it("materialLossDetected reflects only remaining EXTENSION_REQUIRED capabilities", () => {
+    // fixture3 uses motion (now NATIVE) — no material loss from motion alone
     const result = compileIR(fixture3);
-    expect(result.report.materialLossDetected).toBe(true);
+    const hasExtReq = result.report.capabilities.some((e) => e.classification === "EXTENSION_REQUIRED");
+    expect(result.report.materialLossDetected).toBe(hasExtReq);
   });
 });
 
@@ -883,7 +886,7 @@ describe("Fixture 4 — font provenance preserved in IR", () => {
 
 // ── 5. Navigation compiles; responsive visibility preserved in IR ─────────────
 
-describe("Fixture 5 — navigation compiles; responsive visibility is preserved", () => {
+describe("Fixture 5 — navigation compiles; responsive visibility is NATIVE after Phase 3B", () => {
   it("compiles successfully", () => {
     const result = compileIR(fixture5);
     expect(result.report.compilationBlocked).toBe(false);
@@ -899,15 +902,16 @@ describe("Fixture 5 — navigation compiles; responsive visibility is preserved"
   it("responsive visibility is NOT in compiled WD section props", () => {
     const result = compileIR(fixture5);
     const nav = result.websiteDefinition?.pages[0]?.sections.find((s) => s.type === "navigation");
-    // responsiveVisibility must not appear in compiled output
+    // responsiveVisibility must not appear in compiled section props
     expect((nav?.props as Record<string, unknown>)?.responsiveVisibility).toBeUndefined();
   });
 
-  it("report records responsive-visibility as EXTENSION_REQUIRED", () => {
+  it("report records responsive-visibility as NATIVE after Phase 3B", () => {
     const result = compileIR(fixture5);
     const entry = result.report.capabilities.find((e) => e.capability === "responsive-visibility");
     expect(entry).toBeDefined();
-    expect(entry?.behavior).toBe("preserved-in-ir");
+    expect(entry?.behavior).toBe("compiled");
+    expect(entry?.classification).toBe("NATIVE");
   });
 
   it("device-specific delta overrides still compile through", () => {
@@ -1145,47 +1149,51 @@ describe("Capability negotiation", () => {
     expect(capabilities).toHaveLength(15);
   });
 
-  it("motion is EXTENSION_REQUIRED in target map", () => {
-    expect(TARGET_CAPABILITY_MAP["motion"]).toBe("EXTENSION_REQUIRED");
+  it("motion is NATIVE in target map after Phase 3B", () => {
+    expect(TARGET_CAPABILITY_MAP["motion"]).toBe("NATIVE");
   });
 
   it("sections is NATIVE in target map", () => {
     expect(TARGET_CAPABILITY_MAP["sections"]).toBe("NATIVE");
   });
 
-  it("device-independent-compositions is EXTENSION_REQUIRED", () => {
-    expect(TARGET_CAPABILITY_MAP["device-independent-compositions"]).toBe("EXTENSION_REQUIRED");
+  it("device-independent-compositions is NATIVE after Phase 3B", () => {
+    expect(TARGET_CAPABILITY_MAP["device-independent-compositions"]).toBe("NATIVE");
   });
 
   it("accessibility-metadata is EXTENSION_REQUIRED", () => {
     expect(TARGET_CAPABILITY_MAP["accessibility-metadata"]).toBe("EXTENSION_REQUIRED");
   });
 
-  it("responsive-visibility is EXTENSION_REQUIRED", () => {
-    expect(TARGET_CAPABILITY_MAP["responsive-visibility"]).toBe("EXTENSION_REQUIRED");
+  it("responsive-visibility is NATIVE after Phase 3B", () => {
+    expect(TARGET_CAPABILITY_MAP["responsive-visibility"]).toBe("NATIVE");
   });
 
   it("custom-components is CUSTOM_ESCAPE_HATCH", () => {
     expect(TARGET_CAPABILITY_MAP["custom-components"]).toBe("CUSTOM_ESCAPE_HATCH");
   });
 
-  it("negotiateCapabilities detects motion from IR motionSpecs", () => {
+  it("negotiateCapabilities detects motion from IR motionSpecs as NATIVE after Phase 3B", () => {
     const result = negotiateCapabilities(fixture3);
     const motionEntry = result.entries.find((e) => e.capability === "motion");
     expect(motionEntry).toBeDefined();
-    expect(motionEntry?.classification).toBe("EXTENSION_REQUIRED");
+    expect(motionEntry?.classification).toBe("NATIVE");
+    expect(motionEntry?.behavior).toBe("compiled");
   });
 
-  it("negotiateCapabilities detects responsive-visibility from section", () => {
+  it("negotiateCapabilities detects responsive-visibility from section as NATIVE after Phase 3B", () => {
     const result = negotiateCapabilities(fixture5);
     const entry = result.entries.find((e) => e.capability === "responsive-visibility");
     expect(entry).toBeDefined();
-    expect(entry?.classification).toBe("EXTENSION_REQUIRED");
+    expect(entry?.classification).toBe("NATIVE");
+    expect(entry?.behavior).toBe("compiled");
   });
 
-  it("negotiateCapabilities includes extensionsRequired for EXTENSION_REQUIRED capabilities", () => {
+  it("negotiateCapabilities extensionsRequired only lists remaining EXTENSION_REQUIRED capabilities", () => {
+    // fixture3 uses motion (now NATIVE) — no EXTENSION_REQUIRED overflows in this fixture
     const result = negotiateCapabilities(fixture3);
-    expect(result.extensionsRequired.length).toBeGreaterThan(0);
+    const motionExt = result.extensionsRequired.find((e) => e.capability === "motion");
+    expect(motionExt).toBeUndefined();
   });
 });
 
@@ -1204,18 +1212,20 @@ describe("Capability gap report", () => {
     expect(capabilities).toContain("commerce-product-bindings");
   });
 
-  it("motion gap recommends EXT-WD-001", () => {
+  it("motion is NATIVE in gap report after Phase 3B — no extension required", () => {
     const rows = buildGapReport();
     const motionRow = rows.find((r) => r.adapterCapability === "motion");
-    expect(motionRow?.extensionId).toBe("EXT-WD-001");
-    expect(motionRow?.priority).toBe("high");
+    expect(motionRow?.extensionId).toBeNull();
+    expect(motionRow?.priority).toBe("n/a");
+    expect(motionRow?.compilationBehavior).toContain("NATIVE");
   });
 
-  it("device-independent-compositions gap recommends EXT-WD-002", () => {
+  it("device-independent-compositions is NATIVE in gap report after Phase 3B — no extension required", () => {
     const rows = buildGapReport();
     const row = rows.find((r) => r.adapterCapability === "device-independent-compositions");
-    expect(row?.extensionId).toBe("EXT-WD-002");
-    expect(row?.priority).toBe("high");
+    expect(row?.extensionId).toBeNull();
+    expect(row?.priority).toBe("n/a");
+    expect(row?.compilationBehavior).toContain("NATIVE");
   });
 
   it("accessibility-metadata gap recommends EXT-WD-003", () => {
@@ -1231,14 +1241,17 @@ describe("Capability gap report", () => {
     expect(output).toContain("Adapter IR Capability Gap Report");
   });
 
-  it("PROPOSED_EXTENSIONS covers EXT-WD-001 through EXT-WD-006", () => {
+  it("PROPOSED_EXTENSIONS covers remaining EXTENSION_REQUIRED capabilities after Phase 3B", () => {
     const ids = PROPOSED_EXTENSIONS.map((e) => e.id);
-    expect(ids).toContain("EXT-WD-001");
-    expect(ids).toContain("EXT-WD-002");
-    expect(ids).toContain("EXT-WD-003");
-    expect(ids).toContain("EXT-WD-004");
-    expect(ids).toContain("EXT-WD-005");
-    expect(ids).toContain("EXT-WD-006");
+    // EXT-WD-001 (motion), EXT-WD-002 (device-independent-compositions),
+    // EXT-WD-004 (responsive-visibility) promoted to NATIVE in Phase 3B — removed from proposals.
+    expect(ids).not.toContain("EXT-WD-001");
+    expect(ids).not.toContain("EXT-WD-002");
+    expect(ids).not.toContain("EXT-WD-004");
+    // Remaining EXTENSION_REQUIRED capabilities still have proposals:
+    expect(ids).toContain("EXT-WD-003"); // accessibility-metadata
+    expect(ids).toContain("EXT-WD-005"); // dynamic-data
+    expect(ids).toContain("EXT-WD-006"); // commerce-product-bindings
   });
 });
 

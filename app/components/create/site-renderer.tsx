@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion as fx } from "motion/react";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
+import type { PageDeviceLayouts, SectionMotion } from "@/lib/create/website-extensions";
 import { VideoGrid } from "@/app/components/video-embed";
 import { NewsletterSignup } from "@/app/components/create/newsletter-signup";
 import { SiteEmailPopup, type EmailPopupProps } from "@/app/components/create/site-email-popup";
@@ -147,12 +148,29 @@ function wrapEditorSection(
   sectionPaddingY?: string,
   /** Scroll-entrance preset ("fade-up" / "fade-in" / ...) — only set when theme.motion === "expressive". */
   motionPreset?: string,
+  /** Structured declarative motion spec (Phase 3B). Takes precedence over motionPreset. */
+  motionSpec?: SectionMotion,
 ): ReactNode {
+  const padStyle =
+    sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
+      ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
+      : undefined;
+  const motionSpecAttr = motionSpec ? JSON.stringify(motionSpec) : undefined;
+  const hasMotion = Boolean(motionPreset || motionSpec);
+
   if (!editor || !sectionId) {
-    const padStyle =
-      sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
-        ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
-        : undefined;
+    if (motionSpec) {
+      return (
+        <div
+          className="kebu-entrance"
+          data-motion={motionPreset || undefined}
+          data-motion-spec={motionSpecAttr}
+          style={padStyle}
+        >
+          {children}
+        </div>
+      );
+    }
     if (motionPreset) {
       return (
         <div className="kebu-entrance" data-motion={motionPreset} style={padStyle}>
@@ -175,11 +193,12 @@ function wrapEditorSection(
     <div
       data-section-id={sectionId}
       data-motion={motionPreset || undefined}
+      data-motion-spec={motionSpecAttr}
       onClick={(e) => {
         e.stopPropagation();
         editor.onSelectSection?.(sectionId);
       }}
-      className={`group relative ${motionPreset ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
+      className={`group relative ${hasMotion ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
       style={{ cursor: "pointer", ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
     >
       {selected && sectionType ? (
@@ -966,9 +985,41 @@ export function SiteRenderer({
         </div>
       ) : null}
       {(() => {
-        const visibleSections = page.sections.filter(
+        const _device = editor?.editDevice ?? "desktop";
+
+        // Phase 3B: apply device layout (section reordering + hidden sections) from page.deviceLayouts
+        let visibleSections = page.sections.filter(
           (s) => !(s.props && (s.props as { hidden?: boolean }).hidden),
         );
+        if (_device !== "desktop") {
+          const devLayout = (page as { deviceLayouts?: PageDeviceLayouts }).deviceLayouts?.[
+            _device as "tablet" | "mobile"
+          ];
+          if (devLayout) {
+            if (devLayout.hiddenSections?.length) {
+              const hiddenSet = new Set(devLayout.hiddenSections);
+              visibleSections = visibleSections.filter((s) => !s.id || !hiddenSet.has(s.id));
+            }
+            if (devLayout.sectionOrder?.length) {
+              const orderMap = new Map(devLayout.sectionOrder.map((id, i) => [id, i]));
+              const inOrder = visibleSections
+                .filter((s) => s.id && orderMap.has(s.id))
+                .sort((a, b) => (orderMap.get(a.id!) ?? 999) - (orderMap.get(b.id!) ?? 999));
+              const remainder = visibleSections.filter((s) => !s.id || !orderMap.has(s.id));
+              visibleSections = [...inOrder, ...remainder];
+            }
+          }
+        }
+
+        // Phase 3B: apply section-level responsive visibility (visibility.hideOn / showOn)
+        visibleSections = visibleSections.filter((s) => {
+          const vis = (s as unknown as { visibility?: { hideOn?: string[]; showOn?: string[] } }).visibility;
+          if (!vis) return true;
+          if (vis.hideOn?.includes(_device)) return false;
+          if (vis.showOn && !vis.showOn.includes(_device)) return false;
+          return true;
+        });
+
         const showInlineStack = editingPreview && Boolean(editor?.onAddSectionAfter);
 
         function renderDivider(afterSectionId: string | null) {
@@ -1010,9 +1061,11 @@ export function SiteRenderer({
           STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
         const sectionPaddingY = String((section.props as Record<string, unknown>)?.sectionPaddingY ?? "normal");
         const motionPreset = motionExpressive ? ENTRANCE_MOTION[section.type] : undefined;
+        // Phase 3B: structured motion spec overrides the preset when present
+        const sectionMotionSpec = (section as unknown as { motion?: SectionMotion }).motion ?? undefined;
         const wrap = (node: ReactNode) =>
-          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset);
-        const _device = editor?.editDevice ?? "desktop";
+          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset, sectionMotionSpec);
+        // _device already computed above (outer scope); re-use it here
         const _ep = mergeDeviceAwareSectionProps(section.props as Record<string, unknown>, _device);
         const sectionEl = (() => {
         switch (section.type) {

@@ -9,6 +9,20 @@ import {
 
 type AuthUser = { id: string };
 
+// Lift section extension fields out of props and onto the section object.
+const _SECTION_EXT_KEYS = ["_motion", "_a11y", "_visibility", "_interaction", "_dataBinding"] as const;
+const _EXT_KEY_MAP: Record<string, string> = {
+  _motion: "motion", _a11y: "a11y", _visibility: "visibility",
+  _interaction: "interaction", _dataBinding: "dataBinding",
+};
+function extractSectionExtensionsFromProps(props: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of _SECTION_EXT_KEYS) {
+    if (k in props && props[k] !== undefined) out[_EXT_KEY_MAP[k]] = props[k];
+  }
+  return out;
+}
+
 export async function persistWebsiteDefinition(opts: {
   supabase: SupabaseClient;
   user: AuthUser;
@@ -257,7 +271,7 @@ export async function buildSnapshotFromDb(
 
   const { data: pages } = await supabase
     .from("project_pages")
-    .select("id, slug, title, sort_order")
+    .select("id, slug, title, sort_order, device_layouts")
     .eq("project_id", projectId)
     .order("sort_order", { ascending: true });
 
@@ -274,12 +288,18 @@ export async function buildSnapshotFromDb(
     defPages.push({
       slug: page.slug,
       title: page.title,
-      sections: (sections ?? []).map((s) => ({
-        id: s.id,
-        type: s.section_type as WebsiteDefinition["pages"][0]["sections"][0]["type"],
-        props: (s.props ?? {}) as Record<string, unknown>,
-      })),
-    });
+      deviceLayouts: (page as { device_layouts?: unknown }).device_layouts ?? undefined,
+      sections: (sections ?? []).map((s) => {
+        const props = (s.props ?? {}) as Record<string, unknown>;
+        const ext = extractSectionExtensionsFromProps(props);
+        return {
+          id: s.id,
+          type: s.section_type as WebsiteDefinition["pages"][0]["sections"][0]["type"],
+          props,
+          ...ext,
+        };
+      }),
+    } as WebsiteDefinition["pages"][0]);
   }
 
   const base: WebsiteDefinition = {

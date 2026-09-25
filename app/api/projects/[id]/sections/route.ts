@@ -15,6 +15,23 @@ import {
   patchSiteChromePart,
 } from "@/lib/create/site-chrome";
 import { z } from "zod";
+import {
+  sectionMotionSchema,
+  sectionA11ySchema,
+  responsiveVisibilitySchema,
+  sectionInteractionSchema,
+  dataBindingSchema,
+} from "@/lib/create/website-extensions";
+
+// Extension keys stored inside props JSONB. These are preserved through validation
+// by re-merging after Zod validates the section-type-specific fields.
+const SECTION_EXT_VALIDATORS: Record<string, { parse: (v: unknown) => unknown }> = {
+  _motion: { parse: (v) => { const r = sectionMotionSchema.safeParse(v); return r.success ? r.data : undefined; } },
+  _a11y: { parse: (v) => { const r = sectionA11ySchema.optional().safeParse(v); return r.success ? r.data : undefined; } },
+  _visibility: { parse: (v) => { const r = responsiveVisibilitySchema.safeParse(v); return r.success ? r.data : undefined; } },
+  _interaction: { parse: (v) => { const r = sectionInteractionSchema.safeParse(v); return r.success ? r.data : undefined; } },
+  _dataBinding: { parse: (v) => { const r = dataBindingSchema.safeParse(v); return r.success ? r.data : undefined; } },
+};
 
 export const dynamic = "force-dynamic";
 
@@ -243,7 +260,21 @@ export async function PATCH(req: Request, { params }: Params) {
         { status: 400 },
       );
     }
-    update.props = propsParsed.data;
+    // Re-merge validated extension keys (Zod strips unknown keys; we preserve these explicitly).
+    const extData: Record<string, unknown> = {};
+    for (const [k, validator] of Object.entries(SECTION_EXT_VALIDATORS)) {
+      // Take from incoming props (allows clearing); fall back to existing value in DB.
+      const raw = k in (parsed.data.props ?? {})
+        ? (parsed.data.props as Record<string, unknown>)[k]
+        : (typeof sectionRow.props === "object" && sectionRow.props
+          ? (sectionRow.props as Record<string, unknown>)[k]
+          : undefined);
+      if (raw !== undefined) {
+        const validated = validator.parse(raw);
+        if (validated !== undefined) extData[k] = validated;
+      }
+    }
+    update.props = { ...propsParsed.data, ...extData };
   }
 
   if (Object.keys(update).length === 0) {

@@ -933,8 +933,8 @@ function makeMinimalIR(overrides: Partial<AdapterDesignIR> = {}): AdapterDesignI
   };
 }
 
-describe("adapter capability matrix — Phase 3 honest classification", () => {
-  it("motion capability in IR stays EXTENSION_REQUIRED after Phase 3", () => {
+describe("adapter capability matrix — Phase 3B native classification", () => {
+  it("motion capability is NATIVE after Phase 3B — schema, persistence, rendering, reduced-motion all wired", () => {
     const ir = makeMinimalIR({
       capabilityOverflows: [
         { capability: "motion", classification: "EXTENSION_REQUIRED", preservedIn: "ir-field" },
@@ -942,11 +942,12 @@ describe("adapter capability matrix — Phase 3 honest classification", () => {
     });
     const { report } = compileIR(ir);
     const motionEntry = report.capabilities.find((e) => e.capability === "motion");
-    // motion schema exists in WD now, but rendering/Builder editing absent → still EXTENSION_REQUIRED
-    expect(motionEntry?.behavior).toBe("preserved-in-ir");
+    // Phase 3B: section.motion is now fully wired through schema → persist → render → publish
+    expect(motionEntry?.behavior).toBe("compiled");
+    expect(motionEntry?.classification).toBe("NATIVE");
   });
 
-  it("device-independent-compositions in IR stays EXTENSION_REQUIRED after Phase 3", () => {
+  it("device-independent-compositions is NATIVE after Phase 3B — page.deviceLayouts fully wired", () => {
     const ir = makeMinimalIR({
       capabilityOverflows: [
         { capability: "device-independent-compositions", classification: "EXTENSION_REQUIRED", preservedIn: "ir-field" },
@@ -954,10 +955,12 @@ describe("adapter capability matrix — Phase 3 honest classification", () => {
     });
     const { report } = compileIR(ir);
     const entry = report.capabilities.find((e) => e.capability === "device-independent-compositions");
-    expect(entry?.behavior).toBe("preserved-in-ir");
+    // Phase 3B: page.deviceLayouts persists in project_pages.device_layouts and renders in SiteRenderer
+    expect(entry?.behavior).toBe("compiled");
+    expect(entry?.classification).toBe("NATIVE");
   });
 
-  it("accessibility-metadata in IR stays EXTENSION_REQUIRED after Phase 3", () => {
+  it("accessibility-metadata in IR stays EXTENSION_REQUIRED after Phase 3B", () => {
     const ir = makeMinimalIR({
       capabilityOverflows: [
         { capability: "accessibility-metadata", classification: "EXTENSION_REQUIRED", preservedIn: "ir-field" },
@@ -968,7 +971,7 @@ describe("adapter capability matrix — Phase 3 honest classification", () => {
     expect(entry?.behavior).toBe("preserved-in-ir");
   });
 
-  it("responsive-visibility in IR stays EXTENSION_REQUIRED after Phase 3", () => {
+  it("responsive-visibility is NATIVE after Phase 3B — section.visibility applied in SiteRenderer", () => {
     const ir = makeMinimalIR({
       capabilityOverflows: [
         { capability: "responsive-visibility", classification: "EXTENSION_REQUIRED", preservedIn: "ir-field" },
@@ -976,7 +979,9 @@ describe("adapter capability matrix — Phase 3 honest classification", () => {
     });
     const { report } = compileIR(ir);
     const entry = report.capabilities.find((e) => e.capability === "responsive-visibility");
-    expect(entry?.behavior).toBe("preserved-in-ir");
+    // Phase 3B: section.visibility.hideOn/showOn applied before section render loop
+    expect(entry?.behavior).toBe("compiled");
+    expect(entry?.classification).toBe("NATIVE");
   });
 
   it("commerce-product-bindings in IR stays EXTENSION_REQUIRED after Phase 3", () => {
@@ -1023,9 +1028,11 @@ describe("adapter capability matrix — Phase 3 honest classification", () => {
   });
 
   it("materialLossDetected is true when any EXTENSION_REQUIRED capability is present", () => {
+    // motion/device-independent-compositions/responsive-visibility are now NATIVE (Phase 3B).
+    // Use accessibility-metadata which remains EXTENSION_REQUIRED.
     const ir = makeMinimalIR({
       capabilityOverflows: [
-        { capability: "motion", classification: "EXTENSION_REQUIRED", preservedIn: "ir-field" },
+        { capability: "accessibility-metadata", classification: "EXTENSION_REQUIRED", preservedIn: "ir-field" },
       ],
     });
     const { report } = compileIR(ir);
