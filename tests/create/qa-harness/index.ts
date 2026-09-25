@@ -288,10 +288,25 @@ export async function createTestSection(
   sortOrder = 0,
 ): Promise<string> {
   const svc = getServiceClient();
+
+  // sections link to projects through project_pages (page_id FK), not directly
+  const { data: page, error: pageError } = await svc
+    .from("project_pages")
+    .insert({
+      project_id: projectId,
+      slug: `qa-${randomBytes(4).toString("hex")}`,
+    })
+    .select("id")
+    .single();
+
+  if (pageError || !page) {
+    throw new Error(`QA harness: failed to create test page: ${pageError?.message}`);
+  }
+
   const { data, error } = await svc
     .from("project_sections")
     .insert({
-      project_id: projectId,
+      page_id: page.id,
       section_type: "hero",
       sort_order: sortOrder,
       props: {},
