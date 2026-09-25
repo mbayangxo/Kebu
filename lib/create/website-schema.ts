@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { siteSeoSchema, containsUnsafeSiteContent } from "./site-seo";
 import { navLinksArraySchema } from "./maylecor-nav";
+import {
+  pageDeviceLayoutsSchema,
+  sectionMotionSchema,
+  sectionA11ySchema,
+  responsiveVisibilitySchema,
+  dataBindingSchema,
+  commerceBindingSchema,
+  sectionInteractionSchema,
+} from "./website-extensions";
 
 export const SECTION_TYPES = [
   "navigation",
@@ -546,6 +555,11 @@ export const sectionPropsSchemas = {
         insertAfterIndex: z.number().int().min(0).max(23).optional().default(2),
       })
       .optional(),
+    /**
+     * Phase 3 — Commerce bindings: reference live Kebu Commerce products.
+     * When set, the renderer fetches live product data; static items remain as fallback.
+     */
+    commerceBinding: commerceBindingSchema,
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
@@ -1210,6 +1224,18 @@ export const websiteSectionSchema = z
     id: z.string().trim().min(1).max(80).optional(),
     type: sectionTypeSchema,
     props: z.record(z.string(), z.unknown()),
+    // ── Phase 3 native aesthetic capability extensions ──
+    // All fields are optional and additive. Existing sections need no migration.
+    /** Structured declarative motion specs for this section (EXT-WD-001). */
+    motion: sectionMotionSchema,
+    /** Accessibility metadata for cases where semantic HTML alone is insufficient (EXT-WD-003). */
+    a11y: sectionA11ySchema.optional(),
+    /** Device-level responsive visibility rules (EXT-WD-004). */
+    visibility: responsiveVisibilitySchema,
+    /** Data binding to Kebu-owned objects — products, collections, events, posts, business (EXT-WD-005). */
+    dataBinding: dataBindingSchema,
+    /** Declarative interaction primitive for this section (EXT-WD-007). */
+    interaction: sectionInteractionSchema,
   })
   .superRefine((val, ctx) => {
     const schema = sectionPropsSchemas[val.type];
@@ -1227,6 +1253,12 @@ export const websitePageSchema = z.object({
   slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(60),
   title: z.string().trim().min(1).max(120),
   sections: z.array(websiteSectionSchema).min(1).max(40),
+  /**
+   * Phase 3 — Independent device compositions (EXT-WD-002).
+   * Shared semantic section data + optional per-device section ordering/visibility.
+   * Desktop is always canonical. Tablet/mobile can reorder or hide sections.
+   */
+  deviceLayouts: pageDeviceLayoutsSchema,
 });
 
 export const websiteDefinitionSchema = z.object({
