@@ -4,6 +4,7 @@ import path from "node:path";
 export default defineConfig({
   test: {
     environment: "node",
+    setupFiles: ["./tests/load-qa-env.ts"],
     include: [
       "tests/**/*.test.ts",
       "tests/**/*.integration.test.ts",
