@@ -21,6 +21,7 @@ import {
   createTestProject,
   createTestSection,
   cleanupAll,
+  getServiceClient,
   type TestIdentity,
   type TestProjectFixture,
 } from "./qa-harness/index.js";
@@ -33,6 +34,7 @@ describe.skipIf(SKIP)("User A / User B cross-project isolation — real RLS", ()
   let userB: TestIdentity;
   let projectA: TestProjectFixture;
   let sectionAId: string;
+  let pageAId: string;
 
   beforeAll(async () => {
     await assertQaEnvironment();
@@ -45,6 +47,15 @@ describe.skipIf(SKIP)("User A / User B cross-project isolation — real RLS", ()
 
     projectA = await createTestProject(userA.userId);
     sectionAId = await createTestSection(projectA.projectId, 0);
+
+    // Resolve the page that the section was inserted into (sections link via page_id)
+    const svc = getServiceClient();
+    const { data: sec } = await svc
+      .from("project_sections")
+      .select("page_id")
+      .eq("id", sectionAId)
+      .single();
+    pageAId = (sec as { page_id: string }).page_id;
 
     // User B creates their own project (should be isolated)
     await createTestProject(userB.userId);
@@ -66,10 +77,11 @@ describe.skipIf(SKIP)("User A / User B cross-project isolation — real RLS", ()
   });
 
   it("User B cannot read User A's sections via SELECT", async () => {
+    // Filter by the known section id — RLS should hide it from a non-owner
     const { data } = await userB.client
       .from("project_sections")
-      .select("id, project_id")
-      .eq("project_id", projectA.projectId);
+      .select("id")
+      .eq("id", sectionAId);
     expect(data).toHaveLength(0);
   });
 
@@ -86,7 +98,7 @@ describe.skipIf(SKIP)("User A / User B cross-project isolation — real RLS", ()
     const { data, error } = await userA.client
       .from("project_sections")
       .select("id")
-      .eq("project_id", projectA.projectId);
+      .eq("id", sectionAId);
     expect(error).toBeNull();
     expect(data!.length).toBeGreaterThan(0);
   });
@@ -176,8 +188,9 @@ describe.skipIf(SKIP)("User A / User B cross-project isolation — real RLS", ()
   // ── INSERT isolation ──────────────────────────────────────────────────────────
 
   it("User B cannot INSERT a section into User A's project", async () => {
+    // Use userA's real page_id so this reaches the RLS insert policy (not a schema error)
     const { error } = await userB.client.from("project_sections").insert({
-      project_id: projectA.projectId,
+      page_id: pageAId,
       section_type: "hero",
       sort_order: 999,
       props: {},
