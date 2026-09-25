@@ -1,9 +1,8 @@
 /**
- * Aesthetic Adapter — Phase 1 public API.
+ * Aesthetic Adapter — Phase 1 + Phase 2 public API.
  *
- * Export everything needed to create, validate, and inspect Adapter contracts
- * and IRs. Implementation modules (pipeline stages, compilation) are NOT
- * exported from here until Phase 2+.
+ * Phase 1: contract types, schemas, validators.
+ * Phase 2: IR → WebsiteDefinition compiler, capability negotiation, gap report.
  */
 
 // Versions
@@ -191,3 +190,39 @@ export {
   safeParseJson,
   type ValidationResult,
 } from "./validate";
+
+// ── Phase 2: Compiler ──────────────────────────────────────────────────────────
+
+// Compilation report types
+export {
+  compilationBehaviorSchema,
+  capabilityCompilationEntrySchema,
+  extensionRequirementSchema,
+  compilationReportSchema,
+  type CompilationBehavior,
+  type CapabilityCompilationEntry,
+  type ExtensionRequirement,
+  type CompilationReport,
+  type CompilationResult,
+} from "./compile-report";
+
+// Capability negotiation
+export {
+  TARGET_CAPABILITY_MAP,
+  PROPOSED_EXTENSIONS,
+  negotiateCapabilities,
+  type CapabilityNegotiationResult,
+} from "./compile-capabilities";
+
+// Main compiler
+export {
+  COMPILER_VERSION,
+  compileIR,
+} from "./compile";
+
+// Extensions gap report
+export {
+  buildGapReport,
+  formatGapReport,
+  type GapReportRow,
+} from "./compile-extensions";
