@@ -5,9 +5,11 @@
  * - Owner-portfolio section types (maylecor-home, etc.) BLOCK compilation.
  *   They are never allowed in Adapter output per the architectural invariant.
  * - For native section types, props and delta deviceOverrides compile directly.
- * - motionSpecs, deviceCompositions, accessibilityMetadata, responsiveVisibility
- *   are EXTENSION_REQUIRED — they are preserved in AdapterDesignIR and reported,
- *   NOT compiled to WebsiteDefinition.
+ * - motionSpecs: normalized via compile-motion.ts; safe native subset compiled as
+ *   _motion prop. Unsupported specs preserved in IR + diagnostics, never silently dropped.
+ * - responsiveVisibility: compiled as _visibility prop (NATIVE).
+ * - deviceCompositions: EXTENSION_REQUIRED — full contract not implemented; preserved in IR.
+ * - accessibilityMetadata: EXTENSION_REQUIRED — preserved in IR.
  * - customComponent: approved (approvedBy present) → CUSTOM_ESCAPE_HATCH section;
  *   unapproved/blocked material component → blocks that section's compilation.
  * - Section types not in SECTION_TYPES → UNSUPPORTED, not compiled.
@@ -17,6 +19,7 @@
 import { SECTION_TYPES } from "@/lib/create/website-schema";
 import { OWNER_PORTFOLIO_SECTION_TYPES, isOwnerPortfolioType } from "./ir";
 import { isComponentBlocked, isMaterialAndBlocked } from "./components";
+import { normalizeIRMotionSpecs } from "./compile-motion";
 import type { IRPage, IRSection } from "./ir";
 import type { CapabilityCompilationEntry } from "./compile-report";
 import type { DiagnosticEntry } from "./diagnostics";
@@ -150,9 +153,19 @@ export function compileSections(pages: IRPage[]): SectionCompilationResult {
         compiledProps.deviceOverrides = section.deviceOverrides;
       }
 
-      // Phase 3B: motion specs compile natively as _motion in props
+      // Normalize IR MotionSpec[] → WD SectionMotion (single canonical boundary).
       if (section.motionSpecs && section.motionSpecs.length > 0) {
-        compiledProps._motion = section.motionSpecs;
+        const motionResult = normalizeIRMotionSpecs(section.motionSpecs, sectionId);
+        // Collect any diagnostics from normalization (unsupported triggers/effects, approximations).
+        for (const d of motionResult.diagnostics) diagnostics.push(d);
+        // Only write _motion when at least one spec compiled; otherwise omit entirely.
+        if (motionResult.motion) {
+          compiledProps._motion = motionResult.motion;
+        }
+        // Unsupported specs: record in sectionsPreservedInIR so the report is honest.
+        if (motionResult.unsupportedSpecs.length > 0 && !sectionsPreservedInIR.includes(sectionId)) {
+          sectionsPreservedInIR.push(sectionId);
+        }
       }
 
       // Phase 3B: responsive visibility compiles natively as _visibility in props
@@ -170,8 +183,8 @@ export function compileSections(pages: IRPage[]): SectionCompilationResult {
       sectionsCompiled++;
 
       // ── Record EXTENSION_REQUIRED overflows ───────────────────────────────
-      // Phase 3B: motion and responsive-visibility are now NATIVE (compiled above).
-      // Only track remaining EXTENSION_REQUIRED capabilities here.
+      // Motion with unsupported specs is tracked via sectionsPreservedInIR above.
+      // deviceCompositions stays EXTENSION_REQUIRED — full contract not yet implemented.
 
       let sectionHasOverflow = false;
 

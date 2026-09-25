@@ -54,6 +54,9 @@ import {
   type CertificationStatus,
 } from "@/lib/adapter/index";
 
+import { normalizeIRMotionSpecs } from "@/lib/adapter/compile-motion";
+import type { MotionSpec } from "@/lib/adapter/motion";
+
 // ── Test helpers ──────────────────────────────────────────────────────────────
 
 const NOW = new Date().toISOString();
@@ -706,6 +709,165 @@ const fixture9: AdapterDesignIR = {
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
+// ── 0. Motion normalizer unit tests ──────────────────────────────────────────
+
+const makeScrollEnterFade = (overrides: Partial<MotionSpec> = {}): MotionSpec => ({
+  id: "m-test",
+  trigger: "scroll-enter",
+  target: ".block",
+  effect: "fade",
+  initialState: { opacity: 0, y: 24 },
+  finalState: { opacity: 1, y: 0 },
+  durationMs: 500,
+  delayMs: 100,
+  easing: "ease-out",
+  reducedMotionFallback: { type: "instant" },
+  compilationPath: "native",
+  ...overrides,
+});
+
+describe("normalizeIRMotionSpecs — unit tests", () => {
+  it("empty array → undefined motion", () => {
+    const result = normalizeIRMotionSpecs([], "sec-test");
+    expect(result.motion).toBeUndefined();
+    expect(result.unsupportedSpecs).toHaveLength(0);
+    expect(result.diagnostics).toHaveLength(0);
+  });
+
+  it("scroll-enter + fade → WD SectionMotion shape with specs array", () => {
+    const result = normalizeIRMotionSpecs([makeScrollEnterFade()], "sec-a");
+    expect(result.motion).toBeDefined();
+    expect(Array.isArray(result.motion?.specs)).toBe(true);
+    expect(result.motion?.specs).toHaveLength(1);
+    expect(result.motion?.reducedMotionFallback).toBe("instant");
+  });
+
+  it("IR MotionSpec fields (id, effect, compilationPath) are not in WD output", () => {
+    const result = normalizeIRMotionSpecs([makeScrollEnterFade()], "sec-a");
+    const entry = result.motion?.specs[0] as Record<string, unknown> | undefined;
+    expect(entry?.id).toBeUndefined();
+    expect(entry?.effect).toBeUndefined();
+    expect(entry?.compilationPath).toBeUndefined();
+  });
+
+  it("translateY number (px) → translateYFrom/To strings with 'px' suffix", () => {
+    const result = normalizeIRMotionSpecs([makeScrollEnterFade()], "sec-a");
+    const t = result.motion?.specs[0]?.transform;
+    expect(t?.translateYFrom).toBe("24px");
+    expect(t?.translateYTo).toBe("0px");
+  });
+
+  it("opacity numbers pass through as numbers (not strings)", () => {
+    const result = normalizeIRMotionSpecs([makeScrollEnterFade()], "sec-a");
+    const t = result.motion?.specs[0]?.transform;
+    expect(t?.opacityFrom).toBe(0);
+    expect(t?.opacityTo).toBe(1);
+  });
+
+  it("scale passes through as number", () => {
+    const spec = makeScrollEnterFade({
+      initialState: { scale: 0.95 },
+      finalState: { scale: 1 },
+    });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    const t = result.motion?.specs[0]?.transform;
+    expect(t?.scaleFrom).toBe(0.95);
+    expect(t?.scaleTo).toBe(1);
+  });
+
+  it("rotate passes through as number", () => {
+    const spec = makeScrollEnterFade({
+      effect: "rotate",
+      initialState: { rotate: -10 },
+      finalState: { rotate: 0 },
+    });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    const t = result.motion?.specs[0]?.transform;
+    expect(t?.rotateFrom).toBe(-10);
+    expect(t?.rotateTo).toBe(0);
+  });
+
+  it("unsupported trigger (hover) → unsupported + diagnostic, no compiled motion", () => {
+    const spec = makeScrollEnterFade({ trigger: "hover" });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion).toBeUndefined();
+    expect(result.unsupportedSpecs).toHaveLength(1);
+    expect(result.diagnostics.some((d) => d.code === "MOTION_UNSUPPORTED")).toBe(true);
+  });
+
+  it("unsupported effect (parallax) → unsupported + diagnostic", () => {
+    const spec = makeScrollEnterFade({ effect: "parallax" });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion).toBeUndefined();
+    expect(result.unsupportedSpecs).toHaveLength(1);
+    expect(result.diagnostics.some((d) => d.code === "MOTION_UNSUPPORTED")).toBe(true);
+  });
+
+  it("unsupported effect (ken-burns) → unsupported + diagnostic", () => {
+    const spec = makeScrollEnterFade({ effect: "ken-burns" });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion).toBeUndefined();
+    expect(result.unsupportedSpecs).toHaveLength(1);
+  });
+
+  it("reducedMotionFallback fade-only → approximated as instant + diagnostic", () => {
+    const spec = makeScrollEnterFade({ reducedMotionFallback: { type: "fade-only" } });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion?.reducedMotionFallback).toBe("instant");
+    expect(result.diagnostics.some((d) => d.code === "MOTION_APPROXIMATED")).toBe(true);
+  });
+
+  it("reducedMotionFallback none → none in output", () => {
+    const spec = makeScrollEnterFade({ reducedMotionFallback: { type: "none" } });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion?.reducedMotionFallback).toBe("none");
+  });
+
+  it("sequence staggerMs forwarded (clamped to ≤500)", () => {
+    const spec = makeScrollEnterFade({ sequence: { group: "g1", staggerMs: 80, index: 0 } });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion?.specs[0]?.staggerMs).toBe(80);
+  });
+
+  it("mixed: one compilable + one unsupported → compiled motion + unsupportedSpecs", () => {
+    const good = makeScrollEnterFade({ id: "m-good" });
+    const bad = makeScrollEnterFade({ id: "m-bad", effect: "marquee" });
+    const result = normalizeIRMotionSpecs([good, bad], "sec-a");
+    expect(result.motion).toBeDefined();
+    expect(result.motion?.specs).toHaveLength(1);
+    expect(result.unsupportedSpecs).toHaveLength(1);
+    expect(result.unsupportedSpecs[0]?.id).toBe("m-bad");
+  });
+
+  it("load trigger is in the safe native subset", () => {
+    const spec = makeScrollEnterFade({ trigger: "load" });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion).toBeDefined();
+    expect(result.unsupportedSpecs).toHaveLength(0);
+  });
+
+  it("click trigger is NOT in the safe native subset", () => {
+    const spec = makeScrollEnterFade({ trigger: "click" });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion).toBeUndefined();
+    expect(result.unsupportedSpecs).toHaveLength(1);
+  });
+
+  it("looping field produces approximated diagnostic but still compiles", () => {
+    const spec = makeScrollEnterFade({ looping: { type: "infinite", reverseOnReturn: true } });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    // looping is a rich field — compiles without it, but emits diagnostic
+    expect(result.motion).toBeDefined();
+    expect(result.diagnostics.some((d) => d.code === "MOTION_APPROXIMATED")).toBe(true);
+  });
+
+  it("durationMs is clamped to 1–5000", () => {
+    const spec = makeScrollEnterFade({ durationMs: 0 });
+    const result = normalizeIRMotionSpecs([spec], "sec-a");
+    expect(result.motion?.specs[0]?.durationMs).toBeGreaterThanOrEqual(1);
+  });
+});
+
 // ── 1. Native capabilities compile correctly ──────────────────────────────────
 
 describe("Fixture 1 — simple static site compiles natively", () => {
@@ -854,6 +1016,64 @@ describe("Fixture 3 — motion is not silently flattened", () => {
     const result = compileIR(fixture3);
     const hasExtReq = result.report.capabilities.some((e) => e.classification === "EXTENSION_REQUIRED");
     expect(result.report.materialLossDetected).toBe(hasExtReq);
+  });
+
+  it("compiled scroll-enter/fade spec produces WD SectionMotion shape (not raw MotionSpec[])", () => {
+    const result = compileIR(fixture3);
+    // sec-text has scroll-enter + fade → should compile
+    const pages = result.websiteDefinition?.pages ?? [];
+    const homePage = pages.find((p) => p.slug === "home");
+    const textSection = homePage?.sections.find((s) => s.type === "text");
+    expect(textSection).toBeDefined();
+    const motion = (textSection?.props as Record<string, unknown>)?._motion as Record<string, unknown> | undefined;
+    // Must be WD SectionMotion shape: { specs: SectionMotionEntry[], reducedMotionFallback }
+    expect(motion).toBeDefined();
+    expect(Array.isArray((motion as { specs?: unknown })?.specs)).toBe(true);
+    const specs = (motion as { specs: unknown[] }).specs;
+    expect(specs.length).toBeGreaterThan(0);
+    // Must NOT be a raw MotionSpec[] (which has .id, .effect — WD SectionMotionEntry has neither)
+    const firstSpec = specs[0] as Record<string, unknown>;
+    expect(firstSpec.id).toBeUndefined();   // IR MotionSpec field — must be gone
+    expect(firstSpec.effect).toBeUndefined(); // IR MotionSpec field — must be gone
+    // WD SectionMotionEntry required fields
+    expect(firstSpec.trigger).toBe("scroll-enter");
+    expect(firstSpec.target).toBe(".text-block");
+    expect(typeof firstSpec.durationMs).toBe("number");
+    expect((motion as { reducedMotionFallback: unknown }).reducedMotionFallback).toBe("instant");
+  });
+
+  it("compiled scroll-enter/fade spec has correct transform shape (px strings for translate)", () => {
+    const result = compileIR(fixture3);
+    const homePage = result.websiteDefinition?.pages.find((p) => p.slug === "home");
+    const textSection = homePage?.sections.find((s) => s.type === "text");
+    const motion = (textSection?.props as Record<string, unknown>)?._motion as {
+      specs: { transform: Record<string, unknown> }[];
+    } | undefined;
+    const transform = motion?.specs[0]?.transform;
+    expect(transform).toBeDefined();
+    // IR: initialState.opacity=0 → WD: opacityFrom=0 (number)
+    expect(transform?.opacityFrom).toBe(0);
+    // IR: finalState.opacity=1 → WD: opacityTo=1 (number)
+    expect(transform?.opacityTo).toBe(1);
+    // IR: initialState.y=30 → WD: translateYFrom="30px" (string with px unit)
+    expect(transform?.translateYFrom).toBe("30px");
+    // IR: finalState.y=0 → WD: translateYTo="0px" (string)
+    expect(transform?.translateYTo).toBe("0px");
+  });
+
+  it("unsupported spec (scroll-progress/parallax) produces no _motion on that section", () => {
+    const result = compileIR(fixture3);
+    const homePage = result.websiteDefinition?.pages.find((p) => p.slug === "home");
+    const heroSection = homePage?.sections.find((s) => s.type === "hero");
+    const motion = (heroSection?.props as Record<string, unknown>)?._motion;
+    // hero has scroll-progress + parallax → fully unsupported → _motion must be absent
+    expect(motion).toBeUndefined();
+  });
+
+  it("section with only unsupported specs is recorded in sectionsPreservedInIR (not silently dropped)", () => {
+    const result = compileIR(fixture3);
+    // sec-hero has only scroll-progress/parallax (unsupported) → preserved in IR, never silently dropped
+    expect(result.report.sectionsPreservedInIR).toContain("sec-hero");
   });
 });
 
@@ -1157,8 +1377,10 @@ describe("Capability negotiation", () => {
     expect(TARGET_CAPABILITY_MAP["sections"]).toBe("NATIVE");
   });
 
-  it("device-independent-compositions is NATIVE after Phase 3B", () => {
-    expect(TARGET_CAPABILITY_MAP["device-independent-compositions"]).toBe("NATIVE");
+  it("device-independent-compositions is EXTENSION_REQUIRED (full contract not implemented)", () => {
+    // Only ordering+visibility are wired; per-device presentation, Builder UI, and
+    // overwrite guards are not complete. Reverted from incorrect NATIVE classification.
+    expect(TARGET_CAPABILITY_MAP["device-independent-compositions"]).toBe("EXTENSION_REQUIRED");
   });
 
   it("accessibility-metadata is EXTENSION_REQUIRED", () => {

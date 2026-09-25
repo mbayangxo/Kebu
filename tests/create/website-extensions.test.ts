@@ -947,7 +947,7 @@ describe("adapter capability matrix — Phase 3B native classification", () => {
     expect(motionEntry?.classification).toBe("NATIVE");
   });
 
-  it("device-independent-compositions is NATIVE after Phase 3B — page.deviceLayouts fully wired", () => {
+  it("device-independent-compositions stays EXTENSION_REQUIRED — full contract not yet implemented", () => {
     const ir = makeMinimalIR({
       capabilityOverflows: [
         { capability: "device-independent-compositions", classification: "EXTENSION_REQUIRED", preservedIn: "ir-field" },
@@ -955,9 +955,9 @@ describe("adapter capability matrix — Phase 3B native classification", () => {
     });
     const { report } = compileIR(ir);
     const entry = report.capabilities.find((e) => e.capability === "device-independent-compositions");
-    // Phase 3B: page.deviceLayouts persists in project_pages.device_layouts and renders in SiteRenderer
-    expect(entry?.behavior).toBe("compiled");
-    expect(entry?.classification).toBe("NATIVE");
+    // Ordering + visibility wired, but per-device presentation, Builder UI, and overwrite guards are incomplete.
+    expect(entry?.behavior).toBe("preserved-in-ir");
+    expect(entry?.classification).toBe("EXTENSION_REQUIRED");
   });
 
   it("accessibility-metadata in IR stays EXTENSION_REQUIRED after Phase 3B", () => {

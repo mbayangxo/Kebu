@@ -56,10 +56,11 @@ export const TARGET_CAPABILITY_MAP: Record<CapabilityName, CapabilityClassificat
   // Scripted scroll effects, custom event handlers, etc. not in WD schema.
   "custom-interactions": "EXTENSION_REQUIRED",
 
-  // Phase 3B: page.deviceLayouts[tablet|mobile] stored in project_pages.device_layouts
-  // JSONB column. SiteRenderer applies hiddenSections filtering and sectionOrder
-  // reordering before the section render loop for non-desktop devices.
-  "device-independent-compositions": "NATIVE",
+  // device-independent-compositions: ordering and visibility are wired (deviceLayouts JSONB),
+  // but full contract (per-device position, dimensions, spacing, typography, media crop,
+  // navigation presentation) is not implemented. Builder has no device-specific editing UI.
+  // Reverted to EXTENSION_REQUIRED until the full contract is satisfied.
+  "device-independent-compositions": "EXTENSION_REQUIRED",
 
   // Phase 3B: section.visibility.hideOn / showOn applied in SiteRenderer before
   // the section render loop, filtered per _device. Fully native — no extension needed.
