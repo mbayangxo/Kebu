@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/cron/checkout-expiry",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/digital-delivery",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/billing-monthly",
       "schedule": "0 6 * * *"
     },

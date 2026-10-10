@@ -6,12 +6,18 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import { CreateShell } from "@/app/components/create/create-shell";
 import { buildDefinitionFromProjectParts } from "@/lib/create/editor-definition";
+import { builderKcdView } from "@/lib/create/kcd-adapter/builder-view";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
+import { applyPreviewDefinitionUpdate, type PreviewDefinitionUpdate } from "@/lib/create/preview-definition-update";
+import { applyKcdPreviewUpdate, type KcdPreviewUpdate } from "@/lib/create/kcd-preview-update";
+import type { KcdDocument } from "@/lib/creative-core";
 
 // postMessage protocol between the Builder canvas iframe and page.tsx
 type PreviewInboundMsg =
-  | { type: "kebu:definition:update"; definition: WebsiteDefinition; pageSlug: string }
-  | { type: "kebu:definition:request" };
+  | { type: "kebu:definition:patch"; update: PreviewDefinitionUpdate; nativeUpdate?: KcdPreviewUpdate; selectedNodeId?: string | null; pageSlug: string; editDevice?: "desktop" | "tablet" | "mobile" }
+  | { type: "kebu:definition:update"; definition: WebsiteDefinition; pageSlug: string; editDevice?: "desktop" | "tablet" | "mobile" }
+  | { type: "kebu:definition:request" }
+  | { type: "kebu:geometry:ack"; requestId: string; error?: string };
 
 function ProjectPreviewInner() {
   const { id } = useParams<{ id: string }>();
@@ -19,14 +25,19 @@ function ProjectPreviewInner() {
   const searchParams = useSearchParams();
   const embed = searchParams.get("embed") === "1";
   const [definition, setDefinition] = useState<WebsiteDefinition | null>(null);
+  const [nativeDocument, setNativeDocument] = useState<KcdDocument | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const geometryRequests = useRef(new Map<string, { resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>());
+  const parentNativeRef = useRef<KcdDocument | null>(null);
   const [pages, setPages] = useState<Array<{ id: string; slug: string; title: string; sort_order: number }>>([]);
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
   const [subdomain, setSubdomain] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   // When embedded in the Builder's device preview iframe, track whether we're using the parent's
   // live definition (via postMessage) or the fetched saved one.
   const parentDefinitionRef = useRef<WebsiteDefinition | null>(null);
+  const parentSequenceRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,9 +59,16 @@ function ProjectPreviewInner() {
         setSubdomain(data.project?.subdomain ?? null);
         // Only use the fetched definition if the parent hasn't already pushed a live one
         if (!parentDefinitionRef.current) {
-          setDefinition(buildDefinitionFromProjectParts(data.project, pageRows, sections));
+          if (data.renderPath === "kcd") {
+            // 3C: the canonical render view — the same result as the Builder canvas and kcd-1 publishing.
+            const view = builderKcdView({ project: data.project, siteChrome: data.siteChrome, pages: pageRows, sections });
+            if (view.ok) { setDefinition(view.definition); setNativeDocument(view.nativeDocument ?? null); }
+            else setError(view.error);
+          } else {
+            setDefinition(buildDefinitionFromProjectParts(data.project, pageRows, sections));
+          }
         }
-        if (pageRows[0]?.slug) setPreviewPageSlug(pageRows[0].slug);
+        if (!parentDefinitionRef.current && pageRows[0]?.slug) setPreviewPageSlug(pageRows[0].slug);
       }
     }
     void load();
@@ -65,12 +83,30 @@ function ProjectPreviewInner() {
     if (!embed) return;
     function onMessage(e: MessageEvent) {
       // Only accept messages from our own origin
-      if (e.origin !== window.location.origin) return;
+      if (e.origin !== window.location.origin || e.source !== window.parent) return;
       const msg = e.data as PreviewInboundMsg;
-      if (msg?.type === "kebu:definition:update") {
+      if (msg?.type === "kebu:geometry:ack") {
+        const pending = geometryRequests.current.get(msg.requestId);
+        if (pending) { clearTimeout(pending.timer); geometryRequests.current.delete(msg.requestId); if (msg.error) pending.reject(new Error(msg.error)); else pending.resolve(); }
+      } else if (msg?.type === "kebu:definition:patch") {
+        const next = applyPreviewDefinitionUpdate(parentDefinitionRef.current, parentSequenceRef.current, msg.update);
+        const native = msg.nativeUpdate ? applyKcdPreviewUpdate(parentNativeRef.current, parentSequenceRef.current, msg.nativeUpdate) : null;
+        if (!next || native === undefined || (msg.nativeUpdate && msg.nativeUpdate.sequence !== msg.update.sequence)) {
+          window.parent.postMessage({ type: "kebu:preview:ready" }, window.location.origin);
+          return;
+        }
+        parentDefinitionRef.current = next;
+        parentSequenceRef.current = msg.update.sequence;
+        setDefinition(next);
+        parentNativeRef.current = native; setNativeDocument(native); setSelectedNodeId(msg.selectedNodeId ?? null); setError(null);
+        setPreviewPageSlug(msg.pageSlug);
+        if (msg.editDevice) setDevice(msg.editDevice);
+      } else if (msg?.type === "kebu:definition:update") {
         parentDefinitionRef.current = msg.definition;
         setDefinition(msg.definition);
+        parentNativeRef.current = null; setNativeDocument(null);
         setPreviewPageSlug(msg.pageSlug);
+        if (msg.editDevice) setDevice(msg.editDevice);
       } else if (msg?.type === "kebu:definition:request") {
         // Parent is asking us to signal readiness again (e.g. after a page change)
         window.parent.postMessage({ type: "kebu:preview:ready" }, window.location.origin);
@@ -79,7 +115,8 @@ function ProjectPreviewInner() {
     window.addEventListener("message", onMessage);
     // Tell the parent we are ready to receive the live definition
     window.parent.postMessage({ type: "kebu:preview:ready" }, window.location.origin);
-    return () => window.removeEventListener("message", onMessage);
+    const requests = geometryRequests.current;
+    return () => { window.removeEventListener("message", onMessage); for (const pending of requests.values()) { clearTimeout(pending.timer); pending.reject(new Error("The preview closed before the layout edit was confirmed.")); } requests.clear(); };
   }, [embed]);
 
   if (embed) {
@@ -89,9 +126,16 @@ function ProjectPreviewInner() {
         {definition ? (
           <SiteRenderer
             definition={definition}
+            nativeDocument={nativeDocument ?? undefined}
             mode="preview"
             pageSlug={previewPageSlug}
             siteBase={subdomain ? `/sites/${subdomain}` : undefined}
+            editor={{ onSpatialChange: (nodeId, patch) => new Promise<void>((resolve, reject) => {
+              const requestId = crypto.randomUUID();
+              const timer = setTimeout(() => { geometryRequests.current.delete(requestId); reject(new Error("The layout edit could not be confirmed. Check the saved layout before trying again.")); }, 15000);
+              geometryRequests.current.set(requestId, { resolve, reject, timer });
+              window.parent.postMessage({ type: "kebu:node:geometry", nodeId, patch, requestId }, window.location.origin);
+            }), editDevice: device, selectedSectionId: selectedNodeId, onSelectSection: (nodeId) => window.parent.postMessage({ type: "kebu:node:select", nodeId }, window.location.origin) }}
           />
         ) : null}
       </div>
@@ -160,6 +204,8 @@ function ProjectPreviewInner() {
         {definition && (
           <SiteRenderer
             definition={definition}
+            nativeDocument={nativeDocument ?? undefined}
+            editor={{ editDevice: device }}
             mode="preview"
             pageSlug={previewPageSlug}
             siteBase={subdomain ? `/sites/${subdomain}` : undefined}

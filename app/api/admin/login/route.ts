@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   let token: string;
   try {
-    token = createAdminSessionToken();
+    token = await createAdminSessionToken();
   } catch {
     return NextResponse.json({ error: "Admin session not configured." }, { status: 503 });
   }

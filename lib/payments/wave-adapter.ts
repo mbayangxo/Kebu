@@ -5,13 +5,10 @@
  */
 
 import type { PaymentAdapter, PaymentAdapterCheckoutInput, PaymentAdapterCheckoutResult } from "./adapters";
+import { waveRequest } from "./wave-verification";
 
 export function waveConfigured(): boolean {
   return Boolean(process.env.WAVE_API_KEY?.trim());
-}
-
-function waveBase(): string {
-  return (process.env.WAVE_API_BASE_URL ?? "https://api.wave.com").replace(/\/$/, "");
 }
 
 export const waveAdapter: PaymentAdapter = {
@@ -24,27 +21,19 @@ export const waveAdapter: PaymentAdapter = {
     }
     // Wave checkout expects amount as string in major units for XOF
     const amount = String(Math.max(1, Math.round(input.amountMinor)));
-    const res = await fetch(`${waveBase()}/v1/checkout/sessions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount,
-        currency: "XOF",
-        error_url: input.cancelUrl,
-        success_url: input.returnUrl,
-        client_reference: input.reference.slice(0, 255),
-      }),
+    const res = await waveRequest("/v1/checkout/sessions", {
+      amount, currency:"XOF", error_url:input.cancelUrl, success_url:input.returnUrl,
+      client_reference:input.reference.slice(0,255),
     });
+    if(!res) return {ok:false,configured:false,error:"Wave not configured."};
     const data = (await res.json().catch(() => ({}))) as {
       id?: string;
+      when_expires?: string;
       wave_launch_url?: string;
       message?: string;
       error?: string;
     };
-    if (!res.ok || !data.wave_launch_url) {
+    if (!res.ok || !data.wave_launch_url || !data.id?.startsWith("cos-") || !data.when_expires || !Number.isFinite(Date.parse(data.when_expires))) {
       return {
         ok: false,
         configured: true,
@@ -54,7 +43,9 @@ export const waveAdapter: PaymentAdapter = {
     return {
       ok: true,
       checkoutUrl: data.wave_launch_url,
-      providerPaymentId: data.id || input.reference,
+      providerPaymentId: data.id!,
+      providerAmount: {value:amount,currency:"XOF"},
+      expiresAt: data.when_expires,
     };
   },
 };

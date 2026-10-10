@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import type { ProjectProductRow } from "@/lib/create/project-products";
 import { ProductVariantsEditor } from "@/app/components/shop/product-variants-editor";
+import { useCatalogSync } from "@/lib/create/use-catalog-sync";
+import { CatalogSyncNotice } from "@/app/components/create/catalog-sync-notice";
 
 type ProductForm = {
   name: string;
@@ -53,6 +55,7 @@ export function SiteProductsPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const catalogSync = useCatalogSync(projectId);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -145,6 +148,7 @@ export function SiteProductsPanel({
         return;
       }
       setForm(emptyForm());
+      catalogSync.record(data.catalogSync);
       setEditingId(null);
       setNote(editingId ? "Product updated." : "Product added — publish to update your live shop.");
       await load();
@@ -161,11 +165,12 @@ export function SiteProductsPanel({
         method: "DELETE",
         credentials: "include",
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         setNote(data.error ?? "Could not delete product.");
         return;
       }
+      catalogSync.record(data.catalogSync);
       if (editingId === productId) {
         setEditingId(null);
         setForm(emptyForm());
@@ -178,6 +183,7 @@ export function SiteProductsPanel({
 
   return (
     <div className="space-y-3">
+      <CatalogSyncNotice status={catalogSync.status} busy={catalogSync.busy} retry={catalogSync.retry} />
       <div>
         <h2 className="text-lg font-bold" style={{ color: "#0A0A0A" }}>
           Products

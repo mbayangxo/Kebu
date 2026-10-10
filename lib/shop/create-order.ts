@@ -19,6 +19,7 @@ export type ShopOrderStatus = (typeof SHOP_ORDER_STATUSES)[number];
 
 export const shopOrderInputSchema = z
   .object({
+    requestId: z.string().uuid().optional(),
     productId: z.string().uuid(),
     variantId: z.string().uuid().optional().nullable(),
     customerName: z.string().trim().min(1).max(80),

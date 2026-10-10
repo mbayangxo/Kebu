@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   let payload: {
     event?: string;
-    data?: { reference?: string; id?: number; status?: string; metadata?: { kebu_reference?: string } };
+    data?: { reference?: string; id?: number; status?: string; amount?:number; currency?:string; metadata?: { kebu_reference?: string } };
   };
   try {
     payload = JSON.parse(rawBody) as typeof payload;
@@ -37,6 +37,15 @@ export async function POST(req: NextRequest) {
   if (!admin) {
     return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
   }
+  const { data: order, error } = await admin.from("shop_orders")
+    .select("provider_reference,provider_amount_value,provider_amount_currency")
+    .eq("payment_provider","paystack").eq("provider_reference",reference).maybeSingle();
+  if (error || !order || payload.data?.reference !== reference
+    || !Number.isSafeInteger(payload.data?.amount) || !/^\d+$/.test(order.provider_amount_value ?? "")
+    || Number(order.provider_amount_value) !== payload.data?.amount
+    || order.provider_amount_currency !== payload.data?.currency) {
+    return NextResponse.json({error:"Paystack amount, currency or reference needs reconciliation."},{status:409});
+  }
 
   const paid = await markShopOrderPaidByProviderRef(admin, {
     reference,
@@ -45,23 +54,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!paid.ok) {
-    // Try without provider filter (legacy / race)
-    const retry = await markShopOrderPaidByProviderRef(admin, {
-      reference,
-      paymentId: payload.data?.reference,
-    });
-    if (!retry.ok) {
-      return NextResponse.json({ error: retry.error }, { status: 404 });
-    }
-    console.info(
-      JSON.stringify({
-        event: "shop.order_paid_paystack",
-        orderId: retry.orderId,
-        projectId: retry.projectId,
-        reference,
-      }),
-    );
-    return NextResponse.json({ ok: true, kind: "shop_order", orderId: retry.orderId });
+    return NextResponse.json({error:paid.error},{status:409});
   }
 
   console.info(

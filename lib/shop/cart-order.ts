@@ -1,10 +1,10 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { allocateShopOrderNumber } from "@/lib/shop/codes";
-import { applyPercentOff, resolveActiveDiscount, incrementDiscountUse } from "@/lib/shop/discounts";
+import { applyPercentOff, resolveActiveDiscount } from "@/lib/shop/discounts";
+import { saveShopCheckout } from "@/lib/shop/checkout-persistence";
 import {
   giftCardApplyAmount,
-  redeemGiftCardBalance,
   resolveActiveGiftCard,
 } from "@/lib/shop/gift-cards";
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
@@ -25,6 +25,7 @@ export const cartLineSchema = z.object({
 
 export const shopCartCheckoutSchema = z
   .object({
+    requestId: z.string().uuid().optional(),
     items: z.array(cartLineSchema).min(1).max(24),
     customerName: z.string().trim().min(1).max(80),
     customerPhone: z.string().trim().min(8).max(24),
@@ -101,6 +102,9 @@ export async function resolveCartLines(
   }
   const linesIn = [...merged.values()];
   if (!linesIn.length) return { ok: false, error: "Cart is empty." };
+  if (linesIn.some(line => !Number.isInteger(line.quantity) || line.quantity < 1 || line.quantity > 20)) {
+    return { ok: false, error: "Choose between 1 and 20 of each item." };
+  }
 
   const ids = [...new Set(linesIn.map((l) => l.productId))];
   let { data: products, error } = await admin
@@ -177,7 +181,7 @@ export async function resolveCartLines(
         : typeof p.price_xof === "number"
           ? p.price_xof
           : parseXofFromLabel(priceLabel || p.price_label);
-    const qty = Math.min(20, item.quantity);
+    const qty = item.quantity;
     const displayName = variantName ? `${p.name} (${variantName})` : p.name;
     lines.push({
       productId: p.id,
@@ -246,6 +250,7 @@ export async function createCartOrder(opts: {
   gift?: ShopGiftFields;
   buyerCountry?: string | null;
   sellerCountry?: string | null;
+  request?: { requestId: string; fingerprint: string } | null;
 }): Promise<
   | {
       ok: true;
@@ -257,6 +262,8 @@ export async function createCartOrder(opts: {
       giftCardCode: string | null;
       giftCardAmountXof: number | null;
       giftPublicId: string | null;
+      paid: boolean;
+      replayed: boolean;
     }
   | { ok: false; error: string }
 > {
@@ -309,6 +316,8 @@ export async function createCartOrder(opts: {
     : null;
 
   const insertOrder: Record<string, unknown> = {
+    _request_id: opts.request?.requestId,
+    _request_fingerprint: opts.request?.fingerprint,
     project_id: opts.projectId,
     product_id: primary.productId,
     product_name:
@@ -360,28 +369,7 @@ export async function createCartOrder(opts: {
     insertOrder.shipping_quote_version = shippingQuote.quoteVersion;
   }
 
-  const { data: order, error } = await opts.admin
-    .from("shop_orders")
-    .insert(insertOrder)
-    .select("id, order_number, gift_public_id")
-    .single();
-
-  if (error || !order) {
-    return {
-      ok: false,
-      error: error?.message?.includes("does not exist")
-        ? "Orders table missing. Apply APPLY_SHOP_ORDERS.sql."
-        : error?.message?.includes("is_gift") || error?.message?.includes("recipient_")
-          ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
-          : error?.message?.includes("gift_card")
-            ? "Gift card columns missing. Apply migration 066."
-            : "Could not save cart order.",
-    };
-  }
-
   const itemRows = opts.lines.map((l, i) => ({
-    order_id: order.id,
-    project_id: opts.projectId,
     product_id: l.productId,
     variant_id: l.variantId,
     variant_name: l.variantName,
@@ -395,31 +383,13 @@ export async function createCartOrder(opts: {
     sort_order: i,
   }));
 
-  const { error: itemsErr } = await opts.admin.from("shop_order_items").insert(itemRows);
-  if (itemsErr && !/does not exist|shop_order_items/i.test(itemsErr.message ?? "")) {
-    /* order header exists — items optional until migration applied */
-  }
-
-  if (giftCard && giftCardAmount > 0) {
-    const redeemed = await redeemGiftCardBalance(
-      opts.admin,
-      giftCard.id,
-      giftCard.balance_xof,
-      giftCardAmount,
-    );
-    if (!redeemed.ok) {
-      await opts.admin.from("shop_orders").delete().eq("id", order.id);
-      return { ok: false, error: redeemed.error };
-    }
-  }
-
-  if (discount) {
-    try {
-      await incrementDiscountUse(opts.admin, discount.id);
-    } catch {
-      /* best-effort */
-    }
-  }
+  const saved = await saveShopCheckout(opts.admin, insertOrder, itemRows, {
+    discountId: discount?.id,
+    giftCardId: giftCardAmount > 0 ? giftCard?.id : null,
+    expectedGiftBalance: giftCard?.balance_xof,
+  });
+  if (!saved.ok) return saved;
+  const order = saved.order;
 
   try {
     const { upsertShopCustomerAfterOrder } = await import("@/lib/shop/customer-profiles");
@@ -435,6 +405,8 @@ export async function createCartOrder(opts: {
   return {
     ok: true,
     orderId: order.id,
+    paid: order.paid === true,
+    replayed: order.replayed === true,
     orderNumber: order.order_number ?? orderNumber,
     amountXof: totalXof,
     discountPercent: discount?.percent_off ?? null,

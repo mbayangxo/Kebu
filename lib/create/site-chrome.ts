@@ -149,22 +149,22 @@ export function applySiteChromeToDefinition(
   chrome: SiteChrome | null | undefined,
 ): WebsiteDefinition {
   if (!chrome?.enabled) return def;
+  type DefinitionSection = WebsiteDefinition["pages"][number]["sections"][number];
   return {
     ...def,
     pages: def.pages.map((page) => ({
       ...page,
       sections: composePageSectionsWithChrome(
-        page.sections.filter((s) => s.id).map((s) => ({
-          id: s.id!,
-          type: s.type,
-          props: s.props as Record<string, unknown>,
-        })),
+        // Body sections pass through whole: visibility, motion, a11y, interaction and
+        // dataBinding live beside props and must survive chrome composition.
+        page.sections.filter((s) => s.id).map((s) => ({ ...s, id: s.id!, props: s.props as Record<string, unknown> })),
         chrome,
-      ).map((s) => ({
-        id: s.id,
-        type: s.type as WebsiteDefinition["pages"][0]["sections"][0]["type"],
-        props: s.props,
-      })),
+      ).map((composed) => {
+        const { section_type: _sectionType, sort_order: _sortOrder, ...section } = composed;
+        void _sectionType;
+        void _sortOrder;
+        return section as DefinitionSection;
+      }),
     })),
   };
 }

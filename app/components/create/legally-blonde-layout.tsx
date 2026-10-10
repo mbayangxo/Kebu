@@ -26,7 +26,6 @@ import {
   cutoutLinkTarget,
   resolveCutoutHref,
 } from "@/lib/create/cutout-links";
-import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
 import { cssFontStack } from "@/lib/create/site-theme-fonts";
 import "./artist-motion.css";
 import "./legally-blonde-tilda.css";
@@ -735,10 +734,6 @@ export function LegallyBlondeHeroLayout({
         } as CSSProperties
       }
     >
-      <SiteThemeFonts
-        fontDisplay={props.displayFont && props.displayFont !== "Steelfish" ? props.displayFont : "Oswald"}
-        fontBody="system-ui"
-      />
       <EditableSocialRail
         links={props.socialLinks ?? []}
         style={socialRailStyleFromProps(props as unknown as Record<string, unknown>)}

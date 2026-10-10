@@ -27,7 +27,6 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState("en");
   const [currency, setCurrencyState] = useState("USD");
   const [country, setCountryState] = useState("");
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const savedLang = localStorage.getItem("alkebulan_lang");
@@ -42,7 +41,6 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     }
     if (savedCurrency) setCurrencyState(savedCurrency);
     if (savedCountry) setCountryState(savedCountry);
-    setReady(true);
   }, []);
 
   function setLang(lang: string) {
@@ -74,8 +72,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     return translate(lang, key);
   }
 
-  if (!ready) return <>{children}</>;
-
+  // Always render the Provider. Its value before the effect above equals the context default
+  // ("en" / "USD" / no country); switching from a Fragment to the Provider after mount changed the
+  // element type and made React rebuild the entire app tree once after hydration.
   return (
     <LocaleContext.Provider value={{ lang, currency, country, setLang, setCurrency, setCountry, t }}>
       {children}

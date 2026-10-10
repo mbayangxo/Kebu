@@ -1,0 +1,13 @@
+# 3I experience engine — local migration handoff
+
+Canonical forward migration: `supabase/migrations/20261009083046_experience_engine.sql`, allocated with Supabase CLI 2.81.3. It requires the existing native operation/history/publishing migration chain, 3H Brand Brain profiles/site binding, 3I Experience DNA (`20261009040802_experience_dna.sql`) and account AI usage (`081_account_ai_usage.sql`). Keep canonical SQL as the only maintained copy. Migration before engine API/application code in any intended environment.
+
+`project_experience_proposals` stores private immutable model proposals and owner-reviewed observations. Owner SELECT is allowed; anonymous reads and browser inserts/updates/deletes are denied. Service role receives only SELECT/INSERT on this table. Its composite project/owner foreign key prevents attaching a proposal to another owner's site. API validation imposes the strict versioned payload contract and matching proposal/transaction identity; the table additionally bounds stored JSON.
+
+`reserve_experience_generation` is service-only and checks project ownership. It locks reservations per owner, counts the existing current-UTC-month usage, rejects repeat IDs/exhaustion and records a reserved attempt before provider work. Failed/canceled attempts use that allowance; observation edits do not. Limit zero preserves the existing unlimited entitlement meaning. Browser UPDATE/DELETE/TRUNCATE of existing usage events are revoked; legacy INSERT is retained. Legacy AI routes do not share the reservation lock, so no account-wide hard concurrent quota is claimed.
+
+`apply_experience_plan` is an authenticated security-invoker wrapper. It locks the owned project, compares the exact saved transaction and all saved direction/profile/native versions, then delegates to existing `apply_node_ops` in the same transaction. Committed journal replay remains valid after later source edits. Forged plans and stale sources fail without native writes. Manual edits and history retain their existing authority.
+
+Nine disposable PostgreSQL/PGlite tests exercise actual migration SQL, owner/foreign/anonymous/service privileges, allowance reservation/replay/exhaustion, immutable proposal permissions, exact apply/replay, all-source changes, Undo/Redo and immutable publishing. This is single-session transaction/RLS evidence; independent-session reservation races are not proved by PGlite. Evidence: `evidence/3i/engine/README.md`.
+
+No hosted migration, advisors, signed-in S8, deployment or defaults were changed. Those remain deferred. Preserve private proposals/direction and usage records when planning any future rollback; destructive rollback is not authorized here.

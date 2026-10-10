@@ -803,3 +803,22 @@ input:focus, select:focus, textarea:focus {
   .shop-topbar-title { font-size: 1.125rem; }
   .shop-panel-card { padding: 18px 16px; }
 }
+
+/* ── Device composition on published pages ──────────────────────────────────
+   Emitted by SiteRenderer from planResponsiveComposition() (lib/create/device-composition.ts).
+   Items are display:contents, so they add no box: sticky headers and layout are
+   unchanged. Breakpoints must match DEVICE_MEDIA_QUERIES / builderDeviceFromWidth(). */
+.kebu-device-item { display: contents; }
+.kebu-device-flow { display: flex; flex-direction: column; }
+.kebu-device-flow > .kebu-device-item > * { order: var(--kd-order-desktop); }
+@media (width <= 640px) {
+  .kebu-device-hide-mobile { display: none !important; }
+  .kebu-device-flow > .kebu-device-item > * { order: var(--kd-order-mobile); }
+}
+@media (640px < width <= 1024px) {
+  .kebu-device-hide-tablet { display: none !important; }
+  .kebu-device-flow > .kebu-device-item > * { order: var(--kd-order-tablet); }
+}
+@media (width > 1024px) {
+  .kebu-device-hide-desktop { display: none !important; }
+}

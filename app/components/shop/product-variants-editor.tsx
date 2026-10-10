@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ProductVariantRow } from "@/lib/shop/product-variants";
 import { KEBU } from "@/lib/kebu-brand";
+import { useCatalogSync } from "@/lib/create/use-catalog-sync";
+import { CatalogSyncNotice } from "@/app/components/create/catalog-sync-notice";
 
 type VariantForm = {
   name: string;
@@ -41,6 +43,7 @@ export function ProductVariantsEditor({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const catalogSync = useCatalogSync(projectId);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,6 +113,7 @@ export function ProductVariantsEditor({
         return;
       }
       setForm(emptyVariantForm());
+      catalogSync.record(data.catalogSync);
       setEditingId(null);
       setNote(editingId ? "Variant updated." : "Variant added.");
       await load();
@@ -121,10 +125,13 @@ export function ProductVariantsEditor({
   async function remove(variantId: string) {
     setBusy(true);
     try {
-      await fetch(`/api/projects/${projectId}/products/${productId}/variants/${variantId}`, {
+      const response = await fetch(`/api/projects/${projectId}/products/${productId}/variants/${variantId}`, {
         method: "DELETE",
         credentials: "include",
       });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { setNote(data.error ?? "Could not delete variant."); return; }
+      catalogSync.record(data.catalogSync);
       await load();
     } finally {
       setBusy(false);
@@ -133,6 +140,7 @@ export function ProductVariantsEditor({
 
   return (
     <div className="mt-4 rounded-xl border p-3 space-y-3" style={{ borderColor: KEBU.border }}>
+      <CatalogSyncNotice status={catalogSync.status} busy={catalogSync.busy} retry={catalogSync.retry} />
       <p className="text-xs font-bold uppercase tracking-wider" style={{ color: KEBU.orange }}>
         Variants — {productName}
       </p>

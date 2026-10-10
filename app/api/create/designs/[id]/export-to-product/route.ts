@@ -140,10 +140,11 @@ export async function POST(req: Request, { params }: Params) {
 
   await recalculateReadinessForProject(supabase, parsed.data.projectId);
   const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
-  await syncCatalogToProductsSections(supabase, parsed.data.projectId);
+  const catalogSync = await syncCatalogToProductsSections(supabase, parsed.data.projectId);
 
   return NextResponse.json({
     ok: true,
+    catalogSync,
     productId,
     productName,
     imageUrl,

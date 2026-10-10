@@ -36,7 +36,6 @@ Kebu serves entrepreneurs, small businesses, and market sellers across Africa wh
 - Shops are served at \`{shopname}.kebu.africa\`
 - Each shop has its own sitemap.xml, robots.txt, and llms.txt
 - JSON-LD structured data: LocalBusiness, Product, ItemList, FAQPage, SearchAction
-- MCP server available at \`https://kebu.africa/api/mcp\` for AI integrations
 
 ## Notes
 

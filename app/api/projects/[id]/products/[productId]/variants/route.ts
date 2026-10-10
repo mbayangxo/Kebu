@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import {
   VARIANT_SELECT,
   productVariantSchema,
@@ -68,6 +69,8 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function POST(req: Request, { params }: Params) {
+  const origin = assertSameOriginMutation(req);
+  if (origin) return origin;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -136,7 +139,7 @@ export async function POST(req: Request, { params }: Params) {
     .eq("id", productId);
 
   const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
-  await syncCatalogToProductsSections(supabase, projectId);
+  const catalogSync = await syncCatalogToProductsSections(supabase, projectId);
 
-  return NextResponse.json({ variant });
+  return NextResponse.json({ variant, catalogSync });
 }

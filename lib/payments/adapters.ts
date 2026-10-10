@@ -37,7 +37,7 @@ export type PaymentAdapterCheckoutInput = {
 };
 
 export type PaymentAdapterCheckoutResult =
-  | { ok: true; checkoutUrl: string; providerPaymentId: string }
+  | { ok: true; checkoutUrl: string; providerPaymentId: string; providerAmount?: { value: string; currency: string }; expiresAt?: string }
   | { ok: false; error: string; configured: boolean };
 
 /** Shared shape every PSP must implement when we wire live capture. */

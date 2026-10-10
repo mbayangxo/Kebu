@@ -1,0 +1,11 @@
+# 3D responsive art direction — design freeze
+
+2026-10-08 UTC. Continue the authorized internal-use track. Native desktop/tablet/phone compositions must render their saved layout, typography and media from initial public HTML, even with JavaScript disabled. Existing inspector device inheritance, atomic operations, locks, history, pending-save/error handling and publication remain the only write path.
+
+Add bounded pixel font size (8–256), line height (0.8–3), letter spacing (−10–30px) and image focal point percentages (0–100 on each axis) to existing controls. They are optional independent device overrides; resetting returns to inherited/default values. Shared semantic heading level, colour, links and alt text remain shared. Do not accept arbitrary CSS.
+
+Public CSS resolves every native visual override: section width/padding/alignment, group direction/gap/alignment/distribution/wrap, text sizing/alignment and image fit/ratio/focal position. Different text or image sources use device-specific leaf bodies with exactly one canonical node identity and CSS display suppression for inactive bodies. Inactive bodies do not participate in layout, accessibility or focus. Leaf duplication is bounded to three device bodies and used only when content/semantic variants differ. Editor previews continue to render just the selected device. Container structure, order, geometry and transforms remain shared through existing resolvers; responsive rules target appearance bodies separately from geometry boxes.
+
+Snapshots needing new styling or device art direction require renderer 6. A CLI-created forward migration extends only native override keys and accepted publisher versions, preserving owner/RLS/service-only grants and compare-and-publish semantics. Exercise only on disposable local SQL. No rollout, default switch or live database changes.
+
+Verify validation/bounds, inherited/reset device independence, atomic save/replay, copy/history/reload and renderer compatibility. Browser tests cover three widths with JavaScript on/off and changing viewport after load, inactive accessibility/focus, unique node identities and editor controls. Run the complete spatial regression/performance matrix and CI; review screenshots. The final 3D development gate covers all spatial slices; signed-in/full environment release verification remains deferred.

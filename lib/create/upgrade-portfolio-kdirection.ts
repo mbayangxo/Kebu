@@ -1,3 +1,4 @@
+import { legacyProjectWriteBlocker } from "@/lib/create/kcd-write-guard";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { kdirectionWixSitePages } from "./kdirection-site-pages";
 import {
@@ -11,6 +12,8 @@ export async function upgradeKdirectionPortfolioProject(
   supabase: SupabaseClient,
   projectId: string,
 ): Promise<{ upgraded: boolean; detail?: string }> {
+  const blocker = await legacyProjectWriteBlocker(supabase, projectId);
+  if (blocker) return { upgraded: false, detail: blocker };
   const { data: pages } = await supabase
     .from("project_pages")
     .select("id, slug, title, sort_order")

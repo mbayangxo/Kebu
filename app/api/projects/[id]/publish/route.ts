@@ -1,3 +1,5 @@
+import { builderOperationsEnabled } from "@/lib/create/kcd-render-flag";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import {
@@ -45,13 +47,16 @@ export async function POST(req: Request, { params }: Params) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, owner_id, title, subdomain, status, business_id")
+    .select("id, owner_id, title, subdomain, status, business_id, document_schema_version")
     .eq("id", id)
     .eq("owner_id", user.id)
     .maybeSingle();
 
   if (!project) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+  if (project.document_schema_version === "kcd-1" && !builderOperationsEnabled(id)) {
+    return NextResponse.json({ error: "Publishing this draft is not available yet. Your saved draft is unchanged." }, { status: 409 });
   }
 
   let body: unknown = {};
@@ -103,8 +108,13 @@ export async function POST(req: Request, { params }: Params) {
 
   if (!published.ok) {
     logCreate("website.publish_failed", { userId: user.id, projectId: id, error: published.error });
-    const status = published.error.includes("already published") ? 409 : 500;
+    const status = published.status ?? (published.error.includes("already published") ? 409 : 500);
     return NextResponse.json({ error: published.error, detail: published.detail }, { status });
+  }
+
+  if (project.document_schema_version === "kcd-1") {
+    revalidatePath(`/sites/${subdomain}`, "layout");
+    if (project.subdomain && project.subdomain !== subdomain) revalidatePath(`/sites/${project.subdomain}`, "layout");
   }
 
   if (project.business_id) {

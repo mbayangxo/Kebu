@@ -105,37 +105,59 @@ export const paypalAdapter: PaymentAdapter = {
     if (!approve) {
       return { ok: false, configured: true, error: "PayPal approve link missing." };
     }
-    return { ok: true, checkoutUrl: approve, providerPaymentId: data.id };
+    return { ok: true, checkoutUrl: approve, providerPaymentId: data.id, providerAmount: {value,currency} };
   },
 };
 
-export async function paypalCaptureOrder(orderId: string): Promise<boolean> {
-  const token = await paypalAccessToken();
-  if (!token) return false;
-  const res = await fetch(`${paypalBase()}/v2/checkout/orders/${orderId}/capture`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
-  if (res.ok) return true;
-
-  // Already captured / completed — treat as success so return URL is idempotent
-  const body = (await res.json().catch(() => ({}))) as {
-    name?: string;
-    details?: { issue?: string }[];
-    status?: string;
+export type ExpectedPayPalPayment = { reference: string; value: string; currency: string };
+type PayPalOrder = { id?: string; status?: string; intent?: string; purchase_units?: {
+  custom_id?: string; reference_id?: string; amount?: {value?:string;currency_code?:string};
+  payments?: { captures?: {id?:string;status?:string;final_capture?:boolean;amount?:{value?:string;currency_code?:string}}[] };
+}[] };
+function minor(value: string | undefined): bigint | null {
+  if (!value || !/^\d+(\.\d{1,2})?$/.test(value)) return null;
+  const [whole,fraction=""] = value.split(".");
+  return BigInt(whole)*BigInt(100)+BigInt(fraction.padEnd(2,"0"));
+}
+function matchesOrder(order: PayPalOrder, id: string, expected: ExpectedPayPalPayment): boolean {
+  const unit=order.purchase_units?.[0];
+  const amount=minor(expected.value);
+  return amount!==null && amount>BigInt(0) && /^[A-Z]{3}$/.test(expected.currency)
+    && order.id===id && order.intent==="CAPTURE" && order.purchase_units?.length===1
+    && unit?.custom_id===expected.reference && unit?.reference_id===expected.reference
+    && unit?.amount?.currency_code===expected.currency && minor(unit?.amount?.value)===amount;
+}
+function fullyCaptured(order: PayPalOrder, id: string, expected: ExpectedPayPalPayment): boolean {
+  const captures=order.purchase_units?.[0]?.payments?.captures;
+  const capture=captures?.[0];
+  return matchesOrder(order,id,expected) && order.status==="COMPLETED" && captures?.length===1
+    && !!capture?.id && capture.status==="COMPLETED" && capture.final_capture===true
+    && capture.amount?.currency_code===expected.currency && minor(capture.amount?.value)===minor(expected.value);
+}
+async function verifyPayPalOrder(orderId: string, expected: ExpectedPayPalPayment, captureApproved: boolean): Promise<boolean> {
+  // Missing legacy FX evidence fails before any request or financial action.
+  if (!expected.reference || minor(expected.value)===null || !/^[A-Z]{3}$/.test(expected.currency)) return false;
+  const token=await paypalAccessToken(); if(!token) return false;
+  const url=`${paypalBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}`;
+  const headers={Authorization:`Bearer ${token}`};
+  const read=async():Promise<PayPalOrder|null>=>{
+    const response=await fetch(url,{headers,signal:AbortSignal.timeout(15_000)});
+    return response.ok ? await response.json() as PayPalOrder : null;
   };
-  const issue = body.details?.[0]?.issue || body.name || "";
-  if (/ORDER_ALREADY_CAPTURETED|ORDER_ALREADY_CAPTURED|CAPTURED/i.test(issue)) {
-    return true;
-  }
-
-  const getRes = await fetch(`${paypalBase()}/v2/checkout/orders/${orderId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!getRes.ok) return false;
-  const order = (await getRes.json()) as { status?: string };
-  return order.status === "COMPLETED";
+  const initial=await read();
+  if (!initial || !matchesOrder(initial,orderId,expected)) return false;
+  if (fullyCaptured(initial,orderId,expected)) return true;
+  if (!captureApproved || initial.status!=="APPROVED") return false;
+  const response=await fetch(`${url}/capture`,{method:"POST",headers:{...headers,"Content-Type":"application/json","PayPal-Request-Id":`capture-${orderId}`.slice(0,108)},signal:AbortSignal.timeout(15_000)});
+  const result=await response.json().catch(()=>null) as PayPalOrder|null;
+  if (response.ok && result && fullyCaptured(result,orderId,expected)) return true;
+  // Includes lost/duplicate capture responses; an error string is never proof of payment.
+  const final=await read();
+  return !!final && fullyCaptured(final,orderId,expected);
+}
+export async function paypalCaptureOrder(orderId: string, expected: ExpectedPayPalPayment): Promise<boolean> {
+  try { return await verifyPayPalOrder(orderId,expected,true); } catch { return false; }
+}
+export async function paypalVerifyCapturedOrder(orderId: string, expected: ExpectedPayPalPayment): Promise<boolean> {
+  try { return await verifyPayPalOrder(orderId,expected,false); } catch { return false; }
 }

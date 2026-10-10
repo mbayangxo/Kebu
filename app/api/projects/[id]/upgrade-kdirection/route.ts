@@ -1,3 +1,4 @@
+import { rejectLegacySectionWrite } from "@/lib/create/kcd-write-guard";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { projectUsesKdirectionLayout } from "@/lib/create/kdirection-local-assets";
@@ -16,7 +17,7 @@ export async function POST(_req: Request, { params }: Params) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, owner_id, description")
+    .select("id, owner_id, description, document_schema_version")
     .eq("id", projectId)
     .eq("owner_id", user.id)
     .maybeSingle();
@@ -25,6 +26,9 @@ export async function POST(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 
+  const blocked = rejectLegacySectionWrite(project);
+  if (blocked) return blocked;
+
   const { data: pages } = await supabase.from("project_pages").select("id").eq("project_id", projectId);
   const pageIds = (pages ?? []).map((p) => p.id);
   let sectionTypes: string[] = [];
@@ -32,6 +36,7 @@ export async function POST(_req: Request, { params }: Params) {
     const { data: sections } = await supabase
       .from("project_sections")
       .select("section_type")
+      .is("parent_id", null) // 3C: 3B readers see page-root sections only
       .in("page_id", pageIds);
     sectionTypes = (sections ?? []).map((s) => s.section_type);
   }

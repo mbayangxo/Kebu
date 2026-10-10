@@ -10,6 +10,7 @@ import {
   type SiteCommerce,
 } from "@/lib/create/site-commerce";
 import { useDataMode } from "@/app/components/create/data-mode-provider";
+import { checkoutRequestId, completeCheckoutRequest } from "@/lib/create/checkout-request";
 import { enqueuePlaceOrder, isBrowserOnline } from "@/lib/create/offline-queue";
 import { measureResponseBytes } from "@/lib/create/kb-budget";
 import { addToShopCart } from "@/lib/create/shop-cart-storage";
@@ -139,7 +140,7 @@ export function PublicShopOrder({
     }
 
     const clientChannel = resolveClientChannel();
-    const payload = {
+    const fields = {
       subdomain,
       productId,
       variantId,
@@ -166,6 +167,15 @@ export function PublicShopOrder({
       return;
     }
 
+    let requestId: string;
+    try { requestId = await checkoutRequestId(`order:${subdomain}:${productId}`, fields); }
+    catch {
+      setError("Could not prepare a safe checkout. Please refresh and try again.");
+      setBusy(false);
+      return;
+    }
+    const payload = { ...fields, requestId };
+
     if (!isBrowserOnline() || mode === "offline" || !online) {
       enqueuePlaceOrder(payload);
       setDone(null);
@@ -183,24 +193,7 @@ export function PublicShopOrder({
           "Content-Type": "application/json",
           "X-Kebu-Data-Mode": mode,
         },
-          body: JSON.stringify({
-          productId,
-          variantId: variantId ?? undefined,
-          customerName: name,
-          customerPhone: phone,
-          customerNote: note,
-          customerEmail: email.trim() || undefined,
-          quantity: qty,
-          paymentPreference: pay,
-          clientChannel,
-          buyerCountry,
-          discountCode: discountCode.trim() || undefined,
-          isGift,
-          recipientName: isGift ? recipientName : undefined,
-          recipientPhone: isGift ? recipientPhone : undefined,
-          recipientEmail: isGift ? recipientEmail.trim() || undefined : undefined,
-          giftMessage: isGift ? giftMessage : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       const bytes = await measureResponseBytes(res);
       reportKb("place_order", bytes);
@@ -209,11 +202,13 @@ export function PublicShopOrder({
         setError(typeof data.error === "string" ? data.error : "Could not place order.");
         return;
       }
+      if (typeof data.orderId !== "string") throw new Error("Missing checkout receipt");
       const giftExtra =
         typeof data.giftPath === "string"
           ? ` Share with recipient: ${typeof window !== "undefined" ? window.location.origin : ""}${data.giftPath}`
           : "";
       setDone((typeof data.message === "string" ? data.message : "Order saved.") + giftExtra);
+      completeCheckoutRequest(`order:${subdomain}:${productId}`);
       if (typeof data.paymentUrl === "string" && data.paymentUrl.startsWith("http")) {
         window.location.href = data.paymentUrl;
         return;
@@ -226,7 +221,7 @@ export function PublicShopOrder({
     } catch {
       enqueuePlaceOrder(payload);
       setSyncingNote(
-        "Network failed — order queued locally (not saved on server yet). Sync when you reconnect.",
+        "Confirmation was lost — this checkout is queued for safe retry. Sync when you reconnect to check whether it was saved.",
       );
     } finally {
       setBusy(false);

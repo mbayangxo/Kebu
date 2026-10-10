@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { beginShopProviderCheckout, finishShopProviderCheckout } from "@/lib/shop/checkout-persistence";
 import { getShopPaymentAdapter } from "@/lib/payments/registry";
 import { startShopOrderJokoCheckout } from "@/lib/shop/joko-order";
 import {
-  railFromPaymentPreference,
   railFromProvider,
   recordPaymentLedgerEvent,
 } from "@/lib/shop/payment-ledger";
@@ -18,28 +18,6 @@ function appReturnUrls(appUrl: string, orderId: string, psp: string) {
     returnUrl: `${base}/sites/order-thanks?${q}`,
     cancelUrl: `${base}/sites/order-cancel?${q}`,
   };
-}
-
-/** Persist provider columns; tolerate DBs that have not applied migration 051 yet. */
-async function persistProviderFields(
-  admin: SupabaseClient,
-  orderId: string,
-  fields: Record<string, unknown>,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { error } = await admin.from("shop_orders").update(fields).eq("id", orderId);
-  if (!error) return { ok: true };
-
-  if (/payment_provider|provider_reference|provider_payment_id/i.test(error.message)) {
-    const legacy: Record<string, unknown> = { ...fields };
-    delete legacy.payment_provider;
-    delete legacy.provider_reference;
-    delete legacy.provider_payment_id;
-    if (Object.keys(legacy).length === 0) return { ok: true };
-    const retry = await admin.from("shop_orders").update(legacy).eq("id", orderId);
-    if (retry.error) return { ok: false, error: retry.error.message };
-    return { ok: true };
-  }
-  return { ok: false, error: error.message };
 }
 
 /**
@@ -93,22 +71,6 @@ export async function startShopOrderProviderCheckout(opts: {
         fallbackInstructions: !joko.configured,
       };
     }
-    const persisted = await persistProviderFields(opts.admin, opts.orderId, {
-      payment_provider: "joko",
-      provider_reference: joko.reference,
-      provider_payment_id: joko.paymentId ?? null,
-      updated_at: new Date().toISOString(),
-    });
-    if (!persisted.ok) {
-      // Checkout URL still valid; joko_reference was written by startShopOrderJokoCheckout
-      console.warn(
-        JSON.stringify({
-          event: "shop.provider_fields_persist_failed",
-          orderId: opts.orderId,
-          error: persisted.error,
-        }),
-      );
-    }
     await recordPaymentLedgerEvent(opts.admin, {
       projectId: opts.projectId,
       orderId: opts.orderId,
@@ -155,6 +117,9 @@ export async function startShopOrderProviderCheckout(opts: {
         : opts.paymentPreference;
 
   const urls = appReturnUrls(opts.appUrl, opts.orderId, provider);
+  if (!await beginShopProviderCheckout(opts.admin,{...opts,provider,reference})) {
+    return {ok:false,configured:true,error:"Checkout already started or needs reconciliation. Contact the shop."};
+  }
   const result = await adapter.createCheckout({
     reference,
     amountMinor: opts.amountXof,
@@ -182,21 +147,12 @@ export async function startShopOrderProviderCheckout(opts: {
     };
   }
 
-  const persisted = await persistProviderFields(opts.admin, opts.orderId, {
-    payment_status: "awaiting_payment",
-    payment_provider: provider,
-    provider_reference: reference,
-    provider_payment_id: result.providerPaymentId,
-    amount_xof: opts.amountXof,
-    updated_at: new Date().toISOString(),
+  const finished = await finishShopProviderCheckout(opts.admin,{
+    ...opts,provider,reference,paymentId:result.providerPaymentId,checkoutUrl:result.checkoutUrl,
+    amount:result.providerAmount,expiresAt:result.expiresAt,
   });
-
-  if (!persisted.ok) {
-    return {
-      ok: false,
-      configured: true,
-      error: `Checkout created but order could not be updated (${persisted.error}). Apply migration 051 / APPLY_SHOP_ORDERS.sql.`,
-    };
+  if (!finished) {
+    return {ok:false,configured:true,error:"Checkout started but needs reconciliation. Contact the shop."};
   }
 
   await recordPaymentLedgerEvent(opts.admin, {
@@ -226,64 +182,6 @@ export async function markShopOrderPaidByProviderRef(
     provider?: string | null;
   },
 ): Promise<{ ok: true; orderId: string; projectId: string } | { ok: false; error: string }> {
-  let q = admin
-    .from("shop_orders")
-    .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-    .eq("provider_reference", opts.reference);
-  if (opts.provider) q = q.eq("payment_provider", opts.provider);
-  let { data: order } = await q.maybeSingle();
-
-  if (!order) {
-    const byJoko = await admin
-      .from("shop_orders")
-      .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-      .eq("joko_reference", opts.reference)
-      .maybeSingle();
-    order = byJoko.data;
-  }
-
-  if (!order && opts.paymentId) {
-    const byProviderId = await admin
-      .from("shop_orders")
-      .select("id, project_id, payment_status, provider_payment_id, amount_xof, payment_provider, payment_preference")
-      .eq("provider_payment_id", opts.paymentId)
-      .maybeSingle();
-    order = byProviderId.data;
-  }
-
-  if (!order) return { ok: false, error: "Order not found." };
-  if (order.payment_status === "paid") {
-    return { ok: true, orderId: order.id, projectId: order.project_id };
-  }
-
-  const patch: Record<string, unknown> = {
-    payment_status: "paid",
-    status: "contacted",
-    updated_at: new Date().toISOString(),
-  };
-  if (opts.paymentId) {
-    patch.provider_payment_id = opts.paymentId;
-  }
-
-  const { error } = await admin.from("shop_orders").update(patch).eq("id", order.id);
-
-  if (error) return { ok: false, error: error.message };
-
-  const rail = railFromProvider(
-    opts.provider || (order as { payment_provider?: string }).payment_provider,
-  );
-  await recordPaymentLedgerEvent(admin, {
-    projectId: order.project_id,
-    orderId: order.id,
-    rail: rail === "unknown"
-      ? railFromPaymentPreference((order as { payment_preference?: string }).payment_preference)
-      : rail,
-    eventType: "paid",
-    amountXof: (order as { amount_xof?: number | null }).amount_xof ?? null,
-    provider: opts.provider ?? rail,
-    providerReference: opts.reference,
-    meta: { paymentId: opts.paymentId ?? null },
-  });
-
-  return { ok: true, orderId: order.id, projectId: order.project_id };
+  return markVerifiedShopPayment(admin, opts);
 }
+import { markVerifiedShopPayment } from "@/lib/shop/checkout-persistence";

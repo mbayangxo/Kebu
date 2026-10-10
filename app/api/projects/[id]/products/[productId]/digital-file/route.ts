@@ -104,14 +104,14 @@ export async function POST(req: Request, { params }: Params) {
 
   // Sanitise filename
   const rawName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 100);
-  const storagePath = `${projectId}/${productId}/${rawName}`;
+  const storagePath = `${projectId}/${productId}/${crypto.randomUUID()}-${rawName}`;
 
   const arrayBuffer = await file.arrayBuffer();
   const { error: uploadError } = await admin.storage
     .from("digital-files")
     .upload(storagePath, arrayBuffer, {
       contentType: mime,
-      upsert: true,
+      upsert: false,
     });
 
   if (uploadError) {
@@ -167,18 +167,12 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   if (!product) return NextResponse.json({ error: "Product not found." }, { status: 404 });
 
-  // Remove from storage (best-effort)
-  if (product.digital_file_path) {
-    const admin = createServiceClient();
-    if (admin) {
-      await admin.storage.from("digital-files").remove([product.digital_file_path as string]);
-    }
-  }
-
-  await supabase
+  // Retain purchased snapshots. Removing the catalog file must not break orders.
+  const { error } = await supabase
     .from("project_products")
     .update({ is_digital: false, digital_file_path: null, digital_file_name: null })
     .eq("id", productId);
+  if (error) return NextResponse.json({ error: "Could not remove the catalog file." }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }

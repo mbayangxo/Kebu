@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * Internal Kebu Record ops overview — accounts, help desk, cron health, platform totals.
  */
 export async function GET(req: Request) {
-  if (!assertAdminCookie(req)) {
+  if (!(await assertAdminCookie(req))) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -162,7 +162,7 @@ export async function GET(req: Request) {
 
 /** PATCH help request status (open → in_progress → helped / closed). */
 export async function PATCH(req: Request) {
-  if (!assertAdminCookie(req)) {
+  if (!(await assertAdminCookie(req))) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
   const csrf = assertSameOriginMutation(req);

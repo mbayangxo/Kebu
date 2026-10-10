@@ -1,8 +1,8 @@
 import { createJokoCheckout } from "@/lib/joko/payments";
 import { jokoCheckoutAvailable } from "@/lib/create/site-commerce";
-import { recordPaymentLedgerEvent } from "@/lib/shop/payment-ledger";
 import { xofToCauris } from "@/lib/shop/cauris";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { beginShopProviderCheckout, finishShopProviderCheckout } from "@/lib/shop/checkout-persistence";
 
 export { jokoCheckoutAvailable };
 
@@ -53,6 +53,9 @@ export async function startShopOrderJokoCheckout(opts: {
   const reference = `shop_order_${opts.orderId.replace(/-/g, "").slice(0, 24)}`;
   const cauris = xofToCauris(opts.amountXof);
   const base = opts.appUrl.replace(/\/$/, "");
+  if (!await beginShopProviderCheckout(opts.admin,{...opts,provider:"joko",reference})) {
+    return {ok:false,configured:true,error:"Checkout already started or needs reconciliation. Contact the shop."};
+  }
 
   // Partner API prefers amount_xof + customer.phone (USD cents only as legacy bridge).
   const checkout = await createJokoCheckout({
@@ -79,19 +82,9 @@ export async function startShopOrderJokoCheckout(opts: {
   }
 
   const paymentId = checkout.paymentId ?? null;
-  const { error } = await opts.admin
-    .from("shop_orders")
-    .update({
-      payment_status: "awaiting_payment",
-      joko_reference: reference,
-      joko_payment_id: paymentId,
-      amount_xof: opts.amountXof,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", opts.orderId);
-
-  if (error) {
-    return { ok: false, configured: true, error: `JOKO session started but order update failed: ${error.message}` };
+  const finished=await finishShopProviderCheckout(opts.admin,{...opts,provider:"joko",reference,paymentId,checkoutUrl:checkout.paymentUrl});
+  if (!finished) {
+    return { ok: false, configured: true, error: "JOKO session started but needs reconciliation. Contact the shop." };
   }
 
   return { ok: true, paymentUrl: checkout.paymentUrl, reference, paymentId };
@@ -102,49 +95,6 @@ export async function markShopOrderPaid(
   reference: string,
   paymentId: string | null,
 ): Promise<{ ok: true; orderId: string; projectId: string } | { ok: false; error: string }> {
-  const { data: order } = await admin
-    .from("shop_orders")
-    .select("id, project_id, payment_status")
-    .eq("joko_reference", reference)
-    .maybeSingle();
-
-  if (!order) return { ok: false, error: "Order not found." };
-  if (order.payment_status === "paid") {
-    return { ok: true, orderId: order.id, projectId: order.project_id };
-  }
-
-  const patch: Record<string, unknown> = {
-    payment_status: "paid",
-    status: "contacted",
-    updated_at: new Date().toISOString(),
-  };
-  if (paymentId) {
-    patch.joko_payment_id = paymentId;
-    patch.provider_payment_id = paymentId;
-  }
-  patch.payment_provider = "joko";
-
-  let { error } = await admin.from("shop_orders").update(patch).eq("id", order.id);
-  if (error && /payment_provider|provider_payment_id/i.test(error.message)) {
-    const legacy: Record<string, unknown> = {
-      payment_status: "paid",
-      status: "contacted",
-      updated_at: new Date().toISOString(),
-    };
-    if (paymentId) legacy.joko_payment_id = paymentId;
-    ({ error } = await admin.from("shop_orders").update(legacy).eq("id", order.id));
-  }
-
-  if (error) return { ok: false, error: error.message };
-  await recordPaymentLedgerEvent(admin, {
-    projectId: order.project_id,
-    orderId: order.id,
-    rail: "joko",
-    eventType: "paid",
-    provider: "joko",
-    providerReference: reference,
-    currency: "CAURIS",
-    meta: { paymentId },
-  });
-  return { ok: true, orderId: order.id, projectId: order.project_id };
+  return markVerifiedShopPayment(admin, { reference, paymentId, provider: "joko" });
 }
+import { markVerifiedShopPayment } from "@/lib/shop/checkout-persistence";

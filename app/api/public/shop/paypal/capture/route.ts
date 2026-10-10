@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const { data: order } = await admin
     .from("shop_orders")
     .select(
-      "id, payment_status, payment_provider, payment_preference, provider_reference, provider_payment_id, joko_reference",
+      "id, status, payment_status, payment_provider, payment_preference, provider_reference, provider_payment_id, joko_reference, provider_amount_value, provider_amount_currency",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -45,29 +45,34 @@ export async function POST(req: NextRequest) {
   if (order.payment_status === "paid") {
     return NextResponse.json({ ok: true, alreadyPaid: true, orderId: order.id });
   }
+  if (order.status === "cancelled" || order.payment_status === "refunded") {
+    return NextResponse.json({ error: "Order cannot accept payment." }, { status: 409 });
+  }
 
-  const looksPaypal =
-    order.payment_provider === "paypal" || order.payment_preference === "paypal";
+  const looksPaypal = order.payment_provider === "paypal";
 
   if (!looksPaypal) {
     return NextResponse.json({ error: "Order is not a PayPal checkout." }, { status: 400 });
   }
 
-  const paypalOrderId = (body.paypalOrderId || order.provider_payment_id || "").trim();
+  const paypalOrderId = (order.provider_payment_id || "").trim();
   if (!paypalOrderId) {
     return NextResponse.json({ error: "Missing PayPal order id." }, { status: 400 });
   }
 
   // Guard: token from browser must match stored provider_payment_id when we have one
   if (
-    order.provider_payment_id &&
     body.paypalOrderId &&
-    order.provider_payment_id !== body.paypalOrderId.trim()
+    paypalOrderId !== body.paypalOrderId.trim()
   ) {
     return NextResponse.json({ error: "PayPal order mismatch." }, { status: 403 });
   }
 
-  const captured = await paypalCaptureOrder(paypalOrderId);
+  const captured = await paypalCaptureOrder(paypalOrderId, {
+    reference: order.provider_reference || "",
+    value: order.provider_amount_value || "",
+    currency: order.provider_amount_currency || "",
+  });
   if (!captured) {
     return NextResponse.json({ error: "PayPal capture failed." }, { status: 402 });
   }
@@ -80,28 +85,14 @@ export async function POST(req: NextRequest) {
       paymentId: paypalOrderId,
       provider: "paypal",
     });
-    if (!paid.ok) {
-      // Last resort: update by id after verified capture
-      const { error } = await admin
-        .from("shop_orders")
-        .update({
-          payment_status: "paid",
-          payment_provider: "paypal",
-          provider_payment_id: paypalOrderId,
-          status: "contacted",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", order.id);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ ok: true, orderId: order.id, paid: true });
-    }
+    if (!paid.ok) return NextResponse.json({ error: paid.error }, { status: 409 });
     return NextResponse.json({ ok: true, orderId: paid.orderId, paid: true });
   }
 
   const paid = await markShopOrderPaidByProviderRef(admin, {
     reference,
     paymentId: paypalOrderId,
-    provider: order.payment_provider === "paypal" ? "paypal" : undefined,
+    provider: "paypal",
   });
   if (!paid.ok) {
     return NextResponse.json({ error: paid.error }, { status: 500 });

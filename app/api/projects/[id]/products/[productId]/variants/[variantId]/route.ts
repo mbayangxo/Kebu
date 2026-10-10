@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { VARIANT_SELECT, productVariantSchema } from "@/lib/shop/product-variants";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string; productId: string; variantId: string }> };
 
 export async function PATCH(req: Request, { params }: Params) {
+  const origin = assertSameOriginMutation(req);
+  if (origin) return origin;
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -63,12 +66,16 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
-  await syncCatalogToProductsSections(supabase, projectId);
+  const catalogSync = await syncCatalogToProductsSections(supabase, projectId);
 
-  return NextResponse.json({ variant });
+  return NextResponse.json({ variant, catalogSync });
 }
 
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(req: Request, { params }: Params) {
+  const origin = assertSameOriginMutation(req);
+  if (origin) return origin;
+  const limited = builderRateLimit(req);
+  if (limited) return limited;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;
@@ -82,12 +89,13 @@ export async function DELETE(_req: Request, { params }: Params) {
     .maybeSingle();
   if (!project) return NextResponse.json({ error: "Project not found." }, { status: 404 });
 
-  await supabase
+  const removed = await supabase
     .from("project_product_variants")
     .delete()
     .eq("id", variantId)
     .eq("product_id", productId)
     .eq("project_id", projectId);
+  if (removed.error) return NextResponse.json({ error: "Could not delete variant." }, { status: 500 });
 
   const { count } = await supabase
     .from("project_product_variants")
@@ -102,7 +110,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   }
 
   const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
-  await syncCatalogToProductsSections(supabase, projectId);
+  const catalogSync = await syncCatalogToProductsSections(supabase, projectId);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, catalogSync });
 }

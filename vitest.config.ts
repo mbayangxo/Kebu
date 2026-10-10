@@ -4,6 +4,7 @@ import path from "node:path";
 export default defineConfig({
   test: {
     environment: "node",
+    setupFiles: ["./tests/load-qa-env.ts"],
     include: [
       "tests/**/*.test.ts",
       "tests/**/*.integration.test.ts",
@@ -15,6 +16,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // next/font loaders only run inside Next's compiler; tests use a same-shape stand-in.
+      "next/font/google": path.resolve(__dirname, "tests/shims/next-font-google.ts"),
     },
   },
 });

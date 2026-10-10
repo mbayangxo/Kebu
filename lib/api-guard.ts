@@ -76,11 +76,11 @@ export function authRateLimit(req: Request | NextRequest): Response | null {
 
 // Returns a 401 Response if the Authorization header doesn't match CRON_SECRET.
 // Pass through if CRON_SECRET is not set (local dev convenience).
-export function requireCronSecret(req: NextRequest): Response | null {
+export function requireCronSecret(req: NextRequest, options: { required?: boolean } = {}): Response | null {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return null;
+  if (!secret && !options.required) return null;
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+  if (!secret || auth !== `Bearer ${secret}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },

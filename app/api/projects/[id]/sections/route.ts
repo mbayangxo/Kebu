@@ -1,6 +1,7 @@
+import { rejectLegacySectionWrite } from "@/lib/create/kcd-write-guard";
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
-import { sectionTypeSchema, sectionPropsSchemas } from "@/lib/create/website-schema";
+import { sectionTypeSchema } from "@/lib/create/website-schema";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
 import { builderRateLimit } from "@/lib/api-guard";
 import {
@@ -8,13 +9,14 @@ import {
   dbForProjectAccess,
 } from "@/lib/create/project-access";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
-import { containsUnsafeSiteContent } from "@/lib/create/site-seo";
 import { applyInsertBump, nextSortOrderAfter } from "@/lib/create/section-insert";
 import {
   parseSiteChrome,
   patchSiteChromePart,
 } from "@/lib/create/site-chrome";
 import { z } from "zod";
+import { sectionPropsForSave } from "@/lib/create/section-props-boundary";
+
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +55,7 @@ async function requireProjectDb(
     email: user.email,
     projectId,
     action,
+    select: "id, owner_id, title, subdomain, business_id, document_schema_version",
   });
   if (!access) return null;
   return { access, db: dbForProjectAccess(supabase, access.via) };
@@ -73,6 +76,8 @@ export async function POST(req: Request, { params }: Params) {
 
   const gate = await requireProjectDb(supabase, user, projectId, "sections.add");
   if (!gate) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  const blocked = rejectLegacySectionWrite(gate.access.project);
+  if (blocked) return blocked;
   const { db } = gate;
 
   let body: unknown = {};
@@ -91,11 +96,11 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   const type = parsed.data.type;
-  const schema = sectionPropsSchemas[type];
-  const merged = { ...defaultSectionProps(type), ...(parsed.data.props ?? {}) };
-  const propsParsed = schema.safeParse(merged);
-  if (!propsParsed.success) {
-    return NextResponse.json({ error: "Invalid section props.", issues: propsParsed.error.flatten() }, { status: 400 });
+  // Same save boundary as PATCH and Undo/Redo: a duplicated section keeps its validated extension
+  // keys (_visibility, _motion, …) and unsafe content is rejected.
+  const checkedProps = sectionPropsForSave(type, { ...defaultSectionProps(type), ...(parsed.data.props ?? {}) });
+  if (!checkedProps.ok) {
+    return NextResponse.json({ error: checkedProps.error, issues: checkedProps.issues }, { status: 400 });
   }
 
   const pageSlug = parsed.data.pageSlug ?? "home";
@@ -113,12 +118,15 @@ export async function POST(req: Request, { params }: Params) {
   const { data: existing } = await db
     .from("project_sections")
     .select("id, sort_order")
+    .is("parent_id", null) // 3C: 3B readers see page-root sections only
     .eq("page_id", page.id)
     .order("sort_order", { ascending: true });
 
   const siblings = (existing ?? []).map((r) => ({ id: r.id, sort_order: r.sort_order ?? 0 }));
 
   let nextOrder: number;
+  /** Siblings moved down by an insert — returned so the Builder applies the same positions. */
+  const shifted: { id: string; sort_order: number }[] = [];
   if (parsed.data.insertAfterSectionId === undefined) {
     nextOrder = siblings.length ? Math.max(...siblings.map((s) => s.sort_order)) + 1 : 0;
   } else {
@@ -129,6 +137,7 @@ export async function POST(req: Request, { params }: Params) {
         const original = siblings.find((s) => s.id === row.id);
         if (original && original.sort_order !== row.sort_order) {
           await db.from("project_sections").update({ sort_order: row.sort_order }).eq("id", row.id);
+          shifted.push({ id: row.id, sort_order: row.sort_order });
         }
       }
     }
@@ -141,7 +150,7 @@ export async function POST(req: Request, { params }: Params) {
       page_id: page.id,
       section_type: type,
       sort_order: nextOrder,
-      props: propsParsed.data,
+      props: checkedProps.props,
     })
     .select("id, page_id, section_type, sort_order, props, created_at, updated_at")
     .single();
@@ -162,12 +171,12 @@ export async function POST(req: Request, { params }: Params) {
     chrome = patchSiteChromePart(
       { ...chrome, enabled: true },
       type === "navigation" ? "header" : "footer",
-      propsParsed.data as Record<string, unknown>,
+      checkedProps.props,
     );
     await db.from("projects").update({ site_chrome: chrome }).eq("id", projectId);
   }
 
-  return NextResponse.json({ section }, { status: 201 });
+  return NextResponse.json({ section, shifted }, { status: 201 });
 }
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -188,6 +197,8 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const gate = await requireProjectDb(supabase, user, projectId, "sections.patch");
   if (!gate) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  const blocked = rejectLegacySectionWrite(gate.access.project);
+  if (blocked) return blocked;
   const { db } = gate;
 
   let body: unknown;
@@ -207,6 +218,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const { data: sectionRow } = await db
     .from("project_sections")
     .select("id, page_id, section_type, props, sort_order")
+    .is("parent_id", null) // 3C: 3B readers see page-root sections only
     .eq("id", sectionId)
     .maybeSingle();
 
@@ -228,22 +240,17 @@ export async function PATCH(req: Request, { params }: Params) {
   }
   if (parsed.data.props) {
     const type = sectionTypeSchema.parse(sectionRow.section_type);
-    const schema = sectionPropsSchemas[type];
-    const nextProps = {
+    // Patches merge into stored props, so an absent key can never clear one; the shared save
+    // boundary then validates the complete result (and treats `deviceOverrides: null` as
+    // "Reset to Auto", including a null stored earlier by an Undo/Redo snapshot).
+    const checked = sectionPropsForSave(type, {
       ...(typeof sectionRow.props === "object" && sectionRow.props ? sectionRow.props : {}),
       ...parsed.data.props,
-    };
-    const propsParsed = schema.safeParse(nextProps);
-    if (!propsParsed.success) {
-      return NextResponse.json({ error: "Invalid props.", issues: propsParsed.error.flatten() }, { status: 400 });
+    });
+    if (!checked.ok) {
+      return NextResponse.json({ error: checked.error, issues: checked.issues }, { status: 400 });
     }
-    if (containsUnsafeSiteContent(JSON.stringify(propsParsed.data))) {
-      return NextResponse.json(
-        { error: "Content blocked for security (scripts or unsafe embeds are not allowed)." },
-        { status: 400 },
-      );
-    }
-    update.props = propsParsed.data;
+    update.props = checked.props;
   }
 
   if (Object.keys(update).length === 0) {
@@ -294,6 +301,8 @@ export async function DELETE(req: Request, { params }: Params) {
 
   const gate = await requireProjectDb(supabase, user, projectId, "sections.delete");
   if (!gate) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  const blocked = rejectLegacySectionWrite(gate.access.project);
+  if (blocked) return blocked;
   const { db } = gate;
 
   let body: unknown;
@@ -311,6 +320,7 @@ export async function DELETE(req: Request, { params }: Params) {
   const { data: sectionRow } = await db
     .from("project_sections")
     .select("id, page_id")
+    .is("parent_id", null) // 3C: 3B readers see page-root sections only
     .eq("id", parsed.data.sectionId)
     .maybeSingle();
   if (!sectionRow) return NextResponse.json({ error: "Section not found." }, { status: 404 });

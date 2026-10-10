@@ -144,3 +144,23 @@ after shop orders. Records intent / checkout_started / paid for Joko + Wave + Pa
 future Joko scoring). Currency column defaults to XOF; **Joko pay events use CAURIS** (Joko’s currency — catalog XOF converted at provisional rates).
 
 **If `APPLY_ALL_PENDING_ONCE` fails with policy already exists on deployments:** fixed — re-pull and re-run; it now `DROP POLICY IF EXISTS` for both live and suspended policy names.
+
+---
+
+**Builder Phase 3B — per-device page composition (20260924040000):** paste
+[`20260924040000_page_device_layouts.sql`](./20260924040000_page_device_layouts.sql)
+before deploying Phase 3B code. Adds nullable `project_pages.device_layouts` (JSONB) — Tablet/Phone section
+order and hidden sections; `NULL` = every device uses the Desktop order. Idempotent (`ADD COLUMN IF NOT EXISTS`).
+Requires `20260924010000_builder_atomic_rpcs.sql` (in `supabase/migrations/`). (`20260924030000_projects_aesthetic_id.sql` is not a dependency and is not part of the Builder release.)
+
+**Builder RPCs — no anonymous EXECUTE (20260925012420) — security, apply with or before Phase 3B:** paste
+[`20260925012420_revoke_anon_builder_rpcs.sql`](./20260925012420_revoke_anon_builder_rpcs.sql)
+after `20260924010000_builder_atomic_rpcs.sql`. Supabase grants EXECUTE on new public functions to `anon`
+explicitly; the RPC migration only revoked from `PUBLIC`. Idempotent. Verify afterwards (must be `false`, `false`):
+
+```sql
+select has_function_privilege('anon', 'public.batch_update_section_props(uuid, jsonb)', 'EXECUTE'),
+       has_function_privilege('anon', 'public.reorder_sections(uuid, uuid[])', 'EXECUTE');
+```
+
+Reconciliation record for these entries: [`docs/database/MIGRATION-RECONCILIATION-2026-09-26.md`](../database/MIGRATION-RECONCILIATION-2026-09-26.md).

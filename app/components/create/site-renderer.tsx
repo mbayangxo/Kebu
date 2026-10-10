@@ -1,9 +1,15 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { buildIndex, isNodeId, type KcdDocument, type NodeId } from "@/lib/creative-core";
+import { canonicalSiteChrome, pageRenderRoots } from "@/lib/create/kcd-adapter/chrome";
+import { KcdSpatialControls } from "./kcd/spatial-controls";
+import { KcdPrimitiveSubtree } from "./kcd/primitive-subtree";
+import { KcdNodeErrorBoundary } from "./kcd/node-error-boundary";
 import { AnimatePresence, motion as fx } from "motion/react";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
+import type { PageDeviceLayouts, SectionMotion } from "@/lib/create/website-extensions";
 import { VideoGrid } from "@/app/components/video-embed";
 import { NewsletterSignup } from "@/app/components/create/newsletter-signup";
 import { SiteEmailPopup, type EmailPopupProps } from "@/app/components/create/site-email-popup";
@@ -13,6 +19,19 @@ import { PublicShopCart } from "@/app/components/create/public-shop-cart";
 import { SiteFormSection } from "@/app/components/create/site-form-section";
 import { SiteBlogSection } from "@/app/components/create/site-blog-section";
 import { readDeviceOverride, applyDeviceAwarePatch, mergeDeviceAwareSectionProps } from "@/lib/create/device-overrides";
+import { heroContentPaddingClass, heroMinHeightCss, normalizeLegacyHeroProps, resolveHeroHeight } from "@/lib/create/hero-section";
+import { normalizeLegacyEditorialHeroProps } from "@/lib/create/editorial-hero-section";
+import type { BuilderDevice } from "@/lib/create/builder-device";
+import { useViewportDevice } from "@/lib/create/use-viewport-device";
+import {
+  composeSectionsForDevice,
+  orderPlanForDevice,
+  planResponsiveComposition,
+  responsiveItemClassName,
+  responsiveItemStyle,
+  type ComposableSection,
+  type ResponsiveRenderItem,
+} from "@/lib/create/device-composition";
 import {
   isDirectAudioUrl,
   isDirectVideoUrl,
@@ -34,7 +53,8 @@ import {
   LegallyBlondeHeroLayout,
   type LegallyBlondeHeroProps,
 } from "@/app/components/create/legally-blonde-layout";
-import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
+import { canonicalJson } from "@/lib/create/device-overrides";
+import { THEME_FONT_VARIABLE_CLASSES } from "@/app/components/create/theme-font-faces";
 import { cssFontStack } from "@/lib/create/site-theme-fonts";
 import {
   KdirectionHomeLayout,
@@ -119,6 +139,7 @@ export type SiteRendererEditor = {
   /** Force desktop/tablet/phone layout while editing in the builder. */
   editDevice?: import("@/lib/create/builder-device").BuilderDevice;
   onSelectSection?: (sectionId: string) => void;
+  onSpatialChange?: (id: string, box: import("@/lib/creative-core").SpatialBox) => Promise<unknown>;
   onPatchSection?: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock?: (sectionId: string, blockId: string, x: number, y: number) => void;
   /** Switch the builder preview to another site page (keeps you in the editor). */
@@ -137,6 +158,49 @@ const SECTION_PAD_MAP: Record<string, string> = {
   open: "10rem",
 };
 
+/** Stable event dispatch lets unchanged sections retain their React tree without retaining stale editor closures. */
+function useStableRendererEditor(editor: SiteRendererEditor | undefined): SiteRendererEditor | undefined {
+  const latest = useRef(editor);
+  useLayoutEffect(() => { latest.current = editor; }, [editor]);
+  const callbacks = useMemo(() => ({
+    onSpatialChange: (id: string, box: import("@/lib/creative-core").SpatialBox) => Promise.resolve(latest.current?.onSpatialChange?.(id, box)),
+    onSelectSection: (id: string) => latest.current?.onSelectSection?.(id),
+    onPatchSection: (id: string, patch: Record<string, unknown>) => latest.current?.onPatchSection?.(id, patch),
+    onMoveFreeTextBlock: (id: string, blockId: string, x: number, y: number) => latest.current?.onMoveFreeTextBlock?.(id, blockId, x, y),
+    onNavigatePage: (slug: string) => latest.current?.onNavigatePage?.(slug),
+    onDuplicateSection: (id: string) => latest.current?.onDuplicateSection?.(id),
+    onDeleteSection: (id: string) => latest.current?.onDeleteSection?.(id),
+    onMoveSection: (id: string, direction: "up" | "down") => latest.current?.onMoveSection?.(id, direction),
+    onAddSectionAfter: (type: string, id: string | null) => latest.current?.onAddSectionAfter?.(type, id),
+  }), []);
+  const present = Boolean(editor);
+  const selectedSectionId = editor?.selectedSectionId;
+  const inlineEdit = editor?.inlineEdit;
+  const editDevice = editor?.editDevice;
+  const spatial = Boolean(editor?.onSpatialChange);
+  const select = Boolean(editor?.onSelectSection), patch = Boolean(editor?.onPatchSection);
+  const freeText = Boolean(editor?.onMoveFreeTextBlock), navigate = Boolean(editor?.onNavigatePage);
+  const duplicate = Boolean(editor?.onDuplicateSection), remove = Boolean(editor?.onDeleteSection);
+  const move = Boolean(editor?.onMoveSection), add = Boolean(editor?.onAddSectionAfter);
+  return useMemo(() => present ? {
+    selectedSectionId, inlineEdit, editDevice,
+    onSpatialChange: spatial ? callbacks.onSpatialChange : undefined,
+    onSelectSection: select ? callbacks.onSelectSection : undefined,
+    onPatchSection: patch ? callbacks.onPatchSection : undefined,
+    onMoveFreeTextBlock: freeText ? callbacks.onMoveFreeTextBlock : undefined,
+    onNavigatePage: navigate ? callbacks.onNavigatePage : undefined,
+    onDuplicateSection: duplicate ? callbacks.onDuplicateSection : undefined,
+    onDeleteSection: remove ? callbacks.onDeleteSection : undefined,
+    onMoveSection: move ? callbacks.onMoveSection : undefined,
+    onAddSectionAfter: add ? callbacks.onAddSectionAfter : undefined,
+  } : undefined, [present, selectedSectionId, inlineEdit, editDevice, spatial, select, patch, freeText, navigate, duplicate, remove, move, add, callbacks]);
+}
+
+/** Published pages whose section order differs by device need an order-based layout. */
+function DeviceFlow({ reorders, children }: { reorders: boolean; children: ReactNode }) {
+  return reorders ? <div className="kebu-device-flow">{children}</div> : <>{children}</>;
+}
+
 function wrapEditorSection(
   sectionId: string | undefined,
   editor: SiteRendererEditor | undefined,
@@ -147,12 +211,29 @@ function wrapEditorSection(
   sectionPaddingY?: string,
   /** Scroll-entrance preset ("fade-up" / "fade-in" / ...) — only set when theme.motion === "expressive". */
   motionPreset?: string,
+  /** Structured declarative motion spec (Phase 3B). Takes precedence over motionPreset. */
+  motionSpec?: SectionMotion,
 ): ReactNode {
+  const padStyle =
+    sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
+      ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
+      : undefined;
+  const motionSpecAttr = motionSpec ? JSON.stringify(motionSpec) : undefined;
+  const hasMotion = Boolean(motionPreset || motionSpec);
+
   if (!editor || !sectionId) {
-    const padStyle =
-      sectionPaddingY && SECTION_PAD_MAP[sectionPaddingY]
-        ? ({ "--kebu-section-pad": SECTION_PAD_MAP[sectionPaddingY] } as React.CSSProperties)
-        : undefined;
+    if (motionSpec) {
+      return (
+        <div
+          className="kebu-entrance"
+          data-motion={motionPreset || undefined}
+          data-motion-spec={motionSpecAttr}
+          style={padStyle}
+        >
+          {children}
+        </div>
+      );
+    }
     if (motionPreset) {
       return (
         <div className="kebu-entrance" data-motion={motionPreset} style={padStyle}>
@@ -175,11 +256,12 @@ function wrapEditorSection(
     <div
       data-section-id={sectionId}
       data-motion={motionPreset || undefined}
+      data-motion-spec={motionSpecAttr}
       onClick={(e) => {
         e.stopPropagation();
         editor.onSelectSection?.(sectionId);
       }}
-      className={`group relative ${motionPreset ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
+      className={`group relative ${hasMotion ? "kebu-entrance" : ""} ${fillViewport ? "flex h-full min-h-0 flex-1 flex-col" : ""} ${selected ? "outline outline-2 outline-[#2C6ECB] outline-offset-[-1px] z-10" : "hover:outline hover:outline-1 hover:outline-[#2C6ECB]/50"}`}
       style={{ cursor: "pointer", ...(padVar ? { "--kebu-section-pad": padVar } as React.CSSProperties : {}) }}
     >
       {selected && sectionType ? (
@@ -202,6 +284,7 @@ function wrapEditorSection(
             <>
               <button
                 type="button"
+                aria-label="Move section up"
                 className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
                 onClick={() => editor.onMoveSection?.(sectionId, "up")}
               >
@@ -209,6 +292,7 @@ function wrapEditorSection(
               </button>
               <button
                 type="button"
+                aria-label="Move section down"
                 className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
                 onClick={() => editor.onMoveSection?.(sectionId, "down")}
               >
@@ -219,6 +303,7 @@ function wrapEditorSection(
           {editor.onDuplicateSection ? (
             <button
               type="button"
+              aria-label="Duplicate section"
               className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold shadow"
               onClick={() => editor.onDuplicateSection?.(sectionId)}
             >
@@ -228,12 +313,9 @@ function wrapEditorSection(
           {editor.onDeleteSection ? (
             <button
               type="button"
+              aria-label="Remove section"
               className="rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] font-bold text-red-600 shadow"
-              onClick={() => {
-                if (typeof window !== "undefined" && window.confirm("Remove this section from the page?")) {
-                  editor.onDeleteSection?.(sectionId);
-                }
-              }}
+              onClick={() => editor.onDeleteSection?.(sectionId)}
             >
               Remove
             </button>
@@ -388,6 +470,26 @@ function SiteNav({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
+  const hamburgerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Escape closes the mobile drawer; focus returns to the hamburger button.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setDrawerOpen(false);
+        hamburgerRef.current?.focus({ preventScroll: true });
+      }
+    }
+    document.addEventListener("keydown", onKey, true);
+    // Move focus into the drawer so screen-reader/keyboard users can navigate it.
+    const firstFocusable = drawerRef.current?.querySelector<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    firstFocusable?.focus({ preventScroll: true });
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [drawerOpen]);
 
   function slugFromHref(href: string): string | null {
     const h = (href || "").trim();
@@ -584,11 +686,13 @@ function SiteNav({
         {/* Hamburger — mobile only by default; all sizes in hamburger layout */}
         {links.length > 0 && (
           <button
+            ref={hamburgerRef}
             type="button"
             onClick={() => { setDrawerOpen((v) => !v); setOpenGroup(null); }}
             className={`kebu-nav-hamburger ${alwaysHamburger ? "" : "sm:hidden"}`}
             aria-label={drawerOpen ? "Close menu" : "Open menu"}
             aria-expanded={drawerOpen}
+            aria-controls="kebu-nav-drawer"
             style={{ color: navColor }}
           >
             {drawerOpen ? (
@@ -606,10 +710,15 @@ function SiteNav({
           <div
             className={`fixed inset-0 ${alwaysHamburger ? "" : "sm:hidden"}`}
             style={{ background: "rgba(0,0,0,0.35)", zIndex: Z_LAYERS.drawerBackdrop }}
-            onClick={() => setDrawerOpen(false)}
-            aria-hidden
+            onClick={() => { setDrawerOpen(false); hamburgerRef.current?.focus({ preventScroll: true }); }}
+            aria-hidden="true"
           />
           <div
+            ref={drawerRef}
+            id="kebu-nav-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${brand} navigation`}
             className={`kebu-nav-drawer ${alwaysHamburger ? "" : "sm:hidden"}`}
             style={{ background: navBg || "#000", color: navColor, borderTop: "1px solid rgba(255,255,255,0.1)" }}
           >
@@ -773,218 +882,47 @@ function QuizSection({
 }
 
 /** Public/preview renderer — approved section types only. */
-export function SiteRenderer({
-  definition,
-  mode = "live",
-  pageSlug,
-  siteBase = "",
-  liveSubdomain,
-  projectId,
-  editor,
-  dataMode = "normal",
-}: {
-  definition: WebsiteDefinition;
-  mode?: "live" | "preview";
-  pageSlug?: string;
-  /** e.g. /sites/maylecor for multi-page links */
-  siteBase?: string;
-  /** Publish subdomain for shop orders (works on custom domains too). */
-  liveSubdomain?: string;
-  /** Required for live newsletter capture */
-  projectId?: string;
+type LegacySectionViewProps = {
+  section: WebsiteDefinition["pages"][number]["sections"][number] & ComposableSection;
+  sectionId: string;
+  fillViewport: boolean;
+  device: BuilderDevice;
   editor?: SiteRendererEditor;
-  /** Africa low-data mode from DataModeProvider / public site. */
-  dataMode?: DataMode;
-}) {
-  const theme = definition.theme;
-  /** Opt-in richer motion for aesthetics that specifically declare it — no-op for every other template. */
-  const motionExpressive = theme.motion === "expressive";
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!motionExpressive || !rootRef.current) return;
-    return initScrollEntrances(rootRef.current);
-  }, [motionExpressive, pageSlug]);
-  const merchantPhone = resolveMerchantWhatsApp(definition, definition.seo as SiteSeo | undefined);
-  const shopCommerce = mergeSiteCommerce((definition.seo as SiteSeo | undefined)?.commerce);
-  const paymentLabels = commercePaymentLabels(shopCommerce);
-  const page = resolvePage(definition, pageSlug);
-  if (!page) return null;
+  theme: WebsiteDefinition["theme"];
+  themeKey: string;
+  commerceKey: string;
+  siteBase: string;
+  projectId?: string;
+  liveSubdomain?: string;
+  mode: "live" | "preview";
+  activeSlug: string;
+  motionExpressive: boolean;
+  dataMode: DataMode;
+  merchantPhone: ReturnType<typeof resolveMerchantWhatsApp>;
+  shopCommerce: ReturnType<typeof mergeSiteCommerce>;
+  paymentLabels: string[];
+};
 
-  const maylecorOnly = page.sections.every((s) =>
-    s.type === "maylecor-home" || s.type === "maylecor-music",
-  );
-  const legallyBlondeOnly = page.sections.every((s) => s.type === "legally-blonde-hero");
-  const hasKdirection = page.sections.some(
-    (s) => s.type === "kdirection-home" || s.type === "kdirection-page",
-  );
-  const motionHero = findMotionHeroProps(definition);
-  const emailPopup = findEmailPopup(definition);
-  const motionSite = motionHero !== null;
-  const activeSlug = pageSlug && pageSlug !== "home" ? pageSlug : "home";
-  const viewportHome =
-    motionSite && activeSlug === "home" && motionHero?.scrollMode === "viewport";
+// Adapter-created theme/commerce objects use canonical keys computed once by
+// the parent, so unchanged sections need only constant-time comparisons.
+const SECTION_MEMO_FIELDS = [
+  "section", "sectionId", "fillViewport", "device", "editor", "themeKey", "commerceKey",
+  "siteBase", "projectId", "liveSubdomain", "mode", "activeSlug", "motionExpressive", "dataMode", "merchantPhone",
+] as const satisfies readonly (keyof LegacySectionViewProps)[];
 
-  const editingPreview = mode === "preview" && Boolean(editor);
-  const motionBuilderPreview = editingPreview && motionSite;
-  const themeVars = themeToCssVars(theme);
-  const freeTextExtraFonts: string[] = [];
-  for (const p of definition.pages) {
-    for (const s of p.sections) {
-      if (s.type !== "free-text") continue;
-      const blocks = (s.props as { blocks?: { fontFamily?: string }[] }).blocks ?? [];
-      for (const b of blocks) {
-        if (b.fontFamily?.trim()) freeTextExtraFonts.push(b.fontFamily.trim());
-      }
-    }
-  }
-  const shellStyle = maylecorOnly
-    ? {
-        background: editingPreview ? "#FFE4F0" : "#000",
-        color: editingPreview ? "#111" : "#fff",
-        minHeight: mode === "preview" ? "100%" : "100vh",
-      }
-    : legallyBlondeOnly
-      ? {
-          background: editingPreview ? "#FFE4F0" : "#fff",
-          color: "#111",
-          minHeight: mode === "preview" ? "100%" : "100vh",
-          ...(editingPreview
-            ? { height: "100%", display: "flex", flexDirection: "column" as const }
-            : {}),
-        }
-      : hasKdirection
-        ? { background: "transparent", color: "#111", minHeight: mode === "preview" ? "100%" : "100vh" }
-      : motionSite && activeSlug !== "home"
-        ? {
-            background: motionBuilderPreview ? "#FFE4F0" : "#0a0a0a",
-            color: motionBuilderPreview ? "#111" : "#fff",
-            minHeight: mode === "preview" ? "100%" : "100vh",
-          }
-        : viewportHome
-          ? {
-              background: "#fff",
-              color: "#111",
-              height: mode === "preview" ? "100%" : "100vh",
-              overflow: "hidden",
-            }
-        : {
-          background: theme.background,
-          color: theme.text,
-          minHeight: mode === "preview" ? "100%" : "100vh",
-          fontFamily: cssFontStack(theme.fontBody),
-        };
-
-  const rootClass =
-    mode === "preview"
-      ? `${KEBU_SITE_ROOT_CLASS} kebu-site--preview ${dataModeSiteClass(dataMode)}`
-      : `${KEBU_SITE_ROOT_CLASS} ${dataModeSiteClass(dataMode)}`;
-
-  const sideNav = Boolean(motionSite && motionHero && parseNavLayout(motionHero.navLayout) === "side");
-
-  const hideOuterChrome = editingPreview && activeSlug === "home" && Boolean(motionHero);
-  const chrome =
-    motionSite && motionHero && !hideOuterChrome ? (
-      <MaylecorMotionChrome
-        siteBase={siteBase}
-        brandLabel={motionHero.brandLabel ?? motionHero.title}
-        titleLogo={
-          motionHero.showChromeLogo === false
-            ? undefined
-            : String(motionHero.chromeLogo ?? "").trim() ||
-              "/templates/maylecor/logo-stacked.png"
-        }
-        showChromeLogo={motionHero.showChromeLogo !== false}
-        currentSlug={activeSlug}
-        accentColor={motionHero.accentColor}
-        contained={mode === "preview"}
-        overlayOnSite
-        navLinks={sanitizeMaylecorNavLinks(motionHero.navLinks)}
-        navDisplay={
-          motionHero.navDisplay === "icons" || motionHero.navDisplay === "photos"
-            ? motionHero.navDisplay
-            : "text"
-        }
-        socialLinks={motionHero.socialLinks}
-        navScale={motionHero.navScale}
-        navSize={motionHero.navSize}
-        navLayout={parseNavLayout(motionHero.navLayout)}
-        onNavigate={editor?.onNavigatePage}
-      />
-    ) : null;
-
-  const body = (
-    <>
-      {motionSite && activeSlug !== "home" ? (
-        <div
-          className={`border-b border-white/10 bg-black/90 px-4 py-2 backdrop-blur-md ${
-            mode === "preview" ? "relative z-20" : "sticky top-[52px] z-20"
-          }`}
-        >
-          {editor?.onNavigatePage ? (
-            <button
-              type="button"
-              onClick={() => editor.onNavigatePage!("home")}
-              className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/80 hover:text-white"
-            >
-              ← Back
-            </button>
-          ) : (
-            <a
-              href={siteBase || "/"}
-              className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/80 hover:text-white"
-            >
-              ← Back
-            </a>
-          )}
-        </div>
-      ) : null}
-      {(() => {
-        const visibleSections = page.sections.filter(
-          (s) => !(s.props && (s.props as { hidden?: boolean }).hidden),
-        );
-        const showInlineStack = editingPreview && Boolean(editor?.onAddSectionAfter);
-
-        function renderDivider(afterSectionId: string | null) {
-          if (!showInlineStack || !editor?.onAddSectionAfter) return null;
-          return (
-            <BuilderInlineSectionDivider
-              afterSectionId={afterSectionId}
-              selectedSectionId={editor.selectedSectionId}
-              onAdd={editor.onAddSectionAfter}
-            />
-          );
-        }
-
-        if (showInlineStack && visibleSections.length === 0) {
-          return renderDivider(null);
-        }
-
-        if (editingPreview && visibleSections.length === 0) {
-          return (
-            <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-              <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
-                This page is empty
-              </p>
-              <p className="max-w-sm text-xs leading-relaxed" style={{ color: "#6b6b6b" }}>
-                Open Sections in the left rail and use + Add section to build this page. The canvas stays clean —
-                add and remove only from the nav.
-              </p>
-            </div>
-          );
-        }
-
-        return (
-          <>
-            {visibleSections.map((section, idx) => {
-        const key = section.id ?? `${section.type}-${idx}`;
-        const sectionId = section.id ?? key;
-        const anchor = sectionAnchor(section);
-        const fillViewport =
-          STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
+const LegacySectionView = memo(function LegacySectionView({
+  section, sectionId, fillViewport, device, editor, theme, siteBase, projectId,
+  liveSubdomain, mode, activeSlug, motionExpressive, dataMode, merchantPhone, shopCommerce, paymentLabels,
+}: LegacySectionViewProps) {
+  const key = sectionId;
+  const anchor = sectionAnchor(section);
         const sectionPaddingY = String((section.props as Record<string, unknown>)?.sectionPaddingY ?? "normal");
         const motionPreset = motionExpressive ? ENTRANCE_MOTION[section.type] : undefined;
+        // Phase 3B: structured motion spec overrides the preset when present
+        const sectionMotionSpec = (section as unknown as { motion?: SectionMotion }).motion ?? undefined;
         const wrap = (node: ReactNode) =>
-          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset);
+          wrapEditorSection(sectionId, editor, node, section.type, fillViewport, sectionPaddingY, motionPreset, sectionMotionSpec);
+        const _ep = mergeDeviceAwareSectionProps(section.props as Record<string, unknown>, device);
         const sectionEl = (() => {
         switch (section.type) {
           case "maylecor-home":
@@ -1031,7 +969,6 @@ export function SiteRenderer({
             );
           case "legally-blonde-hero": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
             const resolved = mergeDeviceAwareSectionProps(raw, device);
             return wrap(
               <LegallyBlondeHeroLayout
@@ -1058,7 +995,6 @@ export function SiteRenderer({
           }
           case "navigation": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
             const p = {
               brand: String(readDeviceOverride(raw, device, "brand") ?? ""),
               links: (raw.links as { label: string; href: string; children?: { label: string; href: string }[] }[] | undefined) ?? [],
@@ -1170,21 +1106,23 @@ export function SiteRenderer({
             );
           }
           case "hero": {
-            const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            const raw = normalizeLegacyHeroProps(section.props) as Record<string, unknown>;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? ""),
               subheading: String(readDeviceOverride(raw, device, "subheading") ?? ""),
               buttonLabel: String(readDeviceOverride(raw, device, "buttonLabel") ?? ""),
               buttonHref: String(raw.buttonHref ?? "#"),
-              align: String(raw.align ?? "center"),
+              secondaryButtonLabel: String(readDeviceOverride(raw, device, "secondaryButtonLabel") ?? "").trim(),
+              secondaryButtonHref: String(raw.secondaryButtonHref ?? "#"),
+              align: readDeviceOverride(raw, device, "align") === "left" ? "left" : "center",
               background: raw.background as string | undefined,
               image: raw.image as string | undefined,
               overlayOpacity: (raw.overlayOpacity as number | undefined) ?? 0.42,
-              minHeight: (raw.minHeight as string | undefined) ?? "80vh",
+              height: resolveHeroHeight(raw.minHeight),
             };
             const patchHero = (patch: Record<string, unknown>) =>
-              applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
+              // Patch the stored props, not the legacy-normalized view.
+              applyDeviceAwarePatch(editor?.onPatchSection, sectionId, section.props as Record<string, unknown>, device, patch);
             const hasImage = Boolean(p.image?.trim());
             const bg = p.background || theme.primary;
             const textColor = (() => {
@@ -1207,7 +1145,8 @@ export function SiteRenderer({
               <section
                 key={key}
                 className="relative flex items-end overflow-hidden"
-                style={{ minHeight: p.minHeight, background: hasImage ? "#111" : bg, color: textColor }}
+                data-hero-height={p.height}
+                style={{ minHeight: heroMinHeightCss(p.height), background: hasImage ? "#111" : bg, color: textColor }}
               >
                 {hasImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -1226,7 +1165,7 @@ export function SiteRenderer({
                       : `linear-gradient(150deg, transparent 50%, rgba(0,0,0,0.1) 100%)`,
                   }}
                 />
-                <div className={`relative z-10 w-full px-6 pb-16 pt-32 sm:px-12 ${isCenter ? "text-center" : ""}`}>
+                <div className={`relative z-10 w-full px-6 sm:px-12 ${heroContentPaddingClass(p.height)} ${isCenter ? "text-center" : ""}`}>
                   <div className={isCenter ? "mx-auto max-w-2xl" : "max-w-2xl"}>
                     {device !== "desktop" && editor?.inlineEdit ? (
                       <p className="mb-2 text-[10px] uppercase tracking-wider opacity-60">
@@ -1251,7 +1190,33 @@ export function SiteRenderer({
                         onChange={(subheading) => patchHero({ subheading })}
                       />
                     ) : null}
-                    {p.buttonLabel ? (
+                    {p.secondaryButtonLabel ? (
+                      // Two calls-to-action: the second is an outline of the first, same size.
+                      <div className={`mt-8 flex flex-wrap items-center gap-3${isCenter ? " justify-center" : ""}`}>
+                        {p.buttonLabel ? (
+                          <a
+                            href={p.buttonHref || "#"}
+                            className="inline-block rounded-full px-8 py-3.5 text-sm font-bold tracking-wide transition-opacity hover:opacity-90"
+                            style={{
+                              background: heroIsLight ? theme.primary : "#fff",
+                              color: heroIsLight ? "#fff" : "#0A0A0A",
+                            }}
+                          >
+                            {p.buttonLabel}
+                          </a>
+                        ) : null}
+                        <a
+                          href={p.secondaryButtonHref || "#"}
+                          className="inline-block rounded-full border px-8 py-3.5 text-sm font-bold tracking-wide transition-opacity hover:opacity-80"
+                          style={{
+                            borderColor: heroIsLight ? theme.primary : "rgba(255,255,255,0.75)",
+                            color: heroIsLight ? theme.primary : "#fff",
+                          }}
+                        >
+                          {p.secondaryButtonLabel}
+                        </a>
+                      </div>
+                    ) : p.buttonLabel ? (
                       <a
                         href={p.buttonHref || "#"}
                         className="mt-8 inline-block rounded-full px-8 py-3.5 text-sm font-bold tracking-wide transition-opacity hover:opacity-90"
@@ -1270,7 +1235,6 @@ export function SiteRenderer({
           }
           case "text": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
             const p = {
               heading: readDeviceOverride(raw, device, "heading") as string | undefined,
               body: String(readDeviceOverride(raw, device, "body") ?? ""),
@@ -1304,7 +1268,6 @@ export function SiteRenderer({
           }
           case "features": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
             const layout = (raw.layout as "grid" | "moodboard" | undefined) ?? "grid";
             const heading = String(readDeviceOverride(raw, device, "heading") ?? "Features");
             const items =
@@ -1450,7 +1413,7 @@ export function SiteRenderer({
             );
           }
           case "testimonials": {
-            const p = section.props as { heading?: string; items?: { quote: string; name: string; role?: string }[] };
+            const p = _ep as { heading?: string; items?: { quote: string; name: string; role?: string }[] };
             const items = p.items ?? [];
             const accentColor = theme.accent || theme.primary;
             return wrap(
@@ -1502,7 +1465,6 @@ export function SiteRenderer({
           }
           case "faq": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
             const heading = String(readDeviceOverride(raw, device, "heading") ?? "FAQ");
             const items =
               (readDeviceOverride(raw, device, "items") as
@@ -1554,7 +1516,6 @@ export function SiteRenderer({
           }
           case "products": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Products"),
               layout: raw.layout as "grid" | "grid-dense" | "list" | "featured" | undefined,
@@ -1747,7 +1708,7 @@ export function SiteRenderer({
             );
           }
           case "contact": {
-            const p = section.props as { heading?: string; email?: string; phone?: string; address?: string };
+            const p = _ep as { heading?: string; email?: string; phone?: string; address?: string };
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 max-w-3xl mx-auto scroll-mt-20">
                 <EditableText
@@ -1767,7 +1728,7 @@ export function SiteRenderer({
             );
           }
           case "form": {
-            const p = section.props as import("@/lib/create/site-forms").SiteFormSectionProps;
+            const p = _ep as import("@/lib/create/site-forms").SiteFormSectionProps;
             const liveSubForm =
               mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase) ?? undefined) : undefined;
             return wrap(
@@ -1796,7 +1757,7 @@ export function SiteRenderer({
             );
           }
           case "blog-list": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               subheading?: string;
               postsPerPage?: number;
@@ -1816,7 +1777,7 @@ export function SiteRenderer({
             );
           }
           case "newsletter": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               subheading?: string;
               buttonLabel?: string;
@@ -1848,7 +1809,7 @@ export function SiteRenderer({
             );
           }
           case "whatsapp": {
-            const p = section.props as { label?: string; phone: string; message?: string };
+            const p = _ep as { label?: string; phone: string; message?: string };
             const href = whatsAppOrderHref(p.phone ?? "", p.message ?? "");
             return wrap(
               <section key={key} id={anchor} className="kebu-section px-5 text-center scroll-mt-20">
@@ -1865,7 +1826,7 @@ export function SiteRenderer({
             );
           }
           case "image": {
-            const p = section.props as { src?: string; alt?: string; caption?: string };
+            const p = _ep as { src?: string; alt?: string; caption?: string };
             if (!p.src) return null;
             return wrap(
               <figure key={key} className="kebu-section px-5 max-w-4xl mx-auto">
@@ -1876,7 +1837,7 @@ export function SiteRenderer({
             );
           }
           case "gallery": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               items?: { src: string; alt?: string; href?: string }[];
               layout?: "grid" | "single" | "featured";
@@ -1993,7 +1954,7 @@ export function SiteRenderer({
             );
           }
           case "video": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               src?: string;
               title?: string;
@@ -2044,7 +2005,7 @@ export function SiteRenderer({
             );
           }
           case "audio": {
-            const p = section.props as { heading?: string; src: string; title?: string; artist?: string };
+            const p = _ep as { heading?: string; src: string; title?: string; artist?: string };
             if (!p.src) return null;
             const src = p.src.trim();
             const isHosted = isDirectAudioUrl(src);
@@ -2086,7 +2047,7 @@ export function SiteRenderer({
             );
           }
           case "free-text": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               minHeight?: number;
               backgroundImage?: string;
@@ -2239,7 +2200,7 @@ export function SiteRenderer({
             );
           }
           case "map": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               address?: string;
               latitude: number;
@@ -2264,7 +2225,7 @@ export function SiteRenderer({
             );
           }
           case "events": {
-            const p = section.props as {
+            const p = _ep as {
               heading?: string;
               items?: {
                 title: string;
@@ -2306,7 +2267,7 @@ export function SiteRenderer({
             );
           }
           case "footer": {
-            const p = section.props as {
+            const p = _ep as {
               text?: string;
               links?: { label: string; href: string }[];
               bgColor?: string;
@@ -2377,7 +2338,7 @@ export function SiteRenderer({
             );
           }
           case "announcement-bar": {
-            const p = section.props as {
+            const p = _ep as {
               text?: string;
               background?: string;
               color?: string;
@@ -2415,7 +2376,7 @@ export function SiteRenderer({
             );
           }
           case "marquee": {
-            const p = section.props as {
+            const p = _ep as {
               items?: string[];
               speed?: number;
               background?: string;
@@ -2452,23 +2413,28 @@ export function SiteRenderer({
             );
           }
           case "editorial-hero": {
-            const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
+            // Legacy template fields (primaryCta, secondaryCta, overlay, textAlign, …) are read as
+            // their canonical keys; edits patch the stored props (lib/create/editorial-hero-section.ts).
+            const raw = normalizeLegacyEditorialHeroProps(section.props) as Record<string, unknown>;
             const p = {
+              eyebrow: String(readDeviceOverride(raw, device, "eyebrow") ?? "").trim(),
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Your headline here"),
               subheading: String(readDeviceOverride(raw, device, "subheading") ?? ""),
               buttonLabel: String(readDeviceOverride(raw, device, "buttonLabel") ?? ""),
               buttonHref: String(raw.buttonHref ?? "#"),
+              secondaryButtonLabel: String(readDeviceOverride(raw, device, "secondaryButtonLabel") ?? "").trim(),
+              secondaryButtonHref: String(raw.secondaryButtonHref ?? "#"),
               // Schema field is `imageUrl` (website-schema.ts) — `image`/`minHeight` kept as a
               // fallback for any legacy content authored against the older field names.
               image: String(raw.imageUrl ?? raw.image ?? ""),
               imageAlt: String(raw.imageAlt ?? ""),
               overlayOpacity: (raw.overlayOpacity as number | undefined) ?? 0.35,
-              align: (raw.align as "left" | "center" | undefined) ?? "left",
+              align: readDeviceOverride(raw, device, "align") === "center" ? "center" : "left",
               minHeight: raw.heightVh ? `${raw.heightVh}vh` : String(raw.minHeight ?? "70vh"),
             };
             const patchHero = (patch: Record<string, unknown>) =>
-              applyDeviceAwarePatch(editor?.onPatchSection, sectionId, raw, device, patch);
+              // Patch the stored props, not the legacy-normalized view.
+              applyDeviceAwarePatch(editor?.onPatchSection, sectionId, section.props as Record<string, unknown>, device, patch);
             const overlayBg = `rgba(0,0,0,${p.overlayOpacity})`;
             const contentMaxW = p.align === "center" ? "max-w-2xl mx-auto text-center" : "max-w-2xl";
             return wrap(
@@ -2496,6 +2462,9 @@ export function SiteRenderer({
                         Editing {device} copy
                       </p>
                     ) : null}
+                    {p.eyebrow ? (
+                      <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/80">{p.eyebrow}</p>
+                    ) : null}
                     <EditableText
                       tag="h1"
                       className="text-4xl font-bold leading-tight text-white sm:text-6xl"
@@ -2513,7 +2482,27 @@ export function SiteRenderer({
                         onChange={(subheading) => patchHero({ subheading })}
                       />
                     ) : null}
-                    {p.buttonLabel ? (
+                    {p.secondaryButtonLabel ? (
+                      // Two calls-to-action: the second is an outline of the first, same size.
+                      <div className={`mt-8 flex flex-wrap items-center gap-3${p.align === "center" ? " justify-center" : ""}`}>
+                        {p.buttonLabel ? (
+                          <a
+                            href={p.buttonHref || "#"}
+                            className="inline-block rounded-full px-7 py-3 text-sm font-bold transition-opacity hover:opacity-90"
+                            style={{ background: "#fff", color: "#000" }}
+                          >
+                            {p.buttonLabel}
+                          </a>
+                        ) : null}
+                        <a
+                          href={p.secondaryButtonHref || "#"}
+                          className="inline-block rounded-full border px-7 py-3 text-sm font-bold text-white transition-opacity hover:opacity-80"
+                          style={{ borderColor: "rgba(255,255,255,0.75)" }}
+                        >
+                          {p.secondaryButtonLabel}
+                        </a>
+                      </div>
+                    ) : p.buttonLabel ? (
                       <a
                         href={p.buttonHref || "#"}
                         className="mt-8 inline-block rounded-full px-7 py-3 text-sm font-bold transition-opacity hover:opacity-90"
@@ -2529,7 +2518,6 @@ export function SiteRenderer({
           }
           case "split": {
             const raw = section.props as Record<string, unknown>;
-            const device = editor?.editDevice ?? "desktop";
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Your heading"),
               body: String(readDeviceOverride(raw, device, "body") ?? ""),
@@ -2710,6 +2698,278 @@ export function SiteRenderer({
             return null;
         }
       })();
+  return sectionEl;
+}, (previous, next) => SECTION_MEMO_FIELDS.every((key) => previous[key] === next[key]));
+
+export function SiteRenderer({
+  definition,
+  mode = "live",
+  pageSlug,
+  siteBase = "",
+  liveSubdomain,
+  projectId,
+  editor: sourceEditor,
+  dataMode = "normal",
+  nativeDocument,
+}: {
+  definition: WebsiteDefinition;
+  mode?: "live" | "preview";
+  pageSlug?: string;
+  /** e.g. /sites/maylecor for multi-page links */
+  siteBase?: string;
+  /** Publish subdomain for shop orders (works on custom domains too). */
+  liveSubdomain?: string;
+  /** Required for live newsletter capture */
+  projectId?: string;
+  editor?: SiteRendererEditor;
+  /** Africa low-data mode from DataModeProvider / public site. */
+  dataMode?: DataMode;
+  /** S6 render-only native source. Never projected into website-v1 content. */
+  nativeDocument?: KcdDocument;
+}) {
+  const editor = useStableRendererEditor(sourceEditor);
+  const theme = definition.theme;
+  const themeKey = canonicalJson(theme);
+  const nativeIndex = useMemo(() => nativeDocument ? buildIndex(nativeDocument) : null, [nativeDocument]);
+  const nativeChrome = useMemo(() => nativeDocument ? canonicalSiteChrome(nativeDocument) : null, [nativeDocument]);
+  /** Opt-in richer motion for aesthetics that specifically declare it — no-op for every other template. */
+  const motionExpressive = theme.motion === "expressive";
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!motionExpressive || !rootRef.current) return;
+    return initScrollEntrances(rootRef.current);
+  }, [motionExpressive, pageSlug]);
+  /** Published pages compose for the viewport's device (Desktop during server render/hydration). */
+  const viewportDevice = useViewportDevice();
+  const merchantPhone = resolveMerchantWhatsApp(definition, definition.seo as SiteSeo | undefined);
+  const shopCommerce = mergeSiteCommerce((definition.seo as SiteSeo | undefined)?.commerce);
+  const paymentLabels = commercePaymentLabels(shopCommerce);
+  const commerceKey = canonicalJson(shopCommerce);
+  const page = resolvePage(definition, pageSlug);
+  if (!page) return null;
+
+  const nativePage = nativeDocument?.pages.find((candidate) => candidate.slug === page.slug);
+  const hasNativePage = Boolean(nativePage && nativeIndex?.children(nativePage.id, null).some((node) => !node.type.startsWith("legacy-section:")));
+  const maylecorOnly = !hasNativePage && page.sections.every((s) =>
+    s.type === "maylecor-home" || s.type === "maylecor-music",
+  );
+  const legallyBlondeOnly = !hasNativePage && page.sections.every((s) => s.type === "legally-blonde-hero");
+  const hasKdirection = page.sections.some(
+    (s) => s.type === "kdirection-home" || s.type === "kdirection-page",
+  );
+  const motionHero = findMotionHeroProps(definition);
+  const emailPopup = findEmailPopup(definition);
+  const motionSite = motionHero !== null;
+  const activeSlug = pageSlug && pageSlug !== "home" ? pageSlug : "home";
+  const viewportHome =
+    motionSite && activeSlug === "home" && motionHero?.scrollMode === "viewport";
+
+  const editingPreview = mode === "preview" && Boolean(editor);
+  const motionBuilderPreview = editingPreview && motionSite;
+  const themeVars = themeToCssVars(theme);
+  const shellStyle = maylecorOnly
+    ? {
+        background: editingPreview ? "#FFE4F0" : "#000",
+        color: editingPreview ? "#111" : "#fff",
+        minHeight: mode === "preview" ? "100%" : "100vh",
+      }
+    : legallyBlondeOnly
+      ? {
+          background: editingPreview ? "#FFE4F0" : "#fff",
+          color: "#111",
+          minHeight: mode === "preview" ? "100%" : "100vh",
+          ...(editingPreview
+            ? { height: "100%", display: "flex", flexDirection: "column" as const }
+            : {}),
+        }
+      : hasKdirection
+        ? { background: "transparent", color: "#111", minHeight: mode === "preview" ? "100%" : "100vh" }
+      : motionSite && activeSlug !== "home"
+        ? {
+            background: motionBuilderPreview ? "#FFE4F0" : "#0a0a0a",
+            color: motionBuilderPreview ? "#111" : "#fff",
+            minHeight: mode === "preview" ? "100%" : "100vh",
+          }
+        : viewportHome
+          ? {
+              background: "#fff",
+              color: "#111",
+              height: mode === "preview" ? "100%" : "100vh",
+              overflow: "hidden",
+            }
+        : {
+          background: theme.background,
+          color: theme.text,
+          minHeight: mode === "preview" ? "100%" : "100vh",
+          fontFamily: cssFontStack(theme.fontBody),
+        };
+
+  const rootClass =
+    mode === "preview"
+      ? `${KEBU_SITE_ROOT_CLASS} kebu-site--preview ${dataModeSiteClass(dataMode)}`
+      : `${KEBU_SITE_ROOT_CLASS} ${dataModeSiteClass(dataMode)}`;
+
+  const sideNav = Boolean(motionSite && motionHero && parseNavLayout(motionHero.navLayout) === "side");
+
+  const hideOuterChrome = editingPreview && activeSlug === "home" && Boolean(motionHero);
+  const chrome =
+    motionSite && motionHero && !hideOuterChrome ? (
+      <MaylecorMotionChrome
+        siteBase={siteBase}
+        brandLabel={motionHero.brandLabel ?? motionHero.title}
+        titleLogo={
+          motionHero.showChromeLogo === false
+            ? undefined
+            : String(motionHero.chromeLogo ?? "").trim() ||
+              "/templates/maylecor/logo-stacked.png"
+        }
+        showChromeLogo={motionHero.showChromeLogo !== false}
+        currentSlug={activeSlug}
+        accentColor={motionHero.accentColor}
+        contained={mode === "preview"}
+        overlayOnSite
+        navLinks={sanitizeMaylecorNavLinks(motionHero.navLinks)}
+        navDisplay={
+          motionHero.navDisplay === "icons" || motionHero.navDisplay === "photos"
+            ? motionHero.navDisplay
+            : "text"
+        }
+        socialLinks={motionHero.socialLinks}
+        navScale={motionHero.navScale}
+        navSize={motionHero.navSize}
+        navLayout={parseNavLayout(motionHero.navLayout)}
+        onNavigate={editor?.onNavigatePage}
+      />
+    ) : null;
+
+  const body = (
+    <>
+      {motionSite && activeSlug !== "home" ? (
+        <div
+          className={`border-b border-white/10 bg-black/90 px-4 py-2 backdrop-blur-md ${
+            mode === "preview" ? "relative z-20" : "sticky top-[52px] z-20"
+          }`}
+        >
+          {editor?.onNavigatePage ? (
+            <button
+              type="button"
+              onClick={() => editor.onNavigatePage!("home")}
+              className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/80 hover:text-white"
+            >
+              ← Back
+            </button>
+          ) : (
+            <a
+              href={siteBase || "/"}
+              className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/80 hover:text-white"
+            >
+              ← Back
+            </a>
+          )}
+        </div>
+      ) : null}
+      {(() => {
+        // Device composition (lib/create/device-composition.ts), one DOM representation:
+        //   • editor present (Builder canvas / preview iframe) — the edited device;
+        //   • no editor (published page) — the viewport's device, so DOM, screen-reader and
+        //     keyboard order follow the visible composition. Per-device order/visibility are
+        //     also exposed to CSS, so the server render is correct before hydration.
+        type LegacyRenderSection = (typeof page.sections)[number] & ComposableSection;
+        type NativeRenderSection = ComposableSection & { id: string; type: "kcd-native" };
+        type RenderSection = LegacyRenderSection | NativeRenderSection;
+        const legacySections = new Map(page.sections.map((section) => [section.id, section]));
+        const sections: RenderSection[] = nativeDocument && nativePage && nativeChrome
+          ? pageRenderRoots(nativeDocument, nativePage.id, nativeChrome).map((node): RenderSection => {
+              if (node.type.startsWith("legacy-section:")) {
+                const legacy = legacySections.get(node.id);
+                if (!legacy) throw new Error("A legacy element is missing from the render view.");
+                return legacy;
+              }
+              return { id: node.id, type: "kcd-native", props: node.props, visibility: node.visibility };
+            })
+          : page.sections;
+        const deviceLayouts = (page as { deviceLayouts?: PageDeviceLayouts }).deviceLayouts;
+        const editDevice: BuilderDevice | undefined = editor ? (editor.editDevice ?? "desktop") : undefined;
+        const responsivePlan = editDevice ? null : planResponsiveComposition(sections, deviceLayouts);
+        const visibleSections: RenderSection[] = editDevice
+          ? composeSectionsForDevice(sections, deviceLayouts, editDevice)
+          : [...new Set(responsivePlan!.items.map((i) => i.section))];
+        // Published device order may differ from this list; preserve its divider/key indices
+        // without scanning all sections once per rendered item on large Builder documents.
+        const visibleSectionIndices = new Map(visibleSections.map((section, index) => [section, index]));
+        const renderItems: { section: RenderSection; device: BuilderDevice; item: ResponsiveRenderItem<RenderSection> | null }[] =
+          editDevice
+            ? visibleSections.map((section) => ({ section, device: editDevice, item: null }))
+            : orderPlanForDevice(responsivePlan!.items, viewportDevice).map((item) => ({ section: item.section, device: viewportDevice, item }));
+
+        const showInlineStack = editingPreview && Boolean(editor?.onAddSectionAfter);
+
+        function renderDivider(afterSectionId: string | null) {
+          if (!showInlineStack || !editor?.onAddSectionAfter) return null;
+          return (
+            <BuilderInlineSectionDivider
+              afterSectionId={afterSectionId}
+              selectedSectionId={editor.selectedSectionId}
+              onAdd={editor.onAddSectionAfter}
+            />
+          );
+        }
+
+        if (showInlineStack && visibleSections.length === 0) {
+          return renderDivider(null);
+        }
+
+        if (editingPreview && visibleSections.length === 0) {
+          return (
+            <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+              <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+                This page is empty
+              </p>
+              <p className="max-w-sm text-xs leading-relaxed" style={{ color: "#6b6b6b" }}>
+                Open Sections in the left rail and use + Add section to build this page. The canvas stays clean —
+                add and remove only from the nav.
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <DeviceFlow reorders={Boolean(responsivePlan?.reorders)}>
+            {renderItems.map(({ section, device, item }) => {
+        const idx = visibleSectionIndices.get(section)!;
+        const baseKey = section.id ?? `${section.type}-${idx}`;
+        const key = baseKey;
+        const sectionId = section.id ?? baseKey;
+        const fillViewport =
+          STRUCTURAL_SECTION_TYPES.has(section.type) && visibleSections.length === 1;
+        const sectionEl = section.type === "kcd-native" && nativeDocument && nativeIndex ? (
+          <div data-kcd-root-id={sectionId} role="group" aria-label="Native section" tabIndex={editor?.onSelectSection ? 0 : undefined}
+            style={editor?.selectedSectionId === sectionId ? { outline: "2px solid #00C851", outlineOffset: -2 } : undefined}
+            onClick={editor?.onSelectSection ? (event) => {
+              const target = event.target instanceof Element ? event.target.closest("[data-kcd-node-id]") : null;
+              event.preventDefault(); event.stopPropagation(); editor.onSelectSection?.(target?.getAttribute("data-kcd-node-id") ?? sectionId);
+            } : undefined}
+            onKeyDown={editor?.onSelectSection ? (event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); editor.onSelectSection?.(sectionId); } } : undefined}>
+            {editor?.selectedSectionId && isNodeId(editor.selectedSectionId) ? <style>{`[data-kcd-root-id="${sectionId}"] [data-kcd-node-id="${editor.selectedSectionId}"] { outline: 2px solid #00C851; outline-offset: 2px; }`}</style> : null}
+            <KcdNodeErrorBoundary revision={nativeDocument}>
+              <KcdPrimitiveSubtree document={nativeDocument} rootId={sectionId as NodeId} device={device} index={nativeIndex} siteBase={siteBase} responsive={!editDevice} />
+            </KcdNodeErrorBoundary>
+            {editor?.onSpatialChange ? <KcdSpatialControls document={nativeDocument} rootId={sectionId as NodeId} selectedId={editor.selectedSectionId} device={device} onChange={editor.onSpatialChange} /> : null}
+          </div>
+        ) : section.type !== "kcd-native" ? (
+          <LegacySectionView section={section} sectionId={sectionId} fillViewport={fillViewport}
+            device={device} editor={editor} theme={theme} themeKey={themeKey} commerceKey={commerceKey}
+            siteBase={siteBase} projectId={projectId} liveSubdomain={liveSubdomain} mode={mode}
+            activeSlug={activeSlug} motionExpressive={motionExpressive} dataMode={dataMode}
+            merchantPhone={merchantPhone} shopCommerce={shopCommerce} paymentLabels={paymentLabels} />
+        ) : null;
+      if (item && responsivePlan?.varies) {
+        return (
+          <div key={key} className={responsiveItemClassName(item.showOn)} style={responsiveItemStyle(item.order) as CSSProperties}>
+            {sectionEl}
+          </div>
+        );
+      }
       return (
         <Fragment key={key}>
           {renderDivider(idx === 0 ? null : visibleSections[idx - 1]?.id ?? null)}
@@ -2720,7 +2980,7 @@ export function SiteRenderer({
             {showInlineStack && visibleSections.length > 0
               ? renderDivider(visibleSections[visibleSections.length - 1]?.id ?? null)
               : null}
-          </>
+          </DeviceFlow>
         );
       })()}
       {motionSite && motionHero ? (
@@ -2737,7 +2997,10 @@ export function SiteRenderer({
   return (
     <div
       ref={rootRef}
-      className={`${rootClass} relative${sideNav ? " md:flex md:flex-row md:items-stretch" : ""}${
+      className={`${rootClass} relative${
+        // Self-hosted theme fonts (Ultra/Offline data modes keep system fonts — nothing to download).
+        preferSystemFonts(dataMode) ? "" : ` ${THEME_FONT_VARIABLE_CLASSES}`
+      }${sideNav ? " md:flex md:flex-row md:items-stretch" : ""}${
         editingPreview && legallyBlondeOnly ? " flex h-full min-h-0 flex-col" : ""
       }`}
       data-kebu-button={theme.buttonStyle ?? "solid"}
@@ -2749,12 +3012,6 @@ export function SiteRenderer({
         overflowX: "clip" as const,
       }}
     >
-      <SiteThemeFonts
-        fontDisplay={theme.fontDisplay}
-        fontBody={theme.fontBody}
-        extraFamilies={freeTextExtraFonts}
-        loadRemote={!preferSystemFonts(dataMode)}
-      />
       {theme.customCss ? <style>{theme.customCss}</style> : null}
       {chrome}
       {sideNav ? <div className="min-w-0 flex-1">{body}</div> : body}

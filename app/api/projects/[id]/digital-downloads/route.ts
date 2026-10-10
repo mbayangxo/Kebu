@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: Params) {
   const { data, error } = await supabase
     .from("shop_digital_downloads")
     .select(
-      "id, order_id, product_id, file_name, expires_at, download_count, max_downloads, created_at",
+      "id, order_id, product_id, file_name, expires_at, download_count, max_downloads, created_at, delivery_version, recipient_email, notification_started_at, notification_sent_at",
     )
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
@@ -43,5 +43,13 @@ export async function GET(_req: Request, { params }: Params) {
     );
   }
 
-  return NextResponse.json({ downloads: data ?? [] });
+  return NextResponse.json({ downloads: (data ?? []).map(row => ({
+    ...row,
+    delivery_status: row.delivery_version !== 1 ? "needs_reconciliation"
+      : !row.recipient_email ? "needs_recipient_email"
+      : row.notification_sent_at ? "email_sent"
+      : Date.parse(row.expires_at) <= Date.now() ? "expired"
+      : row.notification_started_at && Date.parse(row.notification_started_at) < Date.now() - 23*60*60*1000
+        ? "needs_delivery_review" : "queued",
+  })) });
 }

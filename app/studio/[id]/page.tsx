@@ -32,6 +32,8 @@ import {
 import { clipAtTime, pageLocalTimeMs } from "@/lib/studio/timeline";
 import type { StudioDesignAccess } from "@/lib/studio/design-access";
 import { studioRoleLabel } from "@/lib/studio/design-access";
+import { useCatalogSync } from "@/lib/create/use-catalog-sync";
+import { CatalogSyncNotice } from "@/app/components/create/catalog-sync-notice";
 
 type Design = {
   id: string;
@@ -55,6 +57,7 @@ export default function StudioEditorPage() {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [exportProjectId, setExportProjectId] = useState("");
+  const catalogSync = useCatalogSync(exportProjectId);
   const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
   const [exportNote, setExportNote] = useState<string | null>(null);
   const [showBrandKit, setShowBrandKit] = useState(false);
@@ -379,6 +382,7 @@ export default function StudioEditorPage() {
       }),
     });
     const data = await res.json().catch(() => ({}));
+    if (res.ok) catalogSync.record(data.catalogSync);
     setExportNote(
       res.ok
         ? `Product ready — open Shop to set price. ${data.shopPath ?? ""}`
@@ -627,6 +631,7 @@ export default function StudioEditorPage() {
                 </button>
               </div>
               {exportNote ? <p className="text-xs opacity-80">{exportNote}</p> : null}
+              <CatalogSyncNotice status={catalogSync.status} busy={catalogSync.busy} retry={catalogSync.retry} />
             </div>
           ) : null}
         </div>

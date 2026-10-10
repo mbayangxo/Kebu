@@ -195,8 +195,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   await recalculateReadinessForProject(supabase, projectId);
   const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
-  await syncCatalogToProductsSections(supabase, projectId);
-  return NextResponse.json({ product });
+  const catalogSync = await syncCatalogToProductsSections(supabase, projectId);
+  return NextResponse.json({ product, catalogSync });
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {
@@ -225,7 +225,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
   await recalculateReadinessForProject(supabase, projectId);
   const { syncCatalogToProductsSections } = await import("@/lib/create/sync-catalog-to-sections");
-  await syncCatalogToProductsSections(supabase, projectId);
+  const catalogSync = await syncCatalogToProductsSections(supabase, projectId);
   logCreate("products.deleted", { userId: user.id, projectId, productId });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, catalogSync });
 }

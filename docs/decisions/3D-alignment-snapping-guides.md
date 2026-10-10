@@ -1,0 +1,11 @@
+# 3D alignment, snapping and guides
+
+Continue the authorized 3D work with authenticated QA deferred. Reuse the existing spatial element controls, canonical bounded geometry, independent device overrides, atomic save/history boundary and shared public renderer. No schema, permission, migration or rollout changes are needed.
+
+Selected native children gain six container alignment commands: left, horizontal centre, right, top, vertical centre and bottom. Commands preserve dimensions and create one normal geometry transaction; flow elements convert to free positioning through the established boundary. An unset canvas uses the same 600px minimum initialized by that transaction. Locked elements and descendants keep their existing guard.
+
+Drag and southeast resize snap to container edges/centres and rendered same-parent sibling edges/centres. Measure eligible siblings at gesture start, not on every pointer frame. Compare distances in screen pixels (6px tolerance converted through each canvas scale); deterministic nearest targets win, and a proposed snap cannot exceed canonical bounds or minimum sizes. Resize keeps its top-left fixed. Hidden elements and descendants of other containers are excluded. Keyboard arrow nudges stay exact.
+
+Transient green guides identify snapped axes and span the canvas. Guides and drag ghosts never become document content or public UI, and clear on release, Escape, pointer cancellation, selection/device/document changes or unmount. A compact Snap checkbox defaults on; Alt temporarily bypasses snapping. Alignment uses an accessible disclosure with six labelled buttons beside the existing move control. Pending saves disable commands; established failure states preserve server content and block publishing.
+
+Acceptance: pure geometry/threshold/tie/bounds tests; live container and sibling snapping, move and resize, scaled tablet/phone tolerance, bypass, guides cleanup, all six alignment commands, Undo/Redo/reload and saved geometry parity, lock and failure guards, existing native/legacy regression, performance budgets and full CI. Human visual/sign-in release gates remain separate. Extended constraints/transforms and richer responsive art direction remain open after this slice.

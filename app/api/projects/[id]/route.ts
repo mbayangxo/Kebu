@@ -6,7 +6,9 @@ import {
   dbForProjectAccess,
 } from "@/lib/create/project-access";
 import { loadOrBootstrapSiteChrome, parseSiteChrome } from "@/lib/create/site-chrome";
+import { builderRenderPath } from "@/lib/create/kcd-render-flag";
 import { ensureProjectPagesBeforePublish } from "@/lib/create/ensure-project-pages";
+import type { PageRow, SectionRow } from "@/lib/create/kcd-adapter";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -26,7 +28,7 @@ export async function GET(_req: Request, { params }: Params) {
     email: user.email,
     projectId: id,
     select:
-      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo, site_chrome, site_password_enabled, site_password_hash",
+      "id, title, project_type, status, created_at, updated_at, owner_id, business_id, subdomain, theme, source, category, description, locale, country_code, published_at, seo, site_chrome, site_password_enabled, site_password_hash, document_schema_version",
     action: "get",
   });
 
@@ -42,13 +44,19 @@ export async function GET(_req: Request, { params }: Params) {
    * Viewing the saved draft always shows current Cursor/seed edits.
    * Live public site still only changes on Publish.
    */
-  const sync = await ensureProjectPagesBeforePublish(db, id);
+  const operationProject = project.document_schema_version === "kcd-1";
+  const sync = operationProject ? { synced: false } : await ensureProjectPagesBeforePublish(db, id);
 
+  // Keep S4 read-only KCD rendering compatible while page operations remain gated.
+  const pageProtocol = operationProject ? await db.rpc("kcd_operation_protocol") : null;
+  const pageExtensions = pageProtocol?.error == null && [3, 4].includes(pageProtocol?.data);
+  const pageColumns: string = operationProject ? "id, slug, title, sort_order, device_layouts, layout_version, created_at, updated_at" + (pageExtensions ? ", order_key, kcd_unknown" : "") : "id, slug, title, sort_order, device_layouts, created_at, updated_at";
   const { data: pages, error: pagesError } = await db
     .from("project_pages")
-    .select("id, slug, title, sort_order, created_at, updated_at")
+    .select(pageColumns)
     .eq("project_id", id)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .returns<Array<PageRow & { created_at?: string; updated_at?: string }>>();
 
   if (pagesError) {
     logCreate("projects.get_pages_failed", {
@@ -62,11 +70,14 @@ export async function GET(_req: Request, { params }: Params) {
   const pageIds = (pages ?? []).map((p) => p.id);
   let sections: Array<Record<string, unknown>> = [];
   if (pageIds.length > 0) {
-    const { data: sectionRows, error: sectionsError } = await db
+    const sectionColumns: string = operationProject ? "id, page_id, section_type, sort_order, props, parent_id, order_key, node_version, type_version, created_at, updated_at" : "id, page_id, section_type, sort_order, props, created_at, updated_at";
+    let sectionQuery = db
       .from("project_sections")
-      .select("id, page_id, section_type, sort_order, props, created_at, updated_at")
+      .select(sectionColumns)
       .in("page_id", pageIds)
       .order("sort_order", { ascending: true });
+    if (!operationProject) sectionQuery = sectionQuery.is("parent_id", null);
+    const { data: sectionRows, error: sectionsError } = await sectionQuery.returns<Array<SectionRow & Record<string, unknown>>>();
 
     if (sectionsError) {
       return NextResponse.json(
@@ -122,6 +133,7 @@ export async function GET(_req: Request, { params }: Params) {
     pages: pages ?? [],
     sections,
     siteChrome: parseSiteChrome(siteChrome),
+    renderPath: builderRenderPath(id),
     publishState,
     supportAssist: access.via === "support",
     draftSeedSynced: sync.synced,

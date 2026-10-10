@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import {
   resolveDownloadToken,
   signedDownloadUrl,
-  incrementDownloadCount,
+  consumeDownloadToken,
 } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,9 @@ export async function GET(req: NextRequest, { params }: Params) {
   // Use service role so we can bypass RLS and access private storage
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  const download = await resolveDownloadToken(supabase, token);
+  let download;
+  try { download = await resolveDownloadToken(supabase, token); }
+  catch { return new NextResponse("Download verification unavailable. Please retry.", { status: 503, headers: { "Cache-Control": "no-store" } }); }
 
   if (!download) {
     return new NextResponse(
@@ -58,12 +60,15 @@ export async function GET(req: NextRequest, { params }: Params) {
     );
   }
 
-  // Increment counter (best-effort — don't block the redirect)
-  void supabase
-    .from("shop_digital_downloads")
-    .update({ download_count: download.download_count + 1 })
-    .eq("id", download.id);
+  // A simultaneous refund, expiry or another download must win before redirect.
+  try {
+    if (!await consumeDownloadToken(supabase, token)) {
+      return new NextResponse("Download link is unavailable or exhausted.", { status: 410, headers: { "Cache-Control": "no-store" } });
+    }
+  } catch {
+    return new NextResponse("Download verification unavailable. Please retry.", { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
 
   // Redirect to the signed URL — browser gets the file directly from Supabase Storage
-  return NextResponse.redirect(signedUrl, { status: 302 });
+  return NextResponse.redirect(signedUrl, { status: 302, headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" } });
 }

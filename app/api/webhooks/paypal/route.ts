@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
-import { paypalCaptureOrder, paypalConfigured } from "@/lib/payments/paypal-adapter";
+import { paypalCaptureOrder, paypalVerifyCapturedOrder, paypalConfigured } from "@/lib/payments/paypal-adapter";
 
 export const dynamic = "force-dynamic";
 
@@ -96,85 +96,29 @@ export async function POST(req: NextRequest) {
 
   const type = event.event_type || "";
   const resource = event.resource;
-  const reference =
-    resource?.custom_id?.trim() ||
-    resource?.purchase_units?.[0]?.custom_id?.trim() ||
-    resource?.purchase_units?.[0]?.reference_id?.trim() ||
-    "";
-
   const admin = createServiceClient();
-  if (!admin) {
-    return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
-  }
-
-  if (type === "CHECKOUT.ORDER.APPROVED" && resource?.id) {
-    const captured = await paypalCaptureOrder(resource.id);
-    if (!captured) {
-      return NextResponse.json({ ok: true, capture: "failed" });
-    }
-  }
-
-  if (
-    type !== "PAYMENT.CAPTURE.COMPLETED" &&
-    type !== "CHECKOUT.ORDER.COMPLETED" &&
-    type !== "CHECKOUT.ORDER.APPROVED"
-  ) {
+  if (!admin) return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
+  if (!["PAYMENT.CAPTURE.COMPLETED", "CHECKOUT.ORDER.COMPLETED", "CHECKOUT.ORDER.APPROVED"].includes(type)) {
     return NextResponse.json({ ok: true, ignored: true, event: type });
   }
-
-  if (!reference) {
-    // Fall back: look up by PayPal order id stored as provider_payment_id
-    const paypalOrderId =
-      resource?.supplementary_data?.related_ids?.order_id || resource?.id || null;
-    if (paypalOrderId) {
-      const { data: order } = await admin
-        .from("shop_orders")
-        .select("id, provider_reference, payment_status")
-        .eq("provider_payment_id", paypalOrderId)
-        .maybeSingle();
-      if (order?.provider_reference) {
-        const paid = await markShopOrderPaidByProviderRef(admin, {
-          reference: order.provider_reference,
-          paymentId: resource?.id ?? paypalOrderId,
-          provider: "paypal",
-        });
-        if (paid.ok) {
-          return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
-        }
-      }
-    }
-    return NextResponse.json({ error: "Missing custom_id / reference." }, { status: 400 });
+  const paypalOrderId = type === "PAYMENT.CAPTURE.COMPLETED"
+    ? resource?.supplementary_data?.related_ids?.order_id : resource?.id;
+  if (!paypalOrderId) return NextResponse.json({ error: "Missing PayPal checkout binding." }, { status: 400 });
+  const { data: order, error } = await admin.from("shop_orders")
+    .select("id, status, payment_status, provider_reference, provider_payment_id, provider_amount_value, provider_amount_currency")
+    .eq("payment_provider", "paypal").eq("provider_payment_id", paypalOrderId).maybeSingle();
+  if (error || !order) return NextResponse.json({ error: "PayPal checkout needs reconciliation." }, { status: 409 });
+  if (order.status === "cancelled" || order.payment_status === "refunded") {
+    return NextResponse.json({ error: "Order cannot accept payment." }, { status: 409 });
   }
-
+  const expected = { reference: order.provider_reference || "", value: order.provider_amount_value || "", currency: order.provider_amount_currency || "" };
+  const verified = type === "CHECKOUT.ORDER.APPROVED"
+    ? await paypalCaptureOrder(paypalOrderId, expected)
+    : await paypalVerifyCapturedOrder(paypalOrderId, expected);
+  if (!verified) return NextResponse.json({ error: "PayPal capture amount or status is not verified." }, { status: 409 });
   const paid = await markShopOrderPaidByProviderRef(admin, {
-    reference,
-    paymentId: resource?.id ?? null,
-    provider: "paypal",
+    reference: expected.reference, paymentId: paypalOrderId, provider: "paypal",
   });
-  if (!paid.ok) {
-    const retry = await markShopOrderPaidByProviderRef(admin, {
-      reference,
-      paymentId: resource?.id ?? null,
-    });
-    if (!retry.ok) return NextResponse.json({ error: retry.error }, { status: 404 });
-    console.info(
-      JSON.stringify({
-        event: "shop.order_paid_paypal",
-        orderId: retry.orderId,
-        projectId: retry.projectId,
-        reference,
-      }),
-    );
-    return NextResponse.json({ ok: true, kind: "shop_order", orderId: retry.orderId });
-  }
-
-  console.info(
-    JSON.stringify({
-      event: "shop.order_paid_paypal",
-      orderId: paid.orderId,
-      projectId: paid.projectId,
-      reference,
-    }),
-  );
+  if (!paid.ok) return NextResponse.json({ error: paid.error }, { status: 409 });
   return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
 }

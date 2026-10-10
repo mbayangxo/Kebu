@@ -1,6 +1,7 @@
 "use client";
 
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
+import type { KcdDocument } from "@/lib/creative-core";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
 import type { BuilderDevice } from "@/lib/create/builder-device";
 import {
@@ -16,6 +17,7 @@ import { useRef, useState } from "react";
 export type BuilderEditorState = {
   selectedSectionId: string | null;
   onSelectSection: (sectionId: string) => void;
+  onSpatialChange?: (id: string, box: import("@/lib/creative-core").SpatialBox) => Promise<unknown>;
   onPatchSection: (sectionId: string, patch: Record<string, unknown>) => void;
   onMoveFreeTextBlock: (sectionId: string, blockId: string, x: number, y: number) => void;
   /** Switch the builder preview to another site page (keeps you in the editor). */
@@ -41,8 +43,10 @@ export function BuilderEditablePreview({
   pageTitle = "Home",
   /** When true, site fills the pane — no + Add section strip under the canvas. */
   canvasFill = false,
+  nativeDocument,
 }: {
   definition: WebsiteDefinition;
+  nativeDocument?: KcdDocument;
   pageSlug: string;
   siteBase?: string;
   projectId?: string;
@@ -101,6 +105,7 @@ export function BuilderEditablePreview({
       <div className={canvasFill ? "min-h-full w-full flex-1" : undefined}>
         <SiteRenderer
           definition={definition}
+          nativeDocument={nativeDocument}
           mode="preview"
           pageSlug={pageSlug}
           siteBase={siteBase}

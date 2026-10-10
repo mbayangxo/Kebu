@@ -161,6 +161,17 @@ export async function POST(req: Request, { params }: Params) {
       projectId,
       detail: metaErr.message,
     });
+    // DB record failed — clean up the Storage object so we don't leave an orphan.
+    try {
+      await storageClient.storage.from("site-assets").remove([objectPath]);
+    } catch {
+      // Orphan cleanup is best-effort; the storage object will remain but is unreachable.
+      logCreate("website.asset_orphan_cleanup_failed", { userId: user.id, projectId, objectPath });
+    }
+    return NextResponse.json(
+      { error: "Upload saved but metadata record failed.", detail: metaErr.message },
+      { status: 500 },
+    );
   }
 
   logCreate("website.asset_uploaded", {

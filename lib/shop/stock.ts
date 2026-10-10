@@ -1,92 +1,33 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type StockState = {
-  trackStock: boolean;
-  stockQty: number | null;
-};
-
+export type StockState = { trackStock: boolean; stockQty: number | null };
+const validQuantity = (quantity: number) => Number.isInteger(quantity) && quantity > 0 && quantity <= 2147483647;
 export function isInStock(state: StockState, quantity: number): boolean {
-  if (!state.trackStock) return true;
-  const q = state.stockQty ?? 0;
-  return q >= quantity && quantity > 0;
+  return validQuantity(quantity) && (!state.trackStock || (state.stockQty ?? 0) >= quantity);
 }
 
-/** Atomically decrement stock when tracking. No-op if track_stock is false. */
-export async function decrementProductStock(
-  admin: SupabaseClient,
-  productId: string,
-  quantity: number,
-): Promise<{ ok: true; remaining: number | null } | { ok: false; error: string }> {
-  if (quantity < 1) return { ok: false, error: "Invalid quantity." };
-
-  const { data: product, error } = await admin
-    .from("project_products")
-    .select("id, track_stock, stock_qty")
-    .eq("id", productId)
-    .maybeSingle();
-
-  if (error && /track_stock|stock_qty/i.test(error.message ?? "")) {
-    return { ok: true, remaining: null };
-  }
-  if (error || !product) return { ok: false, error: "Product not found for stock." };
-  if (!product.track_stock) return { ok: true, remaining: null };
-
-  const current = typeof product.stock_qty === "number" ? product.stock_qty : 0;
-  if (current < quantity) {
-    return { ok: false, error: "Not enough stock for that product." };
-  }
-
-  const next = current - quantity;
-  const { data: updated, error: updErr } = await admin
-    .from("project_products")
-    .update({ stock_qty: next, updated_at: new Date().toISOString() })
-    .eq("id", productId)
-    .eq("track_stock", true)
-    .gte("stock_qty", quantity)
-    .select("stock_qty")
-    .maybeSingle();
-
-  if (updErr || !updated) {
-    return { ok: false, error: "Stock changed — refresh and try again." };
-  }
-  return { ok: true, remaining: updated.stock_qty };
+/** Server-only SQL updates relative stock under a row lock; never fall back to absolute writes. */
+export async function decrementProductStock(admin: SupabaseClient, productId: string, quantity: number):
+Promise<{ ok: true; remaining: number | null } | { ok: false; error: string }> {
+  if (!validQuantity(quantity)) return { ok: false, error: "Invalid quantity." };
+  const { data, error } = await admin.rpc("decrement_shop_stock_atomic", { p_product_id: productId, p_quantity: quantity });
+  if (error || data?.ok !== true) return { ok: false, error: typeof data?.error === "string" ? data.error : "Could not reserve product stock. Please try again." };
+  if (data.remaining !== null && (!Number.isInteger(data.remaining) || data.remaining < 0))
+    return { ok: false, error: "Could not verify product stock." };
+  return { ok: true, remaining: data.remaining };
 }
 
-export async function restoreProductStock(
-  admin: SupabaseClient,
-  productId: string,
-  quantity: number,
-): Promise<void> {
-  if (quantity < 1) return;
-  const { data: product } = await admin
-    .from("project_products")
-    .select("id, track_stock, stock_qty")
-    .eq("id", productId)
-    .maybeSingle();
-  if (!product?.track_stock) return;
-  const current = typeof product.stock_qty === "number" ? product.stock_qty : 0;
-  await admin
-    .from("project_products")
-    .update({ stock_qty: current + quantity, updated_at: new Date().toISOString() })
-    .eq("id", productId)
-    .eq("track_stock", true);
+export async function restoreProductStock(admin: SupabaseClient, productId: string, quantity: number): Promise<void> {
+  if (!validQuantity(quantity)) throw Error("Invalid stock restoration quantity.");
+  const { error } = await admin.rpc("restore_shop_stock_atomic", { p_product_id: productId, p_quantity: quantity });
+  if (error) throw Error("Could not restore product stock: " + error.message);
 }
 
-/** Decrement each line; on failure restore prior decrements in reverse. */
-export async function decrementCartStock(
-  admin: SupabaseClient,
-  lines: { productId: string; quantity: number }[],
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const done: { productId: string; quantity: number }[] = [];
-  for (const line of lines) {
-    const res = await decrementProductStock(admin, line.productId, line.quantity);
-    if (!res.ok) {
-      for (const prev of done.reverse()) {
-        await restoreProductStock(admin, prev.productId, prev.quantity);
-      }
-      return { ok: false, error: res.error };
-    }
-    done.push(line);
-  }
+/** Validate and decrement every line in one transaction, including duplicate products. */
+export async function decrementCartStock(admin: SupabaseClient, lines: { productId: string; quantity: number }[]):
+Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!lines.length || lines.length > 100 || lines.some(line => !validQuantity(line.quantity))) return { ok: false, error: "Invalid cart stock request." };
+  const { data, error } = await admin.rpc("decrement_shop_cart_stock_atomic", { p_lines: lines.map(line => ({ product_id: line.productId, quantity: line.quantity })) });
+  if (error || data?.ok !== true) return { ok: false, error: typeof data?.error === "string" ? data.error : "Could not reserve cart stock. Please try again." };
   return { ok: true };
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
-import { restoreProductStock } from "@/lib/shop/stock";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import {
   fulfillShopOrder,
@@ -37,7 +36,7 @@ export async function GET(_req: Request, { params }: Params) {
   const withFulfill = await db
     .from("shop_orders")
     .select(
-      "id, order_number, product_id, product_name, product_upc, product_sku, price_label, quantity, customer_name, customer_phone, customer_email, customer_note, payment_preference, payment_status, amount_xof, status, channel, tracking_number, carrier, tracking_url, fulfilled_at, archived_at, customer_notified_at, customer_notify_via, is_gift, recipient_name, recipient_phone, recipient_email, gift_message, gift_public_id, created_at, updated_at",
+      "id, order_number, product_id, product_name, product_upc, product_sku, price_label, quantity, customer_name, customer_phone, customer_email, customer_note, payment_preference, payment_status, amount_xof, gift_card_amount_xof, status, channel, tracking_number, carrier, tracking_url, fulfilled_at, archived_at, customer_notified_at, customer_notify_via, is_gift, recipient_name, recipient_phone, recipient_email, gift_message, gift_public_id, created_at, updated_at",
     )
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
@@ -50,7 +49,7 @@ export async function GET(_req: Request, { params }: Params) {
     const mid = await db
       .from("shop_orders")
       .select(
-        "id, order_number, product_id, product_name, product_upc, product_sku, price_label, quantity, customer_name, customer_phone, customer_note, payment_preference, payment_status, amount_xof, status, channel, created_at, updated_at",
+        "id, order_number, product_id, product_name, product_upc, product_sku, price_label, quantity, customer_name, customer_phone, customer_note, payment_preference, payment_status, amount_xof, gift_card_amount_xof, status, channel, created_at, updated_at",
       )
       .eq("project_id", projectId)
       .order("created_at", { ascending: false })
@@ -73,7 +72,7 @@ export async function GET(_req: Request, { params }: Params) {
     const midCodes = await db
       .from("shop_orders")
       .select(
-        "id, product_id, product_name, price_label, quantity, customer_name, customer_phone, customer_note, payment_preference, payment_status, amount_xof, status, channel, created_at, updated_at",
+        "id, product_id, product_name, price_label, quantity, customer_name, customer_phone, customer_note, payment_preference, payment_status, amount_xof, gift_card_amount_xof, status, channel, created_at, updated_at",
       )
       .eq("project_id", projectId)
       .order("created_at", { ascending: false })
@@ -171,6 +170,17 @@ export async function GET(_req: Request, { params }: Params) {
 
   const orders = rows ?? [];
   const orderIds = orders.map((o) => o.id as string);
+  const returnedOrders = new Set<string>();
+  let returnStatusKnown = orderIds.length === 0;
+  const admin = createServiceClient();
+  if (admin && orderIds.length) {
+    const returns = await admin.from("shop_order_returns").select("order_id")
+      .eq("project_id", projectId).in("order_id", orderIds);
+    if (!returns.error) {
+      returnStatusKnown = true;
+      for (const receipt of returns.data ?? []) returnedOrders.add(receipt.order_id);
+    }
+  }
   const itemsByOrder: Record<
     string,
     {
@@ -210,6 +220,7 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json({
     orders: orders.map((o) => ({
       ...o,
+      return_recorded: returnStatusKnown ? returnedOrders.has(o.id as string) : null,
       items: itemsByOrder[o.id as string] ?? [],
     })),
     carriers: SHOP_CARRIERS,
@@ -265,8 +276,8 @@ export async function PATCH(req: Request, { params }: Params) {
   const emailCustomer = rec.emailCustomer === true;
 
   const action =
-    actionRaw === "refund"
-      ? "refund"
+    actionRaw === "refund" || actionRaw === "record_refund" || actionRaw === "refund_gift" || actionRaw === "record_return"
+      ? actionRaw
       : actionRaw === "fulfill" || actionRaw === "archive" || actionRaw === "status"
         ? actionRaw
         : status === "archived"
@@ -276,31 +287,45 @@ export async function PATCH(req: Request, { params }: Params) {
             : "status";
 
   if (action === "refund") {
-    const refundNote = typeof rec.refundNote === "string" ? rec.refundNote.slice(0, 500) : null;
-    const { data: refunded, error: refundErr } = await db
-      .from("shop_orders")
-      .update({
-        payment_status: "refunded",
-        refunded_at: new Date().toISOString(),
-        refund_note: refundNote,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId)
-      .eq("project_id", projectId)
-      .select("*")
-      .single();
-
-    if (refundErr || !refunded) {
-      return NextResponse.json(
-        {
-          error: refundErr?.message?.includes("refunded")
-            ? "Apply migration 066_remaining_slices.sql."
-            : "Could not refund order.",
-        },
-        { status: 500 },
-      );
+    return NextResponse.json({ error: "Return the funds through your payment provider, then record the refund receipt." }, { status: 409 });
+  }
+  if (action === "refund_gift" || action === "record_return") {
+    const reference = typeof rec.returnReference === "string" ? rec.returnReference.trim() : "";
+    if (action === "refund_gift" ? rec.restoreGiftCredit !== true
+      : rec.allItemsReceivedResalable !== true || reference.length < 3 || reference.length > 200) {
+      return NextResponse.json({ error: action === "refund_gift"
+        ? "Confirm the full gift credit refund."
+        : "Confirm all items were received in resalable condition and enter a return reference." }, { status: 400 });
     }
-
+    const admin = createServiceClient();
+    if (!admin) return NextResponse.json({ error: "Order reconciliation is temporarily unavailable." }, { status: 503 });
+    const { data: reconciled, error } = await admin.rpc(
+      action === "refund_gift" ? "refund_gift_paid_shop_order" : "record_resalable_shop_return",
+      action === "refund_gift" ? { p_order_id: orderId, p_project_id: projectId }
+        : { p_order_id: orderId, p_project_id: projectId, p_recorded_by: user.id, p_reference: reference },
+    );
+    if (error || typeof reconciled?.id !== "string") {
+      const message = error?.message ?? "";
+      return NextResponse.json({ error: /^(Only a paid order can be refunded\.|Record the returned cash payment before refunding this order\.|Refund the full order before recording its return\.|This older order needs (inventory reconciliation before returning|gift credit reconciliation before refunding)\.|A returned (product|variant) needs inventory reconciliation\.|A different return is already recorded\.)$/.test(message)
+        ? message : "Could not reconcile order. Please try again." }, { status: 409 });
+    }
+    return NextResponse.json({ order: reconciled, carriers: SHOP_CARRIERS });
+  }
+  if (action === "record_refund") {
+    const reference = typeof rec.refundReference === "string" ? rec.refundReference.trim() : "";
+    if (rec.fundsReturned !== true || reference.length < 3 || reference.length > 200) {
+      return NextResponse.json({ error: "Confirm the funds were returned and enter a refund reference." }, { status: 400 });
+    }
+    const admin = createServiceClient();
+    if (!admin) return NextResponse.json({ error: "Refund recording is temporarily unavailable." }, { status: 503 });
+    const { data: refunded, error } = await admin.rpc("record_external_shop_refund", {
+      p_order_id: orderId, p_project_id: projectId, p_recorded_by: user.id, p_reference: reference,
+    });
+    if (error || typeof refunded?.id !== "string") {
+      const message = error?.message ?? "";
+      return NextResponse.json({ error: /^(Only a paid order with a known amount can have a refund recorded\.|A different refund is already recorded\.)$/.test(message)
+        ? message : "Could not record refund. Please try again." }, { status: 409 });
+    }
     return NextResponse.json({ order: refunded, carriers: SHOP_CARRIERS });
   }
 
@@ -337,27 +362,6 @@ export async function PATCH(req: Request, { params }: Params) {
       { error: result.error },
       { status: result.status ?? 500 },
     );
-  }
-
-  if (
-    (action === "status" && status === "cancelled") ||
-    (result.order.status === "cancelled" && existing.status !== "cancelled")
-  ) {
-    if (existing.product_id && existing.quantity > 0 && admin) {
-      const { data: items } = await db
-        .from("shop_order_items")
-        .select("product_id, quantity")
-        .eq("order_id", orderId);
-      if (items?.length) {
-        for (const it of items) {
-          if (it.product_id) {
-            await restoreProductStock(admin, it.product_id, it.quantity);
-          }
-        }
-      } else {
-        await restoreProductStock(admin, existing.product_id, existing.quantity);
-      }
-    }
   }
 
   logCreate("shop.order_fulfill", {

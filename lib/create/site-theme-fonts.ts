@@ -1,30 +1,25 @@
 /**
- * Theme font loading for public + private sites.
- * Maps builder font names → Google Fonts CSS2 families (Steelfish is self-hosted).
+ * Theme font stacks for public + private sites.
+ *
+ * Google-family theme fonts are self-hosted by next/font (app/components/create/theme-font-faces.ts)
+ * and referenced through CSS variables — never loaded from Google's font CDN at runtime
+ * (the CSP forbids third-party stylesheets). Steelfish ships as a local @font-face.
  */
 
-const GOOGLE_DISPLAY: Record<string, string> = {
-  Fraunces: "Fraunces:ital,wght@0,400;0,600;0,700;1,400",
-  "Playfair Display": "Playfair+Display:ital,wght@0,400;0,600;0,700;1,400",
-  Oswald: "Oswald:wght@400;500;600;700",
-  "Bebas Neue": "Bebas+Neue",
-  "IBM Plex Sans": "IBM+Plex+Sans:wght@300;400;500;600;700",
-  Inter: "Inter:wght@400;500;600;700",
-  Syne: "Syne:wght@400;600;700;800",
-  Lobster: "Lobster",
-  "Dancing Script": "Dancing+Script:wght@400;500;600;700",
-  "Great Vibes": "Great+Vibes",
-  Pacifico: "Pacifico",
-  "Abril Fatface": "Abril+Fatface",
-};
-
-const GOOGLE_BODY: Record<string, string> = {
-  "IBM Plex Sans": "IBM+Plex+Sans:wght@300;400;500;600;700",
-  Inter: "Inter:wght@400;500;600;700",
-  "Helvetica Neue": "", // system
-  Arial: "",
-  Georgia: "",
-  "system-ui": "",
+/** Theme font name → CSS variable defined by THEME_FONT_VARIABLE_CLASSES. */
+export const THEME_FONT_VARIABLES: Record<string, string> = {
+  Fraunces: "--kebu-font-fraunces",
+  "Playfair Display": "--kebu-font-playfair-display",
+  Oswald: "--kebu-font-oswald",
+  "Bebas Neue": "--kebu-font-bebas-neue",
+  "IBM Plex Sans": "--kebu-font-ibm-plex-sans",
+  Inter: "--kebu-font-inter",
+  Syne: "--kebu-font-syne",
+  Lobster: "--kebu-font-lobster",
+  "Dancing Script": "--kebu-font-dancing-script",
+  "Great Vibes": "--kebu-font-great-vibes",
+  Pacifico: "--kebu-font-pacifico",
+  "Abril Fatface": "--kebu-font-abril-fatface",
 };
 
 /** Fonts pickable on moveable text boxes + Aesthetic Editor. */
@@ -43,38 +38,21 @@ export const TEXT_FONT_OPTIONS = [
   "Helvetica Neue",
 ] as const;
 
-function googleFamilySpec(name: string): string | null {
-  const spec = GOOGLE_DISPLAY[name] ?? GOOGLE_BODY[name];
-  return spec || null;
-}
-
-/** True when we ship a local @font-face (May Lecor Russian display). */
+/** True when the font is served by Kebu itself (no third-party request). */
 export function isSelfHostedThemeFont(name: string): boolean {
-  return name === "Steelfish";
+  return name === "Steelfish" || name in THEME_FONT_VARIABLES;
 }
 
-export function googleFontsHrefForTheme(
-  fontDisplay: string,
-  fontBody: string,
-  extraFamilies: string[] = [],
-): string | null {
-  const families = new Set<string>();
-  const d = googleFamilySpec(fontDisplay);
-  if (d) families.add(d);
-  const b = googleFamilySpec(fontBody);
-  if (b) families.add(b);
-  for (const name of extraFamilies) {
-    const spec = googleFamilySpec(name.trim());
-    if (spec) families.add(spec);
-  }
-  if (families.size === 0) return null;
-  const q = [...families].map((f) => `family=${f}`).join("&");
-  return `https://fonts.googleapis.com/css2?${q}&display=swap`;
-}
-
+/**
+ * CSS font-family stack for a theme font name. Self-hosted families resolve through their
+ * variable; where the variables are not applied (Ultra/Offline data modes) the stack falls
+ * back to a locally installed copy, then system fonts — no download.
+ */
 export function cssFontStack(name: string): string {
   if (name === "Steelfish") return '"Steelfish", Arial, sans-serif';
   if (name === "system-ui") return "system-ui, -apple-system, Segoe UI, sans-serif";
   if (name === "Helvetica Neue") return '"Helvetica Neue", Helvetica, Arial, sans-serif';
+  const variable = THEME_FONT_VARIABLES[name];
+  if (variable) return `var(${variable}, "${name}"), system-ui, sans-serif`;
   return `"${name}", system-ui, sans-serif`;
 }

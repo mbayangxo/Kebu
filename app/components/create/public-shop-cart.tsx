@@ -1,5 +1,6 @@
 "use client";
 
+import { checkoutRequestId, completeCheckoutRequest } from "@/lib/create/checkout-request";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   commercePaymentOptions,
@@ -152,13 +153,7 @@ export function PublicShopCart({
     setError(null);
     trackShopEvent(subdomain, "checkout_start", { itemCount: lines.length });
     try {
-      const res = await fetch(`/api/public/sites/${encodeURIComponent(subdomain)}/cart/checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Kebu-Data-Mode": mode,
-        },
-        body: JSON.stringify({
+      const payload = {
           items: lines.map((l) => ({
             productId: l.productId,
             variantId: l.variantId ?? undefined,
@@ -178,7 +173,14 @@ export function PublicShopCart({
           recipientPhone: isGift ? recipientPhone : undefined,
           recipientEmail: isGift ? recipientEmail.trim() || undefined : undefined,
           giftMessage: isGift ? giftMessage : undefined,
-        }),
+        };
+      const res = await fetch(`/api/public/sites/${encodeURIComponent(subdomain)}/cart/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Kebu-Data-Mode": mode,
+        },
+        body: JSON.stringify({ ...payload, requestId: await checkoutRequestId(`cart:${subdomain}`, payload) }),
       });
       const bytes = await measureResponseBytes(res);
       reportKb("place_order", bytes);
@@ -187,6 +189,8 @@ export function PublicShopCart({
         setError(typeof data.error === "string" ? data.error : "Could not check out.");
         return;
       }
+      if (typeof data.orderId !== "string") throw new Error("Missing checkout receipt");
+      completeCheckoutRequest(`cart:${subdomain}`);
       clearShopCart(subdomain);
       window.dispatchEvent(new Event("kebu-cart-changed"));
       setLines([]);
@@ -404,7 +408,7 @@ export function PublicShopCart({
                         : "Place cart order"}
                 </button>
                 <p className="text-[9px] opacity-50">
-                  Not marked paid in the browser. JOKO paid only after webhook when you choose that method.
+                  Gift credit is confirmed by the server. External payments are confirmed by the payment provider.
                 </p>
               </form>
             )}

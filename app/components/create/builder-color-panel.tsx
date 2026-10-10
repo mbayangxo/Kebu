@@ -1,6 +1,8 @@
 "use client";
 
 import { BUILDER } from "@/lib/create/builder-ui";
+import { cssFontStack } from "@/lib/create/site-theme-fonts";
+import { THEME_FONT_VARIABLE_CLASSES } from "@/app/components/create/theme-font-faces";
 import type { ThemeTokens } from "@/lib/create/website-schema";
 
 const SWATCHES = [
@@ -198,15 +200,9 @@ export function BuilderTypographyPanel({
             }}
           />
         ) : null}
-        {theme.fontDisplay && theme.fontDisplay !== "system-ui" && theme.fontDisplay !== "serif" ? (
-          <link
-            rel="stylesheet"
-            href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.fontDisplay)}:wght@400;700&display=swap`}
-          />
-        ) : null}
         <p
-          className="mt-1.5 truncate text-[18px] leading-tight"
-          style={{ fontFamily: `"${theme.fontDisplay}", serif` }}
+          className={`mt-1.5 truncate text-[18px] leading-tight ${THEME_FONT_VARIABLE_CLASSES}`}
+          style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
           aria-hidden
         >
           Aa — {theme.fontDisplay}
@@ -249,15 +245,9 @@ export function BuilderTypographyPanel({
             }}
           />
         ) : null}
-        {theme.fontBody && theme.fontBody !== "system-ui" && theme.fontBody !== "serif" ? (
-          <link
-            rel="stylesheet"
-            href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.fontBody)}:wght@400;700&display=swap`}
-          />
-        ) : null}
         <p
-          className="mt-1.5 truncate text-[13px]"
-          style={{ fontFamily: `"${theme.fontBody}", sans-serif` }}
+          className={`mt-1.5 truncate text-[13px] ${THEME_FONT_VARIABLE_CLASSES}`}
+          style={{ fontFamily: cssFontStack(theme.fontBody) }}
           aria-hidden
         >
           The quick brown fox — {theme.fontBody}

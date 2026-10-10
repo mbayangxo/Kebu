@@ -1,10 +1,17 @@
+import { rejectLegacySectionWrite } from "@/lib/create/kcd-write-guard";
 import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { builderRateLimit } from "@/lib/api-guard";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
 import { maylecorAboutPageSections } from "@/lib/create/maylecor-about-bio";
 import { syncProjectChromeNavFromPages } from "@/lib/create/site-chrome";
+import {
+  assertProjectEditorAccess,
+  dbForProjectAccess,
+} from "@/lib/create/project-access";
 import { z } from "zod";
+import { pageDeviceLayoutsSchema } from "@/lib/create/website-extensions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,28 +31,38 @@ const patchPageSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
   slug: slugSchema.optional(),
   sortOrder: z.number().int().min(0).optional(),
+  /** Per-device section ordering and visibility overrides. null clears the layouts. */
+  deviceLayouts: pageDeviceLayoutsSchema.or(z.null()).optional(),
 });
 
 const deletePageSchema = z.object({
   pageId: z.string().uuid(),
 });
 
-async function assertOwnedProject(
+async function requirePageEditorDb(
   supabase: Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>,
-  userId: string,
+  user: { id: string; email?: string },
   projectId: string,
+  action: string,
 ) {
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id, owner_id")
-    .eq("id", projectId)
-    .maybeSingle();
-  if (!project || project.owner_id !== userId) return null;
-  return project;
+  const access = await assertProjectEditorAccess(supabase, {
+    userId: user.id,
+    email: user.email,
+    projectId,
+    action,
+    select: "id, document_schema_version",
+  });
+  if (!access) return null;
+  const blocked = rejectLegacySectionWrite(access.project);
+  if (blocked) return blocked;
+  return dbForProjectAccess(supabase, access.via);
 }
 
 /** Add a page with a default hero section. */
 export async function POST(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -58,8 +75,9 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid project id." }, { status: 400 });
   }
 
-  const owned = await assertOwnedProject(supabase, user.id, projectId);
-  if (!owned) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  const db = await requirePageEditorDb(supabase, user, projectId, "pages.add");
+  if (!db) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  if (db instanceof Response) return db;
 
   let body: unknown;
   try {
@@ -73,7 +91,7 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("project_pages")
     .select("id, slug, sort_order")
     .eq("project_id", projectId);
@@ -88,7 +106,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const nextOrder = existing?.length ? Math.max(...existing.map((p) => p.sort_order)) + 1 : 0;
 
-  const { data: page, error: pageError } = await supabase
+  const { data: page, error: pageError } = await db
     .from("project_pages")
     .insert({
       project_id: projectId,
@@ -138,25 +156,32 @@ export async function POST(req: Request, { params }: Params) {
           },
         ];
 
-  const { error: secError } = await supabase.from("project_sections").insert(seedSections);
+  const { error: secError } = await db.from("project_sections").insert(seedSections);
 
   if (secError) {
-    await supabase.from("project_pages").delete().eq("id", page.id);
+    await db.from("project_pages").delete().eq("id", page.id);
     return NextResponse.json({ error: "Could not create default section.", detail: secError.message }, { status: 500 });
   }
 
+  let navSyncError: string | undefined;
   try {
-    await syncProjectChromeNavFromPages(supabase as never, projectId);
-  } catch {
-    /* chrome sync is best-effort */
+    await syncProjectChromeNavFromPages(db as never, projectId);
+  } catch (err) {
+    navSyncError = err instanceof Error ? err.message : "nav sync failed";
   }
 
   logCreate("pages.add", { userId: user.id, projectId, pageId: page.id, slug: page.slug });
-  return NextResponse.json({ page }, { status: 201 });
+  return NextResponse.json(
+    { page, ...(navSyncError ? { navSyncError, navSyncStale: true } : {}) },
+    { status: 201 },
+  );
 }
 
 /** Rename, re-slug, or reorder a page. */
 export async function PATCH(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -169,8 +194,9 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid project id." }, { status: 400 });
   }
 
-  const owned = await assertOwnedProject(supabase, user.id, projectId);
-  if (!owned) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  const db = await requirePageEditorDb(supabase, user, projectId, "pages.patch");
+  if (!db) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  if (db instanceof Response) return db;
 
   let body: unknown;
   try {
@@ -184,7 +210,7 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { data: page } = await supabase
+  const { data: page } = await db
     .from("project_pages")
     .select("id, slug")
     .eq("id", parsed.data.pageId)
@@ -194,7 +220,7 @@ export async function PATCH(req: Request, { params }: Params) {
   if (!page) return NextResponse.json({ error: "Page not found." }, { status: 404 });
 
   if (parsed.data.slug && parsed.data.slug !== page.slug) {
-    const { data: clash } = await supabase
+    const { data: clash } = await db
       .from("project_pages")
       .select("id")
       .eq("project_id", projectId)
@@ -210,31 +236,42 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.title) updates.title = parsed.data.title;
   if (parsed.data.slug) updates.slug = parsed.data.slug;
   if (parsed.data.sortOrder !== undefined) updates.sort_order = parsed.data.sortOrder;
+  if ("deviceLayouts" in parsed.data) {
+    // null clears the column; undefined means not provided (no-op)
+    updates.device_layouts = parsed.data.deviceLayouts ?? null;
+  }
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await db
     .from("project_pages")
     .update(updates)
     .eq("id", parsed.data.pageId)
-    .select("id, slug, title, sort_order")
+    .select("id, slug, title, sort_order, device_layouts")
     .single();
 
   if (error || !updated) {
     return NextResponse.json({ error: "Could not update page.", detail: error?.message }, { status: 500 });
   }
 
+  let navSyncError: string | undefined;
   if (parsed.data.title || parsed.data.slug || parsed.data.sortOrder !== undefined) {
     try {
-      await syncProjectChromeNavFromPages(supabase as never, projectId);
-    } catch {
-      /* best-effort */
+      await syncProjectChromeNavFromPages(db as never, projectId);
+    } catch (err) {
+      navSyncError = err instanceof Error ? err.message : "nav sync failed";
     }
   }
 
-  return NextResponse.json({ page: updated });
+  return NextResponse.json({
+    page: updated,
+    ...(navSyncError ? { navSyncError, navSyncStale: true } : {}),
+  });
 }
 
 /** Remove a page (must leave at least one). */
 export async function DELETE(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -247,8 +284,9 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid project id." }, { status: 400 });
   }
 
-  const owned = await assertOwnedProject(supabase, user.id, projectId);
-  if (!owned) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  const db = await requirePageEditorDb(supabase, user, projectId, "pages.delete");
+  if (!db) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  if (db instanceof Response) return db;
 
   let body: unknown;
   try {
@@ -262,7 +300,7 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { count } = await supabase
+  const { count } = await db
     .from("project_pages")
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId);
@@ -271,26 +309,34 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Cannot delete the last page." }, { status: 400 });
   }
 
-  const { data: page } = await supabase
+  const { data: page } = await db
     .from("project_pages")
-    .select("id")
+    .select("id, slug")
     .eq("id", parsed.data.pageId)
     .eq("project_id", projectId)
     .maybeSingle();
 
   if (!page) return NextResponse.json({ error: "Page not found." }, { status: 404 });
 
-  const { error } = await supabase.from("project_pages").delete().eq("id", parsed.data.pageId);
+  if (page.slug === "home") {
+    return NextResponse.json({ error: "Cannot delete the home page." }, { status: 400 });
+  }
+
+  const { error } = await db.from("project_pages").delete().eq("id", parsed.data.pageId);
   if (error) {
     return NextResponse.json({ error: "Could not delete page.", detail: error.message }, { status: 500 });
   }
 
+  let navSyncError: string | undefined;
   try {
-    await syncProjectChromeNavFromPages(supabase as never, projectId);
-  } catch {
-    /* best-effort */
+    await syncProjectChromeNavFromPages(db as never, projectId);
+  } catch (err) {
+    navSyncError = err instanceof Error ? err.message : "nav sync failed";
   }
 
   logCreate("pages.delete", { userId: user.id, projectId, pageId: parsed.data.pageId });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    ...(navSyncError ? { navSyncError, navSyncStale: true } : {}),
+  });
 }

@@ -179,6 +179,23 @@ export async function fulfillShopOrder(
     return { ok: false, error: "Order not found.", status: 404 };
   }
 
+  if (opts.action === "status" && opts.status === "cancelled") {
+    if (!admin) return { ok: false, error: "Cancellation is temporarily unavailable.", status: 503 };
+    const { data, error } = await admin.rpc("cancel_saved_shop_checkout", {
+      p_order_id: opts.orderId,
+      p_project_id: opts.projectId,
+    });
+    if (error || typeof data?.id !== "string") {
+      const message = error?.message ?? "";
+      return { ok: false, error: /^(This older order needs inventory reconciliation before cancellation\.|Resolve the payment or return before cancelling this order\.)$/.test(message)
+        ? message : "Could not cancel order. Please try again.", status: 409 };
+    }
+    return { ok: true, order: data, whatsappHref: null, emailed: false, smsSent: false };
+  }
+  if (existing.status === "cancelled") {
+    return { ok: false, error: "A cancelled order cannot be reopened.", status: 409 };
+  }
+
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = {};
 
@@ -229,6 +246,7 @@ export async function fulfillShopOrder(
     .update(patch)
     .eq("id", opts.orderId)
     .eq("project_id", opts.projectId)
+    .eq("status", existing.status)
     .select(
       "id, status, tracking_number, carrier, tracking_url, fulfilled_at, archived_at, customer_notified_at, customer_notify_via, customer_name, customer_phone, customer_email, order_number, product_name",
     )

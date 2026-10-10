@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sectionPropsSchemas } from "@/lib/create/website-schema";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
-import { googleFontsHrefForTheme, TEXT_FONT_OPTIONS } from "@/lib/create/site-theme-fonts";
+import { TEXT_FONT_OPTIONS, cssFontStack } from "@/lib/create/site-theme-fonts";
 
 describe("free-text aesthetic customize", () => {
   it("accepts per-block fontFamily and keeps mock defaults editable", () => {
@@ -29,10 +29,9 @@ describe("free-text aesthetic customize", () => {
     expect(withFont.blocks[0]?.fontFamily).toBe("Oswald");
   });
 
-  it("loads extra text-box fonts in the theme stylesheet href", () => {
-    const href = googleFontsHrefForTheme("Fraunces", "system-ui", ["Oswald", "Syne"]);
-    expect(href).toContain("Oswald");
-    expect(href).toContain("Syne");
+  it("text-box fonts resolve to self-hosted faces (no runtime stylesheet)", () => {
     expect(TEXT_FONT_OPTIONS).toContain("Oswald");
+    expect(cssFontStack("Oswald")).toBe('var(--kebu-font-oswald, "Oswald"), system-ui, sans-serif');
+    expect(cssFontStack("Syne")).toBe('var(--kebu-font-syne, "Syne"), system-ui, sans-serif');
   });
 });

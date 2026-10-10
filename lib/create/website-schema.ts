@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { siteSeoSchema, containsUnsafeSiteContent } from "./site-seo";
 import { navLinksArraySchema } from "./maylecor-nav";
+import {
+  pageDeviceLayoutsSchema,
+  sectionMotionSchema,
+  sectionA11ySchema,
+  responsiveVisibilitySchema,
+  dataBindingSchema,
+  commerceBindingSchema,
+  sectionInteractionSchema,
+} from "./website-extensions";
+import { HERO_HEIGHTS, normalizeLegacyHeroProps } from "./hero-section";
+import { normalizeLegacyEditorialHeroProps } from "./editorial-hero-section";
 
 export const SECTION_TYPES = [
   "navigation",
@@ -135,10 +146,17 @@ const socialRailFields = {
 };
 
 /** Per-device copy/layout overrides (W9) — tablet/mobile only; desktop uses base props. */
-const deviceOverridesSchema = z
+export const deviceOverridesSchema = z
   .object({
     tablet: z.record(z.string(), z.unknown()).optional(),
     mobile: z.record(z.string(), z.unknown()).optional(),
+    /** Responsive state (lib/create/device-overrides.ts) — Customize / Needs review. */
+    _state: z
+      .object({
+        mode: z.enum(["auto", "custom", "needs-review"]),
+        baseHash: z.string().trim().max(32).optional(),
+      })
+      .optional(),
   })
   .optional();
 
@@ -181,22 +199,41 @@ export const sectionPropsSchemas = {
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
-  hero: z.object({
+  /** Legacy template field names are normalized first (normalizeLegacyHeroProps). */
+  hero: z.preprocess(normalizeLegacyHeroProps, z.object({
     heading: z.string().trim().min(1).max(160),
     subheading: z.string().trim().max(400).default(""),
     buttonLabel: z.string().trim().max(60).default("Get started"),
     buttonHref: safeHref.default("#"),
+    /** Optional second call-to-action, shown beside the first; "" or absent = none. */
+    secondaryButtonLabel: z.string().trim().max(60).optional(),
+    secondaryButtonHref: safeHref.optional(),
     align: z.enum(["left", "center"]).default("center"),
     background: z.string().trim().max(40).optional(),
+    /**
+     * Height (lib/create/hero-height.ts): "auto" fits the content; absent = legacy 80vh.
+     * Unsupported stored values are dropped rather than failing the save.
+     */
+    minHeight: z.enum(HERO_HEIGHTS).optional().catch(undefined),
+    /** Background photo (Builder upload URL); "" = none. */
+    image: imageUrl.optional().catch(undefined),
+    /** Darkening over the background photo, 0–0.9 (Builder "Overlay" slider); unset = 0.42. */
+    overlayOpacity: z.number().min(0).max(0.9).optional().catch(undefined),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
-  }),
+  })),
   /** Full-bleed image/video hero with text overlay — editorial layouts and fashion templates. */
-  "editorial-hero": z.object({
+  /** Legacy template field names are normalized first (normalizeLegacyEditorialHeroProps). */
+  "editorial-hero": z.preprocess(normalizeLegacyEditorialHeroProps, z.object({
+    /** Short line above the headline; "" or absent = none. */
+    eyebrow: z.string().trim().max(120).optional(),
     heading: z.string().trim().min(1).max(160),
     subheading: z.string().trim().max(400).default(""),
     buttonLabel: z.string().trim().max(60).default(""),
     buttonHref: safeHref.default("#"),
+    /** Optional second call-to-action, shown beside the first; "" or absent = none. */
+    secondaryButtonLabel: z.string().trim().max(60).optional(),
+    secondaryButtonHref: safeHref.optional(),
     imageUrl: imageUrl.default(""),
     imageAlt: z.string().trim().max(160).default(""),
     /** 0–1 dark overlay opacity over the image. */
@@ -206,7 +243,8 @@ export const sectionPropsSchemas = {
     heightVh: z.number().int().min(40).max(100).default(80),
     background: z.string().trim().max(40).optional(),
     hidden: z.boolean().optional(),
-  }),
+    deviceOverrides: deviceOverridesSchema,
+  })),
   /** Sticky top bar with a short promotional message — high contrast, attention-grabbing. */
   "announcement-bar": z.object({
     text: z.string().trim().min(1).max(200),
@@ -233,6 +271,7 @@ export const sectionPropsSchemas = {
     freeShippingCurrency: z.string().trim().max(6).optional().default("FCFA"),
     freeShippingAchievedText: z.string().trim().max(120).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /** Horizontally scrolling text ticker — brand names, product categories, mottos. */
   marquee: z.object({
@@ -243,6 +282,7 @@ export const sectionPropsSchemas = {
     color: z.string().trim().max(40).optional(),
     separator: z.string().trim().max(10).optional().default("·"),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /** Two-column image + text layout — brand story, about, product feature. */
   split: z.object({
@@ -286,6 +326,7 @@ export const sectionPropsSchemas = {
     alt: z.string().trim().max(160).default(""),
     caption: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   gallery: z.object({
     heading: z.string().trim().max(160).optional(),
@@ -316,6 +357,7 @@ export const sectionPropsSchemas = {
     instagramHandle: z.string().trim().max(60).optional(),
     followLabel: z.string().trim().max(60).optional().default("Suivez-nous"),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   video: z.object({
     heading: z.string().trim().max(160).optional(),
@@ -343,6 +385,7 @@ export const sectionPropsSchemas = {
     layout: z.enum(["grid", "single", "featured"]).optional().default("grid"),
     columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().default(2),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   audio: z.object({
     heading: z.string().trim().max(160).optional(),
@@ -351,6 +394,7 @@ export const sectionPropsSchemas = {
     title: z.string().trim().max(120).optional(),
     artist: z.string().trim().max(80).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   map: z.object({
     heading: z.string().trim().max(160).default("Find us"),
@@ -359,6 +403,7 @@ export const sectionPropsSchemas = {
     longitude: z.number().min(-180).max(180),
     zoom: z.number().int().min(1).max(18).default(14),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   events: z.object({
     heading: z.string().trim().max(160).default("Events"),
@@ -378,6 +423,7 @@ export const sectionPropsSchemas = {
         .default([]),
     ),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   features: z.object({
     heading: z.string().trim().max(160).default("Features"),
@@ -429,6 +475,7 @@ export const sectionPropsSchemas = {
       .default([]),
     ),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   faq: z.object({
     heading: z.string().trim().max(160).default("FAQ"),
@@ -476,6 +523,8 @@ export const sectionPropsSchemas = {
           imageUrl: imageUrl.default(""),
           whatsappMessage: z.string().trim().max(300).optional(),
           productId: z.string().uuid().optional(),
+          /** Existing product cross-sell links must survive the section save boundary. */
+          relatedProductIds: z.array(z.string().uuid()).max(24).optional(),
           isSubscription: z.boolean().optional(),
           subscriptionInterval: z
             .enum(["weekly", "monthly", "quarterly", "yearly"])
@@ -536,6 +585,11 @@ export const sectionPropsSchemas = {
         insertAfterIndex: z.number().int().min(0).max(23).optional().default(2),
       })
       .optional(),
+    /**
+     * Phase 3 — Commerce bindings: reference live Kebu Commerce products.
+     * When set, the renderer fetches live product data; static items remain as fallback.
+     */
+    commerceBinding: commerceBindingSchema,
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),
@@ -589,6 +643,7 @@ export const sectionPropsSchemas = {
         { id: "routine", question: "Votre routine actuelle ?", options: ["Je débute", "Routine simple (2–3 soins)", "Routine complète", "Soins naturels uniquement"], icon: "🕐" },
       ]),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /**
    * Numbers/achievements strip — social proof for agencies, freelancers, coaches.
@@ -621,6 +676,7 @@ export const sectionPropsSchemas = {
     }).optional(),
     background: z.string().trim().max(40).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   contact: z.object({
     heading: z.string().trim().max(160).default("Contact"),
@@ -628,6 +684,7 @@ export const sectionPropsSchemas = {
     phone: z.string().trim().max(40).optional(),
     address: z.string().trim().max(240).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   newsletter: z.object({
     heading: z.string().trim().max(160).default("Stay in the loop"),
@@ -635,6 +692,7 @@ export const sectionPropsSchemas = {
     buttonLabel: z.string().trim().max(40).default("Subscribe"),
     successMessage: z.string().trim().max(160).default("Thanks — you're on the list."),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   form: z.object({
     heading: z.string().trim().max(160).default("Contact us"),
@@ -674,12 +732,14 @@ export const sectionPropsSchemas = {
         { id: "message", label: "Message", type: "textarea", required: true, placeholder: "", options: [] },
       ]),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "blog-list": z.object({
     heading: z.string().trim().max(160).default("Blog"),
     subheading: z.string().trim().max(240).default("News and updates from our team."),
     postsPerPage: z.number().int().min(1).max(12).default(6),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /** Overlay: cookie/privacy consent and/or email capture (persists via localStorage + DB list). */
   "email-popup": z.object({
@@ -712,12 +772,14 @@ export const sectionPropsSchemas = {
     /** Teaser shown instead of plain heading — e.g. "Get 15% off your first order". */
     discountTeaser: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   whatsapp: z.object({
     label: z.string().trim().max(60).default("Chat on WhatsApp"),
     phone: z.string().trim().min(5).max(40),
     message: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   joko: z.object({
     label: z.string().trim().max(60).default("Payer via Joko"),
@@ -727,6 +789,7 @@ export const sectionPropsSchemas = {
     jokoPayLink: z.string().trim().max(500).optional(),
     message: z.string().trim().max(200).optional(),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /**
    * Hero-sized countdown timer — great for drops, launches, flash sales, events.
@@ -752,6 +815,7 @@ export const sectionPropsSchemas = {
     labelMinutes: z.string().trim().max(20).optional().default("Minutes"),
     labelSeconds: z.string().trim().max(20).optional().default("Secondes"),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /**
    * Trust / reassurance badge strip — conversion booster under hero or cart.
@@ -777,6 +841,7 @@ export const sectionPropsSchemas = {
     /** strip = icon + label row · grid = 2×2 with descriptions */
     layout: z.enum(["strip", "grid"]).optional().default("strip"),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /**
    * Social proof notification popup — cycling corner toasts showing recent orders.
@@ -801,6 +866,7 @@ export const sectionPropsSchemas = {
     interval: z.number().int().min(3).max(30).optional().default(8),
     position: z.enum(["bottom-left", "bottom-right"]).optional().default("bottom-left"),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /**
    * Floating sticky CTA — WhatsApp / call button always visible at viewport corner.
@@ -818,6 +884,7 @@ export const sectionPropsSchemas = {
     /** Show pulsing ring animation. */
     pulse: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /**
    * Side-by-side drag slider revealing a before/after photo pair.
@@ -833,6 +900,7 @@ export const sectionPropsSchemas = {
     /** 0–100 — where the divider starts (50 = middle). */
     initialPosition: z.number().min(0).max(100).optional().default(50),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /**
    * Image with floating clickable pin circles — product tags, info tooltips.
@@ -857,6 +925,7 @@ export const sectionPropsSchemas = {
       .default([]),
     ),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   /** Customer product reviews widget — Yotpo-style star ratings, submit form, breakdown. */
   reviews: z.object({
@@ -869,6 +938,7 @@ export const sectionPropsSchemas = {
     maxVisible: z.number().int().min(1).max(50).optional().default(6),
     layout: z.enum(["list", "grid"]).optional().default("list"),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "free-text": z.object({
     heading: z.string().trim().max(160).optional(),
@@ -894,6 +964,7 @@ export const sectionPropsSchemas = {
         .default([]),
     ),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   footer: z.object({
     text: z.string().trim().max(240).default(""),
@@ -906,6 +977,7 @@ export const sectionPropsSchemas = {
     hidden: z.boolean().optional(),
     paddingTop: z.number().int().min(8).max(200).default(32),
     paddingBottom: z.number().int().min(8).max(200).default(32),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "maylecor-home": z.object({
     artistName: z.string().trim().min(1).max(80),
@@ -924,6 +996,7 @@ export const sectionPropsSchemas = {
     ...socialRailFields,
     motionEnabled: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "maylecor-music": z.object({
     artistName: z.string().trim().min(1).max(80),
@@ -958,6 +1031,7 @@ export const sectionPropsSchemas = {
     ...socialRailFields,
     motionEnabled: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "legally-blonde-hero": z.object({
     title: z.string().trim().min(1).max(120),
@@ -1014,6 +1088,18 @@ export const sectionPropsSchemas = {
       .record(z.string(), z.number().min(0.15).max(3))
       .optional()
       .default({}),
+    /** Per-device layer positions — tablet/mobile override the desktop layerPositions per layer id. */
+    layerPositionsTablet: z
+      .record(z.string(), z.object({ leftPct: z.number().min(-20).max(110), topPct: z.number().min(-20).max(110) }))
+      .optional()
+      .default({}),
+    layerPositionsMobile: z
+      .record(z.string(), z.object({ leftPct: z.number().min(-20).max(110), topPct: z.number().min(-20).max(110) }))
+      .optional()
+      .default({}),
+    /** Per-device layer scales — tablet/mobile override the desktop layerScales per layer id. */
+    layerScalesTablet: z.record(z.string(), z.number().min(0.15).max(3)).optional().default({}),
+    layerScalesMobile: z.record(z.string(), z.number().min(0.15).max(3)).optional().default({}),
     /** Per-layer motion: spin / float / bob / none. */
     layerMotions: z
       .record(z.string(), z.enum(["spin", "float", "bob", "none"]))
@@ -1063,6 +1149,7 @@ export const sectionPropsSchemas = {
     /** false = use titleLogo image (May Lècor circle seal); true = CircularBrandRing text. */
     titleAsText: z.boolean().optional().default(false),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "kdirection-home": z.object({
     brandLine1: z.string().trim().max(12).default("K"),
@@ -1136,6 +1223,7 @@ export const sectionPropsSchemas = {
     footerText: z.string().trim().max(160).default(""),
     motionEnabled: z.boolean().optional().default(true),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
   "kdirection-page": z.object({
     title: z.string().trim().min(1).max(120),
@@ -1157,6 +1245,7 @@ export const sectionPropsSchemas = {
     socialLinks: socialLinksSchema.default([]),
     footerText: z.string().trim().max(160).default(""),
     hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
   }),
 } as const;
 
@@ -1165,6 +1254,18 @@ export const websiteSectionSchema = z
     id: z.string().trim().min(1).max(80).optional(),
     type: sectionTypeSchema,
     props: z.record(z.string(), z.unknown()),
+    // ── Phase 3 native aesthetic capability extensions ──
+    // All fields are optional and additive. Existing sections need no migration.
+    /** Structured declarative motion specs for this section (EXT-WD-001). */
+    motion: sectionMotionSchema,
+    /** Accessibility metadata for cases where semantic HTML alone is insufficient (EXT-WD-003). */
+    a11y: sectionA11ySchema.optional(),
+    /** Device-level responsive visibility rules (EXT-WD-004). */
+    visibility: responsiveVisibilitySchema,
+    /** Data binding to Kebu-owned objects — products, collections, events, posts, business (EXT-WD-005). */
+    dataBinding: dataBindingSchema,
+    /** Declarative interaction primitive for this section (EXT-WD-007). */
+    interaction: sectionInteractionSchema,
   })
   .superRefine((val, ctx) => {
     const schema = sectionPropsSchemas[val.type];
@@ -1182,6 +1283,12 @@ export const websitePageSchema = z.object({
   slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(60),
   title: z.string().trim().min(1).max(120),
   sections: z.array(websiteSectionSchema).min(1).max(40),
+  /**
+   * Phase 3 — Independent device compositions (EXT-WD-002).
+   * Shared semantic section data + optional per-device section ordering/visibility.
+   * Desktop is always canonical. Tablet/mobile can reorder or hide sections.
+   */
+  deviceLayouts: pageDeviceLayoutsSchema,
 });
 
 export const websiteDefinitionSchema = z.object({

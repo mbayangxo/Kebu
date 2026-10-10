@@ -1,3 +1,4 @@
+import { checkoutRequestBinding, lookupCheckoutRetry } from "@/lib/shop/checkout-retry";
 import { NextResponse } from "next/server";
 import { shopOrderRateLimit } from "@/lib/api-guard";
 import { logCreate } from "@/lib/create/auth";
@@ -23,14 +24,13 @@ import {
   shopCartCheckoutSchema,
   upsertCartDraft,
 } from "@/lib/shop/cart-order";
-import { decrementCartStock, restoreProductStock } from "@/lib/shop/stock";
 import { assertProjectPlanLimit } from "@/lib/billing/enforce-limits";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ subdomain: string }> };
 
-/** Multi-item cart checkout → one shop_orders row + shop_order_items. Never marks paid. */
+/** Gift credit settles atomically; external payments require provider verification. */
 export async function POST(req: Request, { params }: Params) {
   const limited = shopOrderRateLimit(req);
   if (limited) return limited;
@@ -98,17 +98,14 @@ export async function POST(req: Request, { params }: Params) {
 
   const customerEmail = parsed.data.customerEmail?.trim().toLowerCase() || null;
 
+  const requestBinding = checkoutRequestBinding(parsed.data);
+  const previous = await lookupCheckoutRetry(admin, live.project_id, requestBinding);
+  if (previous.error) return NextResponse.json({ error: previous.error }, { status: 409 });
+  if (previous.data) return NextResponse.json(previous.data);
+
   const resolved = await resolveCartLines(admin, live.project_id, parsed.data.items);
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: 400 });
-  }
-
-  const stock = await decrementCartStock(
-    admin,
-    resolved.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-  );
-  if (!stock.ok) {
-    return NextResponse.json({ error: stock.error }, { status: 409 });
   }
 
   if (parsed.data.sessionKey) {
@@ -141,12 +138,15 @@ export async function POST(req: Request, { params }: Params) {
     gift: parsed.data,
     buyerCountry: parsed.data.buyerCountry ?? null,
     sellerCountry: "SN",
+    request: requestBinding,
   });
 
+  if (!created.ok || created.replayed) {
+    const replay = await lookupCheckoutRetry(admin, live.project_id, requestBinding);
+    if (replay.data) return NextResponse.json(replay.data);
+    if (replay.error) return NextResponse.json({ error: replay.error }, { status: 409 });
+  }
   if (!created.ok) {
-    for (const l of resolved.lines) {
-      await restoreProductStock(admin, l.productId, l.quantity);
-    }
     return NextResponse.json({ error: created.error }, { status: 500 });
   }
 
@@ -211,7 +211,9 @@ export async function POST(req: Request, { params }: Params) {
   const livePref = ["joko", "paypal", "card", "mobile_money"].includes(
     parsed.data.paymentPreference ?? "",
   );
-  if (livePref) {
+  if (created.paid) {
+    paymentMessage = `Order ${created.orderNumber} paid with gift credit.`;
+  } else if (livePref) {
     if (created.amountXof == null || created.amountXof <= 0) {
       paymentMessage =
         "Cart order saved. Add XOF prices on products for live checkout — or confirm on WhatsApp.";
@@ -255,8 +257,8 @@ export async function POST(req: Request, { params }: Params) {
   const payload = {
     orderId: created.orderId,
     orderNumber: created.orderNumber,
-    status: "pending" as const,
-    paid: false as const,
+    status: created.paid ? "contacted" : "pending",
+    paid: created.paid,
     itemCount: resolved.lines.length,
     discountCode: created.discountCode,
     discountPercent: created.discountPercent,

@@ -30,52 +30,6 @@ export type DownloadRow = {
   created_at: string;
 };
 
-/** Generate a cryptographically random 64-char hex token. */
-function randomToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/**
- * Create a download record after an order is placed.
- * Safe to call idempotently — unique constraint on token handles re-runs.
- */
-export async function createDigitalDownload(
-  supabase: SupabaseClient,
-  opts: {
-    orderId: string;
-    projectId: string;
-    product: DigitalProduct;
-  },
-): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
-  if (!opts.product.is_digital || !opts.product.digital_file_path) {
-    return { ok: false, error: "Product has no digital file." };
-  }
-
-  const token = randomToken();
-  const expiresAt = new Date(
-    Date.now() + opts.product.digital_expires_hours * 60 * 60 * 1000,
-  ).toISOString();
-
-  const { error } = await supabase.from("shop_digital_downloads").insert({
-    order_id: opts.orderId,
-    project_id: opts.projectId,
-    product_id: opts.product.id,
-    token,
-    file_path: opts.product.digital_file_path,
-    file_name: opts.product.digital_file_name ?? "download",
-    expires_at: expiresAt,
-    max_downloads: opts.product.digital_dl_limit,
-  });
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  return { ok: true, token };
-}
-
 /** Resolve and validate a download token. Returns null if expired / exhausted / not found. */
 export async function resolveDownloadToken(
   supabase: SupabaseClient,
@@ -83,27 +37,21 @@ export async function resolveDownloadToken(
 ): Promise<DownloadRow | null> {
   if (!/^[0-9a-f]{64}$/.test(token)) return null;
 
-  const { data } = await supabase
-    .from("shop_digital_downloads")
-    .select(
-      "id, order_id, project_id, product_id, token, file_path, file_name, expires_at, download_count, max_downloads, created_at",
-    )
-    .eq("token", token)
-    .maybeSingle();
-
+  const { data, error } = await supabase.rpc("resolve_paid_shop_download", { p_token: token });
+  if (error) throw new Error("Download verification unavailable.");
   if (!data) return null;
-  if (new Date(data.expires_at) < new Date()) return null;
-  if (data.download_count >= data.max_downloads) return null;
 
   return data as DownloadRow;
 }
 
-/** Increment download count. Call after the redirect to storage is issued. */
-export async function incrementDownloadCount(
+/** Await a successful atomic payment/expiry/quota check before redirecting. */
+export async function consumeDownloadToken(
   supabase: SupabaseClient,
-  downloadId: string,
-): Promise<void> {
-  await supabase.rpc("increment_digital_download_count", { dl_id: downloadId }).single();
+  token: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("consume_paid_shop_download", { p_token: token });
+  if (error) throw new Error("Download verification unavailable.");
+  return data === true;
 }
 
 /**
@@ -132,19 +80,22 @@ export async function emailDownloadLink(opts: {
   maxDownloads: number;
   from: string;
   fromName?: string;
+  idempotencyKey?: string;
 }): Promise<boolean> {
   const expiryDate = new Date(opts.expiresAt).toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   });
+  const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
   const html = `
 <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:24px 16px;color:#0a0a0a">
-  <p style="font-size:15px;font-weight:700;margin:0 0 8px">${opts.shopName}</p>
+  <p style="font-size:15px;font-weight:700;margin:0 0 8px">${escape(opts.shopName)}</p>
   <h1 style="font-size:22px;font-weight:800;margin:0 0 16px">Votre téléchargement est prêt</h1>
-  <p style="font-size:14px;margin:0 0 24px">Merci pour votre achat de <strong>${opts.productName}</strong>.</p>
-  <a href="${opts.downloadUrl}"
+  <p style="font-size:14px;margin:0 0 24px">Merci pour votre achat de <strong>${escape(opts.productName)}</strong>.</p>
+  <a href="${escape(opts.downloadUrl)}"
      style="display:inline-block;background:#FF5500;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px;text-decoration:none">
     Télécharger maintenant →
   </a>
@@ -163,5 +114,6 @@ export async function emailDownloadLink(opts: {
     subject: `Votre fichier — ${opts.productName}`,
     html,
     text,
+    idempotencyKey: opts.idempotencyKey,
   });
 }

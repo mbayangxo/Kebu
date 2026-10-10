@@ -99,6 +99,8 @@ export const paystackAdapter: PaymentAdapter = {
       ok: true,
       checkoutUrl: data.data.authorization_url,
       providerPaymentId: data.data.reference || input.reference,
+      // Paystack's contract uses subunits; preserve exactly what initialize received.
+      providerAmount: {value:String(converted.amount),currency},
     };
   },
 };

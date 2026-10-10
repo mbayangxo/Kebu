@@ -183,7 +183,7 @@ export function BuilderStudioChrome({
 
   return (
     <header
-      className="flex h-11 shrink-0 items-center gap-2 border-b px-2 sm:px-3"
+      className="flex min-h-11 shrink-0 flex-wrap items-center gap-2 border-b px-2 py-1 sm:px-3 lg:h-11 lg:flex-nowrap lg:py-0"
       style={{ borderColor: "#E5E5E5", background: "#fff" }}
     >
       <BackLink fallbackHref={MY_SITES_HREF} label="Sites" variant="strong" />
@@ -216,7 +216,7 @@ export function BuilderStudioChrome({
       </div>
 
       {pages && pages.length > 0 && onPageChange ? (
-        <label className="hidden min-w-0 sm:block">
+        <label className="hidden min-w-0 shrink-0 sm:block">
           <span className="sr-only">Page</span>
           <select
             value={activePageId ?? pages[0]?.id}
@@ -238,10 +238,11 @@ export function BuilderStudioChrome({
         </label>
       ) : null}
 
-      <div className="ml-auto flex shrink-0 items-center gap-1.5">
+      <div className="ml-auto flex w-full shrink-0 items-center justify-end gap-1.5 lg:w-auto">
         {saveLabel ? (
           <span
-            className="hidden max-w-[180px] truncate text-[10px] sm:inline"
+            role="status"
+            className="min-w-0 max-w-[80px] truncate text-[10px] sm:max-w-[180px]"
             style={{ color: saveLabelColor ?? BUILDER.faint }}
           >
             {saveLabel}
@@ -268,7 +269,7 @@ export function BuilderStudioChrome({
               aria-label={label}
               aria-pressed={device === id}
               onClick={() => onDevice(id)}
-              className="flex h-7 w-7 items-center justify-center rounded"
+              className="relative flex h-11 w-11 items-center justify-center rounded"
               style={{
                 background: device === id ? "#fff" : "transparent",
                 color: device === id ? BUILDER.ink : BUILDER.muted,
@@ -322,6 +323,7 @@ export function BuilderStudioChrome({
           type="button"
           onClick={onPublish}
           disabled={publishing}
+          aria-label={publishing ? "Publishing…" : publishLabel}
           className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-50"
           style={{ background: BUILDER.ink, color: "#fff" }}
         >

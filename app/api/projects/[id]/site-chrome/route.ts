@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import {
   assertProjectEditorAccess,
   dbForProjectAccess,
@@ -53,6 +54,9 @@ export async function GET(_req: Request, { params }: Params) {
 
 /** Update universal header/footer — applies to every page on publish. */
 export async function PATCH(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 

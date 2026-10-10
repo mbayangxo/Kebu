@@ -1,0 +1,9 @@
+# QA checkout reservation containment
+
+Scope: Kebu-qa (`skqnxyaeimvbyrmdfzvk`), never production. Browser roles currently can read an unprotected reservation table and execute privileged checkout functions without ownership checks. Repair the permission boundary before further feature work.
+
+Enable reservation RLS, remove PUBLIC/anon/authenticated table and column privileges, and remove their execution privileges from all public overloads of reserve_multi_shop_checkout, commit_shop_checkout, release_shop_checkout, complete_shop_payment, cancel_shop_order and create_cart_order_atomic. Preserve service CRUD/execution and all function bodies/data. Optional legacy objects must allow fresh branch installs; repeat application must be safe. No UI, navigation, state, responsive or keyboard behavior changes.
+
+Verification: actual local PostgreSQL role checks, denial without mutation, RLS defense after accidental SELECT regrant, unchanged privileged bodies, retained service operations, unrelated RPC preservation, hosted rollback rehearsal, full CI, apply only to QA, post-apply role checks and security advisors. Synthetic fixtures verify access contracts, not commerce functionality. Hosted release/CRUD checks exercise the existing functions and table inside rollback transactions. SQL role/JWT-claim tests are not authenticated browser S8.
+
+BLOCKED: hosted legacy reservation functions reference absent project_id, discount_id and committed_at columns. These objects are absent from the current branch's canonical commerce source. Full checkout requires source/schema reconciliation and end-to-end payment verification; this containment does not certify checkout. Other legacy advisor findings remain separate open review items. Existing provider, concurrency, performance and signed-in S8 gates remain open.

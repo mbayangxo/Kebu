@@ -27,6 +27,8 @@ type ShopOrder = {
   payment_preference?: string | null;
   payment_status?: string | null;
   amount_xof?: number | null;
+  gift_card_amount_xof?: number | null;
+  return_recorded?: boolean | null;
   status: string;
   tracking_number?: string | null;
   carrier?: string | null;
@@ -432,13 +434,13 @@ export function ShopOrdersPanel({
                   {new Date(order.created_at).toLocaleString()}
                 </p>
 
-                {open ? (
+                {open || order.payment_status === "paid" || order.payment_status === "refunded" ? (
                   <div
                     className="mt-3 space-y-2 rounded-lg p-2"
                     style={{ background: "#fff", border: `1px solid ${KEBU.border}` }}
                   >
                     <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-                      Fulfill
+                      Order actions
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <label className="text-[10px] font-bold uppercase tracking-wider">
@@ -504,7 +506,7 @@ export function ShopOrdersPanel({
                     <div className="flex flex-wrap gap-2 pt-1">
                       <button
                         type="button"
-                        disabled={busyId === order.id}
+                        disabled={busyId === order.id || !open}
                         onClick={() => void fulfill(order)}
                         className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-50"
                         style={{ background: KEBU.orange }}
@@ -513,7 +515,7 @@ export function ShopOrdersPanel({
                       </button>
                       <button
                         type="button"
-                        disabled={busyId === order.id}
+                        disabled={busyId === order.id || !open}
                         onClick={() =>
                           void patchOrder(order.id, { action: "status", status: "fulfilled", notifyVia: "none" })
                         }
@@ -524,15 +526,38 @@ export function ShopOrdersPanel({
                       </button>
                       <button
                         type="button"
-                        disabled={busyId === order.id || order.payment_status === "refunded"}
+                        disabled={busyId === order.id || order.payment_status !== "paid"}
                         onClick={() => {
-                          if (!window.confirm("Mark this order as refunded?")) return;
-                          void patchOrder(order.id, { action: "refund" });
+                          if (order.amount_xof === 0 && (order.gift_card_amount_xof ?? 0) > 0) {
+                            if (window.confirm("Refund the full gift credit to the original card? Inventory stays unchanged until you record a return.")) {
+                              void patchOrder(order.id, { action: "refund_gift", restoreGiftCredit: true });
+                            }
+                            return;
+                          }
+                          const reference = window.prompt("After returning the full payment through your provider, enter its refund receipt or reference:");
+                          if (!reference?.trim()) return;
+                          if (!window.confirm("Confirm that the customer has already received the full refund. This records the receipt and does not send money.")) return;
+                          void patchOrder(order.id, { action: "record_refund", fundsReturned: true, refundReference: reference.trim() });
                         }}
                         className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-600 disabled:opacity-40"
                         style={{ border: "1px solid #FECACA", background: "#fff" }}
                       >
-                        Refund
+                        {order.amount_xof === 0 && (order.gift_card_amount_xof ?? 0) > 0 ? "Refund gift credit" : "Record returned refund"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === order.id || order.payment_status !== "refunded" || order.return_recorded !== false}
+                        title={order.return_recorded == null ? "Return status is temporarily unavailable." : undefined}
+                        onClick={() => {
+                          const reference = window.prompt("Enter the receipt or reference for the full order return:");
+                          if (!reference?.trim()) return;
+                          if (!window.confirm("Confirm every item has been received in resalable condition. This restores inventory once and archives the order.")) return;
+                          void patchOrder(order.id, { action: "record_return", allItemsReceivedResalable: true, returnReference: reference.trim() });
+                        }}
+                        className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-40"
+                        style={{ border: `1px solid ${KEBU.border}`, background: "#fff" }}
+                      >
+                        {order.return_recorded ? "Full return restocked" : "Restock full return"}
                       </button>
                       <button
                         type="button"
@@ -559,7 +584,7 @@ export function ShopOrdersPanel({
                       </button>
                       <button
                         type="button"
-                        disabled={busyId === order.id}
+                        disabled={busyId === order.id || !open}
                         onClick={() =>
                           void patchOrder(order.id, { action: "status", status: "contacted" })
                         }
@@ -570,7 +595,7 @@ export function ShopOrdersPanel({
                       </button>
                       <button
                         type="button"
-                        disabled={busyId === order.id}
+                        disabled={busyId === order.id || !open || !["unpaid", "failed"].includes(order.payment_status ?? "unpaid")}
                         onClick={() =>
                           void patchOrder(order.id, { action: "status", status: "cancelled" })
                         }
