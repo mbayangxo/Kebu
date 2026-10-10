@@ -21,7 +21,7 @@ export async function GET() {
     serviceKeyRole: serviceRole,
     signupHint:
       anonRole !== "anon"
-        ? "Fix NEXT_PUBLIC_SUPABASE_ANON_KEY (must be anon public, not service_role), then Redeploy — signup uses build-time env."
+        ? "Fix NEXT_PUBLIC_SUPABASE_ANON_KEY (must be publishable or legacy anon, never secret or service_role), then Redeploy — signup uses build-time env."
         : "Server env looks correct. If signup still fails, redeploy with cleared cache (browser bundle may be stale).",
   });
 }
