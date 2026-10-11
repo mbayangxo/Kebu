@@ -42,6 +42,14 @@ describe("Network profile persistence and permissions", () => {
     expect((await POST(req(valid, "https://other.test"))).status).toBe(403);
     expect(requireUser).not.toHaveBeenCalled();
   });
+  it("shows a useful unavailable message without deployment instructions", async () => {
+    requireUser.mockResolvedValue({ error: NextResponse.json({ error: "Set NEXT_PUBLIC_SUPABASE_ANON_KEY" }, { status: 503 }) });
+    for (const res of [await GET(), await POST(req(valid))]) {
+      expect(res.status).toBe(503);
+      expect(res.headers.get("cache-control")).toContain("no-store");
+      expect(await res.json()).toEqual({ error: "The network is temporarily unavailable. Please retry." });
+    }
+  });
   it("binds the saved profile to the authenticated user and confirms its row", async () => {
     const { chain } = db({ data: { id: "saved-row" }, error: null });
     const res = await POST(req(valid));

@@ -1,0 +1,65 @@
+{
+  "status": "IN_PROGRESS",
+  "scope": "Authenticated Network profile save and real directory; one slice of four-group completion scope",
+  "api_regressions": 20,
+  "postgres_checks": 18,
+  "postgres_engine": "PGlite actual PostgreSQL; not hosted Supabase end-to-end",
+  "postgres_reproduce": "PGLITE_MODULE=<installed @electric-sql/pglite entry> node scripts/verify-network-ownership.mjs",
+  "hosted_migration_applied": false,
+  "account_readback": {
+    "production": "ACTIVE_HEALTHY",
+    "qa": "INACTIVE"
+  },
+  "missing_config_metadata": [
+    "ANTHROPIC_API_KEY",
+    "RESEND_API_KEY",
+    "PAYPAL_CLIENT_ID",
+    "PAYPAL_CLIENT_SECRET",
+    "PAYSTACK_SECRET_KEY",
+    "WAVE_API_KEY"
+  ],
+  "config_metadata_only": true,
+  "local_http": {
+    "network_html": 200,
+    "join_html": 200,
+    "profiles_without_supabase_config": 503
+  },
+  "browser_local": "ERR_CONNECTION_REFUSED; cannot inspect local server from Cloud Browser",
+  "open_gates": [
+    "matching active QA database",
+    "hosted migration",
+    "real authenticated save/directory/reload",
+    "two-owner hosted permissions",
+    "desktop/mobile visual inspection",
+    "real AI/payment/email provider verification",
+    "production release"
+  ],
+  "completion_queue": "docs/KEBU-COMPLETION-QUEUE.md",
+  "full_ci": {
+    "typecheck": "passed",
+    "lint": {
+      "errors": 0,
+      "existing_warnings": 288
+    },
+    "tests": {
+      "passed": 5549,
+      "skipped": 268
+    },
+    "production_build": "passed",
+    "logs": [
+      "network-final-ci.log (typecheck/lint)",
+      "network-final-tests.log",
+      "network-final-build.log"
+    ],
+    "note": "Combined final command ended before test/build output; full test suite and build rerun together completed successfully."
+  },
+  "hosted_browser": {
+    "commit": "2219f5f6743826a712e38b3eaef061876696d77b",
+    "deployment": "dpl_EiszL5iSs2zfC92DEjXWmGzuf5JT",
+    "deployment_state": "READY",
+    "directory": "signed-out prompt; no sample members or invented counts",
+    "join": "desktop form renders with accessible labels and disabled incomplete submission",
+    "authenticated": "not verified",
+    "mobile": "not verified"
+  }
+}

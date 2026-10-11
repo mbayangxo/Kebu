@@ -5,11 +5,17 @@ import { DIRECTORY_FIELDS, networkProfileSubmission, type NetworkProfileInput } 
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };
+function authenticationFailure(response: NextResponse) {
+  const signedOut = response.status === 401;
+  return NextResponse.json({ error: signedOut ? "Sign in required."
+    : "The network is temporarily unavailable. Please retry." },
+  { status: signedOut ? 401 : 503, headers });
+}
 
 /** Member directory: session-scoped client, explicit public-profile fields, RLS retained. */
 export async function GET() {
   const auth = await requireUser();
-  if ("error" in auth) return auth.error;
+  if ("error" in auth) return authenticationFailure(auth.error);
   try {
     const { data, error } = await auth.supabase.from("network_profiles")
       .select(DIRECTORY_FIELDS).eq("is_visible", true)
@@ -29,7 +35,7 @@ export async function POST(req: Request) {
   const csrf = assertSameOriginMutation(req);
   if (csrf) return csrf;
   const auth = await requireUser();
-  if ("error" in auth) return auth.error;
+  if ("error" in auth) return authenticationFailure(auth.error);
   let body: unknown;
   try {
     const raw = await req.text();
