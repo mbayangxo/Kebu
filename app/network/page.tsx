@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Nav } from "@/app/components/nav";
-import { NETWORK_NEEDS, type DirectoryProfile } from "@/lib/network/types";
+import { NETWORK_NEEDS } from "@/lib/network/types";
+import { createDirectoryLoader, initialDirectoryState } from "@/lib/network/directory-loader";
+import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 type NetworkNeed = (typeof NETWORK_NEEDS)[number];
 import Link from "next/link";
 
@@ -20,38 +23,18 @@ export default function NetworkPage() {
   const [selectedCountry, setSelectedCountry] = useState("All");
   const [search, setSearch] = useState("");
 
-  const [profiles, setProfiles] = useState<DirectoryProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [signedOut, setSignedOut] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
+  const [{ profiles, loading, error, signedOut, hasMore }, setDirectory] = useState(initialDirectoryState);
   const [retry, setRetry] = useState(0);
   useEffect(() => {
-    const controller = new AbortController();
-    async function load() {
-      setLoading(true);
-      setError(null);
-      setSignedOut(false);
-      setProfiles([]);
-      try {
-        const res = await fetch("/api/network/profiles", { cache: "no-store", signal: controller.signal });
-        const result = await res.json();
-        if (controller.signal.aborted) return;
-        if (!res.ok) {
-          setSignedOut(res.status === 401);
-          throw new Error(res.status === 401 ? "Sign in to browse member profiles." : result.error ?? "Could not load members.");
-        }
-        if (!Array.isArray(result.profiles)) throw new Error("Could not load members.");
-        setProfiles(result.profiles);
-        setHasMore(result.hasMore === true);
-      } catch (err) {
-        if (!controller.signal.aborted) setError(err instanceof Error ? err.message : "Could not load members.");
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    }
-    void load();
-    return () => controller.abort();
+    const loader = createDirectoryLoader(setDirectory);
+    void loader.reload();
+    const { data: { subscription } } = createClient().auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      loader.sessionChanged(session?.user.id ?? null);
+    });
+    return () => {
+      loader.dispose();
+      subscription.unsubscribe();
+    };
   }, [retry]);
 
   const filtered = profiles.filter((p) => {

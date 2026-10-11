@@ -34,9 +34,11 @@ async function denies(role,user,sql) {
 }
 await as('anon',null,`insert into network_profiles(${fields}) values (${values('null')})`);
 console.log('Baseline reproduced: anonymous ownerless insert succeeds.');
-await db.exec('delete from network_profiles');
+const legacy = (await db.query('select * from network_profiles')).rows[0];
 const before = await db.query('select count(*)::int n from network_profiles');
 await db.exec(readFileSync(root + "supabase/migrations/20261011005205_network_profile_ownership.sql", "utf8"));
+assert.deepEqual((await db.query(`select * from network_profiles where id='${legacy.id}'`)).rows[0],legacy); checks++;
+assert.equal((await as('authenticated',owner,`select id from network_profiles where id='${legacy.id}'`)).rows.length,0); checks++;
 await denies('anon',null,`insert into network_profiles(${fields}) values (${values('null')})`);
 await denies('authenticated',owner,`insert into network_profiles(${fields}) values (${values('null')})`);
 await denies('authenticated',owner,`insert into network_profiles(${fields}) values (${values(`'${other}'`)})`);
@@ -55,7 +57,7 @@ assert.equal((await as('authenticated',other,`select id from network_profiles wh
 await denies('anon',null,'select * from network_profiles');
 await denies('authenticated',owner,`delete from network_profiles where id='${row.id}'`);
 await db.exec(readFileSync(root + "supabase/migrations/20261011005205_network_profile_ownership.sql", "utf8"));
-assert.equal((await db.query('select count(*)::int n from network_profiles')).rows[0].n,1); checks++;
-assert.equal(before.rows[0].n,0); checks++;
+assert.equal((await db.query('select count(*)::int n from network_profiles')).rows[0].n,2); checks++;
+assert.equal(before.rows[0].n,1); checks++;
 await db.close();
 console.log(`${checks} actual PostgreSQL ownership/visibility/trust/retention checks passed.`);

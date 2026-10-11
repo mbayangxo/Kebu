@@ -1,5 +1,11 @@
 # Kebu — Implementation Status
 
+### 2026-10-11 UTC — Network session boundary repaired
+
+Cross-tab sign-out/account changes now clear the member directory, abort pending reads and reject late responses by request generation. New identities reload; repeated same-identity events do not. Disposal and retry ordering are covered. Ten loader regressions pass alongside 20 Network API cases. Final full `npm run ci` exits zero: **5,559 passing tests / 268 explicit skips**, TypeScript, lint (zero errors / 288 existing warnings), production build. The actual PostgreSQL probe now passes 20 checks, including preservation and hiding of a legacy ownerless row through migration/reapplication.
+
+Status remains **IN PROGRESS** pending genuine hosted two-session/authenticated/mobile verification and migration application. QA restore was attempted and rejected by Supabase's two-active-free-project limit for the owner/admin. Production remains healthy; no production schema/source/billing changes and no unrelated project pause/deletion. The completion queue retains all four groups.
+
 ### 2026-10-11 UTC — Network persistence repair; four-group completion queue retained
 
 Status: **IN PROGRESS**, not production-ready. Directory now reads actual member rows instead of sample people and invented counts. Join uses an authenticated validated API, binds ownership to the session, confirms persistence before success, retains drafts on errors and safely confirms identical retries. Nullable legacy profile fields no longer crash rendering. The new canonical migration removes anonymous ownerless writes and client-controlled owner/trust fields without deleting profiles; it is **not applied to a hosted project**.

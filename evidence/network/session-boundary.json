@@ -1,0 +1,39 @@
+{
+  "status": "IN_PROGRESS",
+  "cause": "Directory only reloaded on mount/retry; auth changes did not invalidate displayed data or outstanding reads",
+  "fix": [
+    "subscribe to auth identity changes",
+    "clear state and abort old reads",
+    "generation guards reject stale successes and failures",
+    "same identity does not reload",
+    "unsubscribe/dispose on unmount"
+  ],
+  "regressions": {
+    "directory_loader": 10,
+    "network_api": 20,
+    "postgres_policy_probe": 20
+  },
+  "full_ci": {
+    "exit": 0,
+    "passed": 5559,
+    "skipped": 268,
+    "lint_errors": 0,
+    "existing_lint_warnings": 288,
+    "typecheck": "passed",
+    "build": "passed"
+  },
+  "hosted_restore": {
+    "project": "skqnxyaeimvbyrmdfzvk",
+    "result": "rejected",
+    "reason": "Owner/admin has reached two active free projects"
+  },
+  "production_changes": false,
+  "hosted_migration_applied": false,
+  "pending": [
+    "two real signed-in sessions",
+    "migration application",
+    "mobile inspection",
+    "provider-dependent flows",
+    "full four-group completion"
+  ]
+}

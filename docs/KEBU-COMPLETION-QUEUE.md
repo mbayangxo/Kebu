@@ -17,6 +17,12 @@ Behavior: sign in to save or read the member directory; server binds owner ident
 
 Database: ownership/visibility policies and column grants preserve all existing rows, hide legacy ownerless profiles, prevent client trust/owner tampering. New migration is local, not yet applied to a hosted project.
 
-Acceptance still open: running-app desktop/mobile visual and error checks; authenticated create → directory → refresh; two-owner hosted permissions; hosted migration and matching preview configuration; production deployment. Keep IN PROGRESS until these pass.
+Desktop signed-out directory and join rendering checked on QA Preview. Acceptance still open: mobile visual and error checks; authenticated create → directory → refresh; two-owner hosted permissions; hosted migration and matching preview configuration; production deployment. Keep IN PROGRESS until these pass.
 
 External gate: production was restored and user login succeeded; separate QA was paused to stay within the free active-project limit. Do not pause the working production database or buy a hosting upgrade to manufacture a QA pass. Provider credentials cannot be invented. Inspect connected-account access before requesting anything from the user.
+
+## Session-boundary follow-up
+
+The prior directory only loaded on mount/retry and did not listen for auth changes. A cross-tab sign-out or account switch could leave its member list on screen, while an older response could refill it. The directory now clears its state on session changes, cancels old requests, rejects late responses by request generation, and reloads on a new identity. Repeated events for the same identity do not reload. Unit regressions cover these boundaries; genuine two-session hosted verification is still pending.
+
+QA restore was attempted again through the connected account. Supabase rejected it because owner/admin `mbayangxo` has reached the two-active-free-project limit. No other project was paused, deleted or upgraded. This is a concrete hosted gate, not a code/test failure.
