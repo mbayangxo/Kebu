@@ -1,5 +1,13 @@
 # Kebu — Implementation Status
 
+### 2026-10-11 UTC — Network persistence repair; four-group completion queue retained
+
+Status: **IN PROGRESS**, not production-ready. Directory now reads actual member rows instead of sample people and invented counts. Join uses an authenticated validated API, binds ownership to the session, confirms persistence before success, retains drafts on errors and safely confirms identical retries. Nullable legacy profile fields no longer crash rendering. The new canonical migration removes anonymous ownerless writes and client-controlled owner/trust fields without deleting profiles; it is **not applied to a hosted project**.
+
+Final local CI exits zero: TypeScript, lint (zero errors / 288 existing warnings), **5,548 passing tests / 268 explicit skips**, production build. Network API has 19 focused regression cases. An actual PostgreSQL probe reproduces the former anonymous insert and passes 18 ownership/visibility/trust/retention checks; script: `scripts/verify-network-ownership.mjs`. Skips are not provider/hosted success. Cloud Browser could not reach the running local server (connection refused); visual QA remains unverified.
+
+Connected-account readback: production ACTIVE_HEALTHY; Kebu-qa INACTIVE. Hosted signed-in persistence and two-owner QA remain blocked while QA is paused. No production schema/main/provider/billing changes. All four requested groups remain in `docs/KEBU-COMPLETION-QUEUE.md`, with 99 recovered requirement groups in `docs/KEBU-RECOVERED-REQUEST-AUDIT.md`. Major everyday and larger-platform products remain incomplete.
+
 ### 2026-10-10 UTC — cleanup closed; live configuration boundary rechecked
 
 Fresh hosted readback confirms zero original synthetic users, projects, products, sessions and orders. Cleanup is **COMPLETE**; earlier residue observations below are historical. No additional deletion was issued during this recheck.
