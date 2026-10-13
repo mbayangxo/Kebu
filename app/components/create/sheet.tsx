@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useId } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Z_LAYERS } from "./kebu-z-layers";
 import { acquireScrollLock, releaseScrollLock } from "@/lib/create/scroll-lock";
 import { useFocusTrap } from "@/lib/create/use-focus-trap";
+import { useBuilderAppearance } from "./builder-appearance-provider";
+import { BUILDER_APPEARANCE_PALETTES } from "@/lib/create/builder-appearance";
+import { builderPanelVariables } from "@/lib/create/builder-panel-appearance";
 
 type SheetProps = {
   /** Whether the sheet is visible. When false, the sheet is not in the DOM. */
   open: boolean;
+  /** Only opt in when all dialog content uses editor panel tokens. */
+  editorAppearance?: boolean;
   onClose: () => void;
   /** Optional accessible heading for the sheet (used in aria-labelledby). */
   title?: string;
@@ -81,14 +86,19 @@ const HEADER_STYLE: React.CSSProperties = {
 export function Sheet({
   open,
   onClose,
+  editorAppearance = false,
   title,
   children,
   triggerRef,
   maxHeight = "85dvh",
   className = "",
 }: SheetProps) {
+  const { appearance: editorTheme } = useBuilderAppearance();
+  const appearance = editorAppearance ? editorTheme : "light";
+  const palette = BUILDER_APPEARANCE_PALETTES[appearance];
+  const appearanceStyle = { ...builderPanelVariables(appearance), color: palette.ink, colorScheme: appearance };
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const titleId = useRef(`kebu-sheet-${Math.random().toString(36).slice(2, 8)}`).current;
+  const titleId = useId();
 
   // Focus trap — active when sheet is open.
   useFocusTrap(panelRef, open, triggerRef);
@@ -133,15 +143,15 @@ export function Sheet({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         className={`kebu-sheet-panel${className ? ` ${className}` : ""}`}
-        style={{ ...PANEL_STYLE, maxHeight }}
+        style={{ ...PANEL_STYLE, ...appearanceStyle, background: palette.surface, maxHeight }}
         data-kebu-sheet-panel
       >
         {/* Drag handle */}
-        <div style={DRAG_HANDLE_STYLE} aria-hidden="true" />
+        <div style={{ ...DRAG_HANDLE_STYLE, background: palette.border }} aria-hidden="true" />
 
         {/* Header — only rendered when a title is given */}
         {title ? (
-          <div style={HEADER_STYLE}>
+          <div style={{ ...HEADER_STYLE, borderBottom: `1px solid ${palette.border}` }}>
             <h2
               id={titleId}
               style={{
@@ -149,7 +159,7 @@ export function Sheet({
                 fontSize: 14,
                 fontWeight: 600,
                 lineHeight: "20px",
-                color: "#1A1A1A",
+                color: palette.ink,
               }}
             >
               {title}
@@ -162,13 +172,13 @@ export function Sheet({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 32,
-                height: 32,
+                width: 44,
+                height: 44,
                 border: "none",
                 background: "none",
                 cursor: "pointer",
                 borderRadius: 6,
-                color: "#666",
+                color: palette.muted,
               }}
             >
               <svg

@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { z } from "zod";
 import type { KcdDocument, NodeId, Op } from "@/lib/creative-core";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 import { brandBrainRecordSchema, type BrandBrainRecord } from "@/lib/create/brand-brain";
 import { brandBrainApplication } from "@/lib/create/brand-brain-application";
 import {brandBrainBindingResponseSchema,brandBrainBindingSchema,type BrandBrainBinding} from "@/lib/create/brand-brain-binding";

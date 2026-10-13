@@ -13,7 +13,7 @@ import type { NodeId, PageId } from "@/lib/creative-core";
 import { previewDefinitionUpdate } from "@/lib/create/preview-definition-update";
 import { documentToRows, type LegacySectionType } from "@/lib/create/kcd-adapter";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
-import { BuilderAppearanceProvider } from "@/app/components/create/builder-appearance-provider";
+import { BuilderAppearanceProvider, BuilderPanelScope } from "@/app/components/create/builder-appearance-provider";
 import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition, resolveEditorTheme } from "@/lib/create/editor-definition";
@@ -2302,11 +2302,11 @@ export default function ProjectEditorPage() {
               )}
 
               {/* Shopify drill-down: section props for the selected section only */}
-              {operationEditing && operations.document && editPageId ? <KcdPrimitivePanel
+              {operationEditing && operations.document && editPageId ? <BuilderPanelScope><KcdPrimitivePanel
                 key={`${editPageId}:${selectedSectionId ?? "list"}:${device}`}
                 document={operations.document} pageId={editPageId as PageId} device={device}
                 selectedId={selectedSectionId} onSelect={setSelectedSectionId} onSubmit={operations.submit}
-              /> : null}
+              /></BuilderPanelScope> : null}
               {selectedSectionId && inspectorSections.map((section) => (
                     <div key={section.id} className="pb-2">
                       {/* Section actions — always visible */}
@@ -5291,6 +5291,7 @@ export default function ProjectEditorPage() {
         open={mobileAddSectionOpen}
         onClose={() => setMobileAddSectionOpen(false)}
         title="Add section"
+        editorAppearance
         maxHeight="70dvh"
         triggerRef={mobileAddSectionTriggerRef}
       >

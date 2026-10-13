@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useId } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Z_LAYERS } from "./kebu-z-layers";
 import { acquireScrollLock, releaseScrollLock } from "@/lib/create/scroll-lock";
 import { useFocusTrap } from "@/lib/create/use-focus-trap";
+import { useBuilderAppearance } from "./builder-appearance-provider";
+import { BUILDER_APPEARANCE_PALETTES } from "@/lib/create/builder-appearance";
+import { builderPanelVariables } from "@/lib/create/builder-panel-appearance";
 
 export type DrawerSide = "left" | "right";
 
 type DrawerProps = {
   open: boolean;
+  /** Only opt in when all dialog content uses editor panel tokens. */
+  editorAppearance?: boolean;
   onClose: () => void;
   /** Which edge the drawer slides in from. */
   side?: DrawerSide;
@@ -36,6 +41,7 @@ type DrawerProps = {
 export function Drawer({
   open,
   onClose,
+  editorAppearance = false,
   side = "left",
   title,
   children,
@@ -43,8 +49,12 @@ export function Drawer({
   width = "min(320px, 90vw)",
   className = "",
 }: DrawerProps) {
+  const { appearance: editorTheme } = useBuilderAppearance();
+  const appearance = editorAppearance ? editorTheme : "light";
+  const palette = BUILDER_APPEARANCE_PALETTES[appearance];
+  const appearanceStyle = { ...builderPanelVariables(appearance), color: palette.ink, colorScheme: appearance };
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const titleId = useRef(`kebu-drawer-${Math.random().toString(36).slice(2, 8)}`).current;
+  const titleId = useId();
 
   useFocusTrap(panelRef, open, triggerRef);
 
@@ -69,12 +79,13 @@ export function Drawer({
   if (!open || typeof document === "undefined") return null;
 
   const panelStyle: React.CSSProperties = {
+    ...appearanceStyle,
     position: "fixed",
     top: 0,
     bottom: 0,
     [side]: 0,
     width,
-    background: "#fff",
+    background: palette.surface,
     zIndex: Z_LAYERS.drawerPanel,
     overflowY: "auto",
     WebkitOverflowScrolling: "touch",
@@ -123,13 +134,13 @@ export function Drawer({
               alignItems: "center",
               justifyContent: "space-between",
               padding: "14px 16px",
-              borderBottom: "1px solid #F0F0F0",
+              borderBottom: `1px solid ${palette.border}`,
               flexShrink: 0,
             }}
           >
             <h2
               id={titleId}
-              style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A1A" }}
+              style={{ margin: 0, fontSize: 14, fontWeight: 600, color: palette.ink }}
             >
               {title}
             </h2>
@@ -141,13 +152,13 @@ export function Drawer({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 32,
-                height: 32,
+                width: 44,
+                height: 44,
                 border: "none",
                 background: "none",
                 cursor: "pointer",
                 borderRadius: 6,
-                color: "#666",
+                color: palette.muted,
               }}
             >
               <svg

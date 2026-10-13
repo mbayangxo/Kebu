@@ -3,7 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { buildIndex, visualEffectKeys, inertOverrideKeys, isSpatialLocked, isVisible, orderRootsForDevice, orderChildrenForDevice, PILOT_DEFAULT_PROPS, resolveNode, type Device, type KcdDocument, type KcdNode, type NodeId, type Op, type PageId, type PropertyDescriptor } from "@/lib/creative-core";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 import { PILOT_WEB_DOM_MANIFEST } from "@/lib/create/kcd-adapter/render-view";
 import { builderNodeMoveOperations, primitiveDefinition, primitiveConstraintOperations, primitiveGeometryOperations, primitiveDuplicateOperation, primitiveInsertOperation, primitivePropertyOperations, primitiveReparentOperation, primitiveResetOverrideOperations, primitiveVisibilityOperations, type PrimitiveType } from "@/lib/create/kcd-primitive-operations";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
@@ -18,7 +18,7 @@ import { selectedSpatialMeasurement } from "@/lib/create/kcd-spatial-measure";
 const SiteAssetsPanel = dynamic(() => import("@/app/components/create/site-assets-panel").then((module) => module.SiteAssetsPanel));
 const inputClass = "w-full rounded-lg border px-2.5 py-2 text-[12px]";
 const buttonClass = "rounded-lg border px-2.5 py-1.5 text-[12px] font-medium disabled:opacity-40";
-const fieldStyle = { borderColor: BUILDER.border, background: BUILDER.surface, color: BUILDER.ink };
+const fieldStyle = { borderColor: BUILDER.border, background: BUILDER.surface, color: BUILDER.ink, colorScheme: BUILDER.colorScheme };
 
 /** Keep incomplete addresses/colours locally until blur; rejected values stay available to fix. */
 function DraftField({ label, value, multiline, onCommit }: { label: string; value: string; multiline?: boolean; onCommit: (value: string) => void }) {

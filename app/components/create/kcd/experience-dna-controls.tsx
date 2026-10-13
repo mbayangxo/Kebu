@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 import { experienceSaveSchema, experienceRecordSchema, newExperienceDna, type ExperienceDna, type ExperienceRecord } from "@/lib/create/experience-dna";
 
 const style = { color: BUILDER.ink, background: BUILDER.surface, borderColor: BUILDER.border };

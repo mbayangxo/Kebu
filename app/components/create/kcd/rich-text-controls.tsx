@@ -2,7 +2,7 @@
 import { useId, useRef, useState } from "react";
 import { editRichText, richTextValue, formatRichRange, type RichMark, type RichRun, type KcdNode, type Device, type Op } from "@/lib/creative-core";
 import { primitivePropertyOperations } from "@/lib/create/kcd-primitive-operations";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 
 /** Plain textarea owns keyboard/selection/IME; structured runs own semantic formatting. */
 export function KcdRichTextControls({node,device,values,submit}:{node:KcdNode;device:Device;values:Record<string,unknown>;submit:(label:string,make:()=>Op[])=>void}) {
@@ -21,7 +21,7 @@ export function KcdRichTextControls({node,device,values,submit}:{node:KcdNode;de
  };
  const commit=()=>{if(draft!==text)submit("Edit rich text",()=>fields(draft,editRichText(text,draft,runs)));};
  const format=(mark:RichMark,value:boolean|string)=>submit("Format selected text",()=>{if(values.href && mark==="href" && value)throw new Error("Remove the whole-element link before linking selected text.");const edited=editRichText(text,draft,runs);return fields(draft,formatRichRange(draft,edited,selection.start,selection.end,mark,value));});
- const style={borderColor:BUILDER.border,background:BUILDER.surface,color:BUILDER.ink},button="rounded-lg border px-2 py-1 text-[12px] disabled:opacity-40";
+ const style={borderColor:BUILDER.border,background:BUILDER.surface,color:BUILDER.ink,colorScheme:BUILDER.colorScheme},button="rounded-lg border px-2 py-1 text-[12px] disabled:opacity-40";
  return <div className="space-y-2">
   <label htmlFor={id} className="block text-[12px] font-medium">Text</label>
   <textarea id={id} ref={ref} rows={4} maxLength={5000} className="w-full rounded-lg border px-2.5 py-2 text-[12px]" style={style} value={draft} onChange={event=>setBuffer({source:text,draft:event.target.value})} onSelect={event=>setSelection({start:event.currentTarget.selectionStart,end:event.currentTarget.selectionEnd})} onBlur={commit} />

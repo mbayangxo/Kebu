@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { canonicalStringify, type KcdDocument, type NodeId, type Transaction } from "@/lib/creative-core";
 import { documentVersions, planInputSchema, referenceInputSchema, referenceReviewInputSchema, type ExperienceScope, type ReferenceAnalysis } from "@/lib/create/experience-engine";
 import { experienceProposalResponseSchema, experienceProposalSchema, type ExperienceProposal } from "@/lib/create/experience-proposal";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 import { ExperienceReferenceReview } from "./experience-reference-review";
 const Preview = dynamic(() => import("./experience-plan-preview").then(module => module.ExperiencePlanPreview));
 const control = "mt-1 w-full min-w-0 rounded-lg border p-2 text-[12px]";

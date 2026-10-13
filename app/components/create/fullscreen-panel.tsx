@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useId } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Z_LAYERS } from "./kebu-z-layers";
 import { acquireScrollLock, releaseScrollLock } from "@/lib/create/scroll-lock";
 import { useFocusTrap } from "@/lib/create/use-focus-trap";
+import { useBuilderAppearance } from "./builder-appearance-provider";
+import { BUILDER_APPEARANCE_PALETTES } from "@/lib/create/builder-appearance";
+import { builderPanelVariables } from "@/lib/create/builder-panel-appearance";
 
 type FullscreenPanelProps = {
   open: boolean;
+  /** Only opt in when all dialog content uses editor panel tokens. */
+  editorAppearance?: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
@@ -34,14 +39,19 @@ type FullscreenPanelProps = {
 export function FullscreenPanel({
   open,
   onClose,
+  editorAppearance = false,
   title,
   children,
   triggerRef,
   className = "",
   showClose = true,
 }: FullscreenPanelProps) {
+  const { appearance: editorTheme } = useBuilderAppearance();
+  const appearance = editorAppearance ? editorTheme : "light";
+  const palette = BUILDER_APPEARANCE_PALETTES[appearance];
+  const appearanceStyle = { ...builderPanelVariables(appearance), color: palette.ink, colorScheme: appearance };
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const titleId = useRef(`kebu-fsp-${Math.random().toString(36).slice(2, 8)}`).current;
+  const titleId = useId();
 
   useFocusTrap(panelRef, open, triggerRef);
 
@@ -73,6 +83,7 @@ export function FullscreenPanel({
       aria-labelledby={title ? titleId : undefined}
       className={`kebu-fullscreen-panel${className ? ` ${className}` : ""}`}
       style={{
+        ...appearanceStyle,
         position: "fixed",
         inset: 0,
         // Respect all safe-area insets
@@ -80,7 +91,7 @@ export function FullscreenPanel({
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
         paddingLeft: "env(safe-area-inset-left, 0px)",
         paddingRight: "env(safe-area-inset-right, 0px)",
-        background: "#fff",
+        background: palette.surface,
         zIndex: Z_LAYERS.fullscreenPanel,
         display: "flex",
         flexDirection: "column",
@@ -96,14 +107,14 @@ export function FullscreenPanel({
             alignItems: "center",
             justifyContent: "space-between",
             padding: "12px 16px",
-            borderBottom: "1px solid #F0F0F0",
+            borderBottom: `1px solid ${palette.border}`,
             flexShrink: 0,
           }}
         >
           {title ? (
             <h2
               id={titleId}
-              style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#1A1A1A" }}
+              style={{ margin: 0, fontSize: 15, fontWeight: 600, color: palette.ink }}
             >
               {title}
             </h2>
@@ -119,13 +130,13 @@ export function FullscreenPanel({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 36,
-                height: 36,
-                border: "1px solid #E5E5E5",
-                background: "#fff",
+                width: 44,
+                height: 44,
+                border: `1px solid ${palette.border}`,
+                background: palette.surface,
                 cursor: "pointer",
                 borderRadius: 8,
-                color: "#444",
+                color: palette.muted,
               }}
             >
               <svg

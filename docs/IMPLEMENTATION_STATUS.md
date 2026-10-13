@@ -1,5 +1,11 @@
 # Kebu — Implementation Status
 
+### 2026-10-13 UTC — Native inspector and opt-in portal appearance checkpoint
+
+K033 remains **IN PROGRESS**. Native element/text/motion/brand controls now use a separate scoped panel palette; published/legacy tokens and website document values are unchanged. The mobile Add section sheet explicitly opts in to the editor preference. Drawer and FullscreenPanel support the same opt-in while existing callers default to Light. Dialog headings use stable React IDs and close buttons have 44px touch targets. Legacy inspector, Yande, workspace/app-wide surfaces and real authenticated acceptance remain open.
+
+Full `npm run ci` exits zero: **5,591 tests pass / 268 explicit skips**, TypeScript, lint (zero errors / 279 remaining warnings), production build. 32 focused appearance/fixture-gate cases pass, including real native-inspector SSR and unchanged document values. The preview fixture now uses the actual inspector and operation engine with a synthetic in-memory document and all three portal containers; no real account/project is written. Browser interaction/visual QA is pending at this checkpoint. No production rollout, provider, schema or billing changes.
+
 ### 2026-10-13 UTC — Builder toolbar appearance checkpoint
 
 K033 remains **IN PROGRESS**. The editor top bar and tool rail now have a real Auto / Light / Dark control, persisted per device, synchronized across tabs, with local 20:00–07:00 Auto hours, foreground/clock rechecks, lifecycle cleanup and a storage-failure warning. Separate action/foreground and save-status palettes pass text contrast checks. The preference does not alter customer website themes, canvas definitions or public pages. Inspector panels, mobile portal panels and app-wide night mode are still open; no full night-mode or ecosystem completion claim.

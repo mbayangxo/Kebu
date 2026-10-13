@@ -30,3 +30,7 @@ QA restore was attempted again through the connected account. Supabase rejected 
 ## Core follow-up: Builder appearance (October 13)
 
 Auto / Light / Dark is implemented for the top bar and tool rail using a device-local store; 29 focused tests and full CI pass. The fixture required by a pre-existing publishing test was recovered and tracked. Preview-only actual-component desktop/phone visual and interaction QA passed, including color isolation, reload and cross-tab persistence; running production fixture gate returned 404. This is fixture QA, not a signed-in real-project pass. K033 remains IN PROGRESS: inspector/portal/workspace/app-wide migration, real authenticated desktop/mobile flows and production rollout still open. All four requested groups above remain in scope.
+
+## Core follow-up: native inspector and portals
+
+Scoped native inspector colors and an explicit mobile Add section sheet opt-in are implemented; Drawer/FullscreenPanel support the opt-in without changing existing Light defaults. Stable dialog heading IDs and 44px close controls replace the previous random IDs/small targets. Full CI passes with 5,591 tests / 268 explicit skips. Actual-component browser edit/focus/close/scroll-lock/theme-update QA is next. Legacy inspector/Yande/workspace/app-wide appearance and genuine authenticated acceptance remain IN PROGRESS; all four groups remain open.

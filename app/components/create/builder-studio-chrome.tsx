@@ -257,10 +257,10 @@ export function BuilderStudioChrome({
 
         {setPreference ? (
           <label className="shrink-0">
-            <span className="sr-only">Toolbar appearance</span>
+            <span className="sr-only">Builder appearance</span>
             <select
-              aria-label="Toolbar appearance"
-              title="Auto: dark from 8 pm to 7 am in your local time. Changes editor toolbars only."
+              aria-label="Builder appearance"
+              title="Auto: dark from 8 pm to 7 am in your local time. Your website colors stay the same."
               value={preference}
               onChange={event => setPreference(event.target.value)}
               className="min-h-11 rounded-md border px-2 text-[11px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"

@@ -2,9 +2,9 @@
 
 import { useId, useState } from "react";
 import { defaultNativeMotion, nativeMotionEnabled, nativeMotionSchema, nativeInteractionSchema, type Device, type KcdNode, type NativeMotion, type Op } from "@/lib/creative-core";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 
-const style = { borderColor: BUILDER.border, background: BUILDER.surface, color: BUILDER.ink };
+const style = { borderColor: BUILDER.border, background: BUILDER.surface, color: BUILDER.ink, colorScheme: BUILDER.colorScheme };
 const field = "w-full rounded-lg border px-2.5 py-2 text-[12px]";
 function NumberField({ label, value, min, max, onCommit }: { label: string; value: number; min: number; max: number; onCommit: (n: number) => void }) {
   const id = useId(), [draft, setDraft] = useState(String(value));

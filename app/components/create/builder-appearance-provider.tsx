@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from "react";
 import { BUILDER_APPEARANCE_KEY, BUILDER_APPEARANCE_PALETTES, createBuilderAppearanceStore, INITIAL_BUILDER_APPEARANCE } from "@/lib/create/builder-appearance";
+import { builderPanelVariables } from "@/lib/create/builder-panel-appearance";
 
 type Store = ReturnType<typeof createBuilderAppearanceStore>;
 const AppearanceContext = createContext<Store | null>(null);
@@ -32,4 +33,10 @@ export function useBuilderAppearance() {
   const store = useContext(AppearanceContext);
   const snapshot = useSyncExternalStore(store?.subscribe ?? noopSubscribe, store?.getSnapshot ?? initialSnapshot, store?.getServerSnapshot ?? initialSnapshot);
   return { ...snapshot, palette: BUILDER_APPEARANCE_PALETTES[snapshot.appearance], setPreference: store?.setPreference };
+}
+
+/** Scope variables to migrated editor controls, never to the website canvas. */
+export function BuilderPanelScope({ children }: { children: ReactNode }) {
+  const { appearance } = useBuilderAppearance();
+  return <div data-builder-panel-appearance={appearance} style={{ ...builderPanelVariables(appearance), display: "contents" }}>{children}</div>;
 }

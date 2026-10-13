@@ -2,6 +2,12 @@
 
 Requirement K033 remains IN PROGRESS. This first isolated slice covers the editor top bar and tool rail; inspector panels, portal panels, workspace and app-wide appearance still need migration and running-app QA. Do not call this application night mode complete.
 
+## Inspector and portal extension — current work
+
+Native element/text/motion/brand controls opt into `--builder-panel-*` variables through a scope around the native inspector. No variables are added to the editor root, body or customer canvas. Legacy UI tokens remain fixed. The Add section mobile sheet explicitly opts in; Drawer and FullscreenPanel support the same explicit opt-in, defaulting to Light for existing callers. Yande and other legacy inspector/workspace surfaces remain open until their content is migrated and checked. Native field form boundaries use separate contrast-safe border colors. Portal dialog heading IDs use React useId; close controls are 44px.
+
+The preview-only QA fixture uses the actual native inspector and operation engine with a synthetic in-memory document. It exercises text commit, motion inputs, section selection callbacks, all three portal containers, focus trapping/restoration, Escape/Close, scroll locking, theme updates while a dialog is open and customer color parity. Reload resets this synthetic document; it is not authenticated persistence evidence. Existing fixture production gates remain in force.
+
 The toolbar offers Auto / Light / Dark. Auto uses the device's local time: dark at 20:00 through 06:59, light at 07:00 through 19:59. These hours are an implementation assumption because the recovered request did not specify hours. The control explains this schedule.
 
 The versioned device-local preference survives reload, synchronizes across same-origin tabs, and overrides the clock until Auto is selected again. Foreground and minute clock checks handle sleeping tabs and timezone/clock changes. Denied storage still permits a session choice, with an explicit persistence warning. No database or provider credentials are needed; this is not account-wide synchronization.

@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-13",
+  "status": "IN_PROGRESS",
+  "scope": [
+    "Native inspector controls",
+    "Explicit opt-in Add section sheet",
+    "Opt-in Drawer/FullscreenPanel API",
+    "Stable portal heading IDs and 44px close buttons"
+  ],
+  "full_ci": {
+    "exit_code": 0,
+    "passing_tests": 5591,
+    "skipped_tests": 268,
+    "lint_errors": 0,
+    "lint_warnings": 279,
+    "typecheck": "pass",
+    "build": "pass"
+  },
+  "focused_cases": 32,
+  "browser": "pending",
+  "document_or_customer_theme_changes": false,
+  "hosted_schema_or_provider_changes": false,
+  "production_rollout": false,
+  "remaining": [
+    "Legacy inspector and Yande colors",
+    "Workspace and app-wide appearance",
+    "Real authenticated project save/publish/mobile acceptance",
+    "Remaining four product groups"
+  ]
+}
