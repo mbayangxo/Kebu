@@ -93,7 +93,7 @@ export function KcdPrimitivePanel({ document, pageId, device, selectedId, onSele
     return children && children !== "none" && children.allow.includes(node?.type ?? "") && !descendants.has(candidate.id) && !isSpatialLocked(document, candidate.id);
   });
   return <section aria-label="Native elements" className="border-b p-3" style={{ ...fieldStyle }}>
-    {node && definition ? <div className="mb-3 space-y-2">
+    {node && definition ? <div className="mb-3 flex flex-wrap items-center gap-2">
       <button type="button" className="text-[12px] underline" onClick={() => onSelect(null)}>Show element hierarchy</button>
       <button type="button" className={buttonClass} style={fieldStyle} disabled={disabled || Boolean(node.parentId && isSpatialLocked(document, node.parentId))} onClick={() => void run("Change lock", () => [{ op: "setLocked", id: node.id, value: !node.locked }])}>{node.locked ? "Unlock element" : "Lock element"}</button>
       {isSpatialLocked(document, node.id) ? <p role="status" className="text-[12px]">Locked. Unlock the element or its container to edit it.</p> : null}
