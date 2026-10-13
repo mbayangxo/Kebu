@@ -12,7 +12,34 @@
     "production_build": "pass"
   },
   "focused_cases": 29,
-  "browser": "pending",
+  "browser": {
+    "status": "pass for isolated actual-component fixture only",
+    "tested_source_commit": "76d696ca67dd7f9280e50cc64c9af72d64fc0765",
+    "deployment": "dpl_5DA5FhgABgrzpGkxT3d4gvDcLVWp",
+    "url": "https://kebu-nm5v92fdm-mbayangxos-projects.vercel.app/qa/builder-appearance",
+    "checks": [
+      "Light/Dark switching",
+      "saved Dark choice survives reload",
+      "two-tab preference synchronization",
+      "phone iframe preference updates desktop",
+      "keyboard Home/Enter selects Auto",
+      "phone device control changes to mobile",
+      "phone Photos rail changes selected tool to media",
+      "phone labelled fixture publish callback updates UI; no real publishing",
+      "customer fixture remains cream rgb(255,248,231) and green rgb(23,59,43)",
+      "44px theme selector; no horizontal overflow at 382px content viewport inside 390px frame"
+    ],
+    "phone_metrics": {
+      "viewport_width": 382,
+      "document_scroll_width": 382,
+      "theme_select_height": 44,
+      "header_height": 114.5
+    },
+    "screenshot": "evidence/builder-appearance/toolbar-dark-qa-1791851227652.jpg",
+    "application_console_errors_observed": 0,
+    "excluded_console_errors": "Browser extension metadata errors from chrome-extension URL; not application errors",
+    "real_project_or_account_journey": false
+  },
   "production_rollout": false,
   "app_wide_night_mode": "not complete",
   "authenticated_builder_verification": "pending; QA database was paused at previous checkpoint",
@@ -20,5 +47,18 @@
     "path": "evidence/3c/s7/qa/publish-envelope.json",
     "source": "original local saved QA envelope",
     "new_hosted_transaction": false
-  }
+  },
+  "production_fixture_gate": {
+    "unit_cases": 6,
+    "running_production_build_http_status": 404,
+    "fixture_content_exposed": false,
+    "initial_local_startup_issue": "Next hostname autodetection failed with uv_interface_addresses in container; explicit loopback hostname resolved it"
+  },
+  "remaining": [
+    "Inspector and portal panel night palettes",
+    "Workspace/app-wide night mode",
+    "Real authenticated hosted Builder acceptance",
+    "Production rollout",
+    "All four larger completion groups remain in the queue"
+  ]
 }
