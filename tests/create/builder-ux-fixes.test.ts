@@ -9,8 +9,8 @@
  *      removed.  We verify the ConfirmAction discriminated union shape so typos are
  *      caught at compile time as well as at runtime.
  *
- *   3. applyAiPreview race — saveDraftNow() must exist as an exported/returned function
- *      from the autosave hook so the Builder page can call it before apply.
+ *   3. AI/save sequencing is exercised by the actual action gate in
+ *      builder-save-readiness.test.ts, including resolved failures and thrown flushes.
  */
 
 import { describe, expect, it } from "vitest";
@@ -83,25 +83,5 @@ describe("ConfirmAction discriminated union — delete confirmation contract", (
   });
 });
 
-// ─── 3. applyAiPreview race — saveDraftNow must be callable pre-apply ─────────
-
-describe("applyAiPreview race prevention contract", () => {
-  it("saveDraftNow is a function concept: flush before server state changes", () => {
-    // This test documents the contract rather than testing the hook directly
-    // (the hook uses React state and cannot run in the node test environment).
-    // The key invariant: any async operation that calls /api/projects/:id/ai-improve/apply
-    // and then calls load() to refresh state MUST first call saveDraftNow() to ensure
-    // no pending 500ms debounced saves fire after the fresh state is loaded.
-    //
-    // Contract: saveDraftNow() returns a Promise<void> that resolves once all pending
-    // section saves have been persisted (or confirmed no-ops).
-    const draftFlushContract = async (
-      saveDraftNow: () => Promise<void>,
-      applyAndReload: () => Promise<void>,
-    ) => {
-      await saveDraftNow();  // must come before applyAndReload
-      await applyAndReload();
-    };
-    expect(typeof draftFlushContract).toBe("function");
-  });
-});
+// The actual confirmed-save and request-ordering regressions are in
+// builder-save-readiness.test.ts; a function-exists assertion cannot prove this contract.

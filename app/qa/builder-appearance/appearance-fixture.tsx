@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BuilderAppearanceProvider } from "@/app/components/create/builder-appearance-provider";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
 import type { BuilderDevice } from "@/lib/create/builder-device";
+import { SaveReadinessFixture } from "./save-readiness-fixture";
 import { YandeAppearanceFixture } from "./yande-appearance-fixture";
 import { NativeInspectorFixture } from "./native-inspector-fixture";
 
@@ -25,6 +26,7 @@ export function AppearanceFixture({ phoneFrame = false }: { phoneFrame?: boolean
               Customer website color fixture — stays cream and green in both toolbar themes.
             </div>
             <p role="status" className="text-xs">{feedback}</p>
+            <SaveReadinessFixture />
             <NativeInspectorFixture />
             <YandeAppearanceFixture />
           </section>

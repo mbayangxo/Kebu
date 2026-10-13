@@ -67,6 +67,8 @@ import { mySiteDetailHref } from "@/lib/navigation/product-nav";
 import {
   DataModeProvider,
 } from "@/app/components/create/data-mode-provider";
+import { builderPublishReceipt, builderSettingsReceipt, confirmBuilderDraftRefresh } from "@/lib/create/builder-write-receipts";
+import { BuilderDraftActionGate, type BuilderSaveReadiness } from "@/lib/create/builder-save-readiness";
 import { useProjectAutosave } from "./use-project-autosave";
 import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 import { MobileActionBar } from "@/app/components/create/mobile-action-bar";
@@ -152,12 +154,16 @@ type Project = {
 
 export default function ProjectEditorPage() {
   const params = useParams<{ id: string }>();
-  const projectId = params.id;
+  return <ProjectEditor key={params.id} projectId={params.id} />;
+}
+
+function ProjectEditor({ projectId }: { projectId: string }) {
   const router = useRouter();
 
   const [project, setProject] = useState<Project | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
+  const [draftReloadRequired, setDraftReloadRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [supportAssist, setSupportAssist] = useState(false);
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -167,13 +173,14 @@ export default function ProjectEditorPage() {
   const [publishUrl, setPublishUrl] = useState<string | null>(null);
   const [subdomainInput, setSubdomainInput] = useState("");
   const [seoSettings, setSeoSettings] = useState<SiteSeo>(() => defaultSiteSeo());
-  const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [settingsState, setSettingsState] = useState<"idle" | "unsaved" | "saving" | "saved" | "error">("idle");
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
+  const settingsVersionRef = useRef(0);
   const pendingSettingsRef = useRef<{ subdomain?: string; seo?: SiteSeo; theme?: Partial<ThemeTokens> } | null>(null);
   // Ref to the iframe used for mobile/tablet device preview (see below)
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
@@ -189,6 +196,7 @@ export default function ProjectEditorPage() {
   } | null>(null);
   const [checkoutTier, setCheckoutTier] = useState("starter");
   const [improving, setImproving] = useState(false);
+  const [draftActionGate] = useState(() => new BuilderDraftActionGate());
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
   const [yandeOpen, setYandeOpen] = useState(false);
@@ -331,16 +339,16 @@ export default function ProjectEditorPage() {
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
         router.replace(`/login?next=/create/${projectId}`);
-        return;
+        return false;
       }
       if (res.status === 404) {
         setError("Project not found — or you do not have access.");
         setProject(null);
-        return;
+        return false;
       }
       if (!res.ok) {
         setError(typeof data.error === "string" ? data.error : "Could not load project.");
-        return;
+        return false;
       }
       let projectPayload = data;
       const sectionRows = Array.isArray(data.sections) ? data.sections : [];
@@ -433,8 +441,11 @@ export default function ProjectEditorPage() {
         if (tier && tier !== "free") setCheckoutTier(tier);
         else setCheckoutTier("starter");
       }
+      setDraftReloadRequired(false);
+      return true;
     } catch (error) {
       setError(error instanceof Error ? error.message : "Network error. Retry.");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -503,14 +514,16 @@ export default function ProjectEditorPage() {
       setError,
     });
 
-  const saveState = operationEditing && operations.status !== "idle"
+  const sectionSaveState = operationEditing && operations.status !== "idle"
     ? operations.status === "saving" ? "saving" : operations.status === "queued" ? "queued" : "error"
     : operationEditing && legacySaveState === "idle" ? operations.pending ? "unsaved" : "saved" : legacySaveState;
-  const saveStatusLabel = operationEditing && operations.status !== "idle"
+  const sectionSaveStatusLabel = operationEditing && operations.status !== "idle"
     ? operations.status === "saving" ? "Saving draft…" : operations.message ?? "Save not confirmed"
     : operationEditing && legacySaveState === "idle" ? operations.pending ? "Unsaved changes" : "Draft saved" : legacySaveStatusLabel;
-  const canUndo = operationEditing ? operations.canUndo : history.length > 0;
-  const canRedo = operationEditing ? operations.canRedo : future.length > 0;
+  const saveState = settingsState === "error" ? "error" : settingsState === "saving" ? "saving" : settingsState === "unsaved" ? "unsaved" : sectionSaveState;
+  const saveStatusLabel = settingsState === "error" ? "Settings not saved — retry Save draft" : settingsState === "saving" ? "Saving site settings…" : settingsState === "unsaved" ? "Unsaved site settings" : sectionSaveStatusLabel;
+  const canUndo = !draftReloadRequired && (operationEditing ? operations.canUndo : history.length > 0);
+  const canRedo = !draftReloadRequired && (operationEditing ? operations.canRedo : future.length > 0);
   function updateProps(id: string, patch: Record<string, unknown>) {
     const document = operations.getDocument();
     if (operationEditing && document?.nodes[id as NodeId] && isSpatialLocked(document, id as NodeId)) { setError("Unlock this element or its container before editing."); return; }
@@ -518,10 +531,18 @@ export default function ProjectEditorPage() {
     else legacyUpdateProps(id, patch);
   }
   async function saveDraftNow() {
+    if (draftReloadRequired) { setError("Reload the updated draft before saving or applying more changes."); return; }
+    if (settingsTimer.current) { clearTimeout(settingsTimer.current); settingsTimer.current = null; }
     if (operationEditing) await operations.flush();
     await legacySaveDraftNow();
+    const pendingSettings = pendingSettingsRef.current;
+    if (pendingSettings) {
+      await persistSiteSettings(pendingSettings.subdomain ?? subdomainInput, pendingSettings.seo ?? seoSettings, pendingThemeRef.current ?? pendingSettings.theme);
+    }
   }
-  function canPublishNow(): { ok: boolean; reason?: string } {
+  function canPublishNow(): BuilderSaveReadiness {
+    if (draftReloadRequired) return { ok: false, reason: "Reload the updated draft before continuing." };
+    if (pendingSettingsRef.current) return { ok: false, reason: "Site settings are not confirmed saved. Retry Save draft before continuing." };
     if (operationEditing && !operations.canPublish()) return { ok: false, reason: operations.message ?? "Wait for operation changes to finish saving before publishing." };
     return legacyCanPublishNow();
   }
@@ -909,7 +930,13 @@ export default function ProjectEditorPage() {
     }
   }
 
-  async function persistSiteSettings(nextSubdomain: string, nextSeo: SiteSeo, themePatch?: Partial<ThemeTokens>) {
+  function persistSiteSettings(nextSubdomain: string, nextSeo: SiteSeo, themePatch?: Partial<ThemeTokens>) {
+    const version = settingsVersionRef.current;
+    return writeStructure(() => sendSiteSettings(nextSubdomain, nextSeo, themePatch, version));
+  }
+
+  async function sendSiteSettings(nextSubdomain: string, nextSeo: SiteSeo, themePatch: Partial<ThemeTokens> | undefined, version: number) {
+    if (version !== settingsVersionRef.current) return false;
     setSettingsState("saving");
     setSettingsNote(null);
     try {
@@ -926,10 +953,11 @@ export default function ProjectEditorPage() {
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (version !== settingsVersionRef.current) return false;
       if (!res.ok) {
         setSettingsState("error");
         setError(typeof data.error === "string" ? data.error : "Could not save site settings.");
-        return;
+        return false;
       }
       if (typeof data.httpsUrl === "string" && data.httpsUrl.startsWith("http")) {
         setPublishUrl(data.httpsUrl);
@@ -939,6 +967,13 @@ export default function ProjectEditorPage() {
       if (data.project?.subdomain) {
         setSubdomainInput(String(data.project.subdomain));
       }
+      if (!builderSettingsReceipt(data, projectId)) {
+        setSettingsState("error");
+        setError("Settings save response was incomplete. Retry Save draft before continuing.");
+        return false;
+      }
+      pendingSettingsRef.current = null;
+      pendingThemeRef.current = null;
       setSettingsState("saved");
       setSettingsNote(
         typeof data.message === "string" ? data.message : "Site settings saved to Supabase.",
@@ -946,13 +981,19 @@ export default function ProjectEditorPage() {
       if (data.project?.theme && typeof data.project.theme === "object") {
         setProject((prev) => (prev ? { ...prev, theme: data.project.theme as ThemeTokens } : prev));
       }
+      return true;
     } catch {
+      if (version !== settingsVersionRef.current) return false;
       setSettingsState("error");
       setError("Network error while saving site settings.");
+      return false;
     }
   }
 
   function queueSiteSettingsSave(patch: { subdomain?: string; seo?: Partial<SiteSeo>; theme?: Partial<ThemeTokens> }) {
+    settingsVersionRef.current++;
+    setSettingsState("unsaved");
+    setSettingsNote(null);
     const nextSubdomain = patch.subdomain ?? subdomainInput;
     // Base the merge on the FULL current commerce object (not just two cherry-picked fields) — a
     // save triggered by an unrelated change (favicon, meta title, subdomain) must never drop payment
@@ -1000,7 +1041,6 @@ export default function ProjectEditorPage() {
       settingsTimer.current = null;
       const subdomainValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextSubdomain.trim()) && nextSubdomain.trim().length >= 3;
       const themeToSave = pendingThemeRef.current ?? undefined;
-      pendingThemeRef.current = null;
       void persistSiteSettings(
         subdomainValid ? nextSubdomain.trim().toLowerCase() : subdomainInput.trim().toLowerCase(),
         nextSeo,
@@ -1010,152 +1050,166 @@ export default function ProjectEditorPage() {
   }
 
   async function publish() {
-    if (publishing) return;
+    if (publishing || draftActionGate.busy) return;
     if (!subdomainInput.trim()) {
       setError("Set your Kebu site address under Domain & SEO before publishing.");
-      return;
-    }
-    const publishCheck = canPublishNow();
-    if (!publishCheck.ok) {
-      setError(publishCheck.reason ?? "Cannot publish while changes are pending or failed.");
       return;
     }
     setPublishing(true);
     setError(null);
     try {
-      // Flush any pending section saves before publishing — ensures the server sees the latest content.
-      await saveDraftNow();
-      // A save that was just rejected (e.g. an Undo/Redo snapshot) must not be published around.
-      const afterSave = canPublishNow();
-      if (!afterSave.ok) {
-        setError(afterSave.reason ?? "Cannot publish while changes are pending or failed.");
-        return;
-      }
-      await persistSiteSettings(subdomainInput.trim(), seoSettings);
-      const res = await fetch(`/api/projects/${projectId}/publish`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subdomain: subdomainInput.trim().toLowerCase() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (typeof data.migrationHint === "string" && data.migrationHint.length > 0) {
-        setError(
-          typeof data.error === "string"
-            ? data.error
-            : "Free hosting needs a database update. Run FIX_free_publish.sql in Supabase, then try Publish again.",
-        );
-        return;
-      }
-      if (res.status === 402 && data.billingRequired) {
-        setError(
-          `Publish needs a paid plan for a custom domain. Free sites publish on your Kebu subdomain — or upgrade to Starter ($2/site/month) via JOKO.`,
-        );
-        setBilling((b) => (b ? { ...b, canPublish: false } : b));
-        return;
-      }
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Publish failed.");
-        return;
-      }
-      setPublishUrl(data.deployment?.public_path ?? data.liveUrl ?? data.publicPath ?? null);
-      await load();
-    } catch {
-      setError("Network error while publishing.");
+      const outcome = await draftActionGate.run({ save: saveDraftNow, readiness: canPublishNow, action: async () => {
+        if (!await persistSiteSettings(subdomainInput.trim(), seoSettings)) return;
+        const res = await fetch(`/api/projects/${projectId}/publish`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subdomain: subdomainInput.trim().toLowerCase() }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (typeof data.migrationHint === "string" && data.migrationHint.length > 0) {
+          setError(
+            typeof data.error === "string"
+              ? data.error
+              : "Free hosting needs a database update. Run FIX_free_publish.sql in Supabase, then try Publish again.",
+          );
+          return;
+        }
+        if (res.status === 402 && data.billingRequired) {
+          setError(
+            `Publish needs a paid plan for a custom domain. Free sites publish on your Kebu subdomain — or upgrade to Starter ($2/site/month) via JOKO.`,
+          );
+          setBilling((b) => (b ? { ...b, canPublish: false } : b));
+          return;
+        }
+        if (!res.ok) {
+          setError(typeof data.error === "string" ? data.error : "Publish failed.");
+          return;
+        }
+        const path = builderPublishReceipt(data, subdomainInput.trim().toLowerCase());
+        if (!path) {
+          setDraftReloadRequired(true);
+          setError("Publish response was incomplete. Reload the draft to check its live status before retrying.");
+          return;
+        }
+        setPublishUrl(path);
+        await load();
+      } });
+      if (outcome.status === "blocked") setError(outcome.reason);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error while publishing.");
     } finally {
       setPublishing(false);
     }
   }
 
   async function previewWithAi() {
-    if (improving) return;
+    if (improving || draftActionGate.busy) return;
     setImproving(true);
     setError(null);
     setImproveNote(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/ai-improve/preview`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instruction: improveInstruction.trim() || undefined,
-          mode: improveMode === "free" ? undefined : improveMode,
-          focusPageSlug: previewPageSlug || undefined,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        router.replace(`/login?next=/create/${projectId}`);
-        return;
-      }
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not preview AI changes.");
-        return;
-      }
-      if (!data.definition || !Array.isArray(data.intents)) {
-        setError("Preview response was incomplete. Retry.");
-        return;
-      }
-      const sectionChanges = Array.isArray(data.sectionChanges)
-        ? (data.sectionChanges as AiSectionChange[])
-        : [];
-      const defaultAccepted = new Set(sectionChanges.map((c) => c.sectionId));
-      setAiPreview({
-        definition: data.definition as WebsiteDefinition,
-        intents: data.intents as string[],
-        sectionChanges,
-        acceptedSectionIds: defaultAccepted,
-        repaired: Boolean(data.repaired),
-      });
-    } catch {
-      setError("Network error while previewing. Retry.");
+      const outcome = await draftActionGate.run({ save: saveDraftNow, readiness: canPublishNow, action: async () => {
+        const res = await fetch(`/api/projects/${projectId}/ai-improve/preview`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instruction: improveInstruction.trim() || undefined,
+            mode: improveMode === "free" ? undefined : improveMode,
+            focusPageSlug: previewPageSlug || undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          router.replace(`/login?next=/create/${projectId}`);
+          return;
+        }
+        if (!res.ok) {
+          setError(typeof data.error === "string" ? data.error : "Could not preview AI changes.");
+          return;
+        }
+        if (!data.definition || !Array.isArray(data.intents)) {
+          setError("Preview response was incomplete. Retry.");
+          return;
+        }
+        const sectionChanges = Array.isArray(data.sectionChanges)
+          ? (data.sectionChanges as AiSectionChange[])
+          : [];
+        const defaultAccepted = new Set(sectionChanges.map((c) => c.sectionId));
+        setAiPreview({
+          definition: data.definition as WebsiteDefinition,
+          intents: data.intents as string[],
+          sectionChanges,
+          acceptedSectionIds: defaultAccepted,
+          repaired: Boolean(data.repaired),
+        });
+      } });
+      if (outcome.status === "blocked") setError(outcome.reason);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error while previewing. Retry.");
     } finally {
       setImproving(false);
     }
   }
 
   async function applyAiPreview() {
-    if (improving || !aiPreview) return;
+    if (improving || !aiPreview || draftActionGate.busy) return;
+    if (aiPreview.sectionChanges.length > 0 && aiPreview.acceptedSectionIds.size === 0) {
+      setError("Select at least one section to apply.");
+      return;
+    }
     setImproving(true);
     setError(null);
-    // Flush any pending debounced section saves before applying — the AI apply
-    // server-side replaces sections wholesale, so any in-flight autosave must complete
-    // before that replacement so it cannot race back and overwrite the fresh server state.
-    await saveDraftNow();
     try {
-      const res = await fetch(`/api/projects/${projectId}/ai-improve/apply`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          definition: aiPreview.definition,
-          acceptedSectionIds:
-            aiPreview.sectionChanges.length > 0
-              ? [...aiPreview.acceptedSectionIds]
-              : undefined,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        router.replace(`/login?next=/create/${projectId}`);
-        return;
-      }
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not apply AI changes.");
-        return;
-      }
-      setAiPreview(null);
-      setImproveNote(
-        typeof data.message === "string"
-          ? data.message
-          : "Draft updated. Publish again to update your live site.",
-      );
-      setHistory([]);
-      setFuture([]);
-      await load();
-      markAllSaved();
-    } catch {
-      setError("Network error while applying changes. Retry.");
+      const outcome = await draftActionGate.run({ save: saveDraftNow, readiness: canPublishNow, action: async () => {
+        const res = await fetch(`/api/projects/${projectId}/ai-improve/apply`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            definition: aiPreview.definition,
+            acceptedSectionIds:
+              aiPreview.sectionChanges.length > 0
+                ? [...aiPreview.acceptedSectionIds]
+                : undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          router.replace(`/login?next=/create/${projectId}`);
+          return;
+        }
+        if (!res.ok) {
+          setError(typeof data.error === "string" ? data.error : "Could not apply AI changes.");
+          return;
+        }
+        if (data.applied !== true) {
+          setAiPreview(null);
+          setDraftReloadRequired(true);
+          setError("Apply response was incomplete. Reload the draft to check whether changes were saved.");
+          return;
+        }
+        setAiPreview(null);
+        setImproveNote(
+          typeof data.message === "string"
+            ? data.message
+            : "Draft updated. Publish again to update your live site.",
+        );
+        setDraftReloadRequired(true);
+        const loaded = await confirmBuilderDraftRefresh(load, () => {
+          setHistory([]);
+          setFuture([]);
+          markAllSaved();
+        });
+        if (!loaded) {
+          setImproveNote("Changes were saved, but the updated draft could not be loaded. Reload before editing.");
+          return;
+        }
+      } });
+      if (outcome.status === "blocked") setError(outcome.reason);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error while applying changes. Retry.");
     } finally {
       setImproving(false);
     }
@@ -1449,8 +1503,16 @@ export default function ProjectEditorPage() {
     <BuilderAppearanceProvider>
     <div
       className="relative flex h-dvh flex-col overflow-hidden"
+      inert={improving || publishing}
+      aria-busy={improving || publishing}
       style={{ background: BUILDER.bg, color: BUILDER.ink }}
     >
+      {draftReloadRequired ? (
+        <div role="alert" className="flex flex-wrap items-center gap-2 border-b border-amber-400 bg-amber-50 px-4 py-2 text-xs text-amber-950">
+          <p>The current draft needs to be reloaded before editing or publishing again.</p>
+          <button type="button" className="min-h-11 rounded border border-amber-800 px-3 font-semibold" onClick={() => void load()}>Reload updated draft</button>
+        </div>
+      ) : null}
       <BuilderStudioChrome
         projectId={projectId}
         title={project?.title ?? "Editor"}
@@ -1816,7 +1878,7 @@ export default function ProjectEditorPage() {
                     remove: (pageId) => operations.submit("Remove page", [{ op: "removePage", pageId: pageId as PageId }]),
                     reorder: operations.reorderPages,
                   } : undefined}
-                  onRefresh={load}
+                  onRefresh={async () => { await load(); }}
                   onError={setError}
                 />
                 </div>
@@ -5156,7 +5218,7 @@ export default function ProjectEditorPage() {
         </div>
       ) : null}
       {/* Mobile action bar — surfaces Undo/Redo/Add on phones where the header controls are sm:hidden */}
-      {project && !flagshipCanvas ? (
+      {project && !flagshipCanvas && !draftReloadRequired ? (
         <MobileActionBar
           canUndo={canUndo}
           canRedo={canRedo}

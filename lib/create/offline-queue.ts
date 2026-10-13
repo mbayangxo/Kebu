@@ -180,6 +180,8 @@ export type OfflineQueueItem =
 
 /** In-memory fallback when localStorage is missing (SSR / node tests). */
 let memoryQueue: OfflineQueueItem[] = [];
+/** A failed write must not let a subsequent read resurrect an older stored queue. */
+let memoryOnlyQueue = false;
 const operationLeases = new Map<string, number>();
 
 /** Old snapshots cannot be safely converted without the versions they were edited against. */
@@ -207,11 +209,11 @@ export function acquireOperationQueueLease(projectId: string): () => void {
 }
 
 function readQueue(): OfflineQueueItem[] {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return [...memoryQueue];
-  }
+  if (memoryOnlyQueue || typeof window === "undefined") return [...memoryQueue];
   try {
-    const raw = window.localStorage.getItem(OFFLINE_QUEUE_KEY);
+    const storage = window.localStorage;
+    if (!storage) return [...memoryQueue];
+    const raw = storage.getItem(OFFLINE_QUEUE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     return Array.isArray(parsed) ? (parsed as OfflineQueueItem[]) : [];
@@ -222,17 +224,24 @@ function readQueue(): OfflineQueueItem[] {
 
 function writeQueue(items: OfflineQueueItem[]): void {
   memoryQueue = items;
-  if (typeof window === "undefined" || !window.localStorage) return;
+  memoryOnlyQueue = true;
+  if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(items));
+    const storage = window.localStorage;
+    if (storage) {
+      storage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(items));
+      memoryOnlyQueue = false;
+    }
   } catch {
-    /* storage quota exceeded — items remain in memoryQueue */
+    // Preserve the current session queue; consumers expose the lack of reload persistence.
   }
-  try {
-    window.dispatchEvent(new Event("kebu-offline-queue-changed"));
-  } catch {
-    /* ignore */
-  }
+  try { window.dispatchEvent(new Event("kebu-offline-queue-changed")); }
+  catch { /* Event APIs may be unavailable; the in-session queue remains readable. */ }
+}
+
+/** False means queued work exists only in this session and cannot survive reload. */
+export function isOfflineQueueDurable(): boolean {
+  return !memoryOnlyQueue;
 }
 
 export function listOfflineQueue(): OfflineQueueItem[] {
@@ -921,6 +930,7 @@ export function isBrowserOnline(): boolean {
 /** Replaces the entire queue. Use only in tests. */
 export function _setQueueForTesting(items: OfflineQueueItem[]): void {
   memoryQueue = items;
+  memoryOnlyQueue = false;
 }
 
 /** Resets the flush mutex. Use only in tests. */
