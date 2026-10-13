@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Nav } from "@/app/components/nav";
-import { NETWORK_PROFILES, NetworkNeed } from "@/lib/data/network-profiles";
+import { NETWORK_NEEDS } from "@/lib/network/types";
+import { createDirectoryLoader, initialDirectoryState } from "@/lib/network/directory-loader";
+import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+type NetworkNeed = (typeof NETWORK_NEEDS)[number];
 import Link from "next/link";
 
-const NEEDS: NetworkNeed[] = [
-  "Co-founder", "Investor", "Customers", "Supplier", "Mentor",
-  "Partner", "Team member", "Diaspora connection", "Export partner",
-];
+const NEEDS = NETWORK_NEEDS;
 
 const STAGE_COLORS: Record<string, string> = {
   "Idea": "bg-warm-brown/10 text-warm-brown",
@@ -22,16 +23,36 @@ export default function NetworkPage() {
   const [selectedCountry, setSelectedCountry] = useState("All");
   const [search, setSearch] = useState("");
 
-  const filtered = NETWORK_PROFILES.filter((p) => {
+  const [{ profiles, loading, error, signedOut, hasMore }, setDirectory] = useState(initialDirectoryState);
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    const loader = createDirectoryLoader(setDirectory);
+    void loader.reload();
+    let unsubscribe: (() => void) | undefined;
+    try {
+      const { data: { subscription } } = createClient().auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+        loader.sessionChanged(session?.user.id ?? null);
+      });
+      unsubscribe = () => subscription.unsubscribe();
+    } catch {
+      // The API still supplies an honest unavailable state when auth is unconfigured.
+    }
+    return () => {
+      loader.dispose();
+      unsubscribe?.();
+    };
+  }, [retry]);
+
+  const filtered = profiles.filter((p) => {
     if (selectedNeed !== "All" && !p.looking_for.includes(selectedNeed)) return false;
     if (selectedCountry !== "All" && p.country !== selectedCountry) return false;
-    if (search && !p.headline.toLowerCase().includes(search.toLowerCase()) &&
-        !p.building.toLowerCase().includes(search.toLowerCase()) &&
-        !p.sector.toLowerCase().includes(search.toLowerCase())) return false;
+    const query = search.trim().toLowerCase();
+    if (query && ![p.name, p.headline, p.building, p.sector, p.offering, ...p.looking_for]
+      .some(value => value.toLowerCase().includes(query))) return false;
     return true;
   });
 
-  const countries = ["All", ...Array.from(new Set(NETWORK_PROFILES.map((p) => p.country)))];
+  const countries = ["All", ...Array.from(new Set(profiles.map((p) => p.country)))];
 
   return (
     <div className="min-h-screen bg-warm-ivory">
@@ -39,7 +60,7 @@ export default function NetworkPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-8">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
           <div>
             <div className="inline-flex items-center gap-2 text-xs font-semibold text-gold bg-gold/10 px-3 py-1.5 rounded-full mb-4">
               THE NETWORK
@@ -48,7 +69,8 @@ export default function NetworkPage() {
               Who&apos;s building across Africa
             </h1>
             <p className="text-muted text-sm max-w-xl">
-              Explore an illustrative directory layout. Profiles shown here are examples, not verified members or live connections.
+              Connect with founders, diaspora investors, export partners, mentors, and co-founders
+              across the continent. Africa&apos;s strongest companies will be built together.
             </p>
           </div>
           <Link
@@ -59,25 +81,29 @@ export default function NetworkPage() {
           </Link>
         </div>
 
-        <p role="status" className="mb-6 rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-ink">Preview data only — this directory does not yet display verified live members. Do not use these profiles to make contact or business decisions.</p>
-
-        {/* Preview summary */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        {/* Stats */}
+        {!loading && !error && <div className="grid grid-cols-3 gap-4 mb-8">
           {[
-            { value: `${NETWORK_PROFILES.length}`, label: "Example profiles" },
-            { value: `${new Set(NETWORK_PROFILES.map((p) => p.country)).size}`, label: "Example countries" },
-            { value: `${new Set(NETWORK_PROFILES.map((p) => p.sector)).size}`, label: "Example sectors" },
+            { value: String(profiles.length), label: hasMore ? "Members shown" : "Listed members" },
+            { value: String(countries.length - 1), label: "Countries shown" },
+            { value: String(new Set(profiles.map(p => p.sector)).size), label: "Sectors shown" },
           ].map(({ value, label }) => (
             <div key={label} className="bg-white border border-border rounded-xl p-4 text-center">
               <p className="font-display text-2xl font-bold text-deep-green">{value}</p>
               <p className="text-xs text-muted mt-1">{label}</p>
             </div>
           ))}
-        </div>
+        </div>}
 
+        {loading && <p role="status" className="mb-6 text-sm text-muted">Loading members…</p>}
+        {error && <div role="alert" className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+          <p>{error}</p>
+          {signedOut ? <Link href="/login?next=%2Fnetwork" className="underline">Sign in</Link>
+            : <button onClick={() => setRetry(value => value + 1)} className="underline">Retry loading members</button>}
+        </div>}
         {/* Filters */}
         <div className="space-y-3 mb-8">
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+          <input aria-label="Search members" type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by sector, what they're building, or what they need..."
             className="w-full bg-white border border-border rounded-xl px-4 py-3 text-sm text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold" />
 
@@ -98,7 +124,7 @@ export default function NetworkPage() {
             ))}
           </div>
 
-          <select value={selectedCountry} onChange={(e) => setSelectedCountry(e.target.value)}
+          <select aria-label="Filter members by country" value={selectedCountry} onChange={(e) => setSelectedCountry(e.target.value)}
             className="text-xs font-semibold px-3 py-1.5 rounded-full bg-white border border-border text-ink focus:outline-none focus:border-gold">
             {countries.map((c) => (
               <option key={c} value={c}>{c === "All" ? "All countries" : c}</option>
@@ -107,7 +133,12 @@ export default function NetworkPage() {
         </div>
 
         {/* Results count */}
-        <p className="text-xs text-muted mb-5">{filtered.length} example profiles match your filters</p>
+        {!loading && !error && <p role="status" className="text-xs text-muted mb-5">
+          {filtered.length} members match your filters{hasMore ? " · Showing the latest 500 profiles" : ""}
+        </p>}
+        {!loading && !error && filtered.length === 0 && <p className="mb-6 text-sm text-muted">
+          {profiles.length ? "No members match these filters." : "No member profiles have been listed yet. You can add yours."}
+        </p>}
 
         {/* Profile grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
@@ -122,9 +153,9 @@ export default function NetworkPage() {
                   <p className="font-semibold text-ink text-sm">{profile.name}</p>
                   <p className="text-xs text-muted">{profile.location}</p>
                 </div>
-                <span className={`ml-auto text-xs font-semibold px-2.5 py-0.5 rounded-full flex-shrink-0 ${STAGE_COLORS[profile.stage] || "bg-gray-100 text-gray-600"}`}>
+                {profile.stage && <span className={`ml-auto text-xs font-semibold px-2.5 py-0.5 rounded-full flex-shrink-0 ${STAGE_COLORS[profile.stage] || "bg-gray-100 text-gray-600"}`}>
                   {profile.stage}
-                </span>
+                </span>}
               </div>
 
               {/* Sector + headline */}
@@ -165,10 +196,7 @@ export default function NetworkPage() {
                     </span>
                   ))}
                 </div>
-                <Link href="/assistant"
-                  className="text-xs font-semibold text-deep-green hover:text-gold transition-colors">
-                  Connect →
-                </Link>
+
               </div>
             </div>
           ))}
@@ -181,7 +209,7 @@ export default function NetworkPage() {
           </h2>
           <p className="text-ivory/70 text-sm mb-6 max-w-md mx-auto">
             Tell the community what you&apos;re building and what you need. Co-founders, investors,
-            customers, and partners are already here.
+            customers, and partners can discover your profile here.
           </p>
           <Link href="/network/join"
             className="inline-flex items-center gap-2 bg-gold text-deep-green font-bold px-6 py-3 rounded-xl hover:bg-gold-light transition-colors">

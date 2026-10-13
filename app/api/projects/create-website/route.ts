@@ -14,7 +14,7 @@ import { persistWebsiteDefinition } from "@/lib/create/persist-site";
 import { createWebsiteBriefSchema, validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { templateRequiresPurchase, userOwnsTemplate } from "@/lib/billing/subscriptions";
 import { assertOwnerWebsiteLimit } from "@/lib/billing/enforce-limits";
-import { assertAiGenerationAllowance, recordAiGeneration } from "@/lib/billing/ai-metering";
+import { assertAiGenerationAllowance } from "@/lib/billing/ai-metering";
 import { ensureTemplatesSeeded } from "@/lib/create/ensure-templates";
 import { isPublicTemplateSlug } from "@/lib/create/templates-seed";
 
@@ -123,7 +123,8 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     templateId = tpl?.id ?? null;
   } else {
-    const meter = await assertAiGenerationAllowance(supabase, user.id);
+    const meter = await assertAiGenerationAllowance(supabase, user.id,
+      process.env.ANTHROPIC_API_KEY ? { action: "website_ai_generate" } : undefined);
     if (!meter.ok) {
       return NextResponse.json(
         {
@@ -139,20 +140,13 @@ export async function POST(req: NextRequest) {
 
     const ai = await generateWebsiteWithAi(brief);
     if (!ai.ok) {
-      return NextResponse.json({ error: ai.error }, { status: 502 });
+      return NextResponse.json({ error: `${ai.error}${process.env.ANTHROPIC_API_KEY ? " One AI attempt was reserved; retrying may use another allowance." : ""}` }, { status: 502 });
     }
     definition = ai.definition;
     usedAi = ai.usedAi;
     repaired = ai.repaired;
     usedFallback = Boolean(ai.fallback);
 
-    if (usedAi && !usedFallback) {
-      await recordAiGeneration(supabase, {
-        ownerId: user.id,
-        action: "website_ai_generate",
-        meta: { mode: "ai" },
-      });
-    }
   }
 
   const validated = validateWebsiteDefinition(definition);

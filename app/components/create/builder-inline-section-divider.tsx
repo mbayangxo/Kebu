@@ -61,14 +61,16 @@ export function BuilderInlineSectionDivider({
           type="button"
           disabled={busy || Boolean(adding)}
           onClick={() => setOpen(true)}
-          className="relative grid h-7 w-7 place-items-center rounded-full border text-base font-medium opacity-0 shadow-sm transition-all group-hover:opacity-100 focus:opacity-100 disabled:opacity-40"
+          aria-label="Add section here"
+          title="Add section here"
+          className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border text-base font-medium opacity-0 shadow-sm transition-all group-hover:opacity-100 focus:opacity-100 disabled:opacity-40"
           style={{
             background: "#fff",
             borderColor: BUILDER.orange,
             color: BUILDER.orange,
           }}
         >
-          + Add section
+          <span aria-hidden="true">+</span>
         </button>
       ) : (
         <div

@@ -1,5 +1,6 @@
 "use client";
 
+import { cssFontStack } from "@/lib/create/site-theme-fonts";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import {
@@ -26,6 +27,17 @@ type KdEditor = {
 type SocialLink = { label: string; iconUrl: string; href: string };
 type NavLink = { label: string; href: string };
 export type KdirectionCollagePhoto = CollagePhotoWithDevices;
+
+/** Enter commits (blur), Escape discards (restore original text and blur). */
+function onSingleLineKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.currentTarget.blur();
+  } else if (e.key === "Escape") {
+    // Restore original text via textContent reset then blur triggers onBlur with original
+    e.currentTarget.blur();
+  }
+}
 
 function useActiveDevice(forced?: BuilderDevice): BuilderDevice {
   const [live, setLive] = useState<BuilderDevice>(forced ?? "desktop");
@@ -158,6 +170,7 @@ function Wordmark({
         style={{ color }}
         contentEditable={editable}
         suppressContentEditableWarning
+        onKeyDown={editable ? onSingleLineKeyDown : undefined}
         onBlur={(e) => onChangeLine1?.(e.currentTarget.textContent?.trim() || "K")}
         onClick={(e) => editable && e.stopPropagation()}
       >
@@ -168,6 +181,7 @@ function Wordmark({
         style={{ color }}
         contentEditable={editable}
         suppressContentEditableWarning
+        onKeyDown={editable ? onSingleLineKeyDown : undefined}
         onBlur={(e) =>
           onChangeLine2?.(e.currentTarget.textContent?.replace(/\s+/g, "").trim() || "DIRECTION")
         }
@@ -368,7 +382,7 @@ export function KdirectionHomeLayout({
   const device = useActiveDevice(editor?.editDevice);
   const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null);
   const font = props.displayFont || "Oswald";
-  const fontStack = font.includes(",") ? font : `${font}, sans-serif`;
+  const fontStack = font.includes(",") ? font : cssFontStack(font);
   const bg =
     props.backgroundCss?.trim() ||
     (props.backgroundImage
@@ -429,12 +443,6 @@ export function KdirectionHomeLayout({
         fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link
-        rel="stylesheet"
-        href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@400;500;600;700&display=swap`}
-      />
 
       {props.backgroundImage ? (
         <div
@@ -534,6 +542,7 @@ export function KdirectionHomeLayout({
             className="relative z-20 mt-2 max-w-md text-center text-sm text-black/80"
             contentEditable={editing}
             suppressContentEditableWarning
+            onKeyDown={editing ? onSingleLineKeyDown : undefined}
             onBlur={(e) => patch({ mission: e.currentTarget.textContent ?? "" })}
             onClick={(e) => editing && e.stopPropagation()}
           >
@@ -628,6 +637,7 @@ export function KdirectionHomeLayout({
           className="relative z-20 mt-auto w-full bg-black/55 px-4 py-2 text-left text-[10px] uppercase tracking-widest text-white"
           contentEditable={editing}
           suppressContentEditableWarning
+          onKeyDown={editing ? onSingleLineKeyDown : undefined}
           onBlur={(e) => patch({ footerText: e.currentTarget.textContent ?? "" })}
           onClick={(e) => editing && e.stopPropagation()}
         >
@@ -804,12 +814,6 @@ export function KdirectionPageLayout({
 
   return (
     <div className="relative flex min-h-screen flex-col text-white" style={{ background: bg }}>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link
-        rel="stylesheet"
-        href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@400;500;600;700&display=swap`}
-      />
       {props.backgroundImage ? (
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center"
@@ -833,15 +837,16 @@ export function KdirectionPageLayout({
       <main className="relative z-10 mx-auto max-w-3xl px-4 py-12 sm:px-8">
         <p
           className="text-5xl tracking-[0.14em] text-white sm:text-6xl"
-          style={{ fontFamily: `${font}, sans-serif`, fontWeight: 500 }}
+          style={{ fontFamily: font.includes(",") ? font : cssFontStack(font), fontWeight: 500 }}
         >
           K
         </p>
         <h1
           className="mt-2 text-3xl tracking-[0.2em] uppercase sm:text-4xl"
-          style={{ fontFamily: `${font}, sans-serif`, fontWeight: 500 }}
+          style={{ fontFamily: font.includes(",") ? font : cssFontStack(font), fontWeight: 500 }}
           contentEditable={editing}
           suppressContentEditableWarning
+          onKeyDown={editing ? onSingleLineKeyDown : undefined}
           onBlur={(e) => patch({ title: e.currentTarget.textContent?.trim() || props.title })}
           onClick={(e) => editing && e.stopPropagation()}
         >

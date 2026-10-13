@@ -96,7 +96,7 @@ export default function StudioEditorPage() {
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const docRef = useRef<CanvasDocument | null>(null);
 
-  const canEdit = access?.canEdit !== false;
+  const canEdit = access?.canEdit === true;
 
   const replaceOfflineObjectUrls = useCallback((next: Record<string, string>) => {
     for (const url of offlineObjectUrls.current) URL.revokeObjectURL(url);
@@ -338,13 +338,13 @@ export default function StudioEditorPage() {
           }
           return;
         }
-        if (!res.ok || !data.design) {
+        if (!res.ok || data.design?.id !== designId || typeof data.design.updated_at !== "string" || !Number.isFinite(Date.parse(data.design.updated_at))) {
           setSaveState("error");
           setSyncState(typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "online");
           return;
         }
 
-        const nextUpdatedAt = typeof data.design.updated_at === "string" ? data.design.updated_at : new Date().toISOString();
+        const nextUpdatedAt = data.design.updated_at;
         setServerUpdatedAt(nextUpdatedAt);
         if (designType) {
           setDesign((current) => current ? { ...current, design_type: designType, updated_at: nextUpdatedAt } : current);
@@ -905,7 +905,7 @@ export default function StudioEditorPage() {
             <button type="button" onClick={()=>{setShowComments((v)=>!v);setShowShare(false);setShowVersions(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Comments</button>
           </div></details>
           <button type="button" onClick={()=>{setShowShare((v)=>!v);setShowVersions(false);setShowComments(false)}} className="rounded-[8px] border border-white/15 px-4 py-2 text-[9px] font-semibold text-white">Share</button>
-          {canEdit ? <button type="button" onClick={()=>doc&&void persist(doc)} className="rounded-[8px] bg-[#FF6A00] px-4 py-2 text-[9px] font-semibold text-white">Publish</button> : null}
+          {canEdit ? <button type="button" onClick={()=>doc&&void persist(doc)} className="rounded-[8px] bg-[#FF6A00] px-4 py-2 text-[9px] font-semibold text-white">Save draft</button> : null}
         </div>      </header>
 
       {syncState === "conflict" ? (

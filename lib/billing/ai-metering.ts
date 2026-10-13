@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getKebuPlan, type KebuPlanId } from "@/lib/billing/plans";
 import { resolveOwnerBestTier } from "@/lib/billing/enforce-limits";
+import { createServiceClient } from "@/lib/opportunity/admin";
 
 export type AiMeterAction = "website_ai_generate" | "website_ai_improve" | "studio_generate";
 
@@ -53,6 +54,7 @@ export async function getAiMeterStatus(
 export async function assertAiGenerationAllowance(
   supabase: SupabaseClient,
   ownerId: string,
+  reservation?: { action: AiMeterAction; projectId?: string },
 ): Promise<
   | { ok: true; meter: AiMeterStatus }
   | { ok: false; error: string; upgradeHint: string; meter?: AiMeterStatus; status: number }
@@ -72,30 +74,20 @@ export async function assertAiGenerationAllowance(
     };
   }
 
-  return { ok: true, meter };
-}
-
-export async function recordAiGeneration(
-  supabase: SupabaseClient,
-  opts: {
-    ownerId: string;
-    action: AiMeterAction;
-    projectId?: string | null;
-    meta?: Record<string, unknown>;
-  },
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { error } = await supabase.from("account_ai_usage_events").insert({
-    owner_id: opts.ownerId,
-    action: opts.action,
-    project_id: opts.projectId ?? null,
-    meta: opts.meta ?? {},
-  });
-
-  if (error) {
-    if (error.message?.includes("does not exist")) {
-      return { ok: false, error: "AI usage table missing. Apply migration 081." };
+  if (reservation) {
+    const service = createServiceClient();
+    if (!service) return { ok: false, status: 503, error: "AI metering is unavailable. Your work is kept.", upgradeHint: "" };
+    const { data, error } = await service.rpc("reserve_account_ai_generation", {
+      p_owner: ownerId,
+      p_project: reservation.projectId ?? null,
+      p_id: crypto.randomUUID(),
+      p_limit: meter.limit,
+      p_action: reservation.action,
+    });
+    if (error) return { ok: false, status: 503, error: "Could not reserve AI usage. No generation started.", upgradeHint: "" };
+    if (data !== true) {
+      return { ok: false, status: 402, meter, error: "Your monthly AI allowance is used. Wait until next month or review your plan.", upgradeHint: "Review your plan for more AI." };
     }
-    return { ok: false, error: "Could not record AI usage." };
   }
-  return { ok: true };
+  return { ok: true, meter };
 }

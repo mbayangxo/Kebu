@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 import {
   GalaxyEmptyState,
   GalaxyPanelHeader,
@@ -151,8 +151,8 @@ export function SiteAssetsPanel({
             type="button"
             className="min-h-8 rounded-md px-2.5 py-1 text-[9px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
             style={{
-              background: filter === id ? BUILDER.orangeGlow : "#fff",
-              color: filter === id ? BUILDER.ink : BUILDER.muted,
+              background: filter === id ? BUILDER.action : BUILDER.surface,
+              color: filter === id ? BUILDER.onAction : BUILDER.muted,
               border: `1px solid ${BUILDER.border}`,
             }}
             onClick={() => setFilter(id)}
@@ -172,8 +172,8 @@ export function SiteAssetsPanel({
             return (
               <div
                 key={a.id}
-                className="overflow-hidden rounded-lg border transition hover:border-black/20"
-                style={{ borderColor: BUILDER.border, background: "#fff" }}
+                className="overflow-hidden rounded-xl border"
+                style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData(
@@ -203,8 +203,8 @@ export function SiteAssetsPanel({
                 <div className="p-1.5">
                   <button
                     type="button"
-                    className="w-full rounded-md py-1.5 text-[9px] font-semibold text-white"
-                    style={{ background: BUILDER.ink }}
+                    className="w-full rounded-full py-1 text-[9px] font-bold uppercase tracking-wider text-white"
+                    style={{ background: BUILDER.action, color: BUILDER.onAction }}
                     onClick={() => applyAsset(a.url, kind)}
                   >
                     Add

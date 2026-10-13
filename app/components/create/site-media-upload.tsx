@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { BUILDER_PANEL as PANEL } from "@/lib/create/builder-panel-appearance";
 import { SITE_ASSET_SPECS, type SiteAssetKind } from "@/lib/create/site-asset-upload";
 
 export function SiteMediaUpload({
@@ -52,10 +53,10 @@ export function SiteMediaUpload({
   }
 
   return (
-    <div className="rounded-xl p-3 space-y-2" style={{ background: "#FAFAF8", border: "1px solid #E8E6DF" }}>
+    <div className="rounded-xl p-3 space-y-2" style={{ background: PANEL.surfaceMuted, color: PANEL.ink, colorScheme: PANEL.colorScheme, border: `1px solid ${PANEL.border}` }}>
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider">{label ?? spec.label}</p>
-        <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: "#6B5B45" }}>
+        <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: PANEL.muted }}>
           {spec.hint}
         </p>
       </div>
@@ -90,7 +91,7 @@ export function SiteMediaUpload({
           disabled={busy}
           onClick={() => inputRef.current?.click()}
           className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-          style={{ background: "#0F0D33", color: "#fff" }}
+          style={{ background: PANEL.action, color: PANEL.onAction }}
         >
           {busy ? "Uploading…" : uploadLabel}
         </button>
@@ -105,7 +106,7 @@ export function SiteMediaUpload({
           </button>
         ) : null}
       </div>
-      {error ? <p className="text-[10px] text-red-600">{error}</p> : null}
+      {error ? <p className="text-[10px]" style={{ color: PANEL.error }}>{error}</p> : null}
     </div>
   );
 }

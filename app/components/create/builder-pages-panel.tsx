@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BUILDER } from "@/lib/create/builder-ui";
 import { isValidPageSlug, normalizePageSlug } from "@/lib/create/builder-pages";
 import { GalaxyPanelHeader } from "@/app/components/galaxy/editor-primitives";
+import { enqueueSyncNav, flushOfflineQueue } from "@/lib/create/offline-queue";
 
 export type BuilderPageRow = {
   id: string;
@@ -23,7 +24,14 @@ export function BuilderPagesPanel({
   onRefresh,
   onPagesChange,
   onError,
+  pageOperations,
 }: {
+  pageOperations?: {
+    add: (title: string, slug: string) => Promise<string>;
+    update: (pageId: string, title: string, slug: string) => Promise<void>;
+    remove: (pageId: string) => Promise<void>;
+    reorder: (ids: string[]) => Promise<void>;
+  };
   projectId: string;
   pages: BuilderPageRow[];
   editPageId: string;
@@ -47,6 +55,15 @@ export function BuilderPagesPanel({
   const sorted = [...pages].sort((a, b) => a.sort_order - b.sort_order);
   const working = busy || localBusy;
 
+  function scheduleNavSync() {
+    try {
+      enqueueSyncNav({ projectId });
+      void flushOfflineQueue();
+    } catch {
+      // Queue full — stale nav is a cosmetic issue; don't surface to user.
+    }
+  }
+
   async function addPage() {
     const title = newTitle.trim();
     const slug = normalizePageSlug(title);
@@ -55,6 +72,12 @@ export function BuilderPagesPanel({
     setLocalBusy(true);
     onError(null);
     try {
+      if (pageOperations) {
+        const id = await pageOperations.add(title, slug);
+        setNewTitle(""); setAdding(false);
+        onSelectPage({ id, title, slug, sort_order: sorted.length });
+        return;
+      }
       const res = await fetch(`/api/projects/${projectId}/pages`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -65,7 +88,8 @@ export function BuilderPagesPanel({
       setNewTitle(""); setAdding(false);
       await onRefresh();
       if (data.page?.id) onSelectPage(data.page as BuilderPageRow);
-    } catch { onError("Network error while adding page."); }
+      if (data.navSyncStale) scheduleNavSync();
+    } catch (error) { onError(error instanceof Error ? error.message : "Could not add page."); }
     finally { setLocalBusy(false); }
   }
 
@@ -73,6 +97,7 @@ export function BuilderPagesPanel({
     if (!confirm("Delete this page and all its sections?")) return;
     setLocalBusy(true); onError(null);
     try {
+      if (pageOperations) { await pageOperations.remove(pageId); return; }
       const res = await fetch(`/api/projects/${projectId}/pages`, {
         method: "DELETE", credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -81,7 +106,8 @@ export function BuilderPagesPanel({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { onError(typeof data.error === "string" ? data.error : "Could not delete page."); return; }
       await onRefresh();
-    } catch { onError("Network error while deleting page."); }
+      if (data.navSyncStale) scheduleNavSync();
+    } catch (error) { onError(error instanceof Error ? error.message : "Could not delete page."); }
     finally { setLocalBusy(false); }
   }
 
@@ -92,6 +118,11 @@ export function BuilderPagesPanel({
     if (!isValidPageSlug(slug)) { onError("Invalid slug format."); return; }
     setLocalBusy(true); onError(null);
     try {
+      if (pageOperations) {
+        const parent = pages.find(page => page.id === pageId)?.parent_id ?? "";
+        if (editParentId !== parent) { onError("Nested page changes are unavailable in this editor. Your saved page was kept."); return; }
+        await pageOperations.update(pageId, title, slug); setEditingId(null); return;
+      }
       const res = await fetch(`/api/projects/${projectId}/pages`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -102,13 +133,21 @@ export function BuilderPagesPanel({
       setEditingId(null);
       await onRefresh();
       if (data.page) onSelectPage(data.page as BuilderPageRow);
-    } catch { onError("Network error while updating page."); }
+      if (data.navSyncStale) scheduleNavSync();
+    } catch (error) { onError(error instanceof Error ? error.message : "Could not update page."); }
     finally { setLocalBusy(false); }
   }
 
   async function persistPageOrder(next: BuilderPageRow[], previous: BuilderPageRow[]) {
     const normalized = next.map((page, index) => ({ ...page, sort_order: index }));
     onPagesChange(normalized);
+    if (pageOperations) {
+      setLocalBusy(true); onError(null);
+      try { await pageOperations.reorder(next.map(page => page.id)); }
+      catch (error) { onError(error instanceof Error ? error.message : "Could not reorder pages."); }
+      finally { setLocalBusy(false); }
+      return;
+    }
     setLocalBusy(true);
     onError(null);
     try {
@@ -252,7 +291,7 @@ export function BuilderPagesPanel({
                   <label className="block text-[9px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
                     Parent page
                     <select className="mt-1 w-full rounded px-2 py-1 text-xs normal-case font-normal" style={{ border: `1px solid ${BUILDER.border}` }}
-                      value={editParentId} onChange={(e) => setEditParentId(e.target.value)} disabled={working}>
+                      disabled={working || Boolean(pageOperations)} value={editParentId} onChange={(e) => setEditParentId(e.target.value)}>
                       <option value="">Top level</option>
                       {sorted.filter((candidate) => candidate.id !== p.id).map((candidate) => (
                         <option key={candidate.id} value={candidate.id}>{candidate.title}</option>
@@ -314,6 +353,7 @@ export function BuilderPagesPanel({
                     <button
                       type="button"
                       title="Move up"
+                      aria-label="Move page up"
                       disabled={working || idx === 0}
                       onClick={(e) => { e.stopPropagation(); void movePage(p.id, "up"); }}
                       className="px-1 py-1.5 text-[11px] disabled:opacity-20 leading-none"
@@ -324,6 +364,7 @@ export function BuilderPagesPanel({
                     <button
                       type="button"
                       title="Move down"
+                      aria-label="Move page down"
                       disabled={working || idx === sorted.length - 1}
                       onClick={(e) => { e.stopPropagation(); void movePage(p.id, "down"); }}
                       className="px-1 py-1.5 text-[11px] disabled:opacity-20 leading-none"

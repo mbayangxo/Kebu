@@ -2,6 +2,7 @@ import { defaultMaylecorHomeProps, defaultMaylecorMusicProps } from "./maylecor-
 import { defaultLegallyBlondeHeroProps } from "./legally-blonde-defaults";
 import { defaultKdirectionHomeProps, defaultKdirectionPageProps } from "./kdirection-defaults";
 import { DEFAULT_HERO_PROPS } from "./schemas";
+import { NEW_HERO_HEIGHT } from "./hero-section";
 import type { z } from "zod";
 import { sectionTypeSchema } from "./website-schema";
 
@@ -11,7 +12,7 @@ type SectionType = z.infer<typeof sectionTypeSchema>;
 export function defaultSectionProps(type: SectionType): Record<string, unknown> {
   switch (type) {
     case "hero":
-      return DEFAULT_HERO_PROPS;
+      return { ...DEFAULT_HERO_PROPS, minHeight: NEW_HERO_HEIGHT };
     case "navigation":
       return {
         brand: "My site",

@@ -9,6 +9,20 @@ import {
 
 type AuthUser = { id: string };
 
+// Lift section extension fields out of props and onto the section object.
+const _SECTION_EXT_KEYS = ["_motion", "_a11y", "_visibility", "_interaction", "_dataBinding"] as const;
+const _EXT_KEY_MAP: Record<string, string> = {
+  _motion: "motion", _a11y: "a11y", _visibility: "visibility",
+  _interaction: "interaction", _dataBinding: "dataBinding",
+};
+function extractSectionExtensionsFromProps(props: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of _SECTION_EXT_KEYS) {
+    if (k in props && props[k] !== undefined) out[_EXT_KEY_MAP[k]] = props[k];
+  }
+  return out;
+}
+
 export async function persistWebsiteDefinition(opts: {
   supabase: SupabaseClient;
   user: AuthUser;
@@ -138,7 +152,7 @@ export async function replaceWebsiteDefinition(opts: {
 
   const { data: project, error: projectError } = await supabase
     .from("projects")
-    .select("id, owner_id")
+    .select("id, owner_id, document_schema_version")
     .eq("id", projectId)
     .maybeSingle();
 
@@ -147,6 +161,9 @@ export async function replaceWebsiteDefinition(opts: {
   }
   if (!project || project.owner_id !== user.id) {
     return { ok: false, status: 404, error: "Project not found." };
+  }
+  if (project.document_schema_version === "kcd-1") {
+    return { ok: false, status: 409, error: "This draft uses operation editing. Whole-site replacement is unavailable until the operation generation pipeline is enabled." };
   }
 
   const { data: existingPages } = await supabase
@@ -257,7 +274,7 @@ export async function buildSnapshotFromDb(
 
   const { data: pages } = await supabase
     .from("project_pages")
-    .select("id, slug, title, sort_order")
+    .select("id, slug, title, sort_order, device_layouts")
     .eq("project_id", projectId)
     .order("sort_order", { ascending: true });
 
@@ -268,18 +285,25 @@ export async function buildSnapshotFromDb(
     const { data: sections } = await supabase
       .from("project_sections")
       .select("id, section_type, sort_order, props")
+      .is("parent_id", null) // 3C: 3B readers see page-root sections only
       .eq("page_id", page.id)
       .order("sort_order", { ascending: true });
 
     defPages.push({
       slug: page.slug,
       title: page.title,
-      sections: (sections ?? []).map((s) => ({
-        id: s.id,
-        type: s.section_type as WebsiteDefinition["pages"][0]["sections"][0]["type"],
-        props: (s.props ?? {}) as Record<string, unknown>,
-      })),
-    });
+      deviceLayouts: (page as { device_layouts?: unknown }).device_layouts ?? undefined,
+      sections: (sections ?? []).map((s) => {
+        const props = (s.props ?? {}) as Record<string, unknown>;
+        const ext = extractSectionExtensionsFromProps(props);
+        return {
+          id: s.id,
+          type: s.section_type as WebsiteDefinition["pages"][0]["sections"][0]["type"],
+          props,
+          ...ext,
+        };
+      }),
+    } as WebsiteDefinition["pages"][0]);
   }
 
   const base: WebsiteDefinition = {
@@ -298,6 +322,7 @@ export async function buildSnapshotFromDb(
     const { data: homeSec } = await supabase
       .from("project_sections")
       .select("section_type, props")
+      .is("parent_id", null) // 3C: 3B readers see page-root sections only
       .eq("page_id", homePage.id)
       .order("sort_order", { ascending: true });
     homeSections = homeSec ?? [];

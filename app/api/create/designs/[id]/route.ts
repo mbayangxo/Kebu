@@ -151,8 +151,17 @@ export async function PATCH(req: Request, { params }: Params) {
     .from("create_designs")
     .update(patch)
     .eq("id", id)
+    // Compare and write in the same database statement: the earlier read is not a lock.
+    .eq("updated_at", parsed.data.expectedUpdatedAt ?? existing.updated_at)
     .select("id, title, design_type, business_id, folder_id, canvas, owner_id, created_at, updated_at")
-    .single();
+    .maybeSingle();
+
+  if (!error && !design) {
+    return NextResponse.json({
+      error: "This design changed somewhere else. Your local edit was kept; review the newer server version before overwriting it.",
+      code: "studio_version_conflict",
+    }, { status: 409 });
+  }
 
   if (error || !design) {
     const missingFolder = error?.message?.includes("folder_id");
@@ -195,7 +204,11 @@ export async function DELETE(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Design not found." }, { status: 404 });
   }
 
-  await supabase.from("create_designs").delete().eq("id", id).eq("owner_id", user.id);
+  const { data: deleted, error: deleteError } = await supabase.from("create_designs")
+    .delete().eq("id", id).eq("owner_id", user.id).select("id").maybeSingle();
+  if (deleteError || !deleted) {
+    return NextResponse.json({ error: "Could not confirm design deletion. Please retry." }, { status: 503 });
+  }
   await recalculateReadinessForBusiness(supabase, existing.business_id);
   return NextResponse.json({ ok: true });
 }

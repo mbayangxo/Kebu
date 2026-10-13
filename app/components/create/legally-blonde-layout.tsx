@@ -1,4 +1,5 @@
 "use client";
+import { SiteThemeFonts } from "./site-theme-fonts";
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { LEGALLY_BLONDE_LAYERS } from "@/lib/create/legally-blonde-layers";
@@ -26,7 +27,6 @@ import {
   cutoutLinkTarget,
   resolveCutoutHref,
 } from "@/lib/create/cutout-links";
-import { SiteThemeFonts } from "@/app/components/create/site-theme-fonts";
 import { cssFontStack } from "@/lib/create/site-theme-fonts";
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import "./artist-motion.css";

@@ -1,3 +1,4 @@
+import { legacyProjectWriteBlocker } from "@/lib/create/kcd-write-guard";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { maylecorMotionSitePages } from "./maylecor-site-pages";
 import {
@@ -29,6 +30,8 @@ export async function upgradeMaylecorPortfolioProject(
   supabase: SupabaseClient,
   projectId: string,
 ): Promise<{ upgraded: boolean; detail?: string }> {
+  const blocker = await legacyProjectWriteBlocker(supabase, projectId);
+  if (blocker) return { upgraded: false, detail: blocker };
   const { data: project } = await supabase
     .from("projects")
     .select("id, title, description")

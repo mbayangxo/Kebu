@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser, logCreate } from "@/lib/create/auth";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
-import { siteSeoSchema } from "@/lib/create/site-seo";
+import { siteSeoSchema, validateCustomCss } from "@/lib/create/site-seo";
 import { themeSchema } from "@/lib/create/website-schema";
 import { builderRateLimit } from "@/lib/api-guard";
 import { recalculateReadinessForProject } from "@/lib/kebu-id/recalculate-hooks";
 import { hashSitePassword, sitePasswordSecret } from "@/lib/create/site-password";
+import {
+  assertProjectEditorAccess,
+  dbForProjectAccess,
+} from "@/lib/create/project-access";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +36,9 @@ const settingsSchema = z.object({
 
 /** Update publish subdomain + SEO/favicon settings for an owned project. */
 export async function PATCH(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
+
   const limited = builderRateLimit(req);
   if (limited) return limited;
 
@@ -55,15 +63,31 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid input.", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { data: project } = await supabase
+  const access = await assertProjectEditorAccess(supabase, {
+    userId: user.id,
+    email: user.email,
+    projectId: id,
+    action: "settings.patch",
+  });
+  if (!access) {
+    return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+  const db = dbForProjectAccess(supabase, access.via);
+  const isOwner = access.via === "owner";
+
+  const { data: project } = await db
     .from("projects")
     .select("id, owner_id, title, subdomain, seo, theme, site_password_enabled, site_password_hash")
     .eq("id", id)
-    .eq("owner_id", user.id)
     .maybeSingle();
 
   if (!project) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+
+  // Subdomain and site-password changes are owner-only (affect published URL and access control).
+  if (!isOwner && (parsed.data.subdomain || parsed.data.sitePassword !== undefined || parsed.data.sitePasswordEnabled !== undefined)) {
+    return NextResponse.json({ error: "Only the project owner can change subdomain or site password." }, { status: 403 });
   }
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -135,6 +159,13 @@ export async function PATCH(req: Request, { params }: Params) {
     const currentTheme =
       project.theme && typeof project.theme === "object" ? (project.theme as Record<string, unknown>) : {};
     const merged = themeSchema.parse({ ...currentTheme, ...parsed.data.theme });
+    // Security: validate custom CSS before persisting.
+    if (merged.customCss) {
+      const cssError = validateCustomCss(merged.customCss);
+      if (cssError) {
+        return NextResponse.json({ error: cssError }, { status: 400 });
+      }
+    }
     patch.theme = merged;
   }
 
@@ -160,11 +191,10 @@ export async function PATCH(req: Request, { params }: Params) {
     patch.site_password_enabled = parsed.data.sitePasswordEnabled;
   }
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await db
     .from("projects")
     .update(patch)
     .eq("id", id)
-    .eq("owner_id", user.id)
     .select("id, subdomain, seo, theme, updated_at, site_password_enabled, site_password_hash")
     .single();
 

@@ -4,7 +4,7 @@ import { requireUser, logCreate } from "@/lib/create/auth";
 import { aiRateLimit } from "@/lib/api-guard";
 import { buildSnapshotFromDb } from "@/lib/create/persist-site";
 import { aiImproveBriefSchema } from "@/lib/create/website-schema";
-import { assertAiGenerationAllowance, recordAiGeneration } from "@/lib/billing/ai-metering";
+import { assertAiGenerationAllowance } from "@/lib/billing/ai-metering";
 
 type AuthUser = { id: string };
 
@@ -79,7 +79,8 @@ export async function guardAiImproveRequest(
     };
   }
 
-  const meter = await assertAiGenerationAllowance(supabase, user.id);
+  const meter = await assertAiGenerationAllowance(supabase, user.id,
+    process.env.ANTHROPIC_API_KEY ? { action: "website_ai_improve", projectId } : undefined);
   if (!meter.ok) {
     return {
       ok: false,
@@ -104,19 +105,6 @@ export async function guardAiImproveRequest(
     current,
     project,
   };
-}
-
-/** Call after a successful AI improve that consumed the model. */
-export async function consumeAiImproveCredit(
-  supabase: SupabaseClient,
-  ownerId: string,
-  projectId: string,
-) {
-  return recordAiGeneration(supabase, {
-    ownerId,
-    action: "website_ai_improve",
-    projectId,
-  });
 }
 
 export function logAiImproveFailure(
