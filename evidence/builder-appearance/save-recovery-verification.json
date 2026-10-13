@@ -1,0 +1,62 @@
+{
+  "date_utc": "2026-10-13",
+  "status": "SOURCE_CI_AND_ISOLATED_QA_PASS; CORE_AND_ECOSYSTEM_IN_PROGRESS",
+  "source_commit": "f22c30aa61e9110ed7a0d956ff3264c11c82e9ce",
+  "source_tree": "835689e82fa1afb7ea18a310c84cbc44a5dd5ed1",
+  "branch": "qa/kebu-ready-oct10",
+  "deployment": {
+    "id": "dpl_GQ4hTR9pv6fsPzvAEApA91KeC2yg",
+    "state": "READY",
+    "url": "https://kebu-8wbfi9nhs-mbayangxos-projects.vercel.app/qa/builder-appearance"
+  },
+  "ci": {
+    "exit": 0,
+    "typecheck": "PASS",
+    "tests_passed": 5640,
+    "tests_skipped": 268,
+    "test_files_passed": 271,
+    "test_files_skipped": 26,
+    "focused_cases": 42,
+    "lint_errors": 0,
+    "lint_warnings": 277,
+    "build": "PASS"
+  },
+  "browser_checks_passed": [
+    "Actual autosave hook edited a nonexistent synthetic project and displayed real signed-out denial",
+    "Rejected save retains desktop/phone text and readiness blocked",
+    "Preview, Apply and Publish callback counters stay zero after the rejected save",
+    "All controls become available and busy returns no after each denied attempt",
+    "Checkpoint retains the newest synthetic text as one local queued item; does not claim server save",
+    "Simulated pre-request flush throw returns failure feedback, zero callbacks and busy no",
+    "Turning off the simulated fault and retrying a clean fixture reaches one explicitly synthetic callback, no AI/publish request",
+    "Phone document width and scroll width both382px; region client and scroll both306px",
+    "Reset/check/actions/checkpoint buttons measure44px high on phone",
+    "Reset cleared only the dedicated nonexistent fixture project local queue"
+  ],
+  "screenshot": "evidence/builder-appearance/builder-save-recovery-qa-1791873532698.jpg",
+  "account_metadata": {
+    "production_supabase": "ACTIVE_HEALTHY",
+    "qa_supabase": "INACTIVE",
+    "preview_supabase_credential_names_present": true,
+    "credential_values_decrypted": false,
+    "absent_provider_keys": [
+      "ANTHROPIC_API_KEY",
+      "RESEND_API_KEY",
+      "PAYPAL_CLIENT_ID",
+      "PAYPAL_CLIENT_SECRET",
+      "PAYSTACK_SECRET_KEY",
+      "WAVE_API_KEY"
+    ],
+    "joko_production_credential_names_present": true,
+    "qa_restore_limit": "Prior free active-project-limit rejection unresolved; not retried in this slice"
+  },
+  "limits": [
+    "Not a genuine authenticated project save/reload/publish pass",
+    "No real AI/payment/email/provider transaction",
+    "No production/schema/plan/scheduler/billing changes",
+    "Settings/chrome success ordering, queue storage faults and receipt/refresh validation are executable unit/source checks; authenticated hosted paths remain open",
+    "Local storage failure retains session memory only; cannot survive reload/browser close",
+    "Independent-session races and real device storage-denied acceptance remain open",
+    "All four completion groups and remaining requested products remain incomplete"
+  ]
+}

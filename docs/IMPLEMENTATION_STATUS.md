@@ -1,5 +1,13 @@
 # Kebu — Implementation Status
 
+### 2026-10-13 UTC — Builder confirmed-save and recovery QA checkpoint
+
+QA source now gates Preview/Apply/Publish on current save facts after flushing, releases its action lock on failures, includes settings/theme in Save draft, serializes settings/chrome writes, validates matching server receipts, and requires a successful refreshed draft before clearing history/save state. Pending edits checkpoint on leaving; Undo/Redo stays atomic. Project keys isolate editor state, terminal recovery is project-scoped, and failed browser storage cannot resurrect an older queue over newer edits.
+
+Full CI: **5,640 pass / 268 explicit skips**, TypeScript, zero lint errors / 277 warnings, build; 42 focused cases. Deployed actual-hook desktop/phone denial/gate checks passed: rejected saves retain text, all three callbacks stay at zero, checkpoint retains the newest local draft, thrown flush releases the lock, and a clean retry reaches only the labelled synthetic callback. Phone width/scroll parity and 44px controls passed. Evidence: `evidence/builder-appearance/save-recovery-verification.json`. No authenticated project save/provider transaction or production change is claimed. See `docs/product/BUILDER-SAVE-RECOVERY.md`.
+
+Fresh account metadata: production Supabase ACTIVE_HEALTHY, Kebu-qa INACTIVE. Preview credential names are present; values were not decrypted. Deployment metadata still lacks ANTHROPIC/RESEND/PayPal/Paystack/Wave provider keys. The earlier free active-project-limit rejection remains unresolved; no working/unrelated project was paused and no billing change was made. All four groups remain IN PROGRESS.
+
 ### 2026-10-13 UTC — Yande appearance and approval controls verified in QA
 
 Yande desktop/phone controls now use scoped appearance tokens, preserving customer canvas colors. Proposed changes have a single Apply path; all selection/approval actions lock during requests, zero-selected section proposals cannot apply, and intent-only proposals remain approvable. Discard preserves the prompt. Phone Sheet opts into appearance, restores focus to a stable launcher and retains 44px actions.

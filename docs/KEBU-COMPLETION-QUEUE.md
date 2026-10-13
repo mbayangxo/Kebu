@@ -44,3 +44,11 @@ Actual-component desktop/phone fixture checks passed through source `d794921a`, 
 ## Core follow-up: Yande controls verified in QA (October 13)
 
 Desktop and phone Yande input/proposal panels now use scoped appearance tokens. One authoritative Apply path, selection and busy locks, prompt retention, readable themes, 44px targets and phone focus/scroll/dismissal behavior passed actual-component QA. Full CI: 5,599 pass / 268 explicit skips. Evidence: `evidence/builder-appearance/yande-verification.json`. This closes the isolated Yande appearance/approval-control slice; real AI generation and authenticated persistence are still open. K033 remains IN PROGRESS for legacy inspector/workspace/app-wide migration and real-account rollout. All four groups remain open.
+
+## Core follow-up: confirmed saves and recovery (October 13)
+
+Save safety now reads current pending/queued facts after flushing. Preview/Apply/Publish share a synchronous action lock; settings/theme join Save draft; failed settings prevent publish; matching write receipts are required; an unconfirmed refreshed draft cannot clear history or re-enable editing. Leaving checkpoints pending drafts and atomic history. Terminal recovery is project-scoped and failed storage retains the newest session queue with explicit durability limits.
+
+Full CI: 5,640 pass / 268 explicit skips, TypeScript, zero lint errors / 277 warnings, build. Actual-hook desktop/phone QA passes real signed-out denial, draft retention, zero blocked action callbacks, local checkpoint, thrown-flush recovery, and 44px/no-overflow checks. These do not certify authenticated save/reload/publish or provider success. See `evidence/builder-appearance/save-recovery-verification.json`. All four groups remain IN PROGRESS.
+
+Account blockers were freshly read: production Supabase healthy; QA paused; provider credential names still missing from deployment metadata. No unrelated project pause, billing change, production schema/main deployment, or invented credentials. The existing QA scheduler isolation remains unchanged. Genuine hosted acceptance and provider setup remain release gates.
