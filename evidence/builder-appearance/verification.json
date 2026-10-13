@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-13",
+  "status": "IN_PROGRESS",
+  "scope": "Builder top bar and tool rail only",
+  "full_ci": {
+    "exit_code": 0,
+    "passing_tests": 5588,
+    "skipped_tests": 268,
+    "lint_errors": 0,
+    "lint_warnings": 288,
+    "typecheck": "pass",
+    "production_build": "pass"
+  },
+  "focused_cases": 29,
+  "browser": "pending",
+  "production_rollout": false,
+  "app_wide_night_mode": "not complete",
+  "authenticated_builder_verification": "pending; QA database was paused at previous checkpoint",
+  "recovered_fixture": {
+    "path": "evidence/3c/s7/qa/publish-envelope.json",
+    "source": "original local saved QA envelope",
+    "new_hosted_transaction": false
+  }
+}

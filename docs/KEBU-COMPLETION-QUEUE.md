@@ -26,3 +26,7 @@ External gate: production was restored and user login succeeded; separate QA was
 The prior directory only loaded on mount/retry and did not listen for auth changes. A cross-tab sign-out or account switch could leave its member list on screen, while an older response could refill it. The directory now clears its state on session changes, cancels old requests, rejects late responses by request generation, and reloads on a new identity. Repeated events for the same identity do not reload. Unit regressions cover these boundaries; genuine two-session hosted verification is still pending.
 
 QA restore was attempted again through the connected account. Supabase rejected it because owner/admin `mbayangxo` has reached the two-active-free-project limit. No other project was paused, deleted or upgraded. This is a concrete hosted gate, not a code/test failure.
+
+## Core follow-up: Builder appearance (October 13)
+
+Auto / Light / Dark is implemented for the top bar and tool rail using a device-local store; 29 focused tests and full CI pass. The fixture required by a pre-existing publishing test was recovered and tracked. Preview-only actual-component visual QA is next. K033 remains IN PROGRESS: inspector/portal/workspace/app-wide migration, real authenticated desktop/mobile flows and production rollout still open. All four requested groups above remain in scope.

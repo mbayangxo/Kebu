@@ -1,5 +1,13 @@
 # Kebu — Implementation Status
 
+### 2026-10-13 UTC — Builder toolbar appearance checkpoint
+
+K033 remains **IN PROGRESS**. The editor top bar and tool rail now have a real Auto / Light / Dark control, persisted per device, synchronized across tabs, with local 20:00–07:00 Auto hours, foreground/clock rechecks, lifecycle cleanup and a storage-failure warning. Separate action/foreground and save-status palettes pass text contrast checks. The preference does not alter customer website themes, canvas definitions or public pages. Inspector panels, mobile portal panels and app-wide night mode are still open; no full night-mode or ecosystem completion claim.
+
+Full `npm run ci` exits zero: **5,588 tests pass / 268 explicit skips**, TypeScript, lint (zero errors / 288 existing warnings), production build. 29 new focused cases cover schedule/preference/store lifecycle/contrast and the development/preview-only QA route gate. An existing publish regression initially failed because its original QA envelope was absent from the saved branch. The original synthetic envelope was recovered byte-for-byte and is now tracked; no test weakening or hosted database action.
+
+Browser QA is pending at this checkpoint. `/qa/builder-appearance` uses the actual components and a clearly labelled synthetic color fixture; it returns 404 on production and reads no customer data. This does not replace genuine authenticated Builder/save/publish verification. No production deployment, schema, provider or billing change.
+
 ### 2026-10-11 UTC — Network session boundary repaired
 
 Cross-tab sign-out/account changes now clear the member directory, abort pending reads and reject late responses by request generation. New identities reload; repeated same-identity events do not. Disposal and retry ordering are covered. Ten loader regressions pass alongside 20 Network API cases. Final full `npm run ci` exits zero: **5,559 passing tests / 268 explicit skips**, TypeScript, lint (zero errors / 288 existing warnings), production build. The actual PostgreSQL probe now passes 20 checks, including preservation and hiding of a legacy ownerless row through migration/reapplication.

@@ -13,6 +13,7 @@ import type { NodeId, PageId } from "@/lib/creative-core";
 import { previewDefinitionUpdate } from "@/lib/create/preview-definition-update";
 import { documentToRows, type LegacySectionType } from "@/lib/create/kcd-adapter";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
+import { BuilderAppearanceProvider } from "@/app/components/create/builder-appearance-provider";
 import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition, resolveEditorTheme } from "@/lib/create/editor-definition";
@@ -1572,6 +1573,7 @@ export default function ProjectEditorPage() {
 
   return (
     <DataModeProvider>
+    <BuilderAppearanceProvider>
     <div
       className="relative flex h-dvh flex-col overflow-hidden"
       style={{ background: BUILDER.bg, color: BUILDER.ink }}
@@ -5313,6 +5315,7 @@ export default function ProjectEditorPage() {
         </p>
       ) : null}
     </div>
+    </BuilderAppearanceProvider>
     </DataModeProvider>
   );
 }
