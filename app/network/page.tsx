@@ -48,8 +48,7 @@ export default function NetworkPage() {
               Who&apos;s building across Africa
             </h1>
             <p className="text-muted text-sm max-w-xl">
-              Connect with founders, diaspora investors, export partners, mentors, and co-founders
-              across the continent. Africa&apos;s strongest companies will be built together.
+              Explore an illustrative directory layout. Profiles shown here are examples, not verified members or live connections.
             </p>
           </div>
           <Link
@@ -60,12 +59,14 @@ export default function NetworkPage() {
           </Link>
         </div>
 
-        {/* Stats */}
+        <p role="status" className="mb-6 rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-ink">Preview data only — this directory does not yet display verified live members. Do not use these profiles to make contact or business decisions.</p>
+
+        {/* Preview summary */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
-            { value: `${NETWORK_PROFILES.length}+`, label: "Active members" },
-            { value: "12", label: "Countries represented" },
-            { value: "8", label: "Sectors" },
+            { value: `${NETWORK_PROFILES.length}`, label: "Example profiles" },
+            { value: `${new Set(NETWORK_PROFILES.map((p) => p.country)).size}`, label: "Example countries" },
+            { value: `${new Set(NETWORK_PROFILES.map((p) => p.sector)).size}`, label: "Example sectors" },
           ].map(({ value, label }) => (
             <div key={label} className="bg-white border border-border rounded-xl p-4 text-center">
               <p className="font-display text-2xl font-bold text-deep-green">{value}</p>
@@ -106,7 +107,7 @@ export default function NetworkPage() {
         </div>
 
         {/* Results count */}
-        <p className="text-xs text-muted mb-5">{filtered.length} members match your filters</p>
+        <p className="text-xs text-muted mb-5">{filtered.length} example profiles match your filters</p>
 
         {/* Profile grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
