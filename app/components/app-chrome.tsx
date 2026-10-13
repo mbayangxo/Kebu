@@ -57,6 +57,8 @@ export function AppChrome() {
 
   // Public site views — no Kebu app chrome at all.
   if (
+    // Preview-only appearance fixture must use the same clean frame as the editor.
+    pathname === "/qa/builder-appearance" ||
     pathname.startsWith("/sites/") ||
     pathname.startsWith("/e/") ||
     (pathname.startsWith("/id/") && !usesAppShellLayout(pathname))
