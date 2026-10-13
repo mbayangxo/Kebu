@@ -72,7 +72,7 @@ export function ExperienceDnaControls({ projectId, disabled }: { projectId: stri
     <section aria-label="Site direction" className="mt-3 min-w-0 space-y-3">
       <p style={{ color: BUILDER.muted }}>Describe the experience you want visitors to have. References are your observations; saving this brief keeps the site as it is.</p>
       <p role="status" aria-live="polite">{loading ? "Loading site direction…" : saving ? "Saving site direction…" : uncertain ? "Save unconfirmed · reload required" : dirty ? "Unsaved site direction" : record?.revision ? `Saved direction · v${record.revision}` : record ? "No saved site direction yet" : "Direction not loaded"}</p>
-      {error ? <p role="alert" className="text-red-700">{error}</p> : null}
+      {error ? <p role="alert" className="text-[12px]" style={{ color: BUILDER.error }}>{error}</p> : null}
       {status ? <p role="status" aria-live="polite">{status}</p> : null}
       <div className="flex flex-wrap gap-2"><button type="button" className={button} style={style} disabled={!record || !dirty || saving || loading || uncertain || disabled} onClick={() => void save()}>Save site direction</button>
         <button type="button" className={button} style={style} disabled={saving || loading} onClick={() => { if (dirty && !window.confirm("Discard unsaved site direction and reload the saved version?")) return; setStatus(null); setRetry(value => value + 1); }}>Reload site direction</button></div>

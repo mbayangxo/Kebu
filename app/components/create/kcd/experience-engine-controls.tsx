@@ -86,7 +86,7 @@ export function ExperienceEngineControls(props: Props) {
     <section aria-label="Experience engine" className="mt-3 min-w-0 space-y-3">
       <p>Review source evidence and an original native plan before changing your site.</p>
       <p role="status" aria-live="polite">{busy ?? status ?? (uncertain ? "Request unconfirmed · reload required" : loaded ? "Saved proposals loaded" : "Proposals not loaded")}</p>
-      {error ? <p role="alert" className="text-red-700 break-words">{error}</p> : null}
+      {error ? <p role="alert" className="text-[12px] break-words" style={{ color: BUILDER.error }}>{error}</p> : null}
       <div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={Boolean(busy)} onClick={() => void reload()}>Reload proposals</button>{busy && !busy.startsWith("Saving reviewed plan") ? <button type="button" className={button} onClick={() => controller.current?.abort()}>Cancel request</button> : null}</div>
       {loaded && !configured ? <p>AI generation is not configured. Saved direction, proposals and site content are kept; reviewed observations can still be edited.</p> : null}
       <p className="text-[11px]" style={{ color: BUILDER.muted }}>Each model request reserves one AI allowance, including failed or canceled attempts. Editing observations uses none.</p>

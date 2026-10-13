@@ -99,8 +99,8 @@ export function KcdBrandBrainControls({ document, selectedId, disabled, submit }
     <section aria-label="Apply Brand Brain" className="mt-3 space-y-3 text-[12px]">
       <p style={{ color: BUILDER.muted }}>Apply shared colors to this element and its children. Device layouts and text formatting stay as authored.</p>
       {loading ? <p role="status">Loading saved profiles…</p> : null}
-      {error ? <p role="alert" className="text-red-700">{error}</p> : null}
-      {bindingError?<p role="alert" className="text-red-700">{bindingError}</p>:null}
+      {error ? <p role="alert" className="text-[12px]" style={{ color: BUILDER.error }}>{error}</p> : null}
+      {bindingError?<p role="alert" className="text-[12px]" style={{ color: BUILDER.error }}>{bindingError}</p>:null}
       {binding?<p>Site direction: {binding.profileId?`${profiles.find(profile=>profile.id===binding.profileId)?.profile.brand.name??"Unavailable profile"} · attached`:"No attached profile"}.</p>:null}
       <button type="button" className={button} style={style} disabled={loading || busy} onClick={() => { setStatus(null); setLoading(true); setError(null); setRetry(value => value + 1); }}>Reload profiles</button>
       {!loading && !error && !profiles.length ? <p>No saved profiles yet. <a href="/studio/brand" target="_blank" rel="noopener noreferrer" className="underline">Create Brand Brain</a></p> : null}

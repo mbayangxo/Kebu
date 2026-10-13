@@ -10,7 +10,7 @@ export function KcdSectionConversion({document,id,submit,disabled=false}:{docume
  return <section aria-label="Editable section conversion" className="space-y-2 border-b p-3" style={{borderColor:BUILDER.border,color:BUILDER.ink,background:BUILDER.surface,colorScheme:BUILDER.colorScheme}}>
   <p className="text-[12px] font-semibold">Edit individual elements</p>
   <p className="text-[11px]" style={{color:BUILDER.muted}}>Convert this section into text, media and containers you can select, move and style.</p>
-  {error ? <p role="alert" className="text-[12px] text-red-700">{error}</p> : null}
+  {error ? <p role="alert" className="text-[12px]" style={{ color: BUILDER.error }}>{error}</p> : null}
   <fieldset disabled={disabled||pending||isSpatialLocked(document,id)} className="min-w-0 space-y-2">
    {review ? <><p className="text-[11px]">The layout becomes an editable composition. Copy, media, links and device settings are preserved when supported. Compare the preview after converting; Undo restores the original section.</p><div className="flex gap-2"><button type="button" className="rounded-lg border px-2.5 py-1.5 text-[12px]" onClick={()=>void convert()}>{pending?"Converting…":"Convert to editable elements"}</button><button type="button" className="text-[12px] underline" onClick={()=>{setReview(false);setError(null);}}>Cancel conversion</button></div></> : <button type="button" className="rounded-lg border px-2.5 py-1.5 text-[12px]" onClick={()=>setReview(true)}>Review section conversion</button>}
   </fieldset>
