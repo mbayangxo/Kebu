@@ -1,5 +1,11 @@
 # Kebu — Implementation Status
 
+### 2026-10-13 UTC — Upload-control contrast follow-up
+
+QA exposed pale text (`rgb(245,245,247)`) on the older light upload box (`rgb(250,250,248)`) after the native inspector became dark. Image/video upload and media-library controls now define scoped surface/foreground/action/hint/status/error colors and native color-scheme together; API/data/upload logic is unchanged. Two regression cases cover explicit root foreground/surface instead of inherited text.
+
+Full CI passes again: **5,593 tests / 268 explicit skips**, TypeScript, zero lint errors / 279 remaining warnings, build; 34 focused appearance cases. Actual-component QA on `7d434db9` passed native text edits, drawer focus trap/Escape/scroll release, phone Add section selection callback, fullscreen text/motion edits, live Light changes with retained text and customer color parity. The repaired media controls still await deployment inspection. This is synthetic in-memory fixture evidence, not hosted account/project/provider acceptance. K033 and all four groups remain IN PROGRESS.
+
 ### 2026-10-13 UTC — Native inspector and opt-in portal appearance checkpoint
 
 K033 remains **IN PROGRESS**. Native element/text/motion/brand controls now use a separate scoped panel palette; published/legacy tokens and website document values are unchanged. The mobile Add section sheet explicitly opts in to the editor preference. Drawer and FullscreenPanel support the same opt-in while existing callers default to Light. Dialog headings use stable React IDs and close buttons have 44px touch targets. Legacy inspector, Yande, workspace/app-wide surfaces and real authenticated acceptance remain open.

@@ -5,19 +5,30 @@
     "Native inspector controls",
     "Explicit opt-in Add section sheet",
     "Opt-in Drawer/FullscreenPanel API",
-    "Stable portal heading IDs and 44px close buttons"
+    "Stable portal heading IDs and 44px close buttons",
+    "Image/video upload and media-library control palettes"
   ],
   "full_ci": {
     "exit_code": 0,
-    "passing_tests": 5591,
+    "passing_tests": 5593,
     "skipped_tests": 268,
     "lint_errors": 0,
     "lint_warnings": 279,
     "typecheck": "pass",
     "build": "pass"
   },
-  "focused_cases": 32,
-  "browser": "pending",
+  "focused_cases": 34,
+  "browser": {
+    "prior_source_commit": "7d434db9c9f2521e88aad27b78a3bb18e7dcf133",
+    "native_text_edits": "passed; actual operation engine on synthetic in-memory document",
+    "drawer_keyboard_trap_escape_focus_scroll_release": "passed",
+    "phone_add_section_callback_close_focus_restore": "passed",
+    "phone_fullscreen_text_motion_edits_and_close": "passed",
+    "theme_change_while_phone_dialog_open": "passed; text retained and Light colors applied",
+    "customer_fixture_colors": "unchanged cream/green",
+    "media_contrast": "bug reproduced in prior QA; repaired deployment inspection pending",
+    "final_status": "pending"
+  },
   "document_or_customer_theme_changes": false,
   "hosted_schema_or_provider_changes": false,
   "production_rollout": false,
@@ -26,5 +37,14 @@
     "Workspace and app-wide appearance",
     "Real authenticated project save/publish/mobile acceptance",
     "Remaining four product groups"
-  ]
+  ],
+  "media_regression": {
+    "before": {
+      "label_color": "rgb(245,245,247)",
+      "box_background": "rgb(250,250,248)"
+    },
+    "cause": "Legacy light upload boxes inherited the dark inspector foreground.",
+    "repair": "Explicit scoped surface, foreground, native color-scheme, hint/action/error/status tokens. No API/model/upload logic changed.",
+    "regression_cases": 2
+  }
 }

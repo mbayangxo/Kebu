@@ -8,8 +8,19 @@ import { BuilderAppearanceProvider, BuilderPanelScope } from "@/app/components/c
 import { KcdPrimitivePanel } from "@/app/components/create/kcd/primitive-panel";
 import { parseDocument, serializeDocument } from "@/lib/creative-core";
 import envelope from "@/evidence/3c/s7/qa/publish-envelope.json";
+import { SiteImageUpload } from "@/app/components/create/site-image-upload";
+import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
 
 describe("Opt-in inspector color boundary", () => {
+  it.each(["image", "video"] as const)("%s upload box defines its foreground with its surface rather than inheriting pale text", kind => {
+    const html = kind === "image"
+      ? renderToStaticMarkup(createElement(SiteImageUpload, { projectId: "qa-fixture", kind: "section", value: "", onChange: () => {} }))
+      : renderToStaticMarkup(createElement(SiteMediaUpload, { projectId: "qa-fixture", kind: "video", value: "", onChange: () => {}, showPreview: false }));
+    const rootStyle = html.match(/^<div[^>]*style="([^"]+)"/)?.[1];
+    expect(rootStyle).toContain("background:var(--builder-panel-surface-muted, #F6F6F7)");
+    expect(rootStyle).toContain("color:var(--builder-panel-ink, #0A0A0A)");
+    expect(rootStyle).toContain("color-scheme:var(--builder-panel-color-scheme, light)");
+  });
   it.each(["light", "dark"] as const)("%s variables are panel-only and keep site/legacy colors intact", appearance => {
     const variables = builderPanelVariables(appearance);
     expect(Object.keys(variables).every(key => key.startsWith("--builder-panel-"))).toBe(true);

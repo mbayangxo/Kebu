@@ -34,3 +34,5 @@ Auto / Light / Dark is implemented for the top bar and tool rail using a device-
 ## Core follow-up: native inspector and portals
 
 Scoped native inspector colors and an explicit mobile Add section sheet opt-in are implemented; Drawer/FullscreenPanel support the opt-in without changing existing Light defaults. Stable dialog heading IDs and 44px close controls replace the previous random IDs/small targets. Full CI passes with 5,591 tests / 268 explicit skips. Actual-component browser edit/focus/close/scroll-lock/theme-update QA is next. Legacy inspector/Yande/workspace/app-wide appearance and genuine authenticated acceptance remain IN PROGRESS; all four groups remain open.
+
+Native/portal actual-component QA passed on `7d434db9`, including synthetic text/motion edits, phone picker callback and focus/scroll cleanup. It exposed a media-control foreground inheritance bug; the repair adds explicit scoped colors without changing uploads or API logic. Full CI now passes 5,593 tests / 268 explicit skips (34 focused cases). Final media-control deployment inspection remains next; real account/project/provider acceptance remains open.

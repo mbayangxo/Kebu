@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
 import { SiteMediaUpload } from "@/app/components/create/site-media-upload";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 import {
   KEBU_ASSET_DRAG_MIME,
   type KebuDragAsset,
@@ -81,13 +81,13 @@ export function SiteAssetsPanel({
   });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" style={{ color: BUILDER.ink, colorScheme: BUILDER.colorScheme }}>
       {/* Upload section — collapsed by default to keep library front-and-center */}
       <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BUILDER.border}` }}>
         <button
           type="button"
           className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-wider"
-          style={{ color: BUILDER.ink, background: "#FAFAF8" }}
+          style={{ color: BUILDER.ink, background: BUILDER.surfaceMuted }}
           onClick={() => setUploadExpanded((v) => !v)}
         >
           <span>+ Upload new file</span>
@@ -140,8 +140,8 @@ export function SiteAssetsPanel({
             type="button"
             className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
             style={{
-              background: filter === id ? BUILDER.ink : "#fff",
-              color: filter === id ? "#fff" : BUILDER.muted,
+              background: filter === id ? BUILDER.action : BUILDER.surface,
+              color: filter === id ? BUILDER.onAction : BUILDER.muted,
               border: `1px solid ${BUILDER.border}`,
             }}
             onClick={() => setFilter(id)}
@@ -152,7 +152,7 @@ export function SiteAssetsPanel({
       </div>
 
       {loading ? <p className="text-[10px] opacity-60">Loading…</p> : null}
-      {error ? <p className="text-[10px] text-red-600">{error}</p> : null}
+      {error ? <p className="text-[10px]" style={{ color: BUILDER.error }}>{error}</p> : null}
 
       {visible.length > 0 ? (
         <div className="grid grid-cols-2 gap-2">
@@ -162,7 +162,7 @@ export function SiteAssetsPanel({
               <div
                 key={a.id}
                 className="overflow-hidden rounded-xl border"
-                style={{ borderColor: BUILDER.border, background: "#fff" }}
+                style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData(
@@ -193,7 +193,7 @@ export function SiteAssetsPanel({
                   <button
                     type="button"
                     className="w-full rounded-full py-1 text-[9px] font-bold uppercase tracking-wider text-white"
-                    style={{ background: BUILDER.ink }}
+                    style={{ background: BUILDER.action, color: BUILDER.onAction }}
                     onClick={() => applyAsset(a.url, kind)}
                   >
                     Use

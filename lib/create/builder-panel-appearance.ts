@@ -13,6 +13,8 @@ export const BUILDER_PANEL = {
   action: "var(--builder-panel-action, #0A0A0A)",
   onAction: "var(--builder-panel-on-action, #FFFFFF)",
   colorScheme: "var(--builder-panel-color-scheme, light)",
+  saved: "var(--builder-panel-saved, #166534)",
+  error: "var(--builder-panel-error, #B91C1C)",
 } as const;
 
 export function builderPanelVariables(appearance: BuilderAppearance) {
@@ -28,5 +30,7 @@ export function builderPanelVariables(appearance: BuilderAppearance) {
     "--builder-panel-action": p.action,
     "--builder-panel-on-action": p.onAction,
     "--builder-panel-color-scheme": appearance,
+    "--builder-panel-saved": p.saved,
+    "--builder-panel-error": p.error,
   };
 }
