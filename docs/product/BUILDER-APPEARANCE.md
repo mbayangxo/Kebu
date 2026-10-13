@@ -1,6 +1,6 @@
 # Builder appearance
 
-Requirement K033 remains IN PROGRESS. This first isolated slice covers the editor top bar and tool rail; inspector panels, portal panels, workspace and app-wide appearance still need migration and running-app QA. Do not call this application night mode complete.
+Requirement K033 remains IN PROGRESS. QA now covers the editor top bar/tool rail, scoped native inspector controls and an explicit Add section mobile-sheet opt-in. Drawer/FullscreenPanel opt-in support, media-helper contrast and child error colors are verified in isolated fixtures. Legacy inspector, Yande, workspace and app-wide appearance still need migration; real authenticated project/provider acceptance and production rollout remain open. Do not call application night mode complete.
 
 ## Inspector and portal extension — current work
 
@@ -21,3 +21,7 @@ Keyboard: native labelled select; visible focus ring; minimum 44px theme control
 Full CI passes: 5,588 tests / 268 explicit skips, TypeScript, zero lint errors / 288 existing warnings, build. The deployed actual-component fixture passes desktop and phone theme/action/rail tests, reload, two-tab/iframe sync, keyboard selection and website fixture color isolation. The 390px outer frame has a 382px content viewport with identical document scroll width and a 44px selector. The fixture’s global floating chrome was isolated after it intercepted phone taps; the corrected frame was reinspected. A running production configuration returned HTTP 404 for the fixture. Evidence: `evidence/builder-appearance/verification.json`. Genuine signed-in Builder/save/publish and remaining appearance surfaces are not covered by this fixture.
 
 The image/video upload helpers and media-library controls must pair their own themed surface with an explicit foreground. The prior cream helpers inherited pale text from the dark native inspector; this was reproduced in QA and repaired. Media contents, upload callbacks, permissions and APIs are unchanged; provider/storage journeys still need authenticated checks.
+
+## Native/portal verified checkpoint
+
+Full final CI passes: 5,593 tests / 268 explicit skips, TypeScript, zero lint errors / 279 warnings, build. Actual-component native text/motion edits, all portal containers, phone section callback, focus trap/restoration, Escape/Close, scroll cleanup, live theme changes and customer color parity passed. The upload-label regression improved from 1.04:1 contrast to 13.21:1 Dark / 18.33:1 Light. Native top controls now wrap with an explicit 8px gap; portal close targets are 44px. Real signed-out feedback was inspected in both themes. Evidence: `evidence/builder-appearance/panels-verification.json`. Authenticated profile/project saves, uploads and provider flows remain unverified.

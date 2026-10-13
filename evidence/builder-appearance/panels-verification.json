@@ -26,8 +26,35 @@
     "phone_fullscreen_text_motion_edits_and_close": "passed",
     "theme_change_while_phone_dialog_open": "passed; text retained and Light colors applied",
     "customer_fixture_colors": "unchanged cream/green",
-    "media_contrast": "bug reproduced in prior QA; repaired deployment inspection pending",
-    "final_status": "pending"
+    "media_contrast": "passed in deployed Dark/Light on 120bc566; image and video upload-box labels matched their surfaces",
+    "final_status": "pass for isolated actual-component appearance/interaction fixtures",
+    "verified_source_commits": {
+      "native_portal_interactions": "7d434db9c9f2521e88aad27b78a3bb18e7dcf133",
+      "media_foreground_regression": "120bc566b373223c431dfee0c8cf4c0881bdd5a5",
+      "narrow_action_spacing": "b42b9e489d704e9551f26923a71894b5bff8e5fc",
+      "signed_out_error_palette": "d794921a961a8e9192e58b72a78e773f3e5c9cef"
+    },
+    "last_code_deployment": "dpl_DH1jog7mL2HCnMq8djCuWy91Waz7",
+    "last_verified_url": "https://kebu-5bukp33ky-mbayangxos-projects.vercel.app/qa/builder-appearance",
+    "error_state": {
+      "text": "Sign in required.",
+      "dark_foreground": "rgb(255,155,155)",
+      "dark_inspector_background": "rgb(28,30,34)",
+      "light_foreground": "rgb(185,28,28)",
+      "light_inspector_background": "rgb(255,255,255)",
+      "authenticated_profile_read_or_write": false
+    },
+    "layout": {
+      "phone_fullscreen_width": 388,
+      "phone_document_scroll_width": 388,
+      "phone_fullscreen_height": 478,
+      "close_touch_width": 44,
+      "narrow_top_action_gap": 8,
+      "top_action_wrapping": true
+    },
+    "screenshot": "evidence/builder-appearance/native-panel-final-qa-1791861128675.jpg",
+    "before_spacing_screenshot": "evidence/builder-appearance/native-panel-dark-qa-1791860558474.jpg",
+    "real_uploads_or_hosted_project_writes": false
   },
   "document_or_customer_theme_changes": false,
   "hosted_schema_or_provider_changes": false,
@@ -45,6 +72,20 @@
     },
     "cause": "Legacy light upload boxes inherited the dark inspector foreground.",
     "repair": "Explicit scoped surface, foreground, native color-scheme, hint/action/error/status tokens. No API/model/upload logic changed.",
-    "regression_cases": 2
-  }
+    "regression_cases": 2,
+    "after": {
+      "dark": {
+        "label_color": "rgb(245,245,247)",
+        "box_background": "rgb(39,42,48)",
+        "contrast": 13.21
+      },
+      "light": {
+        "label_color": "rgb(10,10,10)",
+        "box_background": "rgb(246,246,247)",
+        "contrast": 18.33
+      },
+      "before_contrast": 1.04
+    }
+  },
+  "child_error_colors": "Scoped semantic error token; readable real signed-out feedback confirmed. Auth/provider logic unchanged."
 }

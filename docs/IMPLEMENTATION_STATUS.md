@@ -1,5 +1,13 @@
 # Kebu — Implementation Status
 
+### 2026-10-13 UTC — Native/portal appearance fixture QA closed
+
+Actual-component browser checks passed for native text edits through the operation engine; desktop drawer focus trap, Escape, focus restoration and scroll release; phone Add section selection callback; phone fullscreen text/motion edits, close cleanup and live theme updates retaining text. Customer fixture colors remained cream/green. Phone fullscreen fit its 388px content viewport without horizontal overflow; close controls measured 44px. Final native action groups have a verified 8px wrapping gap.
+
+The media-label defect was reproduced at **1.04:1** contrast and repaired: measured label contrast is **13.21:1 Dark / 18.33:1 Light**. The real signed-out profile read displays “Sign in required.” with readable semantic error colors in both themes; no account/profile/project write or upload was performed. Verified source chain ends at `d794921a`; see `evidence/builder-appearance/panels-verification.json` and its screenshot. Full final CI exits zero: **5,593 tests / 268 explicit skips**, TypeScript, lint (zero errors / 279 remaining warnings), build.
+
+K033 and Kebu remain **IN PROGRESS**. Legacy inspector, Yande, workspace/app-wide appearance, real authenticated project/mobile/provider acceptance and production rollout remain open. These are synthetic in-memory fixture checks and a signed-out denial, not a real account save/publish/upload pass. All four completion groups remain preserved; no production schema/source/provider/billing changes.
+
 ### 2026-10-13 UTC — Upload-control contrast follow-up
 
 QA exposed pale text (`rgb(245,245,247)`) on the older light upload box (`rgb(250,250,248)`) after the native inspector became dark. Image/video upload and media-library controls now define scoped surface/foreground/action/hint/status/error colors and native color-scheme together; API/data/upload logic is unchanged. Two regression cases cover explicit root foreground/surface instead of inherited text.
