@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BuilderAppearanceProvider } from "@/app/components/create/builder-appearance-provider";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
 import type { BuilderDevice } from "@/lib/create/builder-device";
+import { YandeAppearanceFixture } from "./yande-appearance-fixture";
 import { NativeInspectorFixture } from "./native-inspector-fixture";
 
 /** Development-only fixture using the actual toolbar/store, never customer data. */
@@ -25,6 +26,7 @@ export function AppearanceFixture({ phoneFrame = false }: { phoneFrame?: boolean
             </div>
             <p role="status" className="text-xs">{feedback}</p>
             <NativeInspectorFixture />
+            <YandeAppearanceFixture />
           </section>
         </div>
       </BuilderAppearanceProvider>

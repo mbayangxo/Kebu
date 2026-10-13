@@ -14,6 +14,7 @@ import { previewDefinitionUpdate } from "@/lib/create/preview-definition-update"
 import { documentToRows, type LegacySectionType } from "@/lib/create/kcd-adapter";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
 import { BuilderAppearanceProvider, BuilderPanelScope } from "@/app/components/create/builder-appearance-provider";
+import { BUILDER_PANEL } from "@/lib/create/builder-panel-appearance";
 import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { buildEditorPreviewDefinition, resolveEditorTheme } from "@/lib/create/editor-definition";
@@ -107,139 +108,10 @@ const BuilderPagesPanel = dynamic(
   () => import("@/app/components/create/builder-pages-panel").then((m) => m.BuilderPagesPanel),
   { ssr: false },
 );
-const BuilderAiPreviewPanel = dynamic(
-  () => import("@/app/components/create/builder-ai-preview-panel").then((m) => m.BuilderAiPreviewPanel),
+const YandePanelBody = dynamic(
+  () => import("@/app/components/create/yande-panel-body").then((m) => m.YandePanelBody),
   { ssr: false },
 );
-const YandeAssistant = dynamic(
-  () => import("@/app/components/create/yande-assistant").then((m) => m.YandeAssistant),
-  { ssr: false },
-);
-
-type YandePanelBodyProps = {
-  aiPreview: {
-    definition: import("@/lib/create/website-schema").WebsiteDefinition;
-    intents: string[];
-    sectionChanges: import("@/lib/create/ai-improve-merge").AiSectionChange[];
-    acceptedSectionIds: Set<string>;
-    repaired: boolean;
-  } | null;
-  improving: boolean;
-  improveMode: "free" | "redesign" | "page" | "rewrite" | "convert";
-  improveInstruction: string;
-  improveNote: string | null;
-  setImproveMode: (mode: "free" | "redesign" | "page" | "rewrite" | "convert") => void;
-  setImproveInstruction: (value: string) => void;
-  setAiPreview: import("react").Dispatch<import("react").SetStateAction<YandePanelBodyProps["aiPreview"]>>;
-  applyAiPreview: () => void;
-  discardAiPreview: () => void;
-  previewWithAi: () => void;
-};
-
-function YandePanelBody({
-  aiPreview,
-  improving,
-  improveMode,
-  improveInstruction,
-  improveNote,
-  setImproveMode,
-  setImproveInstruction,
-  setAiPreview,
-  applyAiPreview,
-  discardAiPreview,
-  previewWithAi,
-}: YandePanelBodyProps) {
-  return (
-    <>
-      {/* Mode selector */}
-      {!aiPreview ? (
-        <div
-          className="flex shrink-0 flex-wrap gap-1 border-b px-3 py-2"
-          style={{ borderColor: "#E5E5E5" }}
-        >
-          {(
-            [
-              ["free", "Improve"],
-              ["redesign", "Redesign"],
-              ["page", "Page"],
-              ["rewrite", "Rewrite"],
-              ["convert", "Convert"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setImproveMode(id)}
-              className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
-              style={{
-                background: improveMode === id ? BUILDER.ink : "#F0F0F0",
-                color: improveMode === id ? "#fff" : BUILDER.muted,
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {/* AI preview panel when active */}
-      {aiPreview ? (
-        <div className="shrink-0 border-b px-3 py-3" style={{ borderColor: "#E5E5E5" }}>
-          <BuilderAiPreviewPanel
-            intents={aiPreview.intents}
-            sectionChanges={aiPreview.sectionChanges}
-            acceptedSectionIds={aiPreview.acceptedSectionIds}
-            onApply={applyAiPreview}
-            onDiscard={discardAiPreview}
-            onToggleSection={(sectionId) => {
-              setAiPreview((prev) => {
-                if (!prev) return prev;
-                const next = new Set(prev.acceptedSectionIds);
-                if (next.has(sectionId)) next.delete(sectionId);
-                else next.add(sectionId);
-                return { ...prev, acceptedSectionIds: next };
-              });
-            }}
-            onSelectAll={() => {
-              setAiPreview((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
-                    }
-                  : prev,
-              );
-            }}
-            onClearAll={() => {
-              setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
-            }}
-            busy={improving}
-          />
-        </div>
-      ) : null}
-
-      {/* Yande assistant input */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-        <YandeAssistant
-          variant="improve"
-          value={improveInstruction}
-          onChange={setImproveInstruction}
-          onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
-          busy={improving}
-          submitLabel={aiPreview ? "Apply" : "Preview"}
-        />
-        {improveNote ? (
-          <p
-            className="mt-3 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
-            style={{ background: "#F4F4F5", color: BUILDER.muted }}
-          >
-            {improveNote}
-          </p>
-        ) : null}
-      </div>
-    </>
-  );
-}
 
 function SidebarDetails({ title, children, defaultOpen = true, group }: { title: string; children: import("react").ReactNode; defaultOpen?: boolean; group?: string }) {
   return (
@@ -320,6 +192,7 @@ export default function ProjectEditorPage() {
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
   const [yandeOpen, setYandeOpen] = useState(false);
+  const yandeTriggerRef = useRef<HTMLButtonElement>(null);
   const [yandeDialOpen, setYandeDialOpen] = useState(true);
   const [improveMode, setImproveMode] = useState<"free" | "redesign" | "page" | "rewrite" | "convert">(
     "free",
@@ -5039,7 +4912,7 @@ export default function ProjectEditorPage() {
         ) : null}
 
         {/* Yande FAB + speed-dial — bottom-right; on mobile lift above MobileActionBar */}
-        <div
+        <BuilderPanelScope><div
           className="absolute right-5 z-30 flex flex-col items-end gap-2"
           style={{
             bottom: (bp === "xs" || bp === "sm")
@@ -5061,7 +4934,7 @@ export default function ProjectEditorPage() {
                 <div key={label} className="flex items-center gap-2">
                   <span
                     className="rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg whitespace-nowrap"
-                    style={{ background: "#fff", color: BUILDER.ink, boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}
+                    style={{ background: BUILDER_PANEL.surface, color: BUILDER_PANEL.ink, boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}
                   >
                     {label}
                   </span>
@@ -5072,7 +4945,7 @@ export default function ProjectEditorPage() {
                       setYandeOpen(true);
                       setYandeDialOpen(false);
                     }}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-105 active:scale-95"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-105 active:scale-95"
                     style={{ background: color }}
                     aria-label={label}
                   >
@@ -5097,6 +4970,7 @@ export default function ProjectEditorPage() {
 
           {/* Main FAB button */}
           <button
+            ref={yandeTriggerRef}
             type="button"
             aria-label={yandeOpen ? "Close Yande" : yandeDialOpen ? "Close menu" : "Open Yande"}
             onClick={() => {
@@ -5113,6 +4987,8 @@ export default function ProjectEditorPage() {
           </button>
         </div>
 
+        </BuilderPanelScope>
+
         {/* Yande right-side panel — absolute on sm+, Sheet on xs (phone) */}
         {yandeOpen && bp !== "xs" ? (
           <>
@@ -5122,12 +4998,14 @@ export default function ProjectEditorPage() {
               onClick={() => setYandeOpen(false)}
               aria-hidden="true"
             />
-            <div
+            <BuilderPanelScope><div
               className="absolute bottom-0 right-0 top-0 z-40 flex flex-col overflow-hidden border-l"
               style={{
                 width: 300,
-                background: "#FAFAFA",
-                borderColor: "#E5E5E5",
+                background: BUILDER_PANEL.surface,
+                color: BUILDER_PANEL.ink,
+                colorScheme: BUILDER_PANEL.colorScheme,
+                borderColor: BUILDER_PANEL.border,
                 boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
               }}
               onClick={(e) => e.stopPropagation()}
@@ -5135,13 +5013,13 @@ export default function ProjectEditorPage() {
               {/* panel header */}
               <div
                 className="flex shrink-0 items-center justify-between border-b px-3 py-2.5"
-                style={{ borderColor: "#E5E5E5" }}
+                style={{ borderColor: BUILDER_PANEL.border }}
               >
                 <div className="flex items-center gap-2">
                   <YandeMark size={28} />
                   <span
                     className="text-[11px] font-bold uppercase tracking-wider"
-                    style={{ color: BUILDER.ink }}
+                    style={{ color: BUILDER_PANEL.ink }}
                   >
                     Yande AI
                   </span>
@@ -5150,8 +5028,8 @@ export default function ProjectEditorPage() {
                   type="button"
                   aria-label="Close Yande"
                   onClick={() => setYandeOpen(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-md"
-                  style={{ color: BUILDER.muted }}
+                  className="flex h-11 w-11 items-center justify-center rounded-md"
+                  style={{ color: BUILDER_PANEL.muted }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                     <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
@@ -5172,7 +5050,7 @@ export default function ProjectEditorPage() {
                 discardAiPreview={discardAiPreview}
                 previewWithAi={() => void previewWithAi()}
               />
-            </div>
+            </div></BuilderPanelScope>
           </>
         ) : null}
         {/* On xs (phone) Yande opens as a bottom Sheet so it doesn't cover the canvas */}
@@ -5180,7 +5058,9 @@ export default function ProjectEditorPage() {
           open={yandeOpen && bp === "xs"}
           onClose={() => setYandeOpen(false)}
           title="Yande AI"
+          triggerRef={yandeTriggerRef}
           maxHeight="80dvh"
+          editorAppearance
         >
           <YandePanelBody
             aiPreview={aiPreview}
