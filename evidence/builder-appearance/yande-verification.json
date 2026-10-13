@@ -1,0 +1,49 @@
+{
+  "status": "ISOLATED_QA_PASSED; APPLICATION_COMPLETION_IN_PROGRESS",
+  "date_utc": "2026-10-13",
+  "branch": "qa/kebu-ready-oct10",
+  "source_commit": "a4ebb55a1f67f0e2a13affa1f3493cad50238efb",
+  "source_tree": "57a9f030abe0c1df59cbd38b0b6de54246dd0d40",
+  "deployment": {
+    "id": "dpl_CgcAm8MVavMGwa1ZwSxeVjy2Jw4h",
+    "state": "READY",
+    "fixture_url": "https://kebu-gc4b0v4re-mbayangxos-projects.vercel.app/qa/builder-appearance"
+  },
+  "validation": {
+    "ci_exit": 0,
+    "tests_passed": 5599,
+    "tests_skipped": 268,
+    "focused_regressions": 6,
+    "lint_errors": 0,
+    "lint_warnings": 279,
+    "typecheck": "PASS, final launcher ref rechecked",
+    "build": "PASS"
+  },
+  "checks_passed": [
+    "Desktop mode change and labelled prompt edit \u2192 actual Preview callback (synthetic, no provider request)",
+    "One Apply button; None disables it; individual selection restores Apply (1) and delivers one-section fixture callback",
+    "Busy locks All, None, checkbox, Apply and Discard",
+    "Discard preserves the prior desktop and phone prompt",
+    "Dark input foreground rgb(245,245,247) / background rgb(28,30,34), color-scheme dark",
+    "Light input foreground rgb(10,10,10) / white, color-scheme light",
+    "Dark proposed row foreground rgb(245,245,247) / background rgb(39,42,48)",
+    "Mode buttons, proposal All/None/Apply/Discard, checkbox labels and Sheet close measure 44px high",
+    "Desktop actual body is 298px client/scroll width inside 300px frame",
+    "Phone sheet width 388px; inner client and scroll widths382px; document width and scroll388px",
+    "Phone row text click toggles checkbox; callback delivers correct one-section selection",
+    "Phone Close Shift+Tab wraps to Discard, last Tab wraps to Close",
+    "Live Light theme change in open sheet preserves selected section; scheme/surface/row update after render",
+    "Escape and Close restore trigger focus and clear body fixed/overflow lock",
+    "Customer fixture remains rgb(255,248,231) / rgb(23,59,43)"
+  ],
+  "console": "Only Chrome extension metadata errors returned on inspected fixture path; no application error observed.",
+  "screenshot": "evidence/builder-appearance/yande-review-final-qa-1791869932390.jpg",
+  "limits": [
+    "Synthetic in-memory callback/selection fixture only; reload resets fixture draft",
+    "No authenticated real-project generation/apply/save/reload/upload tested",
+    "No AI provider call, payment/email transaction or hosted schema mutation",
+    "No production rollout; QA cron isolation unchanged",
+    "K033 not complete: legacy inspector/workspace/app-wide coverage and authenticated rollout acceptance remain",
+    "Four-group ecosystem completion remains open"
+  ]
+}

@@ -1,5 +1,11 @@
 # Kebu — Implementation Status
 
+### 2026-10-13 UTC — Yande appearance and approval controls verified in QA
+
+Yande desktop/phone controls now use scoped appearance tokens, preserving customer canvas colors. Proposed changes have a single Apply path; all selection/approval actions lock during requests, zero-selected section proposals cannot apply, and intent-only proposals remain approvable. Discard preserves the prompt. Phone Sheet opts into appearance, restores focus to a stable launcher and retains 44px actions.
+
+Full CI: **5,599 passing / 268 explicit skips**, TypeScript, zero lint errors / 279 warnings, build; six approval/appearance regressions. Deployed actual-component desktop and 390px phone QA passed draft/callback/selection/busy checks, readable Light/Dark controls, live theme updates, focus trap/restoration, Escape/Close, scroll cleanup and customer-color isolation. Evidence: `evidence/builder-appearance/yande-verification.json`. The preview fixture is explicitly synthetic and makes no AI/provider/project write. Genuine AI/account/provider/persistence acceptance remains open. K033 remains IN PROGRESS for legacy inspector/workspace/app-wide coverage and authenticated production rollout. QA branch only; no production/schema/billing changes.
+
 ### 2026-10-13 UTC — Native/portal appearance fixture QA closed
 
 Actual-component browser checks passed for native text edits through the operation engine; desktop drawer focus trap, Escape, focus restoration and scroll release; phone Add section selection callback; phone fullscreen text/motion edits, close cleanup and live theme updates retaining text. Customer fixture colors remained cream/green. Phone fullscreen fit its 388px content viewport without horizontal overflow; close controls measured 44px. Final native action groups have a verified 8px wrapping gap.

@@ -40,3 +40,7 @@ Native/portal actual-component QA passed on `7d434db9`, including synthetic text
 ## Native/portal appearance verification result
 
 Actual-component desktop/phone fixture checks passed through source `d794921a`, including native text/motion operations, section callback, focus/close/scroll cleanup, live theme changes, media-label repair and expected signed-out feedback. Upload label contrast improved from 1.04:1 to 13.21:1 Dark / 18.33:1 Light; top native actions wrap with an 8px gap. Final full CI remains 5,593 passing / 268 explicit skips. No real account/profile/project save, upload or provider transaction is claimed. K033 still needs Yande, legacy inspector, workspace/app-wide coverage and authenticated rollout acceptance. All four groups remain open.
+
+## Core follow-up: Yande controls verified in QA (October 13)
+
+Desktop and phone Yande input/proposal panels now use scoped appearance tokens. One authoritative Apply path, selection and busy locks, prompt retention, readable themes, 44px targets and phone focus/scroll/dismissal behavior passed actual-component QA. Full CI: 5,599 pass / 268 explicit skips. Evidence: `evidence/builder-appearance/yande-verification.json`. This closes the isolated Yande appearance/approval-control slice; real AI generation and authenticated persistence are still open. K033 remains IN PROGRESS for legacy inspector/workspace/app-wide migration and real-account rollout. All four groups remain open.
