@@ -38,9 +38,10 @@ async function cached(page: Page, video = false) {
     };
   }), { owner, id, video });
 }
-async function setup(page: Page, options: { video?: boolean; missing?: boolean; delay?: boolean; malformed?: boolean; conflict?: boolean; twoPages?: boolean; audio?: boolean; missingAudio?: boolean; history?: boolean; sharing?: "offline" | "malformed"; viewer?: boolean; delayedRestore?: boolean; failedHistory?: boolean } = {}) {
+async function setup(page: Page, options: { video?: boolean; missing?: boolean; delay?: boolean; malformed?: boolean; conflict?: boolean; twoPages?: boolean; audio?: boolean; missingAudio?: boolean; history?: boolean; designSoundtrack?: boolean; sharing?: "offline" | "malformed"; viewer?: boolean; delayedRestore?: boolean; failedHistory?: boolean } = {}) {
   const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
   const doc = canvas(options.missing); if (options.twoPages) doc.pages.push({ ...structuredClone(doc.pages[0]!), id: "second", name: "Second" });
+  if (options.designSoundtrack) doc.soundtrack = { url: "http://127.0.0.1:38416/tone.wav", durationMs: 1000, bpm: null, beatsMs: [], snapToBeats: true };
   let server: { id: string; title: string; updated_at: string; business_id: null; source_design_id?: null; design_type?: string; canvas?: ReturnType<typeof canvas>; composition?: ReturnType<typeof composition> } = options.video ? { id, title: "Original video", composition: composition(options.audio), updated_at: rev(1), business_id: null, source_design_id: null } : { id, title: "QA design", design_type: "poster", canvas: doc, updated_at: rev(1), business_id: null };
   const writes: Record<string, unknown>[] = []; let release: (() => void) | undefined;
   const barrier = new Promise<void>(done => { release = done; });
@@ -299,4 +300,22 @@ test("viewers cannot save or invite collaborators in the editor", async ({ page 
   await expect(page.getByRole("paragraph").filter({ hasText: /^View only$/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Invite", exact: true })).toHaveCount(0);
   expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
+});
+
+test("design timeline export includes the saved soundtrack as audible samples", async ({ page }) => {
+  const fixture = await setup(page, { designSoundtrack: true }); await page.getByText("More", { exact: true }).click();
+  const download = page.waitForEvent("download", { timeout: 20000 }); await page.getByRole("button", { name: "Export timeline", exact: true }).click();
+  const bytes = readFileSync((await (await download).path())!);
+  const rms = await page.evaluate(async base64 => {
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0)); const context = new AudioContext();
+    try { const audio = await context.decodeAudioData(bytes.buffer); const channel = audio.getChannelData(0); return Math.sqrt(channel.reduce((sum,v) => sum + v*v,0) / channel.length); }
+    finally { await context.close(); }
+  }, bytes.toString("base64"));
+  expect(rms).toBeGreaterThan(0.001); expect(fixture.errors).toEqual([]);
+});
+test("missing design soundtrack blocks timeline download with an honest error", async ({ page }) => {
+  const fixture = await setup(page, { designSoundtrack: true, missingAudio: true }); const downloads: string[]=[]; page.on("download", item => downloads.push(item.suggestedFilename()));
+  await page.getByText("More", { exact: true }).click(); await page.getByRole("button", { name: "Export timeline", exact: true }).click();
+  await expect(page.getByText("Could not load the soundtrack for export. No file was exported.", { exact: true })).toBeVisible();
+  expect(downloads).toEqual([]); expect(fixture.errors).toEqual([]);
 });

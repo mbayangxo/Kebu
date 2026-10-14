@@ -14,7 +14,7 @@ const patchSchema = z.object({
   composition: studioCompositionSchema.optional(),
   editMode: z.enum(["quick_edit", "smart_edit", "full_timeline", "storyboard"]).optional(),
   /** Optimistic concurrency token: prevents silent cross-tab/device overwrites. */
-  expectedUpdatedAt: z.string().datetime().optional(),
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {

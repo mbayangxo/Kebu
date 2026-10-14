@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { exportCanvasMotionToWebmBlob } from "@/lib/studio/motion-export";
 import { exportStudioComposition } from "@/lib/studio/composition-browser-export";
 import { emptyStudioComposition } from "@/lib/studio/composition";
 import { canvasLayerSchema, emptyCanvasDocument, exportCanvasToPngDataUrlAsync } from "@/lib/studio/canvas-document";
@@ -31,6 +32,17 @@ describe("Studio export output integrity", () => {
     expect("blob" in output && output.blob.size).toBeGreaterThan(0);
     expect(events.indexOf("flush")).toBeLessThan(events.indexOf("track-stop"));
     expect(events).toContain("frame");
+  });
+
+  it("closes timeline capture tracks if the encoder constructor fails", async () => {
+    const stop = vi.fn();
+    vi.stubGlobal("document", { createElement: () => ({ getContext: canvasContext, toDataURL: () => "encoded", captureStream: () => ({ getTracks: () => [{ stop }], getVideoTracks: () => [] }) }) });
+    class LoadedImage { onload: (() => void) | null = null; set src(_url: string) { queueMicrotask(() => this.onload?.()); } }
+    vi.stubGlobal("Image", LoadedImage);
+    class RefusedRecorder { static isTypeSupported() { return true; } constructor() { throw new Error("Encoder unavailable"); } }
+    vi.stubGlobal("MediaRecorder", RefusedRecorder);
+    expect(await exportCanvasMotionToWebmBlob(emptyCanvasDocument({ width: 200, height: 200 }))).toEqual({ error: "Encoder unavailable" });
+    expect(stop).toHaveBeenCalledOnce();
   });
 
   it("refuses a PNG with unavailable visible image media", async () => {

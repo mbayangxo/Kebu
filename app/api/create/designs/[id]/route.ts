@@ -20,7 +20,7 @@ const patchSchema = z.object({
   /** Owner-only: move design into a folder, or null to unfile. */
   folderId: z.string().uuid().nullable().optional(),
   /** Optimistic concurrency token for offline/collaborative editors. */
-  expectedUpdatedAt: z.string().datetime().optional(),
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {

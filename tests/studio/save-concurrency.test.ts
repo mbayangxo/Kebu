@@ -33,6 +33,12 @@ describe("Studio atomic save guards", () => {
     expect((await PATCH(request({ title: "New title", expectedUpdatedAt: timestamp }), context)).status).toBe(200);
     expect(write.eq).toHaveBeenCalledWith("updated_at", timestamp);
   });
+  it("accepts exact UTC-offset database revisions", async () => {
+    const { write } = database({ data: { id: "design-1", updated_at: timestamp }, error: null });
+    const revision = "2026-10-13T18:00:00.000+00:00";
+    expect((await PATCH(request({ title: "Offset save", expectedUpdatedAt: revision }), context)).status).toBe(200);
+    expect(write.eq).toHaveBeenCalledWith("updated_at", revision);
+  });
   it("protects design updates even when a client omits its version", async () => {
     const { write } = database({ data: { id: "design-1", updated_at: timestamp }, error: null });
     expect((await PATCH(request({ title: "New title" }), context)).status).toBe(200);

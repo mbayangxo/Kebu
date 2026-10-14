@@ -18,6 +18,13 @@ await new Promise(done => auth.listen(38417, "127.0.0.1", done));
 const env = { ...process.env, NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:38417", NEXT_PUBLIC_SUPABASE_ANON_KEY: "isolated-local-fixture", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "", SUPABASE_SERVICE_ROLE_KEY: "", SUPABASE_SECRET_KEY: "", SUPABASE_URL: "", DATABASE_URL: "", ANTHROPIC_API_KEY: "", VERCEL_ENV: "" };
 // Each run starts with a disposable dev cache; interrupted Turbopack caches are not reusable.
 rmSync(join(root,".next/dev"),{recursive:true,force:true});
+async function stopChild(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise(done => {
+    const timer = setTimeout(() => child.kill("SIGKILL"), 5000);
+    child.once("close", () => { clearTimeout(timer); done(); }); child.kill();
+  });
+}
 let server, tests;
 try {
   const log = createWriteStream(join(output, "server.log"));
@@ -27,5 +34,5 @@ try {
   const code = await new Promise(done => tests.on("exit",done));
   const report = JSON.parse(readFileSync(join(output,"results.json"),"utf8"));
   console.log("STUDIO_UI_RESULT",JSON.stringify(report.stats));
-  if(code!==0 || report.stats.unexpected || report.stats.expected < 18) throw Error("Studio browser gate failed");
-} finally { rmSync(temporary,{recursive:true,force:true}); tests?.kill(); server?.kill(); auth.close(); }
+  if(code!==0 || report.stats.unexpected || report.stats.expected < 20) throw Error("Studio browser gate failed");
+} finally { await stopChild(tests); await stopChild(server); await new Promise(done => auth.close(done)); rmSync(temporary,{recursive:true,force:true}); }
