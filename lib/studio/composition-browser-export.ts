@@ -332,45 +332,48 @@ async function prepareAudioGraph(
   visuals: Map<string, PreparedVisual>,
   resolveMediaUrl: (url: string) => string,
 ) {
+  const solo = composition.tracks.some(track => track.solo);
+  const audible = composition.clips.filter(clip => {
+    const track = composition.tracks.find(item => item.id === clip.trackId);
+    if (!track || track.muted || (solo && !track.solo)) return false;
+    return track.kind === "audio" || track.kind === "music" || (track.kind === "video" &&
+      (assetKindForClip(composition, clip) === "video" || (clip.sourceUrl && visuals.get(clip.sourceUrl)?.kind === "video")));
+  });
+  // An empty destination track has no samples and can prevent the recorder from muxing video.
+  if (!audible.length) return null;
   const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioCtor) return null;
-
+  if (!AudioCtor) throw new Error("Audio export is not supported by this browser.");
   const context = new AudioCtor();
-  await context.resume();
-  const destination = context.createMediaStreamDestination();
   const clips = new Map<string, PreparedAudio>();
-
-  for (const clip of composition.clips) {
-    if (!clip.sourceUrl) continue;
-    const track = composition.tracks.find((item) => item.id === clip.trackId);
-    const assetKind = assetKindForClip(composition, clip);
-    const audible = track?.kind === "audio" || track?.kind === "music" || (track?.kind === "video" && assetKind === "video");
-    if (!audible) continue;
-
-    let element: HTMLMediaElement;
-    const prepared = visuals.get(clip.sourceUrl);
-    if (prepared?.kind === "video") {
-      element = prepared.element;
-    } else {
-      const audio = new Audio();
-      audio.crossOrigin = "anonymous";
-      audio.preload = "auto";
-      audio.src = resolveMediaUrl(clip.sourceUrl);
-      element = audio;
-    }
-
-    try {
-      const source = context.createMediaElementSource(element);
-      const gain = context.createGain();
-      source.connect(gain);
-      gain.connect(destination);
+  try {
+    await context.resume();
+    const destination = context.createMediaStreamDestination();
+    for (const clip of audible) {
+      if (!clip.sourceUrl) throw new Error("An audio clip has no source media.");
+      // Each clip owns its playback clock, including repeated uses of the same source.
+      const element = new Audio();
+      element.crossOrigin = "anonymous";
+      element.preload = "auto";
+      await new Promise<void>((done, fail) => {
+        const timer = window.setTimeout(() => { cleanup(); fail(new Error("Audio load timeout.")); }, 15000);
+        const cleanup = () => { window.clearTimeout(timer); element.removeEventListener("canplay", ready); element.removeEventListener("error", failed); };
+        const ready = () => { cleanup(); done(); };
+        const failed = () => { cleanup(); fail(new Error("Audio media could not be loaded.")); };
+        element.addEventListener("canplay", ready, { once: true });
+        element.addEventListener("error", failed, { once: true });
+        element.src = resolveMediaUrl(clip.sourceUrl!);
+        element.load();
+      });
+      const source = context.createMediaElementSource(element), gain = context.createGain();
+      source.connect(gain); gain.connect(destination);
       clips.set(clip.id, { element, gain });
-    } catch {
-      // A media element can only have one MediaElementSource. Skip duplicates safely.
     }
+    return { context, destination, clips };
+  } catch (error) {
+    for (const clip of clips.values()) clip.element.pause();
+    await context.close().catch(() => undefined);
+    throw error;
   }
-
-  return { context, destination, clips };
 }
 
 function syncAudioAtTime(
@@ -463,7 +466,12 @@ export async function exportStudioComposition(
   if (missing.length) return { error: "One or more media files could not be loaded for export." };
 
   const stream = canvas.captureStream(fps);
-  const audio = await prepareAudioGraph(composition, visuals, resolveMediaUrl);
+  const captureTrack = stream.getVideoTracks()[0] as MediaStreamTrack & { requestFrame?: () => void };
+  let audio: Awaited<ReturnType<typeof prepareAudioGraph>>;
+  try { audio = await prepareAudioGraph(composition, visuals, resolveMediaUrl); } catch {
+    stream.getTracks().forEach(track => track.stop());
+    return { error: "One or more audio files could not be loaded for export." };
+  }
   if (audio) {
     for (const track of audio.destination.stream.getAudioTracks()) stream.addTrack(track);
   }
@@ -475,15 +483,23 @@ export async function exportStudioComposition(
   ];
   const mime = mimeCandidates.find((candidate) => MediaRecorder.isTypeSupported(candidate));
   if (!mime) {
+    stream.getTracks().forEach(track => track.stop());
     await audio?.context.close().catch(() => undefined);
     return { error: "This browser cannot encode Studio video yet. Try current Chrome or Edge." };
   }
 
   const chunks: BlobPart[] = [];
-  const recorder = new MediaRecorder(stream, {
-    mimeType: mime,
-    videoBitsPerSecond: Math.max(1_500_000, Math.round(width * height * fps * 0.12)),
-  });
+  let recorder: MediaRecorder;
+  try {
+    recorder = new MediaRecorder(stream, {
+      mimeType: mime,
+      videoBitsPerSecond: Math.max(1_500_000, Math.round(width * height * fps * 0.12)),
+    });
+  } catch {
+    stream.getTracks().forEach(track => track.stop());
+    await audio?.context.close().catch(() => undefined);
+    return { error: "This browser could not start the video encoder." };
+  }
   recorder.ondataavailable = (event) => {
     if (event.data.size) chunks.push(event.data);
   };
@@ -492,22 +508,25 @@ export async function exportStudioComposition(
     recorder.onerror = () => reject(new Error("Studio video recording failed."));
   });
 
+  // Observe failures immediately while the drawing loop is still running.
+  void finished.catch(() => undefined);
   const frameMs = 1000 / fps;
   const totalFrames = Math.max(1, Math.ceil(durationMs / frameMs));
-  recorder.start(250);
-
   try {
+    recorder.start(250);
     for (let frame = 0; frame < totalFrames; frame += 1) {
+      if (recorder.state === "inactive") throw new Error("Video encoder stopped early.");
       const timeMs = Math.min(durationMs - 1, Math.round(frame * frameMs));
       syncAudioAtTime(composition, audio, timeMs, true);
       await drawFrame(ctx, composition, timeMs, visuals);
       scaled.clearRect(0, 0, width, height);
       scaled.drawImage(frameCanvas, 0, 0, width, height);
+      captureTrack?.requestFrame?.();
       opts.onProgress?.({ frame: frame + 1, totalFrames, elapsedMs: timeMs, durationMs });
       await sleep(frameMs);
     }
   } catch {
-    recorder.stop();
+    if (recorder.state !== "inactive") { recorder.stop(); await finished.catch(() => undefined); }
     stream.getTracks().forEach((track) => track.stop());
     for (const entry of audio?.clips.values() ?? []) entry.element.pause();
     await audio?.context.close().catch(() => undefined);
@@ -516,14 +535,15 @@ export async function exportStudioComposition(
 
   for (const entry of audio?.clips.values() ?? []) entry.element.pause();
   recorder.stop();
-  stream.getTracks().forEach((track) => track.stop());
-  await audio?.context.close().catch(() => undefined);
-
   try {
+    // Keep capture/audio tracks alive until the encoder flushes its last chunk.
     const blob = await finished;
     if (!blob.size) return { error: "Video export produced an empty file." };
     return { blob, mime: blob.type || "video/webm", durationMs };
   } catch {
     return { error: "Studio could not finalize the video file." };
+  } finally {
+    stream.getTracks().forEach(track => track.stop());
+    await audio?.context.close().catch(() => undefined);
   }
 }

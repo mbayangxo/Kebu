@@ -65,9 +65,11 @@ export async function exportCanvasMotionToWebmBlob(
   if (!ctx) return { error: "Could not create canvas." };
 
   const stream = canvas.captureStream(fps);
+  const captureTrack = stream.getVideoTracks()[0] as MediaStreamTrack & { requestFrame?: () => void };
   const mimeCandidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
   const mime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
   if (!mime) {
+    stream.getTracks().forEach(track => track.stop());
     return { error: "This browser cannot record WebM. Try Chrome or Edge." };
   }
 
@@ -82,6 +84,7 @@ export async function exportCanvasMotionToWebmBlob(
     recorder.onerror = () => reject(new Error("Recording failed."));
   });
 
+  void finished.catch(() => undefined);
   recorder.start(200);
 
   const videoCache = new Map<string, HTMLVideoElement>();
@@ -145,11 +148,11 @@ export async function exportCanvasMotionToWebmBlob(
     } else {
       ctx.drawImage(img, 0, 0, width, height);
     }
+    captureTrack?.requestFrame?.();
     await sleep(frameInterval);
   }
 
   recorder.stop();
-  stream.getTracks().forEach((t) => t.stop());
 
   try {
     const blob = await finished;
@@ -157,6 +160,8 @@ export async function exportCanvasMotionToWebmBlob(
     return { blob, mime: blob.type || "video/webm" };
   } catch {
     return { error: "Recording failed." };
+  } finally {
+    stream.getTracks().forEach(track => track.stop());
   }
 }
 

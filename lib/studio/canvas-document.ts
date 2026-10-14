@@ -1094,6 +1094,7 @@ export async function exportCanvasToPngDataUrlAsync(
     if (layer.opacity <= 0) continue;
     const motion = layerMotionAtTime(layer, pageLocal);
     if (motion.opacityMultiplier <= 0) continue;
+    if ((layer.type === "image" && !layer.imageUrl) || (layer.type === "video" && !layer.videoUrl)) return null;
     ctx.save();
     ctx.globalAlpha = layer.opacity * motion.opacityMultiplier;
     ctx.globalCompositeOperation = studioCanvasCompositeOperation(layer.blendMode);
@@ -1177,8 +1178,8 @@ export async function exportCanvasToPngDataUrlAsync(
         }
         ctx.restore();
       } else {
-        ctx.fillStyle = "#333333";
-        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
+        ctx.restore();
+        return null;
       }
     } else if (layer.type === "video" && layer.videoUrl) {
       const { videoSourceTimeSec } = await import("@/lib/studio/timeline");
@@ -1187,16 +1188,13 @@ export async function exportCanvasToPngDataUrlAsync(
       if (frame) {
         ctx.drawImage(frame, layer.x, layer.y, layer.width, layer.height);
       } else {
-        ctx.fillStyle = "#1a1a1a";
-        ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
-        ctx.fillStyle = "#FFFFFF88";
-        ctx.font = "16px system-ui";
-        ctx.fillText("Video", layer.x + 12, layer.y + 28);
+        ctx.restore();
+        return null;
       }
     }
     ctx.restore();
   }
-  return canvas.toDataURL("image/png");
+  try { return canvas.toDataURL("image/png"); } catch { return null; }
 }
 
 function loadVideoAtTime(

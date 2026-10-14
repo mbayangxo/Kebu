@@ -6,6 +6,8 @@ Network persistence/session fixes and compatible Builder receipt checks integrat
 
 **Native continuation:** preserved 3C–3I source integrated with newer Builder features. Final combined CI passed: 5,855 tests / 168 explicit skips, zero lint errors, build. Local SQL 51 passed; actual-component/SQL-bridge browser gate 20 passed / 9 optional timing skips. See `audits/KEBU_NATIVE_INTEGRATION_2026-10-13.md`. Full 3J and release gates remain open.
 
+**Studio reliability continuation:** local save/export reliability verified with 12 actual-editor/IndexedDB/download browser cases and full CI (5,865 passes / 168 environment skips, zero lint errors). Save races, recovery overwrite, disappearing editor on errors, media placeholders, encoder finalization and media CSP repaired. Studio overall remains IN PROGRESS; hosted ownership/sharing/history/source-refresh and broader editing/export acceptance stay open. See `audits/KEBU_STUDIO_RELIABILITY_2026-10-13.md`.
+
 **Historical status below last updated:** 2026-09-10
 **Owner:** Engineering (lead agent + human review)
 

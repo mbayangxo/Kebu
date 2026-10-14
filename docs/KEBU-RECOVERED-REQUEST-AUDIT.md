@@ -145,3 +145,7 @@ Reconcile the latest decisions and status records; finish Builder and its real a
 ## What this audit changed
 
 This report only. It did not change application source, pricing/access behavior, production schema, deployment, billing, permissions or secrets. It does not certify full historical coverage or full Kebu completion. The next verification pass must recover the inaccessible history/refs and run individual acceptance cases against the intended release.
+
+## October 13 Studio acceptance continuation
+
+K004/K047/K048/K049/K096 retain their recovered scope and Partial/In progress status. The local Studio save/export slice now passes 12 actual-browser cases with controlled loopback transport, real device drafts and downloaded/decoded files. Full CI: 5,865 passes / 168 explicit skips. See `audits/KEBU_STUDIO_RELIABILITY_2026-10-13.md`. Hosted identity/permissions/history/upload/source-refresh acceptance, advanced media capabilities and all remaining original modules are still queued. This does not reopen or restart completed 3C–3I and does not close full 3J.

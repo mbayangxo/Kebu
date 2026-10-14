@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { StudioSaveQueue, validStudioSaveReceipt } from "@/lib/studio/save-queue";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StudioCanvasEditor } from "@/app/components/studio/studio-canvas-editor";
 import { StudioBrandKitPanel } from "@/app/components/studio/studio-brand-kit-panel";
 import { StudioSharePanel } from "@/app/components/studio/studio-share-panel";
@@ -65,10 +66,17 @@ export default function StudioEditorPage() {
   const [doc, setDoc] = useState<CanvasDocument | null>(null);
   const [activePageId, setActivePageId] = useState<string>("");
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "offline" | "error">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "pending" | "saving" | "saved" | "offline" | "error">("idle");
   const [syncState, setSyncState] = useState<"online" | "offline" | "syncing" | "conflict">("online");
-  const [conflictServer, setConflictServer] = useState<{ doc: CanvasDocument; updatedAt: string } | null>(null);
-  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
+  const [conflictServer, setConflictServer] = useState<{ doc: CanvasDocument; updatedAt: string; designType: StudioDesignType } | null>(null);
+  const saveQueue = useMemo(() => new StudioSaveQueue(designId), [designId]);
+  const cacheQueue = useMemo(() => new StudioSaveQueue(designId + ":offline"), [designId]);
+  const [, setServerRevision] = useState<string | null>(null);
+  const setServerUpdatedAt = useCallback((revision: string | null) => {
+    saveQueue.reset(revision);
+    setServerRevision(revision);
+  }, [saveQueue]);
+  useEffect(() => () => { saveQueue.cancel(); cacheQueue.cancel(); }, [saveQueue, cacheQueue]);
   const [error, setError] = useState<string | null>(null);
   const [exportProjectId, setExportProjectId] = useState("");
   const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
@@ -95,6 +103,7 @@ export default function StudioEditorPage() {
   const dragBaseline = useRef<CanvasDocument | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const docRef = useRef<CanvasDocument | null>(null);
+  const lastSavedDocRef = useRef<CanvasDocument | null>(null);
 
   const canEdit = access?.canEdit === true;
 
@@ -154,6 +163,7 @@ export default function StudioEditorPage() {
   }), [resolveMediaUrl]);
 
   const load = useCallback(async () => {
+    const isCurrent = saveQueue.current();
     setError(null);
     try {
       const res = await fetch(`/api/create/designs/${designId}`, {
@@ -161,6 +171,7 @@ export default function StudioEditorPage() {
         cache: "no-store",
       });
       const data = await res.json().catch(() => ({}));
+      if (!isCurrent()) return;
       if (!res.ok) {
         setError(data.error ?? "Design not found.");
         return;
@@ -171,20 +182,31 @@ export default function StudioEditorPage() {
       const serverDoc = parseCanvasDocument(d.canvas, d.design_type as StudioDesignType);
       let initialDoc = serverDoc;
       let initialDesignType = d.design_type as StudioDesignType;
+      let baseRevision: string | null = d.updated_at ?? null;
+      let recoveredConflict = false;
 
       if (nextUserId && studioOfflineSupported()) {
         const local = await getStudioOfflineDraft(nextUserId, designId).catch(() => null);
         if (local?.dirty) {
           initialDoc = local.canvas;
           initialDesignType = local.designType;
-          setSyncState("offline");
+          baseRevision = local.serverUpdatedAt;
+          recoveredConflict = local.serverUpdatedAt !== d.updated_at;
+          setSyncState(recoveredConflict ? "conflict" : "offline");
         } else {
           setSyncState("online");
         }
       }
 
+      if (!isCurrent()) return;
       setDesign({ ...d, design_type: initialDesignType });
-      setServerUpdatedAt(d.updated_at ?? null);
+      setServerUpdatedAt(baseRevision);
+      lastSavedDocRef.current = serverDoc;
+      if (recoveredConflict) {
+        saveQueue.pause();
+        setConflictServer({ doc: serverDoc, updatedAt: d.updated_at, designType: d.design_type as StudioDesignType });
+        setError("Your recovered draft and the server version differ. Choose which version to keep.");
+      }
       if (data.access) setAccess(data.access as StudioDesignAccess);
       setUserId(nextUserId);
       skipHistory.current = true;
@@ -196,6 +218,7 @@ export default function StudioEditorPage() {
       setFuture([]);
       if (nextUserId) void hydrateOfflineMedia(nextUserId, initialDoc, true);
     } catch {
+      if (!isCurrent()) return;
       if (!studioOfflineSupported()) {
         setError("You are offline and this design is not available locally yet.");
         return;
@@ -215,6 +238,7 @@ export default function StudioEditorPage() {
           return;
         }
 
+        if (!isCurrent()) return;
         setUserId(offlineUserId);
         const offlineRole = local.accessRole ?? "viewer";
         setAccess({
@@ -245,7 +269,7 @@ export default function StudioEditorPage() {
         setError("Could not open the offline Studio draft.");
       }
     }
-  }, [designId, hydrateOfflineMedia]);
+  }, [designId, hydrateOfflineMedia, setServerUpdatedAt, saveQueue]);
 
   useEffect(() => {
     return () => {
@@ -272,119 +296,103 @@ export default function StudioEditorPage() {
     }
   }, [doc, activePageId]);
 
+  const draftTypeRef = useRef<StudioDesignType>("poster");
+  const loadedDesignType = design?.design_type;
+  useEffect(() => { if (loadedDesignType) draftTypeRef.current = loadedDesignType as StudioDesignType; }, [loadedDesignType]);
+
   const persist = useCallback(
     async (canvas: CanvasDocument, designType?: StudioDesignType) => {
-      if (!canEdit) return;
-      const effectiveType = designType ?? (design?.design_type as StudioDesignType | undefined) ?? "poster";
-      const savedAt = new Date().toISOString();
-
-      if (userId && studioOfflineSupported()) {
-        await putStudioOfflineDraft({
-          userId,
-          designId,
-          designTitle: design?.title ?? "Studio design",
-          canvas,
-          designType: effectiveType,
-          businessId: design?.business_id ?? null,
-          accessRole: access?.role ?? null,
-          serverUpdatedAt,
-          savedAt,
-          dirty: true,
-        }).catch(() => undefined);
-      }
-
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        setSaveState("offline");
-        setSyncState("offline");
-        return;
-      }
-
-      setSaveState("saving");
-      setSyncState("syncing");
-      try {
-        const body: {
-          canvas: CanvasDocument;
-          designType?: StudioDesignType;
-          expectedUpdatedAt?: string;
-        } = { canvas };
-        if (designType) body.designType = designType;
-        if (serverUpdatedAt) body.expectedUpdatedAt = serverUpdatedAt;
-
-        const res = await fetch(`/api/create/designs/${designId}`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json().catch(() => ({}));
-
-        if (res.status === 409 && data.code === "studio_version_conflict") {
-          setSaveState("error");
-          setSyncState("conflict");
-          try {
-            const latestRes = await fetch("/api/create/designs/" + designId, {
-              credentials: "include",
-              cache: "no-store",
-            });
-            const latest = await latestRes.json().catch(() => ({}));
-            if (latestRes.ok && latest.design?.canvas && typeof latest.design.updated_at === "string") {
-              setConflictServer({
-                doc: parseCanvasDocument(latest.design.canvas, latest.design.design_type as StudioDesignType),
-                updatedAt: latest.design.updated_at,
+      if (!canEdit || canvas !== docRef.current) return;
+      if (designType) draftTypeRef.current = designType;
+      const requestType = draftTypeRef.current;
+      const isCurrent = saveQueue.current();
+      const writeLatestDraft = async (acknowledged?: CanvasDocument) => {
+        if (!userId || !studioOfflineSupported()) return false;
+        let written = false;
+        try {
+          await cacheQueue.run(async cacheContext => {
+            while (isCurrent() && cacheContext.active()) {
+              const snapshot = docRef.current ?? canvas, snapshotType = draftTypeRef.current;
+              await putStudioOfflineDraft({
+                userId, designId, designTitle: design?.title ?? "Studio design",
+                canvas: snapshot, designType: snapshotType,
+                businessId: design?.business_id ?? null, accessRole: access?.role ?? null,
+                serverUpdatedAt: saveQueue.getRevision(), savedAt: new Date().toISOString(),
+                dirty: snapshot !== acknowledged || snapshotType !== requestType,
               });
+              if (docRef.current === snapshot && draftTypeRef.current === snapshotType) { written = true; return; }
             }
-          } catch {
-            setConflictServer(null);
+          });
+          return written;
+        } catch { return false; }
+      };
+      const localSaved = await writeLatestDraft();
+      if (!isCurrent()) return;
+      return saveQueue.run(async context => {
+        if (!context.active() || context.blocked()) return;
+        if (docRef.current !== canvas || draftTypeRef.current !== requestType) return;
+        if (!navigator.onLine) {
+          setSaveState(localSaved ? "offline" : "error");
+          setSyncState(localSaved ? "offline" : "online");
+          if (!localSaved) setError("Could not save this draft on your device. Keep this tab open and reconnect.");
+          return;
+        }
+        if (!context.revision()) {
+          setSaveState("error"); setError("Reconnect and load the server version before syncing this draft."); return;
+        }
+        setSaveState("saving"); setSyncState("syncing");
+        try {
+          const res = await fetch(`/api/create/designs/${designId}`, {
+            method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ canvas, designType: requestType, expectedUpdatedAt: context.revision() }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!context.active()) return;
+          if (res.status === 409 && data.code === "studio_version_conflict") {
+            context.conflict(); setSaveState("error"); setSyncState("conflict");
+            const latestRes = await fetch(`/api/create/designs/${designId}`, { credentials: "include", cache: "no-store" });
+            const latest = await latestRes.json().catch(() => ({}));
+            if (context.active() && latestRes.ok && validStudioSaveReceipt(latest.design, designId) && latest.design.canvas) {
+              setConflictServer({ doc: parseCanvasDocument(latest.design.canvas, latest.design.design_type as StudioDesignType), updatedAt: latest.design.updated_at, designType: latest.design.design_type as StudioDesignType });
+            }
+            return;
           }
-          return;
+          if (!res.ok || !validStudioSaveReceipt(data.design, designId)) {
+            context.conflict(); setSaveState("error"); setSyncState("online");
+            setError(typeof data.error === "string" ? data.error : "Could not confirm this save. Reload before retrying; your draft is kept."); return;
+          }
+          const revision = data.design.updated_at;
+          context.acknowledge(revision); setServerRevision(revision);
+          lastSavedDocRef.current = canvas;
+          const cached = await writeLatestDraft(canvas);
+          if (!context.active()) return;
+          const dirty = docRef.current !== canvas || draftTypeRef.current !== requestType;
+          setDesign(current => current ? { ...current, ...(!dirty ? { design_type: requestType } : {}), updated_at: revision } : current);
+          if (!context.active()) return;
+          setSyncState("online"); setSaveState(dirty ? "pending" : "saved");
+          setError(dirty && !cached ? "New edits could not be cached on this device. Keep this tab open until they sync." : null);
+          if (!dirty) setTimeout(() => {
+            if (context.active() && docRef.current === canvas && context.revision() === revision) setSaveState("idle");
+          }, 1800);
+        } catch {
+          if (!context.active()) return;
+          setSaveState(localSaved ? "offline" : "error"); setSyncState(localSaved ? "offline" : "online");
+          if (!localSaved) setError("Save failed and the local draft could not be stored. Keep this tab open and reconnect.");
         }
-        if (!res.ok || data.design?.id !== designId || typeof data.design.updated_at !== "string" || !Number.isFinite(Date.parse(data.design.updated_at))) {
-          setSaveState("error");
-          setSyncState(typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "online");
-          return;
-        }
-
-        const nextUpdatedAt = data.design.updated_at;
-        setServerUpdatedAt(nextUpdatedAt);
-        if (designType) {
-          setDesign((current) => current ? { ...current, design_type: designType, updated_at: nextUpdatedAt } : current);
-        } else {
-          setDesign((current) => current ? { ...current, updated_at: nextUpdatedAt } : current);
-        }
-
-        if (userId && studioOfflineSupported()) {
-          await putStudioOfflineDraft({
-            userId,
-            designId,
-            designTitle: design?.title ?? "Studio design",
-            canvas,
-            designType: effectiveType,
-            businessId: design?.business_id ?? null,
-            accessRole: access?.role ?? null,
-            serverUpdatedAt: nextUpdatedAt,
-            savedAt: new Date().toISOString(),
-            dirty: false,
-          }).catch(() => undefined);
-        }
-
-        setSyncState("online");
-        setSaveState("saved");
-        setTimeout(() => setSaveState("idle"), 1800);
-      } catch {
-        setSaveState("offline");
-        setSyncState("offline");
-      }
+      });
     },
-    [designId, canEdit, design?.business_id, design?.design_type, design?.title, access?.role, serverUpdatedAt, userId],
+    [designId, canEdit, design?.business_id, design?.title, access?.role, userId, saveQueue, cacheQueue],
   );
 
   async function acceptServerConflictVersion() {
     if (!conflictServer || !design) return;
     const next = conflictServer.doc;
+    draftTypeRef.current = conflictServer.designType;
     setServerUpdatedAt(conflictServer.updatedAt);
-    setDesign((current) => current ? { ...current, canvas: next, updated_at: conflictServer.updatedAt } : current);
+    setDesign((current) => current ? { ...current, canvas: next, design_type: conflictServer.designType, updated_at: conflictServer.updatedAt } : current);
     skipHistory.current = true;
     docRef.current = next;
+    lastSavedDocRef.current = next;
     setDoc(next);
     setActivePageId(next.pages[0]?.id ?? "");
     setSelectedLayerIds([]);
@@ -394,67 +402,27 @@ export default function StudioEditorPage() {
     setSyncState("online");
     setSaveState("saved");
     if (userId && studioOfflineSupported()) {
-      await putStudioOfflineDraft({
-        userId,
-        designId,
-        designTitle: design.title,
-        canvas: next,
-        designType: design.design_type as StudioDesignType,
-        businessId: design.business_id,
-        accessRole: access?.role ?? null,
-        serverUpdatedAt: conflictServer.updatedAt,
-        savedAt: new Date().toISOString(),
-        dirty: false,
-      }).catch(() => undefined);
+      await cacheQueue.run(async context => {
+        let stable = false;
+        while (!stable && context.active()) {
+          const snapshot = docRef.current ?? next, snapshotType = draftTypeRef.current;
+          await putStudioOfflineDraft({
+            userId, designId, designTitle: design.title, canvas: snapshot, designType: snapshotType,
+            businessId: design.business_id, accessRole: access?.role ?? null,
+            serverUpdatedAt: saveQueue.getRevision(), savedAt: new Date().toISOString(),
+            dirty: snapshot !== next || snapshotType !== conflictServer.designType,
+          });
+          stable = docRef.current === snapshot && draftTypeRef.current === snapshotType;
+        }
+      }).catch(() => setError("The selected version could not be cached on this device."));
     }
   }
 
   async function acceptLocalConflictVersion() {
     if (!conflictServer || !docRef.current || !design || !canEdit) return;
-    setSaveState("saving");
-    setSyncState("syncing");
-    const local = docRef.current;
-    try {
-      const res = await fetch("/api/create/designs/" + designId, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          canvas: local,
-          expectedUpdatedAt: conflictServer.updatedAt,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.design?.updated_at) {
-        setSaveState("error");
-        setSyncState("conflict");
-        setError(data.error ?? "Could not resolve the Studio sync conflict.");
-        return;
-      }
-      const nextUpdatedAt = data.design.updated_at as string;
-      setServerUpdatedAt(nextUpdatedAt);
-      setDesign((current) => current ? { ...current, updated_at: nextUpdatedAt } : current);
-      setConflictServer(null);
-      setSyncState("online");
-      setSaveState("saved");
-      if (userId && studioOfflineSupported()) {
-        await putStudioOfflineDraft({
-          userId,
-          designId,
-          designTitle: design.title,
-          canvas: local,
-          designType: design.design_type as StudioDesignType,
-          businessId: design.business_id,
-          accessRole: access?.role ?? null,
-          serverUpdatedAt: nextUpdatedAt,
-          savedAt: new Date().toISOString(),
-          dirty: false,
-        }).catch(() => undefined);
-      }
-    } catch {
-      setSaveState("error");
-      setSyncState("offline");
-    }
+    setServerUpdatedAt(conflictServer.updatedAt);
+    setConflictServer(null);
+    await persist(docRef.current, draftTypeRef.current);
   }
 
   function applyDoc(next: CanvasDocument, recordHistory: boolean) {
@@ -464,6 +432,7 @@ export default function StudioEditorPage() {
       setFuture([]);
     }
     docRef.current = next;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
     setDoc(next);
   }
 
@@ -522,10 +491,10 @@ export default function StudioEditorPage() {
 
   /** Autosave ~1.2s after edits */
   useEffect(() => {
-    if (!doc || !canEdit) return;
+    if (!doc || !canEdit || doc === lastSavedDocRef.current) return;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
-      void persist(doc);
+      if (doc !== lastSavedDocRef.current) void persist(doc);
     }, 1200);
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
@@ -534,12 +503,12 @@ export default function StudioEditorPage() {
 
   useEffect(() => {
     function onOnline() {
-      if (!docRef.current || !canEdit || syncState === "conflict") return;
+      if (!docRef.current || !canEdit || saveQueue.isBlocked()) return;
       setSyncState("syncing");
       void persist(docRef.current);
     }
     function onOffline() {
-      setSyncState("offline");
+      setSyncState(current => current === "conflict" ? current : "offline");
     }
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
@@ -548,7 +517,7 @@ export default function StudioEditorPage() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, [canEdit, persist, syncState]);
+  }, [canEdit, persist, saveQueue]);
 
   /** Timeline playhead advances while playing */
   useEffect(() => {
@@ -846,10 +815,11 @@ export default function StudioEditorPage() {
     );
   }
 
-  if (error) {
+  if (error && (!doc || !design || !access)) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>{error}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <p role="alert">{error}</p>
+        <button type="button" onClick={() => void load()} className="rounded-lg border px-4 py-2">Retry</button>
       </div>
     );
   }
@@ -862,16 +832,18 @@ export default function StudioEditorPage() {
     ? studioRoleLabel(access.role)
     : syncState === "conflict"
       ? "Sync conflict · local draft kept"
-      : syncState === "offline"
-        ? "Offline · saved on this device"
+      : saveState === "error"
+        ? "Save failed"
+        : syncState === "offline"
+        ? "Offline · changes not synced"
         : syncState === "syncing"
           ? "Syncing…"
           : saveState === "saving"
             ? "Saving…"
             : saveState === "saved"
               ? "Saved"
-              : saveState === "error"
-                ? "Save failed"
+              : saveState === "pending"
+                ? "Unsaved changes"
                 : "Autosave on";
 
   return (
@@ -908,6 +880,7 @@ export default function StudioEditorPage() {
           {canEdit ? <button type="button" onClick={()=>doc&&void persist(doc)} className="rounded-[8px] bg-[#FF6A00] px-4 py-2 text-[9px] font-semibold text-white">Save draft</button> : null}
         </div>      </header>
 
+      {error ? <div role="alert" className="border-b border-red-400/25 bg-red-950/40 px-4 py-3 text-xs text-red-100">{error}</div> : null}
       {syncState === "conflict" ? (
         <div className="border-b border-amber-300 bg-amber-50 px-4 py-3 text-amber-950">
           <div className="mx-auto flex max-w-[1500px] flex-col gap-2 sm:flex-row sm:items-center">

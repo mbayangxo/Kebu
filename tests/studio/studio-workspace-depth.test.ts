@@ -20,7 +20,8 @@ describe("Studio workspace depth", () => {
     expect(editor).toContain("studio_video_version_conflict");
     expect(editor).toContain("applyServerConflictVersion");
     expect(editor).toContain("keepLocalConflictVersion");
-    expect(editor).toContain("expectedUpdatedAt: conflictServer.updatedAt");
+    expect(editor).toContain("setServerUpdatedAt(conflictServer.updatedAt)");
+    expect(editor).toContain("expectedUpdatedAt: context.revision()");
   });
 
   it("bounds per-project offline media instead of allowing unbounded cache growth", () => {

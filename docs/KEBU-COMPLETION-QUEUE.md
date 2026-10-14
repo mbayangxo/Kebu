@@ -32,3 +32,9 @@ Network persistence/session fixes and Builder write receipts are integrated. Stu
 The preserved native 3C–3I engine, operations, inspector, responsive/motion/media, Brand Brain, Experience and publication paths are now integrated with the newer Builder shell. This resolves the source-reconciliation item from the previous checkpoint. Final CI: 5,855 passes / 168 explicit environment skips, zero lint errors and build. Local SQL: 51 passes; browser: 20 passes, 9 explicit optional timing skips. Native parent-page editing and source asset/font artifacts remain open; full 3J/provider/hosted/performance gates are not closed. See `audits/KEBU_NATIVE_INTEGRATION_2026-10-13.md`. Next execution slice: Studio save serialization and media/export acceptance. All 99 groups remain in scope.
 
 - Local native UI harness shutdown: automatic fixture cleanup did not take effect in this session. Fixtures/configuration were independently cleaned and checked; harden shutdown and add explicit cleanup completion evidence before treating cleanup as automated. Functional browser gate: 20 passed, 9 timing probes skipped.
+
+## Studio reliability checkpoint — October 13, 2026
+
+Local save/export acceptance passed for K004/K047/K048/K049/K096: serialized design/video saves, independently serialized newest-draft caching, explicit recovery conflicts, honest storage errors, missing-media refusal, actual PNG/PDF/ZIP and playable WebM/audio, plus CSP media repair. Full CI: 5,865 passes / 168 environment skips; browser: 12 passes / zero skips. See `audits/KEBU_STUDIO_RELIABILITY_2026-10-13.md`.
+
+Studio remains IN PROGRESS. Next: isolated authenticated ownership/collaborator/version-history/source-refresh/upload acceptance; advanced K048/K049 capabilities and legacy page-timeline soundtrack mixing. Then proceed through the other original modules. No 99-group item is closed wholesale by this local gate. No production or remote branch changes.

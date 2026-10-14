@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { StudioSaveQueue, validStudioSaveReceipt } from "@/lib/studio/save-queue";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addAssetToComposition,
   addClipFromAsset,
@@ -52,7 +53,7 @@ import {
 
 const HISTORY_CAP = 40;
 
-type SaveState = "idle" | "saving" | "saved" | "offline" | "conflict" | "error";
+type SaveState = "idle" | "pending" | "saving" | "saved" | "offline" | "conflict" | "error";
 
 /** Full Timeline: multi-track + music-aware V1 → keyframes V2 → AI music edit V3. */
 export default function StudioVideoEditorPage() {
@@ -63,7 +64,14 @@ export default function StudioVideoEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
+  const saveQueue = useMemo(() => new StudioSaveQueue(projectId), [projectId]);
+  const cacheQueue = useMemo(() => new StudioSaveQueue(projectId + ":offline"), [projectId]);
+  const [serverUpdatedAt, setServerRevision] = useState<string | null>(null);
+  const setServerUpdatedAt = useCallback((revision: string | null) => {
+    saveQueue.reset(revision);
+    setServerRevision(revision);
+  }, [saveQueue]);
+  useEffect(() => () => { saveQueue.cancel(); cacheQueue.cancel(); }, [saveQueue, cacheQueue]);
   const [conflictServer, setConflictServer] = useState<{ composition: StudioComposition; title: string; updatedAt: string } | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
@@ -95,6 +103,7 @@ export default function StudioVideoEditorPage() {
   const musicRef = useRef<HTMLInputElement>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const compRef = useRef<StudioComposition | null>(null);
+  const lastSavedRef = useRef<{ composition: StudioComposition; title: string } | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const soundtrackRef = useRef<HTMLAudioElement>(null);
   const timelineGestureBaseline = useRef<StudioComposition | null>(null);
@@ -125,9 +134,11 @@ export default function StudioVideoEditorPage() {
   }, []);
 
   const load = useCallback(async () => {
+    const isCurrent = saveQueue.current();
     try {
       const res = await fetch(`/api/studio/video/${projectId}`, { credentials: "include", cache: "no-store" });
       const data = await res.json().catch(() => ({}));
+      if (!isCurrent()) return;
       if (!res.ok) {
         setError(typeof data.error === "string" ? data.error : "Project not found.");
         return;
@@ -143,6 +154,8 @@ export default function StudioVideoEditorPage() {
       let initialComposition = serverComposition;
       let initialTitle = data.project.title as string;
       let hasDirtyLocal = false;
+      let baseRevision = nextUpdatedAt;
+      let recoveredConflict = false;
 
       if (nextUserId && studioVideoOfflineSupported()) {
         const local = await getStudioVideoOfflineDraft(nextUserId, projectId).catch(() => null);
@@ -150,22 +163,31 @@ export default function StudioVideoEditorPage() {
           initialComposition = local.composition;
           initialTitle = local.title;
           hasDirtyLocal = true;
+          baseRevision = local.serverUpdatedAt;
+          recoveredConflict = local.serverUpdatedAt !== nextUpdatedAt;
         }
       }
 
+      if (!isCurrent()) return;
       setUserId(nextUserId);
       setBusinessId(nextBusinessId);
       setSourceDesignId(nextSourceDesignId);
       setTitle(initialTitle);
       setComp(initialComposition);
-      setServerUpdatedAt(nextUpdatedAt);
+      setServerUpdatedAt(baseRevision);
+      lastSavedRef.current = { composition: serverComposition, title: data.project.title };
+      if (recoveredConflict && nextUpdatedAt) {
+        saveQueue.pause();
+        setConflictServer({ composition: serverComposition, title: data.project.title, updatedAt: nextUpdatedAt });
+      }
       compRef.current = initialComposition;
       setHistory([]);
       setFuture([]);
-      setSaveState(hasDirtyLocal ? "offline" : "idle");
-      setError(null);
+      setSaveState(recoveredConflict ? "conflict" : hasDirtyLocal ? "offline" : "idle");
+      setError(recoveredConflict ? "Your recovered draft and the server version differ. Choose which version to keep." : null);
       if (nextUserId) void hydrateOfflineMedia(nextUserId, initialComposition);
     } catch {
+      if (!isCurrent()) return;
       if (!studioVideoOfflineSupported()) {
         setError("You are offline and this video is not available locally yet.");
         return;
@@ -183,6 +205,7 @@ export default function StudioVideoEditorPage() {
           setError("You are offline and this video has not been saved on this device yet.");
           return;
         }
+        if (!isCurrent()) return;
         setUserId(offlineUserId);
         setBusinessId(local.businessId);
         setSourceDesignId(local.sourceDesignId ?? null);
@@ -199,7 +222,7 @@ export default function StudioVideoEditorPage() {
         setError("Could not open the offline Studio video draft.");
       }
     }
-  }, [projectId, hydrateOfflineMedia]);
+  }, [projectId, hydrateOfflineMedia, setServerUpdatedAt, saveQueue]);
 
   useEffect(() => {
     void load();
@@ -219,13 +242,14 @@ export default function StudioVideoEditorPage() {
       .catch(() => undefined);
   }, [projectId]);
 
-  const loadConflictSnapshot = useCallback(async () => {
+  const loadConflictSnapshot = useCallback(async (isActive: () => boolean = () => true) => {
     try {
       const latestRes = await fetch(`/api/studio/video/${projectId}`, {
         credentials: "include",
         cache: "no-store",
       });
       const latest = await latestRes.json().catch(() => ({}));
+      if (!isActive()) return;
       if (!latestRes.ok || !latest.project?.composition || typeof latest.project.updated_at !== "string") {
         setError("A newer Studio video exists, but Kebu could not load it for comparison.");
         return;
@@ -236,86 +260,93 @@ export default function StudioVideoEditorPage() {
         updatedAt: latest.project.updated_at,
       });
     } catch {
-      setError("A newer Studio video exists, but Kebu could not load it while offline.");
+      if (isActive()) setError("A newer Studio video exists, but Kebu could not load it while offline.");
     }
   }, [projectId, title]);
+
+  const titleRef = useRef(title);
+  useEffect(() => { titleRef.current = title; }, [title]);
 
   const persist = useCallback(
     async (next: StudioComposition, nextTitle?: string) => {
       const effectiveTitle = nextTitle ?? title;
-      const savedAt = new Date().toISOString();
-      if (userId && studioVideoOfflineSupported()) {
-        await putStudioVideoOfflineDraft({
-          userId,
-          projectId,
-          title: effectiveTitle,
-          composition: next,
-          businessId,
-          sourceDesignId,
-          serverUpdatedAt,
-          savedAt,
-          dirty: true,
-        }).catch(() => undefined);
-      }
-
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        setSaveState("offline");
-        return;
-      }
-      setSaveState("saving");
-      try {
-        const res = await fetch(`/api/studio/video/${projectId}`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            composition: next,
-            title: effectiveTitle,
-            expectedUpdatedAt: serverUpdatedAt ?? undefined,
-          }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 409 && data.code === "studio_video_version_conflict") {
-          setSaveState("conflict");
-          setError("This video changed in another tab or device. Your local draft is safe. Choose which version to keep.");
-          void loadConflictSnapshot();
-          return;
+      if (next !== compRef.current || effectiveTitle !== titleRef.current) return;
+      const isCurrent = saveQueue.current();
+      const writeLatestDraft = async (acknowledged?: StudioComposition) => {
+        if (!userId || !studioVideoOfflineSupported()) return false;
+        let written = false;
+        try {
+          await cacheQueue.run(async cacheContext => {
+            while (isCurrent() && cacheContext.active()) {
+              const snapshot = compRef.current ?? next, snapshotTitle = titleRef.current;
+              await putStudioVideoOfflineDraft({
+                userId, projectId, title: snapshotTitle, composition: snapshot,
+                businessId, sourceDesignId, serverUpdatedAt: saveQueue.getRevision(), savedAt: new Date().toISOString(),
+                dirty: snapshot !== acknowledged || snapshotTitle !== effectiveTitle,
+              });
+              if (compRef.current === snapshot && titleRef.current === snapshotTitle) { written = true; return; }
+            }
+          });
+          return written;
+        } catch { return false; }
+      };
+      const localSaved = await writeLatestDraft();
+      if (!isCurrent()) return;
+      return saveQueue.run(async context => {
+        if (!context.active() || context.blocked()) return;
+        if (compRef.current !== next || titleRef.current !== effectiveTitle) return;
+        if (!navigator.onLine) {
+          setSaveState(localSaved ? "offline" : "error");
+          if (!localSaved) setError("Could not save this video on your device. Keep this tab open and reconnect."); return;
         }
-        if (!res.ok || !data.project) {
-          setSaveState("error");
-          setError(typeof data.error === "string" ? data.error : "Could not save video project.");
-          return;
+        if (!context.revision()) {
+          setSaveState("error"); setError("Reconnect and load the server version before syncing this video."); return;
         }
-        const nextUpdatedAt = typeof data.project.updated_at === "string" ? data.project.updated_at : serverUpdatedAt;
-        setServerUpdatedAt(nextUpdatedAt);
-        if (userId && studioVideoOfflineSupported()) {
-          await putStudioVideoOfflineDraft({
-            userId,
-            projectId,
-            title: effectiveTitle,
-            composition: next,
-            businessId,
-            sourceDesignId,
-            serverUpdatedAt: nextUpdatedAt,
-            savedAt: new Date().toISOString(),
-            dirty: false,
-          }).catch(() => undefined);
+        setSaveState("saving");
+        try {
+          const res = await fetch(`/api/studio/video/${projectId}`, {
+            method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ composition: next, title: effectiveTitle, expectedUpdatedAt: context.revision() }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!context.active()) return;
+          if (res.status === 409 && data.code === "studio_video_version_conflict") {
+            context.conflict(); setSaveState("conflict");
+            setError("This video changed in another tab or device. Your local draft is kept. Choose which version to keep.");
+            await loadConflictSnapshot(context.active); return;
+          }
+          if (!res.ok || !validStudioSaveReceipt(data.project, projectId)) {
+            context.conflict(); setSaveState("error");
+            setError(typeof data.error === "string" ? data.error : "Could not confirm this save. Reload before retrying; your draft is kept."); return;
+          }
+          const revision = data.project.updated_at;
+          context.acknowledge(revision); setServerRevision(revision);
+          lastSavedRef.current = { composition: next, title: effectiveTitle };
+          const cached = await writeLatestDraft(next);
+          const dirty = compRef.current !== next || titleRef.current !== effectiveTitle;
+          if (!context.active()) return;
+          setSaveState(dirty ? "pending" : "saved");
+          setError(dirty && !cached ? "New edits could not be cached on this device. Keep this tab open until they sync." : null);
+          if (!dirty) setTimeout(() => {
+            if (context.active() && compRef.current === next && titleRef.current === effectiveTitle && context.revision() === revision) setSaveState("idle");
+          }, 1600);
+        } catch {
+          if (!context.active()) return;
+          setSaveState(localSaved ? "offline" : "error");
+          if (!localSaved) setError("Save failed and the local draft could not be stored. Keep this tab open and reconnect.");
         }
-        setSaveState("saved");
-        setError(null);
-        setTimeout(() => setSaveState("idle"), 1600);
-      } catch {
-        setSaveState("offline");
-      }
+      });
     },
-    [projectId, title, serverUpdatedAt, userId, businessId, sourceDesignId, loadConflictSnapshot],
+    [projectId, title, userId, businessId, sourceDesignId, loadConflictSnapshot, saveQueue, cacheQueue],
   );
 
   async function applyServerConflictVersion() {
     if (!conflictServer) return;
     const server = conflictServer;
     compRef.current = server.composition;
+    lastSavedRef.current = { composition: server.composition, title: server.title };
     setComp(server.composition);
+    titleRef.current = server.title;
     setTitle(server.title);
     setServerUpdatedAt(server.updatedAt);
     setHistory([]);
@@ -326,17 +357,17 @@ export default function StudioVideoEditorPage() {
     setSaveState("saved");
     setError(null);
     if (userId && studioVideoOfflineSupported()) {
-      await putStudioVideoOfflineDraft({
-        userId,
-        projectId,
-        title: server.title,
-        composition: server.composition,
-        businessId,
-        sourceDesignId,
-        serverUpdatedAt: server.updatedAt,
-        savedAt: new Date().toISOString(),
-        dirty: false,
-      }).catch(() => undefined);
+      await cacheQueue.run(async context => {
+        let stable = false;
+        while (!stable && context.active()) {
+          const snapshot = compRef.current ?? server.composition, snapshotTitle = titleRef.current;
+          await putStudioVideoOfflineDraft({ userId, projectId, title: snapshotTitle, composition: snapshot,
+            businessId, sourceDesignId, serverUpdatedAt: saveQueue.getRevision(), savedAt: new Date().toISOString(),
+            dirty: snapshot !== server.composition || snapshotTitle !== server.title,
+          });
+          stable = compRef.current === snapshot && titleRef.current === snapshotTitle;
+        }
+      }).catch(() => setError("The selected video version could not be cached on this device."));
     }
     if (userId) void hydrateOfflineMedia(userId, server.composition);
     setTimeout(() => setSaveState("idle"), 1600);
@@ -344,49 +375,9 @@ export default function StudioVideoEditorPage() {
 
   async function keepLocalConflictVersion() {
     if (!conflictServer || !compRef.current) return;
-    const local = compRef.current;
-    setSaveState("saving");
-    try {
-      const res = await fetch(`/api/studio/video/${projectId}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          composition: local,
-          title,
-          expectedUpdatedAt: conflictServer.updatedAt,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.project?.updated_at) {
-        setSaveState("conflict");
-        setError(typeof data.error === "string" ? data.error : "Could not resolve the Studio video conflict.");
-        if (res.status === 409) void loadConflictSnapshot();
-        return;
-      }
-      const nextUpdatedAt = data.project.updated_at as string;
-      setServerUpdatedAt(nextUpdatedAt);
-      setConflictServer(null);
-      setSaveState("saved");
-      setError(null);
-      if (userId && studioVideoOfflineSupported()) {
-        await putStudioVideoOfflineDraft({
-          userId,
-          projectId,
-          title,
-          composition: local,
-          businessId,
-          sourceDesignId,
-          serverUpdatedAt: nextUpdatedAt,
-          savedAt: new Date().toISOString(),
-          dirty: false,
-        }).catch(() => undefined);
-      }
-      setTimeout(() => setSaveState("idle"), 1600);
-    } catch {
-      setSaveState("conflict");
-      setError("Reconnect to resolve this Studio video conflict. Your local draft remains on this device.");
-    }
+    setServerUpdatedAt(conflictServer.updatedAt);
+    setConflictServer(null);
+    await persist(compRef.current, title);
   }
 
   function applyComp(next: StudioComposition, recordHistory = true) {
@@ -395,6 +386,7 @@ export default function StudioVideoEditorPage() {
       setFuture([]);
     }
     compRef.current = next;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
     setComp(next);
   }
 
@@ -406,6 +398,7 @@ export default function StudioVideoEditorPage() {
 
   function applyTimelineGesture(next: StudioComposition) {
     compRef.current = next;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
     setComp(next);
   }
 
@@ -418,23 +411,23 @@ export default function StudioVideoEditorPage() {
   }
 
   useEffect(() => {
-    if (!comp) return;
+    if (!comp || (lastSavedRef.current?.composition === comp && lastSavedRef.current.title === title)) return;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
-      void persist(comp);
+      if (lastSavedRef.current?.composition !== comp || lastSavedRef.current.title !== title) void persist(comp);
     }, 1200);
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-  }, [comp, persist]);
+  }, [comp, title, persist]);
 
   useEffect(() => {
     function onOnline() {
-      if (!compRef.current || saveState === "conflict") return;
+      if (!compRef.current || saveQueue.isBlocked()) return;
       void persist(compRef.current);
     }
     function onOffline() {
-      setSaveState("offline");
+      setSaveState(current => current === "conflict" || current === "error" ? current : "offline");
     }
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
@@ -443,7 +436,7 @@ export default function StudioVideoEditorPage() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, [persist, saveState]);
+  }, [persist, saveQueue]);
 
 
   useEffect(() => {
@@ -717,64 +710,59 @@ export default function StudioVideoEditorPage() {
   }
 
   async function refreshLinkedDesign() {
-    if (!sourceDesignId || !comp || sourceRefreshBusy) return;
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      setNote("Reconnect before refreshing the linked design. Your current video remains available offline.");
-      return;
+    if (!sourceDesignId || !compRef.current || sourceRefreshBusy) return;
+    if (!navigator.onLine) {
+      setNote("Reconnect before refreshing the linked design. Your current video remains available offline."); return;
     }
-
-    setSourceRefreshBusy(true);
-    setError(null);
+    setSourceRefreshBusy(true); setError(null);
     try {
-      const res = await fetch(`/api/studio/video/${projectId}/refresh-source-design`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expectedUpdatedAt: serverUpdatedAt ?? undefined,
-        }),
+      await persist(compRef.current, titleRef.current);
+      await saveQueue.run(async context => {
+        if (context.blocked() || !context.revision() || !compRef.current) return;
+        const baseline = compRef.current, baselineTitle = titleRef.current;
+        const res = await fetch(`/api/studio/video/${projectId}/refresh-source-design`, {
+          method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expectedUpdatedAt: context.revision() }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!context.active()) return;
+        if (res.status === 409 && data.code === "studio_video_version_conflict") {
+          context.conflict(); setSaveState("conflict");
+          setError("This video changed somewhere else. Choose which version to keep before refreshing the linked design.");
+          await loadConflictSnapshot(context.active); return;
+        }
+        if (!res.ok || !validStudioSaveReceipt(data.project, projectId) || !data.project.composition) {
+          context.conflict(); setSaveState("error");
+          setError(typeof data.error === "string" ? data.error : "Could not confirm the linked design refresh. Reload before retrying."); return;
+        }
+        context.acknowledge(data.project.updated_at); setServerRevision(data.project.updated_at);
+        if (compRef.current === baseline && titleRef.current === baselineTitle) {
+          const next = data.project.composition as StudioComposition;
+          applyComp(next);
+          lastSavedRef.current = { composition: next, title: baselineTitle };
+          setSaveState("saved");
+          setNote("Linked design refreshed. Video-specific timing and motion are preserved.");
+        } else {
+          setSaveState("pending");
+          setNote("Newer edits were kept. Refresh the linked design again after they finish saving.");
+        }
+        if (userId && studioVideoOfflineSupported()) {
+          await cacheQueue.run(async cacheContext => {
+          let stable = false;
+          while (!stable && context.active() && cacheContext.active() && compRef.current) {
+            const snapshot = compRef.current, snapshotTitle = titleRef.current;
+            await putStudioVideoOfflineDraft({ userId, projectId, title: snapshotTitle, composition: snapshot,
+              businessId, sourceDesignId, serverUpdatedAt: context.revision(), savedAt: new Date().toISOString(),
+              dirty: lastSavedRef.current?.composition !== snapshot || lastSavedRef.current.title !== snapshotTitle,
+            });
+            stable = compRef.current === snapshot && titleRef.current === snapshotTitle;
+          }
+          });
+        }
       });
-      const data = await res.json().catch(() => ({}));
-
-      if (res.status === 409 && data.code === "studio_video_version_conflict") {
-        setSaveState("conflict");
-        setError(data.error || "This video changed somewhere else. Choose which version to keep before refreshing the linked design.");
-        void loadConflictSnapshot();
-        return;
-      }
-      if (!res.ok || !data.project?.composition) {
-        setError(typeof data.error === "string" ? data.error : "Could not refresh the linked design.");
-        return;
-      }
-
-      const next = data.project.composition as StudioComposition;
-      applyComp(next);
-      const nextUpdatedAt = typeof data.project.updated_at === "string" ? data.project.updated_at : serverUpdatedAt;
-      setServerUpdatedAt(nextUpdatedAt);
-      setSaveState("saved");
-
-      if (userId && studioVideoOfflineSupported()) {
-        await putStudioVideoOfflineDraft({
-          userId,
-          projectId,
-          title,
-          composition: next,
-          businessId,
-          sourceDesignId,
-          serverUpdatedAt: nextUpdatedAt,
-          savedAt: new Date().toISOString(),
-          dirty: false,
-        }).catch(() => undefined);
-      }
-
-      const summary = data.summary as { updated?: number; added?: number; removed?: number; scenes?: number } | undefined;
-      setNote(
-        `Linked design refreshed · ${summary?.updated ?? 0} updated · ${summary?.added ?? 0} added · ${summary?.removed ?? 0} removed · ${summary?.scenes ?? 0} scenes.`,
-      );
-      setTimeout(() => setSaveState("idle"), 1600);
-    } finally {
-      setSourceRefreshBusy(false);
-    }
+    } catch {
+      setSaveState("error"); setError("The linked design could not be refreshed. Your current edits are kept.");
+    } finally { setSourceRefreshBusy(false); }
   }
 
   async function cacheProjectOffline() {
@@ -923,7 +911,9 @@ export default function StudioVideoEditorPage() {
           ? "Offline — changes not synced"
           : saveState === "conflict"
             ? "Sync conflict — choose a version"
-            : saveState === "error"
+            : saveState === "pending"
+              ? "Unsaved changes"
+              : saveState === "error"
               ? "Save failed"
               : "Autosave on";
 
@@ -936,7 +926,8 @@ export default function StudioVideoEditorPage() {
         </Link>
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          aria-label="Video title"
+          onChange={(e) => { titleRef.current = e.target.value; setSaveState(current => saveQueue.isBlocked() ? current : "pending"); setTitle(e.target.value); }}
           onBlur={() => void persist(comp, title)}
           className="bg-transparent font-display font-bold text-sm min-w-[140px] flex-1 border-b border-transparent focus:border-orange-500 outline-none"
         />
