@@ -5,6 +5,7 @@ import { builderRateLimit } from "@/lib/api-guard";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { resolveStudioDesignAccess } from "@/lib/studio/design-access";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
+import { z } from "zod";
 import { sniffStudioMedia } from "@/lib/studio/media-signature";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,9 @@ export async function POST(req: Request) {
 
   const workspace = await loadActiveWorkspaceScope(supabase, user.id);
   const designId = String(form.get("designId") ?? "").trim();
+  if (designId && !z.string().uuid().safeParse(designId).success) {
+    return NextResponse.json({ error: "Invalid design id." }, { status: 400 });
+  }
   let uploadBusinessId = workspace.activeBusinessId;
 
   if (designId && /^[0-9a-f-]{36}$/i.test(designId)) {
@@ -107,34 +111,24 @@ export async function POST(req: Request) {
     );
   }
 
-  const ext = isVideo
-    ? mime === "video/webm"
-      ? "webm"
-      : mime === "video/quicktime"
-        ? "mov"
-        : "mp4"
-    : isAudio
-      ? mime.includes("wav")
-        ? "wav"
-        : mime.includes("ogg")
-          ? "ogg"
-          : mime.includes("aac") || mime.includes("mp4")
-            ? "m4a"
-            : "mp3"
-      : mime === "image/png"
-        ? "png"
-        : mime === "image/webp"
-          ? "webp"
-          : mime === "image/gif"
-            ? "gif"
-            : "jpg";
-
-  const folder = designId && /^[0-9a-f-]{36}$/i.test(designId) ? designId : "misc";
-  const path = `${user.id}/studio/${folder}/${crypto.randomUUID()}.${ext}`;
-
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const detected=sniffStudioMedia(bytes,mime);if(!detected)return NextResponse.json({error:"File contents do not match a supported media format."},{status:400});
-  if((isImage&&!detected.startsWith("image/"))||(isVideo&&!detected.startsWith("video/"))||(isAudio&&!detected.startsWith("audio/")))return NextResponse.json({error:"File contents do not match the selected media type."},{status:400});
+  const detected = sniffStudioMedia(bytes, mime);
+  if (!detected ||
+      (isImage && !detected.startsWith("image/")) ||
+      (isVideo && !detected.startsWith("video/")) ||
+      (isAudio && !detected.startsWith("audio/"))) {
+    return NextResponse.json({ error: "File contents do not match a supported media format." }, { status: 400 });
+  }
+  const mediaExtensions: Record<string, string> = {
+    "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
+    "video/mp4": mime === "video/quicktime" ? "mov" : "mp4", "video/webm": "webm",
+    "audio/mpeg": "mp3", "audio/wav": "wav", "audio/ogg": "ogg", "audio/mp4": "m4a",
+    "audio/aac": "aac", "audio/webm": "webm",
+  };
+  const ext = mediaExtensions[detected];
+  if (!ext) return NextResponse.json({ error: "Unsupported media format." }, { status: 400 });
+  const folder = designId || "misc";
+  const path = `${user.id}/studio/${folder}/${crypto.randomUUID()}.${ext}`;
   let uploadClient = supabase;
   try {
     const service = createServiceClient();
@@ -144,7 +138,7 @@ export async function POST(req: Request) {
   }
 
   const { error: upErr } = await uploadClient.storage.from("site-assets").upload(path, bytes, {
-    contentType: mime || (isVideo ? "video/mp4" : isAudio ? "audio/mpeg" : "image/jpeg"),
+    contentType: detected,
     upsert: false,
   });
 
@@ -165,16 +159,22 @@ export async function POST(req: Request) {
     );
   }
 
+  const removeUnregisteredAsset = async () => {
+    const { error } = await uploadClient.storage.from("site-assets").remove([path]);
+    if (error) logCreate("studio.upload_cleanup_failed", { userId: user.id, path });
+  };
+
   const { data: pub } = uploadClient.storage.from("site-assets").getPublicUrl(path);
   const url = pub.publicUrl;
   if (!url) {
+    await removeUnregisteredAsset();
     return NextResponse.json({ error: "Upload succeeded but public URL missing." }, { status: 500 });
   }
 
   const kind = isVideo ? "video" : isAudio ? "audio" : "image";
   let uploadId: string | null = null;
   if (kind === "image" || kind === "video" || kind === "audio") {
-    const { data: libraryRow } = await supabase
+    const { data: libraryRow, error: libraryError } = await supabase
       .from("studio_uploads")
       .insert({
         owner_id: user.id,
@@ -182,20 +182,24 @@ export async function POST(req: Request) {
         url,
         storage_path: path,
         file_name: file.name?.slice(0, 200) || null,
-        mime: mime || null,
+        mime: detected,
         byte_size: file.size,
         business_id: uploadBusinessId,
       })
       .select("id")
       .maybeSingle();
-    uploadId = libraryRow?.id ?? null;
+    if (libraryError || !libraryRow?.id) {
+      await removeUnregisteredAsset();
+      return NextResponse.json({ error: "Could not add this file to your uploads library. Please try again." }, { status: 503 });
+    }
+    uploadId = libraryRow.id;
   }
 
   return NextResponse.json({
     url,
     path,
     kind,
-    mime,
+    mime: detected,
     uploadId,
   });
 }

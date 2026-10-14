@@ -1,3 +1,4 @@
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
@@ -59,6 +60,8 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 }
 
 export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
+  const blocked = assertSameOriginMutation(req);
+  if (blocked) return blocked;
   const limited = builderRateLimit(req);
   if (limited) return limited;
   const auth = await requireUser();
@@ -89,7 +92,7 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
     .select("*")
     .single();
 
-  if (error) {
+  if (error || !data) {
     await service.storage.from("digital-files").remove([path]);
     return NextResponse.json({ error: "Could not attach file to room." }, { status: 500 });
   }
@@ -99,6 +102,8 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
 }
 
 export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
+  const blocked = assertSameOriginMutation(req);
+  if (blocked) return blocked;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase } = auth;
@@ -110,8 +115,10 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
   const { data: file } = await supabase.from("room_files").select("id, storage_path").eq("id", fileId).eq("room_id", id).maybeSingle();
   if (!file) return NextResponse.json({ error: "File not found." }, { status: 404 });
 
-  const { error } = await supabase.from("room_files").delete().eq("id", fileId);
+  const { data: removed, error } = await supabase.from("room_files").delete()
+    .eq("id", fileId).eq("room_id", id).select("id").maybeSingle();
   if (error) return NextResponse.json({ error: "Could not remove file." }, { status: 500 });
+  if (!removed) return NextResponse.json({ error: "You cannot remove this file, or it was already removed." }, { status: 403 });
   const service = createServiceClient();
   if (service) await service.storage.from("digital-files").remove([file.storage_path]);
   return NextResponse.json({ ok: true });

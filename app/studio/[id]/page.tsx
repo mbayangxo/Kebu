@@ -384,6 +384,60 @@ export default function StudioEditorPage() {
     [designId, canEdit, design?.business_id, design?.title, access?.role, userId, saveQueue, cacheQueue],
   );
 
+  async function changeVersion(action: { label: string } | { versionId: string }) {
+    const snapshot = docRef.current;
+    if (!canEdit || !snapshot || !navigator.onLine || saveQueue.isBlocked()) {
+      throw new Error("Save and resolve any sync conflict before using history.");
+    }
+    if (snapshot !== lastSavedDocRef.current) await persist(snapshot);
+    if (docRef.current !== snapshot || lastSavedDocRef.current !== snapshot || saveQueue.isBlocked()) {
+      throw new Error("Your latest changes are not saved yet. Save the draft before using history.");
+    }
+    await saveQueue.run(async context => {
+      if (!context.active() || context.blocked() || docRef.current !== snapshot) {
+        throw new Error("The draft changed. Save it before using history.");
+      }
+      const restoring = "versionId" in action;
+      const response = await fetch(`/api/create/designs/${designId}/versions${restoring ? "/restore" : ""}`, {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...action, expectedUpdatedAt: context.revision() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!context.active()) return;
+      if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not update history.");
+      if (!restoring) {
+        if (typeof data.versionId !== "string") throw new Error("Could not confirm the named version.");
+        return;
+      }
+      if (!validStudioSaveReceipt(data.design, designId) || !data.design.canvas) {
+        context.conflict();
+        throw new Error("Could not confirm the restored version. Reload before retrying.");
+      }
+      const next = parseCanvasDocument(data.design.canvas, data.design.design_type as StudioDesignType);
+      if (docRef.current !== snapshot) {
+        context.conflict(); setSyncState("conflict");
+        setConflictServer({ doc: next, updatedAt: data.design.updated_at, designType: data.design.design_type });
+        throw new Error("The saved version was restored, but your newer local edits were kept. Choose which version to keep.");
+      }
+      context.acknowledge(data.design.updated_at); setServerRevision(data.design.updated_at);
+      docRef.current = next; lastSavedDocRef.current = next;
+      setDoc(next); setDesign(current => current ? { ...current, ...data.design } : current);
+      setHistory([]); setFuture([]); setSelectedLayerIds([]); setActivePageId(next.pages[0]?.id ?? "");
+      setSaveState("saved"); setError(null);
+      if (userId && studioOfflineSupported()) {
+        await cacheQueue.run(async cacheContext => {
+          if (!cacheContext.active() || !context.active()) return;
+          const latest = docRef.current ?? next;
+          await putStudioOfflineDraft({
+            userId, designId, designTitle: data.design.title, canvas: latest, designType: draftTypeRef.current,
+            businessId: data.design.business_id, accessRole: access?.role ?? null,
+            serverUpdatedAt: context.revision(), savedAt: new Date().toISOString(), dirty: latest !== next,
+          });
+        }).catch(() => setError("The restored version could not be cached on this device."));
+      }
+    });
+  }
+
   async function acceptServerConflictVersion() {
     if (!conflictServer || !design) return;
     const next = conflictServer.doc;
@@ -943,9 +997,8 @@ export default function StudioEditorPage() {
           <StudioVersionHistoryPanel
             designId={designId}
             canEdit={canEdit}
-            onRestored={() => {
-              void load();
-            }}
+            onSaveVersion={label => changeVersion({ label })}
+            onRestoreVersion={versionId => changeVersion({ versionId })}
           />
         </div>
       ) : null}

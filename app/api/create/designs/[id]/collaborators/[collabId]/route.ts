@@ -21,15 +21,18 @@ export async function DELETE(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Only the owner can remove collaborators." }, { status: 403 });
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("studio_design_collaborators")
     .update({ status: "revoked", updated_at: new Date().toISOString() })
     .eq("id", collabId)
-    .eq("design_id", id);
+    .eq("design_id", id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: "Could not remove collaborator." }, { status: 500 });
   }
 
+  if (!data) return NextResponse.json({ error: "Collaborator not found." }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

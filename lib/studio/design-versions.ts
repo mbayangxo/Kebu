@@ -6,10 +6,12 @@ export const STUDIO_VERSION_AUTO_MIN_GAP_MS = 90_000;
 
 export const createVersionSchema = z.object({
   label: z.string().trim().min(1).max(120).optional(),
+  expectedUpdatedAt: z.string().datetime().optional(),
 });
 
 export const restoreVersionSchema = z.object({
   versionId: z.string().uuid(),
+  expectedUpdatedAt: z.string().datetime(),
 });
 
 export type StudioDesignVersionMeta = {

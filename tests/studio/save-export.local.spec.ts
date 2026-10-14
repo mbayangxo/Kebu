@@ -38,16 +38,36 @@ async function cached(page: Page, video = false) {
     };
   }), { owner, id, video });
 }
-async function setup(page: Page, options: { video?: boolean; missing?: boolean; delay?: boolean; malformed?: boolean; conflict?: boolean; twoPages?: boolean; audio?: boolean; missingAudio?: boolean } = {}) {
+async function setup(page: Page, options: { video?: boolean; missing?: boolean; delay?: boolean; malformed?: boolean; conflict?: boolean; twoPages?: boolean; audio?: boolean; missingAudio?: boolean; history?: boolean; sharing?: "offline" | "malformed"; viewer?: boolean; delayedRestore?: boolean; failedHistory?: boolean } = {}) {
   const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
   const doc = canvas(options.missing); if (options.twoPages) doc.pages.push({ ...structuredClone(doc.pages[0]!), id: "second", name: "Second" });
-  let server = options.video ? { id, title: "Original video", composition: composition(options.audio), updated_at: rev(1), business_id: null, source_design_id: null } : { id, title: "QA design", design_type: "poster", canvas: doc, updated_at: rev(1), business_id: null };
+  let server: { id: string; title: string; updated_at: string; business_id: null; source_design_id?: null; design_type?: string; canvas?: ReturnType<typeof canvas>; composition?: ReturnType<typeof composition> } = options.video ? { id, title: "Original video", composition: composition(options.audio), updated_at: rev(1), business_id: null, source_design_id: null } : { id, title: "QA design", design_type: "poster", canvas: doc, updated_at: rev(1), business_id: null };
   const writes: Record<string, unknown>[] = []; let release: (() => void) | undefined;
   const barrier = new Promise<void>(done => { release = done; });
   let releaseSecond!: () => void; const secondBarrier = new Promise<void>(done => { releaseSecond = done; });
   const api = options.video ? `/api/studio/video/${id}` : `/api/create/designs/${id}`;
   await page.route("**/api/**", async route => {
-    if (new URL(route.request().url()).pathname !== api) { await route.fulfill({ json: { projects: [], businesses: [], profile: null } }); return; }
+    const pathname = new URL(route.request().url()).pathname;
+    if (options.sharing && pathname.startsWith(`${api}/collaborators`)) {
+      if (route.request().method() === "GET") { await route.fulfill({ json: { collaborators: [] } }); return; }
+      if (options.sharing === "offline") { await route.abort("failed"); return; }
+      await route.fulfill({ json: { collaborator: { id: "bad", email: "wrong@example.test", status: "active" } } }); return;
+    }
+    if (options.history && pathname.startsWith(`${api}/versions`)) {
+      if (route.request().method() === "GET") {
+        await route.fulfill({ json: { versions: [{ id: "11111111-1111-4111-8111-111111111111", label: "Original checkpoint", source: "manual", created_at: rev(1) }] } }); return;
+      }
+      const body = route.request().postDataJSON(); writes.push({ ...body, history: true });
+      if (pathname.endsWith("/restore")) {
+        if (options.delayedRestore) await barrier;
+        if (options.failedHistory) { await route.fulfill({ status: 503, json: { error: "Could not preserve your current canvas. Restore was cancelled." } }); return; }
+        if (!("canvas" in server)) throw new Error("History fixture requires a design.");
+        server = { ...server, canvas: doc, updated_at: rev(20) };
+        await route.fulfill({ json: { design: server } }); return;
+      }
+      await route.fulfill({ status: 201, json: { versionId: "receipt" } }); return;
+    }
+    if (pathname !== api) { await route.fulfill({ json: { projects: [], businesses: [], profile: null } }); return; }
     if (route.request().method() === "PATCH") {
       const body = route.request().postDataJSON(); writes.push(body);
       if (writes.length === 1 && options.delay) await barrier;
@@ -56,7 +76,7 @@ async function setup(page: Page, options: { video?: boolean; missing?: boolean; 
       server = { ...server, ...body, updated_at: rev(writes.length + 1) };
       await route.fulfill({ json: { [options.video ? "project" : "design"]: options.malformed ? { id: "wrong", updated_at: "invalid" } : server } }); return;
     }
-    await route.fulfill({ json: { [options.video ? "project" : "design"]: server, userId: owner, access: { role: "owner", canEdit: true, canDelete: true, canShare: true } } });
+    await route.fulfill({ json: { [options.video ? "project" : "design"]: server, userId: owner, access: { role: options.viewer ? "viewer" : "owner", canEdit: !options.viewer, canDelete: !options.viewer, canShare: !options.viewer } } });
   });
   await page.route("**/tone.wav", route => {
     const rate = 22050, samples = rate, bytes = Buffer.alloc(44 + samples * 2);
@@ -74,6 +94,7 @@ async function setup(page: Page, options: { video?: boolean; missing?: boolean; 
   const response = await page.goto(options.video ? `/studio/video/${id}` : `/studio/${id}`);
   expect(response?.headers()["content-security-policy"]).toContain("media-src 'self' https: blob:");
   if (options.video) await expect(page.getByLabel("Video title")).toHaveValue("Original video");
+  else if (options.viewer) await expect(page.getByRole("heading", { name: "QA design", exact: true })).toBeVisible();
   else await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeVisible();
   return { writes, errors, release: () => release!(), releaseSecond, server: () => server };
 }
@@ -219,4 +240,63 @@ test("the design page timeline exports a decodable WebM", async ({ page }) => {
     finally { URL.revokeObjectURL(url); }
   }, bytes.toString("base64"));
   expect(size).toEqual([320,320]); expect(fixture.errors).toEqual([]);
+});
+
+async function openHistory(page: Page) {
+  await page.getByText("More", { exact: true }).click();
+  await page.getByRole("button", { name: "Versions", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Version history" })).toBeVisible();
+  await page.getByText("More", { exact: true }).click();
+}
+test("named history saves the latest draft before capturing a version", async ({ page }) => {
+  const fixture = await setup(page, { history: true });
+  await editText(page, "Named latest", true); await openHistory(page);
+  await page.getByPlaceholder("Name this version").fill("My checkpoint");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(() => fixture.writes.some(x => x.history)).toBe(true);
+  const named = fixture.writes.findIndex(x => x.history);
+  expect(named).toBeGreaterThan(0); expect(JSON.stringify(fixture.writes[named - 1]?.canvas)).toContain("Named latest");
+  expect(fixture.writes[named]?.expectedUpdatedAt).toBe(fixture.server().updated_at);
+  expect(fixture.errors).toEqual([]);
+});
+test("history restore preserves edits made during a delayed response", async ({ page }) => {
+  const fixture = await setup(page, { history: true, delayedRestore: true });
+  await editText(page, "Before restore", true); await openHistory(page);
+  page.on("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Restore", exact: true }).click();
+  await expect.poll(() => fixture.writes.some(x => x.versionId)).toBe(true);
+  await editText(page, "Newer local edit"); fixture.release();
+  await expect(page.getByRole("button", { name: "Keep my version" })).toBeVisible();
+  await expect(page.getByText("Newer local edit", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Keep my version" }).click();
+  await expect.poll(() => JSON.stringify(fixture.server())).toContain("Newer local edit");
+  expect(fixture.writes.at(-1)?.expectedUpdatedAt).toBe(rev(20)); expect(fixture.errors).toEqual([]);
+});
+test("failed restore leaves the editor and saved draft intact", async ({ page }) => {
+  const fixture = await setup(page, { history: true, failedHistory: true });
+  await editText(page, "Keep this draft", true); await openHistory(page);
+  page.on("dialog", dialog => dialog.accept()); await page.getByRole("button", { name: "Restore", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Restore was cancelled" })).toContainText("Restore was cancelled");
+  await expect(page.getByText("Keep this draft", { exact: true }).first()).toBeVisible();
+  expect(fixture.errors).toEqual([]);
+});
+
+for (const failure of ["offline", "malformed"] as const) {
+  test(`sharing ${failure} failure is visible and does not claim an invitation`, async ({ page }) => {
+    const fixture = await setup(page, { sharing: failure });
+    await page.getByRole("button", { name: "Share", exact: true }).click();
+    await page.getByRole("textbox", { name: "Email", exact: true }).fill("colleague@example.test");
+    await page.getByRole("button", { name: "Invite", exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: failure === "offline" ? "Could not invite" : "Could not confirm" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reload share list" })).toBeVisible();
+    await expect(page.getByText(/^Invited /)).toHaveCount(0); expect(fixture.errors).toEqual([]);
+  });
+}
+test("viewers cannot save or invite collaborators in the editor", async ({ page }) => {
+  const fixture = await setup(page, { viewer: true });
+  await expect(page.getByRole("button", { name: "Save draft", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(page.getByRole("paragraph").filter({ hasText: /^View only$/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Invite", exact: true })).toHaveCount(0);
+  expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
 });

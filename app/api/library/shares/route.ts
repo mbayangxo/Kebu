@@ -93,12 +93,15 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Invalid share." }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { data: removed, error } = await supabase
     .from("library_shares")
     .delete()
     .eq("node_id", nodeId)
-    .eq("shared_with_user_id", userId);
+    .eq("shared_with_user_id", userId)
+    .select("node_id")
+    .maybeSingle();
 
   if (error) return NextResponse.json({ error: "Could not remove share." }, { status: 403 });
+  if (!removed) return NextResponse.json({ error: "Share not found or you cannot remove it." }, { status: 403 });
   return NextResponse.json({ ok: true });
 }

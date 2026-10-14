@@ -1,0 +1,51 @@
+{
+  "branch": "work/kebu-completion-audit-oct13",
+  "parentCommit": "3301647600f21f3c5deb4ce30ea57fd92d093964",
+  "sourceSha256": "172f1416fb9e8fd89f0a6e31f1247cd7d4ce4a6e4da06b5cfbc4fb7da6bda416",
+  "sourceFileCount": 1875,
+  "ci": {
+    "exitCode": 0,
+    "durationMs": 168474,
+    "buildId": "J5kuNLaiE6fM3r-WdtLRr",
+    "testsPassed": 5898,
+    "testsSkipped": 168,
+    "testFilesPassed": 354,
+    "testFilesSkipped": 22,
+    "lintErrors": 0,
+    "lintWarnings": 348,
+    "generatedPages": 220
+  },
+  "studioBrowser": {
+    "startTime": "2026-10-14T03:40:03.434Z",
+    "duration": 33329.387,
+    "expected": 18,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "localSql": {
+    "passed": 23,
+    "reproducedOwnershipEscalationBeforeFix": true,
+    "reproducedForgedRoomPointerBeforeFix": true,
+    "engine": "PGlite",
+    "hosted": false
+  },
+  "migrations": [
+    "20261014033708_studio_design_identity_guard.sql",
+    "20261014034852_room_file_storage_identity.sql"
+  ],
+  "hostedMigrationsApplied": [],
+  "externalMutations": [],
+  "pushed": false,
+  "deployed": false,
+  "merged": false,
+  "fullKebuComplete": false,
+  "full3J": "open",
+  "completed3CThrough3I": "preserved",
+  "limitations": [
+    "Controlled loopback browser auth/API fixtures",
+    "PGlite SQL with minimal prerequisite schema; no hosted Auth/Storage/PostgREST acceptance",
+    "Only active production project listed by connected Supabase inventory; no writes performed",
+    "Provider/reference/S8/native-session/performance and remaining 99-group acceptance open"
+  ]
+}

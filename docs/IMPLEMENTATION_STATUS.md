@@ -8,6 +8,8 @@ Network persistence/session fixes and compatible Builder receipt checks integrat
 
 **Studio reliability continuation:** local save/export reliability verified with 12 actual-editor/IndexedDB/download browser cases and full CI (5,865 passes / 168 environment skips, zero lint errors). Save races, recovery overwrite, disappearing editor on errors, media placeholders, encoder finalization and media CSP repaired. Studio overall remains IN PROGRESS; hosted ownership/sharing/history/source-refresh and broader editing/export acceptance stay open. See `audits/KEBU_STUDIO_RELIABILITY_2026-10-13.md`.
 
+**Studio/platform continuation (October 14 UTC):** history ordering/conditional restore, source refresh, upload receipts/container signatures, sharing failures and private-file deletion boundaries repaired. Local browser 18 pass; isolated SQL 23 pass. Identity-guard migration is source-only. Full Kebu, Studio and 3J acceptance remain open. Existing Mail/Browser/Library/Calendar/Rooms source is preserved and recovered-audit absence notes corrected. See `audits/KEBU_STUDIO_PLATFORM_CONTINUATION_2026-10-14.md`.
+
 **Historical status below last updated:** 2026-09-10
 **Owner:** Engineering (lead agent + human review)
 

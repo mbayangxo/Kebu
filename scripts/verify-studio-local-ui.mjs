@@ -27,5 +27,5 @@ try {
   const code = await new Promise(done => tests.on("exit",done));
   const report = JSON.parse(readFileSync(join(output,"results.json"),"utf8"));
   console.log("STUDIO_UI_RESULT",JSON.stringify(report.stats));
-  if(code!==0 || report.stats.unexpected || report.stats.expected < 12) throw Error("Studio browser gate failed");
+  if(code!==0 || report.stats.unexpected || report.stats.expected < 18) throw Error("Studio browser gate failed");
 } finally { rmSync(temporary,{recursive:true,force:true}); tests?.kill(); server?.kill(); auth.close(); }

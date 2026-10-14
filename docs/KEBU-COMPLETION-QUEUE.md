@@ -38,3 +38,9 @@ The preserved native 3C–3I engine, operations, inspector, responsive/motion/me
 Local save/export acceptance passed for K004/K047/K048/K049/K096: serialized design/video saves, independently serialized newest-draft caching, explicit recovery conflicts, honest storage errors, missing-media refusal, actual PNG/PDF/ZIP and playable WebM/audio, plus CSP media repair. Full CI: 5,865 passes / 168 environment skips; browser: 12 passes / zero skips. See `audits/KEBU_STUDIO_RELIABILITY_2026-10-13.md`.
 
 Studio remains IN PROGRESS. Next: isolated authenticated ownership/collaborator/version-history/source-refresh/upload acceptance; advanced K048/K049 capabilities and legacy page-timeline soundtrack mixing. Then proceed through the other original modules. No 99-group item is closed wholesale by this local gate. No production or remote branch changes.
+
+### Studio/platform continuation — October 14 UTC
+
+See `audits/KEBU_STUDIO_PLATFORM_CONTINUATION_2026-10-14.md`: 18 local browser journeys and 23 isolated SQL assertions verify history ordering/restoration, sharing failure handling, upload receipts/container detection and ownership protection. Linked-design refresh is now conditional on its final write. Rooms unauthorized deletion no longer reaches privileged storage; Library revocation receipts and Mail origin checks repaired. Full CI passed (5,898 tests / 168 explicit skips, zero lint errors and build). New identity-guard migration remains source-only.
+
+Preserve existing Mail/Browser/Library/Calendar/Rooms implementations: their older “not found” recovered-audit notes were corrected to source-present/acceptance-open, without closing full requirements. Next gates remain independent hosted users/storage/providers and broader original workflow completion. No release approval implied.
