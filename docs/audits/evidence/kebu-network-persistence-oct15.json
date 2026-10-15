@@ -9,11 +9,16 @@
   "result": {
     "startTime": "2026-10-15T08:20:23.337Z",
     "duration": 21807.655000000002,
-    "expected": 4,
+    "browserCasesExpected": 4,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0,
-    "sqlQueries": 18
+    "sqlQueries": 18,
+    "note": "4 browser cases / 18 SQL queries is this run's own figure. It is a different measurement from the historical 18-assertion Network ownership/visibility/trust gate in KEBU_BUILDER_ACCEPTANCE_2026-10-15.md; the two are not the same test and the matching count of 18 is coincidental."
+  },
+  "nodeCoverage": {
+    "ranOn": "v22.22.2 — only runtime available in this environment",
+    "requiredAndStillOutstanding": "v20.20.2 (the previously documented/required version) — not verified in this environment"
   },
   "cleanup": {
     "sourceSandboxRemoved": true,
