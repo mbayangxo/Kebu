@@ -5,7 +5,7 @@ import { parseHostingPlan } from "@/lib/billing/subscriptions";
 import { parseKebuPlanId } from "@/lib/billing/pricing";
 import { verifyJokoWebhookSignature, sendJokoPartnerMessage } from "@/lib/joko/payments";
 import { normalizeWhatsAppPhone } from "@/lib/create/site-commerce";
-import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
+import { fulfillPaidDigitalOrderDurable } from "@/lib/shop/digital-downloads";
 
 export const dynamic = "force-dynamic";
 
@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
       }),
     );
     void sendShopOrderPaidMessages(supabase, paid.orderId, paid.projectId);
-    await fulfillPaidDigitalOrder(supabase, paid.orderId);
+    await fulfillPaidDigitalOrderDurable(supabase, paid.orderId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 
@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }
     void sendShopOrderPaidMessages(supabase, paid.orderId, paid.projectId);
-    await fulfillPaidDigitalOrder(supabase, paid.orderId);
+    await fulfillPaidDigitalOrderDurable(supabase, paid.orderId);
     return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
   }
 

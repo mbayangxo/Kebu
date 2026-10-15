@@ -7,7 +7,7 @@ function mkReq(url: string, init?: RequestInit): NextRequest {
 }
 
 const createServiceClient = vi.fn();
-const fulfillPaidDigitalOrder = vi.fn();
+const fulfillPaidDigitalOrderDurable = vi.fn();
 const completeShopPayment = vi.fn();
 
 vi.mock("@/lib/opportunity/admin", () => ({
@@ -15,7 +15,7 @@ vi.mock("@/lib/opportunity/admin", () => ({
 }));
 
 vi.mock("@/lib/shop/digital-downloads", () => ({
-  fulfillPaidDigitalOrder: (...args: unknown[]) => fulfillPaidDigitalOrder(...args),
+  fulfillPaidDigitalOrderDurable: (...args: unknown[]) => fulfillPaidDigitalOrderDurable(...args),
 }));
 
 import { POST as paystackWebhook } from "@/app/api/webhooks/paystack/route";
@@ -25,7 +25,7 @@ describe("shop webhooks (C1)", () => {
     vi.clearAllMocks();
     process.env.PAYSTACK_SECRET_KEY = "sk_test_kebu";
     createServiceClient.mockReturnValue({ rpc: completeShopPayment });
-    fulfillPaidDigitalOrder.mockResolvedValue(undefined);
+    fulfillPaidDigitalOrderDurable.mockResolvedValue(undefined);
     completeShopPayment.mockResolvedValue({
       data: [{ order_id: "order-1", project_id: "proj-1", already_paid: false }],
       error: null,
@@ -58,7 +58,7 @@ describe("shop webhooks (C1)", () => {
       "complete_shop_payment",
       expect.objectContaining({ p_reference: "KEBU-REF-001", p_provider: "paystack" }),
     );
-    expect(fulfillPaidDigitalOrder).toHaveBeenCalledWith(
+    expect(fulfillPaidDigitalOrderDurable).toHaveBeenCalledWith(
       expect.objectContaining({ rpc: completeShopPayment }),
       "order-1",
     );
