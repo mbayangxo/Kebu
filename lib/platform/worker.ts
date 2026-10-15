@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { failPlatformJob } from "@/lib/platform/jobs";
 import { platformLog } from "@/lib/platform/observability";
+import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 
 type Job = { id:string; job_type:string; payload:Record<string,unknown>; attempts:number; max_attempts:number };
 
@@ -17,6 +18,16 @@ async function executeJob(admin: SupabaseClient, job: Job) {
       metadata:typeof p.metadata==="object"&&p.metadata?p.metadata:{},
     }, { onConflict:"source_job_id", ignoreDuplicates:true });
     if(error) throw error;
+    return;
+  }
+  if (job.job_type === "digital.fulfill") {
+    const orderId = job.payload.orderId;
+    if (typeof orderId !== "string" || !orderId) throw new Error("Invalid digital.fulfill payload");
+    // Calls the raw (throwing) core directly, never the webhook-facing
+    // fulfillPaidDigitalOrderDurable — a real failure here must propagate so
+    // failPlatformJob can apply its own attempt-count/backoff/dead-letter,
+    // not be swallowed into a fresh "job succeeded, re-enqueue another one".
+    await fulfillPaidDigitalOrder(admin, orderId);
     return;
   }
   throw new Error(`Unknown platform job type: ${job.job_type}`);

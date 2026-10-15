@@ -6,6 +6,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendCampaignEmail } from "@/lib/email/send-campaign";
+import { enqueuePlatformJob } from "@/lib/platform/jobs";
 
 export type DigitalProduct = {
   id: string;
@@ -95,7 +96,15 @@ export async function createDigitalDownload(
   return { ok: true, token };
 }
 
-/** Fulfill a paid digital order. Safe to call repeatedly after duplicate webhooks. */
+/**
+ * Fulfill a paid digital order. Safe to call repeatedly after duplicate webhooks
+ * or worker retries — createDigitalDownload is idempotent per order/product.
+ *
+ * Throws on genuine failure (DB error, email provider rejection) so a caller that
+ * owns retry policy can act on it. The initial data-dependent no-ops below (order
+ * not paid yet, product not digital, etc.) return normally — retrying those would
+ * never help, so they are not failures.
+ */
 export async function fulfillPaidDigitalOrder(
   supabase: SupabaseClient,
   orderId: string,
@@ -119,12 +128,12 @@ export async function fulfillPaidDigitalOrder(
     projectId: order.project_id,
     product: product as DigitalProduct,
   });
-  if (!created.ok) return;
+  if (!created.ok) throw new Error(created.error);
 
   const from = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
   if (!from) return;
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://kebu.app";
-  await emailDownloadLink({
+  const sent = await emailDownloadLink({
     to: order.customer_email,
     shopName: "Kebu",
     productName: order.product_name || product.digital_file_name || "Digital product",
@@ -134,6 +143,39 @@ export async function fulfillPaidDigitalOrder(
     from,
     idempotencyKey: `digital-download:${order.id}:${product.id}`,
   });
+  if (!sent) throw new Error("Download email was not accepted by the mail provider.");
+}
+
+/**
+ * Webhook-facing entry point: attempt fulfillment now (fast path — the buyer gets
+ * their email immediately in the common case); on failure, hand off to the durable
+ * platform worker instead of depending on the payment provider's own webhook retry
+ * policy. Never throws, so a transient delivery failure never turns a successfully
+ * recorded payment into a 500 back to the provider.
+ *
+ * Do not call this from lib/platform/worker.ts's own `digital.fulfill` handler —
+ * that must call fulfillPaidDigitalOrder directly so a genuine failure propagates
+ * to the worker's own attempt-count/backoff/dead-letter handling (failPlatformJob)
+ * instead of this function silently re-enqueueing a "successful" job forever.
+ */
+export async function fulfillPaidDigitalOrderDurable(
+  supabase: SupabaseClient,
+  orderId: string,
+): Promise<void> {
+  try {
+    await fulfillPaidDigitalOrder(supabase, orderId);
+  } catch (cause) {
+    console.error(JSON.stringify({
+      event: "shop.digital_fulfillment_deferred",
+      orderId,
+      error: cause instanceof Error ? cause.message : String(cause),
+    }));
+    await enqueuePlatformJob(supabase, {
+      type: "digital.fulfill",
+      payload: { orderId },
+      idempotencyKey: `digital.fulfill:${orderId}`,
+    });
+  }
 }
 
 /** Resolve and validate a download token. Returns null if expired / exhausted / not found. */
