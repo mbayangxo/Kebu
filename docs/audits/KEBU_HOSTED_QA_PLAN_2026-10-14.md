@@ -12,3 +12,9 @@ Proposed resource: **Kebu Completion QA**, separate from the active Kebu project
 6. Record exact source, runtime, migration and test results. Fix failures. Keep merge/deployment, default native rollout and production migrations pending explicit user approval.
 
 The 99 recovered requirement groups remain authoritative. This environment is verification infrastructure; it is not completion of unimplemented product requirements.
+
+## October 15 execution checkpoint
+
+Continued with the connected Kebu organization after the user's continuation instruction. Project inventory read succeeded and lists only the active production project. The required cost lookup for that organization returned `UNAVAILABLE` because `get_cost` was not returned by the Supabase server's `tools/list`. No price or confirmation ID was obtained; no resource was created or paid upgrade purchased. Production remains unchanged. Read-only migration/catalog parity is recorded in `KEBU_BUILDER_ACCEPTANCE_2026-10-15.md` and `evidence/kebu-production-parity-oct15.json`.
+
+Final local October 15 acceptance: 148 browser cases passed without skips or retries; the full CI chain also passed under the configured Node 20 major (20.20.2). These local gates and read-only hosted parity do not authorize provisioning, a paid upgrade, deployment or production migration. The next hosted step remains obtaining an actual project-cost quotation and confirmation through a functioning supported account surface.

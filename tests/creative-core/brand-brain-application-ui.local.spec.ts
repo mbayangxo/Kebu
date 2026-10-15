@@ -43,7 +43,7 @@ for (const width of [1440, 390]) test(`Brand Brain ${width}px applies one edit, 
   if (width < 640) await page.getByRole("button", { name: "Done — view site", exact: true }).click();
   await page.getByRole("button", { name: "Undo", exact: true }).first().click(); await expect.poll(() => server.document().nodes[server.f.text].props.color).toBeUndefined();
   await page.getByRole("button", { name: "Redo", exact: true }).first().click(); await expect.poll(() => server.document().nodes[server.f.text].props.color).toBe("#234567");
-  if (width < 640) await page.getByRole("button", { name: "Sections", exact: true }).first().click();
+  if (width < 640) await page.getByRole("button", { name: "Build", exact: true }).first().click();
   await panel.getByRole("button", { name: "Apply to selected subtree" }).click(); await expect(panel.getByRole("status")).toContainText("already matches"); expect(server.transactions).toHaveLength(3);
   await page.reload(); await page.locator(`[data-kcd-node-id="${server.f.text}"]`).click(); await page.locator("summary").filter({ hasText: "Brand Brain · saved direction" }).click();
   await expect(panel.getByRole("combobox", { name: "Saved Brand Brain" })).toHaveValue(server.record.id); expect(server.document().nodes[server.f.text].overrides).toEqual(server.f.doc.nodes[server.f.text].overrides);

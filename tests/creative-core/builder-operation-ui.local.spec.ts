@@ -61,7 +61,7 @@ async function openInspector(page: Page, deviceLabel = "Desktop") {
       expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     }
     // Phone starts with the section panel closed so the canvas has room.
-    await page.getByRole("button", { name: "Sections", exact: true }).first().click();
+    await page.getByRole("button", { name: "Build", exact: true }).first().click();
   }
   await page.getByRole("button", { name: "Edit section", exact: true }).first().click();
   await expect(page.getByRole("textbox", { name: "Hero heading" })).toHaveValue("Original");

@@ -21,6 +21,7 @@ async function authority(page: Page) {
     }
     if (path === `/api/projects/${projectId}`) { const rows = documentToRows(f.doc); return reply({ ...rows, project: { ...rows.project, subdomain: "experience-fixture", status: "draft" }, renderPath: "kcd", publishState: { isLive: false, hasUnpublishedChanges: false, lastPublishedAt: null }, siteChrome: { enabled: false } }); }
     if (path.endsWith("/operations")) { if (req.method() === "GET") return reply({ document: f.doc }); operations++; return reply({ error: "Unexpected site edit" }, 500); }
+    if (path.endsWith("/experience-engine")) return reply({ configured: false, proposals: [] });
     if (path.endsWith("/billing")) return reply({ canPublish: true, billingExempt: true });
     if (path.endsWith("/site-chrome")) return reply({ siteChrome: { enabled: false } });
     return reply({});
@@ -61,7 +62,7 @@ test("Experience DNA retains drafts on close, element selection and cancelled di
   await page.locator("summary").filter({ hasText: "Site direction · Experience DNA" }).click(); await page.locator("summary").filter({ hasText: "Site direction · Experience DNA" }).click();
   await page.getByRole("button", { name: "Show element hierarchy", exact: true }).click(); await page.locator(`[data-kcd-node-id="${server.f.image}"]`).click();
   await expect(panel.getByLabel("Audience", { exact: true })).toHaveValue("Artists in Dakar"); expect(server.reads()).toBe(1);
-  await page.getByRole("button", { name: "Photos", exact: true }).click(); await page.getByRole("button", { name: "Sections", exact: true }).first().click();
+  await page.getByRole("button", { name: "Assets", exact: true }).click(); await page.getByRole("button", { name: "Build", exact: true }).first().click();
   await expect(panel.getByLabel("Audience", { exact: true })).toHaveValue("Artists in Dakar"); expect(server.reads()).toBe(1);
   page.once("dialog", dialog => dialog.dismiss()); await page.getByRole("link", { name: "Preview", exact: true }).click(); await expect(page).toHaveURL(`/create/${projectId}`);
   page.once("dialog", dialog => dialog.dismiss()); await panel.getByRole("button", { name: "Reload site direction", exact: true }).click(); await expect(panel.getByLabel("Audience", { exact: true })).toHaveValue("Artists in Dakar");
@@ -79,4 +80,23 @@ test("Experience DNA read failure is honest and can recover without empty saved 
   const server = await authority(page); server.failure("read"); await page.goto(`/create/${projectId}`); await page.locator(`[data-kcd-node-id="${server.f.text}"]`).click(); await page.locator("summary").filter({ hasText: "Site direction · Experience DNA" }).click();
   const panel = page.getByRole("region", { name: "Site direction", exact: true }); await expect(panel.getByRole("alert")).toContainText("storage unavailable"); await expect(panel.getByRole("button", { name: "Save site direction", exact: true })).toBeDisabled();
   server.failure(null); await panel.getByRole("button", { name: "Reload site direction", exact: true }).click(); await expect(panel.getByLabel("Site goal", { exact: true })).toBeVisible(); expect(server.writes()).toBe(0);
+});
+
+test("appearance covers both direction panels without changing the draft or site colors",async({page})=>{
+ const server=await authority(page),panel=await open(page,server.f.text);await brief(panel);
+ const canvas=page.locator(`[data-kcd-node-id="${server.f.text}"]`);
+ const originalColor=await canvas.evaluate(element=>getComputedStyle(element).color);
+ await page.locator("summary").filter({hasText:"Yande · experience engine"}).click();
+ const engine=page.getByRole("region",{name:"Experience engine",exact:true});
+ for(const [appearance,background,color] of [["dark","rgb(28, 30, 34)","rgb(245, 245, 247)"],["light","rgb(255, 255, 255)","rgb(10, 10, 10)"]] as const){
+  await page.getByRole("combobox",{name:"Builder appearance",exact:true}).selectOption(appearance);
+  await expect(panel.locator("..")).toHaveCSS("background-color",background);
+  await expect(engine.locator("..")).toHaveCSS("background-color",background);
+  await expect(engine.locator("..")).toHaveCSS("color-scheme",appearance);
+  await expect(panel.getByLabel("Audience",{exact:true})).toHaveCSS("color",color);
+  await expect(panel.getByLabel("Audience",{exact:true})).toHaveValue("Artists in Dakar");
+  await expect(canvas).toHaveCSS("color",originalColor);
+  await page.screenshot({path:test.info().outputPath(`direction-${appearance}.png`),fullPage:true});
+ }
+ expect(server.writes()).toBe(0);expect(server.operations()).toBe(0);expect(server.reads()).toBe(1);
 });

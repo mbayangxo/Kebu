@@ -57,7 +57,7 @@ for(const width of [1440,390])test(`3H full ${width}px authoring, images, attach
  await page.goto("/studio/brand");panel=await builder(page,server.fixture.text);await expect(panel.getByRole("combobox",{name:"Saved Brand Brain"})).toHaveValue(server.records()[0].id);expect(new URL(page.url()).searchParams.has("brain")).toBe(false);
  await panel.getByRole("checkbox",{name:"Apply motion direction"}).check();await panel.getByRole("button",{name:"Apply to selected subtree",exact:true}).click();await expect.poll(()=>server.transactions.length).toBe(1);expect(server.document().nodes[server.fixture.text].motion).toMatchObject({preset:"rise"});
  if(width<640)await page.getByRole("button",{name:"Done — view site",exact:true}).click();await page.getByRole("button",{name:"Undo",exact:true}).first().click();await expect.poll(()=>server.transactions.length).toBe(2);
- if(width<640)await page.getByRole("button",{name:"Sections",exact:true}).first().click();await panel.getByRole("button",{name:"Detach site profile",exact:true}).click();await expect(panel.getByText("Site direction: No attached profile.",{exact:true})).toBeVisible();expect(server.transactions).toHaveLength(2);expect(server.records()).toHaveLength(1);
+ if(width<640)await page.getByRole("button",{name:"Build",exact:true}).first().click();await panel.getByRole("button",{name:"Detach site profile",exact:true}).click();await expect(panel.getByText("Site direction: No attached profile.",{exact:true})).toBeVisible();expect(server.transactions).toHaveLength(2);expect(server.records()).toHaveLength(1);
  await panel.scrollIntoViewIfNeeded();await page.screenshot({path:`evidence/3h/complete/attachment-${width}.png`,fullPage:true});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);expect(errors).toEqual([]);
 });
 for(const mode of ["conflict","uncertain","badAck"]as const)test(`attachment ${mode} requires authoritative reload and never retries automatically`,async({page})=>{
@@ -68,4 +68,13 @@ test("attachment read failure prevents writes and recovers; image failures retai
  const server=await authority(page);await create(page);server.loadFail(true);const panel=await builder(page,server.fixture.text);await panel.getByRole("combobox",{name:"Saved Brand Brain"}).selectOption(server.records()[0].id);await expect(panel.getByRole("alert")).toContainText("Could not load site direction");await expect(panel.getByRole("button",{name:"Attach profile to site",exact:true})).toBeDisabled();server.loadFail(false);await panel.getByRole("button",{name:"Reload profiles",exact:true}).click();await expect(panel.getByRole("button",{name:"Attach profile to site",exact:true})).toBeEnabled();expect(server.writes()).toBe(0);
  await page.goto("/studio/brand");server.uploadFail();await page.getByLabel("Upload approved image",{exact:true}).setInputFiles({name:"bad.png",mimeType:"image/png",buffer:Buffer.from("fixture")});await expect(page.getByRole("region",{name:"Approved brand images"}).getByRole("alert")).toContainText("Upload failed");await expect(page.getByRole("textbox",{name:"Brand name",exact:true})).toHaveValue("Internal direction");expect(server.records()[0].profile.brand.approvedImagery).toEqual([]);
  await page.getByRole("button",{name:"Add image address",exact:true}).click();await page.getByRole("textbox",{name:"Image address 1",exact:true}).fill("javascript:bad");await page.getByRole("button",{name:"Save Brand Brain",exact:true}).click();await expect(page.getByRole("region",{name:"Brand Brain editor"}).getByRole("alert").first()).toContainText("HTTPS");expect(server.profileWrites()).toBe(1);await page.getByRole("button",{name:"Remove image 1",exact:true}).click();await expect(page.getByRole("textbox",{name:"Image address 1",exact:true})).toHaveCount(0);
+});
+
+test("original Brand DNA editor remains reachable from Brand Brain",async({page})=>{
+ await authority(page);await page.goto("/studio/brand");
+ await expect(page.getByRole("textbox",{name:"Brand name",exact:true})).toBeVisible();
+ await page.getByRole("link",{name:"Original Brand DNA editor",exact:true}).click();
+ await expect(page).toHaveURL(/\/studio\/brand\/legacy$/);
+ await expect(page.getByRole("textbox",{name:"Name",exact:true})).toHaveValue("Brand DNA");
+ await expect(page.getByRole("combobox",{name:"Business (Kebu ID)",exact:true})).toBeVisible();
 });

@@ -238,20 +238,23 @@ export async function PATCH(req: Request, { params }: Params) {
     }
     const byId = new Map(projectPages.map((page) => [page.id, page]));
     const rows = order.map((id, sort_order) => ({ ...byId.get(id)!, sort_order }));
-    const { error: reorderError } = await db
+    const { data: reordered, error: reorderError } = await db
       .from("project_pages")
-      .upsert(rows, { onConflict: "id" });
+      .upsert(rows, { onConflict: "id" })
+      .select("id, slug, title, sort_order, parent_id");
     if (reorderError) {
       return NextResponse.json({ error: "Could not reorder pages.", detail: reorderError.message }, { status: 500 });
     }
+    if (!reordered || reordered.length !== order.length || new Set(reordered.map(page => page.id)).size !== order.length || reordered.some(page => order[page.sort_order] !== page.id)) {
+      return NextResponse.json({ error: "Page order could not be confirmed. Reload the page list before trying again." }, { status: 409 });
+    }
+    let navSyncError: string | undefined;
     try {
       await syncProjectChromeNavFromPages(db as never, projectId);
-    } catch {
-      /* best-effort */
+    } catch (error) {
+      navSyncError = error instanceof Error ? error.message : "nav sync failed";
     }
-    return NextResponse.json({
-      pages: rows.map(({ id, slug, title, sort_order, parent_id }) => ({ id, slug, title, sort_order, parent_id })),
-    });
+    return NextResponse.json({ pages: reordered, ...(navSyncError ? { navSyncError, navSyncStale: true } : {}) });
   }
 
   const { data: page } = await db
@@ -377,9 +380,14 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Cannot delete the home page." }, { status: 400 });
   }
 
-  const { error } = await db.from("project_pages").delete().eq("id", parsed.data.pageId);
+  const { data: deleted, error } = await db.from("project_pages").delete()
+    .eq("id", parsed.data.pageId).eq("project_id", projectId).select("id").maybeSingle();
   if (error) {
     return NextResponse.json({ error: "Could not delete page.", detail: error.message }, { status: 500 });
+  }
+
+  if (!deleted || deleted.id !== parsed.data.pageId) {
+    return NextResponse.json({ error: "Page deletion was not confirmed. Reload before trying again." }, { status: 409 });
   }
 
   let navSyncError: string | undefined;
@@ -392,6 +400,7 @@ export async function DELETE(req: Request, { params }: Params) {
   logCreate("pages.delete", { userId: user.id, projectId, pageId: parsed.data.pageId });
   return NextResponse.json({
     ok: true,
+    deletedPageId: deleted.id,
     ...(navSyncError ? { navSyncError, navSyncStale: true } : {}),
   });
 }

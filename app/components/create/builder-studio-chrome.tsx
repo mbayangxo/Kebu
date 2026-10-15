@@ -235,7 +235,7 @@ export function BuilderStudioChrome({
 
   return (
     <header
-      className={`flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 border-b px-2 py-1 sm:px-3 ${persistenceUnavailable ? "" : "lg:flex-nowrap"}`}
+      className={`flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 border-b px-2 py-1 sm:px-3 ${persistenceUnavailable ? "" : "xl:flex-nowrap"}`}
       style={{ borderColor: palette.border, background: palette.surface, color: palette.ink, colorScheme: appearance }}
     >
       <Link
@@ -280,7 +280,7 @@ export function BuilderStudioChrome({
       </div>
 
       {pages && pages.length > 0 && onPageChange ? (
-        <label className="absolute left-1/2 hidden min-w-0 -translate-x-1/2 md:block">
+        <label className="ml-auto hidden min-w-0 md:block xl:ml-2">
           <span className="sr-only">Page</span>
           <select
             value={activePageId ?? pages[0]?.id}
@@ -302,7 +302,7 @@ export function BuilderStudioChrome({
         </label>
       ) : null}
 
-      <div className="ml-auto flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 lg:w-auto lg:flex-nowrap">
+      <div className="ml-auto flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 xl:w-auto xl:flex-nowrap">
         {saveLabel ? (
           <span
             role="status"

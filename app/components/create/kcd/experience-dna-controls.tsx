@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { BUILDER_PANEL as BUILDER } from "@/lib/create/builder-panel-appearance";
 import { experienceSaveSchema, experienceRecordSchema, newExperienceDna, type ExperienceDna, type ExperienceRecord } from "@/lib/create/experience-dna";
 
-const style = { color: BUILDER.ink, background: BUILDER.surface, borderColor: BUILDER.border };
+const style = { color: BUILDER.ink, background: BUILDER.surface, borderColor: BUILDER.border, colorScheme: BUILDER.colorScheme };
 const input = "mt-1 w-full min-w-0 rounded-lg border p-2 text-[12px]";
 const button = "rounded-lg border px-2.5 py-1.5 text-[12px] font-medium disabled:opacity-40";
 

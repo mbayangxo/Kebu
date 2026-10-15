@@ -81,7 +81,7 @@ export function ExperienceEngineControls(props: Props) {
     catch (failure) { if (mounted.current) setError(failure instanceof Error ? failure.message : "Apply was not confirmed. Resolve the native save state before continuing."); }
     finally { running.current = false; if (mounted.current) setBusy(null); }
   }
-  return <details open={open} onToggle={event => setOpen(event.currentTarget.open)} className="min-w-0 border-b p-3 text-[12px]" style={{ color: BUILDER.ink, background: BUILDER.surface, borderColor: BUILDER.border }}>
+  return <details open={open} onToggle={event => setOpen(event.currentTarget.open)} className="min-w-0 border-b p-3 text-[12px]" style={{ color: BUILDER.ink, background: BUILDER.surface, borderColor: BUILDER.border, colorScheme: BUILDER.colorScheme }}>
     <summary className="cursor-pointer font-semibold">Yande · experience engine</summary>
     <section aria-label="Experience engine" className="mt-3 min-w-0 space-y-3">
       <p>Review source evidence and an original native plan before changing your site.</p>

@@ -40,6 +40,7 @@ async function authority(page: Page, conflict: boolean | "spatial" | "motion" = 
       journal.set(tx.txId, ack); return json(ack);
     }
     if (/\/sections(?:\/|$)/.test(pathname) && request.method() !== "GET") { legacyWrites.push(pathname); return json({ error: "Unexpected legacy write" }, 500); }
+    if (pathname.endsWith("/settings") && request.method() === "PATCH") return json({ project: { id: projectId, ...request.postDataJSON() } });
     if (pathname.endsWith("/billing")) return json({ canPublish: true, billingExempt: true });
     if (pathname.endsWith("/site-chrome")) return json({ siteChrome: { enabled: false } });
     if (pathname.endsWith("/assets")) return json({ assets: [] });
@@ -56,7 +57,7 @@ async function open(page: Page, device = "Desktop") {
   await page.getByRole("button", { name: "Add native section", exact: true, includeHidden: true }).waitFor({ state: "attached" });
   if (await page.getByRole("button", { name: "Done — view site", exact: true }).isVisible()) await page.getByRole("button", { name: "Done — view site", exact: true }).click();
   if (device !== "Desktop") await page.getByRole("button", { name: device, exact: true }).first().click();
-  if ((page.viewportSize()?.width ?? 1440) < 1024) await page.getByRole("button", { name: "Sections", exact: true }).first().click();
+  if ((page.viewportSize()?.width ?? 1440) < 1024) await page.getByRole("button", { name: "Build", exact: true }).first().click();
   await page.getByRole("button", { name: "Add native section", exact: true }).click();
   await expect(page.getByRole("button", { name: "Add group", exact: true })).toBeVisible();
   await labelledControls(page);
@@ -80,7 +81,7 @@ for (const width of [390, 640, 768, 1024, 1440]) {
     const header = page.locator("header").filter({ has: page.getByRole("button", { name: "Publish", exact: true }) });
     await expect(header.getByRole("status")).toHaveText("Draft saved");
     const controls = [header.getByRole("status"), header.getByRole("button", { name: "Publish", exact: true })];
-    if (width >= 640) controls.push(header.getByRole("combobox", { name: "Editing page" }));
+    if (width >= 768) controls.push(header.getByRole("combobox", { name: "Editing page" }));
     const boxes = await Promise.all(controls.map((control) => control.boundingBox()));
     for (const box of boxes) {
       expect(box).not.toBeNull();
@@ -106,13 +107,13 @@ for (const [device, viewport] of [["Desktop", { width: 1440, height: 1000 }], ["
     if (device !== "Desktop") expect(nativeText().props.text).toBe("Write your text");
     if (viewport.width < 1024) await page.getByRole("button", { name: "Done — view site", exact: true }).click();
     const undo = page.getByRole("button", { name: "Undo", exact: true }).first();
-    if (viewport.width < 640) await undo.locator("span").click(); else await undo.click();
-    if (viewport.width < 1024) await page.getByRole("button", { name: "Sections", exact: true }).first().click();
+    await undo.click();
+    if (viewport.width < 1024) await page.getByRole("button", { name: "Build", exact: true }).first().click();
     await expect(page.getByRole("textbox", { name: "Text", exact: true })).toHaveValue("Write your text");
     if (viewport.width < 1024) await page.getByRole("button", { name: "Done — view site", exact: true }).click();
     const redo = page.getByRole("button", { name: "Redo", exact: true }).first();
-    if (viewport.width < 640) await redo.locator("span").click(); else await redo.click();
-    if (viewport.width < 1024) await page.getByRole("button", { name: "Sections", exact: true }).first().click();
+    await redo.click();
+    if (viewport.width < 1024) await page.getByRole("button", { name: "Build", exact: true }).first().click();
     await expect(page.getByRole("textbox", { name: "Text", exact: true })).toHaveValue(`${device} story`);
     if (viewport.width < 1024) await page.getByRole("button", { name: "Done — view site", exact: true }).click();
     const target = device === "Desktop" ? page : page.frameLocator(`iframe[title="${device === "Phone" ? "mobile" : "tablet"} preview"]`);
@@ -123,7 +124,7 @@ for (const [device, viewport] of [["Desktop", { width: 1440, height: 1000 }], ["
     await page.getByRole("button", { name: "Add native section", exact: true, includeHidden: true }).waitFor({ state: "attached" });
     if (await page.getByRole("button", { name: "Done — view site", exact: true }).isVisible()) await page.getByRole("button", { name: "Done — view site", exact: true }).click();
     if (device !== "Desktop") await page.getByRole("button", { name: device, exact: true }).first().click();
-    if (viewport.width < 1024) await page.getByRole("button", { name: "Sections", exact: true }).first().click();
+    if (viewport.width < 1024) await page.getByRole("button", { name: "Build", exact: true }).first().click();
     await page.getByRole("button", { name: `Text: ${device} story`, exact: true }).click();
     await expect(page.getByRole("textbox", { name: "Text", exact: true })).toHaveValue(`${device} story`);
     expect(Object.values(server.document().nodes).filter((node) => node.type === "section")).toHaveLength(1);
@@ -544,7 +545,7 @@ for(const device of ["Desktop","Tablet","Phone"] as const)test(`video: ${device}
  await page.route(`**/api/projects/${projectId}/assets`,route=>route.fulfill({json:{assets:[{id:"movie",url:"/qa-video.webm",kind:"video",file_name:"Campaign video",created_at:new Date().toISOString()}]}}));
  await page.setViewportSize({width:1440,height:1000});await page.goto(`/create/${projectId}`);if(device!=="Desktop")await page.getByRole("button",{name:device,exact:true}).first().click();const canvas=device==="Desktop"?page:page.frameLocator(`iframe[title="${key} preview"]`);await canvas.locator(`[data-kcd-node-id="${f.video}"]`).click();
  const saved=()=>key==="desktop"?server.document().nodes[f.video].props:server.document().nodes[f.video].overrides[key]!;
- await page.getByRole("button",{name:"Choose video from media library",exact:true}).click();await page.getByRole("button",{name:"Use",exact:true}).click();await expect.poll(()=>saved().src).toBe("/qa-video.webm");await expect(canvas.locator("video")).toHaveAttribute("preload","none");
+ await page.getByRole("button",{name:"Choose video from media library",exact:true}).click();await page.getByRole("button",{name:"Add",exact:true}).click();await expect.poll(()=>saved().src).toBe("/qa-video.webm");await expect(canvas.locator("video")).toHaveAttribute("preload","none");
  await page.getByRole("textbox",{name:"Poster image",exact:true}).fill("/brand/kebu-mark.png?poster=changed");await page.getByRole("textbox",{name:"Poster image",exact:true}).press("Tab");await expect.poll(()=>saved().poster).toBe("/brand/kebu-mark.png?poster=changed");await page.getByRole("button",{name:"Undo",exact:true}).first().click();await expect.poll(()=>saved().poster).toBe(key==="tablet"?"/brand/favicon.png":key==="desktop"?"/brand/kebu-mark.png":undefined);await page.getByRole("button",{name:"Redo",exact:true}).first().click();await expect.poll(()=>saved().poster).toBe("/brand/kebu-mark.png?poster=changed");
  await page.reload();if(device!=="Desktop")await page.getByRole("button",{name:device,exact:true}).first().click();await canvas.locator(`[data-kcd-node-id="${f.video}"]`).click();await expect(page.getByRole("textbox",{name:"Video address",exact:true})).toHaveValue("/qa-video.webm");await page.getByRole("button",{name:"Lock element",exact:true}).click();await expect(page.getByRole("textbox",{name:"Video address",exact:true})).toBeDisabled();await labelledControls(page);expect(server.legacyWrites).toEqual([]);await page.screenshot({path:`evidence/3f/video-editor-${key}.png`,fullPage:true});
 });

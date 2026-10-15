@@ -1,3 +1,4 @@
+import { observeNavigation } from "./fixtures/navigation-observer";
 import { test, expect } from "playwright/test";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { apply } from "./fixtures/3j-maylecor";
@@ -14,13 +15,18 @@ for (const javaScriptEnabled of [false, true]) for (const width of [1440, 768, 3
     // Mirrors the public-site request header that production middleware sets.
     const context = await browser.newContext({ baseURL, javaScriptEnabled, extraHTTPHeaders: { "x-kebu-is-public-site": "1" }, viewport: { width, height: 900 }, reducedMotion: "reduce" });
     try {
-      const page = await context.newPage(), errors: string[] = [];
+      const page = await context.newPage(), errors: string[] = [], navigation = await observeNavigation(page);
+      const consoleErrors:string[]=[];page.on("console",message=>{if(message.type()==="error")consoleErrors.push(message.text());});
       page.on("pageerror", error => errors.push(error.message));
       await page.route("**/api/**", route => route.fulfill({ json: {} }));
       await page.goto("/s7-local-probe/home");
       await expect(page.getByRole("heading", { name: "May Lècor", exact: true })).toHaveCSS("font-size", `${width === 1440 ? 64 : width === 768 ? 44 : 32}px`);
       for (const slug of ["home", "about", "music", "photos", "contact"]) {
-        if (slug !== "home") await page.getByRole("link", { name: slug, exact: true }).click();
+        if (slug !== "home") {
+          await page.getByRole("link", { name: slug, exact: true }).click();
+          try { await expect(page).toHaveURL(new RegExp(`/s7-local-probe/${slug}$`)); }
+          catch(error){writeFileSync(test.info().outputPath("navigation-debug.json"),JSON.stringify({url:page.url(),navigation,consoleErrors,errors},null,2));await page.screenshot({path:test.info().outputPath("navigation-failure.png"),fullPage:true});throw error;}
+        }
         await expect(page.getByRole("heading", { name: slug === "home" ? "May Lècor" : slug, exact: true })).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         if (slug === "about") for (const block of maylecorAboutMayBlocks()) await expect(page.getByText(block.body, { exact: true })).toBeVisible();

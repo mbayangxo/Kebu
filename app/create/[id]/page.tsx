@@ -2307,10 +2307,10 @@ function ProjectEditor({ projectId }: { projectId: string }) {
               )}
 
 
-              <div hidden={sidebarTab !== "content"}>
+              <BuilderPanelScope><div hidden={sidebarTab !== "content"}>
                 {operationEditing && operations.document ? <ExperienceDnaControls key={projectId} projectId={projectId} disabled={false} /> : null}
                 {operationEditing && operations.document && editPageId ? <ExperienceEngineControls key={`engine:${projectId}`} document={operations.document} pageId={editPageId} selectedId={selectedSectionId} disabled={operations.status !== "idle" || operations.pending} submit={operations.submitReviewed} /> : null}
-              </div>
+              </div></BuilderPanelScope>
               {sidebarTab === "content" && (
               <>
               {/* Shopify-style drill-down breadcrumb: shown when a section is selected */}

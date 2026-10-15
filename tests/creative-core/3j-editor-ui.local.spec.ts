@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { open3jDatabase, projectId } from "./fixtures/3j-database";
+import { open3jDatabase, projectId, owner } from "./fixtures/3j-database";
 import { documentToRows } from "../../lib/create/kcd-adapter";
 import type { Transaction, NodeId } from "../../lib/creative-core";
 
@@ -8,13 +8,15 @@ test.skip(process.env.KEBU_LOCAL_OPERATION_UI !== "1" || !process.env.KEBU_LOCAL
 async function bridge(page: Page) {
   const server = await open3jDatabase();
   await server.apply((await server.proposal()).transaction);
+  await server.queryAs("authenticated",owner,"update projects set subdomain=$1 where id=$2",["maylecor-3j",projectId]);
   const transactions: Transaction[] = [], legacyWrites: string[] = [];
   let truncateNext = false;
   await page.route("**/api/**", async route => {
     const request = route.request(), path = new URL(request.url()).pathname;
     if (path === `/api/projects/${projectId}`) {
       const rows = documentToRows(await server.read());
-      return route.fulfill({ json: { ...rows, project: { ...rows.project, subdomain: "maylecor-3j", status: "draft" }, renderPath: "kcd", siteChrome: { enabled: false }, publishState: { isLive: false, hasUnpublishedChanges: false, lastPublishedAt: null } } });
+      const saved=(await server.queryAs<{status:string;subdomain:string;published_at:string|null}>("authenticated",owner,"select status,subdomain,published_at from projects where id=$1",[projectId])).rows[0];
+      return route.fulfill({ json: { ...rows, project: { ...rows.project, ...saved }, renderPath: "kcd", siteChrome: { enabled: false }, publishState: { isLive: saved.status === "published", hasUnpublishedChanges: false, lastPublishedAt: saved.published_at } } });
     }
     if (path.endsWith("/operations")) {
       if (request.method() === "GET") return route.fulfill({ json: { document: await server.read() } });
@@ -22,10 +24,15 @@ async function bridge(page: Page) {
       try { const acknowledgement = await server.apply(tx); if (truncateNext) { truncateNext = false; return await route.fulfill({ json: { status: "committed" } }); } return await route.fulfill({ json: acknowledgement }); }
       catch (error) { return route.fulfill({ status: 409, json: { error: error instanceof Error ? error.message : "Database operation failed" } }); }
     }
-    if (path.endsWith("/go-live") && request.method() === "POST") {
+    if (path.endsWith("/settings") && request.method() === "PATCH") {
+      const body=request.postDataJSON();
+      const saved=await server.queryAs("authenticated",owner,"update projects set seo=$1,subdomain=$2 where id=$3 and owner_id=$4 returning id,subdomain",[body.seo,body.subdomain,projectId,owner]);
+      return route.fulfill({json:{project:saved.rows[0]}});
+    }
+    if (path.endsWith("/publish") && request.method() === "POST") {
       const published = await server.publish();
       writeFileSync(process.env.KEBU_LOCAL_S7_SNAPSHOT_FILE!, JSON.stringify(published));
-      return route.fulfill({ json: { ok: true, publicPath: "/s7-local-probe/home", liveUrl: "/s7-local-probe/home" } });
+      return route.fulfill({ json: { deployment: { status:"live",subdomain:"maylecor-3j",public_path:"/sites/maylecor-3j" }, liveUrl: "/s7-local-probe/home" } });
     }
     if (/\/sections(?:\/|$)/.test(path) && request.method() !== "GET") { legacyWrites.push(path); return route.fulfill({ status: 500, json: { error: "Unexpected legacy write" } }); }
     if (path.endsWith("/billing")) return route.fulfill({ json: { canPublish: true, billingExempt: true } });
@@ -92,8 +99,10 @@ for (const [device, width] of [["Desktop", 1440], ["Tablet", 768], ["Phone", 390
       if (key !== "desktop") { expect(server.current().nodes[heading.id].props.text).toBe("May Lècor"); expect(server.current().nodes[heading.id].props.fontSize).toBe(64); expect(server.current().nodes[figure.id].props.x).toBe(650); }
       mkdirSync("evidence/3j", { recursive: true });
       await page.screenshot({ path: `evidence/3j/editor-${key}.png`, fullPage: true });
-      const published = await page.evaluate(async id => { const response = await fetch(`/api/projects/${id}/go-live`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subdomain: "maylecor-3j" }) }); return response.json(); }, projectId);
-      expect(published.ok).toBe(true);
+      await page.getByRole("button",{name:"Publish",exact:true}).click();
+      await expect(page.getByRole("button",{name:"Published ✓",exact:true})).toBeVisible();
+      const live=await server.queryAs<{count:number}>("postgres",owner,"select count(*)::int as count from deployments where project_id=$1 and status='live'",[projectId]);
+      expect(live.rows[0].count).toBe(1);
       const context = await browser.newContext({ baseURL, viewport: { width, height: 1000 }, extraHTTPHeaders: { "x-kebu-is-public-site": "1" } });
       try { const publicPage = await context.newPage(); await publicPage.goto("/s7-local-probe/home"); await expect(publicPage.getByRole("heading", { name: text, exact: true })).toHaveCSS("font-size", "42px"); await publicPage.screenshot({ path: `evidence/3j/editor-published-${key}.png`, fullPage: true }); }
       finally { await context.close(); }
