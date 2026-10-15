@@ -150,7 +150,7 @@ export default function NetworkPage() {
                   {profile.initials}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-ink text-sm">{profile.name}</p>
+                  <h3 className="font-semibold text-ink text-sm">{profile.name}</h3>
                   <p className="text-xs text-muted">{profile.location}</p>
                 </div>
                 {profile.stage && <span className={`ml-auto text-xs font-semibold px-2.5 py-0.5 rounded-full flex-shrink-0 ${STAGE_COLORS[profile.stage] || "bg-gray-100 text-gray-600"}`}>
@@ -160,9 +160,9 @@ export default function NetworkPage() {
 
               {/* Sector + headline */}
               <p className="text-xs font-semibold text-deep-green mb-1">{profile.sector}</p>
-              <h3 className="font-display text-base font-bold text-ink mb-2 leading-snug">
+              <p className="font-display text-base font-bold text-ink mb-2 leading-snug">
                 {profile.headline}
-              </h3>
+              </p>
 
               {/* Building */}
               <p className="text-sm text-muted leading-relaxed mb-4 line-clamp-2">

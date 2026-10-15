@@ -1,0 +1,32 @@
+{
+  "source": "scripts/verify-network-persistence-local-ui.mjs + tests/platform/network-persistence.local.spec.ts",
+  "runtime": {
+    "node": "v22.22.2",
+    "chromium": "/opt/pw-browsers/chromium",
+    "pglite": "0.5.8 (added as devDependency; not previously declared in package.json)"
+  },
+  "transport": "loopback Auth/REST fixture; actual Next.js route handlers and SQL/RLS via PGlite",
+  "result": {
+    "startTime": "2026-10-15T08:20:23.337Z",
+    "duration": 21807.655000000002,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "sqlQueries": 18
+  },
+  "cleanup": {
+    "sourceSandboxRemoved": true,
+    "serverStopped": true,
+    "testsStopped": true
+  },
+  "firstRunFindingsBeforeFix": [
+    "app/network/join/page.tsx: form inputs/selects/textareas and need-toggle buttons were not disabled while a submission was pending; only the submit button was. Fixed by adding disabled={loading} to every #network-* field and need-toggle button.",
+    "app/network/page.tsx: member name in the directory card was rendered as a plain <p>, not a heading, so it was not reachable via getByRole('heading'). Fixed by making the name an <h3> and demoting the headline (previously the only <h3>) to a <p>, so each card has exactly one heading: the person's name."
+  ],
+  "testDraftFixApplied": "tests/platform/network-persistence.local.spec.ts: getByRole('alert') matched both the app's own error banner and Next.js's built-in #__next-route-announcer__ (role=alert, legitimate accessibility feature, left unchanged). Narrowed the test locator with .filter({hasText:'confirmed saved'}) rather than altering app behavior or removing the route announcer.",
+  "notConclusivelyEstablished": [
+    "Hosted Supabase Auth/Data-API/RLS acceptance for Network — this run used a loopback fixture over PGlite, not the QA/production Supabase project.",
+    "Multilingual (English/French/Wolof) coverage of this page — not exercised by this gate; language/i18n work remains separately open."
+  ]
+}

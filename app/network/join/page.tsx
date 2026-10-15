@@ -119,27 +119,27 @@ export default function NetworkJoinPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="network-name" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">Full name</label>
-                <input required type="text" id="network-name" maxLength={120} value={name} onChange={(e) => setName(e.target.value)}
+                <input required type="text" id="network-name" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} disabled={loading}
                   placeholder="Your name"
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold" />
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold disabled:opacity-60" />
               </div>
               <div>
                 <label htmlFor="network-location" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">City, Country</label>
-                <input required type="text" id="network-location" maxLength={160} value={location} onChange={(e) => setLocation(e.target.value)}
+                <input required type="text" id="network-location" maxLength={160} value={location} onChange={(e) => setLocation(e.target.value)} disabled={loading}
                   placeholder="e.g. Dakar, Senegal"
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold" />
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold disabled:opacity-60" />
               </div>
               <div>
                 <label htmlFor="network-country" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">Country (for filtering)</label>
-                <input required type="text" id="network-country" maxLength={80} value={country} onChange={(e) => setCountry(e.target.value)}
+                <input required type="text" id="network-country" maxLength={80} value={country} onChange={(e) => setCountry(e.target.value)} disabled={loading}
                   placeholder="e.g. Senegal"
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold" />
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold disabled:opacity-60" />
               </div>
               <div>
                 <label htmlFor="network-languages" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">Languages spoken</label>
-                <input type="text" id="network-languages" maxLength={1200} value={languages} onChange={(e) => setLanguages(e.target.value)}
+                <input type="text" id="network-languages" maxLength={1200} value={languages} onChange={(e) => setLanguages(e.target.value)} disabled={loading}
                   placeholder="e.g. French, Wolof, English"
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold" />
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold disabled:opacity-60" />
               </div>
             </div>
           </div>
@@ -149,29 +149,29 @@ export default function NetworkJoinPage() {
             <div className="space-y-4">
               <div>
                 <label htmlFor="network-sector" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">Sector</label>
-                <select required id="network-sector" value={sector} onChange={(e) => setSector(e.target.value)}
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink focus:outline-none focus:border-gold">
+                <select required id="network-sector" value={sector} onChange={(e) => setSector(e.target.value)} disabled={loading}
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink focus:outline-none focus:border-gold disabled:opacity-60">
                   <option value="">Select sector</option>
                   {SECTORS.map((s) => <option key={s}>{s}</option>)}
                 </select>
               </div>
               <div>
                 <label htmlFor="network-headline" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">One-line headline</label>
-                <input required type="text" id="network-headline" maxLength={240} value={headline} onChange={(e) => setHeadline(e.target.value)}
+                <input required type="text" id="network-headline" maxLength={240} value={headline} onChange={(e) => setHeadline(e.target.value)} disabled={loading}
                   placeholder="e.g. Building a pan-African fashion distribution platform"
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold" />
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold disabled:opacity-60" />
               </div>
               <div>
                 <label htmlFor="network-building" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">What you&apos;re building (2–4 sentences)</label>
-                <textarea required id="network-building" maxLength={3000} value={building} onChange={(e) => setBuilding(e.target.value)}
+                <textarea required id="network-building" maxLength={3000} value={building} onChange={(e) => setBuilding(e.target.value)} disabled={loading}
                   placeholder="Describe your business: what it does, who it serves, what stage you're at, what traction you have..."
                   rows={4}
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold resize-none" />
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold resize-none disabled:opacity-60" />
               </div>
               <div>
                 <label htmlFor="network-stage" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">Business stage</label>
-                <select required id="network-stage" value={stage} onChange={(e) => setStage(e.target.value)}
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink focus:outline-none focus:border-gold">
+                <select required id="network-stage" value={stage} onChange={(e) => setStage(e.target.value)} disabled={loading}
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink focus:outline-none focus:border-gold disabled:opacity-60">
                   <option value="">Select stage</option>
                   <option>Idea</option>
                   <option>Early stage</option>
@@ -191,8 +191,8 @@ export default function NetworkJoinPage() {
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {NEEDS.map((need) => (
-                    <button type="button" aria-pressed={lookingFor.includes(need)} key={need} onClick={() => toggleNeed(need)}
-                      className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                    <button type="button" aria-pressed={lookingFor.includes(need)} key={need} onClick={() => toggleNeed(need)} disabled={loading}
+                      className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors disabled:opacity-60 ${
                         lookingFor.includes(need)
                           ? "bg-deep-green text-ivory border-deep-green"
                           : "bg-white border-border text-ink hover:border-gold"
@@ -206,10 +206,10 @@ export default function NetworkJoinPage() {
                 <label htmlFor="network-offering" className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wide">
                   What can you offer to partners?
                 </label>
-                <textarea required id="network-offering" maxLength={3000} value={offering} onChange={(e) => setOffering(e.target.value)}
+                <textarea required id="network-offering" maxLength={3000} value={offering} onChange={(e) => setOffering(e.target.value)} disabled={loading}
                   placeholder="e.g. Network of 200 farmers, EU organic certification, 10 years logistics experience..."
                   rows={3}
-                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold resize-none" />
+                  className="w-full border border-border rounded-xl px-4 py-3 text-sm bg-white text-ink placeholder:text-muted/50 focus:outline-none focus:border-gold resize-none disabled:opacity-60" />
               </div>
             </div>
           </div>
