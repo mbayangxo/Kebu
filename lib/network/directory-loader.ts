@@ -1,9 +1,12 @@
 import type { DirectoryProfile } from "./types";
 
+/** Stable reason code — never translated here. The component maps this to localized text. */
+export type DirectoryErrorCode = "signed_out" | "load_failed";
+
 export type DirectoryState = {
   profiles: DirectoryProfile[];
   loading: boolean;
-  error: string | null;
+  error: DirectoryErrorCode | null;
   signedOut: boolean;
   hasMore: boolean;
 };
@@ -37,14 +40,14 @@ export function createDirectoryLoader(
       if (!active()) return;
       if (!response.ok) {
         onChange({ ...initialDirectoryState, loading: false, signedOut: response.status === 401,
-          error: response.status === 401 ? "Sign in to browse member profiles." : "Could not load members. Please retry." });
+          error: response.status === 401 ? "signed_out" : "load_failed" });
         return;
       }
       if (!Array.isArray(result.profiles)) throw new Error("Invalid directory response");
       onChange({ profiles: result.profiles, hasMore: result.hasMore === true,
         loading: false, signedOut: false, error: null });
     } catch {
-      if (active()) onChange({ ...initialDirectoryState, loading: false, error: "Could not load members. Please retry." });
+      if (active()) onChange({ ...initialDirectoryState, loading: false, error: "load_failed" });
     }
   }
   function sessionChanged(userId: string | null) {
@@ -53,7 +56,7 @@ export function createDirectoryLoader(
     if (userId === null) {
       invalidate();
       onChange({ ...initialDirectoryState, loading: false, signedOut: true,
-        error: "Sign in to browse member profiles." });
+        error: "signed_out" });
     } else {
       void reload();
     }

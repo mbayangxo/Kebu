@@ -42,3 +42,52 @@ test('API rejects wrong-owner retries and anonymous access without exposing iden
   expect((await anonymous.request.post('http://127.0.0.1:38436/api/network/profiles',{data:submitted})).status()).toBe(401);
  }finally{await second.close();await anonymous.close();}
 });
+test('French join submission stores canonical English enum values and French preference survives reload',async({page,request})=>{
+ await request.post('http://127.0.0.1:38437/__qa/reset');await session(page.context());
+ await page.addInitScript(()=>localStorage.setItem('alkebulan_lang','fr'));
+ await page.goto('/network/join');
+ await expect(page.getByRole('heading',{name:'Rejoindre le réseau',exact:true})).toBeVisible();
+ await page.getByLabel('Nom complet',{exact:true}).fill('Awa Ndiaye');await page.getByLabel('Ville, Pays',{exact:true}).fill('Dakar, Sénégal');await page.getByLabel('Pays (pour le filtrage)',{exact:true}).fill('Senegal');
+ await page.getByLabel('Secteur',{exact:true}).selectOption('Creative economy');await page.getByLabel("Phrase d'accroche en une ligne",{exact:true}).fill('Créer un studio créatif');await page.locator('#network-building').fill('Un studio pour les fondateurs locaux');await page.locator('#network-offering').fill('Services de design');
+ await page.getByRole('button',{name:'Partenaire',exact:true}).click();await page.getByLabel("Stade de l'entreprise",{exact:true}).selectOption('Idea');
+ let submitted:Record<string,unknown>={};await page.route('**/api/network/profiles',async route=>{if(route.request().method()==='POST')submitted=route.request().postDataJSON();await route.continue();});
+ await page.getByRole('button',{name:'Rejoindre le réseau →',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Vous faites partie du réseau',exact:true})).toBeVisible();
+ // Displayed labels are French; stored/transmitted values stay the canonical English enums.
+ expect(submitted).toMatchObject({sector:'Creative economy',stage:'Idea',looking_for:['Partner']});
+ await page.reload();await expect(page.getByRole('heading',{name:/réseau/i})).toBeVisible();
+ expect(await page.evaluate(()=>localStorage.getItem('alkebulan_lang'))).toBe('fr');
+});
+test('switching language mid-draft via the language bar does not discard the in-progress form',async({page,request})=>{
+ await request.post('http://127.0.0.1:38437/__qa/reset');await session(page.context());await page.goto('/network/join');
+ await expect(page.getByRole('heading',{name:'Join the network',exact:true})).toBeVisible();
+ await page.getByLabel('Full name',{exact:true}).fill('Awa Ndiaye');
+ await page.getByRole('button',{name:/English/i}).click();
+ await page.getByRole('button',{name:/Français/}).click();
+ await expect(page.getByRole('heading',{name:'Rejoindre le réseau',exact:true})).toBeVisible();
+ await expect(page.getByLabel('Nom complet',{exact:true})).toHaveValue('Awa Ndiaye');
+ await page.reload();
+ await expect(page.getByRole('heading',{name:'Rejoindre le réseau',exact:true})).toBeVisible();
+});
+test('Wolof renders the join page and surfaces the unreviewed-translation notice',async({page,request})=>{
+ await request.post('http://127.0.0.1:38437/__qa/reset');await session(page.context());
+ await page.addInitScript(()=>localStorage.setItem('alkebulan_lang','wo'));
+ await page.goto('/network/join');
+ await expect(page.getByRole('heading',{name:'Bokk ci réseau bi',exact:true})).toBeVisible();
+ await expect(page.getByLabel('Sa tur bu mat',{exact:true})).toBeVisible();
+ // Reuses the existing LanguageBar "AI translations are approximate" notice — Wolof must not be presented as fluent-reviewed.
+ await expect(page.getByText(/approximate/i)).toBeVisible();
+ await expect(page.getByText(/Native Wolof speakers/i)).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+test('blocked storage (private browsing) still renders a usable join page in English',async({page,request})=>{
+ await request.post('http://127.0.0.1:38437/__qa/reset');await session(page.context());
+ await page.addInitScript(()=>{
+  const blocked=()=>{throw new DOMException('blocked','SecurityError');};
+  Object.defineProperty(window,'localStorage',{value:{getItem:blocked,setItem:blocked,removeItem:blocked,clear:blocked,key:blocked,length:0},configurable:true});
+ });
+ await page.goto('/network/join');
+ await expect(page.getByRole('heading',{name:'Join the network',exact:true})).toBeVisible();
+ await page.getByLabel('Full name',{exact:true}).fill('Awa Ndiaye');
+ await expect(page.getByLabel('Full name',{exact:true})).toHaveValue('Awa Ndiaye');
+});

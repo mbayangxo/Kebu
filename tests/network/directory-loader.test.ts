@@ -74,7 +74,7 @@ describe("Network directory session and request boundaries", () => {
     loader.sessionChanged(null);
     old.reject(new Error("private transport error"));
     await loading;
-    expect(current(change).error).toBe("Sign in to browse member profiles.");
+    expect(current(change).error).toBe("signed_out");
   });
   it("does not write state or fetch again after disposal", async () => {
     const old = deferred<Response>();
