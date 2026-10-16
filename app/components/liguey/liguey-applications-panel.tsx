@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
+import { LanguageBar } from "@/app/components/language-bar";
+import { useLocale } from "@/app/components/locale-context";
+import { ligueyT, applicationStatusLabel, type LigueyKey } from "@/lib/liguey/liguey-i18n";
 
 type Application = { id: string; listing_id: string; status: string; cover_note: string; created_at: string };
 type Listing = { id: string; title: string; status: string };
@@ -9,6 +12,8 @@ type Listing = { id: string; title: string; status: string };
 const fieldStyle = { borderColor: KEBU.borders.default } as const;
 
 export function LigueyApplicationsPanel({ initialApplications, initialListings }: { initialApplications: Application[]; initialListings: Listing[] }) {
+  const { lang } = useLocale();
+  const t = (key: LigueyKey) => ligueyT(lang, key);
   const [applications, setApplications] = useState(initialApplications);
   const listingById = new Map(initialListings.map((listing) => [listing.id, listing]));
 
@@ -21,9 +26,12 @@ export function LigueyApplicationsPanel({ initialApplications, initialListings }
 
   return (
     <div className="mx-auto max-w-[760px] px-4 py-4 sm:px-6">
-      <header className="border-b pb-4" style={fieldStyle}>
-        <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-black/30">Kebu Liguey</p>
-        <h1 className="mt-1 text-[26px] tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Your applications</h1>
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b pb-4" style={fieldStyle}>
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-black/30">{t("brand")}</p>
+          <h1 className="mt-1 text-[26px] tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>{t("applications_title")}</h1>
+        </div>
+        <LanguageBar variant="builder" />
       </header>
 
       <section className="mt-6 space-y-2">
@@ -33,15 +41,15 @@ export function LigueyApplicationsPanel({ initialApplications, initialListings }
             <div key={application.id} className="flex items-center gap-3 rounded-[12px] border p-3" style={fieldStyle}>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[12px] font-black">{listing?.title ?? "Listing"}</p>
-                <p className="mt-0.5 text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{application.status.replaceAll("_", " ")}</p>
+                <p className="mt-0.5 text-[9px] uppercase tracking-wide" style={{ color: KEBU.muted }}>{applicationStatusLabel(application.status, lang)}</p>
               </div>
               {application.status === "submitted" || application.status === "reviewed" ? (
-                <button type="button" onClick={() => withdraw(application.id)} className="shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-black" style={fieldStyle}>Withdraw</button>
+                <button type="button" onClick={() => withdraw(application.id)} className="shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-black" style={fieldStyle}>{t("applications_withdraw")}</button>
               ) : null}
             </div>
           );
         })}
-        {applications.length === 0 ? <p className="text-[10px]" style={{ color: KEBU.faint }}>You haven&apos;t applied to anything yet.</p> : null}
+        {applications.length === 0 ? <p className="text-[10px]" style={{ color: KEBU.faint }}>{t("applications_empty")}</p> : null}
       </section>
     </div>
   );
