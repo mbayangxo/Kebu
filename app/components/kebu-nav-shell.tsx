@@ -59,6 +59,7 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     label: "Build",
     items: [
       { label: "Businesses", href: "/business", icon: "spaces", prefixes: ["/business"] },
+      { label: "Liguey", href: "/liguey", icon: "work", prefixes: ["/liguey"] },
       { label: "Opportunity", href: "/opportunity", icon: "opportunity" },
       { label: "Finance", href: "/finance", icon: "work" },
     ],
