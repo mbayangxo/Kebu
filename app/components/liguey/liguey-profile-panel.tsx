@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
+import { LanguageBar } from "@/app/components/language-bar";
+import { useLocale } from "@/app/components/locale-context";
+import { ligueyT, type LigueyKey } from "@/lib/liguey/liguey-i18n";
 
 type Experience = { title: string; description: string; kind: "formal" | "informal"; startAt?: string | null; endAt?: string | null };
 type Profile = {
@@ -16,6 +19,8 @@ type EvidenceLink = { id: string; library_node_id: string; label: string | null;
 const fieldStyle = { borderColor: KEBU.borders.default } as const;
 
 export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode[] }) {
+  const { lang } = useLocale();
+  const t = (key: LigueyKey) => ligueyT(lang, key);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -138,115 +143,118 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
   const availableNodes = libraryNodes.filter((node) => !linkedNodeIds.has(node.id));
 
   if (loading) {
-    return <div className="mx-auto max-w-[760px] px-4 py-10 text-[11px]" style={{ color: KEBU.muted }}>Loading your profile…</div>;
+    return <div className="mx-auto max-w-[760px] px-4 py-10 text-[11px]" style={{ color: KEBU.muted }}>{t("profile_loading")}</div>;
   }
 
   return (
     <div className="mx-auto max-w-[760px] px-4 py-4 sm:px-6">
-      <header className="border-b pb-4" style={fieldStyle}>
-        <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-black/30">Kebu Liguey</p>
-        <h1 className="mt-1 text-[26px] tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>Your worker profile</h1>
-        <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>
-          {profile?.verifiedAt ? `Verified ${new Date(profile.verifiedAt).toLocaleDateString()}` : "Self-reported — nothing here is verified yet."}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b pb-4" style={fieldStyle}>
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-black/30">{t("brand")}</p>
+          <h1 className="mt-1 text-[26px] tracking-[-.04em]" style={{ fontFamily: "var(--font-fraunces)" }}>{t("profile_title")}</h1>
+          <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>
+            {profile?.verifiedAt ? `${t("profile_subtitle_verified")} ${new Date(profile.verifiedAt).toLocaleDateString()}` : t("profile_subtitle_unverified")}
+          </p>
+        </div>
+        <LanguageBar variant="builder" />
       </header>
 
       {error ? <div className="mt-4 rounded-[10px] border px-3 py-2 text-[10px]" style={{ borderColor: "#FFB3B3", color: "#B00020", background: "#FFF3F3" }}>{error}</div> : null}
 
       <section className="mt-6 space-y-4">
         <div>
-          <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>Headline</label>
+          <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_headline")}</label>
           <input disabled={saving} value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={160}
-            placeholder="e.g. Wolof-French translator and community organizer"
+            placeholder={t("profile_placeholder_headline")}
             className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
         </div>
 
         <div>
-          <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>About you</label>
+          <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_about")}</label>
           <textarea disabled={saving} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={4000} rows={4}
-            placeholder="Tell employers about your background — formal or informal — in your own words."
+            placeholder={t("profile_placeholder_about")}
             className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>Skills</label>
-            <input disabled={saving} value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="Comma-separated, e.g. translation, bookkeeping"
+            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_skills")}</label>
+            <input disabled={saving} value={skills} onChange={(e) => setSkills(e.target.value)} placeholder={t("profile_placeholder_skills")}
               className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
           </div>
           <div>
-            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>Languages</label>
-            <input disabled={saving} value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder="Comma-separated, e.g. Wolof, French"
+            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_languages")}</label>
+            <input disabled={saving} value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder={t("profile_placeholder_languages")}
               className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>Location</label>
-            <input disabled={saving} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, region"
+            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_location")}</label>
+            <input disabled={saving} value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("profile_placeholder_location")}
               className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
           </div>
           <div>
-            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>Country code</label>
+            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_country")}</label>
             <input disabled={saving} value={countryCode} onChange={(e) => setCountryCode(e.target.value.toUpperCase())} maxLength={2} placeholder="SN"
               className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px] uppercase" style={fieldStyle} />
           </div>
           <div>
-            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>Availability</label>
+            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_availability")}</label>
             <select disabled={saving} value={availability} onChange={(e) => setAvailability(e.target.value as typeof availability)}
               className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle}>
-              <option value="">Not set</option>
-              <option value="open">Open to work</option>
-              <option value="limited">Limited availability</option>
-              <option value="unavailable">Unavailable</option>
+              <option value="">{t("profile_availability_not_set")}</option>
+              <option value="open">{t("profile_availability_open")}</option>
+              <option value="limited">{t("profile_availability_limited")}</option>
+              <option value="unavailable">{t("profile_availability_unavailable")}</option>
             </select>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-4">
-          <label className="flex items-center gap-2 text-[11px]"><input disabled={saving} type="checkbox" checked={remoteEligible} onChange={(e) => setRemoteEligible(e.target.checked)} />Open to remote work</label>
-          <label className="flex items-center gap-2 text-[11px]"><input disabled={saving} type="checkbox" checked={isDiscoverable} onChange={(e) => setIsDiscoverable(e.target.checked)} />Discoverable by employers</label>
+          <label className="flex items-center gap-2 text-[11px]"><input disabled={saving} type="checkbox" checked={remoteEligible} onChange={(e) => setRemoteEligible(e.target.checked)} />{t("profile_check_remote")}</label>
+          <label className="flex items-center gap-2 text-[11px]"><input disabled={saving} type="checkbox" checked={isDiscoverable} onChange={(e) => setIsDiscoverable(e.target.checked)} />{t("profile_check_discoverable")}</label>
         </div>
 
         <div>
           <div className="flex items-center justify-between">
-            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>Experience</label>
-            <button type="button" disabled={saving} onClick={addExperience} className="text-[9px] font-black uppercase" style={{ color: KEBU.orange }}>+ Add</button>
+            <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_experience_label")}</label>
+            <button type="button" disabled={saving} onClick={addExperience} className="text-[9px] font-black uppercase" style={{ color: KEBU.orange }}>{t("profile_experience_add")}</button>
           </div>
-          <p className="mt-1 text-[9px]" style={{ color: KEBU.faint }}>Formal jobs and informal/life experience are both welcome here.</p>
+          <p className="mt-1 text-[9px]" style={{ color: KEBU.faint }}>{t("profile_experience_hint")}</p>
           <div className="mt-2 space-y-2">
             {experience.map((entry, index) => (
               <div key={index} className="rounded-[10px] border p-3" style={fieldStyle}>
                 <div className="flex items-center gap-2">
                   <input disabled={saving} value={entry.title} onChange={(e) => updateExperience(index, { title: e.target.value })} maxLength={160}
-                    placeholder="What did you do?" className="flex-1 rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
+                    placeholder={t("profile_experience_placeholder_title")} className="flex-1 rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
                   <select disabled={saving} value={entry.kind} onChange={(e) => updateExperience(index, { kind: e.target.value as Experience["kind"] })}
                     className="rounded-[8px] border px-2 py-1.5 text-[10px]" style={fieldStyle}>
-                    <option value="informal">Informal / life experience</option>
-                    <option value="formal">Formal employment</option>
+                    <option value="informal">{t("profile_experience_informal")}</option>
+                    <option value="formal">{t("profile_experience_formal")}</option>
                   </select>
-                  <button type="button" disabled={saving} onClick={() => removeExperience(index)} aria-label="Remove experience entry" className="text-[9px] font-black" style={{ color: KEBU.muted }}>✕</button>
+                  <button type="button" disabled={saving} onClick={() => removeExperience(index)} aria-label={t("profile_experience_remove")} className="text-[9px] font-black" style={{ color: KEBU.muted }}>✕</button>
                 </div>
                 <textarea disabled={saving} value={entry.description} onChange={(e) => updateExperience(index, { description: e.target.value })} maxLength={2000} rows={2}
-                  placeholder="Describe it in your own words" className="mt-2 w-full rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
+                  placeholder={t("profile_experience_placeholder_description")} className="mt-2 w-full rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
               </div>
             ))}
-            {experience.length === 0 ? <p className="text-[10px]" style={{ color: KEBU.faint }}>No experience added yet.</p> : null}
+            {experience.length === 0 ? <p className="text-[10px]" style={{ color: KEBU.faint }}>{t("profile_experience_empty")}</p> : null}
           </div>
         </div>
 
         <div className="flex items-center gap-3 pt-2">
           <button type="button" disabled={saving} onClick={handleSave} className="rounded-full bg-black px-5 py-2 text-[10px] font-black uppercase tracking-wide text-white disabled:opacity-50">
-            {saving ? "Saving…" : "Save profile"}
+            {saving ? t("profile_saving") : t("profile_save")}
           </button>
-          {savedAt ? <span className="text-[9px]" style={{ color: KEBU.faint }}>Saved</span> : null}
+          {savedAt ? <span className="text-[9px]" style={{ color: KEBU.faint }}>{t("profile_saved")}</span> : null}
         </div>
       </section>
 
       <section className="mt-10 border-t pt-6" style={fieldStyle}>
-        <h2 className="text-[13px] font-black">Portfolio evidence</h2>
-        <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>Link items from your Library to show your work.</p>
+        <h2 className="text-[13px] font-black">{t("profile_evidence_title")}</h2>
+        <p className="mt-1 text-[10px]" style={{ color: KEBU.muted }}>{t("profile_evidence_hint")}</p>
 
         {evidenceError ? <div className="mt-3 rounded-[10px] border px-3 py-2 text-[10px]" style={{ borderColor: "#FFB3B3", color: "#B00020", background: "#FFF3F3" }}>{evidenceError}</div> : null}
 
@@ -258,25 +266,25 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
                 <p className="truncate text-[11px] font-semibold">{link.label || evidenceNodes[link.library_node_id]?.title || "Library item"}</p>
                 <p className="truncate text-[9px]" style={{ color: KEBU.faint }}>{evidenceNodes[link.library_node_id]?.title}</p>
               </div>
-              <button type="button" onClick={() => handleRemoveEvidence(link.library_node_id)} className="text-[9px] font-black" style={{ color: KEBU.muted }}>Remove</button>
+              <button type="button" onClick={() => handleRemoveEvidence(link.library_node_id)} className="text-[9px] font-black" style={{ color: KEBU.muted }}>{t("profile_evidence_remove")}</button>
             </div>
           ))}
-          {evidence.length === 0 ? <p className="text-[10px]" style={{ color: KEBU.faint }}>No portfolio evidence linked yet.</p> : null}
+          {evidence.length === 0 ? <p className="text-[10px]" style={{ color: KEBU.faint }}>{t("profile_evidence_empty")}</p> : null}
         </div>
 
         {availableNodes.length > 0 ? (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <select value={selectedNodeId} onChange={(e) => setSelectedNodeId(e.target.value)} className="rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle}>
-              <option value="">Choose a Library item…</option>
+              <option value="">{t("profile_evidence_choose")}</option>
               {availableNodes.map((node) => <option key={node.id} value={node.id}>{node.title}</option>)}
             </select>
-            <input value={evidenceLabel} onChange={(e) => setEvidenceLabel(e.target.value)} placeholder="Label (optional)" maxLength={160}
+            <input value={evidenceLabel} onChange={(e) => setEvidenceLabel(e.target.value)} placeholder={t("profile_evidence_label_placeholder")} maxLength={160}
               className="rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
-            <button type="button" disabled={!selectedNodeId} onClick={handleLinkEvidence} className="rounded-full border px-4 py-1.5 text-[10px] font-black disabled:opacity-40" style={fieldStyle}>Link</button>
+            <button type="button" disabled={!selectedNodeId} onClick={handleLinkEvidence} className="rounded-full border px-4 py-1.5 text-[10px] font-black disabled:opacity-40" style={fieldStyle}>{t("profile_evidence_link")}</button>
           </div>
         ) : (
           <p className="mt-4 text-[10px]" style={{ color: KEBU.faint }}>
-            {libraryNodes.length === 0 ? "You don't have any Library documents, sheets or links yet to use as evidence." : "All of your eligible Library items are already linked."}
+            {libraryNodes.length === 0 ? t("profile_evidence_none_available") : t("profile_evidence_all_linked")}
           </p>
         )}
       </section>
