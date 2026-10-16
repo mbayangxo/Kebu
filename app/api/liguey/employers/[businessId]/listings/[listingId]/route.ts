@@ -32,7 +32,31 @@ export async function GET(_req: Request, { params }: Params) {
     .eq("listing_id", listingId)
     .order("created_at", { ascending: false });
 
-  return NextResponse.json({ listing, applications: applications ?? [] });
+  // K066 case 6: a reviewer may now see the applicant's worker_profile and
+  // portfolio evidence (not just their cover_note) — RLS grants this only
+  // for a worker with a non-withdrawn application to this business, and
+  // only for as long as that stays true (20261016200000). No separate
+  // authorization check is needed here: a withdrawn application's
+  // applicant simply returns no profile row, matching the DB's own grant.
+  const applicantIds = [...new Set((applications ?? []).map((application) => application.applicant_user_id))];
+  let profiles: { user_id: string; headline: string | null; skills: string[]; languages: string[]; experience: unknown[] }[] = [];
+  let evidence: { user_id: string; library_node_id: string; label: string | null }[] = [];
+  let evidenceNodes: { id: string; title: string; kind: string }[] = [];
+  if (applicantIds.length) {
+    const [profileResult, evidenceResult] = await Promise.all([
+      supabase.from("worker_profiles").select("user_id, headline, skills, languages, experience").in("user_id", applicantIds),
+      supabase.from("worker_profile_evidence").select("user_id, library_node_id, label").in("user_id", applicantIds),
+    ]);
+    profiles = profileResult.data ?? [];
+    evidence = evidenceResult.data ?? [];
+    const nodeIds = [...new Set(evidence.map((link) => link.library_node_id))];
+    if (nodeIds.length) {
+      const { data } = await supabase.from("library_nodes").select("id, title, kind").in("id", nodeIds);
+      evidenceNodes = data ?? [];
+    }
+  }
+
+  return NextResponse.json({ listing, applications: applications ?? [], applicantProfiles: profiles, applicantEvidence: evidence, evidenceNodes });
 }
 
 /** Update a listing (including publishing/closing/archiving it) — manager-gated. */
