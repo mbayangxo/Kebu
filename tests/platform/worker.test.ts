@@ -43,4 +43,14 @@ describe("platform worker",()=>{
   expect(result).toEqual({claimed:1,succeeded:0,failed:1});
   expect(fulfillPaidDigitalOrder).not.toHaveBeenCalled();
  });
+ it("dead-letters a digital.fulfill job once attempts reach max_attempts, instead of retrying forever",async()=>{
+  fulfillPaidDigitalOrder.mockReset().mockRejectedValue(new Error("mail provider down"));
+  const updateEq=vi.fn().mockResolvedValue({error:null});
+  const update=vi.fn(()=>({eq:updateEq}));
+  // attempts already equals max_attempts at claim time (claim_platform_jobs increments before executeJob runs) — this is the final attempt.
+  const admin={rpc:vi.fn().mockResolvedValue({data:[{id:"j5",job_type:"digital.fulfill",payload:{orderId:"order-3"},attempts:5,max_attempts:5}],error:null}),from:vi.fn(()=>({update}))} as unknown as SupabaseClient;
+  const result=await runPlatformWorker(admin,"test",1);
+  expect(result).toEqual({claimed:1,succeeded:0,failed:1});
+  expect(update).toHaveBeenCalledWith(expect.objectContaining({status:"dead"}));
+ });
 });
