@@ -10,7 +10,7 @@ vi.mock("@/lib/platform/jobs", () => ({
   enqueuePlatformJob: (...args: unknown[]) => enqueuePlatformJob(...args),
 }));
 
-import { fulfillPaidDigitalOrder, fulfillPaidDigitalOrderDurable } from "@/lib/shop/digital-downloads";
+import { fulfillPaidDigitalOrder, fulfillPaidDigitalOrderDurable, reconcileOrphanedDigitalFulfillments } from "@/lib/shop/digital-downloads";
 
 const order = {
   id: "order-1", project_id: "proj-1", product_id: "prod-1",
@@ -83,5 +83,75 @@ describe("fulfillPaidDigitalOrderDurable (webhook-facing wrapper)", () => {
       payload: { orderId: "order-1" },
       idempotencyKey: "digital.fulfill:order-1",
     });
+  });
+
+  it("rethrows when fulfillment AND enqueueing both fail, instead of falsely resolving as durably queued", async () => {
+    enqueuePlatformJob.mockRejectedValue(new Error("platform_jobs insert failed"));
+    await expect(fulfillPaidDigitalOrderDurable(admin({ insertError: "db unavailable" }), "order-1"))
+      .rejects.toThrow("platform_jobs insert failed");
+  });
+});
+
+describe("reconcileOrphanedDigitalFulfillments (crash-before-any-attempt backstop)", () => {
+  beforeEach(() => {
+    // resetAllMocks (not clearAllMocks) — the previous describe block leaves
+    // enqueuePlatformJob with a lingering mockRejectedValue implementation.
+    vi.resetAllMocks();
+    enqueuePlatformJob.mockResolvedValue(undefined);
+  });
+
+  function reconcileAdmin(opts: {
+    paidOrders: { id: string; product_id: string }[];
+    digitalProductIds: string[];
+    fulfilledOrderIds: string[];
+  }) {
+    return {
+      from: (table: string) => {
+        if (table === "shop_orders") return { select: () => ({ eq: () => ({ not: () => ({ gte: () => ({ limit: async () => ({ data: opts.paidOrders }) }) }) }) }) };
+        if (table === "project_products") return { select: () => ({ in: () => ({ eq: async () => ({ data: opts.digitalProductIds.map((id) => ({ id })) }) }) }) };
+        if (table === "shop_digital_downloads") return { select: () => ({ in: async () => ({ data: opts.fulfilledOrderIds.map((order_id) => ({ order_id })) }) }) };
+        throw new Error(`Unexpected table ${table}`);
+      },
+    } as never;
+  }
+
+  it("enqueues a digital.fulfill job for a paid digital order with no download row yet", async () => {
+    const result = await reconcileOrphanedDigitalFulfillments(
+      reconcileAdmin({ paidOrders: [{ id: "order-5", product_id: "prod-1" }], digitalProductIds: ["prod-1"], fulfilledOrderIds: [] }),
+    );
+    expect(result).toEqual({ scanned: 1, enqueued: 1 });
+    expect(enqueuePlatformJob).toHaveBeenCalledWith(expect.anything(), {
+      type: "digital.fulfill",
+      payload: { orderId: "order-5" },
+      idempotencyKey: "digital.fulfill:order-5",
+    });
+  });
+
+  it("does not enqueue an order that already has a download row", async () => {
+    const result = await reconcileOrphanedDigitalFulfillments(
+      reconcileAdmin({ paidOrders: [{ id: "order-6", product_id: "prod-1" }], digitalProductIds: ["prod-1"], fulfilledOrderIds: ["order-6"] }),
+    );
+    expect(result).toEqual({ scanned: 1, enqueued: 0 });
+    expect(enqueuePlatformJob).not.toHaveBeenCalled();
+  });
+
+  it("does not enqueue a paid order for a non-digital product", async () => {
+    const result = await reconcileOrphanedDigitalFulfillments(
+      reconcileAdmin({ paidOrders: [{ id: "order-7", product_id: "prod-physical" }], digitalProductIds: [], fulfilledOrderIds: [] }),
+    );
+    expect(result).toEqual({ scanned: 1, enqueued: 0 });
+    expect(enqueuePlatformJob).not.toHaveBeenCalled();
+  });
+
+  it("keeps sweeping the rest when one order's enqueue fails, rather than aborting the whole backfill", async () => {
+    enqueuePlatformJob.mockRejectedValueOnce(new Error("transient")).mockResolvedValueOnce(undefined);
+    const result = await reconcileOrphanedDigitalFulfillments(
+      reconcileAdmin({
+        paidOrders: [{ id: "order-8", product_id: "prod-1" }, { id: "order-9", product_id: "prod-1" }],
+        digitalProductIds: ["prod-1"], fulfilledOrderIds: [],
+      }),
+    );
+    expect(result).toEqual({ scanned: 2, enqueued: 1 });
+    expect(enqueuePlatformJob).toHaveBeenCalledTimes(2);
   });
 });
