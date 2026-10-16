@@ -11,6 +11,9 @@ type Listing = {
   employment_type: string; location_type: string; location: string; status: string;
 };
 type Application = { id: string; applicant_user_id: string; cover_note: string; status: string; decided_at: string | null; created_at: string };
+type ApplicantProfile = { user_id: string; headline: string | null; skills: string[]; languages: string[] };
+type EvidenceLink = { user_id: string; library_node_id: string; label: string | null };
+type EvidenceNode = { id: string; title: string; kind: string };
 
 const fieldStyle = { borderColor: KEBU.borders.default } as const;
 const EMPLOYMENT_TYPES = ["full_time", "part_time", "contract", "internship", "apprenticeship", "gig"] as const;
@@ -28,6 +31,9 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
   const [listings, setListings] = useState(initialListings);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [applicationsByListing, setApplicationsByListing] = useState<Record<string, Application[]>>({});
+  const [profilesByListing, setProfilesByListing] = useState<Record<string, ApplicantProfile[]>>({});
+  const [evidenceByListing, setEvidenceByListing] = useState<Record<string, EvidenceLink[]>>({});
+  const [evidenceNodesByListing, setEvidenceNodesByListing] = useState<Record<string, EvidenceNode[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
@@ -69,7 +75,12 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
     if (!applicationsByListing[listingId]) {
       const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}`);
       const body = await res.json();
-      if (res.ok) setApplicationsByListing((prev) => ({ ...prev, [listingId]: body.applications }));
+      if (res.ok) {
+        setApplicationsByListing((prev) => ({ ...prev, [listingId]: body.applications }));
+        setProfilesByListing((prev) => ({ ...prev, [listingId]: body.applicantProfiles ?? [] }));
+        setEvidenceByListing((prev) => ({ ...prev, [listingId]: body.applicantEvidence ?? [] }));
+        setEvidenceNodesByListing((prev) => ({ ...prev, [listingId]: body.evidenceNodes ?? [] }));
+      }
     }
   }
 
@@ -139,12 +150,30 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
                 {(applicationsByListing[listing.id] ?? []).length === 0 ? (
                   <p className="text-[9px]" style={{ color: KEBU.faint }}>{t("employer_no_applicants")}</p>
                 ) : (
-                  applicationsByListing[listing.id].map((application) => (
+                  applicationsByListing[listing.id].map((application) => {
+                    const profile = (profilesByListing[listing.id] ?? []).find((candidate) => candidate.user_id === application.applicant_user_id);
+                    const links = (evidenceByListing[listing.id] ?? []).filter((link) => link.user_id === application.applicant_user_id);
+                    const nodesById = new Map((evidenceNodesByListing[listing.id] ?? []).map((node) => [node.id, node]));
+                    return (
                     <div key={application.id} className="rounded-[10px] border p-2" style={fieldStyle}>
                       <div className="flex items-center justify-between gap-2">
                         <p className="truncate text-[10px] font-semibold">{application.cover_note || t("employer_no_cover_note")}</p>
                         <StatusPill status={application.status} lang={lang} kind="application" />
                       </div>
+                      {profile ? (
+                        <div className="mt-1.5 space-y-1">
+                          {profile.headline ? <p className="text-[9px] font-semibold">{profile.headline}</p> : null}
+                          {profile.skills.length ? <p className="text-[8px]" style={{ color: KEBU.faint }}>{t("employer_profile_skills")}: {profile.skills.join(", ")}</p> : null}
+                          {profile.languages.length ? <p className="text-[8px]" style={{ color: KEBU.faint }}>{t("employer_profile_languages")}: {profile.languages.join(", ")}</p> : null}
+                          {links.length ? (
+                            <p className="text-[8px]" style={{ color: KEBU.faint }}>
+                              {t("employer_profile_evidence")}: {links.map((link) => link.label || nodesById.get(link.library_node_id)?.title || "—").join(", ")}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <p className="mt-1.5 text-[8px]" style={{ color: KEBU.faint }}>{t("employer_no_profile")}</p>
+                      )}
                       {application.status === "submitted" || application.status === "reviewed" ? (
                         <div className="mt-1.5 flex gap-2">
                           <button type="button" onClick={() => decide(listing.id, application.id, "reviewed")} className="text-[8px] font-black uppercase" style={{ color: KEBU.muted }}>{t("employer_mark_reviewed")}</button>
@@ -153,7 +182,8 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
                         </div>
                       ) : null}
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             ) : null}

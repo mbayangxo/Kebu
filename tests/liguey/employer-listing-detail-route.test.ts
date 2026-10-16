@@ -12,11 +12,14 @@ const request = (method: string, body?: unknown) =>
   new Request(`https://kebu.test/api/liguey/employers/${businessId}/listings/${listingId}`, { method, headers: { "Content-Type": "application/json" }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
 const ctx = { params: Promise.resolve({ businessId, listingId }) };
 
-function setup(opts: { managerRole?: string | null; listing?: unknown; applications?: unknown[]; updateResult?: { data: unknown; error: unknown } } = {}) {
+function setup(opts: { managerRole?: string | null; listing?: unknown; applications?: unknown[]; updateResult?: { data: unknown; error: unknown }; profiles?: unknown[]; evidence?: unknown[]; evidenceNodes?: unknown[] } = {}) {
   const memberMaybeSingle = vi.fn().mockResolvedValue({ data: opts.managerRole === undefined ? { role: "founder" } : opts.managerRole === null ? null : { role: opts.managerRole }, error: null });
   const listingMaybeSingle = vi.fn().mockResolvedValue({ data: opts.listing === undefined ? listingRow : opts.listing, error: null });
   const applicationsOrder = vi.fn().mockResolvedValue({ data: opts.applications ?? [], error: null });
   const updateMaybeSingle = vi.fn().mockResolvedValue(opts.updateResult ?? { data: listingRow, error: null });
+  const profilesIn = vi.fn().mockResolvedValue({ data: opts.profiles ?? [], error: null });
+  const evidenceIn = vi.fn().mockResolvedValue({ data: opts.evidence ?? [], error: null });
+  const evidenceNodesIn = vi.fn().mockResolvedValue({ data: opts.evidenceNodes ?? [], error: null });
   const from = vi.fn((table: string) => {
     if (table === "business_members") return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: memberMaybeSingle };
     if (table === "job_listings") {
@@ -26,6 +29,9 @@ function setup(opts: { managerRole?: string | null; listing?: unknown; applicati
       };
     }
     if (table === "job_applications") return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: applicationsOrder };
+    if (table === "worker_profiles") return { select: vi.fn().mockReturnThis(), in: profilesIn };
+    if (table === "worker_profile_evidence") return { select: vi.fn().mockReturnThis(), in: evidenceIn };
+    if (table === "library_nodes") return { select: vi.fn().mockReturnThis(), in: evidenceNodesIn };
     throw new Error("unexpected table " + table);
   });
   auth.mockResolvedValue({ user: { id: userId }, supabase: { from } });
@@ -36,12 +42,32 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("Liguey single-listing route", () => {
   it("returns the listing with its applications", async () => {
-    setup({ applications: [{ id: "app1", status: "submitted" }] });
+    setup({ applications: [{ id: "app1", applicant_user_id: userId, status: "submitted" }] });
     const response = await GET(request("GET"), ctx);
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.listing).toMatchObject(listingRow);
     expect(body.applications).toHaveLength(1);
+  });
+
+  it("includes the applicant's worker profile and portfolio evidence alongside each application (K066 case 6)", async () => {
+    setup({
+      applications: [{ id: "app1", applicant_user_id: userId, status: "submitted" }],
+      profiles: [{ user_id: userId, headline: "Translator", skills: ["Wolof"], languages: ["Wolof", "French"] }],
+      evidence: [{ user_id: userId, library_node_id: "node1", label: "Sample" }],
+      evidenceNodes: [{ id: "node1", title: "Sample doc", kind: "document" }],
+    });
+    const response = await GET(request("GET"), ctx);
+    const body = await response.json();
+    expect(body.applicantProfiles[0]).toMatchObject({ user_id: userId, headline: "Translator" });
+    expect(body.applicantEvidence[0]).toMatchObject({ library_node_id: "node1" });
+    expect(body.evidenceNodes[0]).toMatchObject({ title: "Sample doc" });
+  });
+
+  it("does not query profile/evidence tables when there are no applications (nothing to look up)", async () => {
+    const { from } = setup({ applications: [] });
+    await GET(request("GET"), ctx);
+    expect(from).not.toHaveBeenCalledWith("worker_profiles");
   });
 
   it("404s a listing that does not belong to this business", async () => {
