@@ -67,6 +67,14 @@ export default async function LigueyHomePage() {
 
           <div className="mt-4 flex items-center gap-4 border-b py-4" style={{ borderColor: KEBU.borders.default }}>
             <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-black">Open work</p>
+              <p className="mt-0.5 text-[10px]" style={{ color: KEBU.muted }}>Browse real listings published by Kebu businesses.</p>
+            </div>
+            <Link href="/liguey/discover" className="shrink-0 rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-wide" style={{ borderColor: KEBU.borders.default }}>Discover</Link>
+          </div>
+
+          <div className="mt-4 flex items-center gap-4 border-b py-4" style={{ borderColor: KEBU.borders.default }}>
+            <div className="min-w-0 flex-1">
               <p className="text-[13px] font-black">Your applications</p>
               <p className="mt-0.5 text-[10px]" style={{ color: KEBU.muted }}>{hasApplications ? "Track status and withdraw if needed." : "You haven't applied to anything yet."}</p>
             </div>
@@ -90,7 +98,7 @@ export default async function LigueyHomePage() {
           <div className="mt-6 rounded-[16px] border p-5" style={{ borderColor: KEBU.borders.default }}>
             <p className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>What&apos;s here today</p>
             <p className="mt-2 text-[11px] leading-relaxed text-black/60">
-              Liguey&apos;s worker profile, employer listing management and applicant review are live. Real public work discovery for workers who don&apos;t already have a listing link, and the SAFA connected journey, are not built yet — this page will not show invented job listings in the meantime.
+              Liguey&apos;s worker profile, employer listing management, applicant review, and real public work discovery are live. The SAFA connected journey, deeper Network/Rooms integration, and EN/FR/Wolof coverage are not built yet.
             </p>
           </div>
         </section>
