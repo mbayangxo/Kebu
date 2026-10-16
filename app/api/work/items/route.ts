@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   if (url.searchParams.has("kind") && !kindParsed.success) return NextResponse.json({ error: "Invalid item type." }, { status: 400 });
   let query = supabase
     .from("workspace_items")
-    .select("id, owner_id, business_id, kind, title, body, status, due_at, start_at, end_at, created_at, updated_at")
+    .select("id, owner_id, business_id, kind, title, body, status, due_at, start_at, end_at, visibility, created_at, updated_at")
     .order("updated_at", { ascending: false })
     .limit(200);
 
@@ -51,6 +51,7 @@ export async function POST(req: Request) {
     owner_id: user.id, business_id: parsed.data.businessId ?? null, kind: parsed.data.kind,
     title: parsed.data.title, body: parsed.data.body, status: parsed.data.status,
     due_at: parsed.data.dueAt ?? null, start_at: parsed.data.startAt ?? null, end_at: parsed.data.endAt ?? null,
+    visibility: parsed.data.visibility,
   };
   const { data, error } = await supabase.from("workspace_items").insert(row).select("*").single();
   if (error?.code === "23505" && parsed.data.id) {
@@ -94,6 +95,7 @@ export async function PATCH(req: Request) {
   if (parsed.data.startAt !== undefined) patch.start_at = parsed.data.startAt;
   if (parsed.data.endAt !== undefined) patch.end_at = parsed.data.endAt;
   if (parsed.data.businessId !== undefined) patch.business_id = parsed.data.businessId;
+  if (parsed.data.visibility !== undefined) patch.visibility = parsed.data.visibility;
 
   const { data, error } = await supabase.from("workspace_items").update(patch).eq("id", parsed.data.id)
     .eq("updated_at", parsed.data.expectedUpdatedAt ?? existing.updated_at).select("*").maybeSingle();
