@@ -58,13 +58,21 @@ export async function POST(req: Request) {
 
   if (error || !room) return NextResponse.json({ error: "Could not create room." }, { status: 500 });
 
-  await supabase.from("room_members").insert({ room_id: room.id, user_id: user.id, role: "owner" });
-  await supabase.from("space_channels").insert({
+  const { error: memberError } = await supabase.from("room_members").insert({ room_id: room.id, user_id: user.id, role: "owner" });
+  const { error: channelError } = await supabase.from("space_channels").insert({
     created_by: user.id,
     business_id: room.business_id,
     room_id: room.id,
     name: room.name,
   });
+  if (memberError || channelError) {
+    // There is no rooms DELETE policy (archived_at is the existing
+    // soft-delete convention, already excluded by this route's own GET
+    // and by can_access_room()), so an incomplete room is archived
+    // immediately rather than left behind half-set-up and undeletable.
+    await supabase.from("rooms").update({ archived_at: new Date().toISOString() }).eq("id", room.id);
+    return NextResponse.json({ error: "Could not finish setting up the room. Nothing was created." }, { status: 500 });
+  }
 
   return NextResponse.json({ room }, { status: 201 });
 }
