@@ -62,37 +62,52 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
   }
 
   async function updateStatus(listingId: string, status: string) {
-    const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
-    });
-    const body = await res.json();
-    if (res.ok) setListings((prev) => prev.map((listing) => (listing.id === listingId ? body.listing : listing)));
+    setError(null);
+    try {
+      const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setError(body.error ?? "Could not update this listing."); return; }
+      setListings((prev) => prev.map((listing) => (listing.id === listingId ? body.listing : listing)));
+    } catch {
+      setError("Could not update this listing. Retry when connected.");
+    }
   }
 
   async function toggleExpand(listingId: string) {
     if (expandedId === listingId) { setExpandedId(null); return; }
     setExpandedId(listingId);
     if (!applicationsByListing[listingId]) {
-      const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}`);
-      const body = await res.json();
-      if (res.ok) {
+      setError(null);
+      try {
+        const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}`);
+        const body = await res.json();
+        if (!res.ok) { setError(body.error ?? "Could not load applicants."); return; }
         setApplicationsByListing((prev) => ({ ...prev, [listingId]: body.applications }));
         setProfilesByListing((prev) => ({ ...prev, [listingId]: body.applicantProfiles ?? [] }));
         setEvidenceByListing((prev) => ({ ...prev, [listingId]: body.applicantEvidence ?? [] }));
         setEvidenceNodesByListing((prev) => ({ ...prev, [listingId]: body.evidenceNodes ?? [] }));
+      } catch {
+        setError("Could not load applicants. Retry when connected.");
       }
     }
   }
 
   async function decide(listingId: string, applicationId: string, status: string) {
-    const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}/applications/${applicationId}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
-    });
-    if (res.ok) {
+    setError(null);
+    try {
+      const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}/applications/${applicationId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setError(body.error ?? "Could not record this decision."); return; }
       setApplicationsByListing((prev) => ({
         ...prev,
         [listingId]: (prev[listingId] ?? []).map((application) => (application.id === applicationId ? { ...application, status } : application)),
       }));
+    } catch {
+      setError("Could not record this decision. Retry when connected.");
     }
   }
 
@@ -137,6 +152,11 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
               </div>
               <StatusPill status={listing.status} lang={lang} kind="listing" />
             </div>
+            {listing.status === "published" ? (
+              <p className="mt-1 text-[9px]">
+                {t("employer_public_link_label")}: <a href={`/j/${listing.public_id}`} target="_blank" rel="noreferrer" className="underline" style={{ color: KEBU.orange }}>{`/j/${listing.public_id}`}</a>
+              </p>
+            ) : null}
             <div className="mt-2 flex flex-wrap gap-2">
               {listing.status === "draft" ? <button type="button" onClick={() => updateStatus(listing.id, "published")} className="rounded-full border px-3 py-1 text-[9px] font-black" style={fieldStyle}>{t("employer_publish")}</button> : null}
               {listing.status === "published" ? <button type="button" onClick={() => updateStatus(listing.id, "closed")} className="rounded-full border px-3 py-1 text-[9px] font-black" style={fieldStyle}>{t("employer_close")}</button> : null}

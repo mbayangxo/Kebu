@@ -67,7 +67,8 @@ export type LigueyKey =
   | "employer_field_description" | "employer_field_requirements" | "employer_create" | "employer_creating"
   | "employer_publish" | "employer_close" | "employer_archive" | "employer_view_applicants" | "employer_hide_applicants"
   | "employer_no_applicants" | "employer_no_cover_note" | "employer_mark_reviewed" | "employer_accept" | "employer_decline"
-  | "employer_no_listings" | "employer_profile_skills" | "employer_profile_languages" | "employer_no_profile" | "employer_profile_evidence";
+  | "employer_no_listings" | "employer_profile_skills" | "employer_profile_languages" | "employer_no_profile" | "employer_profile_evidence"
+  | "employer_public_link_label";
 
 export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
   en: {
@@ -179,6 +180,7 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_profile_languages: "Languages",
     employer_no_profile: "This applicant hasn't filled out a worker profile yet.",
     employer_profile_evidence: "Portfolio",
+    employer_public_link_label: "Public link",
   },
   fr: {
     brand: "Kebu Liguey",
@@ -289,6 +291,7 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_profile_languages: "Langues",
     employer_no_profile: "Ce candidat n'a pas encore rempli de profil de travailleur.",
     employer_profile_evidence: "Portfolio",
+    employer_public_link_label: "Lien public",
   },
   wo: {
     brand: "Kebu Liguey",
@@ -399,6 +402,7 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_profile_languages: "Làkk yi",
     employer_no_profile: "Demandeel bii binnutul profil liggéeykat.",
     employer_profile_evidence: "Firnde",
+    employer_public_link_label: "Lien public",
   },
 };
 

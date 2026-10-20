@@ -45,10 +45,12 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
 
   useEffect(() => {
+    let ignore = false;
     void (async () => {
       try {
         const [profileRes, evidenceRes] = await Promise.all([fetch("/api/liguey/profile"), fetch("/api/liguey/profile/evidence")]);
         const profileBody = await profileRes.json();
+        if (ignore) return;
         if (profileRes.ok) {
           const p: Profile = profileBody.profile;
           setProfile(p);
@@ -66,6 +68,7 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
           setError(profileBody.error ?? "Could not load your profile.");
         }
         const evidenceBody = await evidenceRes.json();
+        if (ignore) return;
         if (evidenceRes.ok) {
           setEvidence(evidenceBody.evidence ?? []);
           const map: Record<string, { title: string; kind: string }> = {};
@@ -73,9 +76,12 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
           setEvidenceNodes(map);
         }
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     })();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   function addExperience() {
@@ -112,6 +118,8 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
       if (!res.ok) { setError(body.error ?? "Could not save your profile."); return; }
       setProfile(body.profile);
       setSavedAt(Date.now());
+    } catch (cause) {
+      setError(cause instanceof Error && !(cause instanceof TypeError) ? cause.message : "Could not save your profile. Retry when connected.");
     } finally {
       setSaving(false);
     }
@@ -120,23 +128,31 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
   async function handleLinkEvidence() {
     if (!selectedNodeId) return;
     setEvidenceError(null);
-    const res = await fetch("/api/liguey/profile/evidence", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ libraryNodeId: selectedNodeId, label: evidenceLabel.trim() || null }),
-    });
-    const body = await res.json();
-    if (!res.ok) { setEvidenceError(body.error ?? "Could not link this item."); return; }
-    setEvidence((prev) => [body.evidence, ...prev]);
-    const node = libraryNodes.find((candidate) => candidate.id === selectedNodeId);
-    if (node) setEvidenceNodes((prev) => ({ ...prev, [node.id]: { title: node.title, kind: node.kind } }));
-    setSelectedNodeId("");
-    setEvidenceLabel("");
+    try {
+      const res = await fetch("/api/liguey/profile/evidence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ libraryNodeId: selectedNodeId, label: evidenceLabel.trim() || null }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setEvidenceError(body.error ?? "Could not link this item."); return; }
+      setEvidence((prev) => [body.evidence, ...prev]);
+      const node = libraryNodes.find((candidate) => candidate.id === selectedNodeId);
+      if (node) setEvidenceNodes((prev) => ({ ...prev, [node.id]: { title: node.title, kind: node.kind } }));
+      setSelectedNodeId("");
+      setEvidenceLabel("");
+    } catch (cause) {
+      setEvidenceError(cause instanceof Error && !(cause instanceof TypeError) ? cause.message : "Could not link this item. Retry when connected.");
+    }
   }
 
   async function handleRemoveEvidence(libraryNodeId: string) {
-    const res = await fetch(`/api/liguey/profile/evidence?libraryNodeId=${libraryNodeId}`, { method: "DELETE" });
-    if (res.ok) setEvidence((prev) => prev.filter((link) => link.library_node_id !== libraryNodeId));
+    try {
+      const res = await fetch(`/api/liguey/profile/evidence?libraryNodeId=${libraryNodeId}`, { method: "DELETE" });
+      if (res.ok) setEvidence((prev) => prev.filter((link) => link.library_node_id !== libraryNodeId));
+    } catch {
+      setEvidenceError("Could not remove this item. Retry when connected.");
+    }
   }
 
   const linkedNodeIds = new Set(evidence.map((link) => link.library_node_id));
@@ -164,14 +180,14 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
       <section className="mt-6 space-y-4">
         <div>
           <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_headline")}</label>
-          <input disabled={saving} value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={160}
+          <input aria-label={t("profile_label_headline")} disabled={saving} value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={160}
             placeholder={t("profile_placeholder_headline")}
             className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
         </div>
 
         <div>
           <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_about")}</label>
-          <textarea disabled={saving} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={4000} rows={4}
+          <textarea aria-label={t("profile_label_about")} disabled={saving} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={4000} rows={4}
             placeholder={t("profile_placeholder_about")}
             className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
         </div>
@@ -179,12 +195,12 @@ export function LigueyProfilePanel({ libraryNodes }: { libraryNodes: LibraryNode
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_skills")}</label>
-            <input disabled={saving} value={skills} onChange={(e) => setSkills(e.target.value)} placeholder={t("profile_placeholder_skills")}
+            <input aria-label={t("profile_label_skills")} disabled={saving} value={skills} onChange={(e) => setSkills(e.target.value)} placeholder={t("profile_placeholder_skills")}
               className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
           </div>
           <div>
             <label className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("profile_label_languages")}</label>
-            <input disabled={saving} value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder={t("profile_placeholder_languages")}
+            <input aria-label={t("profile_label_languages")} disabled={saving} value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder={t("profile_placeholder_languages")}
               className="mt-1 w-full rounded-[10px] border px-3 py-2 text-[12px]" style={fieldStyle} />
           </div>
         </div>
