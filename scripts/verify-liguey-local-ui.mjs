@@ -35,7 +35,7 @@ await db.exec(`
   grant usage on schema public, auth to authenticated, anon, service_role;
   grant execute on all functions in schema auth to authenticated, anon, service_role;
   create or replace function public.set_updated_at() returns trigger language plpgsql as $$begin new.updated_at = now(); return new; end$$;
-  create table public.businesses(id uuid primary key default gen_random_uuid(), created_by uuid not null references auth.users(id), legal_name text not null default 'Fixture Business', trading_name text);
+  create table public.businesses(id uuid primary key default gen_random_uuid(), created_by uuid not null references auth.users(id), legal_name text not null default 'Fixture Business', trading_name text, description text not null default '');
   create table public.business_members(
     id uuid primary key default gen_random_uuid(), business_id uuid not null references public.businesses(id) on delete cascade,
     user_id uuid not null references auth.users(id) on delete cascade,
@@ -45,7 +45,7 @@ await db.exec(`
   alter table public.business_members enable row level security;
   create policy "members select own" on public.business_members for select using (user_id = auth.uid());
   insert into auth.users(id) values ('${founder}'),('${employee}'),('${applicant}'),('${otherApplicant}'),('${strangerFounder}');
-  insert into public.businesses(id, created_by, trading_name) values ('${businessId}', '${founder}', 'Fixture Translation Co');
+  insert into public.businesses(id, created_by, trading_name, description) values ('${businessId}', '${founder}', 'Fixture Translation Co', 'We translate community notices across Senegal.');
   insert into public.business_members(business_id,user_id,role,status) values
     ('${businessId}','${founder}','founder','active'),
     ('${businessId}','${employee}','employee','active');
@@ -57,18 +57,20 @@ await db.exec(read('supabase/migrations/20261016200000_liguey_profile_visibility
 await db.exec(read('supabase/migrations/20261016210000_liguey_applicant_listing_visibility.sql'));
 await db.exec(read('supabase/migrations/20261020000000_liguey_yande_applicant_insight.sql'));
 await db.exec(read('supabase/migrations/20261020000000_yande_shared_gateway.sql'));
+await db.exec(read('supabase/migrations/20261020020000_liguey_listing_pay_photo_and_company_reviews.sql'));
 
 const TABLES = {
   worker_profiles: { columns: ['user_id','headline','bio','skills','languages','experience','location','country_code','remote_eligible','availability','is_discoverable','verified_at','created_at','updated_at'], json: new Set(['experience']) },
   worker_profile_evidence: { columns: ['id','user_id','library_node_id','label','created_at'], json: new Set() },
-  job_listings: { columns: ['id','business_id','public_id','title','description','requirements','employment_type','location_type','location','status','created_by','created_at','updated_at'], json: new Set() },
+  job_listings: { columns: ['id','business_id','public_id','title','description','requirements','employment_type','location_type','location','pay_label','photo_url','status','created_by','created_at','updated_at'], json: new Set() },
   job_applications: { columns: ['id','listing_id','business_id','applicant_user_id','cover_note','status','decided_at','decided_by','created_at','updated_at'], json: new Set() },
-  businesses: { columns: ['id','created_by','legal_name','trading_name'], json: new Set() },
+  businesses: { columns: ['id','created_by','legal_name','trading_name','description'], json: new Set() },
   business_members: { columns: ['id','business_id','user_id','role','status'], json: new Set() },
   library_nodes: { columns: ['id','owner_id','parent_id','kind','title','storage_path','mime_type','byte_size','source_kind','source_id','metadata','starred','trashed_at','created_at','updated_at'], json: new Set(['metadata']) },
   liguey_applicant_insights: { columns: ['id','application_id','business_id','generated_by','model','summary','strengths','questions_to_ask','caution','created_at','updated_at'], json: new Set() },
   liguey_ai_usage: { columns: ['business_id','month_start','generation_count','updated_at'], json: new Set() },
   yande_interactions: { columns: ['id','feature','mode','user_id','model','outcome','input_tokens','output_tokens','error_message','created_at'], json: new Set() },
+  liguey_company_reviews: { columns: ['id','business_id','reviewer_user_id','application_id','rating','body','is_anonymous','status','created_at','updated_at'], json: new Set() },
 };
 
 async function run(uid, sql, params = []) {
@@ -100,19 +102,28 @@ const backend = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1:38441');
   try {
     if (url.pathname === '/__qa/reset' && req.method === 'POST') {
-      await db.exec('truncate worker_profiles, worker_profile_evidence, job_listings, job_applications, liguey_ai_usage, yande_interactions cascade');
+      await db.exec('truncate worker_profiles, worker_profile_evidence, job_listings, job_applications, liguey_ai_usage, yande_interactions, liguey_company_reviews cascade');
       queries = 0; lastAnthropicRequest = null; send(200, { ok: true }); return;
     }
     if (url.pathname === '/__qa/state') {
-      const [profiles, evidence, listings, applications, insights] = await Promise.all([
+      const [profiles, evidence, listings, applications, insights, reviews] = await Promise.all([
         db.query('select row_to_json(w) as row from worker_profiles w'),
         db.query('select row_to_json(w) as row from worker_profile_evidence w'),
         db.query('select row_to_json(w) as row from job_listings w order by created_at'),
         db.query('select row_to_json(w) as row from job_applications w order by created_at'),
         db.query('select row_to_json(w) as row from liguey_applicant_insights w order by created_at'),
+        db.query('select row_to_json(w) as row from liguey_company_reviews w order by created_at'),
       ]);
-      send(200, { profiles: profiles.rows.map((x) => x.row), evidence: evidence.rows.map((x) => x.row), listings: listings.rows.map((x) => x.row), applications: applications.rows.map((x) => x.row), insights: insights.rows.map((x) => x.row), lastAnthropicRequest, queries });
+      send(200, { profiles: profiles.rows.map((x) => x.row), evidence: evidence.rows.map((x) => x.row), listings: listings.rows.map((x) => x.row), applications: applications.rows.map((x) => x.row), insights: insights.rows.map((x) => x.row), reviews: reviews.rows.map((x) => x.row), lastAnthropicRequest, queries });
       return;
+    }
+    if (url.pathname.startsWith('/storage/v1/object/')) {
+      if (req.method === 'POST' || req.method === 'PUT') { send(200, { Key: url.pathname.replace('/storage/v1/object/', '') }); return; }
+      if (req.method === 'GET') {
+        const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+        res.setHeader('Content-Type', 'image/png'); res.statusCode = 200; res.end(png); return;
+      }
+      send(405, { error: 'Unsupported fixture storage method' }); return;
     }
     const uid = identity(req);
     if (url.pathname.startsWith('/auth/')) {

@@ -6,7 +6,7 @@ import { updateJobListingSchema } from "@/lib/liguey/job-listing";
 
 export const dynamic = "force-dynamic";
 
-const LISTING_COLUMNS = "id, business_id, public_id, title, description, requirements, employment_type, location_type, location, status, created_by, created_at, updated_at";
+const LISTING_COLUMNS = "id, business_id, public_id, title, description, requirements, employment_type, location_type, location, pay_label, photo_url, status, created_by, created_at, updated_at";
 
 type Params = { params: Promise<{ businessId: string; listingId: string }> };
 
@@ -97,6 +97,7 @@ export async function PATCH(req: Request, { params }: Params) {
   if (parsed.data.employmentType !== undefined) patch.employment_type = parsed.data.employmentType;
   if (parsed.data.locationType !== undefined) patch.location_type = parsed.data.locationType;
   if (parsed.data.location !== undefined) patch.location = parsed.data.location;
+  if (parsed.data.payLabel !== undefined) patch.pay_label = parsed.data.payLabel;
   if (parsed.data.status !== undefined) patch.status = parsed.data.status;
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
 

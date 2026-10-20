@@ -5,7 +5,7 @@ vi.mock("@/lib/api-guard", () => ({ publicSiteRateLimit: () => null }));
 import { GET } from "@/app/api/public/liguey/listings/route";
 
 const businessId = "11111111-1111-4111-8111-111111111111";
-const listingRow = { id: "l1", business_id: businessId, public_id: "job_abc", title: "Translator", employment_type: "contract", location_type: "remote", location: "", updated_at: "2026-10-16T00:00:00.000Z" };
+const listingRow = { id: "l1", business_id: businessId, public_id: "job_abc", title: "Translator", employment_type: "contract", location_type: "remote", location: "", pay_label: "2,000 XOF/day", photo_url: "https://cdn.test/photo.jpg", updated_at: "2026-10-16T00:00:00.000Z" };
 
 function setup(opts: { listResult?: { data: unknown; error: unknown } } = {}) {
   const result = opts.listResult ?? { data: [listingRow], error: null };
@@ -40,7 +40,7 @@ describe("Public Liguey listings route", () => {
     const response = await GET(request());
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.listings[0]).toMatchObject({ publicId: "job_abc", title: "Translator", employerName: "Trade Co" });
+    expect(body.listings[0]).toMatchObject({ publicId: "job_abc", title: "Translator", employerName: "Trade Co", payLabel: "2,000 XOF/day", photoUrl: "https://cdn.test/photo.jpg" });
   });
 
   it("filters by employment type when provided", async () => {

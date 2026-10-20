@@ -14,6 +14,7 @@ const jobListingFields = {
   locationType: locationTypeSchema,
   location: z.string().trim().max(160),
   status: listingStatusSchema,
+  payLabel: z.string().trim().max(60),
 };
 
 export const createJobListingSchema = z.object(jobListingFields).extend({
@@ -22,6 +23,7 @@ export const createJobListingSchema = z.object(jobListingFields).extend({
   locationType: jobListingFields.locationType.default("onsite"),
   location: jobListingFields.location.default(""),
   status: jobListingFields.status.default("draft"),
+  payLabel: jobListingFields.payLabel.default(""),
 });
 
 export const updateJobListingSchema = z.object(jobListingFields).partial();
@@ -44,6 +46,8 @@ export type JobListingRow = {
   location_type: z.infer<typeof locationTypeSchema>;
   location: string;
   status: z.infer<typeof listingStatusSchema>;
+  pay_label: string;
+  photo_url: string;
   created_by: string | null;
   created_at: string;
   updated_at: string;
