@@ -533,7 +533,7 @@ function MailWorkspace({ initialCompose }: { initialCompose: { to: string; subje
               />
               <span className="hidden rounded-md bg-black/[.04] px-1.5 py-1 text-[8px] font-semibold text-black/35 sm:inline">⌘ K</span>
             </label>
-            <button type="button" disabled title="EVA AI — coming soon" className="hidden cursor-not-allowed rounded-full bg-black/40 px-4 py-2 text-[10px] font-semibold text-white/50 lg:inline-flex">✦ Ask EVA</button>
+            <button type="button" disabled title="Ask Yande — coming soon in K Mail" className="hidden cursor-not-allowed rounded-full bg-black/40 px-4 py-2 text-[10px] font-semibold text-white/50 lg:inline-flex">✦ Ask Yande</button>
             <button type="button" onClick={() => { resetComposer(); setCompose(true); }} className="hidden rounded-full border border-black/10 px-4 py-2 text-[10px] font-semibold sm:inline-flex">+ New message</button>
           </header>
 
@@ -545,7 +545,7 @@ function MailWorkspace({ initialCompose }: { initialCompose: { to: string; subje
             </aside>
             <aside className="border-r border-black/[.07] bg-[#FFFCF8] p-3">
               <div className="px-1 pb-3">
-                <div className="flex items-baseline gap-2"><p className="text-[28px] font-semibold tracking-[-.04em]" style={{ fontFamily:"var(--font-fraunces)" }}>EVA</p><span className="text-[7px] font-semibold uppercase text-[#E85B2A]">beta</span></div>
+                <div className="flex items-baseline gap-2"><p className="text-[28px] font-semibold tracking-[-.04em]" style={{ fontFamily:"var(--font-fraunces)" }}>K Mail</p><span className="text-[7px] font-semibold uppercase text-[#E85B2A]">beta</span></div>
                 <p className="mt-0.5 text-[9px] text-black/40">{mailContext === "business" ? businessName || "Business Mail" : "More than email. It’s your communication space."}</p>
               </div>
 
@@ -586,7 +586,7 @@ function MailWorkspace({ initialCompose }: { initialCompose: { to: string; subje
 
               <div className="mt-5 border-t border-black/[.07] pt-3"><p className="px-2 text-[8px] font-semibold uppercase tracking-[.12em] text-black/30">Spaces</p><div className="mt-2 space-y-1">{mailboxes.slice(0,5).map((mailbox)=><button key={"space-"+mailbox.id} type="button" onClick={()=>setMailboxId(mailbox.id)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[8px] hover:bg-black/[.03]"><span className="h-5 w-5 rounded-[6px] bg-[#FFF0E8]"/><span className="truncate">{mailbox.display_name}</span></button>)}</div></div>
               {mailContext === "business" ? <button type="button" onClick={()=>setShowBusinessSetup(v=>!v)} className="mt-4 px-2 text-[9px] font-semibold text-[#C95000]">{showBusinessSetup?"Back to inbox":"Business mail settings"}</button> : <Link href="/business" className="mt-4 block px-2 text-[9px] font-semibold text-black/40">Business Mail →</Link>}
-              <div className="mt-auto hidden rounded-[12px] bg-black p-3 text-white lg:block"><p className="text-[9px] font-semibold">✦ Let EVA help</p><p className="mt-1 text-[8px] leading-relaxed text-white/45">Summarize, draft, schedule or find anything.</p></div>
+              <div className="mt-auto hidden rounded-[12px] bg-black p-3 text-white lg:block"><p className="text-[9px] font-semibold">✦ Let Yande help</p><p className="mt-1 text-[8px] leading-relaxed text-white/45">Summarize, draft, schedule or find anything.</p></div>
             </aside>
 
             <section className="border-r border-black/[.07] bg-white">

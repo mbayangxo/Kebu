@@ -19,7 +19,7 @@ Kebu uses one canonical icon family. This is the implementation contract; the Ga
 | studio | Studio | capability |
 | commerce | Commerce | capability |
 | opportunity | Opportunity OS | capability |
-| eva | EVA | capability |
+| kmail | K Mail | capability |
 | work | Work | capability |
 | calendar | Calendar | capability |
 | people | People | capability |
