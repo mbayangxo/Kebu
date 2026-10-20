@@ -1,5 +1,5 @@
 /**
- * Real-SQL verification of 20261020000000_yande_shared_gateway.sql
+ * Real-SQL verification of 20261020001000_yande_shared_gateway.sql
  * (yande_interactions table + RLS), applied verbatim against a locally
  * reconstructed auth fixture — not a hosted-schema verification (same
  * caveat as every other .local.test.ts file in this repo).
@@ -34,7 +34,7 @@ async function openDb(): Promise<Db> {
     grant execute on all functions in schema auth to authenticated, anon, service_role;
     insert into auth.users(id) values ('${owner}'),('${stranger}');
   `);
-  await db.exec(readFileSync(resolve("supabase/migrations/20261020000000_yande_shared_gateway.sql"), "utf8"));
+  await db.exec(readFileSync(resolve("supabase/migrations/20261020001000_yande_shared_gateway.sql"), "utf8"));
   return db;
 }
 

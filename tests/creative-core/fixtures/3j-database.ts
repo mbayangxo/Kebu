@@ -56,6 +56,7 @@ export async function open3jDatabase(dataDir?: string, seed = true) {
       candidate = prepared.transaction;
     }
     const result = (await db.query<{ result: { status: string; replayed: boolean; versions: Record<string, number>; removed: string[]; removedPages?: string[] } }>(`select ${reviewed ? "apply_experience_plan" : "apply_node_ops"}($1,$2) as result`, [projectId, candidate])).rows[0].result;
+    if (result.status !== "committed") throw new Error("SQL authority refused the operation: " + JSON.stringify(result));
     current = kcdPublishDocument(await rawSource());
     return { ...result, pages: current.pages.filter(page => result.versions[page.id]), nodes: Object.values(current.nodes).filter(node => result.versions[node.id]) };
   };

@@ -1,0 +1,87 @@
+name: Builder SQL and browser
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-builder-frames-oct20-recovery", "work/codex-may-contact-oct20", "work/codex-platform-verification-oct20"]
+    paths:
+      - "supabase/migrations/**"
+      - "app/create/**"
+      - "package.json"
+      - "package-lock.json"
+      - "lib/create/**"
+      - "lib/creative-core/**"
+      - "app/components/create/**"
+      - "tests/creative-core/**"
+      - "tests/create/collage-presentation-persistence.test.ts"
+      - "scripts/verify-native-builder-local-ui.mjs"
+      - ".github/workflows/builder-sql-ui.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "app/create/**"
+      - "package.json"
+      - "package-lock.json"
+      - "lib/create/**"
+      - "lib/creative-core/**"
+      - "app/components/create/**"
+      - "tests/creative-core/**"
+      - ".github/workflows/builder-sql-ui.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-builder:
+    name: Migrated SQL, native editor and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      KEBU_NATIVE_UI_SUITES: tests/creative-core/3j-editor-ui.local.spec.ts,tests/creative-core/3j-published-ui.local.spec.ts,tests/creative-core/builder-operation-ui.local.spec.ts,tests/creative-core/builder-pages-ui.local.spec.ts,tests/creative-core/collage-frame-sql.local.spec.ts,tests/creative-core/collage-parity.local.spec.ts,tests/creative-core/collage-video.local.spec.ts
+    steps:
+      - name: Configure isolated QA paths
+        shell: bash
+        run: |
+          printf 'KEBU_LOCAL_PGLITE_ROOT=%s\n' "$RUNNER_TEMP/kebu-sql-runtime/node_modules/@electric-sql/pglite" >> "$GITHUB_ENV"
+          printf 'KEBU_UI_OUTPUT_DIR=%s\n' "$RUNNER_TEMP/kebu-builder-ui" >> "$GITHUB_ENV"
+          printf 'KEBU_BUILDER_BROWSER_PERF_REPORT=%s\n' "$RUNNER_TEMP/kebu-builder-performance.json" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install repository dependencies
+        run: npm ci
+      - name: Install isolated PostgreSQL runtime
+        run: npm install --prefix "$RUNNER_TEMP/kebu-sql-runtime" --ignore-scripts --no-save --package-lock=false @electric-sql/pglite@0.5.10
+      - name: Verify migrated SQL and ownership contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in tests/creative-core/*sql.local.test.ts tests/creative-core/3j-database.local.test.ts; do
+            npx vitest run "$spec" --maxWorkers=1
+          done
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify actual Builder, SQL, history, responsive publish and performance
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          node scripts/verify-native-builder-local-ui.mjs
+      - name: Retain exact run evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: builder-sql-browser-evidence
+          retention-days: 3
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/kebu-builder-ui/results.json
+            ${{ runner.temp }}/kebu-builder-ui/cleanup.json
+            ${{ runner.temp }}/kebu-builder-ui/server.log
+            ${{ runner.temp }}/kebu-builder-performance.json

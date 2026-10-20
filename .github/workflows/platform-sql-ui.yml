@@ -1,0 +1,100 @@
+name: Platform SQL and browser
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-platform-verification-oct20"]
+    paths:
+      - "app/**"
+      - "lib/**"
+      - "supabase/migrations/**"
+      - "tests/**"
+      - "scripts/verify-mail-local-ui.mjs"
+      - "scripts/verify-liguey-local-ui.mjs"
+      - "scripts/verify-native-builder-local-ui.mjs"
+      - "package*.json"
+      - ".github/workflows/platform-sql-ui.yml"
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-platform:
+    name: Platform ownership SQL, Mail and Liguey UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install repository dependencies
+        run: npm ci
+      - name: Install isolated PostgreSQL runtime
+        run: npm install --prefix "$RUNNER_TEMP/kebu-platform-runtime" --ignore-scripts --no-save --package-lock=false @electric-sql/pglite@0.5.10
+      - name: Configure isolated evidence paths
+        shell: bash
+        run: |
+          printf 'KEBU_LOCAL_PGLITE_ROOT=%s\n' "$RUNNER_TEMP/kebu-platform-runtime/node_modules/@electric-sql/pglite" >> "$GITHUB_ENV"
+          printf 'KEBU_PGLITE_MODULE_PATH=%s\n' "$RUNNER_TEMP/kebu-platform-runtime/node_modules/@electric-sql/pglite/dist/index.js" >> "$GITHUB_ENV"
+          printf 'KEBU_MAIL_UI_OUTPUT_DIR=%s\n' "$RUNNER_TEMP/kebu-platform-mail" >> "$GITHUB_ENV"
+          printf 'KEBU_LIGUEY_UI_OUTPUT_DIR=%s\n' "$RUNNER_TEMP/kebu-platform-liguey" >> "$GITHUB_ENV"
+          printf 'KEBU_UI_OUTPUT_DIR=%s\n' "$RUNNER_TEMP/kebu-platform-locale" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/kebu-platform-sql"
+      - name: Verify actual migration SQL and ownership boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in tests/business/business-members-select-policy.local.test.ts tests/library/sharing-boundary.local.test.ts tests/liguey/applicant-insight.local.test.ts tests/liguey/applicant-listing-visibility.local.test.ts tests/liguey/company-reviews.local.test.ts tests/liguey/job-listings-applications.local.test.ts tests/liguey/profile-visibility-for-reviewers.local.test.ts tests/liguey/worker-profile.local.test.ts tests/mail/business-mailbox-insert.local.test.ts tests/mail/forwarding.local.test.ts tests/rooms/room-chat-read-policy.local.test.ts tests/rooms/room-creation-returning.local.test.ts tests/rooms/room-members-recursion.local.test.ts tests/shop/digital-fulfillment-boundary.local.test.ts tests/studio/creative-assets-marketplace.local.test.ts tests/work/workspace-item-visibility.local.test.ts tests/yande/interactions.local.test.ts; do
+            report="$RUNNER_TEMP/kebu-platform-sql/$(basename "$spec").json"
+            npx vitest run "$spec" --maxWorkers=1 --reporter=default --reporter=json --outputFile="$report"
+            node --input-type=module - "$report" <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const report = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+          if (!report.success || report.numTotalTests < 1 || report.numPendingTests || report.numTodoTests || report.numFailedTests) {
+            throw new Error('SQL gate requires executed tests, zero failures and zero skips');
+          }
+          NODE
+          done
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify Mail UI through API and isolated SQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          node scripts/verify-mail-local-ui.mjs
+      - name: Verify Liguey UI through API and isolated SQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          node scripts/verify-liguey-local-ui.mjs
+      - name: Verify saved language and draft continuity
+        shell: bash
+        env:
+          KEBU_NATIVE_UI_SUITES: tests/creative-core/locale-state.local.spec.ts
+        run: |
+          set -euo pipefail
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          node scripts/verify-native-builder-local-ui.mjs
+      - name: Retain exact SQL and browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: platform-sql-browser-evidence
+          retention-days: 3
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/kebu-platform-sql
+            ${{ runner.temp }}/kebu-platform-mail
+            ${{ runner.temp }}/kebu-platform-liguey
+            ${{ runner.temp }}/kebu-platform-locale

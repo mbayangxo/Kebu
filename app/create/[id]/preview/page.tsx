@@ -10,11 +10,12 @@ import { builderKcdView } from "@/lib/create/kcd-adapter/builder-view";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 import { applyPreviewDefinitionUpdate, type PreviewDefinitionUpdate } from "@/lib/create/preview-definition-update";
 import { applyKcdPreviewUpdate, type KcdPreviewUpdate } from "@/lib/create/kcd-preview-update";
+import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import type { KcdDocument } from "@/lib/creative-core";
 
 // postMessage protocol between the Builder canvas iframe and page.tsx
 type PreviewInboundMsg =
-  | { type: "kebu:definition:patch"; update: PreviewDefinitionUpdate; nativeUpdate?: KcdPreviewUpdate; selectedNodeId?: string | null; pageSlug: string; editDevice?: "desktop" | "tablet" | "mobile" }
+  | { type: "kebu:definition:patch"; update: PreviewDefinitionUpdate; nativeUpdate?: KcdPreviewUpdate; selectedNodeId?: string | null; selectedElement?: BuilderElementSelection | null; pageSlug: string; editDevice?: "desktop" | "tablet" | "mobile" }
   | { type: "kebu:definition:update"; definition: WebsiteDefinition; pageSlug: string; editDevice?: "desktop" | "tablet" | "mobile" }
   | { type: "kebu:definition:request" }
   | { type: "kebu:geometry:ack"; requestId: string; error?: string };
@@ -26,6 +27,7 @@ function ProjectPreviewInner() {
   const embed = searchParams.get("embed") === "1";
   const [definition, setDefinition] = useState<WebsiteDefinition | null>(null);
   const [nativeDocument, setNativeDocument] = useState<KcdDocument | null>(null);
+  const [selectedElement, setSelectedElement] = useState<BuilderElementSelection | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const geometryRequests = useRef(new Map<string, { resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>());
   const parentNativeRef = useRef<KcdDocument | null>(null);
@@ -98,7 +100,7 @@ function ProjectPreviewInner() {
         parentDefinitionRef.current = next;
         parentSequenceRef.current = msg.update.sequence;
         setDefinition(next);
-        parentNativeRef.current = native; setNativeDocument(native); setSelectedNodeId(msg.selectedNodeId ?? null); setError(null);
+        parentNativeRef.current = native; setNativeDocument(native); setSelectedNodeId(msg.selectedNodeId ?? null); setSelectedElement(msg.selectedElement ?? null); setError(null);
         setPreviewPageSlug(msg.pageSlug);
         if (msg.editDevice) setDevice(msg.editDevice);
       } else if (msg?.type === "kebu:definition:update") {
@@ -135,7 +137,12 @@ function ProjectPreviewInner() {
               const timer = setTimeout(() => { geometryRequests.current.delete(requestId); reject(new Error("The layout edit could not be confirmed. Check the saved layout before trying again.")); }, 15000);
               geometryRequests.current.set(requestId, { resolve, reject, timer });
               window.parent.postMessage({ type: "kebu:node:geometry", nodeId, patch, requestId }, window.location.origin);
-            }), editDevice: device, selectedSectionId: selectedNodeId, onSelectSection: (nodeId) => window.parent.postMessage({ type: "kebu:node:select", nodeId }, window.location.origin) }}
+            }), selectedElement,
+              onSelectElement: selection => window.parent.postMessage({ type: "kebu:element:select", selection }, window.location.origin),
+              onPatchSection: (sectionId, patch) => window.parent.postMessage({ type: "kebu:section:patch", sectionId, patch }, window.location.origin),
+              onNavigatePage: slug => window.parent.postMessage({ type: "kebu:page:navigate", slug }, window.location.origin),
+              onEditNavigation: () => window.parent.postMessage({ type: "kebu:navigation:edit" }, window.location.origin),
+              editDevice: device, selectedSectionId: selectedNodeId, onSelectSection: (nodeId) => window.parent.postMessage({ type: "kebu:node:select", nodeId }, window.location.origin) }}
           />
         ) : null}
       </div>

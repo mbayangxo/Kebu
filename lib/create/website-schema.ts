@@ -162,6 +162,22 @@ export const deviceOverridesSchema = z
   })
   .optional();
 
+/** Existing collage inspector fields, shared with responsive override validation. */
+export const collageImagePresentationSchema = z.object({
+  layerWidthScale: z.record(z.string().trim().min(1).max(40), z.number().finite().min(0.15).max(3)).optional(),
+  layerHeightScale: z.record(z.string().trim().min(1).max(40), z.number().finite().min(0.15).max(3)).optional(),
+  layerCrop: z.record(z.string().trim().min(1).max(40), z.number().finite().min(0).max(45)).optional(),
+});
+
+function validateCollagePresentationOverrides(props: { deviceOverrides?: z.infer<typeof deviceOverridesSchema> }, ctx: z.RefinementCtx) {
+  for (const device of ["tablet", "mobile"] as const) {
+    const bucket = props.deviceOverrides?.[device];
+    if (!bucket) continue;
+    const result = collageImagePresentationSchema.safeParse(bucket);
+    if (!result.success) for (const issue of result.error.issues) ctx.addIssue({ code: "custom", path: ["deviceOverrides", device, ...issue.path], message: issue.message });
+  }
+}
+
 /** Builder-owned presentation metadata shared by every section type. */
 export const builderSectionMetaSchema = z.object({
   sectionPaddingY: z.enum(["tight", "normal", "spacious", "open"]).optional(),
@@ -1132,6 +1148,8 @@ export const sectionPropsSchemas = {
       .record(z.string(), z.number().min(0.15).max(3))
       .optional()
       .default({}),
+    /** No defaults: historical published payloads remain byte-stable. */
+    ...collageImagePresentationSchema.shape,
     /** Per-device layer positions — tablet/mobile override the desktop layerPositions per layer id. */
     layerPositionsTablet: z
       .record(z.string(), z.object({ leftPct: z.number().min(-20).max(110), topPct: z.number().min(-20).max(110) }))
@@ -1221,7 +1239,7 @@ export const sectionPropsSchemas = {
     embeddedFooterPaddingBottom: z.number().int().min(8).max(160).optional().default(20),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
-  }),
+  }).superRefine(validateCollagePresentationOverrides),
   "kdirection-home": z.object({
     brandLine1: z.string().trim().max(12).default("K"),
     brandLine2: z.string().trim().max(40).default("DIRECTION"),

@@ -242,6 +242,9 @@ export const DEVICE_OVERRIDE_KEYS: Partial<Record<string, readonly string[]>> = 
   "legally-blonde-hero": [
     "extraCutouts",
     "layerScales",
+    "layerWidthScale",
+    "layerHeightScale",
+    "layerCrop",
     "layerZIndex",
     "layerOpacity",
     "layerRotation",

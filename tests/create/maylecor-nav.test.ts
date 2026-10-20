@@ -61,7 +61,25 @@ describe("sanitizeMaylecorNavLinks", () => {
     expect(navLinkHasDropdown(out.find((l) => l.href === "/mays-world")!)).toBe(true);
   });
 
-  it("rewrites Inquire / Contact to Mayjor Good", () => {
+  it("keeps Contact and Mayjor Good distinct through repeated saved-menu normalization", () => {
+    const defaults = defaultMaylecorNavLinks();
+    const once = sanitizeMaylecorNavLinks(defaults);
+    expect(once).toEqual(defaults);
+    expect(sanitizeMaylecorNavLinks(once)).toEqual(once);
+    expect(once.filter(link => link.href === "/contact")).toHaveLength(1);
+    expect(once.filter(link => link.href === "https://forthemayjorgood.com")).toHaveLength(1);
+  });
+
+  it.each(["contact", "/contact", "/contact?source=menu", "https://www.maylecor.com/contact", "https://artist.wixsite.com/site/contact"])("preserves the contact page at %s", href => {
+    const out = sanitizeMaylecorNavLinks([{ label: "Contact", href }]);
+    expect(out[0]).toMatchObject({ label: "Contact", href: "/contact" });
+  });
+
+  it.each(["mailto:team@example.test", "https://booking.example.test/contact"])("preserves an authored contact destination %s", href => {
+    expect(sanitizeMaylecorNavLinks([{ label: "Contact", href }])[0]).toMatchObject({ label: "Contact", href });
+  });
+
+  it("rewrites legacy Inquire to Mayjor Good", () => {
     const out = sanitizeMaylecorNavLinks([
       { label: "Shop", href: "/shop" },
       { label: "May's World", href: "/mays-world" },

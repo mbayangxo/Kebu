@@ -431,3 +431,8 @@ Also still open after foundation: finish Free hosting gates · custom domain ver
 - Architecture: `docs/architecture/OVERVIEW.md`
 - Kebu ID / score detail: `docs/KEBU-ID-KA-SCORE-STATUS.md`
 - Testing: `docs/testing/README.md`
+
+
+## October 20 — Builder responsive image continuation
+
+The isolated Builder branch now reconciles Claude through `6d070c8`. Width/height/crop normalization, embedded tablet/phone collage editing and SQL allowlist defects are repaired and tested locally. Full combined CI: 6,255 pass/286 explicit skips, zero lint errors, 226-page finalized build. Actual migrated-SQL desktop/tablet/phone image-edit/history/reload/canvas-move/publish cases: 3 pass. Additional SQL cases and migration hygiene pass. Broader browser/performance gate: 44 pass, zero skips/failures, including all nine unchanged performance probes. Fresh remote gates remain pending; full Builder/May/Studio/3J/99 completion is not claimed. Details and remaining defects: `docs/audits/KEBU_BUILDER_RESPONSIVE_IMAGES_2026-10-20.md`. No production migration/DNS/promotion.

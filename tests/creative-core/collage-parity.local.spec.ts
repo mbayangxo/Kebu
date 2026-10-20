@@ -1,6 +1,26 @@
 import { test, expect } from "playwright/test";
 test.skip(process.env.KEBU_LOCAL_OPERATION_UI !== "1", "Isolated real-component harness only");
 
+for (const width of [1440, 390]) {
+  test(`saved May navigation keeps team contact separate from the foundation at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/collage-local-probe");
+    await expect(page.getByTestId("fixture-controls")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("button", { name: "Save fixture", exact: true }).click();
+    await page.reload();
+    await page.getByRole("button", { name: "Load fixture", exact: true }).click();
+    await page.getByRole("button", { name: "Preview composition", exact: true }).click();
+    const nav = page.getByRole("navigation", { name: width < 600 ? "Site pages" : "Site", exact: true });
+    await expect(nav).toBeVisible();
+    const contact = nav.getByRole("link", { name: "Contact", exact: true });
+    await expect(contact).toHaveCount(1);
+    await expect(contact).toHaveAttribute("href", "/collage-local-probe/contact");
+    const foundation = nav.getByRole("link", { name: "Mayjor Good", exact: true });
+    await expect(foundation).toHaveCount(1);
+    await expect(foundation).toHaveAttribute("href", "https://forthemayjorgood.com");
+  });
+}
+
 test("saved cutout geometry survives preview and fixture reload without Russian fallback", async ({ page }) => {
   await page.goto("/collage-local-probe");
   await expect(page.getByTestId("fixture-controls")).toHaveAttribute("data-ready", "true");

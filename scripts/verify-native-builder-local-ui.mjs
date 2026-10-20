@@ -24,7 +24,7 @@ for (const entry of readdirSync(sourceRoot, { withFileTypes: true })) {
 }
 mkdirSync(join(root, "evidence/3c/s5"), { recursive: true });
 
-const routes = ["app/s5-local-probe", "app/s7-local-probe", "app/spatial-local-probe", "app/collage-local-probe", "app/world-local-probe", "app/video-scene-local-probe"];
+const routes = ["app/s5-local-probe", "app/s7-local-probe", "app/spatial-local-probe", "app/collage-local-probe", "app/world-local-probe", "app/video-scene-local-probe", "app/locale-local-probe"];
 for (const route of routes) if (existsSync(join(root, route))) throw Error("Refusing to overwrite an existing fixture route: " + route);
 const temporaryConfig = join(root, "scripts/native-ui-temporary.config.mjs");
 if (existsSync(temporaryConfig)) throw Error("Existing temporary browser config");
@@ -63,6 +63,7 @@ try {
   mkdirSync(join(root, routes[5], "[slug]"), { recursive: true });
   copyFileSync(join(root, "tests/creative-core/fixtures/collage-video-ui-page.tsx"), join(root, routes[5], "page.tsx"));
   copyFileSync(join(root, "tests/creative-core/fixtures/collage-video-ui-page.tsx"), join(root, routes[5], "[slug]/page.tsx"));
+  mkdirSync(join(root, routes[6])); copyFileSync(join(root, "tests/creative-core/fixtures/locale-state-ui-page.tsx"), join(root, routes[6], "page.tsx"));
   writeFileSync(nextConfigPath, originalConfig.replace("const nextConfig: NextConfig = {", "const nextConfig: NextConfig = {\n  devIndicators: false,"));
   writeFileSync(temporaryConfig, `import {defineConfig} from "playwright/test"; export default defineConfig({testDir:${JSON.stringify(join(root,"tests"))},testMatch:"**/*.spec.ts",timeout:60000,maxFailures:1,workers:1,retries:0,reporter:[["list"],["json",{outputFile:${JSON.stringify(join(output,"results.json"))}}]],outputDir:${JSON.stringify(join(output,"traces"))},use:{actionTimeout:10000,baseURL:"http://127.0.0.1:38415",launchOptions:{executablePath:${JSON.stringify(executablePath)},args:["--no-sandbox","--disable-gpu","--disable-dev-shm-usage","--no-zygote","--disable-software-rasterizer"]}}});`);
   log = createWriteStream(join(output, "server.log"));
@@ -86,7 +87,7 @@ try {
   rmSync(temporaryConfig, { force: true });
   rmSync(join(root, ".next/dev/types"), { recursive: true, force: true });
   const validator = join(root, ".next/types/validator.ts");
-  if (existsSync(validator) && /s5-local-probe|s7-local-probe|spatial-local-probe|collage-local-probe|world-local-probe|video-scene-local-probe/.test(readFileSync(validator, "utf8"))) rmSync(join(root, ".next/types"), { recursive: true, force: true });
+  if (existsSync(validator) && /s5-local-probe|s7-local-probe|spatial-local-probe|collage-local-probe|world-local-probe|video-scene-local-probe|locale-local-probe/.test(readFileSync(validator, "utf8"))) rmSync(join(root, ".next/types"), { recursive: true, force: true });
   const sandboxConfigRestored = readFileSync(nextConfigPath, "utf8") === originalConfig;
   if (existsSync(join(root, "evidence"))) cpSync(join(root, "evidence"), join(output, "screenshots"), { recursive: true });
   rmSync(root, { recursive: true, force: true });
