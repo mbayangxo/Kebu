@@ -14,6 +14,7 @@ type Application = { id: string; applicant_user_id: string; cover_note: string; 
 type ApplicantProfile = { user_id: string; headline: string | null; skills: string[]; languages: string[] };
 type EvidenceLink = { user_id: string; library_node_id: string; label: string | null };
 type EvidenceNode = { id: string; title: string; kind: string };
+type ApplicantInsight = { summary: string; strengths: string[]; questions_to_ask: string[]; caution: string };
 
 const fieldStyle = { borderColor: KEBU.borders.default } as const;
 const EMPLOYMENT_TYPES = ["full_time", "part_time", "contract", "internship", "apprenticeship", "gig"] as const;
@@ -34,6 +35,9 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
   const [profilesByListing, setProfilesByListing] = useState<Record<string, ApplicantProfile[]>>({});
   const [evidenceByListing, setEvidenceByListing] = useState<Record<string, EvidenceLink[]>>({});
   const [evidenceNodesByListing, setEvidenceNodesByListing] = useState<Record<string, EvidenceNode[]>>({});
+  const [insightByApplication, setInsightByApplication] = useState<Record<string, ApplicantInsight>>({});
+  const [insightBusyApplicationId, setInsightBusyApplicationId] = useState<string | null>(null);
+  const [insightErrorByApplication, setInsightErrorByApplication] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
@@ -88,6 +92,12 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
         setProfilesByListing((prev) => ({ ...prev, [listingId]: body.applicantProfiles ?? [] }));
         setEvidenceByListing((prev) => ({ ...prev, [listingId]: body.applicantEvidence ?? [] }));
         setEvidenceNodesByListing((prev) => ({ ...prev, [listingId]: body.evidenceNodes ?? [] }));
+        const insights: Array<ApplicantInsight & { application_id: string }> = body.applicantInsights ?? [];
+        setInsightByApplication((prev) => {
+          const next = { ...prev };
+          for (const insight of insights) next[insight.application_id] = insight;
+          return next;
+        });
       } catch {
         setError("Could not load applicants. Retry when connected.");
       }
@@ -108,6 +118,24 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
       }));
     } catch {
       setError("Could not record this decision. Retry when connected.");
+    }
+  }
+
+  async function askYande(listingId: string, applicationId: string) {
+    if (insightBusyApplicationId) return;
+    setInsightBusyApplicationId(applicationId);
+    setInsightErrorByApplication((prev) => ({ ...prev, [applicationId]: "" }));
+    try {
+      const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}/applications/${applicationId}/insight`, {
+        method: "POST",
+      });
+      const body = await res.json();
+      if (!res.ok) { setInsightErrorByApplication((prev) => ({ ...prev, [applicationId]: body.error ?? "Yande could not review this applicant." })); return; }
+      setInsightByApplication((prev) => ({ ...prev, [applicationId]: body.insight }));
+    } catch {
+      setInsightErrorByApplication((prev) => ({ ...prev, [applicationId]: "Yande could not review this applicant. Retry when connected." }));
+    } finally {
+      setInsightBusyApplicationId(null);
     }
   }
 
@@ -194,6 +222,49 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
                       ) : (
                         <p className="mt-1.5 text-[8px]" style={{ color: KEBU.faint }}>{t("employer_no_profile")}</p>
                       )}
+                      {profile ? (
+                        <div className="mt-1.5 border-t pt-1.5" style={fieldStyle}>
+                          <button
+                            type="button"
+                            disabled={insightBusyApplicationId === application.id}
+                            onClick={() => void askYande(listing.id, application.id)}
+                            className="text-[8px] font-black uppercase tracking-wide disabled:opacity-50"
+                            style={{ color: "#6B3FA0" }}
+                          >
+                            {insightBusyApplicationId === application.id
+                              ? t("employer_yande_thinking")
+                              : insightByApplication[application.id]
+                                ? t("employer_yande_regenerate")
+                                : t("employer_yande_ask")}
+                          </button>
+                          {insightErrorByApplication[application.id] ? (
+                            <p className="mt-1 text-[8px]" style={{ color: "#B00020" }}>{insightErrorByApplication[application.id]}</p>
+                          ) : null}
+                          {insightByApplication[application.id] ? (
+                            <div className="mt-1.5 rounded-[8px] p-2" style={{ background: "#F6F0FB" }}>
+                              <p className="text-[8px] font-black uppercase tracking-wide" style={{ color: "#6B3FA0" }}>{t("employer_yande_label")}</p>
+                              <p className="mt-1 text-[9px]">{insightByApplication[application.id].summary}</p>
+                              {insightByApplication[application.id].strengths.length ? (
+                                <ul className="mt-1 list-disc pl-3 text-[8px]" style={{ color: KEBU.muted }}>
+                                  {insightByApplication[application.id].strengths.map((item, index) => <li key={index}>{item}</li>)}
+                                </ul>
+                              ) : null}
+                              {insightByApplication[application.id].questions_to_ask.length ? (
+                                <div className="mt-1">
+                                  <p className="text-[8px] font-semibold">{t("employer_yande_questions")}</p>
+                                  <ul className="list-disc pl-3 text-[8px]" style={{ color: KEBU.muted }}>
+                                    {insightByApplication[application.id].questions_to_ask.map((item, index) => <li key={index}>{item}</li>)}
+                                  </ul>
+                                </div>
+                              ) : null}
+                              {insightByApplication[application.id].caution ? (
+                                <p className="mt-1 text-[8px]" style={{ color: "#B06A00" }}>⚠ {insightByApplication[application.id].caution}</p>
+                              ) : null}
+                              <p className="mt-1.5 text-[7px]" style={{ color: KEBU.faint }}>{t("employer_yande_disclaimer")}</p>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {application.status === "submitted" || application.status === "reviewed" ? (
                         <div className="mt-1.5 flex gap-2">
                           <button type="button" onClick={() => decide(listing.id, application.id, "reviewed")} className="text-[8px] font-black uppercase" style={{ color: KEBU.muted }}>{t("employer_mark_reviewed")}</button>

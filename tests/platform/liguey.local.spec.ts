@@ -219,6 +219,60 @@ test("retrying a failed profile save keeps the typed text and persists on retry"
   expect(errors).toEqual([]);
 });
 
+test("Ask Yande generates a real, grounded, non-numeric-score insight for a real applicant", async ({ page, request }) => {
+  await reset(request);
+  await session(page.context(), founder);
+  await page.goto(`/business/${businessId}/liguey`);
+  await page.getByPlaceholder("Title", { exact: true }).fill("Community translator");
+  await page.getByRole("button", { name: "Create draft listing", exact: true }).click();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  const publicHref = await page.locator('a[href^="/j/"]').getAttribute("href");
+
+  await session(page.context(), applicant);
+  await page.goto("/liguey/profile");
+  await page.getByLabel("Headline", { exact: true }).fill("Wolof-French translator");
+  await page.getByLabel("Skills", { exact: true }).fill("translation, bookkeeping");
+  await page.getByRole("button", { name: "Save profile", exact: true }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+
+  await page.goto(publicHref!);
+  await page.locator("textarea").fill("I would love to help with this.");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(page.getByText("Application submitted", { exact: false })).toBeVisible();
+
+  await session(page.context(), founder);
+  await page.goto(`/business/${businessId}/liguey`);
+  await page.getByRole("button", { name: "View applicants", exact: true }).click();
+  const askYande = page.getByRole("button", { name: "Ask Yande about this applicant", exact: true });
+  await expect(askYande).toBeVisible();
+  await askYande.click();
+
+  await expect(page.getByText("Yande's notes", { exact: true })).toBeVisible();
+  await expect(page.getByText(/not a score/i)).toBeVisible();
+
+  const after = await state(request);
+  expect(after.insights).toHaveLength(1);
+  expect(after.insights[0]).toMatchObject({ generated_by: founder, business_id: businessId });
+
+  // Grounded, not fabricated: Yande was actually sent this real applicant's
+  // real skills and the real listing title, not a generic/static prompt.
+  const sentText = JSON.stringify(after.lastAnthropicRequest.messages);
+  expect(sentText).toContain("Community translator");
+  expect(sentText).toContain("translation");
+  expect(after.lastAnthropicRequest.system).toContain("Never invent a numeric score");
+
+  // A plain employee can read the cached note via the real RLS-scoped API
+  // (any active member, not only the manager who generated it) — there is
+  // no UI surface for this today, since the listing-management page itself
+  // is manager-only (confirmed by an earlier test in this file), but the
+  // data-layer guarantee is real and worth its own check.
+  const listingId = after.listings.find((listing: { title: string }) => listing.title === "Community translator").id;
+  await session(page.context(), employee);
+  const employeeRes = await page.request.get(`http://127.0.0.1:38440/api/liguey/employers/${businessId}/listings/${listingId}/applications/${after.applications[0].id}/insight`);
+  expect(employeeRes.ok()).toBe(true);
+  expect((await employeeRes.json()).insight).toMatchObject({ summary: expect.stringContaining("Fixture-generated") });
+});
+
 test("mobile viewport: the worker profile page is usable and does not overflow", async ({ page, request }) => {
   await reset(request); await session(page.context(), applicant);
   await page.setViewportSize({ width: 390, height: 844 });

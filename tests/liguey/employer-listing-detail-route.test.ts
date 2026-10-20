@@ -12,7 +12,7 @@ const request = (method: string, body?: unknown) =>
   new Request(`https://kebu.test/api/liguey/employers/${businessId}/listings/${listingId}`, { method, headers: { "Content-Type": "application/json" }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
 const ctx = { params: Promise.resolve({ businessId, listingId }) };
 
-function setup(opts: { managerRole?: string | null; listing?: unknown; applications?: unknown[]; updateResult?: { data: unknown; error: unknown }; profiles?: unknown[]; evidence?: unknown[]; evidenceNodes?: unknown[] } = {}) {
+function setup(opts: { managerRole?: string | null; listing?: unknown; applications?: unknown[]; updateResult?: { data: unknown; error: unknown }; profiles?: unknown[]; evidence?: unknown[]; evidenceNodes?: unknown[]; insights?: unknown[] } = {}) {
   const memberMaybeSingle = vi.fn().mockResolvedValue({ data: opts.managerRole === undefined ? { role: "founder" } : opts.managerRole === null ? null : { role: opts.managerRole }, error: null });
   const listingMaybeSingle = vi.fn().mockResolvedValue({ data: opts.listing === undefined ? listingRow : opts.listing, error: null });
   const applicationsOrder = vi.fn().mockResolvedValue({ data: opts.applications ?? [], error: null });
@@ -20,6 +20,7 @@ function setup(opts: { managerRole?: string | null; listing?: unknown; applicati
   const profilesIn = vi.fn().mockResolvedValue({ data: opts.profiles ?? [], error: null });
   const evidenceIn = vi.fn().mockResolvedValue({ data: opts.evidence ?? [], error: null });
   const evidenceNodesIn = vi.fn().mockResolvedValue({ data: opts.evidenceNodes ?? [], error: null });
+  const insightsIn = vi.fn().mockResolvedValue({ data: opts.insights ?? [], error: null });
   const from = vi.fn((table: string) => {
     if (table === "business_members") return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: memberMaybeSingle };
     if (table === "job_listings") {
@@ -32,6 +33,7 @@ function setup(opts: { managerRole?: string | null; listing?: unknown; applicati
     if (table === "worker_profiles") return { select: vi.fn().mockReturnThis(), in: profilesIn };
     if (table === "worker_profile_evidence") return { select: vi.fn().mockReturnThis(), in: evidenceIn };
     if (table === "library_nodes") return { select: vi.fn().mockReturnThis(), in: evidenceNodesIn };
+    if (table === "liguey_applicant_insights") return { select: vi.fn().mockReturnThis(), in: insightsIn };
     throw new Error("unexpected table " + table);
   });
   auth.mockResolvedValue({ user: { id: userId }, supabase: { from } });
@@ -48,6 +50,17 @@ describe("Liguey single-listing route", () => {
     const body = await response.json();
     expect(body.listing).toMatchObject(listingRow);
     expect(body.applications).toHaveLength(1);
+  });
+
+  it("includes any previously generated Yande insight alongside each application", async () => {
+    setup({
+      applications: [{ id: "app1", applicant_user_id: userId, status: "submitted" }],
+      insights: [{ application_id: "app1", model: "test-model", summary: "A real summary.", strengths: [], questions_to_ask: [], caution: "" }],
+    });
+    const response = await GET(request("GET"), ctx);
+    const body = await response.json();
+    expect(body.applicantInsights).toHaveLength(1);
+    expect(body.applicantInsights[0]).toMatchObject({ application_id: "app1", summary: "A real summary." });
   });
 
   it("includes the applicant's worker profile and portfolio evidence alongside each application (K066 case 6)", async () => {

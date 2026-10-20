@@ -56,7 +56,20 @@ export async function GET(_req: Request, { params }: Params) {
     }
   }
 
-  return NextResponse.json({ listing, applications: applications ?? [], applicantProfiles: profiles, applicantEvidence: evidence, evidenceNodes });
+  // Any previously generated Yande insight is visible to every active
+  // business member (not only whichever manager happened to generate it) —
+  // matches the applicant-insights table's own read policy.
+  const applicationIds = (applications ?? []).map((application) => application.id);
+  let insights: { application_id: string; model: string; summary: string; strengths: string[]; questions_to_ask: string[]; caution: string }[] = [];
+  if (applicationIds.length) {
+    const { data } = await supabase
+      .from("liguey_applicant_insights")
+      .select("application_id, model, summary, strengths, questions_to_ask, caution")
+      .in("application_id", applicationIds);
+    insights = data ?? [];
+  }
+
+  return NextResponse.json({ listing, applications: applications ?? [], applicantProfiles: profiles, applicantEvidence: evidence, evidenceNodes, applicantInsights: insights });
 }
 
 /** Update a listing (including publishing/closing/archiving it) — manager-gated. */

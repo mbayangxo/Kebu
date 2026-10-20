@@ -68,7 +68,9 @@ export type LigueyKey =
   | "employer_publish" | "employer_close" | "employer_archive" | "employer_view_applicants" | "employer_hide_applicants"
   | "employer_no_applicants" | "employer_no_cover_note" | "employer_mark_reviewed" | "employer_accept" | "employer_decline"
   | "employer_no_listings" | "employer_profile_skills" | "employer_profile_languages" | "employer_no_profile" | "employer_profile_evidence"
-  | "employer_public_link_label";
+  | "employer_public_link_label"
+  | "employer_yande_ask" | "employer_yande_regenerate" | "employer_yande_thinking" | "employer_yande_label"
+  | "employer_yande_questions" | "employer_yande_disclaimer";
 
 export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
   en: {
@@ -181,6 +183,12 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_no_profile: "This applicant hasn't filled out a worker profile yet.",
     employer_profile_evidence: "Portfolio",
     employer_public_link_label: "Public link",
+    employer_yande_ask: "Ask Yande about this applicant",
+    employer_yande_regenerate: "Ask Yande again about this applicant",
+    employer_yande_thinking: "Yande is thinking…",
+    employer_yande_label: "Yande's notes",
+    employer_yande_questions: "Questions to ask",
+    employer_yande_disclaimer: "AI-generated from this applicant's own profile. Not a score — read the application yourself.",
   },
   fr: {
     brand: "Kebu Liguey",
@@ -292,6 +300,12 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_no_profile: "Ce candidat n'a pas encore rempli de profil de travailleur.",
     employer_profile_evidence: "Portfolio",
     employer_public_link_label: "Lien public",
+    employer_yande_ask: "Demander à Yande à propos de ce candidat",
+    employer_yande_regenerate: "Redemander à Yande à propos de ce candidat",
+    employer_yande_thinking: "Yande réfléchit…",
+    employer_yande_label: "Notes de Yande",
+    employer_yande_questions: "Questions à poser",
+    employer_yande_disclaimer: "Généré par IA à partir du profil de ce candidat. Pas un score — lisez la candidature vous-même.",
   },
   wo: {
     brand: "Kebu Liguey",
@@ -403,6 +417,12 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_no_profile: "Demandeel bii binnutul profil liggéeykat.",
     employer_profile_evidence: "Firnde",
     employer_public_link_label: "Lien public",
+    employer_yande_ask: "Laaj Yande ci demandeel bii",
+    employer_yande_regenerate: "Laaj Yande bu yeesu ci demandeel bii",
+    employer_yande_thinking: "Yande dafay xalaat…",
+    employer_yande_label: "Natte yu Yande",
+    employer_yande_questions: "Laaj yi war a def",
+    employer_yande_disclaimer: "AI bind ko ci profil liggéeykat. Du number — jàngal bind-bi sa bopp.",
   },
 };
 
