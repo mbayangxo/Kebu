@@ -8,11 +8,24 @@ import {
 import {
   clipboardPayloadFromLayers,
   layersFromClipboardPayload,
+  layersInRect,
   normalizeCrop,
   resizeCanvasDocument,
   snapLayerPosition,
   snapValue,
 } from "@/lib/studio/editor-craft";
+
+function rectLayer(overrides: Partial<CanvasLayer> & { id: string; x: number; y: number; width: number; height: number }): CanvasLayer {
+  return {
+    type: "rect",
+    name: "Box",
+    rotation: 0,
+    opacity: 1,
+    locked: false,
+    fill: "#000",
+    ...overrides,
+  } as CanvasLayer;
+}
 
 describe("S12b crop normalize", () => {
   it("defaults to full frame and clamps invalid windows", () => {
@@ -123,5 +136,38 @@ describe("S14 resize", () => {
     const next = resizeCanvasDocument(doc, { designType: "instagram_story" });
     expect(next.width).toBe(1080);
     expect(next.height).toBe(1920);
+  });
+});
+
+describe("marquee/rubber-band select — layersInRect", () => {
+  const layers: CanvasLayer[] = [
+    rectLayer({ id: "inside", x: 20, y: 20, width: 40, height: 40 }),
+    rectLayer({ id: "overlapping", x: 90, y: 90, width: 100, height: 100 }),
+    rectLayer({ id: "outside", x: 500, y: 500, width: 50, height: 50 }),
+    rectLayer({ id: "locked", x: 20, y: 20, width: 40, height: 40, locked: true }),
+  ];
+  const rect = { left: 0, top: 0, right: 100, bottom: 100 };
+
+  it("selects layers fully inside and partially overlapping the marquee rectangle", () => {
+    const hits = layersInRect(layers, rect);
+    expect(hits).toContain("inside");
+    expect(hits).toContain("overlapping");
+  });
+
+  it("never selects a layer entirely outside the marquee rectangle", () => {
+    expect(layersInRect(layers, rect)).not.toContain("outside");
+  });
+
+  it("never selects a locked layer, even when it's fully inside the marquee", () => {
+    expect(layersInRect(layers, rect)).not.toContain("locked");
+  });
+
+  it("selects nothing when the marquee rectangle touches no layer", () => {
+    expect(layersInRect(layers, { left: 700, top: 700, right: 800, bottom: 800 })).toEqual([]);
+  });
+
+  it("a marquee that exactly bounds one layer and touches nothing else selects only that layer", () => {
+    const hits = layersInRect(layers, { left: 15, top: 15, right: 65, bottom: 65 });
+    expect(hits).toEqual(["inside"]);
   });
 });

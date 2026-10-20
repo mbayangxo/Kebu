@@ -197,3 +197,26 @@ export function nudgeLayersWithinArtboard(
       : layer,
   );
 }
+
+/**
+ * Ids of unlocked layers whose (unrotated) bounding box intersects a
+ * marquee/rubber-band rectangle, in the same page-space units as layer
+ * x/y/width/height. Rotated layers are tested against their unrotated
+ * bounds — the same simplification most marquee-select implementations
+ * make, rather than exact rotated-polygon intersection.
+ */
+export function layersInRect(
+  layers: CanvasLayer[],
+  rect: { left: number; top: number; right: number; bottom: number },
+): string[] {
+  return layers
+    .filter(
+      (layer) =>
+        !layer.locked &&
+        layer.x < rect.right &&
+        layer.x + layer.width > rect.left &&
+        layer.y < rect.bottom &&
+        layer.y + layer.height > rect.top,
+    )
+    .map((layer) => layer.id);
+}

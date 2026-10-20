@@ -20,6 +20,7 @@ import { videoSourceTimeSec } from "@/lib/studio/timeline";
 import {
   clipboardPayloadFromLayers,
   layersFromClipboardPayload,
+  layersInRect,
   normalizeCrop,
   nudgeLayersWithinArtboard,
   snapLayerPosition,
@@ -181,6 +182,14 @@ export function StudioCanvasEditor({
     origX: number;
     origY: number;
   } | null>(null);
+  const [marquee, setMarquee] = useState<{ startX: number; startY: number; curX: number; curY: number; moved: boolean; boardLeft: number; boardTop: number } | null>(null);
+  /**
+   * pointerup and the click that follows it are two separate native events —
+   * by the time onClick's handler runs, `marquee` state from pointerUp has
+   * already been cleared and re-rendered. This ref survives that boundary so
+   * a real marquee drag can suppress the click-to-deselect handler just once.
+   */
+  const marqueeJustSelectedRef = useRef(false);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [zoom, setZoom] = useState(45);
@@ -310,6 +319,15 @@ export function StudioCanvasEditor({
         origX: panOffset.x,
         origY: panOffset.y,
       });
+      return;
+    }
+    // A plain left-click reaching here (layers stopPropagation their own
+    // pointerDown) started on empty canvas — begin a marquee/rubber-band
+    // selection rather than doing nothing until pointerUp's click-to-deselect.
+    if (e.button === 0 && !readOnly) {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      const box = e.currentTarget.getBoundingClientRect();
+      setMarquee({ startX: e.clientX, startY: e.clientY, curX: e.clientX, curY: e.clientY, moved: false, boardLeft: box.left, boardTop: box.top });
     }
   }
 
@@ -319,6 +337,11 @@ export function StudioCanvasEditor({
         x: pan.origX + (e.clientX - pan.startX),
         y: pan.origY + (e.clientY - pan.startY),
       });
+      return;
+    }
+    if (marquee) {
+      const moved = marquee.moved || Math.abs(e.clientX - marquee.startX) + Math.abs(e.clientY - marquee.startY) > 4;
+      setMarquee({ ...marquee, curX: e.clientX, curY: e.clientY, moved });
       return;
     }
     if (!drag) return;
@@ -400,6 +423,21 @@ export function StudioCanvasEditor({
     if (drag) {
       onChange(latestDoc.current);
     }
+    if (marquee?.moved) {
+      const artboardBox = artboardRef.current?.getBoundingClientRect();
+      if (artboardBox) {
+        const rect = {
+          left: (Math.min(marquee.startX, marquee.curX) - artboardBox.left) / displayScale,
+          top: (Math.min(marquee.startY, marquee.curY) - artboardBox.top) / displayScale,
+          right: (Math.max(marquee.startX, marquee.curX) - artboardBox.left) / displayScale,
+          bottom: (Math.max(marquee.startY, marquee.curY) - artboardBox.top) / displayScale,
+        };
+        const hitIds = layersInRect(layers, rect);
+        onSelectLayers(expandSelectionWithGroups(layers, hitIds));
+        marqueeJustSelectedRef.current = true;
+      }
+    }
+    setMarquee(null);
     setDrag(null);
     setSnapGuides({ v: null, h: null });
     setPan(null);
@@ -964,12 +1002,29 @@ export function StudioCanvasEditor({
           onPointerUp={pointerUp}
           onPointerLeave={pointerUp}
           onClick={() => {
+            if (marqueeJustSelectedRef.current) {
+              marqueeJustSelectedRef.current = false;
+              return;
+            }
             if (!spaceHeld && !pan) onSelectLayers([]);
           }}
           onContextMenu={(e) => {
             if (spaceHeld) e.preventDefault();
           }}
         >
+          {marquee?.moved ? (
+            <div
+              className="pointer-events-none absolute z-50 border border-dashed"
+              style={{
+                borderColor: "#FF6A00",
+                background: "rgba(255,106,0,0.08)",
+                left: Math.min(marquee.startX, marquee.curX) - marquee.boardLeft,
+                top: Math.min(marquee.startY, marquee.curY) - marquee.boardTop,
+                width: Math.abs(marquee.curX - marquee.startX),
+                height: Math.abs(marquee.curY - marquee.startY),
+              }}
+            />
+          ) : null}
           <div
             ref={artboardRef}
             className="relative shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
