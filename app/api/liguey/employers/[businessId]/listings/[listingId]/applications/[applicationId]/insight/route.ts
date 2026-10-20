@@ -99,6 +99,7 @@ export async function POST(req: Request, { params }: Params) {
         experience: (profile.experience ?? []) as Array<{ title: string; description: string; kind: "formal" | "informal" }>,
       },
       coverNote: application.cover_note,
+      userId: user.id,
     });
   } catch (cause) {
     return NextResponse.json({ error: cause instanceof Error ? cause.message : "Yande could not generate an insight." }, { status: 502 });

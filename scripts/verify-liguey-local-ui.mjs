@@ -56,6 +56,7 @@ await db.exec(read('supabase/migrations/20261016190000_liguey_job_listings_appli
 await db.exec(read('supabase/migrations/20261016200000_liguey_profile_visibility_for_reviewers.sql'));
 await db.exec(read('supabase/migrations/20261016210000_liguey_applicant_listing_visibility.sql'));
 await db.exec(read('supabase/migrations/20261020000000_liguey_yande_applicant_insight.sql'));
+await db.exec(read('supabase/migrations/20261020000000_yande_shared_gateway.sql'));
 
 const TABLES = {
   worker_profiles: { columns: ['user_id','headline','bio','skills','languages','experience','location','country_code','remote_eligible','availability','is_discoverable','verified_at','created_at','updated_at'], json: new Set(['experience']) },
@@ -67,6 +68,7 @@ const TABLES = {
   library_nodes: { columns: ['id','owner_id','parent_id','kind','title','storage_path','mime_type','byte_size','source_kind','source_id','metadata','starred','trashed_at','created_at','updated_at'], json: new Set(['metadata']) },
   liguey_applicant_insights: { columns: ['id','application_id','business_id','generated_by','model','summary','strengths','questions_to_ask','caution','created_at','updated_at'], json: new Set() },
   liguey_ai_usage: { columns: ['business_id','month_start','generation_count','updated_at'], json: new Set() },
+  yande_interactions: { columns: ['id','feature','mode','user_id','model','outcome','input_tokens','output_tokens','error_message','created_at'], json: new Set() },
 };
 
 async function run(uid, sql, params = []) {
@@ -98,7 +100,7 @@ const backend = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1:38441');
   try {
     if (url.pathname === '/__qa/reset' && req.method === 'POST') {
-      await db.exec('truncate worker_profiles, worker_profile_evidence, job_listings, job_applications, liguey_ai_usage cascade');
+      await db.exec('truncate worker_profiles, worker_profile_evidence, job_listings, job_applications, liguey_ai_usage, yande_interactions cascade');
       queries = 0; lastAnthropicRequest = null; send(200, { ok: true }); return;
     }
     if (url.pathname === '/__qa/state') {
@@ -121,15 +123,17 @@ const backend = createServer(async (req, res) => {
     if (url.pathname === '/v1/messages' && req.method === 'POST') {
       const body = await payload(req);
       lastAnthropicRequest = body;
-      const text = String(body.system ?? '').includes('Yande')
-        ? JSON.stringify({
-            summary: 'Fixture-generated: strong fit based on the real applicant profile.',
-            strengths: ['Matches the listed language requirement', 'Has relevant informal experience'],
-            questionsToAsk: ['Can you describe a recent example of this work?'],
-            caution: '',
-          })
-        : '{}';
-      send(200, { id: 'msg_fixture', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'text', text }], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 10 } });
+      if (body.tool_choice && body.tool_choice.type === 'tool') {
+        const input = {
+          summary: 'Fixture-generated: strong fit based on the real applicant profile.',
+          strengths: ['Matches the listed language requirement', 'Has relevant informal experience'],
+          questionsToAsk: ['Can you describe a recent example of this work?'],
+          caution: '',
+        };
+        send(200, { id: 'msg_fixture', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'tool_use', id: 'toolu_fixture', name: body.tool_choice.name, input }], stop_reason: 'tool_use', usage: { input_tokens: 10, output_tokens: 10 } });
+        return;
+      }
+      send(200, { id: 'msg_fixture', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'text', text: 'Fixture chat reply.' }], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 10 } });
       return;
     }
     if (url.pathname.startsWith('/rest/v1/rpc/')) {
