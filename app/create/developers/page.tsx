@@ -40,6 +40,14 @@ export default function DeveloperProgramPage() {
           Kebu reaches young entrepreneurs across West Africa building their first digital presence — beauty brands, musicians, boutiques, food businesses. If you build exceptional site templates, you can sell them here.
         </p>
 
+        <p className="text-[12px] mb-6 rounded-xl border px-4 py-3" style={{ borderColor: KEBU.border, color: KEBU.muted, background: "#fff" }}>
+          One Kebu developer account sells everywhere — templates here and{" "}
+          <Link href="/studio/assets/sell" className="underline" style={{ color: KEBU.orange }}>
+            Studio creative assets
+          </Link>{" "}
+          share the same payout destination. Set it up once from either page.
+        </p>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           {[
             { label: "Revenue split", value: "70 / 30", note: "You keep 70% of every sale" },

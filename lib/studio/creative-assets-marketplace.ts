@@ -126,7 +126,13 @@ export async function listDeveloperCreativeAssets(
   return { ok: true, items: (data ?? []) as CreativeAssetRow[], profile: profile as DeveloperProfileRow };
 }
 
-/** Free-only launch scope (user decision, Oct 20 2026): price is always 0 here. Paid listings are a separate future slice. */
+/**
+ * Publish a photo / font / pattern / texture, free or paid. A paid listing
+ * (priceCents > 0) is only accepted once the developer has a real payout
+ * destination on file (lib/create/developer-payouts.ts) — checked here for
+ * a clear error message, and enforced again at the database layer via RLS
+ * (20261020040000_developer_payout_settings.sql) so this can't be bypassed.
+ */
 export async function createCreativeAsset(
   supabase: SupabaseClient,
   userId: string,
@@ -139,6 +145,7 @@ export async function createCreativeAsset(
     fileUrl: string;
     previewUrl?: string;
     licenseNote?: string;
+    priceCents?: number;
     publish?: boolean;
   },
 ): Promise<{ ok: true; item: CreativeAssetRow } | { ok: false; status: number; error: string }> {
@@ -153,6 +160,16 @@ export async function createCreativeAsset(
   const name = input.name.trim().slice(0, 80);
   if (!name) return { ok: false, status: 400, error: "Name is required." };
   if (!input.fileUrl.trim()) return { ok: false, status: 400, error: "A file is required." };
+
+  const priceCents = Math.max(0, Math.round(input.priceCents ?? 0));
+  if (priceCents > 0) {
+    const { getDeveloperPayoutSettings } = await import("@/lib/create/developer-payouts");
+    const payout = await getDeveloperPayoutSettings(supabase, userId);
+    if (!payout.ok) return { ok: false, status: payout.status, error: payout.error };
+    if (!payout.settings?.complete) {
+      return { ok: false, status: 400, error: "Set up your payout destination before publishing a paid asset." };
+    }
+  }
 
   const baseSlug = slugify(name) || `asset-${Date.now().toString(36)}`;
   const slug = `${baseSlug}-${Math.random().toString(36).slice(2, 8)}`;
@@ -171,7 +188,7 @@ export async function createCreativeAsset(
       file_url: input.fileUrl.trim(),
       preview_url: input.previewUrl?.trim() || null,
       license_note: input.licenseNote?.trim().slice(0, 300) || "Free to use in your Kebu designs.",
-      price_cents: 0,
+      price_cents: priceCents,
       status,
     })
     .select(ASSET_COLUMNS)

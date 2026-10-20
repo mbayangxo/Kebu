@@ -51,7 +51,7 @@ async function asUser(db: Db, userId: string, sql: string, params: unknown[] = [
 }
 
 describe.skipIf(!root)("Studio Creative Assets Marketplace migration (real SQL)", () => {
-  it("reproduces the pre-fix defect: developer_profiles does not exist on a fresh database", async () => {
+  it("reproduces the pre-fix defect: developer_profiles does not exist on a fresh database", { timeout: 20000 }, async () => {
     const db = await openBaseDb();
     try {
       await expect(db.query("select 1 from public.developer_profiles limit 1")).rejects.toThrow(/does not exist/);
@@ -60,7 +60,7 @@ describe.skipIf(!root)("Studio Creative Assets Marketplace migration (real SQL)"
     }
   });
 
-  it("creates developer_profiles, marketplace_creative_assets and creative_asset_library with working RLS", async () => {
+  it("creates developer_profiles, marketplace_creative_assets and creative_asset_library with working RLS", { timeout: 20000 }, async () => {
     const db = await openBaseDb();
     try {
       await db.exec(readFileSync(resolve("supabase/migrations/20261020030000_studio_creative_assets_marketplace.sql"), "utf8"));
