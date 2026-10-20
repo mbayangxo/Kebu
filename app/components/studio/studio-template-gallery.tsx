@@ -37,7 +37,7 @@ function TemplatePreviewCard({
     >
       <div
         className={`relative w-full flex items-end p-3 ${
-          aspect === "story" ? "aspect-[9/14]" : aspect === "portrait" ? "aspect-[3/4]" : "aspect-square"
+          aspect === "story" ? "aspect-[9/14]" : aspect === "portrait" ? "aspect-[3/4]" : aspect === "landscape" ? "aspect-[16/9]" : "aspect-square"
         }`}
         style={{ background: bg }}
       >

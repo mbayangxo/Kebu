@@ -140,6 +140,34 @@ function formatLabelForType(t: StudioDesignType): string {
       return "posters";
     case "social_square":
       return "square social posts";
+    case "tiktok_video_cover":
+      return "TikTok video covers";
+    case "linkedin_post":
+      return "LinkedIn posts";
+    case "linkedin_banner":
+      return "LinkedIn banners";
+    case "pinterest_pin":
+      return "Pinterest pins";
+    case "twitter_post":
+      return "X / Twitter posts";
+    case "youtube_thumbnail":
+      return "YouTube thumbnails";
+    case "youtube_banner":
+      return "YouTube channel banners";
+    case "menu":
+      return "menus";
+    case "pitch_deck_slide":
+      return "pitch deck slides";
+    case "proposal":
+      return "proposals";
+    case "resume":
+      return "resumes";
+    case "invoice":
+      return "invoices";
+    case "digital_planner":
+      return "digital planners";
+    case "business_card":
+      return "business cards";
     default:
       return "this format";
   }
