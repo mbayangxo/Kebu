@@ -128,6 +128,18 @@ function rewriteHref(
   const lower = next.toLowerCase();
   const labelLower = label.toLowerCase();
 
+  // Contact reaches the artist's team; it is not the foundation's legacy
+  // Inquire link. Keep saved defaults stable on every read/save cycle.
+  const isLegacySite =
+    lower.includes("maylecor.com") || lower.includes("wixsite.com") || lower.includes("wix.com");
+  const contactPath = lower.split(/[?#]/)[0].replace(/\/$/, "");
+  if (
+    contactPath === "contact" || contactPath === "/contact" ||
+    (isLegacySite && (labelLower === "contact" || contactPath.endsWith("/contact")))
+  ) {
+    return { label, href: "/contact" };
+  }
+
   if (
     lower.includes("maylecor.com") ||
     lower.includes("wixsite.com") ||
@@ -148,8 +160,7 @@ function rewriteHref(
     else if (
       labelLower.includes("mayjor") ||
       labelLower.includes("foundation") ||
-      labelLower.includes("inquire") ||
-      labelLower.includes("contact")
+      labelLower.includes("inquire")
     )
       next = MAYJOR_GOOD_SITE_HREF;
     else if (labelLower.includes("home") || lower.endsWith("/") || lower.includes("maylecor.com"))
@@ -176,11 +187,9 @@ function rewriteHref(
 
   if (
     labelLower.includes("inquire") ||
-    labelLower === "contact" ||
     labelLower.includes("foundation") ||
     labelLower.includes("mayjor") ||
     lower.includes("/inquire") ||
-    lower.includes("/contact") ||
     lower.includes("/mayjor-good")
   ) {
     return {

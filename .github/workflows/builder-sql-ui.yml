@@ -3,7 +3,7 @@ name: Builder SQL and browser
 on:
   workflow_dispatch:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-builder-frames-oct20-recovery"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-builder-frames-oct20-recovery", "work/codex-may-contact-oct20", "work/codex-platform-verification-oct20"]
     paths:
       - "supabase/migrations/**"
       - "app/create/**"
@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 25
     env:
       NEXT_TELEMETRY_DISABLED: "1"
-      KEBU_NATIVE_UI_SUITES: tests/creative-core/3j-editor-ui.local.spec.ts,tests/creative-core/3j-published-ui.local.spec.ts,tests/creative-core/builder-operation-ui.local.spec.ts,tests/creative-core/builder-pages-ui.local.spec.ts,tests/creative-core/collage-frame-sql.local.spec.ts
+      KEBU_NATIVE_UI_SUITES: tests/creative-core/3j-editor-ui.local.spec.ts,tests/creative-core/3j-published-ui.local.spec.ts,tests/creative-core/builder-operation-ui.local.spec.ts,tests/creative-core/builder-pages-ui.local.spec.ts,tests/creative-core/collage-frame-sql.local.spec.ts,tests/creative-core/collage-parity.local.spec.ts,tests/creative-core/collage-video.local.spec.ts
     steps:
       - name: Configure isolated QA paths
         shell: bash
