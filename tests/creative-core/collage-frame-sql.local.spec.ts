@@ -22,9 +22,14 @@ for (const [device, width] of [["Desktop",1440],["Phone",390]] as const) test("o
   const selectImage = async () => {
     if (device !== "Desktop") await page.getByRole("button", { name: device, exact: true }).first().click();
     const layer = page.locator('[data-kebu-layer="cutoutAccent"]'); await expect(layer).toBeVisible(); await layer.press("Enter");
-    const slider = page.getByRole("slider", { name: /^Width/ });
-    if (!(await slider.isVisible())) await page.getByRole("button", { name: "Build", exact: true }).first().click();
-    await expect(slider).toBeVisible();
+    // Size is an intentionally collapsed inspector accordion. Open the actual
+    // user control before querying its hidden range inputs.
+    const size = page.locator("summary").filter({ hasText: /^Size$/ });
+    if (!(await size.isVisible())) await page.getByRole("button", { name: "Build", exact: true }).first().click();
+    await expect(size).toBeVisible();
+    const panel = size.locator("..");
+    if (!(await panel.getAttribute("open") !== null)) await size.click();
+    await expect(page.getByRole("slider", { name: /^Width/ })).toBeVisible();
   };
   try {
     await page.goto("/create/" + projectId); await selectImage();
