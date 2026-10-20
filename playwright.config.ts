@@ -6,6 +6,9 @@ const protectionBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 export default defineConfig({
   testDir: "./tests",
   testMatch: "**/*.spec.ts",
+  // Local suites require dedicated fixture servers/SQL authorities and run via
+  // scripts/verify-*-local-ui.mjs. Never discover them against a hosted preview.
+  testIgnore: "**/*.local.spec.ts",
   timeout: 60_000,
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
