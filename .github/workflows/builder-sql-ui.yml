@@ -5,6 +5,10 @@ on:
   push:
     branches: ["work/kebu-completion-audit-oct13", "work/codex-builder-frames-oct20-recovery"]
     paths:
+      - "supabase/migrations/**"
+      - "app/create/**"
+      - "package.json"
+      - "package-lock.json"
       - "lib/create/**"
       - "lib/creative-core/**"
       - "app/components/create/**"
@@ -15,6 +19,10 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "supabase/migrations/**"
+      - "app/create/**"
+      - "package.json"
+      - "package-lock.json"
       - "lib/create/**"
       - "lib/creative-core/**"
       - "app/components/create/**"

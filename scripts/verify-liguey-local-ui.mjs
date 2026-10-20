@@ -55,8 +55,8 @@ await db.exec(read('supabase/migrations/20261016180000_liguey_worker_profiles.sq
 await db.exec(read('supabase/migrations/20261016190000_liguey_job_listings_applications.sql'));
 await db.exec(read('supabase/migrations/20261016200000_liguey_profile_visibility_for_reviewers.sql'));
 await db.exec(read('supabase/migrations/20261016210000_liguey_applicant_listing_visibility.sql'));
-await db.exec(read('supabase/migrations/20261020000000_liguey_yande_applicant_insight.sql'));
-await db.exec(read('supabase/migrations/20261020000000_yande_shared_gateway.sql'));
+await db.exec(read('supabase/migrations/20261020002000_liguey_yande_applicant_insight.sql'));
+await db.exec(read('supabase/migrations/20261020001000_yande_shared_gateway.sql'));
 await db.exec(read('supabase/migrations/20261020020000_liguey_listing_pay_photo_and_company_reviews.sql'));
 
 const TABLES = {

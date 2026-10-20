@@ -22,6 +22,7 @@ import { builderKcdDocumentView, builderKcdView } from "@/lib/create/kcd-adapter
 import { createKcdRenderProjection } from "@/lib/create/kcd-adapter/render-view";
 import type { RenderPath } from "@/lib/create/kcd-render-flag";
 import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
+import { parsePreviewEditorEvent } from "@/lib/create/preview-editor-events";
 import { BuilderElementInspector } from "@/app/components/create/builder-element-inspector";
 import { BuilderSectionLayoutPanel } from "@/app/components/create/builder-section-layout-panel";
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
@@ -1596,6 +1597,9 @@ function ProjectEditor({ projectId }: { projectId: string }) {
     }
   }
 
+  const canvasEditorRef = useRef(canvasEditor);
+  useEffect(() => { canvasEditorRef.current = canvasEditor; });
+
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
   /**
    * Shopify-feel: desktop preview fills the site pane; phone/tablet keep device frames.
@@ -1626,13 +1630,23 @@ function ProjectEditor({ projectId }: { projectId: string }) {
       const update = previewDefinitionUpdate(!full && previous?.window === target ? previous.definition : null,
         canvasDefinition, sequence, base);
       const nativeUpdate = kcdPreviewUpdate(!full && previous?.window === target ? previous.nativeDocument : null, nativePreviewDocument, sequence, base);
-      target.postMessage({ type: "kebu:definition:patch", update, nativeUpdate, pageSlug: previewPageSlug, editDevice: device, selectedNodeId: selectedSectionId }, window.location.origin);
+      target.postMessage({ type: "kebu:definition:patch", update, nativeUpdate, pageSlug: previewPageSlug, editDevice: device, selectedNodeId: selectedSectionId, selectedElement }, window.location.origin);
       previewSentRef.current = { window: target, definition: canvasDefinition, sequence, nativeDocument: nativePreviewDocument };
     };
     // When the iframe signals it's ready, push the current definition immediately
     function onMessage(e: MessageEvent) {
       if (e.origin !== window.location.origin || e.source !== iframe?.contentWindow) return;
       const message = e.data as { type?: string; nodeId?: string; patch?: unknown; requestId?: string };
+      const command = parsePreviewEditorEvent(e.data);
+      if (command) {
+        // Only the current owned page's section can receive an embedded edit.
+        // Mutation validation, responsive routing and receipts remain in updateProps.
+        if (command.type === "kebu:element:select" && sections.some(section => section.id === command.selection.sectionId && section.page_id === editPageId)) canvasEditorRef.current.onSelectElement(command.selection);
+        else if (command.type === "kebu:section:patch" && sections.some(section => section.id === command.sectionId && section.page_id === editPageId)) canvasEditorRef.current.onPatchSection(command.sectionId, command.patch);
+        else if (command.type === "kebu:page:navigate") canvasEditorRef.current.onNavigatePage(command.slug);
+        else if (command.type === "kebu:navigation:edit") canvasEditorRef.current.onEditNavigation();
+        return;
+      }
       if (message?.type === "kebu:preview:ready") send(true);
       else if (message?.type === "kebu:node:geometry" && typeof message.nodeId === "string" && typeof message.requestId === "string" && message.requestId.length <= 100) {
         const reply = (error?: string) => iframe?.contentWindow?.postMessage({ type: "kebu:geometry:ack", requestId: message.requestId, ...(error ? { error } : {}) }, window.location.origin);
@@ -1654,7 +1668,7 @@ function ProjectEditor({ projectId }: { projectId: string }) {
     // Also push whenever definition, page or device changes (iframe may already be ready)
     send();
     return () => window.removeEventListener("message", onMessage);
-  }, [canvasDefinition, nativePreviewDocument, operationEditing, operations.document, previewPageSlug, wideCanvas, device, selectedSectionId, changeSpatial]); // previewIframeRef is stable
+  }, [canvasDefinition, nativePreviewDocument, operationEditing, operations.document, previewPageSlug, wideCanvas, device, selectedSectionId, selectedElement, sections, editPageId, changeSpatial]); // previewIframeRef is stable
 
   return (
     <DataModeProvider>

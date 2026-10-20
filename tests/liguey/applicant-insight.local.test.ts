@@ -1,5 +1,5 @@
 /**
- * Real-SQL verification of 20261020000000_liguey_yande_applicant_insight.sql
+ * Real-SQL verification of 20261020002000_liguey_yande_applicant_insight.sql
  * (table, RLS, and the liguey_reserve_ai_generation monthly-cap function),
  * applied verbatim on top of the real job_listings/job_applications
  * migration, against a locally reconstructed businesses/business_members
@@ -49,7 +49,7 @@ async function openDb(): Promise<Db> {
     insert into auth.users(id) values ('${founder}'),('${employee}'),('${applicant}'),('${strangerBusinessFounder}');
   `);
   await db.exec(readFileSync(resolve("supabase/migrations/20261016190000_liguey_job_listings_applications.sql"), "utf8"));
-  await db.exec(readFileSync(resolve("supabase/migrations/20261020000000_liguey_yande_applicant_insight.sql"), "utf8"));
+  await db.exec(readFileSync(resolve("supabase/migrations/20261020002000_liguey_yande_applicant_insight.sql"), "utf8"));
   return db;
 }
 
