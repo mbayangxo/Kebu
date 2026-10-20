@@ -73,7 +73,12 @@ export async function yandeChat(opts: {
 }): Promise<YandeChatResult> {
   if (!yandeConfigured()) throw new Error("Yande is not configured on this server yet (missing AI key).");
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 45_000, maxRetries: 0 });
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    timeout: 45_000,
+    maxRetries: 0,
+    ...(process.env.ANTHROPIC_BASE_URL ? { baseURL: process.env.ANTHROPIC_BASE_URL } : {}),
+  });
   const system = `${YANDE_IDENTITY}\n\n${opts.systemPrompt}`;
 
   try {
@@ -120,7 +125,12 @@ export async function yandeStructured<T extends z.ZodType>(opts: {
   if (!yandeConfigured()) throw new Error("Yande is not configured on this server yet (missing AI key).");
   assertInputSize(opts.data);
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 45_000, maxRetries: 0 });
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    timeout: 45_000,
+    maxRetries: 0,
+    ...(process.env.ANTHROPIC_BASE_URL ? { baseURL: process.env.ANTHROPIC_BASE_URL } : {}),
+  });
   const system = `${YANDE_IDENTITY}\n\n${opts.systemPrompt}`;
 
   try {

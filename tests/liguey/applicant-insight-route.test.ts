@@ -97,6 +97,7 @@ describe("Liguey applicant insight route", () => {
       listing: expect.objectContaining({ title: "Community translator" }),
       applicant: expect.objectContaining({ headline: "Translator" }),
       coverNote: "Interested",
+      userId,
     }));
   });
 
