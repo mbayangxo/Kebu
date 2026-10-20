@@ -15,7 +15,7 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
       : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
   response.headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; " + scriptPolicy + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
+    "default-src 'self'; " + scriptPolicy + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https:;",
   );
   response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
   if (process.env.NODE_ENV === "production") {

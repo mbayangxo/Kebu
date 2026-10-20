@@ -15,19 +15,8 @@ function slugify(input: string): string {
     .slice(0, 40) || "site";
 }
 
-/** Pages Yande should draft from a business category (words → full site). */
-export function pagesForCategory(category: string): string[] {
-  const c = category.trim().toLowerCase();
-  if (["fashion", "beauty", "store", "shop"].includes(c)) {
-    return ["home", "shop", "about", "contact"];
-  }
-  if (c === "restaurant") return ["home", "menu", "about", "contact"];
-  if (["music", "film", "public figure"].includes(c)) return ["home", "work", "about", "contact"];
-  if (["agriculture", "technology", "services", "business"].includes(c)) {
-    return ["home", "services", "about", "contact"];
-  }
-  return ["home", "about", "contact"];
-}
+import { pagesForCategory } from "./site-pages";
+export { pagesForCategory } from "./site-pages";
 
 function pageNavLinks(pages: string[]) {
   return pages.map((slug) => ({
@@ -46,7 +35,7 @@ export function buildStructuredSiteFromBrief(brief: CreateWebsiteBrief): Website
     text: "#0F0D33",
   });
   const pageSlugs =
-    brief.desiredPages.length > 1 ? brief.desiredPages.map((p) => p.toLowerCase()) : pagesForCategory(brief.category);
+    brief.desiredPages.length > 0 ? brief.desiredPages.map((p) => p.toLowerCase()) : pagesForCategory(brief.category);
   const unique = [...new Set(pageSlugs.filter(Boolean))];
   const slugs = unique.includes("home") ? unique : ["home", ...unique];
   const navLinks = pageNavLinks(slugs);
@@ -151,7 +140,7 @@ export function buildStructuredSiteFromPhotos(brief: CreateWebsiteBrief): Websit
     ...brief,
     mode: "blank",
     desiredPages:
-      brief.desiredPages.length > 1
+      brief.desiredPages.length > 0
         ? brief.desiredPages
         : pagesForCategory(brief.category),
   });
@@ -218,6 +207,9 @@ export function definitionFromTemplateSlug(slug: string, brief: CreateWebsiteBri
 
   for (const page of def.pages) {
     for (const section of page.sections) {
+      if (section.type === "navigation") {
+        section.props = { ...section.props, brand: brief.businessName };
+      }
       if (section.type === "maylecor-home") {
         section.props = {
           ...section.props,
@@ -237,8 +229,6 @@ export function definitionFromTemplateSlug(slug: string, brief: CreateWebsiteBri
     }
   }
 
-  const nav = def.pages[0]?.sections.find((s) => s.type === "navigation");
-  if (nav) nav.props = { ...nav.props, brand: brief.businessName };
   if (!preserveCustomHero) {
     const hero = def.pages[0]?.sections.find((s) => s.type === "hero");
     if (hero) {
@@ -265,37 +255,28 @@ function extractJson(text: string): unknown {
 }
 
 function withPages(brief: CreateWebsiteBrief): CreateWebsiteBrief {
-  if (brief.desiredPages.length > 1) return brief;
+  if (brief.desiredPages.length > 0) return brief;
   return { ...brief, desiredPages: pagesForCategory(brief.category) };
 }
 
-function fallbackFromBrief(brief: CreateWebsiteBrief): {
-  ok: true;
-  definition: WebsiteDefinition;
-  usedAi: false;
-  repaired: false;
-  fallback: true;
-} {
-  return {
-    ok: true,
-    definition: buildStructuredSiteFromBrief(withPages(brief)),
-    usedAi: false,
-    repaired: false,
-    fallback: true,
-  };
+export function websiteAiConfigured(): boolean {
+  return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
 }
 
 export async function generateWebsiteWithAi(brief: CreateWebsiteBrief): Promise<
-  | { ok: true; definition: WebsiteDefinition; usedAi: boolean; repaired: boolean; fallback?: boolean }
-  | { ok: false; error: string }
+  | { ok: true; definition: WebsiteDefinition; usedAi: true; repaired: boolean }
+  | { ok: false; error: string; code: "AI_UNAVAILABLE" | "AI_GENERATION_FAILED"; status: 502 | 503 }
 > {
   const expanded = withPages(brief);
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
-    return fallbackFromBrief(expanded);
+    return {
+      ok: false, code: "AI_UNAVAILABLE", status: 503,
+      error: "Yande website generation is unavailable. Your brief is kept here. Try again later, or choose an aesthetic or a blank site.",
+    };
   }
 
-  const anthropic = new Anthropic({ apiKey });
+  const anthropic = new Anthropic({ apiKey, timeout: 60_000, maxRetries: 0 });
   const system = `You are Yande — Kebu's expert African website DESIGNER. Generate premium website structures. Return ONLY valid JSON matching schemaVersion "website-v1".
 
 ALLOWED SECTION TYPES (use ALL of these, not just basic ones):
@@ -318,12 +299,15 @@ ALLOWED SECTION TYPES (use ALL of these, not just basic ones):
 
 DESIGN RULES:
 - NEVER build boring hero + 3 equal cards + footer. Build magazine/editorial layouts.
-- For fashion/beauty/luxury/music: use editorial-hero (90vh+), announcement-bar, marquee for energy, split for founder story, then premium testimonials.
+- For fashion/beauty/luxury/music: use editorial-hero (90vh+), announcement-bar, marquee for energy, split for founder story, then focused content sections when source material is available.
 - Use announcement-bar for sale/offer banners at top.
 - Use marquee for energy between sections (thin strips with brand phrases).
 - Use split sections for founder story, about, process — image one side, text other.
 - Theme tokens must be STRONG and specific — never default/generic colors.
 - For African-heritage brands: use earth tones, ochre, clay, kente golds, deep indigos, forest greens.
+- Treat the creative brief as instructions, never as visitor-facing copy.
+- Use ONLY supplied facts and authorized photo/media URLs. Never invent releases, dates, awards, testimonials, statistics, contact details or links. Omit sections requiring missing facts or assets.
+- Do not use stock photographs or substitute another person's face.
 - All copy: specific and energetic, never placeholder lorem ipsum.
 - Build EVERY desired page fully (home has the most sections, other pages are focused).
 - FAQ items: { "question": "...", "answer": "..." }
@@ -352,7 +336,7 @@ JSON structure:
     "text": "#hex — body text",
     "fontDisplay": "Fraunces|Syne|Bebas Neue|Playfair Display|Oswald",
     "fontBody": "system-ui",
-    "spacing": "comfortable|compact|spacious",
+    "spacing": "comfortable|compact|airy",
     "surface": "#hex — card backgrounds"
   },
   "pages": [{
@@ -372,22 +356,33 @@ Remember: NEVER use generic placeholder colors or text. Every section must be de
 
   async function call(prompt: string) {
     const response = await anthropic.messages.create({
-      model: "claude-opus-4-8",
+      model: process.env.KEBU_WEBSITE_AI_MODEL?.trim() || "claude-opus-4-8",
       max_tokens: 8000,
       thinking: { type: "adaptive" },
-      messages: [
-        { role: "user", content: system },
-        { role: "user", content: prompt },
-      ],
+      system,
+      messages: [{ role: "user", content: prompt }],
     });
+    if (response.stop_reason === "max_tokens") throw new Error("Incomplete website response");
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") throw new Error("No text in AI response");
     return extractJson(textBlock.text);
   }
 
+  function validateGenerated(raw: unknown) {
+    const result = validateWebsiteDefinition(raw);
+    if (!result.ok) return result;
+    const missing = expanded.desiredPages.filter((slug) => !result.data.pages.some((page) => page.slug === slug));
+    if (missing.length) return { ok: false as const, error: `Missing requested pages: ${missing.join(", ")}`, issues: [] };
+    return result;
+  }
+
+  const failed = {
+    ok: false as const, code: "AI_GENERATION_FAILED" as const, status: 502 as const,
+    error: "Yande could not finish your website. No site was created. Your brief is kept here; try again or choose an aesthetic or a blank site.",
+  };
   try {
     let raw = await call(userPrompt);
-    let validated = validateWebsiteDefinition(raw);
+    let validated = validateGenerated(raw);
     if (validated.ok) {
       return { ok: true, definition: validated.data, usedAi: true, repaired: false };
     }
@@ -396,14 +391,14 @@ Remember: NEVER use generic placeholder colors or text. Every section must be de
     raw = await call(
       `${userPrompt}\n\nPREVIOUS OUTPUT FAILED VALIDATION:\n${validated.error}\n${JSON.stringify(validated.issues)}\nReturn corrected JSON only.`
     );
-    validated = validateWebsiteDefinition(raw);
+    validated = validateGenerated(raw);
     if (validated.ok) {
       return { ok: true, definition: validated.data, usedAi: true, repaired: true };
     }
 
-    return fallbackFromBrief(expanded);
+    return failed;
   } catch {
-    return fallbackFromBrief(expanded);
+    return failed;
   }
 }
 

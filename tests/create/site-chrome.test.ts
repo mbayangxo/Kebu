@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  deriveSiteChrome,
   CHROME_FOOTER_ID,
   CHROME_HEADER_ID,
   applySiteChromeToDefinition,
@@ -102,5 +103,19 @@ describe("site chrome W13", () => {
       expect(page.sections[0]?.id).toBe(CHROME_HEADER_ID);
       expect(page.sections.at(-1)?.id).toBe(CHROME_FOOTER_ID);
     }
+  });
+});
+
+
+describe("read-only draft chrome", () => {
+  it("honors an owner-disabled header without changing saved sections", () => {
+    const sections = [{ section_type: "navigation", props: { brand: "Owner title", links: [] } }];
+    const before = JSON.stringify(sections);
+    expect(deriveSiteChrome({ enabled: false }, sections, "Owner title", ["navigation"])).toEqual({ enabled: false });
+    expect(JSON.stringify(sections)).toBe(before);
+  });
+  it("derives missing legacy chrome without changing the caller's metadata", () => {
+    expect(deriveSiteChrome(null, [], "Owner title", ["hero"]).header?.props.brand).toBe("Owner title");
+    expect(deriveSiteChrome(null, [], "May", ["legally-blonde-hero"])).toEqual({ enabled: false });
   });
 });

@@ -10,6 +10,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Kebu
 
+**Fresh-session continuity gate:** before editing, run `npm run workspace:check` and read `docs/WORKSPACE_CONTINUITY.md`. Fetch and reconcile the durable working branch; do not develop from a behind/diverged checkout or assume chat summaries are Git evidence. Preserve local changes. Push and verify reviewed checkpoints before pausing; never force-push or rewrite authors.
+
 **Authoritative product law:** `docs/product/PRODUCT_RULES.md` — read before modifying the application.
 
 ## Core instruction (strict)

@@ -1,3 +1,4 @@
+import { siteFormSectionSchema } from "./site-forms";
 import { defaultMaylecorMusicProps } from "./maylecor-defaults";
 import {
   defaultMaylecorPhotoGalleryItems,
@@ -16,6 +17,26 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
       slug: "home",
       title: "Home",
       sections: [],
+    },
+    {
+      slug: "contact",
+      title: "Contact",
+      sections: [{
+        id: "maylecor-contact-form",
+        type: "form",
+        props: siteFormSectionSchema.parse({
+          heading: "Contact May",
+          subheading: "Press, bookings, partnerships and other enquiries. Send a message to May’s team.",
+          buttonLabel: "Send enquiry",
+          successMessage: "Thank you. Your enquiry has been received by May’s team.",
+          fields: [
+            { id: "name", label: "Your name", type: "text", required: true },
+            { id: "email", label: "Email address", type: "email", required: true },
+            { id: "topic", label: "Enquiry type", type: "select", required: true, options: ["Press", "Booking", "Partnership", "Other"] },
+            { id: "message", label: "Your message", type: "textarea", required: true },
+          ],
+        }),
+      }],
     },
     {
       slug: "shop",

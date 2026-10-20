@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string }> };
 
 const bodySchema = z.object({
-  expectedUpdatedAt: z.string().datetime().optional(),
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export async function POST(req: Request, { params }: Params) {
@@ -100,8 +100,16 @@ export async function POST(req: Request, { params }: Params) {
     })
     .eq("id", id)
     .eq("source_design_id", design.id)
+    .eq("updated_at", parsed.data.expectedUpdatedAt ?? project.updated_at)
     .select("id, composition, source_design_id, business_id, updated_at")
     .maybeSingle();
+
+  if (!updateError && !updated) {
+    return NextResponse.json({
+      error: "This video changed while refreshing. Your newer edit was kept. Reload before retrying.",
+      code: "studio_video_version_conflict",
+    }, { status: 409 });
+  }
 
   if (updateError || !updated) {
     return NextResponse.json({ error: "Could not refresh the linked design." }, { status: 500 });

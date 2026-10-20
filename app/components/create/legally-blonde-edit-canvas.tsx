@@ -1,4 +1,6 @@
 "use client";
+import { CollageVideoLayer } from "./collage-video-layer";
+import { collageVideosSchema } from "@/lib/create/collage-video";
 
 /**
  * Shopify-style May Lecor / Legally Blonde canvas.
@@ -13,11 +15,12 @@ import {
   layerMotionClass,
   type LayerMotion,
 } from "@/app/components/create/circular-brand-ring";
-import { LEGALLY_BLONDE_ASSETS } from "@/lib/create/legally-blonde-defaults";
+import { LEGALLY_BLONDE_ASSETS, localizeLegallyBlondeAssetUrl } from "@/lib/create/legally-blonde-defaults";
 import {
   MAYLECOR_FIGURE_ASSETS,
   MAYLECOR_LOCAL_ASSETS,
 } from "@/lib/create/maylecor-defaults";
+import { EditableSocialRail, socialRailStyleFromProps } from "./editable-social-rail";
 import { uploadProjectAsset } from "@/lib/create/upload-project-asset";
 import { MaylecorMotionChrome } from "@/app/components/create/maylecor-motion-chrome";
 import { sanitizeMaylecorNavLinks } from "@/lib/create/maylecor-nav";
@@ -49,6 +52,8 @@ const DEFAULT_SLOTS: Omit<EditableCutoutSlot, "src">[] = [
   { key: "cutoutAccent", label: "Center cutout", topPct: 14, leftPct: 30, widthPct: 40, rotate: 0 },
   { key: "cutoutRight", label: "Right cutout", topPct: 22, leftPct: 68, widthPct: 26, rotate: 5 },
   { key: "cutoutSparkle", label: "Sparkle", topPct: 12, leftPct: 42, widthPct: 14, rotate: 0 },
+  { key: "heroPhoto", label: "Story photo", topPct: 62, leftPct: 35, widthPct: 25, rotate: 0 },
+  { key: "macbook", label: "Album mockup", topPct: 62, leftPct: 65, widthPct: 25, rotate: 0 },
   { key: "titleLogo", label: "Name circle", topPct: 36, leftPct: 30, widthPct: 38, rotate: 0 },
 ];
 
@@ -102,6 +107,7 @@ type ExtraCut = {
   widthPct: number;
   rotate?: number;
   zIndex?: number;
+  parallaxRole?: "city" | "figure" | "none";
 };
 
 type UploadTarget =
@@ -111,6 +117,7 @@ type UploadTarget =
 
 export function LegallyBlondeEditCanvas({
   props,
+  editable = true,
   projectId,
   siteBase = "",
   currentSlug = "home",
@@ -122,6 +129,7 @@ export function LegallyBlondeEditCanvas({
   onNavigatePage,
 }: {
   props: Record<string, unknown>;
+  editable?: boolean;
   projectId?: string;
   siteBase?: string;
   currentSlug?: string;
@@ -137,7 +145,7 @@ export function LegallyBlondeEditCanvas({
     : [];
   const bgHidden =
     props.backgroundHidden === true || hiddenLayers.includes("backgroundLayer");
-  const bgRaw = String(props.backgroundLayer ?? "").trim();
+  const bgRaw = localizeLegallyBlondeAssetUrl(String(props.backgroundLayer ?? "")) ?? "";
   const bg = bgHidden ? "" : bgRaw;
   const moves = (props.layerMoves as Record<string, { dx?: number; dy?: number }>) ?? {};
   const positions = (props.layerPositions as Record<string, LayerPos>) ?? {};
@@ -202,6 +210,7 @@ export function LegallyBlondeEditCanvas({
     };
     onPatch({
       extraCutouts: [...extraCutouts, duplicate],
+      ...(props.layerScroll && (props.layerScroll as Record<string, { x: number; y: number }>)[key] ? { layerScroll: { ...(props.layerScroll as Record<string, { x: number; y: number }>), [nextId]: (props.layerScroll as Record<string, { x: number; y: number }>)[key] } } : {}),
       layerScales: { ...scales, [nextId]: 1 },
       layerZIndex: { ...layerZ, [nextId]: duplicate.zIndex ?? 11 },
       layerPositions: {
@@ -249,7 +258,16 @@ export function LegallyBlondeEditCanvas({
     lineHeight: Math.min(2, Math.max(0.8, Number(props.titleTextLineHeight ?? 1.15))),
     color: String(props.titleTextColor ?? "#ffffff"),
   };
-  const parallax = props.scrollMode !== "viewport";
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(preference.matches);
+    update();
+    preference.addEventListener("change", update);
+    return () => preference.removeEventListener("change", update);
+  }, []);
+  const motionEnabled = props.motionEnabled !== false && !reducedMotion;
+  const parallax = motionEnabled && props.scrollMode !== "viewport";
   const sectionMinHeightPx = Math.min(
     1800,
     Math.max(360, Number(props.sectionMinHeightPx ?? 720)),
@@ -294,15 +312,16 @@ export function LegallyBlondeEditCanvas({
     if (slot.key === "titleLogo" && titleAsText) {
       return { ...slot, src: "__title_text__" };
     }
-    const raw = String(props[slot.key] ?? "").trim();
+    const raw = localizeLegallyBlondeAssetUrl(String(props[slot.key] ?? "")) ?? "";
     // Never paint Russian Elle cutouts / Cyrillic seal on a May Lecor hero.
     const russianStock =
       raw.includes("/templates/legally-blonde/") ||
       raw.includes("tildacdn.com") ||
       raw.includes("Group_557");
     const useMay = looksLikeMaylecorHero(props);
-    const src =
-      raw && !(useMay && russianStock) ? raw : slotFallbackSrc(slot.key, props);
+    const src = Object.prototype.hasOwnProperty.call(props, slot.key) && !raw
+      ? ""
+      : raw && !(useMay && russianStock) ? raw : slotFallbackSrc(slot.key, props);
     return {
       ...slot,
       src,
@@ -407,9 +426,9 @@ export function LegallyBlondeEditCanvas({
     // scene's position in that viewport instead of creating a nested overflow-y canvas.
     const scrollParent = (() => {
       let node: HTMLElement | null = scene.parentElement;
-      while (node) {
+      while (node && node !== document.body && node !== document.documentElement) {
         const overflowY = window.getComputedStyle(node).overflowY;
-        if (overflowY === "auto" || overflowY === "scroll") return node;
+        if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight + 1) return node;
         node = node.parentElement;
       }
       return null;
@@ -417,8 +436,10 @@ export function LegallyBlondeEditCanvas({
     const onScroll = () => {
       const rect = scene.getBoundingClientRect();
       const viewportHeight = scrollParent?.clientHeight ?? window.innerHeight;
-      const travel = Math.max(1, rect.height + viewportHeight);
-      setScrollProgress(Math.min(1, Math.max(0, (viewportHeight - rect.top) / travel)));
+      const viewportTop = scrollParent?.getBoundingClientRect().top ?? 0;
+      const pinnedHeight = scene.firstElementChild?.getBoundingClientRect().height ?? sectionMinHeightPx;
+      const travel = Math.max(1, rect.height - Math.min(pinnedHeight, viewportHeight));
+      setScrollProgress(Math.min(1, Math.max(0, (viewportTop - rect.top) / travel)));
     };
     onScroll();
     const target: EventTarget = scrollParent ?? window;
@@ -428,7 +449,7 @@ export function LegallyBlondeEditCanvas({
       target.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [parallax]);
+  }, [parallax, sectionMinHeightPx]);
 
   useEffect(() => {
     if (!toast || toast === "Uploading…") return;
@@ -443,7 +464,7 @@ export function LegallyBlondeEditCanvas({
   }, [editingTitle]);
 
   function selectElement(elementId: string, kind: BuilderElementKind, label: string) {
-    onSelectElement?.({ elementId, kind, label });
+    if (editable) onSelectElement?.({ elementId, kind, label });
   }
 
   function defaultMotion(key: string): LayerMotion {
@@ -456,27 +477,27 @@ export function LegallyBlondeEditCanvas({
       <div
         className="relative w-full flex-1 overflow-hidden"
         style={{
-          minHeight: sectionMinHeightPx,
+          minHeight: parallax ? `max(${sectionMinHeightPx}px, 100dvh)` : sectionMinHeightPx,
           backgroundColor: String(props.accentColor ?? "#E9006B"),
           backgroundImage: bg ? `url(${bg})` : "none",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          touchAction: "none",
+          touchAction: editable ? "none" : "pan-y",
           cursor: busy ? "wait" : "default",
         }}
         onClick={(e) => {
-          if (e.target !== e.currentTarget) return;
+          if (!editable || e.target !== e.currentTarget) return;
           setSelectedKey(null);
           setSelectedExtraId(null);
           setEditingTitle(false);
           selectElement("backgroundLayer", "background", "Background");
         }}
         onDoubleClick={(e) => {
-          if (e.target !== e.currentTarget) return;
+          if (!editable || e.target !== e.currentTarget) return;
           openUpload({ kind: "background" });
         }}
       >
-        <MaylecorMotionChrome
+        {props.showNavigation !== false ? <MaylecorMotionChrome
           siteBase={siteBase}
           brandLabel={String(props.brandLabel ?? props.title ?? "MAY LECOR")}
           titleLogo={
@@ -520,28 +541,38 @@ export function LegallyBlondeEditCanvas({
           navFontSizePx={typeof props.navFontSizePx === "number" ? props.navFontSizePx : undefined}
           navFontWeight={typeof props.navFontWeight === "number" ? props.navFontWeight : undefined}
           onNavigate={onNavigatePage}
-        />
+        /> : null}
 
+        {(collageVideosSchema.safeParse(props.sceneVideos ?? []).data ?? []).map(layer => <CollageVideoLayer key={`${layer.id}:${layer.src}`} layer={layer} progress={parallax ? scrollProgress : 0} motionEnabled={motionEnabled} editing={editable} siteBase={siteBase} onNavigatePage={onNavigatePage} />)}
+        <EditableSocialRail
+          links={Array.isArray(props.socialLinks) ? props.socialLinks as {label: string; href: string; iconUrl: string}[] : []}
+          style={socialRailStyleFromProps(props)}
+          editing={editable}
+          onPatch={editable ? onPatch : undefined}
+          siteBase={siteBase}
+        />
         {slots.map((slot) => {
           const pos = resolveSlotPos(slot);
           const scale = scales[slot.key] ?? (slot.key === "titleLogo" ? 0.75 : 1);
           const isTitle = slot.key === "titleLogo" && titleAsText;
           return (
             <CutoutChip
+              editable={editable}
               key={slot.key}
               slot={{ ...slot, widthPct: Math.max(4, slot.widthPct * scale) }}
               titleText={isTitle ? title || "MAY LECOR" : null}
-              titleEditing={isTitle && editingTitle}
+              titleEditing={editable && isTitle && editingTitle}
               titleInputRef={titleFieldRef}
               accentColor={accent}
               titleTypography={titleTypography}
-              selected={selectedKey === slot.key}
+              selected={editable && selectedKey === slot.key}
               leftPct={pos.leftPct}
               topPct={pos.topPct}
-              motion={motions[slot.key] ?? defaultMotion(slot.key)}
+              motion={motionEnabled ? motions[slot.key] ?? defaultMotion(slot.key) : "none"}
               href={layerLinks[slot.key] ?? ""}
+              scrollTravel={(props.layerScroll as Record<string, { x: number; y: number }> | undefined)?.[slot.key]}
               scrollProgress={parallax ? scrollProgress : 0}
-              pauseMotion={Boolean(selectedKey || selectedExtraId || editingTitle)}
+              pauseMotion={editable && Boolean(selectedKey || selectedExtraId || editingTitle)}
               siteBase={siteBase}
               onNavigatePage={onNavigatePage}
               onLinkChange={(href) => saveLayerLink(slot.key, href)}
@@ -615,6 +646,7 @@ export function LegallyBlondeEditCanvas({
             const pos = positions[cut.id] ?? { leftPct: cut.leftPct, topPct: cut.topPct };
             return (
               <CutoutChip
+                editable={editable}
                 key={cut.id}
                 slot={{
                   key: cut.id,
@@ -628,13 +660,15 @@ export function LegallyBlondeEditCanvas({
                 titleText={null}
                 titleEditing={false}
                 accentColor={accent}
-                selected={selectedExtraId === cut.id}
+                selected={editable && selectedExtraId === cut.id}
                 leftPct={pos.leftPct}
                 topPct={pos.topPct}
-                motion={motions[cut.id] ?? "none"}
+                motion={motionEnabled ? motions[cut.id] ?? "none" : "none"}
                 href={cut.href ?? ""}
+                scrollTravel={(props.layerScroll as Record<string, { x: number; y: number }> | undefined)?.[cut.id]}
+                scrollKey={cut.parallaxRole === "city" ? "macbook" : cut.parallaxRole === "figure" ? "cutoutAccent" : cut.id}
                 scrollProgress={parallax ? scrollProgress : 0}
-                pauseMotion={Boolean(selectedKey || selectedExtraId || editingTitle)}
+                pauseMotion={editable && Boolean(selectedKey || selectedExtraId || editingTitle)}
                 siteBase={siteBase}
                 onNavigatePage={onNavigatePage}
                 onLinkChange={(href) => {
@@ -713,13 +747,13 @@ export function LegallyBlondeEditCanvas({
           />
         ) : null}
 
-        {parallax ? (
+        {editable && parallax ? (
           <div className="pointer-events-none absolute bottom-3 right-3 z-[80] rounded-full bg-black/55 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-white/90">
             Scroll to move cutouts
           </div>
         ) : null}
 
-        <div className="pointer-events-auto absolute bottom-3 left-3 z-[85] flex flex-wrap gap-1.5">
+        {editable ? <div className="pointer-events-auto absolute bottom-3 left-3 z-[85] flex flex-wrap gap-1.5">
           <button
             type="button"
             className="rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white shadow"
@@ -746,7 +780,7 @@ export function LegallyBlondeEditCanvas({
               Remove background
             </button>
           ) : null}
-        </div>
+        </div> : null}
 
         {toast ? (
           <div className="pointer-events-none absolute left-1/2 top-3 z-[90] -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-lg">
@@ -754,7 +788,7 @@ export function LegallyBlondeEditCanvas({
           </div>
         ) : null}
 
-        <button
+        {editable ? <button
           type="button"
           aria-label="Resize hero section height"
           className="absolute bottom-0 left-1/2 z-[95] h-3 w-20 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-white/80 bg-[#FF6A00] shadow"
@@ -781,7 +815,7 @@ export function LegallyBlondeEditCanvas({
             window.addEventListener("mousemove", onMove);
             window.addEventListener("mouseup", onUp);
           }}
-        />
+        /> : null}
       </div>
   );
 
@@ -796,7 +830,7 @@ export function LegallyBlondeEditCanvas({
         extraFamilies={[titleTypography.fontFamily]}
       />
 
-      <input
+      {editable ? <input
         ref={fileRef}
         type="file"
         accept="image/png,image/jpeg,image/jpg,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp"
@@ -806,15 +840,15 @@ export function LegallyBlondeEditCanvas({
           if (f) void onFilePicked(f);
           e.target.value = "";
         }}
-      />
+      /> : null}
 
       {parallax ? (
         <div
           ref={scrollerRef}
           className="lb-editor-parallax-scroll relative w-full"
         >
-          <div className="lb-editor-scroll-scene">
-            {artboard}
+          <div className="lb-editor-scroll-scene" style={{ minHeight: `max(${sectionMinHeightPx * 2.2}px, 220dvh)` }}>
+            <div className="sticky top-0">{artboard}</div>
           </div>
         </div>
       ) : (
@@ -825,6 +859,7 @@ export function LegallyBlondeEditCanvas({
 }
 
 function CutoutChip({
+  editable = true,
   slot,
   titleText,
   titleEditing,
@@ -841,7 +876,9 @@ function CutoutChip({
   baseWidthPct,
   motion,
   href = "",
+  scrollKey,
   scrollProgress = 0,
+  scrollTravel,
   pauseMotion,
   siteBase,
   onNavigatePage,
@@ -868,6 +905,7 @@ function CutoutChip({
   onHide,
   onSnapGuide,
 }: {
+  editable?: boolean;
   slot: EditableCutoutSlot;
   titleText: string | null;
   titleEditing: boolean;
@@ -891,7 +929,9 @@ function CutoutChip({
   baseWidthPct: number;
   motion: LayerMotion;
   href?: string;
+  scrollKey?: string;
   scrollProgress?: number;
+  scrollTravel?: { x: number; y: number };
   pauseMotion: boolean;
   siteBase?: string;
   onNavigatePage?: (slug: string) => void;
@@ -932,7 +972,7 @@ function CutoutChip({
   const baseRotate = rotation ?? slot.rotate ?? 0;
   const scrollTransform =
     scrollProgress > 0 && !pauseMotion
-      ? cutoutScrollTransform(slot.key, scrollProgress, baseRotate)
+      ? cutoutScrollTransform(scrollKey ?? slot.key, scrollProgress, baseRotate, scrollTravel)
       : baseRotate
         ? `rotate(${baseRotate}deg)`
         : undefined;
@@ -1112,14 +1152,15 @@ function CutoutChip({
 
   return (
     <div
-      className="absolute cursor-grab active:cursor-grabbing select-none"
+      data-kebu-layer={slot.key}
+      className={`absolute select-none ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
       style={{
         left: `${leftPct}%`,
         top: `${topPct}%`,
         width: `${slot.widthPct * widthScale}%`,
         transform: scrollTransform,
         zIndex: selected || titleEditing ? Math.max(zIndex, 40) : zIndex,
-        touchAction: "none",
+        touchAction: editable ? "none" : "pan-y",
         userSelect: "none",
         WebkitUserSelect: "none",
         filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.25))",
@@ -1127,22 +1168,25 @@ function CutoutChip({
         outline: selected || titleEditing ? "2px solid #FF5500" : undefined,
         outlineOffset: 3,
       }}
-      onPointerDown={onPointerDown}
+      onPointerDown={editable ? onPointerDown : undefined}
       onContextMenu={(e) => {
+        if (!editable) return;
         e.preventDefault();
         e.stopPropagation();
         onSelect();
         setCtxMenu({ x: e.clientX, y: e.clientY });
       }}
       onDoubleClick={(e) => {
+        if (!editable) return;
         e.stopPropagation();
         if (titleText !== null) onStartTitleEdit?.();
         else onReplaceImage?.();
       }}
-      role="button"
-      tabIndex={0}
+      onFocus={editable ? onSelect : undefined}
+      role={editable ? "button" : undefined}
+      tabIndex={editable ? 0 : undefined}
       onKeyDown={(event) => {
-        if (!selected && !titleEditing) return;
+        if (!editable || (!selected && !titleEditing)) return;
         if (locked) return;
         if ((event.key === "Delete" || event.key === "Backspace") && onDelete) {
           event.preventDefault();
@@ -1164,14 +1208,25 @@ function CutoutChip({
           onMoved(leftPct, Math.min(90, topPct + step));
         }
       }}
-      aria-label={
+      aria-label={editable ? (
         titleText !== null
           ? "Drag to move · corners to resize · click to type"
           : href.trim()
             ? `Drag to move ${slot.label} · click Open to follow link`
             : `Drag to move ${slot.label} · corners to resize · double-click to change photo`
-      }
+      ) : undefined}
     >
+      {!editable && /^(https?:\/\/|mailto:|tel:|#|\/(?!\/)|[a-z0-9]+(?:-[a-z0-9]+)*$)/i.test(normalizeCutoutHref(href)) ? (
+        <a
+          className="absolute inset-0 z-30"
+          href={resolveCutoutHref(href, siteBase)}
+          aria-label={slot.label}
+          onClick={(event) => {
+            const slug = cutoutHrefToPageSlug(href);
+            if (slug && onNavigatePage) { event.preventDefault(); onNavigatePage(slug); }
+          }}
+        />
+      ) : null}
       {/* Right-click context menu — position: fixed so it escapes overflow:hidden */}
       {ctxMenu ? (
         <div
@@ -1226,7 +1281,7 @@ function CutoutChip({
             <CircularBrandRing
               text={titleText}
               color={accentColor}
-              spinning={!selected && !titleEditing}
+              spinning={motion !== "none" && !selected && !titleEditing}
             />
             {/* Center content — name text always visible; input swaps in when editing */}
             <div className="absolute inset-0 z-20 flex items-center justify-center p-[22%]">
@@ -1301,7 +1356,7 @@ function CutoutChip({
       </div>
 
       {/* Shopify-style corner handles — drag with the mouse to make bigger / smaller */}
-      {(selected || titleEditing) && !locked ? (
+      {editable && (selected || titleEditing) && !locked ? (
         <>
           <button
             type="button"

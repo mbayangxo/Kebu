@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-16",
+  "scope": "Website generation failure semantics and explicit artist page selection",
+  "node": "24.19.0",
+  "browser": {
+    "kind": "actual local Next wizard with explicit HTTP fixtures; no hosted AI or database proof",
+    "stats": {
+      "startTime": "2026-10-16T09:42:37.144Z",
+      "duration": 10773.630000000001,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "cleanup": {
+      "testsStopped": true,
+      "serverStopped": true,
+      "restoredConfig": true,
+      "remainingFixtures": [],
+      "sourceSandboxRemoved": true,
+      "generatedFixtureTypesRemoved": true
+    }
+  },
+  "hostedConfiguration": {
+    "operation": "read-only Vercel filter_project_envs, decrypt=false",
+    "projectId": "prj_P4Ou2No89MPIp1KdmnJHepJ818ED",
+    "publicAlias": "alkebulan-platform.vercel.app",
+    "anthropicApiKeyListed": false,
+    "hiddenProductionEnvCount": 0,
+    "secretsRead": false,
+    "writes": false
+  },
+  "limits": [
+    "No genuine provider request: no provider credential was available.",
+    "No live deployment or production migration.",
+    "Claude workspace commits 9204c21/769143e/1167543/0c55b6e are not present in this checkout.",
+    "Full 3J and artist-site acceptance remain open."
+  ],
+  "ci": {
+    "command": "npm run ci",
+    "exitCode": 0,
+    "node": "24.19.0",
+    "typecheckErrors": 0,
+    "lintErrors": 0,
+    "existingLintWarnings": 348,
+    "testFilesPassed": 358,
+    "testFilesSkipped": 22,
+    "testsPassed": 5939,
+    "testsSkipped": 168,
+    "build": "passed",
+    "logSha256": "ac9304f2a0404c70364b489dd6ecf6e3d4b2aa7e4c809899ee9d9dc34a9a7ab3"
+  }
+}

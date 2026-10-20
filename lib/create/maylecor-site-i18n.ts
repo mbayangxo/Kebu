@@ -7,13 +7,14 @@ export const MAYLECOR_LOCALES = [
 
 export type MaylecorLocale = (typeof MAYLECOR_LOCALES)[number]["code"];
 
-/** Primary site chrome — no Contact; Mayjor Good = May's foundation. */
+/** Primary site chrome — Contact reaches May’s team; Mayjor Good = foundation. */
 export const MAYLECOR_NAV_SLUGS = [
   "shop",
   "mays-world",
   "updates",
   "about",
   "press",
+  "contact",
   "mayjor-good",
 ] as const;
 
@@ -37,6 +38,7 @@ const NAV_KEYS: Record<MaylecorNavSlug, Record<MaylecorLocale, string>> = {
   updates: { en: "Updates", fr: "Actus", wo: "Xibaar" },
   about: { en: "About May", fr: "À propos de May", wo: "Ci May" },
   press: { en: "Press", fr: "Presse", wo: "Presse" },
+  contact: { en: "Contact", fr: "Contact", wo: "Jokkoo" },
   "mayjor-good": { en: "Mayjor Good", fr: "Mayjor Good", wo: "Mayjor Good" },
 };
 
@@ -80,5 +82,6 @@ export const MAYLECOR_NAV_ICONS: Record<MaylecorNavSlug, string> = {
   updates: "M4 5h16v3H4V5zm0 6h10v3H4v-3zm0 6h16v3H4v-3z",
   about: "M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0",
   press: "M4 5h16v14H4V5zm3 3h10M7 12h10M7 15h6",
+  contact: "M3 5h18v14H3V5zm0 1l9 7 9-7",
   "mayjor-good": "M12 21s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 11c0 5.5-7 10-7 10z",
 };

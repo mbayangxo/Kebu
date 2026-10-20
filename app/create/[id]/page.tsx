@@ -4,10 +4,23 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useKcdBuilder } from "./use-kcd-builder";
+import { kcdPreviewUpdate } from "@/lib/create/kcd-preview-update";
+import { buildIndex, isSpatialLocked, type KcdDocument } from "@/lib/creative-core";
+import { builderNodeMoveOperations, primitiveDefinition, primitiveGeometryOperations, primitiveDuplicateOperation, primitivePropertyOperations } from "@/lib/create/kcd-primitive-operations";
+import { reconcilePageNavigation } from "@/lib/create/kcd-page-navigation";
+import type { NodeId, PageId } from "@/lib/creative-core";
+import { previewDefinitionUpdate } from "@/lib/create/preview-definition-update";
+import { documentToRows, type LegacySectionType } from "@/lib/create/kcd-adapter";
 import { BuilderStudioChrome, BuilderStudioRail, type BuilderStudioTab } from "@/app/components/create/builder-studio-chrome";
+import { BuilderAppearanceProvider, BuilderPanelScope } from "@/app/components/create/builder-appearance-provider";
+import { BUILDER_PANEL } from "@/lib/create/builder-panel-appearance";
 import { YandeMark } from "@/app/components/yande-mark";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
-import { buildEditorPreviewDefinition } from "@/lib/create/editor-definition";
+import { buildEditorPreviewDefinition, resolveEditorTheme } from "@/lib/create/editor-definition";
+import { builderKcdDocumentView, builderKcdView } from "@/lib/create/kcd-adapter/builder-view";
+import { createKcdRenderProjection } from "@/lib/create/kcd-adapter/render-view";
+import type { RenderPath } from "@/lib/create/kcd-render-flag";
 import { BUILDER, BUILDER_QUICK_SECTIONS, labelForSectionType } from "@/lib/create/builder-ui";
 import { BuilderElementInspector } from "@/app/components/create/builder-element-inspector";
 import { BuilderSectionLayoutPanel } from "@/app/components/create/builder-section-layout-panel";
@@ -26,7 +39,13 @@ import { defaultMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import type { SiteSeo } from "@/lib/create/site-seo";
 import { defaultSiteSeo } from "@/lib/create/site-seo";
 import { mergeSiteCommerce } from "@/lib/create/site-commerce";
+import { enqueueSaveSettings, flushOfflineQueue } from "@/lib/create/offline-queue";
 import type { PublishState } from "@/lib/create/publish-state";
+import { SiteFormInspector } from "@/app/components/create/site-form-inspector";
+import { CollageVideoInspector } from "@/app/components/create/collage-video-inspector";
+import { CollageScrollInspector } from "@/app/components/create/collage-scroll-inspector";
+import { CreativeWorldInspector } from "@/app/components/create/creative-world-inspector";
+import { defaultCreativeWorld } from "@/lib/create/creative-world";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { BuilderBusinessNudge } from "@/app/components/create/builder-business-nudge";
 import { BuilderEditablePreview } from "@/app/components/create/builder-editable-preview";
@@ -43,6 +62,7 @@ import { NavLinksEditor, mapNavLinksForEditor } from "@/app/components/create/na
 import { NavSizeEditor } from "@/app/components/create/nav-size-editor";
 import { SocialLinksEditor } from "@/app/components/create/social-links-editor";
 import type { ThemeTokens } from "@/lib/create/website-schema";
+import { HERO_HEIGHT_OPTIONS, heroBackgroundPatch, heroBackgroundSwatch, heroPropsForCopy, normalizeLegacyHeroProps, resolveHeroHeight } from "@/lib/create/hero-section";
 import {
   planMediaAssetApply,
   type KebuDragAsset,
@@ -52,8 +72,9 @@ import {
   applyDeviceAwarePatch,
   clearDeviceOverrideKeys,
   hasDeviceOverrideKeys,
-  mergeDeviceAwareSectionProps,
 } from "@/lib/create/device-overrides";
+import { orderSectionsForDevice } from "@/lib/create/device-composition";
+import { normalizeLegacyEditorialHeroProps } from "@/lib/create/editorial-hero-section";
 import { projectUsesMaylecorRussianLayout } from "@/lib/create/maylecor-russian-hero";
 import { defaultMaylecorKsendrProps } from "@/lib/create/maylecor-ksendr-defaults";
 import { projectUsesKdirectionLayout } from "@/lib/create/kdirection-local-assets";
@@ -62,13 +83,24 @@ import { mySiteDetailHref } from "@/lib/navigation/product-nav";
 import {
   DataModeProvider,
 } from "@/app/components/create/data-mode-provider";
+import { builderPublishReceipt, builderSettingsReceipt, confirmBuilderDraftRefresh } from "@/lib/create/builder-write-receipts";
+import { BuilderDraftActionGate, type BuilderSaveReadiness } from "@/lib/create/builder-save-readiness";
 import { useProjectAutosave } from "./use-project-autosave";
 import { Z_LAYERS } from "@/app/components/create/kebu-z-layers";
 import { useBuilderAccordion } from "@/app/components/create/use-builder-accordion";
+import { MobileActionBar } from "@/app/components/create/mobile-action-bar";
+import { Sheet } from "@/app/components/create/sheet";
+import { useBreakpoint } from "@/lib/create/use-breakpoint";
+import { acquireScrollLock, releaseScrollLock } from "@/lib/create/scroll-lock";
+import { useFocusTrap } from "@/lib/create/use-focus-trap";
 import {
-  type EditorProject as Project,
-  type EditorSection as Section,
-} from "./project-editor-load";
+  deviceScopedPatch,
+  getResponsiveState,
+  markResponsiveCustom,
+  mergeDeviceAwareSectionProps,
+  storeAutoOverrides,
+} from "@/lib/create/device-overrides";
+import { generateDeviceOverrides, COMPOSABLE_SECTION_TYPES } from "@/lib/create/responsive-composer";
 
 /**
  * Code-split the heaviest sidebar/panel views that are hidden behind a tab or a closed-by-default
@@ -76,6 +108,9 @@ import {
  * Each of these only mounts once its gating condition (sidebarTab / aiPreview / yandeOpen) becomes
  * true, so its chunk is fetched on demand instead of shipping in the Builder's initial bundle.
  */
+const KcdPrimitivePanel = dynamic(() => import("@/app/components/create/kcd/primitive-panel").then((module) => module.KcdPrimitivePanel));
+const ExperienceDnaControls = dynamic(() => import("@/app/components/create/kcd/experience-dna-controls").then(module => module.ExperienceDnaControls));
+const ExperienceEngineControls = dynamic(() => import("@/app/components/create/kcd/experience-engine-controls").then(module => module.ExperienceEngineControls));
 const BuilderAestheticsPanel = dynamic(
   () => import("@/app/components/create/builder-aesthetics-panel").then((m) => m.BuilderAestheticsPanel),
   { ssr: false },
@@ -100,12 +135,8 @@ const BuilderConnectionsPanel = dynamic(
   () => import("@/app/components/create/builder-connections-panel").then((m) => m.BuilderConnectionsPanel),
   { ssr: false },
 );
-const BuilderAiPreviewPanel = dynamic(
-  () => import("@/app/components/create/builder-ai-preview-panel").then((m) => m.BuilderAiPreviewPanel),
-  { ssr: false },
-);
-const YandeAssistant = dynamic(
-  () => import("@/app/components/create/yande-assistant").then((m) => m.YandeAssistant),
+const YandePanelBody = dynamic(
+  () => import("@/app/components/create/yande-panel-body").then((m) => m.YandePanelBody),
   { ssr: false },
 );
 
@@ -133,14 +164,38 @@ function SidebarDetails({ title, children, defaultOpen = true, group }: { title:
   );
 }
 
+type Section = {
+  id: string;
+  page_id: string;
+  section_type: string;
+  sort_order: number;
+  props: Record<string, unknown>;
+};
+
+type Project = {
+  id: string;
+  title: string;
+  status: string;
+  description?: string | null;
+  subdomain?: string | null;
+  theme?: WebsiteDefinition["theme"];
+  business_id?: string | null;
+  seo?: SiteSeo | Record<string, unknown> | null;
+  document_schema_version?: string | null;
+};
+
 export default function ProjectEditorPage() {
   const params = useParams<{ id: string }>();
-  const projectId = params.id;
+  return <ProjectEditor key={params.id} projectId={params.id} />;
+}
+
+function ProjectEditor({ projectId }: { projectId: string }) {
   const router = useRouter();
 
   const [project, setProject] = useState<Project | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
+  const [draftReloadRequired, setDraftReloadRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [supportAssist, setSupportAssist] = useState(false);
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -150,7 +205,7 @@ export default function ProjectEditorPage() {
   const [publishUrl, setPublishUrl] = useState<string | null>(null);
   const [subdomainInput, setSubdomainInput] = useState("");
   const [seoSettings, setSeoSettings] = useState<SiteSeo>(() => defaultSiteSeo());
-  const [settingsState, setSettingsState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [settingsState, setSettingsState] = useState<"idle" | "unsaved" | "saving" | "saved" | "error">("idle");
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<BuilderStudioTab>("content");
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
@@ -160,8 +215,11 @@ export default function ProjectEditorPage() {
   const [selectedElement, setSelectedElement] = useState<BuilderElementSelection | null>(null);
   const settingsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingThemeRef = useRef<ThemeTokens | null>(null);
+  const settingsVersionRef = useRef(0);
+  const pendingSettingsRef = useRef<{ subdomain?: string; seo?: SiteSeo; theme?: Partial<ThemeTokens> } | null>(null);
   // Ref to the iframe used for mobile/tablet device preview (see below)
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
+  const previewSentRef = useRef<{ window: Window | null; definition: WebsiteDefinition; sequence: number; nativeDocument: KcdDocument | null } | null>(null);
   const [billing, setBilling] = useState<{
     canPublish: boolean;
     label: string;
@@ -173,9 +231,11 @@ export default function ProjectEditorPage() {
   } | null>(null);
   const [checkoutTier, setCheckoutTier] = useState("starter");
   const [improving, setImproving] = useState(false);
+  const [draftActionGate] = useState(() => new BuilderDraftActionGate());
   const [repairing, setRepairing] = useState(false);
   const [improveInstruction, setImproveInstruction] = useState("");
   const [yandeOpen, setYandeOpen] = useState(false);
+  const yandeTriggerRef = useRef<HTMLButtonElement>(null);
   const [yandeDialOpen, setYandeDialOpen] = useState(true);
   const [improveMode, setImproveMode] = useState<"free" | "redesign" | "page" | "rewrite" | "convert">(
     "free",
@@ -191,12 +251,42 @@ export default function ProjectEditorPage() {
   const [createNote, setCreateNote] = useState<string | null>(null);
   const [history, setHistory] = useState<Section[][]>([]);
   const [future, setFuture] = useState<Section[][]>([]);
-  const [pages, setPages] = useState<Array<{ id: string; slug: string; title: string; sort_order: number }>>([]);
+  const [mobileAddSectionOpen, setMobileAddSectionOpen] = useState(false);
+  const [pages, setPages] = useState<Array<{ id: string; slug: string; title: string; sort_order: number; device_layouts?: unknown }>>([]);
   const [siteChrome, setSiteChrome] = useState<SiteChrome | null>(null);
+  /** 3C: "kcd" renders the canvas through the Kebu Creative Core (QA flag; see lib/create/kcd-render-flag.ts). */
+  const [renderPath, setRenderPath] = useState<RenderPath>("3b");
   const [previewPageSlug, setPreviewPageSlug] = useState("home");
   const [editPageId, setEditPageId] = useState("");
   const [publishState, setPublishState] = useState<PublishState | null>(null);
+  const operationEditing = renderPath === "kcd" && project?.document_schema_version === "kcd-1";
+  const operations = useKcdBuilder(projectId, (rows) => {
+    setSections(rows.sections);
+    setPages(rows.pages);
+    const selected = rows.pages.find((page) => page.id === editPageId) ?? rows.pages[0];
+    if (selected) { setEditPageId(selected.id); setPreviewPageSlug(selected.slug); }
+    setPublishState((previous) => previous ? { ...previous, hasUnpublishedChanges: true } : previous);
+  }, setError, async () => { setSiteChrome(await reconcilePageNavigation(projectId)); });
+  const initializeOperations = operations.initialize;
+  const prepareOperationReload = operations.prepareReload;
   const [appOrigin, setAppOrigin] = useState("");
+  /**
+   * Tracks which destructive sidebar action awaits inline confirmation.
+   * Cleared automatically when the selected section changes so stale prompts
+   * can never fire on the wrong section.
+   */
+  type ConfirmAction =
+    | { kind: "remove"; sectionId: string }
+    | { kind: "regenerate"; sectionId: string; deviceLabel: string }
+    | { kind: "reset-auto"; sectionId: string; deviceLabel: string };
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmAction | null>(null);
+  const bp = useBreakpoint();
+  const leftPanelRef = useRef<HTMLElement | null>(null);
+  const mobileAddSectionTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // Focus-trap the left panel when it's open as a mobile/tablet overlay (below lg = 1024px).
+  useFocusTrap(leftPanelRef, leftPanelOpen && bp !== "lg" && bp !== "xl");
+
   useEffect(() => {
     setAppOrigin(window.location.origin);
     const q = new URLSearchParams(window.location.search);
@@ -205,9 +295,12 @@ export default function ProjectEditorPage() {
     setCreateNote(
       usedAi
         ? "Yande built this draft from your words. Every page is editable Kebu structure — change anything, then publish."
-        : "Draft site created from your words. Yande AI was not used this time (no key or generation fell back). You still have a full editable multi-page site.",
+        : "This is an editable draft created without Yande AI. Review every page before publishing.",
     );
   }, []);
+
+  // Clear any pending inline confirmation when the selected section changes.
+  useEffect(() => { setPendingConfirm(null); }, [selectedSectionId]);
 
   useEffect(() => {
     if (!previewFullscreen) return;
@@ -215,11 +308,10 @@ export default function ProjectEditorPage() {
       if (e.key === "Escape") setPreviewFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    acquireScrollLock();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      releaseScrollLock();
     };
   }, [previewFullscreen]);
 
@@ -233,10 +325,47 @@ export default function ProjectEditorPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [yandeOpen]);
 
+  // Scroll-lock + Escape for the left panel when it's a mobile/tablet overlay (below lg = 1024px).
+  useEffect(() => {
+    if (!(leftPanelOpen && bp !== "lg" && bp !== "xl")) return;
+    acquireScrollLock();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLeftPanelOpen(false);
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      releaseScrollLock();
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [leftPanelOpen, bp]);
+
+  // Global Cmd/Ctrl+Z = Undo, Cmd/Ctrl+Shift+Z = Redo.
+  // Suppress when focus is inside a text-editing element so native browser undo still works there.
+  // Use a ref so the event listener always dispatches to the latest undo/redo without re-registering.
+  const undoRedoRef = useRef({ undo, redo });
+  useEffect(() => { undoRedoRef.current = { undo, redo }; });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key !== "z") return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      const editable = (e.target as HTMLElement | null)?.isContentEditable;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || editable) return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        undoRedoRef.current.redo();
+      } else {
+        undoRedoRef.current.undo();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      await prepareOperationReload();
       // Fire project and billing fetches in parallel — billing only needs the project ID.
       const [res, billingRes] = await Promise.all([
         fetch(`/api/projects/${projectId}`, { credentials: "include" }),
@@ -245,16 +374,16 @@ export default function ProjectEditorPage() {
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
         router.replace(`/login?next=/create/${projectId}`);
-        return;
+        return false;
       }
       if (res.status === 404) {
         setError("Project not found — or you do not have access.");
         setProject(null);
-        return;
+        return false;
       }
       if (!res.ok) {
         setError(typeof data.error === "string" ? data.error : "Could not load project.");
-        return;
+        return false;
       }
       // Opening Builder must be read-fast and side-effect free.
       // Theme/portfolio repair is explicit via the "Fix" tool; never run migrations/upgrades
@@ -264,6 +393,15 @@ export default function ProjectEditorPage() {
       setSupportAssist(Boolean(projectPayload.supportAssist ?? data.supportAssist));
       setPages(Array.isArray(projectPayload.pages) ? projectPayload.pages : []);
       setSections(Array.isArray(projectPayload.sections) ? projectPayload.sections : []);
+      setRenderPath(projectPayload.renderPath === "kcd" ? "kcd" : "3b");
+      if (projectPayload.renderPath === "kcd" && projectPayload.project?.document_schema_version === "kcd-1") {
+        setYandeDialOpen(false);
+        await flushOfflineQueue();
+        const documentResponse = await fetch(`/api/projects/${projectId}/operations`, { credentials: "include", cache: "no-store" });
+        const documentPayload = await documentResponse.json().catch(() => ({}));
+        if (!documentResponse.ok) throw new Error(typeof documentPayload.error === "string" ? documentPayload.error : "Could not load operation editing.");
+        initializeOperations(documentPayload.document);
+      }
       if (projectPayload.siteChrome && typeof projectPayload.siteChrome === "object") {
         setSiteChrome(parseSiteChrome(projectPayload.siteChrome));
       }
@@ -306,12 +444,15 @@ export default function ProjectEditorPage() {
         if (tier && tier !== "free") setCheckoutTier(tier);
         else setCheckoutTier("starter");
       }
-    } catch {
-      setError("Network error. Retry.");
+      setDraftReloadRequired(false);
+      return true;
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error. Retry.");
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [projectId, router]);
+  }, [projectId, router, initializeOperations, prepareOperationReload]);
 
   useEffect(() => {
     let cancelled = false;
@@ -323,20 +464,48 @@ export default function ProjectEditorPage() {
     };
   }, [load]);
 
+  // On unmount: flush any pending settings into the offline queue so they survive navigation.
+  // Clears the debounce timer to prevent setState-after-unmount.
+  useEffect(() => {
+    return () => {
+      if (settingsTimer.current) {
+        clearTimeout(settingsTimer.current);
+        settingsTimer.current = null;
+      }
+      const pending = pendingSettingsRef.current;
+      if (pending) {
+        try {
+          enqueueSaveSettings({ projectId, ...pending });
+        } catch {
+          /* best-effort — queue may be full */
+        }
+        pendingSettingsRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
   function pushHistory(prev: Section[]) {
     setHistory((h) => [...h.slice(-19), prev]);
     setFuture([]);
   }
 
   const {
-    saveState,
-    saveStatusLabel,
+    saveState: legacySaveState,
+    saveStatusLabel: legacySaveStatusLabel,
     kbSaveNote,
-    updateProps,
+    updateProps: legacyUpdateProps,
     updateChromeProps,
-    saveDraftNow,
-    persistProps,
+    saveDraftNow: legacySaveDraftNow,
+    writeHistorySnapshot,
+    writeStructure,
+    commitStructure,
+    currentSections,
     markAllSaved,
+    pendingTerminals,
+    dismissTerminalItem,
+    dismissAllTerminalItems,
+    canPublishNow: legacyCanPublishNow,
   } = useProjectAutosave({
       projectId,
       sections,
@@ -347,6 +516,104 @@ export default function ProjectEditorPage() {
       setPublishState,
       setError,
     });
+
+  const sectionSaveState = operationEditing && operations.status !== "idle"
+    ? operations.status === "saving" ? "saving" : operations.status === "queued" ? "queued" : "error"
+    : operationEditing && legacySaveState === "idle" ? operations.pending ? "unsaved" : "saved" : legacySaveState;
+  const sectionSaveStatusLabel = operationEditing && operations.status !== "idle"
+    ? operations.status === "saving" ? "Saving draft…" : operations.message ?? "Save not confirmed"
+    : operationEditing && legacySaveState === "idle" ? operations.pending ? "Unsaved changes" : "Draft saved" : legacySaveStatusLabel;
+  const saveState = settingsState === "error" ? "error" : settingsState === "saving" ? "saving" : settingsState === "unsaved" ? "unsaved" : sectionSaveState;
+  const saveStatusLabel = settingsState === "error" ? "Settings not saved — retry Save draft" : settingsState === "saving" ? "Saving site settings…" : settingsState === "unsaved" ? "Unsaved site settings" : sectionSaveStatusLabel;
+  const canUndo = !draftReloadRequired && (operationEditing ? operations.canUndo : history.length > 0);
+  const canRedo = !draftReloadRequired && (operationEditing ? operations.canRedo : future.length > 0);
+  function updateProps(id: string, patch: Record<string, unknown>) {
+    const document = operations.getDocument();
+    if (operationEditing && document?.nodes[id as NodeId] && isSpatialLocked(document, id as NodeId)) { setError("Unlock this element or its container before editing."); return; }
+    if (operationEditing && !isChromeSectionId(id)) operations.updateProps(id, patch);
+    else legacyUpdateProps(id, patch);
+  }
+  async function saveDraftNow() {
+    if (draftReloadRequired) { setError("Reload the updated draft before saving or applying more changes."); return; }
+    if (settingsTimer.current) { clearTimeout(settingsTimer.current); settingsTimer.current = null; }
+    if (operationEditing) await operations.flush();
+    await legacySaveDraftNow();
+    const pendingSettings = pendingSettingsRef.current;
+    if (pendingSettings) {
+      await persistSiteSettings(pendingSettings.subdomain ?? subdomainInput, pendingSettings.seo ?? seoSettings, pendingThemeRef.current ?? pendingSettings.theme);
+    }
+  }
+  function canPublishNow(): BuilderSaveReadiness {
+    if (draftReloadRequired) return { ok: false, reason: "Reload the updated draft before continuing." };
+    if (pendingSettingsRef.current) return { ok: false, reason: "Site settings are not confirmed saved. Retry Save draft before continuing." };
+    if (operationEditing && !operations.canPublish()) return { ok: false, reason: operations.message ?? "Wait for operation changes to finish saving before publishing." };
+    return legacyCanPublishNow();
+  }
+
+  // Reconcile: when dismissTerminalItem marks a section as _needsServerReconcile,
+  // trigger a full project reload so the editor shows authoritative server state.
+  useEffect(() => {
+    const needsReconcile = sections.some((s) => (s as unknown as Record<string, unknown>)._needsServerReconcile);
+    if (needsReconcile) void load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections]);
+
+  // Updates per-device section ordering/visibility for the current page.
+  // Writes to the project_pages.device_layouts column via PATCH.
+  // Inspector edits made while Tablet/Phone is being edited are device edits: device-editable
+  // keys go to deviceOverrides[device] (lib/create/device-overrides.ts deviceScopedPatch);
+  // shared keys stay base. Desktop and site-chrome edits are base edits.
+  function updateSectionPropsForDevice(sectionId: string, patch: Record<string, unknown>) {
+    const base = sections.find((s) => s.id === sectionId);
+    if (!base || device === "desktop" || isChromeSectionId(sectionId)) {
+      updateProps(sectionId, patch);
+      return;
+    }
+    updateProps(sectionId, deviceScopedPatch(base.section_type, base.props, device, patch));
+  }
+
+  async function updatePageDeviceLayouts(
+    pageId: string,
+    patch: { tablet?: { sectionOrder?: string[]; hiddenSections?: string[] } | null; mobile?: { sectionOrder?: string[]; hiddenSections?: string[] } | null },
+  ) {
+    const page = pages.find((p) => p.id === pageId);
+    if (!page) return;
+    if (operationEditing) {
+      try {
+        await operations.submit("Edit device layout", Object.entries(patch).map(([device, composition]) => ({
+          op: "setDeviceComposition", pageId: pageId as PageId, device: device as "tablet" | "mobile",
+          composition: composition == null ? null : {
+            ...(composition.sectionOrder ? { order: composition.sectionOrder as NodeId[] } : {}),
+            ...(composition.hiddenSections ? { hidden: composition.hiddenSections as NodeId[] } : {}),
+          },
+        })));
+      } catch (error) { setError(error instanceof Error ? error.message : "Could not save device layout."); }
+      return;
+    }
+    const current = (page.device_layouts ?? {}) as { tablet?: unknown; mobile?: unknown };
+    const next = { ...current, ...patch };
+    // Optimistic update
+    setPages((prev) => prev.map((p) => p.id === pageId ? { ...p, device_layouts: next } : p));
+    try {
+      const res = await fetch(`/api/projects/${projectId}/pages`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageId, deviceLayouts: next }),
+      });
+      if (!res.ok) {
+        // Roll back optimistic update on failure
+        setPages((prev) => prev.map((p) => p.id === pageId ? { ...p, device_layouts: current } : p));
+      } else {
+        const json = await res.json().catch(() => ({}));
+        if (json.page) {
+          setPages((prev) => prev.map((p) => p.id === pageId ? { ...p, ...json.page } : p));
+        }
+      }
+    } catch {
+      setPages((prev) => prev.map((p) => p.id === pageId ? { ...p, device_layouts: current } : p));
+    }
+  }
 
   async function addSection(
     type: string,
@@ -379,36 +646,66 @@ export default function ProjectEditorPage() {
         links,
       };
     }
-    const res = await fetch(`/api/projects/${projectId}/sections`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type,
-        pageSlug: page?.slug ?? "home",
-        ...(insertAfterSectionId !== undefined ? { insertAfterSectionId } : {}),
-        ...(nextProps ? { props: nextProps } : {}),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : "Could not add section.");
-      return null;
+    // Ordered with every other write of section rows (autosaves, Undo/Redo, Remove).
+    if (operationEditing) {
+      if (!page) { setError("No page to add this section to."); return null; }
+      try {
+        const id = await operations.add(page.id, type as LegacySectionType, nextProps, insertAfterSectionId);
+        const document = operations.getDocument();
+        const row = document ? documentToRows(document).sections.find((section) => section.id === id) : null;
+        if (!row) throw new Error("Could not confirm the added section.");
+        setSelectedSectionId(id); setSidebarTab("content");
+        return { ...row, props: row.props as Record<string, unknown> };
+      } catch (error) { setError(error instanceof Error ? error.message : "Could not add section."); return null; }
     }
-    const section = data.section as Section;
-    setSections((prev) => {
-      pushHistory(prev);
-      return [...prev, section].sort((a, b) => a.sort_order - b.sort_order);
+    const added = await writeStructure(async () => {
+      const res = await fetch(`/api/projects/${projectId}/sections`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          pageSlug: page?.slug ?? "home",
+          ...(insertAfterSectionId !== undefined ? { insertAfterSectionId } : {}),
+          ...(nextProps ? { props: nextProps } : {}),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not add section.");
+        return null;
+      }
+      return data as { section: Section; shifted?: { id: string; sort_order: number }[] };
     });
+    if (!added) return null;
+    const section = added.section;
+    // The server moved later siblings down to make room; apply the same positions locally.
+    const shifted = new Map((added.shifted ?? []).map((r) => [r.id, r.sort_order]));
+    commitStructure((prev) =>
+      [...prev.map((s) => (shifted.has(s.id) ? { ...s, sort_order: shifted.get(s.id)! } : s)), section].sort(
+        (a, b) => a.sort_order - b.sort_order,
+      ),
+    );
     setSelectedSectionId(section.id);
     setSidebarTab("content");
     return section;
   }
 
   async function duplicateSection(sectionId: string) {
+    const lockDocument = operations.getDocument();
+    if (operationEditing && lockDocument?.nodes[sectionId as NodeId] && isSpatialLocked(lockDocument, sectionId as NodeId)) { setError("Unlock this element or its container before editing."); return; }
+    const document = operations.getDocument();
+    const native = operationEditing && document?.nodes[sectionId as NodeId];
+    if (native && !native.type.startsWith("legacy-section:")) {
+      try { await operations.submit("Duplicate element", [primitiveDuplicateOperation(document!, native.id)]); }
+      catch (error) { setError(error instanceof Error ? error.message : "Could not duplicate element."); }
+      return;
+    }
     const source = sections.find((s) => s.id === sectionId);
     if (!source) return;
-    await addSection(source.section_type, { ...source.props });
+    // Insert the duplicate immediately after the original, not appended at the end.
+    const props = source.section_type === "hero" ? heroPropsForCopy(source.props) : { ...source.props };
+    await addSection(source.section_type, props, sectionId);
   }
 
   /** Media library → canvas / current page (photo collage, video, or audio). */
@@ -421,12 +718,25 @@ export default function ProjectEditorPage() {
       setError("No page to add media to.");
       return;
     }
+    const document = operations.getDocument();
+    const native = operationEditing && selectedSectionId ? document?.nodes[selectedSectionId as NodeId] : undefined;
+    if (native?.type === "image") {
+      if (document && isSpatialLocked(document, native.id)) { setError("Unlock this element or its container before editing."); return; }
+      if (asset.kind !== "image") { setError("Choose an image for this element."); return; }
+      try { await operations.submit("Change image", primitivePropertyOperations(native, device, "src", asset.url)); }
+      catch (error) { setError(error instanceof Error ? error.message : "Could not change image."); }
+      return;
+    }
     const plan = planMediaAssetApply(asset, {
       pageId: page.id,
       sections,
       selectedSectionId,
       drop,
     });
+    if (plan.action === "creative-world") {
+      updateSectionPropsForDevice(plan.sectionId, { creativeWorld: plan.world });
+      setSelectedSectionId(plan.sectionId); setSidebarTab("content"); return;
+    }
     if (plan.action === "collage") {
       updateProps(plan.sectionId, { collagePhotos: plan.photos });
       setSelectedSectionId(plan.sectionId);
@@ -490,94 +800,131 @@ export default function ProjectEditorPage() {
   }
 
   async function deleteSection(sectionId: string) {
-    const res = await fetch(`/api/projects/${projectId}/sections`, {
-      method: "DELETE",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sectionId }),
-    });
-    if (!res.ok) {
+    const lockDocument = operations.getDocument();
+    if (operationEditing && lockDocument?.nodes[sectionId as NodeId] && isSpatialLocked(lockDocument, sectionId as NodeId)) { setError("Unlock this element or its container before editing."); return; }
+    if (operationEditing) {
+      try {
+        await operations.submit("Remove section", [{ op: "removeNode", id: sectionId as NodeId }]);
+        setSelectedSectionId((previous) => previous === sectionId ? null : previous);
+      } catch (error) { setError(error instanceof Error ? error.message : "Could not remove section."); }
+      return;
+    }
+    // Ordered with every other write; the section's pending autosave is dropped (Undo restores it).
+    const removed = await writeStructure(
+      async () => {
+        const res = await fetch(`/api/projects/${projectId}/sections`, {
+          method: "DELETE",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sectionId }),
+        });
+        return res.ok;
+      },
+      { removing: sectionId },
+    );
+    if (!removed) {
       setError("Could not delete section.");
       return;
     }
-    setSections((prev) => {
-      pushHistory(prev);
-      return prev.filter((s) => s.id !== sectionId);
-    });
+    commitStructure((prev) => prev.filter((s) => s.id !== sectionId));
+    // Clear selection so the sidebar doesn't show a stale inspector for the deleted section.
+    setSelectedSectionId((prev) => (prev === sectionId ? null : prev));
   }
 
   async function reorderSections(orderedIds: string[]) {
-    await Promise.all(
-      orderedIds.map((id, index) =>
-        fetch(`/api/projects/${projectId}/sections`, {
-          method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionId: id, sortOrder: index }),
-        }),
-      ),
-    );
+    if (operationEditing) {
+      try {
+        const document = operations.getDocument();
+        if (!document) throw new Error("The document is not ready.");
+        const roots = buildIndex(document).children(editPageId as PageId, null);
+        const movable = (node: { type: string }) => node.type.startsWith("legacy-section:") && (!chromeActive || !["legacy-section:navigation", "legacy-section:footer"].includes(node.type));
+        const legacy = roots.filter(movable);
+        if (orderedIds.length !== legacy.length || new Set(orderedIds).size !== legacy.length || legacy.some((node) => !orderedIds.includes(node.id))) throw new Error("The page changed. Reload before reordering.");
+        let position = 0;
+        const completeOrder = roots.map((node) => movable(node) ? orderedIds[position++] : node.id);
+        await operations.reorder(editPageId, completeOrder);
+      }
+      catch (error) { setError(error instanceof Error ? error.message : "Could not reorder sections."); }
+      return;
+    }
+    // Single atomic request — assigns dense rank (0, 1, 2…) server-side, eliminating
+    // the N-concurrent-PATCH read-then-write race.
+    await fetch(`/api/projects/${projectId}/sections/reorder`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds }),
+    });
     await load();
   }
 
   async function moveSection(sectionId: string, direction: -1 | 1) {
+    const lockDocument = operations.getDocument();
+    if (operationEditing && lockDocument?.nodes[sectionId as NodeId] && isSpatialLocked(lockDocument, sectionId as NodeId)) { setError("Unlock this element or its container before editing."); return; }
+    if (operationEditing) {
+      try {
+        const document = operations.getDocument();
+        if (!document) throw new Error("The document is not ready.");
+        const moves = builderNodeMoveOperations(document, sectionId as NodeId, direction);
+        if (moves.length) await operations.submit("Move section", moves);
+      } catch (error) { setError(error instanceof Error ? error.message : "Could not move section."); }
+      return;
+    }
     const ordered = [...sections]
       .filter((s) => s.page_id === editPageId)
       .sort((a, b) => a.sort_order - b.sort_order);
     const idx = ordered.findIndex((s) => s.id === sectionId);
     const swapIdx = idx + direction;
     if (idx < 0 || swapIdx < 0 || swapIdx >= ordered.length) return;
-    const a = ordered[idx]!;
-    const b = ordered[swapIdx]!;
-    // Apply swap optimistically so the UI updates immediately without a reload
-    setSections((prev) =>
+    // Build the new desired order after the swap, then use the atomic reorder endpoint.
+    const newOrdered = [...ordered];
+    [newOrdered[idx], newOrdered[swapIdx]] = [newOrdered[swapIdx]!, newOrdered[idx]!];
+    const newOrderedIds = newOrdered.map((s) => s.id);
+    if (operationEditing) { await reorderSections(newOrderedIds); return; }
+    // Optimistic UI update using dense rank matching the new order (one Undo step); the server
+    // write is ordered with every other write, so an Undo right after cannot be overtaken by it.
+    commitStructure((prev) =>
       prev.map((s) => {
-        if (s.id === a.id) return { ...s, sort_order: b.sort_order };
-        if (s.id === b.id) return { ...s, sort_order: a.sort_order };
-        return s;
+        const newIdx = newOrderedIds.indexOf(s.id);
+        if (newIdx === -1) return s;
+        return { ...s, sort_order: newIdx };
       }),
     );
-    await Promise.all([
-      fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
+    const moved = await writeStructure(async () => {
+      const res = await fetch(`/api/projects/${projectId}/sections/reorder`, {
+        method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionId: a.id, sortOrder: b.sort_order }),
-      }),
-      fetch(`/api/projects/${projectId}/sections`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionId: b.id, sortOrder: a.sort_order }),
-      }),
-    ]);
+        body: JSON.stringify({ orderedIds: newOrderedIds }),
+      });
+      return res.ok;
+    });
+    if (!moved) setError("Could not move section — reload to see the saved order.");
   }
 
+  // Undo/Redo: plain state updates (React may call updater functions more than once, which sent
+  // duplicate batch writes); the autosave hook writes the snapshot in order with every other save
+  // of section props (lib/create/section-save-coordinator.ts).
   function undo() {
-    setHistory((h) => {
-      if (h.length === 0) return h;
-      const prev = h[h.length - 1]!;
-      setFuture((f) => [sections, ...f]);
-      setSections(prev);
-      // Persist each section props best-effort
-      prev.forEach((s) => {
-        void persistProps(s.id, s.props);
-      });
-      return h.slice(0, -1);
-    });
+    if (operationEditing) { void operations.travel("undo"); return; }
+    if (history.length === 0) return;
+    const prev = history[history.length - 1]!;
+    const current = currentSections();
+    setHistory(history.slice(0, -1));
+    setFuture([current, ...future]);
+    setSections(prev);
+    void writeHistorySnapshot(prev, current);
   }
 
   function redo() {
-    setFuture((f) => {
-      if (f.length === 0) return f;
-      const next = f[0]!;
-      setHistory((h) => [...h, sections]);
-      setSections(next);
-      next.forEach((s) => {
-        void persistProps(s.id, s.props);
-      });
-      return f.slice(1);
-    });
+    if (operationEditing) { void operations.travel("redo"); return; }
+    if (future.length === 0) return;
+    const next = future[0]!;
+    const current = currentSections();
+    setFuture(future.slice(1));
+    setHistory([...history, current]);
+    setSections(next);
+    void writeHistorySnapshot(next, current);
   }
 
   function deleteSelectedCanvasObject() {
@@ -711,7 +1058,13 @@ export default function ProjectEditorPage() {
     }
   }
 
-  async function persistSiteSettings(nextSubdomain: string, nextSeo: SiteSeo, themePatch?: Partial<ThemeTokens>) {
+  function persistSiteSettings(nextSubdomain: string, nextSeo: SiteSeo, themePatch?: Partial<ThemeTokens>) {
+    const version = settingsVersionRef.current;
+    return writeStructure(() => sendSiteSettings(nextSubdomain, nextSeo, themePatch, version));
+  }
+
+  async function sendSiteSettings(nextSubdomain: string, nextSeo: SiteSeo, themePatch: Partial<ThemeTokens> | undefined, version: number) {
+    if (version !== settingsVersionRef.current) return false;
     setSettingsState("saving");
     setSettingsNote(null);
     try {
@@ -728,10 +1081,11 @@ export default function ProjectEditorPage() {
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (version !== settingsVersionRef.current) return false;
       if (!res.ok) {
         setSettingsState("error");
         setError(typeof data.error === "string" ? data.error : "Could not save site settings.");
-        return;
+        return false;
       }
       if (typeof data.httpsUrl === "string" && data.httpsUrl.startsWith("http")) {
         setPublishUrl(data.httpsUrl);
@@ -741,6 +1095,13 @@ export default function ProjectEditorPage() {
       if (data.project?.subdomain) {
         setSubdomainInput(String(data.project.subdomain));
       }
+      if (!builderSettingsReceipt(data, projectId)) {
+        setSettingsState("error");
+        setError("Settings save response was incomplete. Retry Save draft before continuing.");
+        return false;
+      }
+      pendingSettingsRef.current = null;
+      pendingThemeRef.current = null;
       setSettingsState("saved");
       setSettingsNote(
         typeof data.message === "string" ? data.message : "Site settings saved to Supabase.",
@@ -748,13 +1109,19 @@ export default function ProjectEditorPage() {
       if (data.project?.theme && typeof data.project.theme === "object") {
         setProject((prev) => (prev ? { ...prev, theme: data.project.theme as ThemeTokens } : prev));
       }
+      return true;
     } catch {
+      if (version !== settingsVersionRef.current) return false;
       setSettingsState("error");
       setError("Network error while saving site settings.");
+      return false;
     }
   }
 
   function queueSiteSettingsSave(patch: { subdomain?: string; seo?: Partial<SiteSeo>; theme?: Partial<ThemeTokens> }) {
+    settingsVersionRef.current++;
+    setSettingsState("unsaved");
+    setSettingsNote(null);
     const nextSubdomain = patch.subdomain ?? subdomainInput;
     // Base the merge on the FULL current commerce object (not just two cherry-picked fields) — a
     // save triggered by an unrelated change (favicon, meta title, subdomain) must never drop payment
@@ -787,11 +1154,21 @@ export default function ProjectEditorPage() {
       });
     }
 
+    // Track pending settings so unmount can flush them to the offline queue.
+    pendingSettingsRef.current = {
+      subdomain: nextSubdomain.trim() || undefined,
+      seo: nextSeo,
+      theme: patch.theme,
+    };
+
     if (settingsTimer.current) clearTimeout(settingsTimer.current);
     settingsTimer.current = setTimeout(() => {
+      // Do NOT clear pendingSettingsRef here — the unmount cleanup owns the ref.
+      // Clearing it here creates a race: if unmount fires between the timer
+      // callback clearing the ref and the cleanup running, the edit is silently dropped.
+      settingsTimer.current = null;
       const subdomainValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextSubdomain.trim()) && nextSubdomain.trim().length >= 3;
       const themeToSave = pendingThemeRef.current ?? undefined;
-      pendingThemeRef.current = null;
       void persistSiteSettings(
         subdomainValid ? nextSubdomain.trim().toLowerCase() : subdomainInput.trim().toLowerCase(),
         nextSeo,
@@ -801,7 +1178,7 @@ export default function ProjectEditorPage() {
   }
 
   async function publish() {
-    if (publishing) return;
+    if (publishing || draftActionGate.busy) return;
     if (!subdomainInput.trim()) {
       setError("Set your Kebu site address under Domain & SEO before publishing.");
       return;
@@ -809,138 +1186,159 @@ export default function ProjectEditorPage() {
     setPublishing(true);
     setError(null);
     try {
-      const draftSaved = await saveDraftNow();
-      if (!draftSaved) {
-        setError("Kebu could not confirm your latest draft is saved yet. Fix the save issue, then publish again.");
-        return;
-      }
-      await persistSiteSettings(subdomainInput.trim(), seoSettings);
-      const res = await fetch(`/api/projects/${projectId}/publish`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subdomain: subdomainInput.trim().toLowerCase() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (typeof data.migrationHint === "string" && data.migrationHint.length > 0) {
-        setError(
-          typeof data.error === "string"
-            ? data.error
-            : "Free hosting needs a database update. Run FIX_free_publish.sql in Supabase, then try Publish again.",
-        );
-        return;
-      }
-      if (res.status === 402 && data.billingRequired) {
-        setError(
-          `Publish needs a paid plan for a custom domain. Free sites publish on your Kebu subdomain — or upgrade to Starter ($2/site/month) via JOKO.`,
-        );
-        setBilling((b) => (b ? { ...b, canPublish: false } : b));
-        return;
-      }
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Publish failed.");
-        return;
-      }
-      setPublishUrl(data.deployment?.public_path ?? data.liveUrl ?? data.publicPath ?? null);
-      await load();
-    } catch {
-      setError("Network error while publishing.");
+      const outcome = await draftActionGate.run({ save: saveDraftNow, readiness: canPublishNow, action: async () => {
+        if (!await persistSiteSettings(subdomainInput.trim(), seoSettings)) return;
+        const res = await fetch(`/api/projects/${projectId}/publish`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subdomain: subdomainInput.trim().toLowerCase() }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (typeof data.migrationHint === "string" && data.migrationHint.length > 0) {
+          setError(
+            typeof data.error === "string"
+              ? data.error
+              : "Free hosting needs a database update. Run FIX_free_publish.sql in Supabase, then try Publish again.",
+          );
+          return;
+        }
+        if (res.status === 402 && data.billingRequired) {
+          setError(
+            `Publish needs a paid plan for a custom domain. Free sites publish on your Kebu subdomain — or upgrade to Starter ($2/site/month) via JOKO.`,
+          );
+          setBilling((b) => (b ? { ...b, canPublish: false } : b));
+          return;
+        }
+        if (!res.ok) {
+          setError(typeof data.error === "string" ? data.error : "Publish failed.");
+          return;
+        }
+        const path = builderPublishReceipt(data, subdomainInput.trim().toLowerCase());
+        if (!path) {
+          setDraftReloadRequired(true);
+          setError("Publish response was incomplete. Reload the draft to check its live status before retrying.");
+          return;
+        }
+        setPublishUrl(path);
+        await load();
+      } });
+      if (outcome.status === "blocked") setError(outcome.reason);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error while publishing.");
     } finally {
       setPublishing(false);
     }
   }
 
   async function previewWithAi() {
-    if (improving) return;
+    if (improving || draftActionGate.busy) return;
     setImproving(true);
     setError(null);
     setImproveNote(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/ai-improve/preview`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instruction: improveInstruction.trim() || undefined,
-          mode: improveMode === "free" ? undefined : improveMode,
-          focusPageSlug: previewPageSlug || undefined,
-          focusElement: selectedElement
-            ? {
-                ...selectedElement,
-                device,
-              }
-            : undefined,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        router.replace(`/login?next=/create/${projectId}`);
-        return;
-      }
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not preview AI changes.");
-        return;
-      }
-      if (!data.definition || !Array.isArray(data.intents)) {
-        setError("Preview response was incomplete. Retry.");
-        return;
-      }
-      const sectionChanges = Array.isArray(data.sectionChanges)
-        ? (data.sectionChanges as AiSectionChange[])
-        : [];
-      const defaultAccepted = new Set(sectionChanges.map((c) => c.sectionId));
-      setAiPreview({
-        definition: data.definition as WebsiteDefinition,
-        intents: data.intents as string[],
-        sectionChanges,
-        acceptedSectionIds: defaultAccepted,
-        repaired: Boolean(data.repaired),
-      });
-    } catch {
-      setError("Network error while previewing. Retry.");
+      const outcome = await draftActionGate.run({ save: saveDraftNow, readiness: canPublishNow, action: async () => {
+        const res = await fetch(`/api/projects/${projectId}/ai-improve/preview`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instruction: improveInstruction.trim() || undefined,
+            mode: improveMode === "free" ? undefined : improveMode,
+            focusPageSlug: previewPageSlug || undefined,
+            focusElement: selectedElement ? { ...selectedElement, device } : undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          router.replace(`/login?next=/create/${projectId}`);
+          return;
+        }
+        if (!res.ok) {
+          setError(typeof data.error === "string" ? data.error : "Could not preview AI changes.");
+          return;
+        }
+        if (!data.definition || !Array.isArray(data.intents)) {
+          setError("Preview response was incomplete. Retry.");
+          return;
+        }
+        const sectionChanges = Array.isArray(data.sectionChanges)
+          ? (data.sectionChanges as AiSectionChange[])
+          : [];
+        const defaultAccepted = new Set(sectionChanges.map((c) => c.sectionId));
+        setAiPreview({
+          definition: data.definition as WebsiteDefinition,
+          intents: data.intents as string[],
+          sectionChanges,
+          acceptedSectionIds: defaultAccepted,
+          repaired: Boolean(data.repaired),
+        });
+      } });
+      if (outcome.status === "blocked") setError(outcome.reason);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error while previewing. Retry.");
     } finally {
       setImproving(false);
     }
   }
 
   async function applyAiPreview() {
-    if (improving || !aiPreview) return;
+    if (improving || !aiPreview || draftActionGate.busy) return;
+    if (aiPreview.sectionChanges.length > 0 && aiPreview.acceptedSectionIds.size === 0) {
+      setError("Select at least one section to apply.");
+      return;
+    }
     setImproving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}/ai-improve/apply`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          definition: aiPreview.definition,
-          acceptedSectionIds:
-            aiPreview.sectionChanges.length > 0
-              ? [...aiPreview.acceptedSectionIds]
-              : undefined,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        router.replace(`/login?next=/create/${projectId}`);
-        return;
-      }
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not apply AI changes.");
-        return;
-      }
-      setAiPreview(null);
-      setImproveNote(
-        typeof data.message === "string"
-          ? data.message
-          : "Draft updated. Publish again to update your live site.",
-      );
-      setHistory([]);
-      setFuture([]);
-      await load();
-      markAllSaved();
-    } catch {
-      setError("Network error while applying changes. Retry.");
+      const outcome = await draftActionGate.run({ save: saveDraftNow, readiness: canPublishNow, action: async () => {
+        const res = await fetch(`/api/projects/${projectId}/ai-improve/apply`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            definition: aiPreview.definition,
+            acceptedSectionIds:
+              aiPreview.sectionChanges.length > 0
+                ? [...aiPreview.acceptedSectionIds]
+                : undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          router.replace(`/login?next=/create/${projectId}`);
+          return;
+        }
+        if (!res.ok) {
+          setError(typeof data.error === "string" ? data.error : "Could not apply AI changes.");
+          return;
+        }
+        if (data.applied !== true) {
+          setAiPreview(null);
+          setDraftReloadRequired(true);
+          setError("Apply response was incomplete. Reload the draft to check whether changes were saved.");
+          return;
+        }
+        setAiPreview(null);
+        setImproveNote(
+          typeof data.message === "string"
+            ? data.message
+            : "Draft updated. Publish again to update your live site.",
+        );
+        setDraftReloadRequired(true);
+        const loaded = await confirmBuilderDraftRefresh(load, () => {
+          setHistory([]);
+          setFuture([]);
+          markAllSaved();
+        });
+        if (!loaded) {
+          setImproveNote("Changes were saved, but the updated draft could not be loaded. Reload before editing.");
+          return;
+        }
+      } });
+      if (outcome.status === "blocked") setError(outcome.reason);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Network error while applying changes. Retry.");
     } finally {
       setImproving(false);
     }
@@ -980,10 +1378,17 @@ export default function ProjectEditorPage() {
       setLeftPanelOpen(true);
     }
   }
+  const changeSpatial = useCallback(async (id: string, patch: unknown) => {
+    const document = operations.getDocument();
+    if (!operationEditing || !document) throw new Error("Native editing is unavailable.");
+    await operations.submit("Change element layout", primitiveGeometryOperations(document, id as NodeId, device, patch));
+  }, [operationEditing, operations, device]);
 
   const canvasEditor = {
+    onSpatialChange: operationEditing ? changeSpatial : undefined,
     selectedSectionId,
     selectedElement,
+    editDevice: device,
     onSelectSection: (id: string) => {
       selectSectionForInspector(id);
       const match = sections.find((s) => s.id === id);
@@ -1019,7 +1424,12 @@ export default function ProjectEditorPage() {
     },
     onDeleteSection: (id: string) => {
       if (isChromeSectionId(id)) return;
-      void deleteSection(id);
+      // Route canvas "Remove" through the same inline confirmation as the sidebar —
+      // selects the section and arms the confirm state so the sidebar shows "Remove? / Cancel / Remove".
+      setSelectedSectionId(id);
+      setSidebarTab("content");
+      setLeftPanelOpen(true);
+      setPendingConfirm({ kind: "remove", sectionId: id });
     },
     onMoveSection: (id: string, dir: "up" | "down") => {
       if (isChromeSectionId(id)) return;
@@ -1042,13 +1452,26 @@ export default function ProjectEditorPage() {
     },
   };
 
-  const previewDefinition = useMemo<WebsiteDefinition | null>(
+  const projectKcdRender = useMemo(() => createKcdRenderProjection(true), []);
+  const kcdView = useMemo(
     () =>
-      project
-        ? buildEditorPreviewDefinition({ ...project, seo: seoSettings }, pages, sections, siteChrome)
+      project && renderPath === "kcd"
+        ? operationEditing && operations.document
+          ? builderKcdDocumentView(operations.document, { ...project, seo: seoSettings }, siteChrome, projectKcdRender)
+          : builderKcdView({ project: { ...project, seo: seoSettings }, siteChrome, pages, sections })
         : null,
+    [project, renderPath, seoSettings, pages, sections, siteChrome, operationEditing, operations.document, projectKcdRender],
+  );
+  const kcdRenderError = kcdView && !kcdView.ok ? kcdView.error : null;
+
+  const previewDefinition = useMemo<WebsiteDefinition | null>(
+    () => {
+      if (!project) return null;
+      if (kcdView) return kcdView.ok ? kcdView.definition : null;
+      return buildEditorPreviewDefinition({ ...project, seo: seoSettings }, pages, sections, siteChrome);
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [project, seoSettings, pages, sections, siteChrome],
+    [project, kcdView, seoSettings, pages, sections, siteChrome],
   );
 
   const canvasDefinition = useMemo(() => {
@@ -1108,10 +1531,70 @@ export default function ProjectEditorPage() {
     () =>
       sections
         .filter((s) => s.page_id === editPageId)
+        .filter((s) => !operationEditing || operations.document?.nodes[s.id as NodeId]?.type.startsWith("legacy-section:"))
         .filter((s) => !chromeActive || (s.section_type !== "navigation" && s.section_type !== "footer"))
         .sort((a, b) => a.sort_order - b.sort_order),
-    [sections, editPageId, chromeActive],
+    [sections, editPageId, chromeActive, operationEditing, operations.document],
   );
+
+  // Device-specific section order from page.device_layouts
+  const editPage = pages.find((p) => p.id === editPageId);
+  const editPageDeviceLayoutsRaw = editPage?.device_layouts;
+  const editPageDeviceLayouts = useMemo(
+    () => (editPageDeviceLayoutsRaw ?? {}) as { tablet?: { sectionOrder?: string[]; hiddenSections?: string[] }; mobile?: { sectionOrder?: string[]; hiddenSections?: string[] } },
+    [editPageDeviceLayoutsRaw],
+  );
+  const activeDeviceLayout = device !== "desktop" ? editPageDeviceLayouts[device as "tablet" | "mobile"] : undefined;
+  // For device mode: sections in device-specific order (device_layouts.sectionOrder overrides sort_order)
+  const deviceOrderedSections = useMemo(
+    () => orderSectionsForDevice(editPageSections, editPageDeviceLayouts, device),
+    [editPageSections, editPageDeviceLayouts, device],
+  );
+
+  // The inspector shows the selected section as it appears on the edited device.
+  const inspectorSections = useMemo(
+    () =>
+      editPageSections
+        .filter((s) => s.id === selectedSectionId)
+        .map((s) => ({
+          ...s,
+          baseProps: s.props,
+          // Hero: show legacy template fields (backgroundImageUrl, overlay, primaryCta) as the
+          // canonical values the canvas renders.
+          props: mergeDeviceAwareSectionProps(
+            s.section_type === "hero"
+              ? (normalizeLegacyHeroProps(s.props) as Record<string, unknown>)
+              : s.section_type === "editorial-hero"
+                ? (normalizeLegacyEditorialHeroProps(s.props) as Record<string, unknown>)
+                : s.props,
+            device,
+          ),
+        })),
+    [editPageSections, selectedSectionId, device],
+  );
+
+  // Reorder sections for the current non-desktop device by writing to device_layouts
+  function moveDeviceSection(sectionId: string, direction: -1 | 1) {
+    if (operationEditing) {
+      const document = operations.getDocument();
+      if (!document) { setError("The document is not ready."); return; }
+      const moves = builderNodeMoveOperations(document, sectionId as NodeId, direction, device);
+      if (moves.length) void operations.submit("Move section on device", moves).catch((error) => setError(error instanceof Error ? error.message : "Could not move section."));
+      return;
+    }
+    const ordered = deviceOrderedSections;
+    const idx = ordered.findIndex((s) => s.id === sectionId);
+    if (idx < 0) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= ordered.length) return;
+    const newOrder = ordered.map((s) => s.id);
+    [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
+    if (editPageId) {
+      void updatePageDeviceLayouts(editPageId, {
+        [device]: { ...(activeDeviceLayout ?? {}), sectionOrder: newOrder },
+      });
+    }
+  }
 
   const flagshipCanvas = maylecorRussianLayout || kdirectionLayout;
   /**
@@ -1124,37 +1607,70 @@ export default function ProjectEditorPage() {
    * the user: "the desktop tablet and phone on top of the builder preview doesn't even work."
    */
   const wideCanvas = device === "desktop";
+  const nativePreviewDocument = kcdView?.ok && !aiPreview ? kcdView.nativeDocument ?? null : null;
 
   // When the user switches to mobile/tablet, the canvas becomes an iframe (see below) so that
   // Tailwind responsive breakpoints fire against the iframe's real viewport, not the browser window.
-  // This effect keeps the iframe's definition in sync with the Builder's current in-memory state.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // This effect keeps the iframe's definition AND edited device in sync with the Builder's
+  // in-memory state. Tablet↔Phone switches keep the same iframe (only wideCanvas changes it),
+  // so `device` must be a dependency or the iframe keeps rendering the previous device.
   useEffect(() => {
     const iframe = previewIframeRef.current;
     if (!iframe || !canvasDefinition || wideCanvas) return;
-    const send = () => {
-      iframe.contentWindow?.postMessage(
-        { type: "kebu:definition:update", definition: canvasDefinition, pageSlug: previewPageSlug },
-        window.location.origin,
-      );
+    const send = (full = false) => {
+      const target = iframe.contentWindow;
+      if (!target) return;
+      const previous = previewSentRef.current;
+      const base = previous?.sequence ?? 0;
+      const sequence = base + 1;
+      const update = previewDefinitionUpdate(!full && previous?.window === target ? previous.definition : null,
+        canvasDefinition, sequence, base);
+      const nativeUpdate = kcdPreviewUpdate(!full && previous?.window === target ? previous.nativeDocument : null, nativePreviewDocument, sequence, base);
+      target.postMessage({ type: "kebu:definition:patch", update, nativeUpdate, pageSlug: previewPageSlug, editDevice: device, selectedNodeId: selectedSectionId }, window.location.origin);
+      previewSentRef.current = { window: target, definition: canvasDefinition, sequence, nativeDocument: nativePreviewDocument };
     };
     // When the iframe signals it's ready, push the current definition immediately
     function onMessage(e: MessageEvent) {
-      if (e.origin !== window.location.origin) return;
-      if ((e.data as { type?: string })?.type === "kebu:preview:ready") send();
+      if (e.origin !== window.location.origin || e.source !== iframe?.contentWindow) return;
+      const message = e.data as { type?: string; nodeId?: string; patch?: unknown; requestId?: string };
+      if (message?.type === "kebu:preview:ready") send(true);
+      else if (message?.type === "kebu:node:geometry" && typeof message.nodeId === "string" && typeof message.requestId === "string" && message.requestId.length <= 100) {
+        const reply = (error?: string) => iframe?.contentWindow?.postMessage({ type: "kebu:geometry:ack", requestId: message.requestId, ...(error ? { error } : {}) }, window.location.origin);
+        void changeSpatial(message.nodeId, message.patch).then(() => reply()).catch(error => {
+          const text = error instanceof Error ? error.message : "The layout edit could not be saved."; setError(text); reply(text);
+        });
+      }
+      else if (message?.type === "kebu:node:select" && typeof message.nodeId === "string") {
+        // Legacy-only KCD pages still have canonical selectable roots, before conversion adds native content.
+        const selectionDocument = nativePreviewDocument ?? (operationEditing ? operations.document : undefined);
+        const selected = selectionDocument?.nodes[message.nodeId as NodeId];
+        if (selected) {
+          setSelectedSectionId(message.nodeId); setSidebarTab("content"); setLeftPanelOpen(true);
+          setEditPageId(selected.pageId);
+        }
+      }
     }
     window.addEventListener("message", onMessage);
-    // Also push whenever definition or pageSlug changes (iframe may already be ready)
+    // Also push whenever definition, page or device changes (iframe may already be ready)
     send();
     return () => window.removeEventListener("message", onMessage);
-  }, [canvasDefinition, previewPageSlug, wideCanvas]); // previewIframeRef is stable
+  }, [canvasDefinition, nativePreviewDocument, operationEditing, operations.document, previewPageSlug, wideCanvas, device, selectedSectionId, changeSpatial]); // previewIframeRef is stable
 
   return (
     <DataModeProvider>
+    <BuilderAppearanceProvider>
     <div
       className="relative flex h-dvh flex-col overflow-hidden"
+      inert={improving || publishing}
+      aria-busy={improving || publishing}
       style={{ background: BUILDER.bg, color: BUILDER.ink }}
     >
+      {draftReloadRequired ? (
+        <div role="alert" className="flex flex-wrap items-center gap-2 border-b border-amber-400 bg-amber-50 px-4 py-2 text-xs text-amber-950">
+          <p>The current draft needs to be reloaded before editing or publishing again.</p>
+          <button type="button" className="min-h-11 rounded border border-amber-800 px-3 font-semibold" onClick={() => void load()}>Reload updated draft</button>
+        </div>
+      ) : null}
       <BuilderStudioChrome
         projectId={projectId}
         title={project?.title ?? "Editor"}
@@ -1170,8 +1686,8 @@ export default function ProjectEditorPage() {
         }
         device={device}
         onDevice={setDevice}
-        canUndo={history.length > 0}
-        canRedo={future.length > 0}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
         publishing={publishing || improving}
@@ -1186,7 +1702,7 @@ export default function ProjectEditorPage() {
         onSaveDraft={() => void saveDraftNow()}
         savingDraft={saveState === "saving"}
         saveLabelColor={
-          saveState === "error" ? "#CC1A1A"
+          saveState === "needs-attention" || saveState === "error" ? "#CC1A1A"
           : saveState === "unsaved" || saveState === "queued" ? "#D97706"
           : saveState === "saved" ? "#009E40"
           : "#8C8C8C"
@@ -1306,6 +1822,43 @@ export default function ProjectEditorPage() {
         </div>
       ) : null}
 
+      {pendingTerminals.length > 0 ? (
+        <div
+          className="border-b px-4 py-2.5 text-xs"
+          style={{ background: "#FFF1F0", borderColor: "#FCA5A5", color: "#7F1D1D" }}
+          role="alert"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <strong>Action required — {pendingTerminals.length} change{pendingTerminals.length !== 1 ? "s" : ""} could not be saved</strong>
+              <ul className="mt-1 space-y-0.5">
+                {pendingTerminals.map((t) => (
+                  <li key={t.id} className="flex items-center gap-2">
+                    <span>{t.description}{t.lastError ? ` (${t.lastError})` : ""}</span>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                      style={{ background: "#FCA5A5", color: "#7F1D1D" }}
+                      onClick={() => dismissTerminalItem(t.id)}
+                    >
+                      Discard
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button
+              type="button"
+              className="shrink-0 rounded px-2 py-1 text-[11px] font-semibold"
+              style={{ background: "#FCA5A5", color: "#7F1D1D" }}
+              onClick={() => dismissAllTerminalItems()}
+            >
+              Dismiss all
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {createNote && !maylecorRussianLayout ? (
         <div
           className="border-b px-4 py-2 text-center text-[11px] font-medium"
@@ -1396,7 +1949,7 @@ export default function ProjectEditorPage() {
           <p className="text-sm p-6" style={{ color: BUILDER.muted }}>
             Loading…
           </p>
-        ) : error && !project ? (
+        ) : error && (!project || (operationEditing && !operations.document)) ? (
           <div role="alert" className="rounded-xl p-4 m-6" style={{ background: "#FFF1F0", color: "#8B1E1E" }}>
             {error}
             <button type="button" className="underline ml-2" onClick={() => void load()}>
@@ -1427,25 +1980,28 @@ export default function ProjectEditorPage() {
               }
             />
             <aside
+              ref={leftPanelRef}
+              aria-label="Section editor"
+              aria-modal={leftPanelOpen && (bp === "xs" || bp === "sm" || bp === "md") ? true : undefined}
               className={`${
-                leftPanelOpen
-                  ? "fixed inset-0 w-full sm:relative sm:inset-auto sm:w-[296px] sm:max-w-[92vw]"
-                  : "hidden"
+                !leftPanelOpen
+                  ? "hidden lg:hidden"
+                  : bp === "xs" || bp === "sm"
+                    ? "fixed inset-0 w-full z-[900]"
+                    : bp === "md"
+                      ? "fixed inset-y-0 left-0 right-auto w-[300px] z-[900]"
+                      : "relative w-[280px]"
               } shrink-0 min-h-0 overflow-y-auto border-r`}
               style={{
-                borderColor: BUILDER.border,
-                background: BUILDER.surface,
-                // Only matters at the mobile fixed-overlay width (below sm); at sm:relative this is an
-                // ordinary flex sibling and doesn't overlap anything, so a fixed z-index here is harmless.
-                zIndex: leftPanelOpen ? Z_LAYERS.drawerPanel : undefined,
+                borderColor: "#E5E5E5",
+                background: "#FAFAFA",
+                zIndex: leftPanelOpen && (bp === "xs" || bp === "sm" || bp === "md") ? Z_LAYERS.drawerPanel : undefined,
               }}
             >
-              {/* Mobile only: editing takes the full screen (a fixed 280px sidebar squeezed the live
-                  preview into an unreadable sliver — docs/product/KEBU-BUILDER-UX-STANDARD.md). "Done"
-                  is the same dismissal already wired to the rail's toggle-tap behavior. */}
+              {/* Mobile/tablet overlay: "Done" dismisses back to canvas. Hidden when docked at lg+. */}
               <div
-                className="sm:hidden sticky top-0 z-10 flex items-center justify-between border-b px-3 py-2.5"
-                style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
+                className="lg:hidden sticky top-0 z-20 flex h-[52px] items-center justify-between border-b px-3 py-2.5"
+                style={{ borderColor: "#E5E5E5", background: "#FAFAFA" }}
               >
                 <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
                   Editing
@@ -1471,7 +2027,14 @@ export default function ProjectEditorPage() {
                     setEditPageId(p.id);
                     setPreviewPageSlug(p.slug);
                   }}
-                  onRefresh={load}
+                  busy={operationEditing && (operations.pending || operations.navigationBusy)}
+                  pageOperations={operationEditing ? {
+                    add: operations.addPage,
+                    update: (pageId, title, slug) => operations.submit("Edit page", [{ op: "updatePage", pageId: pageId as PageId, title, slug }]),
+                    remove: (pageId) => operations.submit("Remove page", [{ op: "removePage", pageId: pageId as PageId }]),
+                    reorder: operations.reorderPages,
+                  } : undefined}
+                  onRefresh={async () => { await load(); }}
                   onPagesChange={setPages}
                   onError={setError}
                 />
@@ -1660,6 +2223,7 @@ export default function ProjectEditorPage() {
                         if (hero.props.backgroundHidden === true) return "";
                         return String(hero.props.backgroundLayer ?? "");
                       }
+                      if (hero.section_type === "hero") return String(hero.props.image ?? "");
                       return String(hero.props.backgroundImage ?? hero.props.background ?? "");
                     })();
                     const brandLogo = (() => {
@@ -1670,18 +2234,9 @@ export default function ProjectEditorPage() {
                     })();
                     return (
                       <BuilderAestheticsPanel
-                        theme={
-                          (project?.theme as ThemeTokens) ??
-                          previewDefinition?.theme ?? {
-                            primary: "#0F0D33",
-                            accent: "#E9006B",
-                            background: "#FAFAF8",
-                            text: "#0F0D33",
-                            fontDisplay: "Fraunces",
-                            fontBody: "system-ui",
-                            spacing: "comfortable",
-                          }
-                        }
+                        // Resolved like the canvas and publish: a stored theme of '{}' (the column
+                        // default) has no accent/primary, and the Colors panel reads them.
+                        theme={resolveEditorTheme(project?.theme)}
                         onThemeChange={(patch) => queueSiteSettingsSave({ theme: patch })}
                         extras={{
                           projectId,
@@ -1691,7 +2246,8 @@ export default function ProjectEditorPage() {
                               : String(hero?.props.accentColor ?? (project?.theme as ThemeTokens)?.accent ?? "#E9006B"),
                           heroBackground: heroBg,
                           brandLogo,
-                          onHeroAccentChange: hero
+                          // The standard Hero renders neither accentColor nor chromeLogo — no no-op controls for it.
+                          onHeroAccentChange: hero && hero.section_type !== "hero"
                             ? (color) => updateProps(hero.id, { accentColor: color })
                             : undefined,
                           onHeroBackgroundChange: hero
@@ -1720,13 +2276,13 @@ export default function ProjectEditorPage() {
                                   return;
                                 }
                                 if (hero.section_type === "hero") {
-                                  updateProps(hero.id, { background: url.startsWith("#") ? url : hero.props.background, backgroundImage: url });
+                                  updateProps(hero.id, heroBackgroundPatch(url));
                                   return;
                                 }
                                 updateProps(hero.id, { backgroundImage: url });
                               }
                             : undefined,
-                          onBrandLogoChange: (url) => {
+                          onBrandLogoChange: hero?.section_type === "hero" ? undefined : (url) => {
                             if (hero && ("chromeLogo" in hero.props || hero.section_type === "legally-blonde-hero")) {
                               updateProps(hero.id, { chromeLogo: url, showChromeLogo: Boolean(url.trim()) });
                               return;
@@ -1760,13 +2316,17 @@ export default function ProjectEditorPage() {
               )}
 
 
+              <BuilderPanelScope><div hidden={sidebarTab !== "content"}>
+                {operationEditing && operations.document ? <ExperienceDnaControls key={projectId} projectId={projectId} disabled={false} /> : null}
+                {operationEditing && operations.document && editPageId ? <ExperienceEngineControls key={`engine:${projectId}`} document={operations.document} pageId={editPageId} selectedId={selectedSectionId} disabled={operations.status !== "idle" || operations.pending} submit={operations.submitReviewed} /> : null}
+              </div></BuilderPanelScope>
               {sidebarTab === "content" && (
               <>
               {/* Shopify-style drill-down breadcrumb: shown when a section is selected */}
               {selectedSectionId ? (
                 <div
-                  className="sticky top-0 z-10 flex items-center gap-2 border-b px-3 py-2.5"
-                  style={{ background: BUILDER.surface, borderColor: BUILDER.border }}
+                  className="sticky top-0 z-10 flex items-center gap-2 border-b px-4 py-3"
+                  style={{ background: BUILDER.surface, borderColor: BUILDER.border, top: bp === "xs" || bp === "sm" || bp === "md" ? 52 : 0 }}
                 >
                   <button
                     type="button"
@@ -1788,7 +2348,7 @@ export default function ProjectEditorPage() {
                         ? "Site header"
                         : selectedSectionId === CHROME_FOOTER_ID
                           ? "Site footer"
-                          : labelForSectionType(
+                          : (operations.document?.nodes[selectedSectionId as NodeId] && primitiveDefinition(operations.document.nodes[selectedSectionId as NodeId])?.displayName) || labelForSectionType(
                               sections.find((s) => s.id === selectedSectionId)?.section_type ?? "section",
                             )}
                   </p>
@@ -1961,7 +2521,7 @@ export default function ProjectEditorPage() {
                       }
                     >
                       <BuilderSectionListDnd
-                        sections={editPageSections.map((s) => ({
+                        sections={deviceOrderedSections.map((s) => ({
                           id: s.id,
                           section_type: s.section_type,
                           sort_order: s.sort_order,
@@ -1970,10 +2530,10 @@ export default function ProjectEditorPage() {
                         }))}
                         selectedSectionId={selectedSectionId}
                         onSelect={(id) => selectSectionForInspector(id)}
-                        onReorder={(ids) => void reorderSections(ids)}
-                        onMoveUp={(id) => void moveSection(id, -1)}
-                        onMoveDown={(id) => void moveSection(id, 1)}
-                        onRemove={(id) => void deleteSection(id)}
+                        onReorder={device === "desktop" ? (ids) => void reorderSections(ids) : () => {}}
+                        onMoveUp={(id) => device === "desktop" ? void moveSection(id, -1) : moveDeviceSection(id, -1)}
+                        onMoveDown={(id) => device === "desktop" ? void moveSection(id, 1) : moveDeviceSection(id, 1)}
+                        onRemove={(id) => { setSelectedSectionId(id); setSidebarTab("content"); setPendingConfirm({ kind: "remove", sectionId: id }); }}
                         onToggleHidden={(id) => {
                           const s = sections.find((x) => x.id === id);
                           if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
@@ -2013,7 +2573,7 @@ export default function ProjectEditorPage() {
                     }
                   >
                     <BuilderSectionListDnd
-                      sections={editPageSections.map((s) => ({
+                      sections={deviceOrderedSections.map((s) => ({
                         id: s.id,
                         section_type: s.section_type,
                         sort_order: s.sort_order,
@@ -2022,10 +2582,10 @@ export default function ProjectEditorPage() {
                       }))}
                       selectedSectionId={selectedSectionId}
                       onSelect={(id) => setSelectedSectionId(id)}
-                      onReorder={(ids) => void reorderSections(ids)}
-                      onMoveUp={(id) => void moveSection(id, -1)}
-                      onMoveDown={(id) => void moveSection(id, 1)}
-                      onRemove={(id) => void deleteSection(id)}
+                      onReorder={device === "desktop" ? (ids) => void reorderSections(ids) : () => {}}
+                      onMoveUp={(id) => device === "desktop" ? void moveSection(id, -1) : moveDeviceSection(id, -1)}
+                      onMoveDown={(id) => device === "desktop" ? void moveSection(id, 1) : moveDeviceSection(id, 1)}
+                      onRemove={(id) => { setSelectedSectionId(id); setSidebarTab("content"); setPendingConfirm({ kind: "remove", sectionId: id }); }}
                       onToggleHidden={(id) => {
                         const s = sections.find((x) => x.id === id);
                         if (s) updateProps(id, { hidden: !Boolean(s.props.hidden) });
@@ -2126,8 +2686,221 @@ export default function ProjectEditorPage() {
                 })()
               ) : null}
 
-              {selectedSectionId && !selectedElement && editPageSections.filter((s) => s.id === selectedSectionId).map((section) => (
+              {operationEditing && operations.document && editPageId ? <BuilderPanelScope><KcdPrimitivePanel
+                key={`${editPageId}:${selectedSectionId ?? "list"}:${device}`}
+                document={operations.document} pageId={editPageId as PageId} device={device}
+                selectedId={selectedSectionId} onSelect={setSelectedSectionId} onSubmit={operations.submit}
+              /></BuilderPanelScope> : null}
+              {selectedSectionId && !selectedElement && inspectorSections.map((section) => (
                     <div key={section.id} className="pb-2">
+                      {/* Section actions — always visible */}
+                      <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b" style={{ borderColor: BUILDER.border }}>
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => device === "desktop" ? void moveSection(section.id, -1) : moveDeviceSection(section.id, -1)}>
+                            ↑ Move up{device !== "desktop" ? ` (${device === "tablet" ? "Tablet" : "Phone"})` : ""}
+                          </button>
+                          <button type="button" className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium" style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }} onClick={() => device === "desktop" ? void moveSection(section.id, 1) : moveDeviceSection(section.id, 1)}>
+                            ↓ Move down{device !== "desktop" ? ` (${device === "tablet" ? "Tablet" : "Phone"})` : ""}
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium"
+                            style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }}
+                            onClick={() => void duplicateSection(section.id)}
+                          >
+                            Duplicate
+                          </button>
+                          {pendingConfirm?.kind === "remove" && pendingConfirm.sectionId === section.id ? (
+                            <span className="flex items-center gap-1.5" role="group" aria-label="Confirm remove section">
+                              <span className="text-[11px] font-medium" style={{ color: "#B91C1C" }}>Remove?</span>
+                              <button
+                                type="button"
+                                autoFocus
+                                className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium"
+                                style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink }}
+                                onClick={() => setPendingConfirm(null)}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
+                                style={{ border: "1px solid #FECACA", background: "#FEF2F2", color: "#B91C1C" }}
+                                onClick={() => { setPendingConfirm(null); void deleteSection(section.id); }}
+                              >
+                                Remove
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold"
+                              style={{ border: "1px solid #FECACA", color: "#B91C1C" }}
+                              onClick={() => setPendingConfirm({ kind: "remove", sectionId: section.id })}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                      {/* Responsive state indicator — shown only on tablet/phone device preview */}
+                      {device !== "desktop" && !isChromeSectionId(section.id) && (() => {
+                        const rsState = getResponsiveState(section.baseProps, section.section_type);
+                        const isComposable = COMPOSABLE_SECTION_TYPES.has(section.section_type);
+                        const deviceLabel = device === "tablet" ? "Tablet" : "Phone";
+                        const bgColor = rsState === "needs-review" ? "#FEF3C7" : rsState === "custom" ? "#EFF6FF" : "#F0FDF4";
+                        const textColor = rsState === "needs-review" ? "#92400E" : rsState === "custom" ? "#1D4ED8" : "#15803D";
+                        const statusLabel = rsState === "needs-review" ? "⚠ Needs review" : rsState === "custom" ? "✦ Customized" : "✦ Auto-designed";
+                        return (
+                          <div className="mx-3 my-2 rounded-lg overflow-hidden border" style={{ borderColor: rsState === "needs-review" ? "#FDE68A" : rsState === "custom" ? "#BFDBFE" : "#BBF7D0" }}>
+                            <div className="flex items-center justify-between px-3 py-2" style={{ background: bgColor }}>
+                              <span className="text-[11px] font-semibold" style={{ color: textColor }}>
+                                {deviceLabel}: {statusLabel}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 px-3 py-2" style={{ background: "#FAFAFA" }}>
+                              {rsState === "auto" && isComposable && (
+                                <button
+                                  type="button"
+                                  className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                  style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                  onClick={() => {
+                                    const updated = markResponsiveCustom(section.baseProps, section.section_type);
+                                    updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                  }}
+                                >
+                                  Customize
+                                </button>
+                              )}
+                              {rsState === "custom" && isComposable && (
+                                pendingConfirm?.kind === "regenerate" && pendingConfirm.sectionId === section.id ? (
+                                  <span className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Confirm regenerate layout">
+                                    <span className="text-[11px] font-medium" style={{ color: "#1D4ED8" }}>Overwrite {deviceLabel} changes?</span>
+                                    <button
+                                      type="button"
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                      onClick={() => setPendingConfirm(null)}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      autoFocus
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}
+                                      onClick={() => {
+                                        setPendingConfirm(null);
+                                        const generated = generateDeviceOverrides(section.section_type, section.baseProps);
+                                        const updated = storeAutoOverrides(section.baseProps, generated, section.section_type);
+                                        updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                      }}
+                                    >
+                                      Regenerate
+                                    </button>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                    style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                    onClick={() => setPendingConfirm({ kind: "regenerate", sectionId: section.id, deviceLabel })}
+                                  >
+                                    Regenerate
+                                  </button>
+                                )
+                              )}
+                              {rsState === "needs-review" && (
+                                <>
+                                  {pendingConfirm?.kind === "regenerate" && pendingConfirm.sectionId === section.id ? (
+                                    <span className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Confirm regenerate layout">
+                                      <span className="text-[11px] font-medium" style={{ color: "#92400E" }}>Overwrite {deviceLabel} changes?</span>
+                                      <button
+                                        type="button"
+                                        className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                        style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                        onClick={() => setPendingConfirm(null)}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="button"
+                                        autoFocus
+                                        className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                        style={{ border: "1px solid #FDE68A", background: "#FFFBEB", color: "#92400E" }}
+                                        onClick={() => {
+                                          setPendingConfirm(null);
+                                          const generated = generateDeviceOverrides(section.section_type, section.baseProps);
+                                          const updated = storeAutoOverrides(section.baseProps, generated, section.section_type);
+                                          updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                        }}
+                                      >
+                                        Regenerate
+                                      </button>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: "1px solid #FDE68A", color: "#92400E", background: "#FFFBEB" }}
+                                      onClick={() => setPendingConfirm({ kind: "regenerate", sectionId: section.id, deviceLabel })}
+                                    >
+                                      Regenerate
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                    style={{ border: "1px solid #FDE68A", color: "#92400E", background: "#FFFBEB" }}
+                                    onClick={() => {
+                                      const updated = markResponsiveCustom(section.baseProps, section.section_type);
+                                      updateProps(section.id, { deviceOverrides: updated.deviceOverrides });
+                                    }}
+                                  >
+                                    Keep — mark reviewed
+                                  </button>
+                                </>
+                              )}
+                              {(rsState === "custom" || rsState === "needs-review") && (
+                                pendingConfirm?.kind === "reset-auto" && pendingConfirm.sectionId === section.id ? (
+                                  <span className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Confirm reset to auto">
+                                    <span className="text-[11px] font-medium" style={{ color: "#92400E" }}>Remove {deviceLabel} customizations?</span>
+                                    <button
+                                      type="button"
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+                                      onClick={() => setPendingConfirm(null)}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      autoFocus
+                                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                      style={{ border: `1px solid ${BUILDER.border}`, background: "#fff", color: BUILDER.muted }}
+                                      onClick={() => {
+                                        setPendingConfirm(null);
+                                        updateProps(section.id, { deviceOverrides: null });
+                                      }}
+                                    >
+                                      Reset
+                                    </button>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                                    style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.muted, background: "#fff" }}
+                                    onClick={() => setPendingConfirm({ kind: "reset-auto", sectionId: section.id, deviceLabel })}
+                                  >
+                                    Reset to Auto
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       <SidebarDetails title="Content" group="section-inspector">
                       {section.section_type === "maylecor-home" && (
                         <div className="space-y-2">
@@ -2138,7 +2911,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.artistName ?? "")}
-                            onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { artistName: e.target.value })}
                             aria-label="Artist name"
                             placeholder="MAY LECOR"
                           />
@@ -2146,7 +2919,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.ctaLabel ?? "")}
-                            onChange={(e) => updateProps(section.id, { ctaLabel: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { ctaLabel: e.target.value })}
                             aria-label="CTA label"
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
@@ -2169,14 +2942,14 @@ export default function ProjectEditorPage() {
                               projectId={projectId}
                               label={label}
                               value={String(section.props[key] ?? "")}
-                              onChange={(url) => updateProps(section.id, { [key]: url })}
+                              onChange={(url) => updateSectionPropsForDevice(section.id, { [key]: url })}
                             />
                           ))}
                           <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
                             <input
                               type="checkbox"
                               checked={section.props.motionEnabled !== false}
-                              onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { motionEnabled: e.target.checked })}
                             />
                             Floating motion (cutouts + parallax)
                           </label>
@@ -2189,7 +2962,7 @@ export default function ProjectEditorPage() {
                                 iconUrl: String(l.iconUrl ?? ""),
                               }),
                             )}
-                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                            onChange={(socialLinks) => updateSectionPropsForDevice(section.id, { socialLinks })}
                             rail={{
                               visible: section.props.socialRailVisible !== false,
                               bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
@@ -2197,21 +2970,21 @@ export default function ProjectEditorPage() {
                               topPct: Number(section.props.socialRailTopPct ?? 12),
                               iconSize: Number(section.props.socialRailIconSize ?? 40),
                             }}
-                            onRailChange={(patch) => updateProps(section.id, patch)}
+                            onRailChange={(patch) => updateSectionPropsForDevice(section.id, patch)}
                           />
                         </div>
                       )}
                       {section.section_type === "legally-blonde-hero" && (
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>
-                            May Lecor hero
+                            Cutout collage
                           </p>
-                          <button
+                          {String(section.props.chromeLogo ?? "").includes("/templates/maylecor/") ? <button
                             type="button"
                             className="w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold"
                             style={{ border: "1px solid #FF5500", color: "#FF5500" }}
                             onClick={() =>
-                              updateProps(section.id, {
+                              updateSectionPropsForDevice(section.id, {
                                 ...defaultMaylecorKsendrProps(
                                   String(section.props.title ?? section.props.brandLabel ?? "MAY LECOR"),
                                 ),
@@ -2219,13 +2992,13 @@ export default function ProjectEditorPage() {
                             }
                           >
                             Restore May circle + cutouts
-                          </button>
+                          </button> : null}
                           <input
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.title ?? "")}
                             onChange={(e) =>
-                              updateProps(section.id, { title: e.target.value, brandLabel: e.target.value })
+                              updateSectionPropsForDevice(section.id, { title: e.target.value, brandLabel: e.target.value })
                             }
                             aria-label="Title"
                             placeholder="Artist or brand name"
@@ -2235,12 +3008,12 @@ export default function ProjectEditorPage() {
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             rows={3}
                             value={String(section.props.subtitle ?? "")}
-                            onChange={(e) => updateProps(section.id, { subtitle: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { subtitle: e.target.value })}
                             aria-label="Subtitle"
                             placeholder="Short bio or tagline"
                           />
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
-                            Center mark uses the May Lècor circle seal (not Russian text). Swap cutouts in Media or on the canvas.
+                            Move and resize each layer on the canvas. Upload your own photos and logo below.
                           </p>
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: "#FF5500" }}>
                             Top bar logo (clicks → home)
@@ -2249,7 +3022,7 @@ export default function ProjectEditorPage() {
                             <input
                               type="checkbox"
                               checked={section.props.showChromeLogo !== false}
-                              onChange={(e) => updateProps(section.id, { showChromeLogo: e.target.checked })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { showChromeLogo: e.target.checked })}
                             />
                             Show small May logo in the upper bar
                           </label>
@@ -2258,7 +3031,7 @@ export default function ProjectEditorPage() {
                               projectId={projectId}
                               label="Upper logo (optional — leave default or upload)"
                               value={String(section.props.chromeLogo ?? "")}
-                              onChange={(url) => updateProps(section.id, { chromeLogo: url })}
+                              onChange={(url) => updateSectionPropsForDevice(section.id, { chromeLogo: url })}
                             />
                           ) : null}
                           <div className="grid grid-cols-2 gap-2">
@@ -2291,7 +3064,7 @@ export default function ProjectEditorPage() {
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.navDisplay ?? "text")}
                               onChange={(e) =>
-                                updateProps(section.id, {
+                                updateSectionPropsForDevice(section.id, {
                                   navDisplay: e.target.value as "text" | "icons" | "photos",
                                 })
                               }
@@ -2308,7 +3081,7 @@ export default function ProjectEditorPage() {
                             links={mapNavLinksForEditor(
                               (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
-                            onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                            onChange={(navLinks) => updateSectionPropsForDevice(section.id, { navLinks })}
                           />
                           <div className="rounded-xl border border-black/[.08] bg-black/[.015] p-3">
                             <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#FF5500" }}>Navigation typography</p>
@@ -2343,7 +3116,7 @@ export default function ProjectEditorPage() {
                             size={parseNavSize(section.props.navSize)}
                             layout={parseNavLayout(section.props.navLayout)}
                             logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
-                            onChange={(patch) => updateProps(section.id, patch)}
+                            onChange={(patch) => updateSectionPropsForDevice(section.id, patch)}
                           />
                           <div className="rounded-xl border border-black/[.08] bg-black/[.015] p-3">
                             <div className="flex items-center justify-between gap-3">
@@ -2403,7 +3176,7 @@ export default function ProjectEditorPage() {
                               className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.displayFont ?? "Steelfish")}
-                              onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { displayFont: e.target.value })}
                             >
                               {(
                                 [
@@ -2424,7 +3197,7 @@ export default function ProjectEditorPage() {
                             </select>
                           </label>
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
-                            May Lecor layers — drag on canvas or upload here
+                            Photo layers — drag on canvas or upload here
                           </p>
                           <p className="text-[10px] leading-relaxed" style={{ color: "#6B5B45" }}>
                             Remove background = solid accent color. Replace cutouts on the canvas or upload below.
@@ -2444,7 +3217,7 @@ export default function ProjectEditorPage() {
                                     ? [...(section.props.hiddenLayers as string[])]
                                     : [];
                                   if (!hl.includes("backgroundLayer")) hl.push("backgroundLayer");
-                                  updateProps(section.id, {
+                                  updateSectionPropsForDevice(section.id, {
                                     backgroundLayer: "",
                                     backgroundHidden: true,
                                     hiddenLayers: hl,
@@ -2454,7 +3227,7 @@ export default function ProjectEditorPage() {
                                 const hl = Array.isArray(section.props.hiddenLayers)
                                   ? (section.props.hiddenLayers as string[]).filter((x) => x !== "backgroundLayer")
                                   : [];
-                                updateProps(section.id, {
+                                updateSectionPropsForDevice(section.id, {
                                   backgroundLayer: url,
                                   backgroundHidden: false,
                                   hiddenLayers: hl,
@@ -2470,7 +3243,7 @@ export default function ProjectEditorPage() {
                                   ? [...(section.props.hiddenLayers as string[])]
                                   : [];
                                 if (!hl.includes("backgroundLayer")) hl.push("backgroundLayer");
-                                updateProps(section.id, {
+                                updateSectionPropsForDevice(section.id, {
                                   backgroundLayer: "",
                                   backgroundHidden: true,
                                   hiddenLayers: hl,
@@ -2496,7 +3269,7 @@ export default function ProjectEditorPage() {
                               projectId={projectId}
                               label={label}
                               value={String(section.props[key] ?? "")}
-                              onChange={(url) => updateProps(section.id, { [key]: url })}
+                              onChange={(url) => updateSectionPropsForDevice(section.id, { [key]: url })}
                             />
                           ))}
                           <button
@@ -2505,7 +3278,7 @@ export default function ProjectEditorPage() {
                             style={{ background: "#0F0D33" }}
                             onClick={() => {
                               const existing = (section.props.extraCutouts as Record<string, unknown>[]) ?? [];
-                              updateProps(section.id, {
+                              updateSectionPropsForDevice(section.id, {
                                 extraCutouts: [
                                   ...existing,
                                   {
@@ -2524,7 +3297,9 @@ export default function ProjectEditorPage() {
                           >
                             + Add my cutout (drag on preview)
                           </button>
-                          {((section.props.extraCutouts as { id?: string; src?: string }[]) ?? []).map((cut, idx) => (
+                          <CollageVideoInspector projectId={projectId} value={section.props.sceneVideos} onChange={sceneVideos => updateSectionPropsForDevice(section.id, { sceneVideos })} />
+                          <CollageScrollInspector value={section.props} onChange={layerScroll => updateSectionPropsForDevice(section.id, { layerScroll })} onNavigationChange={showNavigation => updateSectionPropsForDevice(section.id, { showNavigation })} />
+                          {((section.props.extraCutouts as { id?: string; src?: string; parallaxRole?: "city" | "figure" | "none" }[]) ?? []).map((cut, idx) => (
                             <div key={cut.id ?? idx} className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
                               <SectionPhotoField
                                 projectId={projectId}
@@ -2533,9 +3308,26 @@ export default function ProjectEditorPage() {
                                 onChange={(url) => {
                                   const next = [...((section.props.extraCutouts as typeof cut[]) ?? [])];
                                   next[idx] = { ...next[idx]!, src: url };
-                                  updateProps(section.id, { extraCutouts: next });
+                                  updateSectionPropsForDevice(section.id, { extraCutouts: next });
                                 }}
                               />
+                              <label className="block text-xs">
+                                Scroll movement
+                                <select
+                                  aria-label={`Cutout ${idx + 1} scroll movement`}
+                                  className="w-full rounded border px-2 py-1"
+                                  value={cut.parallaxRole ?? "none"}
+                                  onChange={(event) => {
+                                    const next = [...((section.props.extraCutouts as typeof cut[]) ?? [])];
+                                    next[idx] = { ...next[idx]!, parallaxRole: event.target.value as "city" | "figure" | "none" };
+                                    updateSectionPropsForDevice(section.id, { extraCutouts: next });
+                                  }}
+                                >
+                                  <option value="none">Still</option>
+                                  <option value="city">Background drift</option>
+                                  <option value="figure">Foreground drift</option>
+                                </select>
+                              </label>
                               <input
                                 className="w-full text-xs rounded px-2 py-1"
                                 style={{ border: `1px solid ${BUILDER.border}` }}
@@ -2544,7 +3336,7 @@ export default function ProjectEditorPage() {
                                 onChange={(e) => {
                                   const next = [...((section.props.extraCutouts as typeof cut[]) ?? [])];
                                   next[idx] = { ...next[idx]!, href: e.target.value } as typeof cut;
-                                  updateProps(section.id, { extraCutouts: next });
+                                  updateSectionPropsForDevice(section.id, { extraCutouts: next });
                                 }}
                               />
                               <button
@@ -2554,7 +3346,7 @@ export default function ProjectEditorPage() {
                                   const next = ((section.props.extraCutouts as typeof cut[]) ?? []).filter(
                                     (_, i) => i !== idx,
                                   );
-                                  updateProps(section.id, { extraCutouts: next });
+                                  updateSectionPropsForDevice(section.id, { extraCutouts: next });
                                 }}
                               >
                                 Delete
@@ -2567,14 +3359,14 @@ export default function ProjectEditorPage() {
                               className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.accentColor ?? "#FF1493")}
-                              onChange={(e) => updateProps(section.id, { accentColor: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { accentColor: e.target.value })}
                             />
                           </label>
                           <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
                             <input
                               type="checkbox"
                               checked={section.props.motionEnabled !== false}
-                              onChange={(e) => updateProps(section.id, { motionEnabled: e.target.checked })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { motionEnabled: e.target.checked })}
                             />
                             Floating cutout animation
                           </label>
@@ -2583,7 +3375,7 @@ export default function ProjectEditorPage() {
                               type="checkbox"
                               checked={section.props.scrollMode !== "parallax"}
                               onChange={(e) =>
-                                updateProps(section.id, { scrollMode: e.target.checked ? "viewport" : "parallax" })
+                                updateSectionPropsForDevice(section.id, { scrollMode: e.target.checked ? "viewport" : "parallax" })
                               }
                             />
                             One-screen home (off = full scroll scene)
@@ -2603,7 +3395,7 @@ export default function ProjectEditorPage() {
                                 iconUrl: String(l.iconUrl ?? ""),
                               }),
                             )}
-                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                            onChange={(socialLinks) => updateSectionPropsForDevice(section.id, { socialLinks })}
                             rail={{
                               visible: section.props.socialRailVisible !== false,
                               bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
@@ -2611,7 +3403,7 @@ export default function ProjectEditorPage() {
                               topPct: Number(section.props.socialRailTopPct ?? 12),
                               iconSize: Number(section.props.socialRailIconSize ?? 40),
                             }}
-                            onRailChange={(patch) => updateProps(section.id, patch)}
+                            onRailChange={(patch) => updateSectionPropsForDevice(section.id, patch)}
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-3" style={{ color: "#FF5500" }}>
                             Photo layers
@@ -2663,7 +3455,7 @@ export default function ProjectEditorPage() {
                                         ).map((c) =>
                                           c.id === layer.key ? { ...c, zIndex: Math.min(40, next) } : c,
                                         );
-                                        updateProps(section.id, {
+                                        updateSectionPropsForDevice(section.id, {
                                           layerZIndex,
                                           ...(extras.length ? { extraCutouts: extras } : {}),
                                         });
@@ -2685,7 +3477,7 @@ export default function ProjectEditorPage() {
                                         ).map((c) =>
                                           c.id === layer.key ? { ...c, zIndex: Math.min(40, next) } : c,
                                         );
-                                        updateProps(section.id, {
+                                        updateSectionPropsForDevice(section.id, {
                                           layerZIndex,
                                           ...(extras.length ? { extraCutouts: extras } : {}),
                                         });
@@ -2703,10 +3495,10 @@ export default function ProjectEditorPage() {
                                       const layerLinks = { ...linkMap, [layer.key]: e.target.value };
                                       if (!e.target.value.trim()) {
                                         const { [layer.key]: _, ...rest } = linkMap;
-                                        updateProps(section.id, { layerLinks: rest });
+                                        updateSectionPropsForDevice(section.id, { layerLinks: rest });
                                         return;
                                       }
-                                      updateProps(section.id, { layerLinks });
+                                      updateSectionPropsForDevice(section.id, { layerLinks });
                                     }}
                                   />
                                 </li>
@@ -2727,13 +3519,13 @@ export default function ProjectEditorPage() {
                             projectId={projectId}
                             label="Your logo (optional)"
                             value={String(section.props.logoImage ?? "")}
-                            onChange={(url) => updateProps(section.id, { logoImage: url })}
+                            onChange={(url) => updateSectionPropsForDevice(section.id, { logoImage: url })}
                           />
                           <input
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.brandLine1 ?? "K")}
-                            onChange={(e) => updateProps(section.id, { brandLine1: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { brandLine1: e.target.value })}
                             placeholder="K"
                             aria-label="Brand letter"
                           />
@@ -2741,7 +3533,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.brandLine2 ?? "DIRECTION")}
-                            onChange={(e) => updateProps(section.id, { brandLine2: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { brandLine2: e.target.value })}
                             placeholder="DIRECTION"
                             aria-label="Brand word"
                           />
@@ -2750,7 +3542,7 @@ export default function ProjectEditorPage() {
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             rows={2}
                             value={String(section.props.mission ?? "")}
-                            onChange={(e) => updateProps(section.id, { mission: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { mission: e.target.value })}
                             placeholder="Mission / short line under the logo"
                           />
                           <label className="block text-[10px] uppercase tracking-wider">
@@ -2759,7 +3551,7 @@ export default function ProjectEditorPage() {
                               className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.displayFont ?? "Oswald")}
-                              onChange={(e) => updateProps(section.id, { displayFont: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { displayFont: e.target.value })}
                             />
                           </label>
                           <div className="grid grid-cols-2 gap-2">
@@ -2769,7 +3561,7 @@ export default function ProjectEditorPage() {
                                 className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
                                 style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.logoColor ?? "#FFFFFF")}
-                                onChange={(e) => updateProps(section.id, { logoColor: e.target.value })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { logoColor: e.target.value })}
                               />
                             </label>
                             <label className="block text-[10px] uppercase tracking-wider">
@@ -2778,7 +3570,7 @@ export default function ProjectEditorPage() {
                                 className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
                                 style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.logoMirrorColor ?? "#F5C4B8")}
-                                onChange={(e) => updateProps(section.id, { logoMirrorColor: e.target.value })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { logoMirrorColor: e.target.value })}
                               />
                             </label>
                           </div>
@@ -2788,14 +3580,14 @@ export default function ProjectEditorPage() {
                               className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.navButtonBg ?? "#FFF86B")}
-                              onChange={(e) => updateProps(section.id, { navButtonBg: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { navButtonBg: e.target.value })}
                             />
                           </label>
                           <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
                             <input
                               type="checkbox"
                               checked={section.props.showMirrorLogo !== false}
-                              onChange={(e) => updateProps(section.id, { showMirrorLogo: e.target.checked })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { showMirrorLogo: e.target.checked })}
                             />
                             Mirrored wordmark (Wix)
                           </label>
@@ -2803,7 +3595,7 @@ export default function ProjectEditorPage() {
                             <input
                               type="checkbox"
                               checked={section.props.showHomeIcon !== false}
-                              onChange={(e) => updateProps(section.id, { showHomeIcon: e.target.checked })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { showHomeIcon: e.target.checked })}
                             />
                             Home icon in nav
                           </label>
@@ -2811,7 +3603,7 @@ export default function ProjectEditorPage() {
                             <input
                               type="checkbox"
                               checked={section.props.showOverlay === true}
-                              onChange={(e) => updateProps(section.id, { showOverlay: e.target.checked })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { showOverlay: e.target.checked })}
                             />
                             Dark overlay on background photo
                           </label>
@@ -2819,7 +3611,7 @@ export default function ProjectEditorPage() {
                             projectId={projectId}
                             label="Optional background photo (over gradient)"
                             value={String(section.props.backgroundImage ?? "")}
-                            onChange={(url) => updateProps(section.id, { backgroundImage: url })}
+                            onChange={(url) => updateSectionPropsForDevice(section.id, { backgroundImage: url })}
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
                             Collage photos / cutouts
@@ -2866,7 +3658,7 @@ export default function ProjectEditorPage() {
                                   },
                                 },
                               ];
-                              updateProps(section.id, { collagePhotos: next });
+                              updateSectionPropsForDevice(section.id, { collagePhotos: next });
                             }}
                           >
                             + Add photo / cutout
@@ -2890,7 +3682,7 @@ export default function ProjectEditorPage() {
                                     ...((section.props.collagePhotos as typeof photo[]) ?? []),
                                   ];
                                   next[idx] = { ...next[idx]!, src: url };
-                                  updateProps(section.id, { collagePhotos: next });
+                                  updateSectionPropsForDevice(section.id, { collagePhotos: next });
                                 }}
                               />
                               <input
@@ -2903,7 +3695,7 @@ export default function ProjectEditorPage() {
                                     ...((section.props.collagePhotos as (typeof photo & { href?: string })[]) ?? []),
                                   ];
                                   next[idx] = { ...next[idx]!, href: e.target.value };
-                                  updateProps(section.id, { collagePhotos: next });
+                                  updateSectionPropsForDevice(section.id, { collagePhotos: next });
                                 }}
                               />
                               <div className="grid grid-cols-2 gap-1">
@@ -2919,7 +3711,7 @@ export default function ProjectEditorPage() {
                                         ...((section.props.collagePhotos as typeof photo[]) ?? []),
                                       ];
                                       next[idx] = { ...next[idx]!, rotate: Number(e.target.value) };
-                                      updateProps(section.id, { collagePhotos: next });
+                                      updateSectionPropsForDevice(section.id, { collagePhotos: next });
                                     }}
                                   />
                                 </label>
@@ -2935,7 +3727,7 @@ export default function ProjectEditorPage() {
                                         ...((section.props.collagePhotos as typeof photo[]) ?? []),
                                       ];
                                       next[idx] = { ...next[idx]!, widthPct: Number(e.target.value) };
-                                      updateProps(section.id, { collagePhotos: next });
+                                      updateSectionPropsForDevice(section.id, { collagePhotos: next });
                                     }}
                                   />
                                 </label>
@@ -2951,7 +3743,7 @@ export default function ProjectEditorPage() {
                                         ...((section.props.collagePhotos as typeof photo[]) ?? []),
                                       ];
                                       next[idx] = { ...next[idx]!, topPct: Number(e.target.value) };
-                                      updateProps(section.id, { collagePhotos: next });
+                                      updateSectionPropsForDevice(section.id, { collagePhotos: next });
                                     }}
                                   />
                                 </label>
@@ -2967,7 +3759,7 @@ export default function ProjectEditorPage() {
                                         ...((section.props.collagePhotos as typeof photo[]) ?? []),
                                       ];
                                       next[idx] = { ...next[idx]!, leftPct: Number(e.target.value) };
-                                      updateProps(section.id, { collagePhotos: next });
+                                      updateSectionPropsForDevice(section.id, { collagePhotos: next });
                                     }}
                                   />
                                 </label>
@@ -2979,7 +3771,7 @@ export default function ProjectEditorPage() {
                                   const next = ((section.props.collagePhotos as typeof photo[]) ?? []).filter(
                                     (_, i) => i !== idx,
                                   );
-                                  updateProps(section.id, { collagePhotos: next });
+                                  updateSectionPropsForDevice(section.id, { collagePhotos: next });
                                 }}
                               >
                                 Remove
@@ -2991,14 +3783,14 @@ export default function ProjectEditorPage() {
                             links={mapNavLinksForEditor(
                               (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
-                            onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                            onChange={(navLinks) => updateSectionPropsForDevice(section.id, { navLinks })}
                           />
                           <NavSizeEditor
                             scale={clampNavScale(section.props.navScale, 1)}
                             size={parseNavSize(section.props.navSize)}
                             layout={parseNavLayout(section.props.navLayout)}
                             logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
-                            onChange={(patch) => updateProps(section.id, patch)}
+                            onChange={(patch) => updateSectionPropsForDevice(section.id, patch)}
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-2" style={{ color: "#FF5500" }}>
                             Social / music links
@@ -3015,7 +3807,7 @@ export default function ProjectEditorPage() {
                                 iconUrl: String(l.iconUrl ?? ""),
                               }),
                             )}
-                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                            onChange={(socialLinks) => updateSectionPropsForDevice(section.id, { socialLinks })}
                           />
                           <label className="block text-[10px] uppercase tracking-wider pt-1">
                             Footer text
@@ -3023,7 +3815,7 @@ export default function ProjectEditorPage() {
                               className="mt-1 w-full text-xs rounded-lg px-2 py-1.5"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.footerText ?? "")}
-                              onChange={(e) => updateProps(section.id, { footerText: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { footerText: e.target.value })}
                             />
                           </label>
                         </div>
@@ -3034,26 +3826,26 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.title ?? "")}
-                            onChange={(e) => updateProps(section.id, { title: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { title: e.target.value })}
                           />
                           <textarea
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             rows={4}
                             value={String(section.props.body ?? "")}
-                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { body: e.target.value })}
                           />
                           <SectionPhotoField
                             projectId={projectId}
                             label="Hero photo"
                             value={String(section.props.heroImage ?? "")}
-                            onChange={(url) => updateProps(section.id, { heroImage: url })}
+                            onChange={(url) => updateSectionPropsForDevice(section.id, { heroImage: url })}
                           />
                           <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider">
                             <input
                               type="checkbox"
                               checked={section.props.showOverlay === true}
-                              onChange={(e) => updateProps(section.id, { showOverlay: e.target.checked })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { showOverlay: e.target.checked })}
                             />
                             Dark overlay
                           </label>
@@ -3062,14 +3854,14 @@ export default function ProjectEditorPage() {
                             links={mapNavLinksForEditor(
                               (section.props.navLinks as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
-                            onChange={(navLinks) => updateProps(section.id, { navLinks })}
+                            onChange={(navLinks) => updateSectionPropsForDevice(section.id, { navLinks })}
                           />
                           <NavSizeEditor
                             scale={clampNavScale(section.props.navScale, 1)}
                             size={parseNavSize(section.props.navSize)}
                             layout={parseNavLayout(section.props.navLayout)}
                             logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
-                            onChange={(patch) => updateProps(section.id, patch)}
+                            onChange={(patch) => updateSectionPropsForDevice(section.id, patch)}
                           />
                         </div>
                       )}
@@ -3079,14 +3871,14 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.artistName ?? "")}
-                            onChange={(e) => updateProps(section.id, { artistName: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { artistName: e.target.value })}
                             aria-label="Artist name"
                           />
                           <SectionPhotoField
                             projectId={projectId}
                             label="Album art"
                             value={String(section.props.albumArt ?? "")}
-                            onChange={(url) => updateProps(section.id, { albumArt: url })}
+                            onChange={(url) => updateSectionPropsForDevice(section.id, { albumArt: url })}
                           />
                           <SocialLinksEditor
                             projectId={projectId}
@@ -3097,7 +3889,7 @@ export default function ProjectEditorPage() {
                                 iconUrl: String(l.iconUrl ?? ""),
                               }),
                             )}
-                            onChange={(socialLinks) => updateProps(section.id, { socialLinks })}
+                            onChange={(socialLinks) => updateSectionPropsForDevice(section.id, { socialLinks })}
                             rail={{
                               visible: section.props.socialRailVisible !== false,
                               bgColor: String(section.props.socialRailBg ?? "rgba(0,0,0,0.85)"),
@@ -3105,7 +3897,7 @@ export default function ProjectEditorPage() {
                               topPct: Number(section.props.socialRailTopPct ?? 12),
                               iconSize: Number(section.props.socialRailIconSize ?? 40),
                             }}
-                            onRailChange={(patch) => updateProps(section.id, patch)}
+                            onRailChange={(patch) => updateSectionPropsForDevice(section.id, patch)}
                           />
                         </div>
                       )}
@@ -3116,7 +3908,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             placeholder="Heading"
                             aria-label="Hero heading"
                           />
@@ -3124,7 +3916,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.subheading ?? "")}
-                            onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { subheading: e.target.value })}
                             placeholder="Subheading"
                             aria-label="Hero subheading"
                           />
@@ -3133,7 +3925,7 @@ export default function ProjectEditorPage() {
                               className="w-full text-xs rounded-lg px-2.5 py-2"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonLabel ?? "")}
-                              onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { buttonLabel: e.target.value })}
                               placeholder="Button label"
                               aria-label="Button label"
                             />
@@ -3141,9 +3933,27 @@ export default function ProjectEditorPage() {
                               className="w-full text-xs rounded-lg px-2.5 py-2"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonHref ?? "")}
-                              onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { buttonHref: e.target.value })}
                               placeholder="Button link"
                               aria-label="Button link"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              className="w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.secondaryButtonLabel ?? "")}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { secondaryButtonLabel: e.target.value })}
+                              placeholder="Second button (optional)"
+                              aria-label="Second button label"
+                            />
+                            <input
+                              className="w-full text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.secondaryButtonHref ?? "")}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { secondaryButtonHref: e.target.value })}
+                              placeholder="Second button link"
+                              aria-label="Second button link"
                             />
                           </div>
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Design</p>
@@ -3151,7 +3961,7 @@ export default function ProjectEditorPage() {
                             projectId={projectId}
                             label="Background image (optional)"
                             value={String(section.props.image ?? "")}
-                            onChange={(url) => updateProps(section.id, { image: url })}
+                            onChange={(url) => updateSectionPropsForDevice(section.id, { image: url })}
                           />
                           <div className="grid grid-cols-2 gap-2">
                             <label className="block text-[10px] uppercase tracking-wider">
@@ -3159,8 +3969,9 @@ export default function ProjectEditorPage() {
                               <input
                                 type="color"
                                 className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
-                                value={String(section.props.background ?? "#0A0A0A")}
-                                onChange={(e) => updateProps(section.id, { background: e.target.value })}
+                                aria-label="Hero background color"
+                                value={heroBackgroundSwatch(section.props.background, previewDefinition?.theme.primary)}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { background: e.target.value })}
                               />
                             </label>
                             <label className="block text-[10px] uppercase tracking-wider">
@@ -3169,7 +3980,7 @@ export default function ProjectEditorPage() {
                                 className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
                                 style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={String(section.props.align ?? "center")}
-                                onChange={(e) => updateProps(section.id, { align: e.target.value })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { align: e.target.value })}
                               >
                                 <option value="center">Center</option>
                                 <option value="left">Left</option>
@@ -3180,15 +3991,15 @@ export default function ProjectEditorPage() {
                             <label className="block text-[10px] uppercase tracking-wider">
                               Height
                               <select
-                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
-                                style={{ border: `1px solid ${BUILDER.border}` }}
-                                value={String(section.props.minHeight ?? "80vh")}
-                                onChange={(e) => updateProps(section.id, { minHeight: e.target.value })}
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                value={resolveHeroHeight(section.props.minHeight)}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { minHeight: e.target.value })}
+                                aria-label="Hero height"
                               >
-                                <option value="50vh">Half screen</option>
-                                <option value="70vh">Tall</option>
-                                <option value="80vh">Hero (80vh)</option>
-                                <option value="100vh">Full screen</option>
+                                {HERO_HEIGHT_OPTIONS.map((o) => (
+                                  <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
                               </select>
                             </label>
                             <label className="block text-[10px] uppercase tracking-wider">
@@ -3199,8 +4010,9 @@ export default function ProjectEditorPage() {
                                 max={0.9}
                                 step={0.05}
                                 className="mt-2 w-full"
+                                aria-label="Hero overlay opacity"
                                 value={Number(section.props.overlayOpacity ?? 0.42)}
-                                onChange={(e) => updateProps(section.id, { overlayOpacity: Number(e.target.value) })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { overlayOpacity: Number(e.target.value) })}
                               />
                             </label>
                           </div>
@@ -3212,13 +4024,13 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                           />
                           <textarea
                             className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[80px]"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.body ?? "")}
-                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { body: e.target.value })}
                           />
                         </div>
                       )}
@@ -3228,7 +4040,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.brand ?? "")}
-                            onChange={(e) => updateProps(section.id, { brand: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { brand: e.target.value })}
                             aria-label="Brand name"
                             placeholder="Brand name"
                           />
@@ -3237,14 +4049,14 @@ export default function ProjectEditorPage() {
                             links={mapNavLinksForEditor(
                               (section.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [],
                             )}
-                            onChange={(links) => updateProps(section.id, { links })}
+                            onChange={(links) => updateSectionPropsForDevice(section.id, { links })}
                           />
                           <NavSizeEditor
                             scale={clampNavScale(section.props.navScale, 1)}
                             size={parseNavSize(section.props.navSize)}
                             layout={parseNavLayout(section.props.navLayout)}
                             logoAlign={(section.props.logoAlign as "left" | "center" | "right" | undefined) ?? "left"}
-                            onChange={(patch) => updateProps(section.id, patch)}
+                            onChange={(patch) => updateSectionPropsForDevice(section.id, patch)}
                           />
                         </div>
                       )}
@@ -3255,13 +4067,13 @@ export default function ProjectEditorPage() {
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="© Your Brand · 2026"
                             value={String(section.props.text ?? "")}
-                            onChange={(e) => updateProps(section.id, { text: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { text: e.target.value })}
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Footer links</p>
                           <NavLinksEditor
                             pages={pages}
                             links={mapNavLinksForEditor((section.props.links as Parameters<typeof mapNavLinksForEditor>[0]) ?? [])}
-                            onChange={(links) => updateProps(section.id, { links })}
+                            onChange={(links) => updateSectionPropsForDevice(section.id, { links })}
                           />
                         </div>
                       )}
@@ -3271,7 +4083,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.phone ?? "")}
-                            onChange={(e) => updateProps(section.id, { phone: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { phone: e.target.value })}
                             aria-label="WhatsApp phone"
                             placeholder="WhatsApp number with country code"
                           />
@@ -3279,7 +4091,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.label ?? "")}
-                            onChange={(e) => updateProps(section.id, { label: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { label: e.target.value })}
                             aria-label="WhatsApp button label"
                           />
                         </div>
@@ -3290,7 +4102,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             aria-label="Contact heading"
                             placeholder="Contact"
                           />
@@ -3298,7 +4110,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.email ?? "")}
-                            onChange={(e) => updateProps(section.id, { email: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { email: e.target.value })}
                             aria-label="Email"
                             placeholder="Email"
                           />
@@ -3306,7 +4118,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.phone ?? "")}
-                            onChange={(e) => updateProps(section.id, { phone: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { phone: e.target.value })}
                             aria-label="Phone"
                             placeholder="Phone"
                           />
@@ -3314,7 +4126,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.address ?? "")}
-                            onChange={(e) => updateProps(section.id, { address: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { address: e.target.value })}
                             aria-label="Address"
                             placeholder="Address or city"
                           />
@@ -3326,7 +4138,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             aria-label="Features heading"
                             placeholder="Section heading"
                           />
@@ -3342,7 +4154,7 @@ export default function ProjectEditorPage() {
                                     onClick={() => {
                                       const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                       items.splice(idx, 1);
-                                      updateProps(section.id, { items });
+                                      updateSectionPropsForDevice(section.id, { items });
                                     }}
                                   >
                                     Remove
@@ -3355,7 +4167,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], title: e.target.value };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                   placeholder="Title"
                                 />
@@ -3366,7 +4178,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], body: e.target.value };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                   placeholder="Description"
                                 />
@@ -3377,7 +4189,7 @@ export default function ProjectEditorPage() {
                                   onChange={(url) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], image: url };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                 />
                                 <input
@@ -3388,7 +4200,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], href: e.target.value };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                 />
                               </div>
@@ -3402,7 +4214,7 @@ export default function ProjectEditorPage() {
                                 ...(Array.isArray(section.props.items) ? section.props.items : []),
                                 { title: "New offer", body: "Describe this offer." },
                               ];
-                              updateProps(section.id, { items });
+                              updateSectionPropsForDevice(section.id, { items });
                             }}
                           >
                             + Add item
@@ -3415,7 +4227,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             aria-label="FAQ heading"
                           />
                           {(Array.isArray(section.props.items) ? section.props.items : []).map(
@@ -3428,7 +4240,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], question: e.target.value };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                   aria-label={`FAQ ${idx + 1} question`}
                                   placeholder="Question"
@@ -3440,7 +4252,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], answer: e.target.value };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                   aria-label={`FAQ ${idx + 1} answer`}
                                   placeholder="Answer"
@@ -3456,7 +4268,7 @@ export default function ProjectEditorPage() {
                                 ...(Array.isArray(section.props.items) ? section.props.items : []),
                                 { question: "New question?", answer: "Write a clear answer." },
                               ];
-                              updateProps(section.id, { items });
+                              updateSectionPropsForDevice(section.id, { items });
                             }}
                           >
                             + Add question
@@ -3469,7 +4281,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             placeholder="What our customers say"
                             aria-label="Testimonials heading"
                           />
@@ -3485,7 +4297,7 @@ export default function ProjectEditorPage() {
                                     onClick={() => {
                                       const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                       items.splice(idx, 1);
-                                      updateProps(section.id, { items });
+                                      updateSectionPropsForDevice(section.id, { items });
                                     }}
                                   >
                                     Remove
@@ -3498,7 +4310,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], quote: e.target.value };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                   placeholder="Their words..."
                                 />
@@ -3510,7 +4322,7 @@ export default function ProjectEditorPage() {
                                     onChange={(e) => {
                                       const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                       items[idx] = { ...items[idx], name: e.target.value };
-                                      updateProps(section.id, { items });
+                                      updateSectionPropsForDevice(section.id, { items });
                                     }}
                                     placeholder="Name"
                                   />
@@ -3521,7 +4333,7 @@ export default function ProjectEditorPage() {
                                     onChange={(e) => {
                                       const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                       items[idx] = { ...items[idx], role: e.target.value };
-                                      updateProps(section.id, { items });
+                                      updateSectionPropsForDevice(section.id, { items });
                                     }}
                                     placeholder="Role / location"
                                   />
@@ -3533,7 +4345,7 @@ export default function ProjectEditorPage() {
                                   onChange={(url) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], avatar: url };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                 />
                               </div>
@@ -3547,7 +4359,7 @@ export default function ProjectEditorPage() {
                                 ...(Array.isArray(section.props.items) ? section.props.items : []),
                                 { quote: "Amazing experience.", name: "Customer", role: "" },
                               ];
-                              updateProps(section.id, { items });
+                              updateSectionPropsForDevice(section.id, { items });
                             }}
                           >
                             + Add quote
@@ -3561,7 +4373,7 @@ export default function ProjectEditorPage() {
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Heading (Videos)"
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                           />
                           <label className="block text-[10px] uppercase tracking-wider">
                             Layout
@@ -3570,7 +4382,7 @@ export default function ProjectEditorPage() {
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.layout ?? "grid")}
                               onChange={(e) =>
-                                updateProps(section.id, {
+                                updateSectionPropsForDevice(section.id, {
                                   layout: e.target.value as "grid" | "single" | "featured",
                                 })
                               }
@@ -3587,7 +4399,7 @@ export default function ProjectEditorPage() {
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.columns ?? 2)}
                               onChange={(e) =>
-                                updateProps(section.id, { columns: Number(e.target.value) as 1 | 2 | 3 })
+                                updateSectionPropsForDevice(section.id, { columns: Number(e.target.value) as 1 | 2 | 3 })
                               }
                             >
                               <option value={1}>1</option>
@@ -3638,7 +4450,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const next = [...items];
                                     next[idx] = { ...next[idx]!, title: e.target.value };
-                                    updateProps(section.id, { items: next, src: next[0]?.src ?? "" });
+                                    updateSectionPropsForDevice(section.id, { items: next, src: next[0]?.src ?? "" });
                                   }}
                                 />
                                 <input
@@ -3649,7 +4461,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const next = [...items];
                                     next[idx] = { ...next[idx]!, src: e.target.value };
-                                    updateProps(section.id, { items: next, src: next[0]?.src ?? "" });
+                                    updateSectionPropsForDevice(section.id, { items: next, src: next[0]?.src ?? "" });
                                   }}
                                 />
                                 <SiteMediaUpload
@@ -3659,7 +4471,7 @@ export default function ProjectEditorPage() {
                                   onChange={(src) => {
                                     const next = [...items];
                                     next[idx] = { ...next[idx]!, src };
-                                    updateProps(section.id, { items: next, src: next[0]?.src ?? "" });
+                                    updateSectionPropsForDevice(section.id, { items: next, src: next[0]?.src ?? "" });
                                   }}
                                   label="Or upload video file"
                                 />
@@ -3670,7 +4482,7 @@ export default function ProjectEditorPage() {
                                   onChange={(url) => {
                                     const next = [...items];
                                     next[idx] = { ...next[idx]!, thumbnail: url };
-                                    updateProps(section.id, { items: next });
+                                    updateSectionPropsForDevice(section.id, { items: next });
                                   }}
                                 />
                                 <button
@@ -3678,7 +4490,7 @@ export default function ProjectEditorPage() {
                                   className="text-[10px] font-bold uppercase text-red-600"
                                   onClick={() => {
                                     const next = items.filter((_, i) => i !== idx);
-                                    updateProps(section.id, { items: next, src: next[0]?.src ?? "" });
+                                    updateSectionPropsForDevice(section.id, { items: next, src: next[0]?.src ?? "" });
                                   }}
                                 >
                                   Remove video
@@ -3696,7 +4508,7 @@ export default function ProjectEditorPage() {
                                   []),
                                 { src: "", title: `Video ${((section.props.items as unknown[]) ?? []).length + 1}`, caption: "", thumbnail: "" },
                               ];
-                              updateProps(section.id, { items });
+                              updateSectionPropsForDevice(section.id, { items });
                             }}
                           >
                             + Add video
@@ -3709,7 +4521,7 @@ export default function ProjectEditorPage() {
                             projectId={projectId}
                             kind="audio"
                             value={String(section.props.src ?? "")}
-                            onChange={(src) => updateProps(section.id, { src })}
+                            onChange={(src) => updateSectionPropsForDevice(section.id, { src })}
                             label="Music file from your computer"
                           />
                           <input
@@ -3717,24 +4529,25 @@ export default function ProjectEditorPage() {
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Or paste MP3 URL"
                             value={String(section.props.src ?? "")}
-                            onChange={(e) => updateProps(section.id, { src: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { src: e.target.value })}
                           />
                           <input
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Track title"
                             value={String(section.props.title ?? "")}
-                            onChange={(e) => updateProps(section.id, { title: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { title: e.target.value })}
                           />
                           <input
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Artist name"
                             value={String(section.props.artist ?? "")}
-                            onChange={(e) => updateProps(section.id, { artist: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { artist: e.target.value })}
                           />
                         </div>
                       )}
+                      {section.section_type === "form" && <SiteFormInspector projectId={projectId} value={section.props} onChange={patch => updateSectionPropsForDevice(section.id, patch)} />}
                       {section.section_type === "gallery" && (
                         <div className="space-y-2">
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
@@ -3747,16 +4560,20 @@ export default function ProjectEditorPage() {
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.layout ?? "grid")}
                               onChange={(e) =>
-                                updateProps(section.id, {
-                                  layout: e.target.value as "grid" | "single" | "featured",
+                                updateSectionPropsForDevice(section.id, {
+                                  layout: e.target.value,
+                                  ...(["campaign-wall", "directional-world"].includes(e.target.value) ? { creativeWorld: section.props.creativeWorld ?? defaultCreativeWorld() } : {}),
                                 })
                               }
                             >
                               <option value="grid">Grid</option>
                               <option value="single">One photo (full width)</option>
                               <option value="featured">Featured + grid</option>
+                              <option value="campaign-wall">Editorial campaign wall</option>
+                              <option value="directional-world">Directional world</option>
                             </select>
                           </label>
+                          {["campaign-wall", "directional-world"].includes(String(section.props.layout)) ? <CreativeWorldInspector value={section.props.creativeWorld} projectId={projectId} onChange={creativeWorld => updateSectionPropsForDevice(section.id, { creativeWorld })} /> : <>
                           <label className="block text-[10px] uppercase tracking-wider">
                             Columns
                             <select
@@ -3764,7 +4581,7 @@ export default function ProjectEditorPage() {
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.columns ?? 3)}
                               onChange={(e) =>
-                                updateProps(section.id, { columns: Number(e.target.value) as 1 | 2 | 3 })
+                                updateSectionPropsForDevice(section.id, { columns: Number(e.target.value) as 1 | 2 | 3 })
                               }
                             >
                               <option value={1}>1</option>
@@ -3782,7 +4599,7 @@ export default function ProjectEditorPage() {
                                   onChange={(url) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], src: url, alt: items[idx]?.alt ?? "" };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                 />
                                 <input
@@ -3793,7 +4610,7 @@ export default function ProjectEditorPage() {
                                   onChange={(e) => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items[idx] = { ...items[idx], src: items[idx]?.src ?? "", alt: e.target.value };
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                 />
                                 <button
@@ -3802,7 +4619,7 @@ export default function ProjectEditorPage() {
                                   onClick={() => {
                                     const items = [...(Array.isArray(section.props.items) ? section.props.items : [])];
                                     items.splice(idx, 1);
-                                    updateProps(section.id, { items });
+                                    updateSectionPropsForDevice(section.id, { items });
                                   }}
                                 >
                                   Remove photo
@@ -3819,11 +4636,12 @@ export default function ProjectEditorPage() {
                                 ...(Array.isArray(section.props.items) ? section.props.items : []),
                                 { src: "", alt: "" },
                               ];
-                              updateProps(section.id, { items });
+                              updateSectionPropsForDevice(section.id, { items });
                             }}
                           >
                             + Add photo
                           </button>
+                          </> }
                         </div>
                       )}
                       {section.section_type === "products" && (
@@ -3832,7 +4650,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             placeholder="Section heading"
                           />
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.faint }}>
@@ -3852,7 +4670,7 @@ export default function ProjectEditorPage() {
                                 <button
                                   key={id}
                                   type="button"
-                                  onClick={() => updateProps(section.id, { layout: id })}
+                                  onClick={() => updateSectionPropsForDevice(section.id, { layout: id })}
                                   className="rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider"
                                   style={{
                                     background: on ? BUILDER.ink : BUILDER.surfaceMuted,
@@ -3878,7 +4696,7 @@ export default function ProjectEditorPage() {
                                     <button
                                       key={n}
                                       type="button"
-                                      onClick={() => updateProps(section.id, { columns: n })}
+                                      onClick={() => updateSectionPropsForDevice(section.id, { columns: n })}
                                       className="flex-1 rounded-lg py-2 text-[11px] font-bold"
                                       style={{
                                         background: on ? BUILDER.ink : BUILDER.surfaceMuted,
@@ -3911,7 +4729,7 @@ export default function ProjectEditorPage() {
                                 <button
                                   key={id}
                                   type="button"
-                                  onClick={() => updateProps(section.id, { orderStyle: id })}
+                                  onClick={() => updateSectionPropsForDevice(section.id, { orderStyle: id })}
                                   className="rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider"
                                   style={{
                                     background: on ? BUILDER.ink : BUILDER.surfaceMuted,
@@ -3929,7 +4747,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.orderCtaLabel ?? "Place order")}
-                            onChange={(e) => updateProps(section.id, { orderCtaLabel: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { orderCtaLabel: e.target.value })}
                             placeholder="Order button label"
                           />
                           <p className="text-[10px] leading-relaxed" style={{ color: BUILDER.muted }}>
@@ -3954,21 +4772,21 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             placeholder="Heading"
                           />
                           <textarea
                             className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.subheading ?? "")}
-                            onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { subheading: e.target.value })}
                             placeholder="Subheading"
                           />
                           <input
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.buttonLabel ?? "")}
-                            onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { buttonLabel: e.target.value })}
                             placeholder="Button label"
                           />
                         </div>
@@ -3983,7 +4801,7 @@ export default function ProjectEditorPage() {
                             <input
                               type="checkbox"
                               checked={section.props.enabled !== false}
-                              onChange={(e) => updateProps(section.id, { enabled: e.target.checked })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { enabled: e.target.checked })}
                             />
                             Show popup
                           </label>
@@ -3993,7 +4811,7 @@ export default function ProjectEditorPage() {
                               className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.mode ?? "both")}
-                              onChange={(e) => updateProps(section.id, { mode: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { mode: e.target.value })}
                             >
                               <option value="both">Email + consent</option>
                               <option value="email">Email only</option>
@@ -4004,21 +4822,21 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             placeholder="Heading"
                           />
                           <textarea
                             className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.body ?? "")}
-                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { body: e.target.value })}
                             placeholder="Body"
                           />
                           <input
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.consentLabel ?? "")}
-                            onChange={(e) => updateProps(section.id, { consentLabel: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { consentLabel: e.target.value })}
                             placeholder="Consent checkbox text"
                           />
                           <div className="grid grid-cols-2 gap-2">
@@ -4032,7 +4850,7 @@ export default function ProjectEditorPage() {
                                 style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={Number(section.props.delaySeconds ?? 4)}
                                 onChange={(e) =>
-                                  updateProps(section.id, { delaySeconds: Number(e.target.value) })
+                                  updateSectionPropsForDevice(section.id, { delaySeconds: Number(e.target.value) })
                                 }
                               />
                             </label>
@@ -4046,7 +4864,7 @@ export default function ProjectEditorPage() {
                                 style={{ border: `1px solid ${BUILDER.border}` }}
                                 value={Number(section.props.remindAfterDays ?? 14)}
                                 onChange={(e) =>
-                                  updateProps(section.id, { remindAfterDays: Number(e.target.value) })
+                                  updateSectionPropsForDevice(section.id, { remindAfterDays: Number(e.target.value) })
                                 }
                               />
                             </label>
@@ -4060,7 +4878,7 @@ export default function ProjectEditorPage() {
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             placeholder="Address label"
                             value={String(section.props.address ?? "")}
-                            onChange={(e) => updateProps(section.id, { address: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { address: e.target.value })}
                           />
                           <div className="grid grid-cols-2 gap-2">
                             <input
@@ -4070,7 +4888,7 @@ export default function ProjectEditorPage() {
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               placeholder="Latitude"
                               value={Number(section.props.latitude ?? 0)}
-                              onChange={(e) => updateProps(section.id, { latitude: Number(e.target.value) })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { latitude: Number(e.target.value) })}
                             />
                             <input
                               type="number"
@@ -4079,7 +4897,7 @@ export default function ProjectEditorPage() {
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               placeholder="Longitude"
                               value={Number(section.props.longitude ?? 0)}
-                              onChange={(e) => updateProps(section.id, { longitude: Number(e.target.value) })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { longitude: Number(e.target.value) })}
                             />
                           </div>
                         </div>
@@ -4099,7 +4917,7 @@ export default function ProjectEditorPage() {
                             (project?.theme as ThemeTokens | undefined)?.fontBody ??
                             previewDefinition?.theme?.fontBody
                           }
-                          onChange={(blocks) => updateProps(section.id, { blocks })}
+                          onChange={(blocks) => updateSectionPropsForDevice(section.id, { blocks })}
                         />
                       )}
                       {section.section_type === "events" && (
@@ -4112,7 +4930,7 @@ export default function ProjectEditorPage() {
                                 ...(Array.isArray(section.props.items) ? section.props.items : []),
                                 { title: "New event", date: "2026-01-01", location: "", description: "", ticketUrl: "#" },
                               ];
-                              updateProps(section.id, { items });
+                              updateSectionPropsForDevice(section.id, { items });
                             }}
                           >
                             + Add event
@@ -4123,64 +4941,101 @@ export default function ProjectEditorPage() {
                         <div className="space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.orange }}>Copy</p>
                           <input
-                            className="w-full text-xs rounded-lg px-2.5 py-2"
-                            style={{ border: `1px solid ${BUILDER.border}` }}
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
+                            value={String(section.props.eyebrow ?? "")}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { eyebrow: e.target.value })}
+                            placeholder="Eyebrow — short line above the headline (optional)"
+                            aria-label="Editorial hero eyebrow"
+                          />
+                          <input
+                            className="w-full text-sm rounded-lg px-2 py-1.5"
+                            style={{ border: "1px solid #DDE0F0" }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             placeholder="Headline"
+                            aria-label="Editorial hero headline"
                           />
                           <textarea
                             className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[60px]"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.subheading ?? "")}
-                            onChange={(e) => updateProps(section.id, { subheading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { subheading: e.target.value })}
                             placeholder="Subheading"
+                            aria-label="Editorial hero subheading"
                           />
                           <div className="grid grid-cols-2 gap-2">
                             <input
                               className="text-sm rounded-lg px-2 py-1.5"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonLabel ?? "")}
-                              onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { buttonLabel: e.target.value })}
                               placeholder="Button label"
+                              aria-label="Editorial hero button label"
                             />
                             <input
                               className="text-sm rounded-lg px-2 py-1.5"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonHref ?? "")}
-                              onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { buttonHref: e.target.value })}
                               placeholder="Button link"
+                              aria-label="Editorial hero button link"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              className="text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.secondaryButtonLabel ?? "")}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { secondaryButtonLabel: e.target.value })}
+                              placeholder="Second button (optional)"
+                              aria-label="Editorial hero Second button label"
+                            />
+                            <input
+                              className="text-sm rounded-lg px-2 py-1.5"
+                              style={{ border: "1px solid #DDE0F0" }}
+                              value={String(section.props.secondaryButtonHref ?? "")}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { secondaryButtonHref: e.target.value })}
+                              placeholder="Second button link"
+                              aria-label="Editorial hero Second button link"
                             />
                           </div>
                           <p className="text-[10px] font-bold uppercase tracking-wider pt-1" style={{ color: BUILDER.orange }}>Design</p>
                           <SectionPhotoField
                             projectId={projectId}
                             label="Background image"
-                            value={String(section.props.image ?? "")}
-                            onChange={(url) => updateProps(section.id, { image: url })}
+                            // The editorial-hero schema stores the photo as `imageUrl` (`image` was stripped on save).
+                            value={String(section.props.imageUrl ?? section.props.image ?? "")}
+                            onChange={(url) => updateSectionPropsForDevice(section.id, { imageUrl: url })}
                           />
                           <div className="grid grid-cols-2 gap-2">
                             <label className="block text-[10px] uppercase tracking-wider">
                               Height
                               <select
-                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
-                                style={{ border: `1px solid ${BUILDER.border}` }}
-                                value={String(section.props.minHeight ?? "70vh")}
-                                onChange={(e) => updateProps(section.id, { minHeight: e.target.value })}
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                aria-label="Editorial hero height"
+                                // The schema stores the height as `heightVh` (`minHeight` was stripped on save).
+                                value={String(section.props.heightVh ?? 80)}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { heightVh: Number(e.target.value) })}
                               >
-                                <option value="50vh">Half screen</option>
-                                <option value="70vh">Tall</option>
-                                <option value="88vh">Very tall</option>
-                                <option value="100vh">Full screen</option>
+                                {[...new Set([50, 70, 80, 88, 100, Number(section.props.heightVh ?? 80)])]
+                                  .sort((a, b) => a - b)
+                                  .map((vh) => (
+                                    <option key={vh} value={vh}>
+                                      {({ 50: "Half screen", 70: "Tall", 80: "Hero (80vh)", 88: "Very tall", 100: "Full screen" } as Record<number, string>)[vh] ?? `${vh}vh`}
+                                    </option>
+                                  ))}
                               </select>
                             </label>
                             <label className="block text-[10px] uppercase tracking-wider">
                               Align
                               <select
-                                className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
-                                style={{ border: `1px solid ${BUILDER.border}` }}
+                                className="mt-1 w-full text-sm rounded-lg px-2 py-1.5"
+                                style={{ border: "1px solid #DDE0F0" }}
+                                aria-label="Editorial hero align"
                                 value={String(section.props.align ?? "left")}
-                                onChange={(e) => updateProps(section.id, { align: e.target.value })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { align: e.target.value })}
                               >
                                 <option value="left">Left</option>
                                 <option value="center">Center</option>
@@ -4195,8 +5050,9 @@ export default function ProjectEditorPage() {
                               max={0.9}
                               step={0.05}
                               className="mt-2 w-full"
+                              aria-label="Editorial hero overlay"
                               value={Number(section.props.overlayOpacity ?? 0.35)}
-                              onChange={(e) => updateProps(section.id, { overlayOpacity: Number(e.target.value) })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { overlayOpacity: Number(e.target.value) })}
                             />
                           </label>
                         </div>
@@ -4207,14 +5063,14 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.text ?? "")}
-                            onChange={(e) => updateProps(section.id, { text: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { text: e.target.value })}
                             placeholder="Free shipping on orders over 10,000 XOF"
                           />
                           <input
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.link ?? "")}
-                            onChange={(e) => updateProps(section.id, { link: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { link: e.target.value })}
                             placeholder="Link (optional)"
                           />
                           <div className="grid grid-cols-2 gap-2">
@@ -4224,7 +5080,7 @@ export default function ProjectEditorPage() {
                                 type="color"
                                 className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
                                 value={String(section.props.background ?? "#0A0A0A")}
-                                onChange={(e) => updateProps(section.id, { background: e.target.value })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { background: e.target.value })}
                               />
                             </label>
                             <label className="block text-[10px] uppercase tracking-wider">
@@ -4233,7 +5089,7 @@ export default function ProjectEditorPage() {
                                 type="color"
                                 className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
                                 value={String(section.props.color ?? "#ffffff")}
-                                onChange={(e) => updateProps(section.id, { color: e.target.value })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { color: e.target.value })}
                               />
                             </label>
                           </div>
@@ -4250,7 +5106,7 @@ export default function ProjectEditorPage() {
                             value={(Array.isArray(section.props.items) ? section.props.items : []).join("\n")}
                             onChange={(e) => {
                               const items = e.target.value.split("\n").map((s) => s.trim()).filter(Boolean);
-                              updateProps(section.id, { items });
+                              updateSectionPropsForDevice(section.id, { items });
                             }}
                             placeholder={"New arrivals\nShop now\nFree delivery\nMade in Africa"}
                           />
@@ -4258,7 +5114,7 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.separator ?? " · ")}
-                            onChange={(e) => updateProps(section.id, { separator: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { separator: e.target.value })}
                             placeholder="Separator ( · )"
                           />
                           <div className="grid grid-cols-2 gap-2">
@@ -4268,7 +5124,7 @@ export default function ProjectEditorPage() {
                                 type="color"
                                 className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
                                 value={String(section.props.background ?? "#0A0A0A")}
-                                onChange={(e) => updateProps(section.id, { background: e.target.value })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { background: e.target.value })}
                               />
                             </label>
                             <label className="block text-[10px] uppercase tracking-wider">
@@ -4277,7 +5133,7 @@ export default function ProjectEditorPage() {
                                 type="color"
                                 className="mt-1 h-8 w-full cursor-pointer rounded border-0 p-0"
                                 value={String(section.props.color ?? "#ffffff")}
-                                onChange={(e) => updateProps(section.id, { color: e.target.value })}
+                                onChange={(e) => updateSectionPropsForDevice(section.id, { color: e.target.value })}
                               />
                             </label>
                           </div>
@@ -4290,14 +5146,14 @@ export default function ProjectEditorPage() {
                             className="w-full text-xs rounded-lg px-2.5 py-2"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.heading ?? "")}
-                            onChange={(e) => updateProps(section.id, { heading: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { heading: e.target.value })}
                             placeholder="Heading"
                           />
                           <textarea
                             className="w-full text-xs rounded-lg px-2.5 py-2 min-h-[80px]"
                             style={{ border: `1px solid ${BUILDER.border}` }}
                             value={String(section.props.body ?? "")}
-                            onChange={(e) => updateProps(section.id, { body: e.target.value })}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { body: e.target.value })}
                             placeholder="Body text"
                           />
                           <div className="grid grid-cols-2 gap-2">
@@ -4305,14 +5161,14 @@ export default function ProjectEditorPage() {
                               className="text-sm rounded-lg px-2 py-1.5"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonLabel ?? "")}
-                              onChange={(e) => updateProps(section.id, { buttonLabel: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { buttonLabel: e.target.value })}
                               placeholder="Button"
                             />
                             <input
                               className="text-sm rounded-lg px-2 py-1.5"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.buttonHref ?? "")}
-                              onChange={(e) => updateProps(section.id, { buttonHref: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { buttonHref: e.target.value })}
                               placeholder="Link"
                             />
                           </div>
@@ -4321,7 +5177,7 @@ export default function ProjectEditorPage() {
                             projectId={projectId}
                             label="Photo"
                             value={String(section.props.image ?? "")}
-                            onChange={(url) => updateProps(section.id, { image: url })}
+                            onChange={(url) => updateSectionPropsForDevice(section.id, { image: url })}
                           />
                           <label className="block text-[10px] uppercase tracking-wider">
                             Image side
@@ -4329,7 +5185,7 @@ export default function ProjectEditorPage() {
                               className="mt-1 w-full text-xs rounded-lg px-2.5 py-2"
                               style={{ border: `1px solid ${BUILDER.border}` }}
                               value={String(section.props.imagePosition ?? "left")}
-                              onChange={(e) => updateProps(section.id, { imagePosition: e.target.value })}
+                              onChange={(e) => updateSectionPropsForDevice(section.id, { imagePosition: e.target.value })}
                             >
                               <option value="left">Left</option>
                               <option value="right">Right</option>
@@ -4348,9 +5204,222 @@ export default function ProjectEditorPage() {
                       <SidebarDetails title="Layout & Visibility" defaultOpen={false} group="section-inspector">
                         <BuilderSectionLayoutPanel
                           props={section.props}
-                          onPatch={(patch) => updateProps(section.id, patch)}
+                          onPatch={(patch) => updateSectionPropsForDevice(section.id, patch)}
                         />
+                        {/* Section vertical spacing control */}
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                            Section height
+                          </p>
+                          <div className="flex gap-1">
+                            {(["tight", "normal", "spacious", "open"] as const).map((id) => {
+                              const on = (section.props.sectionPaddingY ?? "normal") === id;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => updateSectionPropsForDevice(section.id, { sectionPaddingY: id })}
+                                  className="flex-1 rounded py-1 text-[9px] font-bold uppercase"
+                                  style={{
+                                    background: on ? BUILDER.ink : BUILDER.surfaceMuted,
+                                    color: on ? "#fff" : BUILDER.muted,
+                                    border: `1px solid ${BUILDER.border}`,
+                                  }}
+                                >
+                                  {id}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <label className="flex items-center gap-2 text-[11px]">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(section.props.hidden)}
+                            onChange={(e) => updateSectionPropsForDevice(section.id, { hidden: e.target.checked })}
+                          />
+                          Hide section (all devices)
+                        </label>
+                        {/* Per-device visibility — writes to _visibility.hideOn */}
+                        {!isChromeSectionId(section.id) && (
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                              Show on device
+                            </p>
+                            {(
+                              [
+                                ["desktop", "Desktop"],
+                                ["tablet", "Tablet"],
+                                ["mobile", "Phone"],
+                              ] as const
+                            ).map(([dev, label]) => {
+                              const vis = (section.props._visibility as { hideOn?: string[]; showOn?: string[] } | undefined) ?? {};
+                              const isHidden = (vis.hideOn ?? []).includes(dev);
+                              return (
+                                <label key={dev} className="flex items-center gap-2 text-[11px]">
+                                  <input
+                                    type="checkbox"
+                                    checked={!isHidden}
+                                    onChange={(e) => {
+                                      const cur = (section.props._visibility as { hideOn?: string[]; showOn?: string[] } | undefined) ?? {};
+                                      const hideOn = (cur.hideOn ?? []).filter((d) => d !== dev);
+                                      if (!e.target.checked) hideOn.push(dev);
+                                      updateSectionPropsForDevice(section.id, {
+                                        _visibility: hideOn.length > 0 ? { hideOn } : null,
+                                      });
+                                    }}
+                                  />
+                                  {label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
                       </SidebarDetails>
+                      {/* Motion entrance animation controls */}
+                      {!isChromeSectionId(section.id) && (
+                      <SidebarDetails title="Motion" defaultOpen={false} group="section-inspector">
+                        {(() => {
+                          const motionProp = section.props._motion as { specs?: { trigger?: string; transform?: Record<string, unknown>; durationMs?: number; delayMs?: number; easing?: string; reducedMotionFallback?: string }[]; reducedMotionFallback?: string } | undefined;
+                          const enabled = Boolean(motionProp?.specs?.length);
+                          const spec = motionProp?.specs?.[0];
+                          const opFrom = typeof spec?.transform?.opacityFrom === "number" ? spec.transform.opacityFrom : 0;
+                          const tyFrom = typeof spec?.transform?.translateYFrom === "string" ? parseFloat(spec.transform.translateYFrom as string) : 24;
+                          const dur = spec?.durationMs ?? 600;
+                          const del = spec?.delayMs ?? 0;
+                          const rmf = (motionProp?.reducedMotionFallback ?? "instant") as "instant" | "none";
+
+                          function writeMotion(patch: Partial<{ opacityFrom: number; tyFrom: number; durationMs: number; delayMs: number; rmf: "instant" | "none" }>) {
+                            const next = {
+                              specs: [{
+                                target: "self",
+                                trigger: "scroll-enter" as const,
+                                transform: {
+                                  opacityFrom: patch.opacityFrom ?? opFrom,
+                                  opacityTo: 1,
+                                  translateYFrom: `${patch.tyFrom ?? tyFrom}px`,
+                                  translateYTo: "0px",
+                                },
+                                durationMs: patch.durationMs ?? dur,
+                                delayMs: patch.delayMs ?? del,
+                                easing: "ease-out" as const,
+                                scrollThreshold: 0.15,
+                                replay: false,
+                              }],
+                              reducedMotionFallback: patch.rmf ?? rmf,
+                            };
+                            updateSectionPropsForDevice(section.id, { _motion: next });
+                          }
+
+                          return (
+                            <div className="space-y-3">
+                              <label className="flex items-center gap-2 text-[11px]">
+                                <input
+                                  type="checkbox"
+                                  checked={enabled}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      writeMotion({});
+                                    } else {
+                                      updateSectionPropsForDevice(section.id, { _motion: null });
+                                    }
+                                  }}
+                                />
+                                Scroll-enter entrance
+                              </label>
+                              {enabled && (
+                                <>
+                                  <div className="space-y-1.5">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                      Fade in (opacity start)
+                                    </p>
+                                    <input
+                                      type="range"
+                                      min={0} max={1} step={0.05}
+                                      value={opFrom}
+                                      onChange={(e) => writeMotion({ opacityFrom: parseFloat(e.target.value) })}
+                                      className="w-full"
+                                      aria-label="Fade start opacity"
+                                    />
+                                    <div className="flex justify-between text-[9px]" style={{ color: BUILDER.muted }}>
+                                      <span>Invisible (0)</span><span>Opaque (1)</span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                      Slide up (px)
+                                    </p>
+                                    <input
+                                      type="range"
+                                      min={0} max={80} step={4}
+                                      value={tyFrom}
+                                      onChange={(e) => writeMotion({ tyFrom: parseInt(e.target.value) })}
+                                      className="w-full"
+                                      aria-label="Slide up distance"
+                                    />
+                                    <div className="flex justify-between text-[9px]" style={{ color: BUILDER.muted }}>
+                                      <span>None (0px)</span><span>Far (80px)</span>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                        Duration (ms)
+                                      </p>
+                                      <input
+                                        type="number"
+                                        min={100} max={2000} step={50}
+                                        value={dur}
+                                        onChange={(e) => writeMotion({ durationMs: Math.max(100, Math.min(2000, parseInt(e.target.value) || 600)) })}
+                                        className="w-full rounded px-2 py-1 text-[11px]"
+                                        style={{ border: `1px solid ${BUILDER.border}` }}
+                                        aria-label="Duration in milliseconds"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                        Delay (ms)
+                                      </p>
+                                      <input
+                                        type="number"
+                                        min={0} max={1500} step={50}
+                                        value={del}
+                                        onChange={(e) => writeMotion({ delayMs: Math.max(0, Math.min(1500, parseInt(e.target.value) || 0)) })}
+                                        className="w-full rounded px-2 py-1 text-[11px]"
+                                        style={{ border: `1px solid ${BUILDER.border}` }}
+                                        aria-label="Delay in milliseconds"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: BUILDER.muted }}>
+                                      Reduced motion
+                                    </p>
+                                    <div className="flex gap-1">
+                                      {(["instant", "none"] as const).map((id) => (
+                                        <button
+                                          key={id}
+                                          type="button"
+                                          onClick={() => writeMotion({ rmf: id })}
+                                          className="flex-1 rounded py-1 text-[9px] font-bold uppercase"
+                                          style={{
+                                            background: rmf === id ? BUILDER.ink : BUILDER.surfaceMuted,
+                                            color: rmf === id ? "#fff" : BUILDER.muted,
+                                            border: `1px solid ${BUILDER.border}`,
+                                          }}
+                                        >
+                                          {id === "instant" ? "Instant" : "Skip"}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </SidebarDetails>
+                      )}
                     </div>
                   ))}
               </>
@@ -4358,6 +5427,7 @@ export default function ProjectEditorPage() {
             </aside>
 
             <section
+              aria-label="Site canvas"
               className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
               style={{
                 background: maylecorRussianLayout
@@ -4369,8 +5439,17 @@ export default function ProjectEditorPage() {
             >
               <div
                 className={`mx-auto flex min-h-0 flex-1 w-full ${
-                  wideCanvas ? "overflow-y-auto p-2 sm:p-3" : "overflow-y-auto items-start p-4 sm:p-8"
+                  wideCanvas ? "overflow-y-auto p-0" : "overflow-y-auto items-start p-5 sm:pb-8 sm:p-8"
                 }`}
+                style={
+                  // On mobile (<sm), add safe-area padding so content clears MobileActionBar
+                  // (≈52px) + device home indicator. Inline style only applied below sm breakpoint.
+                  (bp === "xs" || bp === "sm") ? {
+                    paddingBottom: wideCanvas
+                      ? "calc(4rem + env(safe-area-inset-bottom, 0px))"
+                      : "calc(5rem + env(safe-area-inset-bottom, 0px))",
+                  } : undefined
+                }
               >
                 <div
                   className={`mx-auto bg-white ${
@@ -4403,9 +5482,16 @@ export default function ProjectEditorPage() {
                         }
                   }
                 >
+                {kcdRenderError ? (
+                  <div role="alert" className="m-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+                    <p className="font-semibold">This page could not be displayed.</p>
+                    <p className="mt-1">{kcdRenderError}</p>
+                  </div>
+                ) : null}
                 {canvasDefinition && wideCanvas && (
                   <BuilderEditablePreview
                     definition={canvasDefinition}
+                    nativeDocument={kcdView?.ok && !aiPreview ? kcdView.nativeDocument : undefined}
                     pageSlug={previewPageSlug}
                     siteBase={previewSiteBase || undefined}
                     projectId={projectId}
@@ -4568,8 +5654,15 @@ export default function ProjectEditorPage() {
           />
         ) : null}
 
-        {/* Yande FAB + speed-dial — bottom-right */}
-        <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-5">
+        {/* Yande FAB + speed-dial — bottom-right; on mobile lift above MobileActionBar */}
+        <BuilderPanelScope><div
+          className="absolute right-5 z-30 flex flex-col items-end gap-2"
+          style={{
+            bottom: (bp === "xs" || bp === "sm")
+              ? "calc(3.75rem + env(safe-area-inset-bottom, 0px))"
+              : "1.25rem",
+          }}
+        >
 
           {/* Speed-dial mini-buttons — open by default on builder load */}
           {yandeDialOpen && !yandeOpen ? (
@@ -4584,7 +5677,7 @@ export default function ProjectEditorPage() {
                 <div key={label} className="flex items-center gap-2">
                   <span
                     className="rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg whitespace-nowrap"
-                    style={{ background: "#fff", color: BUILDER.ink, boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}
+                    style={{ background: BUILDER_PANEL.surface, color: BUILDER_PANEL.ink, boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}
                   >
                     {label}
                   </span>
@@ -4595,7 +5688,7 @@ export default function ProjectEditorPage() {
                       setYandeOpen(true);
                       setYandeDialOpen(false);
                     }}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-105 active:scale-95"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-105 active:scale-95"
                     style={{ background: color }}
                     aria-label={label}
                   >
@@ -4620,6 +5713,7 @@ export default function ProjectEditorPage() {
 
           {/* Main FAB button */}
           <button
+            ref={yandeTriggerRef}
             type="button"
             aria-label={yandeOpen ? "Close Yande" : yandeDialOpen ? "Close menu" : "Open Yande"}
             onClick={() => {
@@ -4639,8 +5733,10 @@ export default function ProjectEditorPage() {
           </button>
         </div>
 
-        {/* Yande right-side sliding panel */}
-        {yandeOpen ? (
+        </BuilderPanelScope>
+
+        {/* Yande right-side panel — absolute on sm+, Sheet on xs (phone) */}
+        {yandeOpen && bp !== "xs" ? (
           <>
             {/* click-outside backdrop (transparent) */}
             <div
@@ -4648,12 +5744,14 @@ export default function ProjectEditorPage() {
               onClick={() => setYandeOpen(false)}
               aria-hidden="true"
             />
-            <div
+            <BuilderPanelScope><div
               className="absolute bottom-0 right-0 top-0 z-40 flex flex-col overflow-hidden border-l"
               style={{
                 width: 300,
-                background: "#FAFAFA",
-                borderColor: "#E5E5E5",
+                background: BUILDER_PANEL.surface,
+                color: BUILDER_PANEL.ink,
+                colorScheme: BUILDER_PANEL.colorScheme,
+                borderColor: BUILDER_PANEL.border,
                 boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
               }}
               onClick={(e) => e.stopPropagation()}
@@ -4661,13 +5759,13 @@ export default function ProjectEditorPage() {
               {/* panel header */}
               <div
                 className="flex shrink-0 items-center justify-between border-b px-3 py-2.5"
-                style={{ borderColor: "#E5E5E5" }}
+                style={{ borderColor: BUILDER_PANEL.border }}
               >
                 <div className="flex items-center gap-2">
                   <YandeMark size={28} />
                   <span
                     className="text-[11px] font-bold uppercase tracking-wider"
-                    style={{ color: BUILDER.ink }}
+                    style={{ color: BUILDER_PANEL.ink }}
                   >
                     Yande AI
                   </span>
@@ -4676,104 +5774,54 @@ export default function ProjectEditorPage() {
                   type="button"
                   aria-label="Close Yande"
                   onClick={() => setYandeOpen(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-md"
-                  style={{ color: BUILDER.muted }}
+                  className="flex h-11 w-11 items-center justify-center rounded-md"
+                  style={{ color: BUILDER_PANEL.muted }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                     <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
                   </svg>
                 </button>
               </div>
-
-              {/* Mode selector */}
-              {!aiPreview ? (
-                <div
-                  className="flex shrink-0 flex-wrap gap-1 border-b px-3 py-2"
-                  style={{ borderColor: "#E5E5E5" }}
-                >
-                  {(
-                    [
-                      ["free", "Improve"],
-                      ["redesign", "Redesign"],
-                      ["page", "Page"],
-                      ["rewrite", "Rewrite"],
-                      ["convert", "Convert"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setImproveMode(id)}
-                      className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
-                      style={{
-                        background: improveMode === id ? BUILDER.ink : "#F0F0F0",
-                        color: improveMode === id ? "#fff" : BUILDER.muted,
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-
-              {/* AI preview panel when active */}
-              {aiPreview ? (
-                <div className="shrink-0 border-b px-3 py-3" style={{ borderColor: "#E5E5E5" }}>
-                  <BuilderAiPreviewPanel
-                    intents={aiPreview.intents}
-                    sectionChanges={aiPreview.sectionChanges}
-                    acceptedSectionIds={aiPreview.acceptedSectionIds}
-                    onApply={() => void applyAiPreview()}
-                    onDiscard={discardAiPreview}
-                    onToggleSection={(sectionId) => {
-                      setAiPreview((prev) => {
-                        if (!prev) return prev;
-                        const next = new Set(prev.acceptedSectionIds);
-                        if (next.has(sectionId)) next.delete(sectionId);
-                        else next.add(sectionId);
-                        return { ...prev, acceptedSectionIds: next };
-                      });
-                    }}
-                    onSelectAll={() => {
-                      setAiPreview((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              acceptedSectionIds: new Set(prev.sectionChanges.map((c) => c.sectionId)),
-                            }
-                          : prev,
-                      );
-                    }}
-                    onClearAll={() => {
-                      setAiPreview((prev) => (prev ? { ...prev, acceptedSectionIds: new Set() } : prev));
-                    }}
-                    busy={improving}
-                  />
-                </div>
-              ) : null}
-
-              {/* Yande assistant input */}
-              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-                <YandeAssistant
-                  variant="improve"
-                  value={improveInstruction}
-                  onChange={setImproveInstruction}
-                  onSubmit={() => void (aiPreview ? applyAiPreview() : previewWithAi())}
-                  busy={improving}
-                  submitLabel={aiPreview ? "Apply" : "Preview"}
-                />
-                {improveNote ? (
-                  <p
-                    className="mt-3 rounded-xl px-3 py-2 text-[11px] leading-relaxed"
-                    style={{ background: "#F4F4F5", color: BUILDER.muted }}
-                  >
-                    {improveNote}
-                  </p>
-                ) : null}
-              </div>
-            </div>
+              {/* Mode selector + AI preview + assistant — shared with Sheet below */}
+              <YandePanelBody
+                aiPreview={aiPreview}
+                improving={improving}
+                improveMode={improveMode}
+                improveInstruction={improveInstruction}
+                improveNote={improveNote}
+                setImproveMode={setImproveMode}
+                setImproveInstruction={setImproveInstruction}
+                setAiPreview={setAiPreview}
+                applyAiPreview={() => void applyAiPreview()}
+                discardAiPreview={discardAiPreview}
+                previewWithAi={() => void previewWithAi()}
+              />
+            </div></BuilderPanelScope>
           </>
         ) : null}
+        {/* On xs (phone) Yande opens as a bottom Sheet so it doesn't cover the canvas */}
+        <Sheet
+          open={yandeOpen && bp === "xs"}
+          onClose={() => setYandeOpen(false)}
+          title="Yande AI"
+          triggerRef={yandeTriggerRef}
+          maxHeight="80dvh"
+          editorAppearance
+        >
+          <YandePanelBody
+            aiPreview={aiPreview}
+            improving={improving}
+            improveMode={improveMode}
+            improveInstruction={improveInstruction}
+            improveNote={improveNote}
+            setImproveMode={setImproveMode}
+            setImproveInstruction={setImproveInstruction}
+            setAiPreview={setAiPreview}
+            applyAiPreview={() => void applyAiPreview()}
+            discardAiPreview={discardAiPreview}
+            previewWithAi={() => void previewWithAi()}
+          />
+        </Sheet>
       </main>
 
       {previewFullscreen && canvasDefinition ? (
@@ -4831,7 +5879,7 @@ export default function ProjectEditorPage() {
               style={{
                 width: "100%",
                 maxWidth: device === "desktop" ? "100%" : BUILDER_DEVICE_FRAME[device],
-                minHeight: "calc(100vh - 6rem)",
+                minHeight: "calc(100dvh - 6rem)",
                 borderRadius: device === "mobile" ? 28 : 12,
               }}
             >
@@ -4853,15 +5901,48 @@ export default function ProjectEditorPage() {
           </div>
         </div>
       ) : null}
+      {/* Mobile action bar — surfaces Undo/Redo/Add on phones where the header controls are sm:hidden */}
+      {project && !flagshipCanvas && !draftReloadRequired ? (
+        <MobileActionBar
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          pageTitle={pages.find((p) => p.id === editPageId)?.title ?? "Page"}
+          onPagePicker={() => { setSidebarTab("pages"); setLeftPanelOpen(true); }}
+          onAddSection={() => setMobileAddSectionOpen(true)}
+        />
+      ) : null}
+      <Sheet
+        open={mobileAddSectionOpen}
+        onClose={() => setMobileAddSectionOpen(false)}
+        title="Add section"
+        editorAppearance
+        maxHeight="70dvh"
+        triggerRef={mobileAddSectionTriggerRef}
+      >
+        <AddSectionPicker
+          pageTitle={pages.find((p) => p.id === editPageId)?.title ?? "Page"}
+          onAdd={async (type) => { setMobileAddSectionOpen(false); await addSection(type); }}
+        />
+      </Sheet>
       {kbSaveNote ? (
         <p
-          className="pointer-events-none fixed left-3 bottom-3 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
-          style={{ background: "rgba(255,251,247,0.95)", color: "#166534", border: "1px solid #E8E6DF" }}
+          className="pointer-events-none fixed left-3 z-[55] max-w-xs rounded-lg px-2 py-1 text-[10px]"
+          style={{
+            bottom: (bp === "xs" || bp === "sm")
+              ? "calc(3.75rem + env(safe-area-inset-bottom, 0px))"
+              : "0.75rem",
+            background: "rgba(255,251,247,0.95)",
+            color: "#166534",
+            border: "1px solid #E8E6DF",
+          }}
         >
           {kbSaveNote}
         </p>
       ) : null}
     </div>
+    </BuilderAppearanceProvider>
     </DataModeProvider>
   );
 }

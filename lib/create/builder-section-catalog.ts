@@ -20,6 +20,12 @@ export const BUILDER_SECTION_CATEGORIES: { id: BuilderSectionCategory; label: st
 /** Curated section types founders can add (like Shopify theme sections). */
 export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
   {
+    type: "legally-blonde-hero",
+    label: "Cutout collage",
+    description: "Layer your own photos, resize and reorder them, and add scroll parallax",
+    category: "layout",
+  },
+  {
     type: "announcement-bar",
     label: "Announcement bar",
     description: "Thin top bar with a message — promotions, shipping notice",
@@ -94,7 +100,7 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
   {
     type: "gallery",
     label: "Photo grid",
-    description: "Many photos — grid, one photo, or featured",
+    description: "Photos, editorial campaign walls and directional worlds",
     category: "media",
   },
   {

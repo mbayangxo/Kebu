@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { validStudioSaveReceipt } from "@/lib/studio/save-queue";
 import { AppShell } from "@/app/components/app-shell";
 import type { AccountWorkspaceContext } from "@/lib/account/workspace-context";
 import { KEBU } from "@/lib/kebu-brand";
@@ -33,23 +34,29 @@ export default function CalendarPage() {
   const [time, setTime] = useState("09:00");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ready, setReady] = useState(false);
+  const createId = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
-    const workspaceRes = await fetch("/api/me/workspace", { credentials: "include" });
-    const workspaceData = await workspaceRes.json().catch(() => ({}));
-    const context = workspaceRes.ok ? workspaceData.context as AccountWorkspaceContext : null;
-    setWorkspace(context);
+    try {
+      const workspaceRes = await fetch("/api/me/workspace", { credentials: "include" });
+      const workspaceData = await workspaceRes.json().catch(() => ({}));
+      if (!workspaceRes.ok || !workspaceData.context) throw new Error("Could not confirm your Kebu space. Retry before adding events.");
+      const context = workspaceData.context as AccountWorkspaceContext;
+      setWorkspace(context);
 
-    const params = new URLSearchParams({ kind: "event" });
-    if (context?.activeBusinessId) params.set("businessId", context.activeBusinessId);
-    else params.set("personal", "1");
+      const params = new URLSearchParams({ kind: "event" });
+      if (context?.activeBusinessId) params.set("businessId", context.activeBusinessId);
+      else params.set("personal", "1");
 
-    const res = await fetch("/api/work/items?" + params.toString(), { credentials: "include" });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { setError(data.error || "Could not load calendar."); return; }
-    setEvents(Array.isArray(data.items) ? data.items : []);
+      const res = await fetch("/api/work/items?" + params.toString(), { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not load calendar.");
+      if (!Array.isArray(data.items)) throw new Error("Could not confirm calendar data.");
+      setEvents(data.items); setReady(true);
+    } catch (cause) { setReady(false); setError(cause instanceof Error && !(cause instanceof TypeError) ? cause.message : "Could not load calendar. Check your connection and retry."); }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -69,20 +76,22 @@ export default function CalendarPage() {
   const selectedEvents = events.filter((event) => event.start_at && sameDay(new Date(event.start_at), selectedDay));
 
   async function createEvent() {
-    if (!title.trim() || busy) return;
+    if (!ready || !title.trim() || busy) return;
     setBusy(true);
     setError(null);
-    const [hours, minutes] = time.split(":").map(Number);
-    const start = new Date(selectedDay);
-    start.setHours(hours || 0, minutes || 0, 0, 0);
-    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const id = createId.current ?? crypto.randomUUID(); createId.current = id;
+    try {
+      const [hours, minutes] = time.split(":").map(Number);
+      const start = new Date(selectedDay);
+      start.setHours(hours || 0, minutes || 0, 0, 0);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
 
-    const res = await fetch("/api/work/items", {
+      const res = await fetch("/api/work/items", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        kind: "event",
+        id, kind: "event",
         title: title.trim(),
         body: notes,
         status: "open",
@@ -90,13 +99,16 @@ export default function CalendarPage() {
         endAt: end.toISOString(),
         businessId: workspace?.activeBusinessId ?? null,
       }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy(false);
-    if (!res.ok || !data.item) { setError(data.error || "Could not create event."); return; }
-    setEvents((current) => [data.item, ...current]);
-    setTitle("");
-    setNotes("");
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.code === "work_create_conflict" && validStudioSaveReceipt(data.item, id)) createId.current = null;
+      if (!res.ok || !validStudioSaveReceipt(data.item, id) || data.item.title !== title.trim() || data.item.body !== notes || Date.parse(data.item.start_at) !== start.getTime() || Date.parse(data.item.end_at) !== end.getTime() || data.item.kind !== "event" || data.item.business_id !== (workspace?.activeBusinessId ?? null)) throw new Error(data.error || "Could not confirm this event. Your details are kept.");
+      setEvents((current) => [data.item, ...current.filter(event => event.id !== id)]);
+      createId.current = null;
+      setTitle("");
+      setNotes("");
+    } catch (cause) { setError(cause instanceof Error && !(cause instanceof TypeError) ? cause.message : "Could not add event. Your details are kept; retry when connected."); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -114,7 +126,7 @@ export default function CalendarPage() {
           </div>
         </header>
 
-        {error ? <div className="mt-4 rounded-xl border px-4 py-3 text-xs" style={{ borderColor: KEBU.status.errorBorder, background: KEBU.status.errorBg, color: KEBU.status.errorText }}>{error}</div> : null}
+        {error ? <div role="alert" className="mt-4 rounded-xl border px-4 py-3 text-xs" style={{ borderColor: KEBU.status.errorBorder, background: KEBU.status.errorBg, color: KEBU.status.errorText }}>{error}</div> : null}
 
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section className="overflow-hidden rounded-[22px] border bg-white" style={{ borderColor: KEBU.borders.default }}>
@@ -125,7 +137,7 @@ export default function CalendarPage() {
               {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((day) => <div key={day} className="py-2">{day}</div>)}
             </div>
             <div className="grid grid-cols-7">
-              {days.map((day) => {
+              {(ready ? days : []).map((day) => {
                 const inMonth = day.getMonth() === cursor.getMonth();
                 const dayEvents = events.filter((event) => event.start_at && sameDay(new Date(event.start_at), day)).slice(0, 3);
                 const selected = sameDay(day, selectedDay);
@@ -142,8 +154,9 @@ export default function CalendarPage() {
           </section>
 
           <aside className="space-y-4">
+            <button type="button" disabled={busy} onClick={() => void load()} className="min-h-11 text-xs underline">Reload calendar</button>
             <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
-              <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>{selectedDay.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</p>
+              <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>{ready ? selectedDay.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : "Loading calendar…"}</p>
               <h2 className="mt-1 text-lg font-black">Schedule</h2>
               <div className="mt-3 space-y-2">
                 {selectedEvents.length ? selectedEvents.map((event) => <article key={event.id} className="rounded-xl bg-black/[.025] p-3"><p className="text-[11px] font-black">{event.title}</p><p className="mt-1 text-[9px]" style={{ color: KEBU.orange }}>{new Date(event.start_at!).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</p>{event.body ? <p className="mt-2 text-[9px] leading-relaxed" style={{ color: KEBU.muted }}>{event.body}</p> : null}</article>) : <p className="text-[10px]" style={{ color: KEBU.muted }}>Nothing scheduled.</p>}
@@ -152,10 +165,10 @@ export default function CalendarPage() {
 
             <section className="rounded-[22px] border bg-white p-4" style={{ borderColor: KEBU.borders.default }}>
               <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>New event</p>
-              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Event title" className="mt-3 min-h-10 w-full rounded-xl border px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
-              <input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="mt-2 min-h-10 w-full rounded-xl border px-3 text-xs outline-none" style={{ borderColor: KEBU.borders.default }} />
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Notes" className="mt-2 w-full rounded-xl border px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
-              <button type="button" disabled={!title.trim() || busy} onClick={() => void createEvent()} className="mt-3 rounded-full px-4 py-2.5 text-[10px] font-black uppercase tracking-wide text-white disabled:opacity-35" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{busy ? "Saving…" : "Add event →"}</button>
+              <input aria-label="Event title" disabled={!ready || busy} maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Event title" className="mt-3 min-h-10 w-full rounded-xl border px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
+              <input aria-label="Event time" disabled={!ready || busy} type="time" value={time} onChange={(event) => setTime(event.target.value)} className="mt-2 min-h-10 w-full rounded-xl border px-3 text-xs outline-none" style={{ borderColor: KEBU.borders.default }} />
+              <textarea aria-label="Event notes" disabled={!ready || busy} maxLength={20000} value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Notes" className="mt-2 w-full rounded-xl border px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#FF6A00]" style={{ borderColor: KEBU.borders.default }} />
+              <button type="button" disabled={!ready || !title.trim() || busy} onClick={() => void createEvent()} className="mt-3 rounded-full px-4 py-2.5 text-[10px] font-black uppercase tracking-wide text-white disabled:opacity-35" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>{busy ? "Saving…" : "Add event →"}</button>
             </section>
           </aside>
         </div>

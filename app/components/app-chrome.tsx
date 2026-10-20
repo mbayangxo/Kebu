@@ -30,6 +30,7 @@ export function AppChrome() {
   const { showRandomForPage } = useEducation();
 
   if (
+    pathname === "/qa/builder-appearance" ||
     pathname.startsWith("/sites/") ||
     pathname.startsWith("/e/") ||
     pathname.startsWith("/login") ||

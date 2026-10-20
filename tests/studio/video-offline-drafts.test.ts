@@ -13,9 +13,11 @@ describe("Studio video offline drafts", () => {
 
   it("keeps drafts dirty until the server acknowledges the save", () => {
     const page = readFileSync(join(process.cwd(), "app/studio/video/[id]/page.tsx"), "utf8");
-    expect(page).toContain("dirty: true");
-    expect(page).toContain("dirty: false");
-    const persist=page.slice(page.indexOf("const persist = useCallback"));expect(persist.indexOf("dirty: true")).toBeLessThan(persist.indexOf('fetch(`/api/studio/video/'));
+    expect(page).toContain("dirty: snapshot !== acknowledged || snapshotTitle !== effectiveTitle");
+    expect(page).toContain("await writeLatestDraft(next)");
+    const persist = page.slice(page.indexOf("const persist = useCallback"));
+    expect(persist.indexOf("await writeLatestDraft()")).toBeLessThan(persist.indexOf('fetch(`/api/studio/video/'));
+    expect(persist).toContain("await writeLatestDraft(next)");
   });
 
   it("replays the current local composition on reconnect through conflict-protected persistence", () => {

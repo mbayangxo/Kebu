@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { mailComposeFromParams } from "@/lib/create/site-contact-inbox";
 import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
@@ -72,17 +74,17 @@ function formatBytes(value: number) {
   return (value / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-export default function EmailPage() {
+function MailWorkspace({ initialCompose }: { initialCompose: { to: string; subject: string } | null }) {
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
   const [mailboxId, setMailboxId] = useState("");
   const [folder, setFolder] = useState<MailView>("inbox");
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [thread, setThread] = useState<ThreadPayload | null>(null);
-  const [compose, setCompose] = useState(false);
-  const [to, setTo] = useState("");
+  const [compose, setCompose] = useState(Boolean(initialCompose));
+  const [to, setTo] = useState(initialCompose?.to ?? "");
   const [cc, setCc] = useState("");
-  const [subject, setSubject] = useState("");
+  const [subject, setSubject] = useState(initialCompose?.subject ?? "");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -733,4 +735,14 @@ export default function EmailPage() {
       {error ? <div className="fixed bottom-20 left-1/2 z-[90] max-w-[90vw] -translate-x-1/2 rounded-full bg-red-700 px-4 py-2 text-[10px] font-bold text-white shadow-lg">{error}</div> : null}
     </AppShell>
   );
+}
+
+
+function MailEntry() {
+  const params = useSearchParams();
+  const draft = mailComposeFromParams(params);
+  return <MailWorkspace key={draft ? `${draft.to}:${draft.subject}` : "inbox"} initialCompose={draft} />;
+}
+export default function EmailPage() {
+  return <Suspense fallback={<p className="p-6" role="status">Loading Mail…</p>}><MailEntry /></Suspense>;
 }

@@ -9,12 +9,13 @@ import {
   definitionFromTemplateSlug,
   generateWebsiteWithAi,
   suggestSubdomain,
+  websiteAiConfigured,
 } from "@/lib/create/ai-generate";
 import { persistWebsiteDefinition } from "@/lib/create/persist-site";
 import { createWebsiteBriefSchema, validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { templateRequiresPurchase, userOwnsTemplate } from "@/lib/billing/subscriptions";
 import { assertOwnerWebsiteLimit } from "@/lib/billing/enforce-limits";
-import { assertAiGenerationAllowance, recordAiGeneration } from "@/lib/billing/ai-metering";
+import { assertAiGenerationAllowance } from "@/lib/billing/ai-metering";
 import { ensureTemplatesSeeded } from "@/lib/create/ensure-templates";
 import { isPublicTemplateSlug } from "@/lib/create/templates-seed";
 
@@ -60,6 +61,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (brief.mode === "ai" && !websiteAiConfigured()) {
+    return NextResponse.json(
+      { error: "Yande website generation is unavailable. Your brief is kept here. Try again later, or choose an aesthetic or a blank site.", code: "AI_UNAVAILABLE" },
+      { status: 503 },
+    );
+  }
+
   try {
     await ensureTemplatesSeeded(supabase);
   } catch {
@@ -71,7 +79,6 @@ export async function POST(req: NextRequest) {
   let definition;
   let usedAi = false;
   let repaired = false;
-  let usedFallback = false;
   let templateId: string | null = null;
 
   if (brief.mode === "blank") {
@@ -123,7 +130,8 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     templateId = tpl?.id ?? null;
   } else {
-    const meter = await assertAiGenerationAllowance(supabase, user.id);
+    const meter = await assertAiGenerationAllowance(supabase, user.id,
+      { action: "website_ai_generate" });
     if (!meter.ok) {
       return NextResponse.json(
         {
@@ -139,20 +147,12 @@ export async function POST(req: NextRequest) {
 
     const ai = await generateWebsiteWithAi(brief);
     if (!ai.ok) {
-      return NextResponse.json({ error: ai.error }, { status: 502 });
+      return NextResponse.json({ error: `${ai.error} One AI attempt was reserved; retrying may use another allowance.`, code: ai.code }, { status: ai.status });
     }
     definition = ai.definition;
     usedAi = ai.usedAi;
     repaired = ai.repaired;
-    usedFallback = Boolean(ai.fallback);
 
-    if (usedAi && !usedFallback) {
-      await recordAiGeneration(supabase, {
-        ownerId: user.id,
-        action: "website_ai_generate",
-        meta: { mode: "ai" },
-      });
-    }
   }
 
   const validated = validateWebsiteDefinition(definition);
@@ -195,12 +195,10 @@ export async function POST(req: NextRequest) {
       project: result.project,
       usedAi,
       repaired,
-      usedFallback,
+      usedFallback: false,
       message: usedAi
         ? "Yande built a draft site from your words. Edit anything, then publish."
-        : brief.mode === "ai"
-          ? "Draft site created from your words (structured Kebu pages). Yande AI was not used — edit and publish as usual."
-          : undefined,
+        : undefined,
       publicPathPreview: `/sites/${subdomain}`,
     },
     { status: 201 }

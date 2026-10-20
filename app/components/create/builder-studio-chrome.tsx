@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
-import { BUILDER } from "@/lib/create/builder-ui";
+import { useBuilderAppearance } from "./builder-appearance-provider";
 import type { BuilderDevice } from "@/lib/create/builder-device";
 
 /**
@@ -138,10 +138,11 @@ export function BuilderStudioRail({
   onRail: (tab: BuilderStudioTab) => void;
   extras?: ReactNode;
 }) {
+  const { palette, appearance } = useBuilderAppearance();
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-50 flex h-[calc(58px+env(safe-area-inset-bottom))] shrink-0 items-start gap-0 overflow-x-auto border-t px-1 pb-[env(safe-area-inset-bottom)] sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-[64px] sm:flex-col sm:items-stretch sm:overflow-y-auto sm:border-r sm:border-t-0 sm:px-1 sm:py-1.5"
-      style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
+      style={{ borderColor: palette.border, background: palette.surface }}
       role="toolbar"
       aria-label="Builder tools"
     >
@@ -157,8 +158,8 @@ export function BuilderStudioRail({
             onClick={() => onRail(item.id)}
             className="group relative flex h-[58px] min-w-[58px] flex-col items-center justify-center gap-1 rounded-[10px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] focus-visible:ring-offset-1 sm:h-[50px] sm:min-w-0 sm:w-full"
             style={{
-              background: on ? BUILDER.orangeGlow : "transparent",
-              color: on ? BUILDER.ink : BUILDER.muted,
+              background: on ? palette.action : "transparent",
+              color: on ? palette.onAction : palette.muted,
             }}
           >
             {on ? (
@@ -223,14 +224,19 @@ export function BuilderStudioChrome({
   minimal?: boolean;
   floating?: boolean;
 }) {
+  const { palette, appearance, preference, setPreference, persistenceUnavailable } = useBuilderAppearance();
+  const statusColor = saveLabelColor === "#CC1A1A" ? palette.error
+    : saveLabelColor === "#D97706" ? palette.pending
+    : saveLabelColor === "#009E40" ? palette.saved
+    : !saveLabelColor || saveLabelColor === "#8C8C8C" ? palette.faint : saveLabelColor;
   const host =
     previewHost?.replace(/^https?:\/\//, "").replace(/\/$/, "") ||
     `${projectId.slice(0, 8)}.kebu.africa`;
 
   return (
     <header
-      className="relative flex h-[52px] shrink-0 items-center gap-1.5 border-b px-2.5 sm:px-3"
-      style={{ borderColor: BUILDER.border, background: BUILDER.surface }}
+      className={`flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 border-b px-2 py-1 sm:px-3 ${persistenceUnavailable ? "" : "xl:flex-nowrap"}`}
+      style={{ borderColor: palette.border, background: palette.surface, color: palette.ink, colorScheme: appearance }}
     >
       <Link
         href={MY_SITES_HREF}
@@ -239,23 +245,23 @@ export function BuilderStudioChrome({
       >
         <span
           className="text-[20px] font-black leading-none tracking-[-0.08em]"
-          style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
+          style={{ color: palette.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
         >
           kebu
         </span>
-        <span className="h-5 w-px" style={{ background: BUILDER.border }} aria-hidden />
+        <span className="h-5 w-px" style={{ background: palette.border }} aria-hidden />
       </Link>
 
       <div className="flex min-w-0 items-center gap-2">
         <div className="min-w-0">
           <p
             className="max-w-[120px] truncate text-[11px] font-bold leading-tight tracking-tight sm:max-w-[190px]"
-            style={{ color: BUILDER.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
+            style={{ color: palette.ink, fontFamily: "var(--font-jost), system-ui, sans-serif" }}
             title={title}
           >
             {title}
           </p>
-          <p className="hidden max-w-[190px] truncate text-[9px] sm:block" style={{ color: BUILDER.faint }}>
+          <p className="hidden max-w-[190px] truncate text-[9px] sm:block" style={{ color: palette.faint }}>
             {host}
           </p>
         </div>
@@ -263,9 +269,9 @@ export function BuilderStudioChrome({
           <span
             className="hidden shrink-0 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wide md:inline"
             style={{
-              background: draftLabel === "Live" ? "#ECFDF3" : "#F4F4F5",
-              color: draftLabel === "Live" ? "#166534" : BUILDER.muted,
-              border: `1px solid ${draftLabel === "Live" ? "#BBF7D0" : "#E8E8EA"}`,
+              background: draftLabel === "Live" ? palette.liveSurface : palette.surfaceMuted,
+              color: draftLabel === "Live" ? palette.liveInk : palette.muted,
+              border: `1px solid ${draftLabel === "Live" ? palette.liveBorder : palette.border}`,
             }}
           >
             {draftLabel}
@@ -274,16 +280,16 @@ export function BuilderStudioChrome({
       </div>
 
       {pages && pages.length > 0 && onPageChange ? (
-        <label className="absolute left-1/2 hidden min-w-0 -translate-x-1/2 md:block">
+        <label className="ml-auto hidden min-w-0 md:block xl:ml-2">
           <span className="sr-only">Page</span>
           <select
             value={activePageId ?? pages[0]?.id}
             onChange={(e) => onPageChange(e.target.value)}
             className="max-w-[12rem] truncate rounded-md px-2.5 py-1.5 text-[10px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
             style={{
-              border: "1px solid #E5E5E5",
-              background: BUILDER.surfaceMuted,
-              color: BUILDER.ink,
+              border: `1px solid ${palette.border}`,
+              background: palette.surfaceMuted,
+              color: palette.ink,
             }}
             aria-label="Editing page"
           >
@@ -296,19 +302,38 @@ export function BuilderStudioChrome({
         </label>
       ) : null}
 
-      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
+      <div className="ml-auto flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 xl:w-auto xl:flex-nowrap">
         {saveLabel ? (
           <span
-            className="hidden max-w-[150px] items-center gap-1.5 truncate text-[10px] lg:flex"
-            style={{ color: saveLabelColor ?? BUILDER.faint }}
+            role="status"
+            className="min-w-0 max-w-[80px] truncate text-[10px] sm:max-w-[180px]"
+            style={{ color: statusColor }}
           >
             {saveLabel}
           </span>
         ) : null}
 
+        {setPreference ? (
+          <label className="shrink-0">
+            <span className="sr-only">Builder appearance</span>
+            <select
+              aria-label="Builder appearance"
+              title="Auto: dark from 8 pm to 7 am in your local time. Your website colors stay the same."
+              value={preference}
+              onChange={event => setPreference(event.target.value)}
+              className="min-h-11 rounded-md border px-2 text-[11px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+              style={{ borderColor: palette.border, background: palette.surfaceMuted, color: palette.ink }}
+            >
+              <option value="auto">Auto</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+        ) : null}
+
         <div
-          className="hidden shrink-0 items-center gap-0.5 rounded-full p-0.5 sm:flex"
-          style={{ background: BUILDER.surfaceMuted }}
+          className="flex shrink-0 items-center gap-0.5 rounded-md p-0.5"
+          style={{ background: palette.surfaceMuted }}
           role="group"
           aria-label="Preview device"
         >
@@ -326,11 +351,11 @@ export function BuilderStudioChrome({
               aria-label={label}
               aria-pressed={device === id}
               onClick={() => onDevice(id)}
-              className="flex h-7 w-7 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00]"
+              className="relative flex h-11 w-11 items-center justify-center rounded"
               style={{
-                background: device === id ? "#fff" : "transparent",
-                color: device === id ? BUILDER.ink : BUILDER.muted,
-                boxShadow: device === id ? "0 0 0 1px #E5E5E5" : "none",
+                background: device === id ? palette.surface : "transparent",
+                color: device === id ? palette.ink : palette.muted,
+                boxShadow: device === id ? `0 0 0 1px ${palette.border}` : "none",
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -345,7 +370,7 @@ export function BuilderStudioChrome({
           onClick={onUndo}
           disabled={!canUndo}
           className="flex h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25"
-          style={{ color: BUILDER.ink }}
+          style={{ color: palette.ink }}
           aria-label="Undo"
           title="Undo"
         >
@@ -356,7 +381,7 @@ export function BuilderStudioChrome({
           onClick={onRedo}
           disabled={!canRedo}
           className="flex h-8 w-8 items-center justify-center rounded-full text-lg disabled:opacity-25"
-          style={{ color: BUILDER.ink }}
+          style={{ color: palette.ink }}
           aria-label="Redo"
           title="Redo"
         >
@@ -365,7 +390,7 @@ export function BuilderStudioChrome({
         <Link
           href={`/create/${projectId}/preview`}
           className="hidden rounded-full px-3.5 py-2 text-[10px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#FF6A00] sm:inline"
-          style={{ color: BUILDER.ink, border: `1px solid ${BUILDER.borderStrong}`, background: BUILDER.surface }}
+          style={{ color: palette.ink, border: `1px solid ${palette.border}`, background: palette.surface }}
         >
           Preview
         </Link>
@@ -374,8 +399,8 @@ export function BuilderStudioChrome({
             type="button"
             onClick={onSaveDraft}
             disabled={savingDraft || publishing}
-            className="hidden rounded-full px-3.5 py-2 text-[10px] font-bold disabled:opacity-40 md:inline"
-            style={{ border: `1px solid ${BUILDER.border}`, color: BUILDER.ink, background: "#fff" }}
+            className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-40"
+            style={{ border: `1px solid ${palette.border}`, color: palette.ink, background: palette.surface }}
           >
             {savingDraft ? "…" : "Save draft"}
           </button>
@@ -384,12 +409,18 @@ export function BuilderStudioChrome({
           type="button"
           onClick={onPublish}
           disabled={publishing}
-          className="rounded-full px-4 py-2 text-[10px] font-black tracking-wide shadow-[0_3px_12px_rgba(10,10,10,0.12)] disabled:opacity-50 sm:px-5"
-          style={{ background: BUILDER.ink, color: "#fff" }}
+          aria-label={publishing ? "Publishing…" : publishLabel}
+          className="rounded-md px-3 py-1.5 text-[10px] font-bold disabled:opacity-50"
+          style={{ background: palette.action, color: palette.onAction }}
         >
           {publishing ? "…" : publishLabel}
         </button>
       </div>
+      {persistenceUnavailable ? (
+        <span role="status" className="w-full text-right text-[11px]" style={{ color: palette.muted }}>
+          Appearance applies here; this browser could not save it for next time.
+        </span>
+      ) : null}
     </header>
   );
 }

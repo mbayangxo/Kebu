@@ -42,8 +42,9 @@ export function cutoutScrollOffset(key: string, progress: number): { x: number; 
   return scrollOffsetFromOpts(sbs, progress);
 }
 
-export function cutoutScrollTransform(key: string, progress: number, baseRotate = 0): string {
-  const { x, y, rotate } = cutoutScrollOffset(key, progress);
+export function cutoutScrollTransform(key: string, progress: number, baseRotate = 0, travel?: { x: number; y: number }): string {
+  const boundedProgress = Math.max(0, Math.min(1, progress));
+  const { x, y, rotate } = travel ? { x: travel.x * boundedProgress, y: travel.y * boundedProgress, rotate: 0 } : cutoutScrollOffset(key, boundedProgress);
   const parts: string[] = [];
   if (baseRotate) parts.push(`rotate(${baseRotate}deg)`);
   if (x || y) parts.push(`translate3d(${x}px, ${y}px, 0)`);

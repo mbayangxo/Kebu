@@ -41,8 +41,8 @@ describe("section defaults", () => {
 
   it("legally-blonde-hero defaults validate", () => {
     const props = defaultSectionProps("legally-blonde-hero");
-    expect(String((props as { titleLogo?: string }).titleLogo)).toContain("/templates/legally-blonde/");
-    expect(String((props as { cutoutAccent?: string }).cutoutAccent)).toContain("cutout-accent");
+    expect(props).toMatchObject({ titleAsText: true, titleLogo: "", cutoutAccent: "", showChromeLogo: false });
+    expect(JSON.stringify(props)).not.toMatch(/templates\/(?:maylecor|legally-blonde)/);
     const def = {
       schemaVersion: "website-v1" as const,
       title: "Test",

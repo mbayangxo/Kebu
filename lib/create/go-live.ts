@@ -1,5 +1,6 @@
+import { goLiveKcdProject } from "./kcd-publish";
+import { legacyProjectWriteBlocker } from "@/lib/create/kcd-write-guard";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ensureProjectPagesBeforePublish } from "@/lib/create/ensure-project-pages";
 import { buildSnapshotFromDb } from "@/lib/create/persist-site";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { liveSiteUrl } from "@/lib/create/site-urls";
@@ -16,13 +17,25 @@ export async function goLiveWebsiteProject(opts: {
   businessId?: string | null;
 }): Promise<
   | { ok: true; publicPath: string; liveUrl: string; plannedKebuAfricaUrl: string | null }
-  | { ok: false; error: string; detail?: string }
+  | { ok: false; error: string; detail?: string; status?: number }
 > {
   const { supabase, userId, projectId, subdomain, businessId } = opts;
+  const { data: mode, error: modeError } = await supabase.from("projects").select("document_schema_version").eq("id", projectId).eq("owner_id", userId).maybeSingle();
+  if (modeError) return { ok: false, status: 503, error: "Could not load publishing mode." };
+  if (mode?.document_schema_version === "kcd-1") {
+    const published = await goLiveKcdProject({ projectId, userId, subdomain });
+    if (published.ok && businessId) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+      const website = published.liveUrl.startsWith("http") ? published.liveUrl : `${appUrl}${published.publicPath}`;
+      await supabase.from("businesses").update({ website }).eq("id", businessId);
+    }
+    return published;
+  }
+  const blocker = await legacyProjectWriteBlocker(supabase, projectId);
+  if (blocker) return { ok: false, error: blocker };
   const normalized = subdomain.trim().toLowerCase();
 
-  await ensureProjectPagesBeforePublish(supabase, projectId);
-
+  // Publish the saved draft; never silently replace it with a newer template seed.
   const snapshot = await buildSnapshotFromDb(supabase, projectId);
   if (!snapshot) {
     return { ok: false, error: "Could not build site snapshot." };

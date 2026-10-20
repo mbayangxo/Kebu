@@ -14,7 +14,7 @@ const patchSchema = z.object({
   composition: studioCompositionSchema.optional(),
   editMode: z.enum(["quick_edit", "smart_edit", "full_timeline", "storyboard"]).optional(),
   /** Optimistic concurrency token: prevents silent cross-tab/device overwrites. */
-  expectedUpdatedAt: z.string().datetime().optional(),
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export async function GET(_req: Request, { params }: Params) {
@@ -77,6 +77,7 @@ export async function PATCH(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid update." }, { status: 400 });
   }
 
+  let observedUpdatedAt: string | null = null;
   if (parsed.data.expectedUpdatedAt) {
     let currentQuery = supabase
       .from("studio_video_projects")
@@ -89,6 +90,7 @@ export async function PATCH(req: Request, { params }: Params) {
     if (!current) {
       return NextResponse.json({ error: "Project not found." }, { status: 404 });
     }
+    observedUpdatedAt = parsed.data.expectedUpdatedAt;
     if (
       current.updated_at &&
       new Date(current.updated_at).toISOString() !== new Date(parsed.data.expectedUpdatedAt).toISOString()
@@ -127,9 +129,17 @@ export async function PATCH(req: Request, { params }: Params) {
   updateQuery = workspace.activeBusinessId
     ? updateQuery.eq("business_id", workspace.activeBusinessId)
     : updateQuery.is("business_id", null);
+  if (observedUpdatedAt) updateQuery = updateQuery.eq("updated_at", observedUpdatedAt);
   const { data: project, error } = await updateQuery
     .select("id, title, width, height, frame_rate, edit_mode, composition, business_id, source_design_id, updated_at")
     .maybeSingle();
+
+  if (!error && !project && observedUpdatedAt) {
+    return NextResponse.json({
+      error: "This video changed somewhere else. Your local edit was kept; review the newer server version before overwriting it.",
+      code: "studio_video_version_conflict",
+    }, { status: 409 });
+  }
 
   if (error || !project) {
     return NextResponse.json({ error: "Could not save project." }, { status: 500 });

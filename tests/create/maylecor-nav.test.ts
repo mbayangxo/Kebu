@@ -14,6 +14,7 @@ describe("sanitizeMaylecorNavLinks", () => {
       "/updates",
       "/about",
       "/press",
+      "/contact",
       "https://forthemayjorgood.com",
     ]);
     const shop = nav.find((l) => l.href === "/shop")!;

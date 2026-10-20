@@ -1,3 +1,4 @@
+import { brandCreativeSite } from "./brand-creative-sites";
 import type { WebsiteDefinition } from "./website-schema";
 import { defaultMaylecorHomeProps, defaultMaylecorMusicProps } from "./maylecor-defaults";
 import { defaultMaylecorKsendrProps } from "./maylecor-ksendr-defaults";
@@ -661,6 +662,22 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
         },
       ],
     },
+  },
+  {
+    slug: "agency-kdirection-directional",
+    name: "K-Direction — Directional draft",
+    category: "agency",
+    description: "Owner portfolio draft — K↑ directional world. Existing sites are preserved.",
+    visibility: "owner_portfolio",
+    definition: brandCreativeSite("kdirection"),
+  },
+  {
+    slug: "agency-dklns-editorial",
+    name: "DKLNS — Editorial draft",
+    category: "agency",
+    description: "Owner portfolio draft — WALL / FILM / PEOPLE / CAMPAIGNS / CHAOS.",
+    visibility: "owner_portfolio",
+    definition: brandCreativeSite("dklns"),
   },
   {
     slug: "agency-kdirection",

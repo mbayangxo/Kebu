@@ -556,7 +556,7 @@ export function MaylecorMotionChrome({
 
   return (
     <header
-      className={`${
+      className={`@container ${
         overlay
           ? `pointer-events-none absolute inset-x-0 top-0 z-[120] ${headerBgColor ? "" : "bg-gradient-to-b from-black/55 via-black/20 to-transparent"}`
           : `border-b border-black/10 bg-white/92 backdrop-blur-md ${
@@ -587,7 +587,7 @@ export function MaylecorMotionChrome({
         {brand}
 
         <nav
-          className="hidden min-w-0 flex-1 items-center justify-center gap-x-4 md:flex md:gap-x-6 lg:gap-x-8"
+          className="hidden min-w-0 flex-1 items-center justify-center gap-x-4 @[768px]:flex @[768px]:gap-x-6 @[1024px]:gap-x-8"
           aria-label="Site"
           style={{ flexWrap: "nowrap" }}
         >
@@ -596,12 +596,12 @@ export function MaylecorMotionChrome({
 
         <div className="flex shrink-0 flex-nowrap items-center gap-2 sm:gap-3">
           <MaylecorSocialBar links={socialLinks} accentColor={accentColor} variant="pill" />
-          <div className="hidden sm:block">{localeRow}</div>
+          <div className="hidden @[640px]:block">{localeRow}</div>
         </div>
       </div>
       {/* Second row only on small screens — one professional bar on desktop */}
       <nav
-        className="pointer-events-auto flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-white/10 px-4 py-2 md:hidden"
+        className="pointer-events-auto flex w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-white/10 px-4 py-2 @[768px]:hidden"
         aria-label="Site pages"
         style={{
           paddingLeft: m.padX,

@@ -6,6 +6,7 @@ export type WorkItemKind = z.infer<typeof workItemKindSchema>;
 const nullableDate = z.string().datetime().nullable().optional();
 
 export const createWorkItemSchema = z.object({
+  id: z.string().uuid().optional(),
   kind: workItemKindSchema,
   title: z.string().trim().min(1).max(160),
   body: z.string().max(20000).default(""),
@@ -18,6 +19,7 @@ export const createWorkItemSchema = z.object({
 
 export const updateWorkItemSchema = createWorkItemSchema.partial().extend({
   id: z.string().uuid(),
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 export type WorkItemRow = {

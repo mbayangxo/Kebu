@@ -6,17 +6,17 @@ describe("Studio design offline save status", () => {
   const page = readFileSync(join(process.cwd(), "app/studio/[id]/page.tsx"), "utf8");
 
   it("does not claim a server save while disconnected", () => {
-    expect(page).toContain('setSaveState("offline")');
-    expect(page).toContain('setSyncState("offline")');
-    expect(page).toContain("Offline · saved on this device");
+    expect(page).toContain('setSaveState(localSaved ? "offline" : "error")');
+    expect(page).toContain('setSyncState(localSaved ? "offline" : "online")');
+    expect(page).toContain("Offline · changes not synced");
   });
 
   it("keeps Saved reserved for acknowledged or deliberately resolved server state", () => {
     const offlineBranch = page.slice(
-      page.indexOf('if (typeof navigator !== "undefined" && !navigator.onLine)'),
+      page.indexOf('if (!navigator.onLine)'),
       page.indexOf('setSaveState("saving")'),
     );
     expect(offlineBranch).not.toContain('setSaveState("saved")');
-    expect(offlineBranch).toContain('setSaveState("offline")');
+    expect(offlineBranch).toContain('setSaveState(localSaved ? "offline" : "error")');
   });
 });

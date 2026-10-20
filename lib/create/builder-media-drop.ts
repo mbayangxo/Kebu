@@ -1,3 +1,5 @@
+import { creativeWorldSchema, type CreativeWorld } from "./creative-world";
+
 export type KebuMediaKind = "image" | "video" | "audio";
 
 export type KebuDragAsset = {
@@ -67,6 +69,7 @@ export function dropPercentFromClient(
 }
 
 export type MediaApplyTarget =
+  | { action: "creative-world"; sectionId: string; world: CreativeWorld }
   | { action: "collage"; sectionId: string; photos: ReturnType<typeof collagePhotoFromAsset>[] }
   | { action: "hero"; sectionId: string; heroImage: string }
   | { action: "gallery"; sectionId: string; items: { src: string; alt: string }[] }
@@ -93,6 +96,19 @@ export function planMediaAssetApply(
 ): MediaApplyTarget {
   const pageSections = opts.sections.filter((s) => s.page_id === opts.pageId);
   const selected = opts.sections.find((s) => s.id === opts.selectedSectionId) ?? null;
+
+  const selectedWorld = selected?.page_id === opts.pageId && selected.section_type === "gallery" && ["campaign-wall", "directional-world"].includes(String(selected.props.layout)) ? selected : null;
+  if (selectedWorld) {
+    const parsed = creativeWorldSchema.safeParse(selectedWorld.props.creativeWorld);
+    if (parsed.success && (asset.kind !== "image" || parsed.data.cards.length < 40)) {
+      const world = parsed.data;
+      if (asset.kind === "image") world.cards.push({ id: `card-${crypto.randomUUID()}`, title: "Uploaded photo", body: "", image: asset.url, href: "", group: "world", kind: "work", x: 0, y: 0, rotation: 0 });
+      else if (asset.kind === "video") world.video = asset.url;
+      else world.audio = asset.url;
+      return { action: "creative-world", sectionId: selectedWorld.id, world };
+    }
+    return { action: "add-section", type: asset.kind, props: { src: asset.url } };
+  }
 
   if (asset.kind === "image") {
     const freeform =
@@ -144,7 +160,7 @@ export function planMediaAssetApply(
     const gallery =
       selected?.section_type === "gallery" && selected.page_id === opts.pageId
         ? selected
-        : pageSections.find((s) => s.section_type === "gallery");
+        : pageSections.find((s) => s.section_type === "gallery" && !["campaign-wall", "directional-world"].includes(String(s.props.layout)));
     if (gallery) {
       const items = Array.isArray(gallery.props.items) ? [...(gallery.props.items as { src: string; alt: string }[])] : [];
       items.push({ src: asset.url, alt: "" });

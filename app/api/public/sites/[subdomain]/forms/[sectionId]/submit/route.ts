@@ -55,7 +55,7 @@ export async function POST(req: Request, { params }: Params) {
   const snapshot = live.snapshot as WebsiteDefinition;
   const section = snapshot.pages
     ?.flatMap((p) => p.sections ?? [])
-    .find((s) => s.id === sectionId && s.type === "form");
+    .find((s) => s.id === sectionId && s.type === "form" && s.props?.hidden !== true);
 
   if (!section) {
     return NextResponse.json({ error: "Form not found on this site." }, { status: 404 });
@@ -82,17 +82,18 @@ export async function POST(req: Request, { params }: Params) {
     validated.cleaned.name ||
     validated.cleaned.full_name ||
     "";
-  const submitterEmail =
-    parsed.data.submitterEmail?.trim() || validated.cleaned.email || null;
+  const emailField = formProps.data.fields.find(field => field.type === "email" && validated.cleaned[field.id]);
+  const submitterEmail = (emailField ? validated.cleaned[emailField.id] : undefined) || parsed.data.submitterEmail?.trim() || null;
   const submitterPhone =
     parsed.data.submitterPhone?.trim() || validated.cleaned.phone || null;
 
   const { data: row, error } = await admin
     .from("project_form_submissions")
     .insert({
+      ...(parsed.data.submissionId ? { id: parsed.data.submissionId } : {}),
       project_id: live.project_id,
       section_id: sectionId,
-      form_name: formProps.data.heading,
+      form_name: formProps.data.heading.slice(0, 120),
       payload: validated.cleaned,
       submitter_email: submitterEmail,
       submitter_name: submitterName || null,
@@ -102,9 +103,21 @@ export async function POST(req: Request, { params }: Params) {
     .select("id, created_at")
     .single();
 
+  // A lost HTTP reply must not create a second enquiry on an unchanged retry.
+  if (error?.code === "23505" && parsed.data.submissionId) {
+    const { data: existing } = await admin.from("project_form_submissions")
+      .select("id, created_at, payload, submitter_email, submitter_name, submitter_phone")
+      .eq("id", parsed.data.submissionId).eq("project_id", live.project_id).eq("section_id", sectionId).maybeSingle();
+    const samePayload = existing && Object.keys(existing.payload ?? {}).length === Object.keys(validated.cleaned).length && Object.entries(validated.cleaned).every(([key,value]) => existing.payload[key] === value);
+    if (samePayload && existing.submitter_email === submitterEmail && existing.submitter_name === (submitterName || null) && existing.submitter_phone === submitterPhone) {
+      return NextResponse.json({ ok: true, submissionId: existing.id, message: formProps.data.successMessage });
+    }
+    return NextResponse.json({ error: "This message could not be reconciled. Review your message and try again." }, { status: 409 });
+  }
+
   if (error || !row) {
     return NextResponse.json(
-      { error: error?.message?.includes("does not exist") ? "Apply migration 064." : "Could not save submission." },
+      { error: error?.message?.includes("does not exist") ? "Contact form storage is unavailable. Please contact the site owner." : "Could not save submission." },
       { status: 500 },
     );
   }

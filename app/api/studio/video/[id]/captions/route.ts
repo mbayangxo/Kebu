@@ -32,7 +32,7 @@ const bodySchema = z.object({
     .optional(),
   /** When true and OPENAI_API_KEY set, transcribe soundtrack URL via Whisper */
   useWhisper: z.boolean().optional().default(false),
-  expectedUpdatedAt: z.string().datetime().optional(),
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
   sourceAudioClipId: z.string().trim().max(40).optional(),
 });
 

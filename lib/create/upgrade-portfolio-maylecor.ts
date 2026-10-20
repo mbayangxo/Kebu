@@ -1,3 +1,4 @@
+import { legacyProjectWriteBlocker } from "@/lib/create/kcd-write-guard";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { maylecorMotionSitePages } from "./maylecor-site-pages";
 import {
@@ -14,6 +15,7 @@ import { mergeMaylecorLogoExtras } from "./maylecor-ksendr-defaults";
 import { MAYLECOR_SEED_REVISION } from "./maylecor-defaults";
 
 function galleryIsEmpty(props: Record<string, unknown>): boolean {
+  if (["campaign-wall", "directional-world"].includes(String(props.layout))) return false;
   const items = props.items;
   if (!Array.isArray(items) || items.length === 0) return true;
   return items.every((item) => !item || typeof item !== "object" || !String((item as { src?: string }).src ?? "").trim());
@@ -29,6 +31,8 @@ export async function upgradeMaylecorPortfolioProject(
   supabase: SupabaseClient,
   projectId: string,
 ): Promise<{ upgraded: boolean; detail?: string }> {
+  const blocker = await legacyProjectWriteBlocker(supabase, projectId);
+  if (blocker) return { upgraded: false, detail: blocker };
   const { data: project } = await supabase
     .from("projects")
     .select("id, title, description")

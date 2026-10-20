@@ -65,3 +65,15 @@ export function defaultLegallyBlondeHeroProps() {
     appearance: "light" as const,
   };
 }
+
+/** Public starting point: reusable controls, no private artist or reference artwork. */
+export function defaultCutoutCollageProps() {
+  return {
+    title: "Your name", subtitle: "", titleAsText: true,
+    backgroundLayer: "", titleLogo: "", cutoutLeft: "", cutoutRight: "",
+    cutoutAccent: "", cutoutSparkle: "", macbook: "", sparkleGif: "", heroPhoto: "",
+    accentColor: "#e9006b", displayFont: "Steelfish", motionEnabled: true,
+    scrollMode: "parallax" as const, showExtras: false, appearance: "light" as const,
+    showChromeLogo: false, navLinks: [], socialLinks: [],
+  };
+}
