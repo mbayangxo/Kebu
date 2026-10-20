@@ -21,7 +21,7 @@ Primary destinations:
 
 Creation is an action, **+ Create**, not a destination. Yande is contextual intelligence and should appear where work happens rather than requiring a separate AI destination.
 
-Capabilities such as Studio, Builder, Work, EVA, Commerce, Calendar, People and Opportunity OS may be launched or pinned, but should not turn the global navigation into a list of products.
+Capabilities such as Studio, Builder, Work, K Mail, Commerce, Calendar, People and Opportunity OS may be launched or pinned, but should not turn the global navigation into a list of products.
 
 ## Default appearance: LIGHT
 
@@ -47,13 +47,13 @@ Global: Home, Search, Universe, Spaces, Library. + Create is a universal action;
 
 Space: a Personal, business, artist, school, campaign, client, or organization context may expose only the capabilities it actually uses (Overview, Projects, Rooms, People, Sites, Commerce, Analytics, Calendar, Settings). Do not show empty product categories just because Kebu supports them.
 
-Capability: Builder, Studio, Work, Commerce, EVA, Calendar, People, Opportunity OS, messaging and developer tools open from context, Create, Search, Library, or a Space; they are not all permanent global-sidebar destinations.
+Capability: Builder, Studio, Work, Commerce, K Mail, Calendar, People, Opportunity OS, messaging and developer tools open from context, Create, Search, Library, or a Space; they are not all permanent global-sidebar destinations.
 
 Object: Space, Project, Room, Site, Store, Product, Design, Video, Document, Sheet, Presentation, Form, Event, Opportunity, Person, Business, Message, Task, File, Link, Decision. Objects can appear across capabilities without duplication.
 
 ## Icon architecture
 
-Kebu uses one coherent custom icon language; emoji are not production navigation icons. Global icons are simple outline symbols: Home (portal/house), Search (lens), Universe (orbit/globe), Spaces (spatial cluster), Library (archive/container). System actions include Create (plus/Kebu creation shape), Yande (four-point star/glint), notifications, account, more and arrows. Capability marks for Builder, Studio, Commerce, Opportunity OS, EVA and Work may be more distinctive.
+Kebu uses one coherent custom icon language; emoji are not production navigation icons. Global icons are simple outline symbols: Home (portal/house), Search (lens), Universe (orbit/globe), Spaces (spatial cluster), Library (archive/container). System actions include Create (plus/Kebu creation shape), Yande (four-point star/glint), notifications, account, more and arrows. Capability marks for Builder, Studio, Commerce, Opportunity OS, K Mail and Work may be more distinctive.
 
 Icons are designed on a 24x24 grid and support 16/20/24/32px. Use roughly 1.75–2px optical stroke at 24px. Prefer crisp Kebu cuts, opposing curves, star apertures and geometric negative space. Navigation is primarily monochrome; orange/red signals active, creation, urgency or intelligence. Every icon must be accessible. Never mix emoji, random icon libraries and custom marks in one navigation family. Canonical icons live in one registry/component.
 
