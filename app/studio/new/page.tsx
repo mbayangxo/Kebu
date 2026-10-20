@@ -36,6 +36,14 @@ const PRESET_ACCENTS: Record<string, string> = {
   resume: "#2F9E44",
   invoice: "#F0A21A",
   digital_planner: "#E05A2B",
+  spotify_banner: "#1DB954",
+  book_cover: "#7950F2",
+  invitation: "#E64980",
+  newsletter: "#1C7ED6",
+  certificate_landscape: "#F0A21A",
+  email_header: "#2667FF",
+  postcard: "#0E9F6E",
+  lesson_plan: "#2F9E44",
 };
 
 const MOSAIC = [

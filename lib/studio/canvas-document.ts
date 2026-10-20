@@ -198,6 +198,14 @@ export const STUDIO_DESIGN_TYPES = [
   "resume",
   "invoice",
   "digital_planner",
+  "spotify_banner",
+  "book_cover",
+  "invitation",
+  "newsletter",
+  "certificate_landscape",
+  "email_header",
+  "postcard",
+  "lesson_plan",
 ] as const;
 
 export type StudioDesignType = (typeof STUDIO_DESIGN_TYPES)[number];
@@ -218,6 +226,8 @@ export function artboardSize(designType: StudioDesignType): { width: number; hei
     case "proposal":
     case "resume":
     case "invoice":
+    case "newsletter":
+    case "lesson_plan":
       return { width: 816, height: 1056 };
     case "banner":
       return { width: 1500, height: 500 };
@@ -237,6 +247,19 @@ export function artboardSize(designType: StudioDesignType): { width: number; hei
       return { width: 1920, height: 1080 };
     case "digital_planner":
       return { width: 1536, height: 2048 };
+    case "spotify_banner":
+      // Spotify for Artists header image — 2660x1140, not a clean 16:9 despite some guides' claims.
+      return { width: 2660, height: 1140 };
+    case "book_cover":
+      return { width: 1600, height: 2400 };
+    case "invitation":
+      return { width: 1200, height: 1680 };
+    case "certificate_landscape":
+      return { width: 1056, height: 816 };
+    case "email_header":
+      return { width: 600, height: 200 };
+    case "postcard":
+      return { width: 1200, height: 800 };
     case "poster":
     default:
       return { width: 900, height: 1200 };
@@ -459,10 +482,18 @@ function defaultBgForDesignType(designType: StudioDesignType): string {
     case "invoice":
     case "pitch_deck_slide":
     case "digital_planner":
+    case "newsletter":
+    case "certificate_landscape":
+    case "email_header":
+    case "postcard":
+    case "lesson_plan":
+    case "book_cover":
+    case "invitation":
       return "#FFFFFF";
     case "banner":
     case "youtube_banner":
     case "linkedin_banner":
+    case "spotify_banner":
       return "#F8F4EF";
     case "instagram_post":
     case "instagram_story":

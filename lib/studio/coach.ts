@@ -168,6 +168,22 @@ function formatLabelForType(t: StudioDesignType): string {
       return "digital planners";
     case "business_card":
       return "business cards";
+    case "spotify_banner":
+      return "Spotify artist banners";
+    case "book_cover":
+      return "book covers";
+    case "invitation":
+      return "invitations";
+    case "newsletter":
+      return "newsletters";
+    case "certificate_landscape":
+      return "certificates";
+    case "email_header":
+      return "email headers";
+    case "postcard":
+      return "postcards";
+    case "lesson_plan":
+      return "lesson plans";
     default:
       return "this format";
   }

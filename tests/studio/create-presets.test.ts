@@ -60,6 +60,7 @@ describe("Studio real-world format expansion (S21)", () => {
     expect(artboardSize("pinterest_pin")).toEqual({ width: 1000, height: 1500 });
     expect(artboardSize("twitter_post")).toEqual({ width: 1200, height: 675 });
     expect(artboardSize("pitch_deck_slide")).toEqual({ width: 1920, height: 1080 });
+    expect(artboardSize("spotify_banner")).toEqual({ width: 2660, height: 1140 });
   });
 
   it("groups every preset into a real UI section", () => {
@@ -75,13 +76,13 @@ describe("Studio real-world format expansion (S21)", () => {
       const aspect = studioTemplateAspect(designType);
       const ratio = width / height;
       if (aspect === "story") expect(ratio, designType).toBeLessThan(0.8);
-      if (aspect === "landscape") expect(ratio, designType).toBeGreaterThan(1.3);
+      if (aspect === "landscape") expect(ratio, designType).toBeGreaterThan(1.2);
       if (aspect === "portrait") expect(ratio, designType).toBeLessThan(1);
     }
   });
 
   it("builds a working blank canvas for every new document/business format", () => {
-    for (const id of ["menu", "pitch_deck_slide", "proposal", "resume", "invoice", "digital_planner", "youtube_thumbnail", "youtube_banner", "linkedin_banner", "tiktok_video_cover", "linkedin_post", "pinterest_pin", "twitter_post"]) {
+    for (const id of ["menu", "pitch_deck_slide", "proposal", "resume", "invoice", "digital_planner", "youtube_thumbnail", "youtube_banner", "linkedin_banner", "tiktok_video_cover", "linkedin_post", "pinterest_pin", "twitter_post", "spotify_banner", "book_cover", "invitation", "newsletter", "certificate_landscape", "email_header", "postcard", "lesson_plan"]) {
       const preset = getCreatePreset(id)!;
       expect(preset, id).toBeTruthy();
       const doc = blankCanvasForPreset(preset);

@@ -391,7 +391,11 @@ export function studioTemplateAspect(designType: StudioDesignType): "square" | "
     designType === "resume" ||
     designType === "invoice" ||
     designType === "digital_planner" ||
-    designType === "pinterest_pin"
+    designType === "pinterest_pin" ||
+    designType === "newsletter" ||
+    designType === "lesson_plan" ||
+    designType === "book_cover" ||
+    designType === "invitation"
   ) return "portrait";
   if (
     designType === "banner" ||
@@ -400,7 +404,11 @@ export function studioTemplateAspect(designType: StudioDesignType): "square" | "
     designType === "youtube_thumbnail" ||
     designType === "twitter_post" ||
     designType === "pitch_deck_slide" ||
-    designType === "business_card"
+    designType === "business_card" ||
+    designType === "spotify_banner" ||
+    designType === "certificate_landscape" ||
+    designType === "email_header" ||
+    designType === "postcard"
   ) return "landscape";
   return "square";
 }
