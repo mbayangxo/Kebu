@@ -35,7 +35,7 @@ await db.exec(`
   grant usage on schema public, auth to authenticated, anon, service_role;
   grant execute on all functions in schema auth to authenticated, anon, service_role;
   create or replace function public.set_updated_at() returns trigger language plpgsql as $$begin new.updated_at = now(); return new; end$$;
-  create table public.businesses(id uuid primary key default gen_random_uuid(), created_by uuid not null references auth.users(id), legal_name text not null default 'Fixture Business', trading_name text, description text not null default '');
+  create table public.businesses(id uuid primary key default gen_random_uuid(), created_by uuid not null references auth.users(id), legal_name text not null default 'Fixture Business', trading_name text, description text not null default '', website text);
   create table public.business_members(
     id uuid primary key default gen_random_uuid(), business_id uuid not null references public.businesses(id) on delete cascade,
     user_id uuid not null references auth.users(id) on delete cascade,
@@ -45,7 +45,7 @@ await db.exec(`
   alter table public.business_members enable row level security;
   create policy "members select own" on public.business_members for select using (user_id = auth.uid());
   insert into auth.users(id) values ('${founder}'),('${employee}'),('${applicant}'),('${otherApplicant}'),('${strangerFounder}');
-  insert into public.businesses(id, created_by, trading_name, description) values ('${businessId}', '${founder}', 'Fixture Translation Co', 'We translate community notices across Senegal.');
+  insert into public.businesses(id, created_by, trading_name, description, website) values ('${businessId}', '${founder}', 'Fixture Translation Co', 'We translate community notices across Senegal.', 'https://fixture-translation.example');
   insert into public.business_members(business_id,user_id,role,status) values
     ('${businessId}','${founder}','founder','active'),
     ('${businessId}','${employee}','employee','active');
@@ -64,7 +64,7 @@ const TABLES = {
   worker_profile_evidence: { columns: ['id','user_id','library_node_id','label','created_at'], json: new Set() },
   job_listings: { columns: ['id','business_id','public_id','title','description','requirements','employment_type','location_type','location','pay_label','photo_url','status','created_by','created_at','updated_at'], json: new Set() },
   job_applications: { columns: ['id','listing_id','business_id','applicant_user_id','cover_note','status','decided_at','decided_by','created_at','updated_at'], json: new Set() },
-  businesses: { columns: ['id','created_by','legal_name','trading_name','description'], json: new Set() },
+  businesses: { columns: ['id','created_by','legal_name','trading_name','description','website'], json: new Set() },
   business_members: { columns: ['id','business_id','user_id','role','status'], json: new Set() },
   library_nodes: { columns: ['id','owner_id','parent_id','kind','title','storage_path','mime_type','byte_size','source_kind','source_id','metadata','starred','trashed_at','created_at','updated_at'], json: new Set(['metadata']) },
   liguey_applicant_insights: { columns: ['id','application_id','business_id','generated_by','model','summary','strengths','questions_to_ask','caution','created_at','updated_at'], json: new Set() },

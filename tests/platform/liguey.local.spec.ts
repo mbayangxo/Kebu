@@ -299,6 +299,7 @@ test("employer adds pay and a photo to a listing; a hired worker can rate and re
   await page.goto(publicHref!);
   await expect(page.getByText("2,000 XOF/day", { exact: false })).toBeVisible();
   await expect(page.getByText("We translate community notices across Senegal.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "https://fixture-translation.example", exact: true })).toBeVisible();
   await page.getByPlaceholder("Tell them why you're a fit", { exact: false }).fill("I would love to help with this.");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.getByText("Application submitted", { exact: false })).toBeVisible();

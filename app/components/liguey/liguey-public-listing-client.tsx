@@ -10,7 +10,7 @@ import { ligueyT, employmentTypeLabel, locationTypeLabel, type LigueyKey } from 
 type Listing = {
   id: string; businessId: string; publicId: string; title: string; description: string; requirements: string;
   employmentType: string; locationType: string; location: string; payLabel: string; photoUrl: string;
-  employerName: string; employerAbout: string;
+  employerName: string; employerAbout: string; employerWebsite: string;
 };
 
 type CompanyReview = { rating: number; body: string; createdAt: string; reviewerLabel: string };
@@ -181,10 +181,15 @@ export function LigueyPublicListingClient({ publicId }: { publicId: string }) {
           <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed">{listing.requirements}</p>
         </div>
       ) : null}
-      {listing.employerAbout ? (
+      {listing.employerAbout || listing.employerWebsite ? (
         <div className="mt-4">
           <p className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("public_about_title")}</p>
-          <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed">{listing.employerAbout}</p>
+          {listing.employerAbout ? <p className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed">{listing.employerAbout}</p> : null}
+          {listing.employerWebsite.startsWith("http") ? (
+            <a href={listing.employerWebsite} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[11px] underline" style={{ color: KEBU.orange }}>
+              {listing.employerWebsite}
+            </a>
+          ) : null}
         </div>
       ) : null}
 
