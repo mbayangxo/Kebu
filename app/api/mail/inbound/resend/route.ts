@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { canonicalAddress, mailThreadIdentity } from "@/lib/mail/threading";
+import { processMailForwarding } from "@/lib/mail/forwarding";
 
 export const dynamic = "force-dynamic";
 
@@ -257,6 +258,17 @@ export async function POST(req: Request) {
         last_message_at: new Date().toISOString(),
       })
       .eq("id", threadId);
+
+    await processMailForwarding(admin, {
+      mailboxId: mailbox.id,
+      messageId: message.id,
+      fromAddress: from,
+      toAddresses: recipients,
+      ccAddresses: cc,
+      subject: event.data.subject ?? "",
+      bodyText,
+      depth: 0,
+    });
 
     delivered += 1;
   }

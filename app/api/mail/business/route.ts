@@ -186,6 +186,11 @@ export async function POST(req: Request) {
           dns_records: provider.records,
           last_error: verified ? null : "DNS records are not fully verified yet.",
           verified_at: verified ? new Date().toISOString() : null,
+          // A verified domain must actually be usable — without this, external send/receive
+          // stay gated forever (externalMailReadiness always requires sending_enabled=true),
+          // even on a domain Resend itself has fully verified.
+          sending_enabled: verified,
+          inbound_enabled: verified,
           updated_at: new Date().toISOString(),
         })
         .eq("id", mailDomain.id)

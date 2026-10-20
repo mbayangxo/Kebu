@@ -81,7 +81,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | Kebu Analytics | **IN PROGRESS** | Site beacons (**032**) + Shop insights + My Space. **Depth:** top pages · referrers · countries · 30-day range on site detail. Beacon → DB → dashboard loop live. |
 | Kebu AI — improve/generate | **IN PROGRESS** | Server routes + **monthly AI metering** (`account_ai_usage_events` **081**) on improve · website AI create · Studio generate. Apply **081**. **B6 section accept/reject** in sidebar + command bar; canvas merges accepted sections only. |
 | Kebu Cloud | **NOT STARTED** | Compatibility only |
-| Kebu Mail | **NOT STARTED** | `docs/product/KEBU-MAIL.md` — real email via provider abstraction; personal `@kebu.africa` free; business on verified domains |
+| Kebu Mail | **IN PROGRESS** | `docs/product/KEBU-MAIL.md` · `docs/audits/KEBU-MAIL-AUDIT.md` — personal/business mail, real send/receive, forwarding locally verified; live-provider credentials and hosted delivery open |
 | Billing / JOKO hosting | **IN PROGRESS** | Monthly renew, autopay toggle, expire/suspend live sites; founder exempt |
 | Site health cron | **IN PROGRESS** | Cron route + Vercel schedule; needs `CRON_SECRET` + deploy |
 
@@ -190,20 +190,21 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 
 ## 4. Kebu Mail
 
-**NOT STARTED** — Full spec: `docs/product/KEBU-MAIL.md` · Rule: `kebu-mail.mdc`
+**IN PROGRESS** — Full spec: `docs/product/KEBU-MAIL.md` · Rule: `kebu-mail.mdc` · Evidence: `docs/audits/KEBU-MAIL-AUDIT.md` (corrected October 20, 2026 — this section previously said "NOT STARTED," which no longer matched the code; the implementation below pre-dates this session and was never reconciled back into this doc until now)
 
 | Area | Status |
 |------|--------|
 | Product law + provider abstraction design | **IMPLEMENTED** (docs) |
-| Personal `@kebu.africa` (free) | **NOT STARTED** |
-| Real send/receive (internet mail) | **NOT STARTED** |
-| Inbox UI (Inbox/Sent/Drafts/…) | **NOT STARTED** |
-| Business mail on verified domain | **NOT STARTED** — depends on custom domains slice |
-| Shared mailboxes + RBAC | **NOT STARTED** |
-| SPF/DKIM/DMARC automation | **NOT STARTED** |
-| Provider adapter (v1) | **NOT STARTED** |
+| Personal `@kebu.africa` (free) | **IMPLEMENTED**, locally verified (real browser) — platform domain's own live Resend verification remains open |
+| Real send/receive (internet mail) | **IMPLEMENTED** (real Resend API calls, signed inbound/event webhooks, retry/suppression/reputation worker) — never exercised against a live Resend account in this environment |
+| Inbox UI (Inbox/Sent/Drafts/…) | **IMPLEMENTED**, locally verified (real browser) |
+| Business mail on verified domain | **IMPLEMENTED**, locally verified — found and fixed two real bugs blocking it (missing RLS insert policy, `sending_enabled` never set on verify); see audit |
+| Automatic forwarding | **IMPLEMENTED**, locally verified (internal chains + real external-delivery enqueue) — did not exist before this round |
+| Shared mailboxes + RBAC | RBAC **IMPLEMENTED**; shared mailboxes remain schema-only, **NOT STARTED** |
+| SPF/DKIM/DMARC automation | **IMPLEMENTED** via Resend's real Domains API for business domains; never driven for the platform `kebu.africa` domain |
+| Provider adapter (v1) | **IMPLEMENTED** (Resend) |
 
-**Forbidden until slice assigned:** fake inbox · simulated send · separate Mail signup.
+**Forbidden until slice assigned:** fake inbox · simulated send · separate Mail signup. (None violated — see audit for what "real" means in each row above.)
 
 ---
 
