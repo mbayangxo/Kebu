@@ -16,13 +16,20 @@ export function LigueyDiscoverClient() {
   const t = (key: LigueyKey) => ligueyT(lang, key);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch("/api/public/liguey/listings");
-      const body = await res.json().catch(() => ({ listings: [] }));
-      setListings(body.listings ?? []);
-      setLoading(false);
+      try {
+        const res = await fetch("/api/public/liguey/listings");
+        const body = await res.json().catch(() => ({ listings: [] }));
+        if (!res.ok) { setError(body.error ?? "Could not load open roles."); return; }
+        setListings(body.listings ?? []);
+      } catch {
+        setError("Could not load open roles. Check your connection and try again.");
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
@@ -36,6 +43,8 @@ export function LigueyDiscoverClient() {
         </div>
         <LanguageBar variant="builder" />
       </header>
+
+      {error ? <div className="mt-4 rounded-[10px] border px-3 py-2 text-[10px]" style={{ borderColor: "#FFB3B3", color: "#B00020", background: "#FFF3F3" }}>{error}</div> : null}
 
       <section className="mt-6 space-y-2">
         {loading ? (

@@ -15,13 +15,21 @@ export function LigueyApplicationsPanel({ initialApplications, initialListings }
   const { lang } = useLocale();
   const t = (key: LigueyKey) => ligueyT(lang, key);
   const [applications, setApplications] = useState(initialApplications);
+  const [error, setError] = useState<string | null>(null);
   const listingById = new Map(initialListings.map((listing) => [listing.id, listing]));
 
   async function withdraw(applicationId: string) {
-    const res = await fetch("/api/liguey/applications", {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ applicationId }),
-    });
-    if (res.ok) setApplications((prev) => prev.map((application) => (application.id === applicationId ? { ...application, status: "withdrawn" } : application)));
+    setError(null);
+    try {
+      const res = await fetch("/api/liguey/applications", {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ applicationId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(body.error ?? "Could not withdraw this application."); return; }
+      setApplications((prev) => prev.map((application) => (application.id === applicationId ? { ...application, status: "withdrawn" } : application)));
+    } catch {
+      setError("Could not withdraw this application. Retry when connected.");
+    }
   }
 
   return (
@@ -33,6 +41,8 @@ export function LigueyApplicationsPanel({ initialApplications, initialListings }
         </div>
         <LanguageBar variant="builder" />
       </header>
+
+      {error ? <div className="mt-4 rounded-[10px] border px-3 py-2 text-[10px]" style={{ borderColor: "#FFB3B3", color: "#B00020", background: "#FFF3F3" }}>{error}</div> : null}
 
       <section className="mt-6 space-y-2">
         {applications.map((application) => {

@@ -33,6 +33,8 @@ export function LigueyPublicListingClient({ publicId }: { publicId: string }) {
         const body = await res.json();
         if (!res.ok) { setNotFound(true); return; }
         setListing(body.listing);
+      } catch {
+        setNotFound(true);
       } finally {
         setLoading(false);
       }
@@ -54,6 +56,8 @@ export function LigueyPublicListingClient({ publicId }: { publicId: string }) {
       const body = await res.json();
       if (!res.ok) { setApplyError(body.error ?? "Could not submit your application."); return; }
       setApplied(true);
+    } catch {
+      setApplyError("Could not submit your application. Retry when connected.");
     } finally {
       setSubmitting(false);
     }
