@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { rowToOpportunityProfile } from "@/lib/opportunity/intake-schema";
 import { formatProfileForYande } from "@/lib/account/kebu-personalization";
 import { createClient } from "@/lib/supabase/server";
 import { aiRateLimit, clamp } from "@/lib/api-guard";
+import { yandeChat, yandeConfigured } from "@/lib/yande/gateway";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const limited = aiRateLimit(req);
   if (limited) return limited;
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!yandeConfigured()) {
     return NextResponse.json(
       { error: "Yande is not configured on this server yet (missing AI key)." },
       { status: 503 },
@@ -80,22 +80,14 @@ export async function POST(req: NextRequest) {
   const userMessage = `Page: ${path}\n${context}\n\nUser question:\n${parsed.data.message}`;
 
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      system: YANDE_SYSTEM,
-      messages: [{ role: "user", content: clamp(userMessage, 4000) }],
+    const result = await yandeChat({
+      feature: "chat_assistant",
+      userId: user.id,
+      systemPrompt: YANDE_SYSTEM,
+      userMessage: clamp(userMessage, 4000),
+      maxTokens: 1024,
     });
-
-    const text =
-      response.content
-        .filter((b) => b.type === "text")
-        .map((b) => (b.type === "text" ? b.text : ""))
-        .join("\n")
-        .trim() || "I could not answer that — try again in a moment.";
-
-    return NextResponse.json({ reply: text });
+    return NextResponse.json({ reply: result.reply || "I could not answer that — try again in a moment." });
   } catch (err) {
     console.error("Yande AI request failed", err);
     return NextResponse.json({ error: "AI request failed." }, { status: 502 });
