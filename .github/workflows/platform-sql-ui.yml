@@ -3,7 +3,7 @@ name: Platform SQL and browser
 on:
   workflow_dispatch:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-platform-verification-oct20"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-platform-verification-oct20", "work/codex-liguey-retry-oct20"]
     paths:
       - "app/**"
       - "lib/**"
