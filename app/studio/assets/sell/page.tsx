@@ -101,8 +101,23 @@ export default function StudioAssetSellPage() {
           <p className="mt-2 max-w-2xl text-sm leading-relaxed" style={{ color: KEBU.muted }}>
             Free to publish, free for everyone to use right now. <Link href="/studio/assets/marketplace" className="underline">Browse the marketplace</Link> to see what&apos;s already there.
           </p>
+
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              { label: "Revenue split", value: "80 / 20", note: "You'll keep 80% of every sale" },
+              { label: "Payout", value: "Wave / OM", note: "Wave & Orange Money, once paid listings launch" },
+              { label: "Audience", value: "Africa", note: "Côte d'Ivoire, Sénégal & beyond" },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${KEBU.borders.default}` }}>
+                <p className="text-2xl font-black" style={{ color: KEBU.black }}>{stat.value}</p>
+                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>{stat.label}</p>
+                <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>{stat.note}</p>
+              </div>
+            ))}
+          </div>
+
           <p className="mt-3 max-w-2xl rounded-[14px] border px-4 py-3 text-[11px]" style={{ borderColor: KEBU.borders.default, color: KEBU.muted }}>
-            Paid listings with real seller payouts are not live yet — every asset published today is free to use, for everyone, including yours. We&apos;ll tell developers before that changes.
+            That split and those payout rails are the plan for when paid listings launch — not live yet. Every asset published today is free to use, for everyone, including yours, and nothing above is a settings form you need to fill in right now. We&apos;ll tell developers before paid listings and real payouts go live.
           </p>
         </header>
 
