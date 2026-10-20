@@ -1,0 +1,312 @@
+{
+  "baseCommit": "b22d828fac20e79e65675bd455aad3433d695ba6",
+  "hosted": false,
+  "stats": {
+    "startTime": "2026-10-20T14:56:35.519Z",
+    "duration": 76688.43699999999,
+    "expected": 33,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "name": "design saves serialize and keep the newest IndexedDB draft dirty until acknowledged",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12733
+        }
+      ]
+    },
+    {
+      "name": "video title saves serialize on mobile and preserve the newest local title",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2176
+        }
+      ]
+    },
+    {
+      "name": "a malformed receipt leaves the current draft dirty and stops further network writes",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2528
+        }
+      ]
+    },
+    {
+      "name": "a conflict retains local edits and does not silently overwrite the server",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1874
+        }
+      ]
+    },
+    {
+      "name": "PNG, PDF and ZIP are real rendered downloads including supplied imagery",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1478
+        }
+      ]
+    },
+    {
+      "name": "missing media blocks PNG export instead of downloading a placeholder",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1167
+        }
+      ]
+    },
+    {
+      "name": "video export produces decodable WebM frames",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2047
+        }
+      ]
+    },
+    {
+      "name": "offline design edits cache locally and sync through the current revision on reconnect",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1677
+        }
+      ]
+    },
+    {
+      "name": "storage failure while offline leaves the editor visible and does not claim a local save",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1422
+        }
+      ]
+    },
+    {
+      "name": "video export includes decodable audible samples",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1998
+        }
+      ]
+    },
+    {
+      "name": "unavailable audio blocks video export instead of producing a silent success",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1135
+        }
+      ]
+    },
+    {
+      "name": "the design page timeline exports a decodable WebM",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3149
+        }
+      ]
+    },
+    {
+      "name": "named history saves the latest draft before capturing a version",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1851
+        }
+      ]
+    },
+    {
+      "name": "history restore preserves edits made during a delayed response",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2328
+        }
+      ]
+    },
+    {
+      "name": "failed restore leaves the editor and saved draft intact",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1773
+        }
+      ]
+    },
+    {
+      "name": "sharing offline failure is visible and does not claim an invitation",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 955
+        }
+      ]
+    },
+    {
+      "name": "sharing malformed failure is visible and does not claim an invitation",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1019
+        }
+      ]
+    },
+    {
+      "name": "viewers cannot save or invite collaborators in the editor",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 847
+        }
+      ]
+    },
+    {
+      "name": "design timeline export includes the saved soundtrack as audible samples",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3036
+        }
+      ]
+    },
+    {
+      "name": "missing design soundtrack blocks timeline download with an honest error",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1041
+        }
+      ]
+    },
+    {
+      "name": "eight resize handles support ratio, centered dragging, undo and persistent geometry",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2492
+        }
+      ]
+    },
+    {
+      "name": "edge handles resize with keyboard without moving the opposite edge",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1176
+        }
+      ]
+    },
+    {
+      "name": "the first text edit can undo, redo, and branch history without losing the document",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2346
+        }
+      ]
+    },
+    {
+      "name": "video composition history preserves distinct undo and redo snapshots",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3393
+        }
+      ]
+    },
+    {
+      "name": "dragging an ungrouped multi-selection moves every selected layer and undoes once",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2504
+        }
+      ]
+    },
+    {
+      "name": "static design opens a quiet workspace and can explicitly reveal its timeline",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1067
+        }
+      ]
+    },
+    {
+      "name": "direct text editing focuses immediately, preserves the caret, and shares history and persistence",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2461
+        }
+      ]
+    },
+    {
+      "name": "Escape cancels an on-canvas text edit without deleting its layer or adding an undo step",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1096
+        }
+      ]
+    },
+    {
+      "name": "native IME composition stays focused and does not save an unfinished composition",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1781
+        }
+      ]
+    },
+    {
+      "name": "direct text preserves authored whitespace and newlines through reopening",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2477
+        }
+      ]
+    },
+    {
+      "name": "dark editor inspector labels and primary Save meet readable text contrast",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 955
+        }
+      ]
+    },
+    {
+      "name": "resizes with touch and exact inspector fields, saves and reopens",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3380
+        }
+      ]
+    },
+    {
+      "name": "resizes with touch and exact inspector fields, saves and reopens",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3346
+        }
+      ]
+    }
+  ],
+  "transport": "isolated loopback Auth/API; actual Next editor, browser, IndexedDB and decoded downloads"
+}

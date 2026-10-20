@@ -157,15 +157,33 @@ export function GalaxySegmentedControl<T extends string>({
   );
 }
 
-export function GalaxyEmptyState({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="rounded-[12px] border border-dashed border-black/15 bg-[#FFFCF8] px-4 py-6 text-center">
-      <p className="text-[12px] font-black text-black/75">{title}</p>
-      <p className="mx-auto mt-1 max-w-[28ch] text-[10px] leading-relaxed text-black/45">{detail}</p>
-    </div>
-  );
+type EditorAppearance = "light" | "dark";
+
+export function GalaxyEmptyState({ title, detail, appearance = "light" }: { title: string; detail: string; appearance?: EditorAppearance }) {
+  const dark = appearance === "dark";
+  return <div className={`rounded-[12px] border border-dashed px-4 py-6 text-center ${dark ? "border-white/20 bg-white/[.035]" : "border-black/15 bg-[#FFFCF8]"}`}>
+    <p className={`text-[12px] font-black ${dark ? "text-white/85" : "text-black/75"}`}>{title}</p>
+    <p className={`mx-auto mt-1 max-w-[28ch] text-[10px] leading-relaxed ${dark ? "text-white/70" : "text-black/45"}`}>{detail}</p>
+  </div>;
 }
 
-export function GalaxyToolRail({items,value,onChange}:{items:{id:string;label:string;icon:ReactNode}[];value:string;onChange:(id:string)=>void}){return <nav aria-label="Studio tools" className="flex gap-1 overflow-x-auto border-b border-black/[.07] bg-white p-1.5 lg:w-[68px] lg:flex-col lg:border-b-0 lg:border-r"><div className="flex gap-1 lg:flex-col">{items.map(x=>{const a=x.id===value;return <button key={x.id} type="button" aria-current={a?"page":undefined} onClick={()=>onChange(x.id)} className={`group flex min-h-12 min-w-12 flex-col items-center justify-center gap-1 rounded-[9px] px-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] ${a?"bg-black text-white":"text-black/55 hover:bg-black/[.045] hover:text-black"}`}><span className="h-[18px] w-[18px]">{x.icon}</span><span className="text-[8px] font-bold tracking-[-.01em]">{x.label}</span></button>})}</div></nav>}
-export function GalaxyInspectorSection({title,children,defaultOpen=true}:{title:string;children:ReactNode;defaultOpen?:boolean}){return <details open={defaultOpen} className="group border-b border-black/[.07]"><summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-[10px] font-black uppercase tracking-[.08em] text-black/55"><span>{title}</span><span className="text-black/30 transition-transform group-open:rotate-45">+</span></summary><div className="px-3 pb-3">{children}</div></details>}
+export function GalaxyToolRail({ items, value, onChange, appearance = "light" }: { items: { id: string; label: string; icon: ReactNode }[]; value: string; onChange: (id: string) => void; appearance?: EditorAppearance }) {
+  const dark = appearance === "dark";
+  return <nav aria-label="Studio tools" className={`flex gap-1 overflow-x-auto border-b p-1.5 lg:w-[68px] lg:flex-col lg:border-b-0 lg:border-r ${dark ? "border-white/10 bg-[#101113]" : "border-black/[.07] bg-white"}`}>
+    <div className="flex gap-1 lg:flex-col">{items.map(item => {
+      const active = item.id === value;
+      return <button key={item.id} type="button" aria-current={active ? "page" : undefined} onClick={() => onChange(item.id)} className={`group flex min-h-12 min-w-12 flex-col items-center justify-center gap-1 rounded-[9px] px-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#FF6A00] ${dark ? active ? "bg-[#FF6A00] text-black" : "text-white/75 hover:bg-white/[.06] hover:text-white" : active ? "bg-black text-white" : "text-black/55 hover:bg-black/[.045] hover:text-black"}`}>
+        <span className="h-[18px] w-[18px]">{item.icon}</span><span className="text-[8px] font-bold tracking-[-.01em]">{item.label}</span>
+      </button>;
+    })}</div>
+  </nav>;
+}
+
+export function GalaxyInspectorSection({ title, children, defaultOpen = true, appearance = "light" }: { title: string; children: ReactNode; defaultOpen?: boolean; appearance?: EditorAppearance }) {
+  const dark = appearance === "dark";
+  return <details open={defaultOpen} className={`group border-b ${dark ? "border-white/10" : "border-black/[.07]"}`}>
+    <summary className={`flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-[10px] font-black uppercase tracking-[.08em] ${dark ? "text-white/75" : "text-black/55"}`}><span>{title}</span><span className={`transition-transform group-open:rotate-45 ${dark ? "text-white/60" : "text-black/30"}`}>+</span></summary>
+    <div className="px-3 pb-3">{children}</div>
+  </details>;
+}
 export function GalaxyStatus({children,tone="neutral"}:{children:ReactNode;tone?:"neutral"|"error"|"success"}){return <div role={tone==="error"?"alert":"status"} className={`rounded-lg border px-2.5 py-2 text-[10px] ${tone==="error"?"border-red-200 bg-red-50 text-red-800":tone==="success"?"border-emerald-200 bg-emerald-50 text-emerald-800":"border-black/[.07] bg-black/[.025] text-black/55"}`}>{children}</div>}

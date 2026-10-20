@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## October 20 — direct text, composition input and export fidelity
+
+Continued after b22d828: direct-text focus/caret, Escape cancellation, one-gesture history and native IME repaired; schema/export preserve authored whitespace and Unicode graphemes. Dark inspector and action contrast repaired. Full local browser gate: 33 passed/zero skips/failures; focused contrast rerun passed; nine layout/schema cases and 23 isolated SQL assertions pass. Final full `npm run ci` passes after visual refinements: 6,069 tests/168 skips; zero lint errors/344 warnings; finalized 221-page build. See `audits/KEBU_STUDIO_TEXT_2026-10-20.md`. b22d828 remote CI/preview E2E passed (533 hosted cases/35 explicit skips); new text hosted acceptance is pending. Full rich text, Studio/Builder/May/3J/99-group and production release remain OPEN.
+
 ## October 20 — Studio manipulation and history continuation
 
 Eight-way rotated resize, Shift ratio/Alt center, keyboard handles, multi-selection dragging and design/video history repaired. Tablet drawers, visible phone Save, unobstructed page actions and content-driven timeline improve the actual editor. Full local browser gate: 28 passed with zero skips/failures, including touch, undo/redo, saved/reopened transforms and decoded PNG pixels. Final `npm run ci` passes: TypeScript; lint zero errors/344 warnings; 6,058 tests/168 explicit skips; 221-page production build. Four focused browser cases pass after final state/safe-area refinements. See `audits/KEBU_STUDIO_TRANSFORMS_2026-10-20.md` for root causes, evidence and remaining gates. Full Studio/Builder/May/3J/99-group completion and production release remain OPEN.

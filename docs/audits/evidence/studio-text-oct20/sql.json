@@ -1,0 +1,7 @@
+{
+  "passed": 23,
+  "reproducedOwnershipEscalationBeforeFix": true,
+  "reproducedForgedRoomPointerBeforeFix": true,
+  "engine": "PGlite",
+  "hosted": false
+}

@@ -519,3 +519,109 @@ test("static design opens a quiet workspace and can explicitly reveal its timeli
   await expect(page.getByRole("spinbutton", { name: "Scene duration", exact: true })).toHaveCount(0);
   expect(fixture.errors).toEqual([]);
 });
+
+
+test("direct text editing focuses immediately, preserves the caret, and shares history and persistence", async ({ page }) => {
+  const fixture = await setup(page);
+  const layer = page.locator('[data-studio-layer-id="title"]');
+  await layer.dblclick();
+  const editor = layer.getByRole("textbox", { name: "Edit Title", exact: true });
+  await expect(editor).toBeFocused();
+  await editor.press("End"); await editor.pressSequentially(" café");
+  await expect(editor).toHaveText("Original café");
+  await editor.press("Home"); await editor.press("ArrowRight"); await editor.pressSequentially("X");
+  await expect(editor).toHaveText("OXriginal café");
+  await page.screenshot({ path: test.info().outputPath("direct-text.png"), caret: "initial" });
+  await editor.press("Control+Enter"); await expect(layer.getByRole("textbox", { name: "Edit Title", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Undo", exact: true }).click(); await expect(layer).toContainText("Original");
+  await page.getByRole("button", { name: "Redo", exact: true }).click(); await expect(layer).toContainText("OXriginal café");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.pages[0]!.layers[0]!.text).toBe("OXriginal café");
+  await expect.poll(async () => (await cached(page))?.dirty).toBe(false);
+  await page.reload(); await expect(layer).toContainText("OXriginal café");
+  expect(fixture.errors).toEqual([]);
+});
+
+test("Escape cancels an on-canvas text edit without deleting its layer or adding an undo step", async ({ page }) => {
+  const fixture = await setup(page);
+  const layer = page.locator('[data-studio-layer-id="title"]'); await layer.dblclick();
+  const editor = layer.getByRole("textbox", { name: "Edit Title", exact: true });
+  await expect(editor).toBeFocused(); await editor.press("Control+A"); await editor.pressSequentially("Cancelled draft");
+  await editor.press("Escape"); await expect(layer).toContainText("Original");
+  await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.pages[0]!.layers[0]!.text).toBe("Original");
+  expect(fixture.errors).toEqual([]);
+});
+
+
+test("native IME composition stays focused and does not save an unfinished composition", async ({ page }) => {
+  const fixture = await setup(page);
+  const layer = page.locator('[data-studio-layer-id="title"]'); await layer.dblclick();
+  const editor = layer.getByRole("textbox", { name: "Edit Title", exact: true });
+  await expect(editor).toBeFocused(); await editor.press("Control+A");
+  await page.clock.install();
+  const client = await page.context().newCDPSession(page);
+  await client.send("Input.imeSetComposition", { text: "にほん", selectionStart: 3, selectionEnd: 3 });
+  await expect(editor).toBeFocused(); await page.clock.fastForward(1600);
+  expect(fixture.writes).toHaveLength(0);
+  await client.send("Input.insertText", { text: "日本語" }); await client.detach();
+  await expect(editor).toHaveText("日本語");
+  await editor.press("Control+Enter"); await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.pages[0]!.layers[0]!.text).toBe("日本語");
+  await expect.poll(async () => (await cached(page))?.dirty).toBe(false);
+  await page.reload(); await expect(layer).toContainText("日本語"); expect(fixture.errors).toEqual([]);
+});
+
+test("direct text preserves authored whitespace and newlines through reopening", async ({ page }) => {
+  const fixture = await setup(page);
+  const layer = page.locator('[data-studio-layer-id="title"]'); await layer.dblclick();
+  const editor = layer.getByRole("textbox", { name: "Edit Title", exact: true });
+  await expect(editor).toBeFocused(); await editor.press("Control+A");
+  await editor.pressSequentially("  First line  "); await editor.press("Enter"); await editor.pressSequentially("  Second line  ");
+  await editor.press("Control+Enter"); await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  const expected = "  First line  \n  Second line  ";
+  await expect.poll(() => fixture.server().canvas!.pages[0]!.layers[0]!.text).toBe(expected);
+  await page.getByText("More", { exact: true }).click();
+  const download = page.waitForEvent("download"); await page.getByRole("button", { name: "Download PNG", exact: true }).click();
+  const bytes = readFileSync((await (await download).path())!);
+  const leftmostInk = await page.evaluate(async data => {
+    const image = new Image(); image.src = "data:image/png;base64," + data; await image.decode();
+    const output = document.createElement("canvas"); output.width = image.width; output.height = image.height;
+    const ctx = output.getContext("2d")!; ctx.drawImage(image,0,0);
+    const pixels = ctx.getImageData(0,20,640,60).data; let left = 640;
+    for (let y=0;y<60;y++) for(let x=0;x<640;x++){const i=(y*640+x)*4;if(pixels[i]!<80&&pixels[i+1]!<80&&pixels[i+2]!<80&&pixels[i+3]!>200)left=Math.min(left,x);}
+    return left;
+  }, bytes.toString("base64"));
+  expect(leftmostInk).toBeGreaterThan(30); expect(leftmostInk).toBeLessThan(100);
+  await expect.poll(async () => (await cached(page))?.dirty).toBe(false);
+  await page.reload(); await expect(layer).toBeVisible(); expect(await layer.locator("p").textContent()).toBe(expected);
+  expect(fixture.errors).toEqual([]);
+});
+
+
+test("dark editor inspector labels and primary Save meet readable text contrast", async ({ page }) => {
+  const fixture = await setup(page); await page.locator('[data-studio-layer-id="title"]').click();
+  const summary = page.getByText("Typography", { exact: true }).locator("..");
+  const save = page.getByRole("button", { name: "Save draft", exact: true });
+  const layer = page.locator('[data-studio-layer-id="title"]');
+  for (const [locator, property, minimum] of [[summary,"color",4.5],[save,"color",4.5],[layer,"outlineColor",3]] as const) {
+    const ratio = await locator.evaluate((element, property) => {
+      const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
+      const context = canvas.getContext("2d")!;
+      const parse = (color: string) => {
+        context.clearRect(0,0,1,1); context.fillStyle=color; context.fillRect(0,0,1,1);
+        const [r,g,b,a] = context.getImageData(0,0,1,1).data; return [r!,g!,b!,a!/255];
+      };
+      let parent: Element | null = element, background = [255,255,255,1];
+      while (parent) { const color = parse(getComputedStyle(parent).backgroundColor); if (color.length >= 3 && (color[3] ?? 1) === 1) { background = color; break; } parent = parent.parentElement; }
+      const foreground = parse(getComputedStyle(element)[property]), alpha = foreground[3] ?? 1;
+      const blended = foreground.slice(0,3).map((value,i) => value * alpha + background[i]! * (1-alpha));
+      const luminance = (rgb: number[]) => rgb.slice(0,3).map(value => {const s=value/255;return s<=.04045?s/12.92:Math.pow((s+.055)/1.055,2.4)}).reduce((sum,value,i)=>sum+value*[.2126,.7152,.0722][i]!,0);
+      const a=luminance(blended), b=luminance(background);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+    }, property);
+    expect(ratio).toBeGreaterThanOrEqual(minimum);
+  }
+  await page.screenshot({ path: test.info().outputPath("dark-inspector.png") });
+  expect(fixture.errors).toEqual([]);
+});

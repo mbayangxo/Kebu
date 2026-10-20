@@ -487,8 +487,14 @@ export default function StudioEditorPage() {
     setDoc(next);
   }
 
-  function onChangeDoc(next: CanvasDocument, opts?: { ephemeral?: boolean }) {
+  function onChangeDoc(next: CanvasDocument, opts?: { ephemeral?: boolean; cancelGesture?: boolean }) {
     if (!canEdit) return;
+    if (opts?.cancelGesture) {
+      dragBaseline.current = null;
+      docRef.current = next;
+      setDoc(next);
+      return;
+    }
     if (opts?.ephemeral) {
       setSaveState(current => saveQueue.isBlocked() ? current : "pending");
       if (!dragBaseline.current && docRef.current) {
@@ -868,7 +874,7 @@ export default function StudioEditorPage() {
   }
 
   if (!doc || !design || !access) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#0B0B0C] text-white/45">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-[#0B0B0C] text-white/60">Loading…</div>;
   }
 
   const timelineVisible = timelineOverride ?? studioNeedsTimeline(doc);
@@ -896,13 +902,13 @@ export default function StudioEditorPage() {
       <header className="relative z-50 shrink-0 border-b border-white/10 bg-[#0B0B0C]">
         <div className="flex h-14 items-center gap-4 px-3 sm:px-5">
           <Link href="/dashboard" className="shrink-0 text-[9px] font-semibold text-white/55 no-underline">← Kebu</Link><span className="text-white/15">|</span><Link href="/studio" className="shrink-0 text-[11px] font-semibold text-white no-underline">Studio</Link>
-          <span className="text-[10px] text-white/45">Design</span>
+          <span className="text-[10px] text-white/60">Design</span>
           <nav aria-label="Studio navigation" className="ml-auto flex items-center gap-4 text-[11px] text-white/70">
             <Link href="/studio">Projects</Link><Link href="/studio/templates">Templates</Link>
           </nav>
         </div>
         <div role="group" aria-label="Studio commands" className="flex min-h-12 min-w-0 items-center gap-2 border-t border-white/[.06] px-3 py-2 sm:px-5">
-          <Link href="/studio" className="hidden shrink-0 rounded-[8px] bg-[#FF6A00] px-3 py-2 text-[11px] font-semibold text-white sm:block">+ Create new</Link>
+          <Link href="/studio" className="hidden shrink-0 rounded-[8px] bg-[#FF6A00] px-3 py-2 text-[11px] font-semibold text-black sm:block">+ Create new</Link>
           <h1 className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white">{design.title}</h1>
           <span className="hidden shrink-0 rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[10px] text-white/65 xl:block">{doc.width} × {doc.height}</span>
           <span role="status" className="max-w-[110px] shrink-0 text-[10px] leading-tight text-white/70">{saveLabel}</span>
@@ -923,7 +929,7 @@ export default function StudioEditorPage() {
             <button type="button" onClick={()=>{setShowComments((v)=>!v);setShowShare(false);setShowVersions(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Comments</button>
           </div></details>
           <button type="button" onClick={()=>{setShowShare((v)=>!v);setShowVersions(false);setShowComments(false)}} className="hidden shrink-0 rounded-[8px] border border-white/15 px-3 py-2 text-[11px] font-semibold text-white sm:block">Share</button>
-          {canEdit ? <button type="button" onClick={()=>doc&&void persist(doc)} className="shrink-0 rounded-[8px] bg-[#FF6A00] px-3 py-2 text-[11px] font-semibold text-white">Save draft</button> : null}
+          {canEdit ? <button type="button" onClick={()=>doc&&void persist(doc)} className="shrink-0 rounded-[8px] bg-[#FF6A00] px-3 py-2 text-[11px] font-semibold text-black">Save draft</button> : null}
         </div>      </header>
 
       {error ? <div role="alert" className="border-b border-red-400/25 bg-red-950/40 px-4 py-3 text-xs text-red-100">{error}</div> : null}

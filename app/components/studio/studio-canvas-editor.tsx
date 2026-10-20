@@ -26,6 +26,7 @@ import {
   snapLayerPosition,
 } from "@/lib/studio/editor-craft";
 import { GalaxyEmptyState, GalaxyInspectorSection, GalaxyToolRail } from "@/app/components/galaxy/editor-primitives";
+import { StudioInlineText } from "@/app/components/studio/studio-inline-text";
 import { StudioIcon } from "@/app/components/studio/studio-icons";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
 import type { BrandSpace } from "@/lib/studio/brand-space";
@@ -143,7 +144,7 @@ export function StudioCanvasEditor({
   designId: string;
   document: CanvasDocument;
   /** ephemeral=true while dragging — parent should not push undo history each frame */
-  onChange: (next: CanvasDocument, opts?: { ephemeral?: boolean }) => void;
+  onChange: (next: CanvasDocument, opts?: { ephemeral?: boolean; cancelGesture?: boolean }) => void;
   activePageId: string;
   onActivePageChange: (pageId: string) => void;
   selectedLayerIds: string[];
@@ -801,7 +802,7 @@ export function StudioCanvasEditor({
 
         {/* Left: Elements / Layers */}
         <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-2xl lg:static lg:flex lg:w-[268px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-l-0 lg:shadow-none`}>
-          <GalaxyToolRail items={STUDIO_RAIL} value={leftTab} onChange={(id)=>setLeftTab(id as typeof leftTab)}/><div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <GalaxyToolRail appearance="dark" items={STUDIO_RAIL} value={leftTab} onChange={(id)=>setLeftTab(id as typeof leftTab)}/><div className="flex-1 overflow-y-auto p-3 space-y-3">
             {leftTab === "themes" ? <StudioThemesPanel document={doc} readOnly={readOnly} onApply={onChange}/> : null}
             {leftTab === "brand" ? <StudioBrandSpacePanel document={doc} readOnly={readOnly} onApply={onChange} onBrandSpace={setBrandSpace} onInsertLogo={(url,label)=>addLayer("image",{imageUrl:url,name:label,width:220,height:120,objectFit:"contain"})}/> : null}
             {leftTab === "brand" ? (
@@ -821,7 +822,7 @@ export function StudioCanvasEditor({
             ) : null}
             {leftTab === "ai" ? (
               <div className="space-y-3">
-                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">Yande AI</p><p className="text-[9px] text-white/40">Generate, design and ideate with AI</p></div>
+                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">Yande AI</p><p className="text-[9px] text-white/60">Generate, design and ideate with AI</p></div>
                 {aiMessages.length === 0 ? (
                   <div className="space-y-1.5">
                     {["Write headline text for my design","Suggest a color palette","What font pairs well with Fraunces?","Make my layout feel more premium"].map(s=>(
@@ -837,7 +838,7 @@ export function StudioCanvasEditor({
                         {m.text}
                       </div>
                     ))}
-                    {aiBusy ? <div className="rounded-xl bg-white/[.06] px-3 py-2 text-[10px] text-white/40 mr-4">Thinking…</div> : null}
+                    {aiBusy ? <div className="rounded-xl bg-white/[.06] px-3 py-2 text-[10px] text-white/60 mr-4">Thinking…</div> : null}
                   </div>
                 )}
                 <div className="flex gap-2">
@@ -846,7 +847,7 @@ export function StudioCanvasEditor({
                     onChange={e=>setAiInput(e.target.value)}
                     onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void sendAiMessage(aiInput)}}}
                     placeholder="Ask Yande AI…"
-                    className="flex-1 rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-xs placeholder:text-white/30"
+                    className="flex-1 rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-xs placeholder:text-white/60"
                     disabled={aiBusy}
                   />
                   <button
@@ -858,22 +859,22 @@ export function StudioCanvasEditor({
                     →
                   </button>
                 </div>
-                {aiMessages.length > 0 ? <button type="button" onClick={()=>{setAiMessages([]);setAiInput("")}} className="text-[9px] text-white/30 hover:text-white/60">Clear chat</button> : null}
+                {aiMessages.length > 0 ? <button type="button" onClick={()=>{setAiMessages([]);setAiInput("")}} className="text-[9px] text-white/60 hover:text-white/60">Clear chat</button> : null}
               </div>
             ) : leftTab === "elements" ? (
               <div className="space-y-3">
-                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">{readOnly?"Elements · view only":"Elements"}</p><p className="text-[9px] text-white/40">Shapes, frames, symbols and business graphics</p></div>
+                <div><p className="text-[10px] font-black uppercase tracking-[.18em]">{readOnly?"Elements · view only":"Elements"}</p><p className="text-[9px] text-white/60">Shapes, frames, symbols and business graphics</p></div>
                 <input value={elementQuery} onChange={(e)=>setElementQuery(e.target.value)} placeholder="Search elements" className="w-full rounded-xl border border-white/10 bg-[#17181B] px-3 py-2 text-xs"/>
                 <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">{(["all","lines","frames","symbols","charts","stickers","illustrations","business","social","culture"] as const).map((value)=><button key={value} type="button" onClick={()=>setElementCategory(value)} className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-bold capitalize ${elementCategory===value?"bg-white text-black":"bg-white/[.05] text-white/50"}`}>{value}</button>)}</div>
                 {elementCategory === "all" && !elementQuery ? (
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/40 mb-2">Basic</p>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/60 mb-2">Basic</p>
                     <div className="grid grid-cols-3 gap-2">
-                      <button type="button" disabled={readOnly} onClick={()=>addLayer("text")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">T<br/><span className="font-normal text-white/40">Text</span></button>
-                      <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-white/40">Shape</span></button>
-                      <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-white/40">Circle</span></button>
+                      <button type="button" disabled={readOnly} onClick={()=>addLayer("text")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">T<br/><span className="font-normal text-white/60">Text</span></button>
+                      <button type="button" disabled={readOnly} onClick={()=>addLayer("rect")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">■<br/><span className="font-normal text-white/60">Shape</span></button>
+                      <button type="button" disabled={readOnly} onClick={()=>addLayer("ellipse")} className="rounded-xl border border-white/10 bg-[#17181B] px-2 py-3 text-[10px] font-bold">●<br/><span className="font-normal text-white/60">Circle</span></button>
                     </div>
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/40 mb-2 mt-3">Featured</p>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/60 mb-2 mt-3">Featured</p>
                     <div className="grid grid-cols-3 gap-2">
                       {(["icon-spark","icon-quote","icon-heart","frame-circle","icon-sun","icon-cowrie","icon-star","icon-arrow","line-accent"] as const).map((id) => {
                         const el = STUDIO_ELEMENTS_PACK.find(e => e.id === id);
@@ -885,7 +886,7 @@ export function StudioCanvasEditor({
                 ) : null}
                 {(elementCategory === "all" || elementCategory === "social") && !elementQuery ? (
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/40 mb-2">Social icons</p>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-white/60 mb-2">Social icons</p>
                     <div className="grid grid-cols-3 gap-2">
                       {([
                         { id:"ig", label:"Instagram", color:"#E1306C", path:"M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" },
@@ -903,7 +904,7 @@ export function StudioCanvasEditor({
                   </div>
                 ) : null}
                 <div className="grid grid-cols-2 gap-2">{searchStudioElements(elementQuery,elementCategory).map((el)=><button key={el.id} type="button" disabled={readOnly} title={el.label} onClick={()=>addElement(el)} className="flex min-h-[70px] flex-col items-center justify-center rounded-xl border border-white/10 bg-[#17181B] px-2 py-2 text-center hover:border-orange-400 disabled:opacity-40"><span className="text-2xl">{el.glyph ?? (el.kind==="frame"?"□":"━")}</span><span className="mt-1 text-[9px] font-bold">{el.label}</span></button>)}</div>
-                {searchStudioElements(elementQuery,elementCategory).length===0?<p className="rounded-xl border border-dashed border-black/15 p-4 text-center text-[10px] text-white/45">No elements match that search.</p>:null}
+                {searchStudioElements(elementQuery,elementCategory).length===0?<p className="rounded-xl border border-dashed border-black/15 p-4 text-center text-[10px] text-white/60">No elements match that search.</p>:null}
                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"image")}/>
                 <input ref={videoFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"video")}/>
               </div>
@@ -926,7 +927,7 @@ export function StudioCanvasEditor({
               />
             ) : (
               <div className="space-y-2">
-                <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em]">Layers</p><p className="text-[9px] text-white/40">Top layer appears first</p></div><span className="rounded-full bg-white/[.06] px-2 py-1 text-[9px] font-bold">{layers.length}</span></div>
+                <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em]">Layers</p><p className="text-[9px] text-white/60">Top layer appears first</p></div><span className="rounded-full bg-white/[.06] px-2 py-1 text-[9px] font-bold">{layers.length}</span></div>
                 <ul className="space-y-1">{[...layers].reverse().map((l) => (
                   <li key={l.id} className={`group flex items-center rounded-xl border ${selectedSet.has(l.id)?"border-black bg-white text-black":"border-transparent hover:border-white/10 hover:bg-[#17181B]"}`}>
                     <button type="button" onClick={(e)=>selectLayer(l,e.shiftKey)} className="min-w-0 flex-1 px-2.5 py-2 text-left">
@@ -993,7 +994,7 @@ export function StudioCanvasEditor({
                   <div
                     key={layer.id}
                     data-studio-layer-id={layer.id}
-                    className={`absolute ${selectedOn ? "outline outline-2 outline-orange-500 outline-offset-1" : ""}`}
+                    className={`absolute ${selectedOn ? "outline outline-2 outline-orange-600 outline-offset-1" : ""}`}
                     style={{
                       left: layer.x,
                       top: layer.y,
@@ -1023,7 +1024,19 @@ export function StudioCanvasEditor({
                     }}
                   >
                     {layer.type === "text" ? (
-                      <p
+                      <StudioInlineText
+                        text={layer.text ?? ""}
+                        name={layer.name}
+                        editing={editingTextId === layer.id}
+                        onChange={text => updateLayer(layer.id, { text }, true)}
+                        onFinish={changed => { if (changed) onChange(latestDoc.current); setEditingTextId(null); }}
+                        onCancel={original => {
+                          const base = latestDoc.current;
+                          const next = updatePage(base, activePageId, { layers: getPage(base, activePageId).layers.map(item => item.id === layer.id ? { ...item, text: original } : item) });
+                          latestDoc.current = next;
+                          onChange(next, { cancelGesture: true });
+                          setEditingTextId(null);
+                        }}
                         style={{
                           fontSize: layer.fontSize,
                           fontFamily: cssStackForStudioFont(layer.fontFamily ?? "system-ui"),
@@ -1042,31 +1055,7 @@ export function StudioCanvasEditor({
                           whiteSpace: "pre-wrap",
                           wordBreak: "break-word",
                         }}
-                        contentEditable={editingTextId === layer.id}
-                        suppressContentEditableWarning
-                        onPointerDown={(e) => {
-                          if (editingTextId === layer.id) e.stopPropagation();
-                        }}
-                        onInput={(e) => {
-                          if (editingTextId !== layer.id) return;
-                          updateLayer(layer.id, { text: e.currentTarget.innerText.slice(0, 500) }, true);
-                        }}
-                        onBlur={() => {
-                          if (editingTextId !== layer.id) return;
-                          onChange(latestDoc.current);
-                          setEditingTextId(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (editingTextId !== layer.id) return;
-                          e.stopPropagation();
-                          if (e.key === "Escape" || ((e.metaKey || e.ctrlKey) && e.key === "Enter")) {
-                            e.preventDefault();
-                            e.currentTarget.blur();
-                          }
-                        }}
-                      >
-                        {layer.text}
-                      </p>
+                      />
                     ) : layer.type === "image" && layer.imageUrl ? (
                       <div className="w-full h-full overflow-hidden pointer-events-none">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1179,13 +1168,13 @@ export function StudioCanvasEditor({
                               const geometry = resizeCreativeBounds(layer, handle, { x: delta[0]! * step, y: delta[1]! * step }, { keepRatio: e.shiftKey, fromCenter: e.altKey });
                               updateLayer(layer.id, { ...geometry, x: Math.max(-2000, Math.min(4000, geometry.x)), y: Math.max(-2000, Math.min(4000, geometry.y)) });
                             }}
-                          ><span className="pointer-events-none h-3.5 w-3.5 rounded-sm border border-white bg-orange-500" /></button>
+                          ><span className="pointer-events-none h-3.5 w-3.5 rounded-sm border border-white bg-orange-600" /></button>
                         ))}
                         <div className="absolute left-1/2 -top-8 h-6 w-px -translate-x-1/2 bg-orange-500" />
                         <button
                           type="button"
                           aria-label="Rotate layer"
-                          className="absolute left-1/2 -top-11 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-white bg-orange-500 cursor-grab"
+                          className="absolute left-1/2 -top-11 h-4 w-4 -translate-x-1/2 rounded-full border-2 border-white bg-orange-600 cursor-grab"
                           onPointerDown={(e) => pointerDown(e, layer, "rotate")}
                         />
                       </>
@@ -1223,7 +1212,7 @@ export function StudioCanvasEditor({
 
         {/* Right: Properties */}
         <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-white/10 bg-[#17181B] p-4 shadow-2xl lg:static lg:block lg:w-[288px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-none space-y-3`}>
-          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p>{selected ? <div className="mt-2 flex gap-1">{(["design","animate","position"] as const).map(t=><button key={t} type="button" onClick={()=>setInspectorTab(t)} className={`rounded-lg px-2.5 py-1 text-[9px] font-bold capitalize ${inspectorTab===t?"bg-orange-500 text-white":"bg-white/[.06] text-white/50 hover:bg-white/[.10]"}`}>{t}</button>)}</div> : null}</div>
+          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/60">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p>{selected ? <div className="mt-2 flex gap-1">{(["design","animate","position"] as const).map(t=><button key={t} type="button" onClick={()=>setInspectorTab(t)} className={`rounded-lg px-2.5 py-1 text-[9px] font-bold capitalize ${inspectorTab===t?"bg-orange-500 text-black":"bg-white/[.06] text-white/50 hover:bg-white/[.10]"}`}>{t}</button>)}</div> : null}</div>
           <fieldset disabled={readOnly} className="space-y-3 border-0 p-0 m-0 min-w-0 disabled:opacity-70">
           {selectedLayerIds.length > 1 ? (
             <p className="text-xs opacity-60">
@@ -1232,7 +1221,7 @@ export function StudioCanvasEditor({
           ) : null}
           {!selected ? (
             <div className="space-y-3">
-              <GalaxyEmptyState title="Nothing selected" detail="Select something on the canvas to edit it, or adjust the page itself below." />
+              <GalaxyEmptyState appearance="dark" title="Nothing selected" detail="Select something on the canvas to edit it, or adjust the page itself below." />
               <label className="block text-xs font-semibold">
                 Background
                 <input
@@ -1253,7 +1242,7 @@ export function StudioCanvasEditor({
           ) : (
             <div className="space-y-0 text-xs">
               {inspectorTab === "design" ? <>
-              <GalaxyInspectorSection title="Layer"><label className="block font-semibold">
+              <GalaxyInspectorSection title="Layer" appearance="dark"><label className="block font-semibold">
                 Name
                 <input
                   value={selected.name}
@@ -1262,7 +1251,7 @@ export function StudioCanvasEditor({
                 />
               </label></GalaxyInspectorSection>
               </> : null}
-              {inspectorTab === "animate" ? <GalaxyInspectorSection title="Motion">
+              {inspectorTab === "animate" ? <GalaxyInspectorSection title="Motion" appearance="dark">
                 <label className="block font-semibold">
                   Entrance
                   <select
@@ -1307,12 +1296,12 @@ export function StudioCanvasEditor({
                     </label>
                   </div>
                 ) : null}
-                <p className="text-[9px] leading-relaxed text-white/45">
+                <p className="text-[9px] leading-relaxed text-white/60">
                   Motion previews against the page timeline and follows the design into editable video.
                 </p>
               </GalaxyInspectorSection> : null}
               {inspectorTab === "design" ? <>
-              {selected.type === "text" ? (<GalaxyInspectorSection title="Typography">
+              {selected.type === "text" ? (<GalaxyInspectorSection title="Typography" appearance="dark">
                   <label className="block font-semibold">
                     Text
                     <textarea
@@ -1478,7 +1467,7 @@ export function StudioCanvasEditor({
                 </GalaxyInspectorSection>
               ) : null}
               {(selected.type === "rect" || selected.type === "ellipse") ? (
-                <GalaxyInspectorSection title="Fill">
+                <GalaxyInspectorSection title="Fill" appearance="dark">
                   <label className="block font-semibold">
                     Type
                     <select
@@ -1540,7 +1529,7 @@ export function StudioCanvasEditor({
                 </GalaxyInspectorSection>
               ) : null}
               {selected.type==="frame"?<div className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-wider opacity-50">Frame media</p><p className="text-[10px] opacity-55">{selected.frameMediaUrl?"Drop another image/video to replace it.":"Select this frame, then drag media from the library onto the canvas."}</p>{selected.frameMediaUrl?<><label className="block font-semibold">Horizontal focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalX??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalX:Number(e.target.value)/100})} className="w-full"/></label><label className="block font-semibold">Vertical focus<input type="range" min="0" max="100" value={Math.round((selected.frameFocalY??.5)*100)} onChange={e=>updateLayer(selected.id,{frameFocalY:Number(e.target.value)/100})} className="w-full"/></label><button type="button" onClick={()=>updateLayer(selected.id,{frameMediaUrl:null,frameMediaKind:null,sourceAssetId:null})} className="text-[11px] underline">Remove frame media</button></>:null}</div>:null}
-              {brandSpace?<GalaxyInspectorSection title="Brand Space"><div className="space-y-2"><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-white/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-white/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div></GalaxyInspectorSection>:null}
+              {brandSpace?<GalaxyInspectorSection title="Brand Space" appearance="dark"><div className="space-y-2"><div className="flex flex-wrap gap-1">{Object.entries(brandSpace.colors).map(([role,value])=><button key={role} type="button" title={role} onClick={()=>updateLayer(selected.id,selected.type==="text"?{color:value}:selected.type==="line"?{stroke:value,fill:value}:{fill:value})} className="h-6 w-6 rounded border border-white/10" style={{background:value}}/>)}</div>{selected.type==="text"?<div className="flex flex-wrap gap-1">{Object.entries(brandSpace.typography).map(([role,font])=><button key={role} type="button" onClick={()=>updateLayer(selected.id,{fontFamily:font})} className="rounded border border-white/10 px-2 py-1 text-[8px]">{role}</button>)}</div>:null}</div></GalaxyInspectorSection>:null}
               {selected.type === "image" ? (
                 <div className="space-y-2">
                   {selected.imageUrl ? (

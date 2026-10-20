@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { creativeTextGraphemes, wrapCreativeText } from "@/lib/creative-core/text-layout";
 import { mediaFilterCss } from "@/lib/studio/media-adjustments";
 import { layerMotionAtTime } from "@/lib/studio/layer-motion";
 import { applyStudioCanvasFill, studioCanvasCompositeOperation } from "@/lib/studio/layer-paint";
@@ -30,7 +31,7 @@ export const canvasLayerSchema = z.object({
   locked: z.boolean().optional().default(false),
   /** Shared id = group (move/align/delete together) */
   groupId: z.string().trim().max(40).nullable().optional(),
-  text: z.string().trim().max(500).optional(),
+  text: z.string().max(500).optional(),
   fontSize: z.number().min(8).max(200).optional(),
   fontFamily: z.string().trim().max(80).optional(),
   fontWeight: z.string().trim().max(20).optional(),
@@ -908,9 +909,17 @@ function transformedLayerText(layer: CanvasLayer): string {
   return raw;
 }
 
+function supportsNativeLetterSpacing(ctx: CanvasRenderingContext2D): boolean {
+  return "letterSpacing" in ctx;
+}
+
 function textWidth(ctx: CanvasRenderingContext2D, text: string, letterSpacing: number): number {
   if (!text) return 0;
-  return ctx.measureText(text).width + Math.max(0, text.length - 1) * letterSpacing;
+  if (supportsNativeLetterSpacing(ctx)) {
+    ctx.letterSpacing = `${letterSpacing}px`;
+    return ctx.measureText(text).width;
+  }
+  return ctx.measureText(text).width + Math.max(0, creativeTextGraphemes(text).length - 1) * letterSpacing;
 }
 
 function paintTextRun(
@@ -920,12 +929,17 @@ function paintTextRun(
   y: number,
   letterSpacing: number,
 ) {
+  if (supportsNativeLetterSpacing(ctx)) {
+    ctx.letterSpacing = `${letterSpacing}px`;
+    ctx.fillText(text, x, y);
+    return;
+  }
   if (!letterSpacing) {
     ctx.fillText(text, x, y);
     return;
   }
   let cursor = x;
-  for (const char of text) {
+  for (const char of creativeTextGraphemes(text)) {
     ctx.fillText(char, cursor, y);
     cursor += ctx.measureText(char).width + letterSpacing;
   }
@@ -942,25 +956,7 @@ function paintTextLayer(ctx: CanvasRenderingContext2D, layer: CanvasLayer) {
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
 
-  const paragraphs = text.split(/\n/);
-  const lines: string[] = [];
-  for (const paragraph of paragraphs) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
-    if (!words.length) {
-      lines.push("");
-      continue;
-    }
-    let current = words[0]!;
-    for (const word of words.slice(1)) {
-      const candidate = current + " " + word;
-      if (textWidth(ctx, candidate, letterSpacing) <= layer.width) current = candidate;
-      else {
-        lines.push(current);
-        current = word;
-      }
-    }
-    lines.push(current);
-  }
+  const lines = wrapCreativeText(text, layer.width, value => textWidth(ctx, value, letterSpacing));
 
   let y = layer.y + fontSize;
   for (const line of lines) {
