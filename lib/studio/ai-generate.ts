@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { yandeChat } from "@/lib/yande/gateway";
 import { z } from "zod";
 import {
   artboardSize,
@@ -271,7 +271,7 @@ export function fallbackStudioCampaignPack(brief: StudioGenerateBrief): {
  * Prompt → 1–3 editable Studio canvases (structured JSON, not images).
  * Honest fallback when ANTHROPIC_API_KEY is missing.
  */
-export async function generateStudioCampaignWithAi(brief: StudioGenerateBrief): Promise<
+export async function generateStudioCampaignWithAi(brief: StudioGenerateBrief, userId: string | null = null): Promise<
   | { ok: true; designs: StudioGeneratedDesign[]; usedAi: boolean; fallback?: boolean }
   | { ok: false; error: string }
 > {
@@ -280,14 +280,12 @@ export async function generateStudioCampaignWithAi(brief: StudioGenerateBrief): 
     return { ok: false, error: "Invalid campaign brief." };
   }
   const input = parsed.data;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (!process.env.ANTHROPIC_API_KEY) {
     const fb = fallbackStudioCampaignPack(input);
     return { ok: true, designs: fb.designs, usedAi: false, fallback: true };
   }
 
-  const anthropic = new Anthropic({ apiKey });
-  const system = `You are Yande in Kebu Studio. Generate editable marketing design packs as JSON only.
+  const system = `In Kebu Studio. Generate editable marketing design packs as JSON only.
 Return ONLY JSON: { "designs": [ { "title", "designType", "backgroundColor", "headline", "subheadline", "cta", "accentColor", "businessName" } ] }
 Allowed designType: ${STUDIO_DESIGN_TYPES.join(", ")}.
 Prefer 3 designs: instagram_post, instagram_story, flyer.
@@ -301,20 +299,18 @@ Brand colors (optional): primary=${input.primaryColor ?? ""} accent=${input.acce
 Return 3 designs for Instagram post, Instagram story, and flyer.`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
-      messages: [
-        { role: "user", content: system },
-        { role: "user", content: userPrompt },
-      ],
+    const result = await yandeChat({
+      feature: "studio_campaign_generate",
+      userId,
+      systemPrompt: system,
+      userMessage: userPrompt,
+      maxTokens: 2048,
     });
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
+    if (!result.reply) {
       const fb = fallbackStudioCampaignPack(input);
       return { ok: true, designs: fb.designs, usedAi: false, fallback: true };
     }
-    const raw = extractJson(textBlock.text);
+    const raw = extractJson(result.reply);
     const pack = aiPackSchema.safeParse(raw);
     if (!pack.success) {
       const fb = fallbackStudioCampaignPack(input);

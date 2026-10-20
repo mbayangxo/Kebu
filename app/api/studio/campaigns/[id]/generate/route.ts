@@ -64,7 +64,7 @@ export async function POST(_req: Request, { params }: Params) {
     if (kit) dna = rowToBrandDna(kit as Record<string, unknown>);
   }
 
-  const pack = await generateCampaignDesignPack({ campaign, dna });
+  const pack = await generateCampaignDesignPack({ campaign, dna, userId: user.id });
   const createdIds: string[] = [];
   const designsOut: { id: string; title: string; design_type: string }[] = [];
 

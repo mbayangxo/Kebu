@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const generated = await generateStudioCampaignWithAi(parsed.data);
+  const generated = await generateStudioCampaignWithAi(parsed.data, user.id);
   if (!generated.ok) {
     return NextResponse.json({ error: `${generated.error}${process.env.ANTHROPIC_API_KEY ? " One AI attempt was reserved; retrying may use another allowance." : ""}` }, { status: 400 });
   }

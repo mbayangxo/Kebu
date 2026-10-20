@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { createWebsiteBriefSchema } from "@/lib/create/website-schema";
 import { definitionFromTemplateSlug } from "@/lib/create/ai-generate";

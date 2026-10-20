@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { yandeChat } from "@/lib/yande/gateway";
 import type { AiImproveBrief, WebsiteDefinition } from "./website-schema";
 import { validateWebsiteDefinition } from "./website-schema";
 
@@ -194,13 +194,13 @@ export function preserveTemplateVisualAssets(
  */
 export async function improveWebsiteWithAi(
   current: WebsiteDefinition,
-  brief: AiImproveBrief
+  brief: AiImproveBrief,
+  userId: string | null = null,
 ): Promise<
   | { ok: true; definition: WebsiteDefinition; repaired: boolean }
   | { ok: false; error: string }
 > {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (!process.env.ANTHROPIC_API_KEY) {
     return {
       ok: false,
       error:
@@ -208,8 +208,7 @@ export async function improveWebsiteWithAi(
     };
   }
 
-  const anthropic = new Anthropic({ apiKey });
-  const system = `You are Yande — Kebu's expert website DESIGNER for African businesses. Improve Kebu website structures. Return ONLY JSON matching schemaVersion “website-v1”.
+  const system = `Kebu's expert website DESIGNER for African businesses. Improve Kebu website structures. Return ONLY JSON matching schemaVersion “website-v1”.
 
 ALLOWED SECTION TYPES (use premium ones where appropriate):
 navigation, hero, text, image, gallery, features, testimonials, faq, contact, whatsapp, footer,
@@ -275,18 +274,17 @@ ${JSON.stringify(current)}
 Return a full improved website-v1 JSON object only.`;
 
   async function call(prompt: string) {
-    const response = await anthropic.messages.create({
+    const result = await yandeChat({
+      feature: "builder_site_improve",
+      userId,
+      systemPrompt: system,
+      userMessage: prompt,
       model: "claude-opus-4-8",
-      max_tokens: 8000,
-      thinking: { type: "adaptive" },
-      messages: [
-        { role: "user", content: system },
-        { role: "user", content: prompt },
-      ],
+      thinking: true,
+      maxTokens: 8000,
     });
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") throw new Error("No text in AI response");
-    return extractJson(textBlock.text);
+    if (!result.reply) throw new Error("No text in AI response");
+    return extractJson(result.reply);
   }
 
   function finalize(def: WebsiteDefinition, repaired: boolean) {

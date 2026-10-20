@@ -105,6 +105,7 @@ export function creativeDirectorPrompt(opts: {
 export async function generateCampaignDesignPack(opts: {
   campaign: Pick<StudioCampaignProjectRow, "title" | "brief" | "goal" | "mood">;
   dna?: BrandDnaRow | null;
+  userId?: string | null;
 }): Promise<{ designs: StudioGeneratedDesign[]; usedAi: boolean; fallback: boolean }> {
   const mood = opts.campaign.mood;
   const prompt = creativeDirectorPrompt(opts);
@@ -115,7 +116,7 @@ export async function generateCampaignDesignPack(opts: {
     accentColor: mood.accentColor ?? opts.dna?.accent_color,
     backgroundColor: mood.backgroundColor ?? opts.dna?.background_color,
     creationMode: "create_for_me",
-  });
+  }, opts.userId ?? null);
   if (!result.ok) {
     return { designs: [], usedAi: false, fallback: true };
   }

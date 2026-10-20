@@ -6,7 +6,8 @@
  *
  * These are schema/logic unit tests — no Supabase connection required.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 import { createWebsiteBriefSchema, validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { registerBusinessSchema } from "@/lib/kebu-id/registration-schema";
 import { buildStructuredSiteFromBrief } from "@/lib/create/ai-generate";

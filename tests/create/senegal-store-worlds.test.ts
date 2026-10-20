@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 import { marcheBoutiqueWorldDefinition } from "@/lib/create/design-worlds/marche-boutique-world";
 import { whatsappCatalogWorldDefinition } from "@/lib/create/design-worlds/whatsapp-catalog-world";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";

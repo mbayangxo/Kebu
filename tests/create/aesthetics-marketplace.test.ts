@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 import { kebuCatalogAestheticCards } from "@/lib/create/aesthetics-marketplace";
 import { parseKebuTemplateFile, serializeKebuTemplateFile } from "@/lib/create/kebu-template-file";
 

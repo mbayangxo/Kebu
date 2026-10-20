@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const ai = await generateWebsiteWithAi(brief);
+    const ai = await generateWebsiteWithAi(brief, user.id);
     if (!ai.ok) {
       return NextResponse.json({ error: `${ai.error}${process.env.ANTHROPIC_API_KEY ? " One AI attempt was reserved; retrying may use another allowance." : ""}` }, { status: 502 });
     }

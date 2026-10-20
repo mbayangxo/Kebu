@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { yandeChat } from "@/lib/yande/gateway";
 import {
   type CreateWebsiteBrief,
   type WebsiteDefinition,
@@ -285,18 +285,16 @@ function fallbackFromBrief(brief: CreateWebsiteBrief): {
   };
 }
 
-export async function generateWebsiteWithAi(brief: CreateWebsiteBrief): Promise<
+export async function generateWebsiteWithAi(brief: CreateWebsiteBrief, userId: string | null = null): Promise<
   | { ok: true; definition: WebsiteDefinition; usedAi: boolean; repaired: boolean; fallback?: boolean }
   | { ok: false; error: string }
 > {
   const expanded = withPages(brief);
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (!process.env.ANTHROPIC_API_KEY) {
     return fallbackFromBrief(expanded);
   }
 
-  const anthropic = new Anthropic({ apiKey });
-  const system = `You are Yande — Kebu's expert African website DESIGNER. Generate premium website structures. Return ONLY valid JSON matching schemaVersion "website-v1".
+  const system = `Kebu's expert African website DESIGNER. Generate premium website structures. Return ONLY valid JSON matching schemaVersion "website-v1".
 
 ALLOWED SECTION TYPES (use ALL of these, not just basic ones):
 - navigation: {brand, links:[{label,href}], background, navSize}
@@ -371,18 +369,17 @@ JSON structure:
 Remember: NEVER use generic placeholder colors or text. Every section must be designed with intention for this specific business.`;
 
   async function call(prompt: string) {
-    const response = await anthropic.messages.create({
+    const result = await yandeChat({
+      feature: "builder_site_generate",
+      userId,
+      systemPrompt: system,
+      userMessage: prompt,
       model: "claude-opus-4-8",
-      max_tokens: 8000,
-      thinking: { type: "adaptive" },
-      messages: [
-        { role: "user", content: system },
-        { role: "user", content: prompt },
-      ],
+      thinking: true,
+      maxTokens: 8000,
     });
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") throw new Error("No text in AI response");
-    return extractJson(textBlock.text);
+    if (!result.reply) throw new Error("No text in AI response");
+    return extractJson(result.reply);
   }
 
   try {

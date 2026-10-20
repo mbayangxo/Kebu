@@ -60,6 +60,16 @@ describe("yandeChat", () => {
     vi.doUnmock("@anthropic-ai/sdk");
   });
 
+  it("honors a model/thinking override for callers tuned on a specific model, without being forced onto YANDE_MODEL", async () => {
+    mockInsert();
+    const create = vi.fn().mockResolvedValue(messageWithText("Structured site, as opus."));
+    vi.doMock("@anthropic-ai/sdk", () => ({ default: class { messages = { create }; } }));
+    const { yandeChat } = await import("@/lib/yande/gateway");
+    await yandeChat({ feature: "builder_site_generate", userId: null, systemPrompt: "Design.", userMessage: "Build it.", model: "claude-opus-4-8", thinking: true, maxTokens: 8000 });
+    expect(create.mock.calls[0][0]).toMatchObject({ model: "claude-opus-4-8", max_tokens: 8000, thinking: { type: "adaptive" } });
+    vi.doUnmock("@anthropic-ai/sdk");
+  });
+
   it("never lets a logging failure break the real response", async () => {
     createServiceClient.mockImplementation(() => { throw new Error("db down"); });
     const create = vi.fn().mockResolvedValue(messageWithText("Still works."));

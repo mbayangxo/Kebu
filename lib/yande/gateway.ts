@@ -63,26 +63,43 @@ async function recordInteraction(entry: {
 
 export type YandeChatResult = { reply: string; model: string; inputTokens: number; outputTokens: number };
 
-/** Free-text chat — the shape the site-wide Yande assistant uses. */
+/**
+ * Free-text chat — the shape the site-wide Yande assistant uses.
+ *
+ * `model`/`thinking` are escape hatches for callers that need a
+ * specific model (e.g. Builder's structural site generation, tuned on
+ * an opus-class model with extended thinking) — they still go through
+ * this one client-construction + logging point rather than building
+ * their own, they just aren't forced onto YANDE_MODEL's defaults.
+ */
 export async function yandeChat(opts: {
   feature: string;
   userId: string | null;
   systemPrompt: string;
   userMessage: string;
   maxTokens?: number;
+  model?: string;
+  thinking?: boolean;
 }): Promise<YandeChatResult> {
   if (!yandeConfigured()) throw new Error("Yande is not configured on this server yet (missing AI key).");
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 45_000, maxRetries: 0 });
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    timeout: 45_000,
+    maxRetries: 0,
+    ...(process.env.ANTHROPIC_BASE_URL ? { baseURL: process.env.ANTHROPIC_BASE_URL } : {}),
+  });
   const system = `${YANDE_IDENTITY}\n\n${opts.systemPrompt}`;
+  const model = opts.model ?? YANDE_MODEL;
 
   try {
     const response = await client.messages.create({
-      model: YANDE_MODEL,
+      model,
       max_tokens: opts.maxTokens ?? 1024,
       system,
       messages: [{ role: "user", content: opts.userMessage }],
-    });
+      ...(opts.thinking ? { thinking: { type: "adaptive" } } : {}),
+    } as Anthropic.MessageCreateParamsNonStreaming);
     const reply = response.content
       .filter((block) => block.type === "text")
       .map((block) => (block.type === "text" ? block.text : ""))
@@ -95,7 +112,7 @@ export async function yandeChat(opts: {
     return { reply, model: response.model, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Yande request failed.";
-    await recordInteraction({ feature: opts.feature, mode: "chat", userId: opts.userId, model: YANDE_MODEL, outcome: "error", inputTokens: 0, outputTokens: 0, errorMessage: message });
+    await recordInteraction({ feature: opts.feature, mode: "chat", userId: opts.userId, model, outcome: "error", inputTokens: 0, outputTokens: 0, errorMessage: message });
     throw new Error(message);
   }
 }
@@ -120,7 +137,12 @@ export async function yandeStructured<T extends z.ZodType>(opts: {
   if (!yandeConfigured()) throw new Error("Yande is not configured on this server yet (missing AI key).");
   assertInputSize(opts.data);
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 45_000, maxRetries: 0 });
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    timeout: 45_000,
+    maxRetries: 0,
+    ...(process.env.ANTHROPIC_BASE_URL ? { baseURL: process.env.ANTHROPIC_BASE_URL } : {}),
+  });
   const system = `${YANDE_IDENTITY}\n\n${opts.systemPrompt}`;
 
   try {

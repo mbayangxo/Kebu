@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { user, brief, current, project } = guarded;
 
-  const ai = await improveWebsiteWithAi(current, brief);
+  const ai = await improveWebsiteWithAi(current, brief, user.id);
   if (!ai.ok) {
     logAiImproveFailure("website.ai_improve_preview_failed", user.id, project.id, ai.error);
     return NextResponse.json({ error: `${ai.error}${process.env.ANTHROPIC_API_KEY ? " One AI attempt was reserved; retrying may use another allowance." : ""}` }, { status: 502 });
