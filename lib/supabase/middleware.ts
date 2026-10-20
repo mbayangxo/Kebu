@@ -47,6 +47,13 @@ function isPublicPath(pathname: string): boolean {
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Gallery embeds contain only public template seeds. The page validates the
+  // slug with isPublicTemplateSlug; owner portfolios still return notFound.
+  // Keep this narrow exception ahead of the general /create auth guard.
+  if (/^\/create\/templates\/preview\/[^/]+\/?$/.test(pathname)) {
+    return NextResponse.next({ request });
+  }
+
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.next({ request });
   }

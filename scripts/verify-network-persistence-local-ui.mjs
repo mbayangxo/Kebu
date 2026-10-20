@@ -7,8 +7,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 const source = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const suite = process.env.KEBU_PLATFORM_UI_SUITE ?? 'network';
-if (!['network', 'login'].includes(suite)) throw Error('Choose the network or login local UI suite.');
-const testMatch = suite === 'login' ? 'login.local.spec.ts' : 'network-persistence.local.spec.ts';
+if (!['network', 'login', 'preview'].includes(suite)) throw Error('Choose the network, login or preview local UI suite.');
+const testMatch = {network:'network-persistence.local.spec.ts',login:'login.local.spec.ts',preview:'template-preview.local.spec.ts'}[suite];
 const chromium = process.env.KEBU_CHROMIUM_EXECUTABLE_PATH, modulePath = process.env.KEBU_PGLITE_MODULE_PATH;
 if (!chromium || !modulePath) throw Error('Set local Chromium and PGlite paths. No hosted fallback.');
 const output = process.env.KEBU_UI_OUTPUT_DIR ?? mkdtempSync(join(tmpdir(), 'kebu-network-results-'));
@@ -85,7 +85,7 @@ try {
  const code=await new Promise((done,fail)=>{tests.once('exit',done);tests.once('error',fail);});
  const stats=JSON.parse(readFileSync(join(output,'results.json'),'utf8')).stats;
  writeFileSync(join(output,'verification.json'),JSON.stringify({...stats,sqlQueries:queries,transport:'loopback Auth/REST fixture; actual Next handlers and SQL/RLS'},null,2));
- console.log(suite === 'login' ? 'LOGIN_UI_RESULT' : 'NETWORK_PERSISTENCE_RESULT',JSON.stringify({...stats,sqlQueries:queries}));
+ console.log(suite === 'network' ? 'NETWORK_PERSISTENCE_RESULT' : suite.toUpperCase() + '_UI_RESULT',JSON.stringify({...stats,sqlQueries:queries}));
  if(code!==0||stats.unexpected||stats.skipped||stats.expected<1)throw Error('Network persistence gate failed');
 }finally{
  await stop(tests);await stop(server);

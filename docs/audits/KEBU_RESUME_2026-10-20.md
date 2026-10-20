@@ -43,3 +43,14 @@ Studio rerun: **20 browser cases passed, zero skipped/failing/flaky**, including
 Preview `dpl_J131mB18Uu9ZgNoWq3VGVxYvF7rZ` reached READY for source `8005301`; https://kebu-p8jwaw1xz-mbayangxos-projects.vercel.app. No production promotion. Remote CI run `39385141618` was still running when inspected; dependency installation, migration hygiene and TypeScript had passed. Local migration hygiene passes all 72 canonical timestamped migrations.
 
 The previous preview E2E run `39365940203` failed during collection: it loaded isolated `.local.spec.ts` suites against the hosted preview, then crashed while importing `check-3j-gate.mjs`. Root repair: the main Playwright config ignores only `.local.spec.ts`; dedicated local runners still execute those suites. Verified hosted discovery now collects **568 tests in 9 files**, exits 0 and does not import isolated suites. This is discovery verification, not a claim that 568 hosted tests passed. The later hosted workflow must finish before any hosted gate is marked green.
+
+
+## Hosted execution follow-through
+
+Both GitHub CI runs `39385141618` (`8005301`) and `39385446183` (`2c81260`) completed SUCCESS. Preview `dpl_E28kERhjxcYVzRpcnxfz3SWtSRLD` reached READY at `2c81260`. Fresh worktree continuity reports that exact SHA, ahead 0, behind 0, clean and durable.
+
+Hosted E2E run `39385572178` completed FAILURE: 269 passed, 7 failed, 27 skipped, 265 did not run. It no longer failed collection. Five health cases ignored the configured deployment and used a hard-coded loopback URL. Public template previews were redirected to sign-in by the broad `/create` middleware guard, and render probes waited for network silence instead of the rendered template. These failures are not dismissed as an environment-only pass.
+
+Repairs: viewport health now navigates the configured deployment and requires HTTP 200 plus the actual login heading; the middleware's narrow `/create/templates/preview/<slug>` exception is evaluated before the `/create` auth guard. The preview page retains its existing public-slug check, so owner portfolios remain 404. Nested preview/edit paths and all private editors remain protected. Main public render checks require the actual template marker instead of swallowing a network-idle timeout.
+
+Verification: five focused middleware unit cases passed. One actual browser journey passes anonymous desktop/phone preview, owner-portfolio 404 and private-editor sign-in. No auth credentials were removed from protected editor routes. Current local gate rerun passed: TypeScript, full lint (zero errors/344 warnings), **6,022 tests passed/168 explicit skips**, production build exit 0 with all 221 pages generated. Hosted execution of these follow-up repairs remains pending. No production change.

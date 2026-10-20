@@ -301,12 +301,9 @@ test.describe("Gallery aesthetics — full render certification (32 × 7 viewpor
             `${slug} @ ${viewport.label}: got redirected to login — auth guard active`,
           ).not.toContain("/login");
 
-          // Wait for React hydration: networkidle + explicit presence of the
-          // rendered template wrapper so auditPage() sees the mounted DOM.
-          await page.waitForLoadState("networkidle").catch(() => {});
-          await page
-            .waitForSelector('[data-template-preview]', { timeout: 10_000 })
-            .catch(() => {});
+          // Gallery media can keep network requests active. Require the actual
+          // rendered template instead of waiting for unrelated network silence.
+          await expect(page.locator(`[data-template-preview="${slug}"]`)).toBeVisible();
 
           // ── 2. Audit ──────────────────────────────────────────────────────
           const audit = await auditPage(page, viewport);

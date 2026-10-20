@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## October 20 — hosted preview follow-through
+
+GitHub CI for `8005301` and `2c81260` is green; both previews reached READY. Hosted E2E at `2c81260` failed (269 passed, 7 failed, 27 skipped, 265 not run). Repaired hard-coded loopback health checks and the public-template auth redirect; retained private editor authentication and owner-portfolio 404. Five middleware tests and a real desktop/phone privacy browser journey pass. Render checks now require the actual template instead of network silence. Current local gate passes TypeScript, lint (zero errors/344 warnings), 6,022 tests/168 explicit skips and all 221 build pages. Repaired hosted execution remains open; this does not close May/Studio/3J/99-group acceptance.
+
 ## October 20 — recovery guard, login and Network acceptance continuation
 
 Recovered authoritative source `1fee5aa` in an isolated worktree. Continuity checks now accept current feature branches while rejecting stale/diverged/detached states. Network freezes submitted fields until a receipt or error. Login contrast, labels/autocomplete, announced errors and confirmation retry handling repaired. Contact: six actual-component/API/isolated-SQL browser journeys passed, 33 queries and three permission assertions. Login fixture journey passed, including failed confirmation and retry. Network: four browser journeys passed with 17 SQL queries, including desktop/phone and lost-response retry. Final-source gate chain passed: 6,017 tests/168 skips, zero lint errors/346 warnings and a 221-page build. Recovered collage/video browser gate: 12 passed with zero skips, plus verified cleanup. Studio browser: 20 passed with zero skips; independent SQL/RLS: 23 passed. See `audits/KEBU_RESUME_2026-10-20.md` for provenance and exact evidence limits.

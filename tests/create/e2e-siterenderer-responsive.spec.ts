@@ -104,8 +104,8 @@ async function checkSiteRendererPage(
     return "skip:404";
   }
 
-  // Wait for Next.js hydration.
-  await page.waitForLoadState("networkidle").catch(() => {});
+  expect(response?.status()).toBe(200);
+  await expect(page.locator("[data-template-preview]")).toBeVisible();
 
   return "ok";
 }

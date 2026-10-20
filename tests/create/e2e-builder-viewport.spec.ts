@@ -78,36 +78,9 @@ test.describe("site responds at each canonical viewport", () => {
   for (const vp of VIEWPORTS) {
     test(`${vp.label} (${vp.width}×${vp.height}) — server responds`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      // The production server redirects HTTP→HTTPS (308), but there is no TLS listener
-      // in this environment. We capture the initial response before the redirect chain.
-      // Any 2xx/3xx/4xx (not 5xx) proves the server is healthy.
-      let status = 0;
-      try {
-        const res = await page.goto("http://127.0.0.1:3099/login", {
-          waitUntil: "commit",   // capture the first response before redirects
-          timeout: 15_000,
-        });
-        status = res?.status() ?? 0;
-      } catch (_e) {
-        // SSL redirect failure is expected in test environments with no TLS listener.
-        // The initial 308 from the HTTP listener counts as "server is alive".
-        // We use curl to confirm the 308 was returned.
-        const { execSync } = await import("child_process");
-        try {
-          const out = execSync(
-            "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3099/login",
-            { timeout: 5000 },
-          ).toString();
-          status = parseInt(out.trim().replace(/'/g, ""), 10);
-        } catch {
-          status = 0;
-        }
-      }
-      // 308 redirect = server healthy but redirecting to HTTPS
-      // 200 = fully served (would require TLS in production builds)
-      // 4xx = auth gate, server healthy
-      expect(status).toBeGreaterThan(0);
-      expect(status).toBeLessThan(500);
+      const response = await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
+      expect(response?.status()).toBe(200);
+      await expect(page.getByRole("heading", { name: "Welcome back", exact: true })).toBeVisible();
     });
   }
 });
