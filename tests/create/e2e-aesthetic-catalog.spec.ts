@@ -388,7 +388,7 @@ test.describe("Gallery aesthetics — full render certification (32 × 7 viewpor
 // ── May Lècor regression tests ────────────────────────────────────────────────
 
 test.describe("May Lècor — owner_portfolio regression (dev fixture)", () => {
-  test.skip(!CAN_TEST, "KEBU_E2E_BASE_URL not set");
+  test.skip(!CAN_TEST || process.env.KEBU_E2E_MAY_FIXTURE !== "1", "Requires an explicitly provisioned development May fixture; ordinary-account May acceptance is separate");
 
   for (const viewport of ALL_VIEWPORTS) {
     test(`May Lècor home @ ${viewport.label}`, async ({ page }) => {
@@ -398,16 +398,9 @@ test.describe("May Lècor — owner_portfolio regression (dev fixture)", () => {
       const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20_000 });
 
       const status = response?.status() ?? 0;
-      if (status === 404) {
-        test.skip(true, "maylecor-fixture route not available (not in development mode)");
-        return;
-      }
       expect(status).toBe(200);
 
-      await page.waitForLoadState("networkidle").catch(() => {});
-      await page
-        .waitForSelector('[data-fixture="maylecor"]', { timeout: 10_000 })
-        .catch(() => {});
+      await expect(page.locator('[data-fixture="maylecor"]')).toBeVisible();
 
       const audit = await auditPage(page, viewport);
 
@@ -475,11 +468,8 @@ test.describe("May Lècor — owner_portfolio regression (dev fixture)", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const url = `${BASE_URL}/create/demo/maylecor-fixture?page=music`;
     const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20_000 });
-    if (response?.status() === 404) {
-      test.skip(true, "maylecor-fixture not available");
-      return;
-    }
-    await page.waitForLoadState("networkidle").catch(() => {});
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('[data-fixture="maylecor"]')).toBeVisible();
     const overflow = await page.evaluate(() => document.body.scrollWidth > window.innerWidth + 2);
     if (overflow) await screenshotOnFail(page, "maylecor-music-overflow-390");
     expect(overflow, "May Lècor music page @ 390: horizontal overflow").toBe(false);

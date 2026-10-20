@@ -13,7 +13,6 @@ import { StudioReachPromote } from "@/app/components/studio/studio-reach-promote
 import { StudioResizeDialog } from "@/app/components/studio/studio-resize-dialog";
 import { StudioTimelinePanel } from "@/app/components/studio/studio-timeline-panel";
 import { StudioCoachPanel } from "@/app/components/studio/studio-coach-panel";
-import { YandeGlobalFab } from "@/app/components/yande-global-fab";
 import {
   downloadBlob,
   downloadPngDataUrl,
@@ -31,7 +30,7 @@ import {
   estimateTimelineDurationSeconds,
   exportCanvasMotionToWebmBlob,
 } from "@/lib/studio/motion-export";
-import { clipAtTime, pageLocalTimeMs } from "@/lib/studio/timeline";
+import { clipAtTime, pageLocalTimeMs, studioNeedsTimeline } from "@/lib/studio/timeline";
 import { resizeCanvasDocument } from "@/lib/studio/editor-craft";
 import type { StudioDesignAccess } from "@/lib/studio/design-access";
 import { studioRoleLabel } from "@/lib/studio/design-access";
@@ -94,12 +93,12 @@ export default function StudioEditorPage() {
   const [secondsPerPage, setSecondsPerPage] = useState(2);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [timelinePlaying, setTimelinePlaying] = useState(false);
+  const [timelineOverride, setTimelineOverride] = useState<boolean | null>(null);
   const soundtrackAudioRef = useRef<HTMLAudioElement | null>(null);
   const [history, setHistory] = useState<CanvasDocument[]>([]);
   const [future, setFuture] = useState<CanvasDocument[]>([]);
   const [offlineMediaUrls, setOfflineMediaUrls] = useState<Record<string, string>>({});
   const offlineObjectUrls = useRef<string[]>([]);
-  const skipHistory = useRef(false);
   const dragBaseline = useRef<CanvasDocument | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const docRef = useRef<CanvasDocument | null>(null);
@@ -209,7 +208,6 @@ export default function StudioEditorPage() {
       }
       if (data.access) setAccess(data.access as StudioDesignAccess);
       setUserId(nextUserId);
-      skipHistory.current = true;
       setDoc(initialDoc);
       docRef.current = initialDoc;
       setActivePageId(initialDoc.pages[0]?.id ?? "");
@@ -256,7 +254,6 @@ export default function StudioEditorPage() {
           updated_at: local.serverUpdatedAt ?? local.savedAt,
         });
         setServerUpdatedAt(local.serverUpdatedAt);
-        skipHistory.current = true;
         setDoc(local.canvas);
         docRef.current = local.canvas;
         setActivePageId(local.canvas.pages[0]?.id ?? "");
@@ -444,7 +441,6 @@ export default function StudioEditorPage() {
     draftTypeRef.current = conflictServer.designType;
     setServerUpdatedAt(conflictServer.updatedAt);
     setDesign((current) => current ? { ...current, canvas: next, design_type: conflictServer.designType, updated_at: conflictServer.updatedAt } : current);
-    skipHistory.current = true;
     docRef.current = next;
     lastSavedDocRef.current = next;
     setDoc(next);
@@ -482,7 +478,8 @@ export default function StudioEditorPage() {
   function applyDoc(next: CanvasDocument, recordHistory: boolean) {
     if (!canEdit) return;
     if (recordHistory && docRef.current) {
-      setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), docRef.current!]);
+      const previous = docRef.current;
+      setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), previous]);
       setFuture([]);
     }
     docRef.current = next;
@@ -492,13 +489,8 @@ export default function StudioEditorPage() {
 
   function onChangeDoc(next: CanvasDocument, opts?: { ephemeral?: boolean }) {
     if (!canEdit) return;
-    if (skipHistory.current) {
-      skipHistory.current = false;
-      docRef.current = next;
-      setDoc(next);
-      return;
-    }
     if (opts?.ephemeral) {
+      setSaveState(current => saveQueue.isBlocked() ? current : "pending");
       if (!dragBaseline.current && docRef.current) {
         dragBaseline.current = docRef.current;
       }
@@ -507,7 +499,8 @@ export default function StudioEditorPage() {
       return;
     }
     if (dragBaseline.current) {
-      setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), dragBaseline.current!]);
+      const baseline = dragBaseline.current;
+      setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), baseline]);
       setFuture([]);
       dragBaseline.current = null;
       docRef.current = next;
@@ -518,29 +511,25 @@ export default function StudioEditorPage() {
   }
 
   function undo() {
-    if (!canEdit) return;
-    setHistory((h) => {
-      if (!h.length || !docRef.current) return h;
-      const prev = h[h.length - 1]!;
-      setFuture((f) => [docRef.current!, ...f].slice(0, HISTORY_CAP));
-      skipHistory.current = true;
-      docRef.current = prev;
-      setDoc(prev);
-      return h.slice(0, -1);
-    });
+    const current = docRef.current, previous = history[history.length - 1];
+    if (!canEdit || !current || !previous) return;
+    setHistory((h) => h.slice(0, -1));
+    setFuture((f) => [current, ...f].slice(0, HISTORY_CAP));
+    dragBaseline.current = null;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
+    docRef.current = previous;
+    setDoc(previous);
   }
 
   function redo() {
-    if (!canEdit) return;
-    setFuture((f) => {
-      if (!f.length || !docRef.current) return f;
-      const next = f[0]!;
-      setHistory((h) => [...h, docRef.current!].slice(-HISTORY_CAP));
-      skipHistory.current = true;
-      docRef.current = next;
-      setDoc(next);
-      return f.slice(1);
-    });
+    const current = docRef.current, next = future[0];
+    if (!canEdit || !current || !next) return;
+    setFuture((f) => f.slice(1));
+    setHistory((h) => [...h, current].slice(-HISTORY_CAP));
+    dragBaseline.current = null;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
+    docRef.current = next;
+    setDoc(next);
   }
 
   /** Autosave ~1.2s after edits */
@@ -882,6 +871,8 @@ export default function StudioEditorPage() {
     return <div className="min-h-screen flex items-center justify-center bg-[#0B0B0C] text-white/45">Loading…</div>;
   }
 
+  const timelineVisible = timelineOverride ?? studioNeedsTimeline(doc);
+
   const saveLabel = !canEdit
     ? studioRoleLabel(access.role)
     : syncState === "conflict"
@@ -902,26 +893,27 @@ export default function StudioEditorPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0B0B0C] text-white">
-      <header className="shrink-0 z-30 border-b border-white/10 bg-[#0B0B0C]">
+      <header className="relative z-50 shrink-0 border-b border-white/10 bg-[#0B0B0C]">
         <div className="flex h-14 items-center gap-4 px-3 sm:px-5">
           <Link href="/dashboard" className="shrink-0 text-[9px] font-semibold text-white/55 no-underline">← Kebu</Link><span className="text-white/15">|</span><Link href="/studio" className="shrink-0 text-[11px] font-semibold text-white no-underline">Studio</Link>
-          <nav className="hidden items-center gap-4 text-[10px] font-semibold text-white/62 lg:flex">
-            <span>Design</span><Link href="/studio/video">Video</Link><Link href="/studio?tab=audio">Audio</Link><span>All tools</span><Link href="/studio/templates">Templates</Link><span>Elements</span><Link href="/studio/brand">Brand</Link><span>AI</span>
+          <span className="text-[10px] text-white/45">Design</span>
+          <nav aria-label="Studio navigation" className="ml-auto flex items-center gap-4 text-[11px] text-white/70">
+            <Link href="/studio">Projects</Link><Link href="/studio/templates">Templates</Link>
           </nav>
-          <div className="mx-auto hidden max-w-xl flex-1 lg:block"><div className="flex h-9 items-center rounded-[10px] border border-white/10 bg-white/[.035] px-3 text-[10px] text-white/40">⌕&nbsp;&nbsp; Search templates, elements, or your files…<span className="ml-auto rounded-md border border-white/10 px-1.5 py-0.5 text-[8px]">⌘ K</span></div></div>
-          <button type="button" className="hidden h-8 w-8 items-center justify-center rounded-full border border-white/10 text-white/55 sm:flex">♡</button>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2C7B9] text-[9px] font-semibold text-black">K</span>
         </div>
-        <div className="flex min-h-12 items-center gap-2 overflow-x-auto whitespace-nowrap border-t border-white/[.06] px-3 sm:px-5">
-          <Link href="/studio" className="rounded-[8px] bg-[#FF6A00] px-3 py-2 text-[9px] font-semibold text-white">+ Create new</Link>
-          <h1 className="ml-2 min-w-[160px] max-w-sm truncate text-[11px] font-semibold text-white">{design.title}</h1>
-          <span className="rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] text-white/62">{doc.width} × {doc.height}</span>
-          <button type="button" onClick={undo} disabled={!canEdit || history.length===0} className="rounded-[8px] px-2 py-2 text-[11px] text-white/45 disabled:opacity-20" aria-label="Undo">↶</button>
-          <button type="button" onClick={redo} disabled={!canEdit || future.length===0} className="rounded-[8px] px-2 py-2 text-[11px] text-white/45 disabled:opacity-20" aria-label="Redo">↷</button>
-          <span className="ml-auto text-[9px] text-white/38">{saveLabel}</span>
-          <button type="button" onClick={() => setShowBrandKit((v)=>!v)} className="rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] font-semibold text-white/70">Brand</button>
-          {canEdit ? <button type="button" onClick={()=>setShowResize(true)} className="rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] font-semibold text-white/70">Resize</button> : null}
-          <select aria-label="Create editable size variant" disabled={!canEdit || variantBusy || syncState==="conflict"} defaultValue="" onChange={(e)=>{const value=e.target.value as StudioDesignType;if(value)void createVariant(value);e.currentTarget.value=""}} className="rounded-[8px] border border-white/10 bg-[#171719] px-3 py-2 text-[9px] font-semibold text-white/70"><option value="">{variantBusy?"Creating…":"Variant"}</option><option value="instagram_post">Instagram post</option><option value="instagram_story">Instagram story</option><option value="whatsapp_status">WhatsApp status</option><option value="facebook_post">Facebook post</option><option value="flyer">Flyer</option><option value="poster">Poster</option><option value="banner">Banner</option><option value="business_card">Business card</option></select><details className="relative"><summary className="cursor-pointer list-none rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] font-semibold text-white/70">More</summary><div className="absolute right-0 top-11 z-50 w-[190px] rounded-[12px] border border-white/10 bg-[#171719] p-2 shadow-2xl">
+        <div role="group" aria-label="Studio commands" className="flex min-h-12 min-w-0 items-center gap-2 border-t border-white/[.06] px-3 py-2 sm:px-5">
+          <Link href="/studio" className="hidden shrink-0 rounded-[8px] bg-[#FF6A00] px-3 py-2 text-[11px] font-semibold text-white sm:block">+ Create new</Link>
+          <h1 className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white">{design.title}</h1>
+          <span className="hidden shrink-0 rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[10px] text-white/65 xl:block">{doc.width} × {doc.height}</span>
+          <span role="status" className="max-w-[110px] shrink-0 text-[10px] leading-tight text-white/70">{saveLabel}</span>
+          <button type="button" onClick={() => setShowBrandKit((v)=>!v)} className="hidden shrink-0 rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[11px] font-semibold text-white/70 lg:block">Brand</button>
+          {canEdit ? <button type="button" onClick={()=>setShowResize(true)} className="hidden shrink-0 rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[11px] font-semibold text-white/70 lg:block">Resize</button> : null}
+          <select aria-label="Create editable size variant" disabled={!canEdit || variantBusy || syncState==="conflict"} defaultValue="" onChange={(e)=>{const value=e.target.value as StudioDesignType;if(value)void createVariant(value);e.currentTarget.value=""}} className="hidden max-w-[110px] shrink-0 rounded-[8px] border border-white/10 bg-[#171719] px-3 py-2 text-[11px] font-semibold text-white/70 xl:block"><option value="">{variantBusy?"Creating…":"Variant"}</option><option value="instagram_post">Instagram post</option><option value="instagram_story">Instagram story</option><option value="whatsapp_status">WhatsApp status</option><option value="facebook_post">Facebook post</option><option value="flyer">Flyer</option><option value="poster">Poster</option><option value="banner">Banner</option><option value="business_card">Business card</option></select><details className="relative"><summary className="cursor-pointer list-none rounded-[8px] border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] font-semibold text-white/70">More</summary><div className="absolute right-0 top-11 z-50 w-[190px] rounded-[12px] border border-white/10 bg-[#171719] p-2 shadow-2xl">
+            <button type="button" onClick={()=>setShowBrandKit(v=>!v)} className="block w-full rounded-lg px-3 py-2 text-left text-[11px] text-white/80 hover:bg-white/[.06] lg:hidden">Brand</button>
+            {canEdit ? <button type="button" onClick={()=>setShowResize(true)} className="block w-full rounded-lg px-3 py-2 text-left text-[11px] text-white/80 hover:bg-white/[.06] lg:hidden">Resize</button> : null}
+            <label className="block px-3 py-2 text-[11px] text-white/80 xl:hidden">Size variant<select aria-label="Create editable size variant" disabled={!canEdit || variantBusy || syncState==="conflict"} defaultValue="" onChange={e=>{const value=e.target.value as StudioDesignType;if(value)void createVariant(value);e.currentTarget.value=""}} className="mt-1 w-full rounded border border-white/20 bg-[#171719] p-2"><option value="">{variantBusy?"Creating…":"Choose size"}</option>{(["instagram_post","instagram_story","whatsapp_status","facebook_post","flyer","poster","banner","business_card"] as const).map(value=><option key={value} value={value}>{value.replaceAll("_"," ")}</option>)}</select></label>
+            <button type="button" onClick={()=>{setShowShare(v=>!v);setShowVersions(false);setShowComments(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-[11px] text-white/80 sm:hidden">Share</button>
+            <button type="button" onClick={()=>{setTimelineOverride(!timelineVisible);if(timelineVisible){setTimelinePlaying(false);setPlayheadMs(0)}}} className="block w-full rounded-lg px-3 py-2 text-left text-[11px] text-white/80 hover:bg-white/[.06]">{timelineVisible ? "Hide timeline" : "Show timeline"}</button>
             <button type="button" onClick={()=>void downloadPng()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Download PNG</button>
             <button type="button" disabled={packBusy} onClick={()=>void downloadPdf()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Export PDF</button>
             <button type="button" disabled={packBusy} onClick={()=>void downloadZip()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Download pages ZIP</button>
@@ -930,8 +922,8 @@ export default function StudioEditorPage() {
             <button type="button" onClick={()=>{setShowVersions((v)=>!v);setShowShare(false);setShowComments(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Versions</button>
             <button type="button" onClick={()=>{setShowComments((v)=>!v);setShowShare(false);setShowVersions(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Comments</button>
           </div></details>
-          <button type="button" onClick={()=>{setShowShare((v)=>!v);setShowVersions(false);setShowComments(false)}} className="rounded-[8px] border border-white/15 px-4 py-2 text-[9px] font-semibold text-white">Share</button>
-          {canEdit ? <button type="button" onClick={()=>doc&&void persist(doc)} className="rounded-[8px] bg-[#FF6A00] px-4 py-2 text-[9px] font-semibold text-white">Save draft</button> : null}
+          <button type="button" onClick={()=>{setShowShare((v)=>!v);setShowVersions(false);setShowComments(false)}} className="hidden shrink-0 rounded-[8px] border border-white/15 px-3 py-2 text-[11px] font-semibold text-white sm:block">Share</button>
+          {canEdit ? <button type="button" onClick={()=>doc&&void persist(doc)} className="shrink-0 rounded-[8px] bg-[#FF6A00] px-3 py-2 text-[11px] font-semibold text-white">Save draft</button> : null}
         </div>      </header>
 
       {error ? <div role="alert" className="border-b border-red-400/25 bg-red-950/40 px-4 py-3 text-xs text-red-100">{error}</div> : null}
@@ -1073,9 +1065,10 @@ export default function StudioEditorPage() {
         liveCursorsLabel={access?.role === "owner" ? "Owner" : access?.role === "editor" ? "Editor" : "Viewer"}
         businessId={design.business_id}
         previewLocalMs={pageLocalTimeMs(doc, playheadMs)?.localMs ?? 0}
+        timelineVisible={timelineVisible}
         resolveMediaUrl={resolveMediaUrl}
       />
-      <StudioTimelinePanel
+      {timelineVisible ? <StudioTimelinePanel
         designId={designId}
         document={doc}
         onChange={(next) => onChangeDoc(next)}
@@ -1086,8 +1079,7 @@ export default function StudioEditorPage() {
         playing={timelinePlaying}
         onPlayingChange={setTimelinePlaying}
         readOnly={!canEdit}
-      />
-      <YandeGlobalFab variant="fixed" projectId={designId} />
+      /> : null}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   ungroupLayers,
   updatePage,
 } from "@/lib/studio/canvas-document";
+import { resizeCreativeBounds, type ResizeHandle } from "@/lib/creative-core/resize";
 import { videoSourceTimeSec } from "@/lib/studio/timeline";
 import {
   clipboardPayloadFromLayers,
@@ -52,10 +53,7 @@ import {
 
 type DragMode =
   | "move"
-  | "resize-nw"
-  | "resize-ne"
-  | "resize-sw"
-  | "resize-se"
+  | `resize-${ResizeHandle}`
   | "rotate"
   | null;
 
@@ -136,6 +134,7 @@ export function StudioCanvasEditor({
   canRedo,
   readOnly = false,
   previewLocalMs = 0,
+  timelineVisible = false,
   businessId = null,
   liveCursorsUserId = null,
   liveCursorsLabel = "You",
@@ -157,6 +156,7 @@ export function StudioCanvasEditor({
   readOnly?: boolean;
   /** Timeline page-local time (ms) — seeks video layers on canvas */
   previewLocalMs?: number;
+  timelineVisible?: boolean;
   businessId?: string | null;
   liveCursorsUserId?: string | null;
   liveCursorsLabel?: string;
@@ -174,6 +174,8 @@ export function StudioCanvasEditor({
     orig: CanvasLayer;
     /** Snapshot of layers when move started (for group move) */
     origLayers: CanvasLayer[];
+    movingIds: string[];
+    baseline: CanvasDocument;
   } | null>(null);
   const [pan, setPan] = useState<{
     startX: number;
@@ -279,15 +281,28 @@ export function StudioCanvasEditor({
   }
 
   function pointerDown(e: React.PointerEvent, layer: CanvasLayer, mode: DragMode) {
+    if (mode === "move" && editingTextId === layer.id) {
+      e.stopPropagation();
+      return; // Native caret/selection belongs to the on-canvas text editor.
+    }
     if (layer.locked && mode === "move") {
       selectLayer(layer, e.shiftKey);
       return;
     }
     if (layer.locked) return;
+    // Native text/image dragging cancels pointer capture after the first move.
+    if (!readOnly) e.preventDefault();
     e.stopPropagation();
-    selectLayer(layer, e.shiftKey);
+    // Shift constrains a resize; it must not toggle the selected object off.
+    const selection = mode === "move" && e.shiftKey
+      ? selectedSet.has(layer.id) ? selectedLayerIds.filter(id => id !== layer.id) : [...selectedLayerIds, layer.id]
+      : selectedSet.has(layer.id) ? selectedLayerIds : [layer.id];
+    if (mode === "move") onSelectLayers(expandSelectionWithGroups(layers, selection));
+    else if (!selectedSet.has(layer.id)) selectLayer(layer, false);
+    // Shift-clicking an already selected object only removes it from selection.
+    if (mode === "move" && e.shiftKey && selectedSet.has(layer.id)) return;
     if (readOnly) return;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
     const current = getPage(latestDoc.current, activePageId).layers;
     setDrag({
       mode,
@@ -296,6 +311,8 @@ export function StudioCanvasEditor({
       startY: e.clientY,
       orig: { ...layer },
       origLayers: current.map((l) => ({ ...l })),
+      movingIds: expandSelectionWithGroups(current, selection).filter(id => !current.find(l => l.id === id)?.locked),
+      baseline: latestDoc.current,
     });
   }
 
@@ -326,15 +343,7 @@ export function StudioCanvasEditor({
     const dy = (e.clientY - drag.startY) / displayScale;
     const orig = drag.orig;
     if (drag.mode === "move") {
-      const groupId = orig.groupId;
-      const moveIds = new Set<string>();
-      if (groupId) {
-        for (const l of drag.origLayers) {
-          if (l.groupId === groupId && !l.locked) moveIds.add(l.id);
-        }
-      } else {
-        moveIds.add(drag.layerId);
-      }
+      const moveIds = new Set(drag.movingIds);
       const primary = drag.origLayers.find((l) => l.id === drag.layerId)!;
       const snapped = snapLayerPosition(
         primary,
@@ -365,39 +374,19 @@ export function StudioCanvasEditor({
       const snapped = e.shiftKey ? Math.round(degrees / 15) * 15 : degrees;
       updateLayer(drag.layerId, { rotation: Math.max(-360, Math.min(360, snapped)) }, true);
     } else if (drag.mode?.startsWith("resize-")) {
-      let x = orig.x;
-      let y = orig.y;
-      let width = orig.width;
-      let height = orig.height;
-      const min = 24;
-      if (drag.mode.includes("e")) width = Math.max(min, orig.width + dx);
-      if (drag.mode.includes("s")) height = Math.max(min, orig.height + dy);
-      if (drag.mode.includes("w")) {
-        const nextWidth = Math.max(min, orig.width - dx);
-        x = orig.x + (orig.width - nextWidth);
-        width = nextWidth;
-      }
-      if (drag.mode.includes("n")) {
-        const nextHeight = Math.max(min, orig.height - dy);
-        y = orig.y + (orig.height - nextHeight);
-        height = nextHeight;
-      }
-      if (e.shiftKey) {
-        const ratio = orig.width / Math.max(1, orig.height);
-        if (Math.abs(dx) >= Math.abs(dy)) {
-          height = Math.max(min, width / ratio);
-          if (drag.mode.includes("n")) y = orig.y + (orig.height - height);
-        } else {
-          width = Math.max(min, height * ratio);
-          if (drag.mode.includes("w")) x = orig.x + (orig.width - width);
-        }
-      }
-      updateLayer(drag.layerId, { x, y, width, height }, true);
+      const geometry = resizeCreativeBounds(orig, drag.mode.slice(7) as ResizeHandle, { x: dx, y: dy }, {
+        keepRatio: e.shiftKey, fromCenter: e.altKey,
+      });
+      updateLayer(drag.layerId, {
+        ...geometry,
+        x: Math.max(-2000, Math.min(4000, geometry.x)),
+        y: Math.max(-2000, Math.min(4000, geometry.y)),
+      }, true);
     }
   }
 
   function pointerUp() {
-    if (drag) {
+    if (drag && latestDoc.current !== drag.baseline) {
       onChange(latestDoc.current);
     }
     setDrag(null);
@@ -689,7 +678,7 @@ export function StudioCanvasEditor({
   }
 
   return (
-    <div className="relative flex h-[calc(100dvh-6.5rem)] min-h-[520px] flex-col bg-[#111214] text-white">
+    <div className={`relative flex ${timelineVisible ? "h-[calc(100dvh-18rem)]" : "h-[calc(100dvh-6.5rem)]"} min-h-[520px] flex-col bg-[#111214] text-white`}>
       {/* Top tool strip */}
       <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap border-b border-white/[.08] bg-[#101113] px-3 py-1.5 shrink-0">
         {readOnly ? (
@@ -809,9 +798,9 @@ export function StudioCanvasEditor({
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-[14px] border border-white/10 bg-[#151619]/95 p-1.5 shadow-xl backdrop-blur md:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
+
         {/* Left: Elements / Layers */}
-        <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-2xl md:static md:flex md:w-[268px] md:shrink-0 md:rounded-none md:border-y-0 md:border-l-0 md:shadow-none`}>
+        <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-2xl lg:static lg:flex lg:w-[268px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-l-0 lg:shadow-none`}>
           <GalaxyToolRail items={STUDIO_RAIL} value={leftTab} onChange={(id)=>setLeftTab(id as typeof leftTab)}/><div className="flex-1 overflow-y-auto p-3 space-y-3">
             {leftTab === "themes" ? <StudioThemesPanel document={doc} readOnly={readOnly} onApply={onChange}/> : null}
             {leftTab === "brand" ? <StudioBrandSpacePanel document={doc} readOnly={readOnly} onApply={onChange} onBrandSpace={setBrandSpace} onInsertLogo={(url,label)=>addLayer("image",{imageUrl:url,name:label,width:220,height:120,objectFit:"contain"})}/> : null}
@@ -962,7 +951,7 @@ export function StudioCanvasEditor({
           onPointerDown={boardPointerDown}
           onPointerMove={pointerMove}
           onPointerUp={pointerUp}
-          onPointerLeave={pointerUp}
+          onPointerCancel={pointerUp}
           onClick={() => {
             if (!spaceHeld && !pan) onSelectLayers([]);
           }}
@@ -1003,6 +992,7 @@ export function StudioCanvasEditor({
                 return (
                   <div
                     key={layer.id}
+                    data-studio-layer-id={layer.id}
                     className={`absolute ${selectedOn ? "outline outline-2 outline-orange-500 outline-offset-1" : ""}`}
                     style={{
                       left: layer.x,
@@ -1163,16 +1153,33 @@ export function StudioCanvasEditor({
                     {selectedOn && !layer.locked && selectedLayerIds.length === 1 ? (
                       <>
                         {([
-                          ["-left-1.5 -top-1.5 cursor-nw-resize", "resize-nw"],
-                          ["-right-1.5 -top-1.5 cursor-ne-resize", "resize-ne"],
-                          ["-left-1.5 -bottom-1.5 cursor-sw-resize", "resize-sw"],
-                          ["-right-1.5 -bottom-1.5 cursor-se-resize", "resize-se"],
-                        ] as const).map(([classes, mode]) => (
-                          <div
-                            key={mode}
-                            className={`absolute ${classes} h-3.5 w-3.5 rounded-sm border border-white bg-orange-500`}
-                            onPointerDown={(e) => pointerDown(e, layer, mode)}
-                          />
+                          ["nw", "top left", "0%", "0%", "cursor-nwse-resize"],
+                          ["n", "top", "50%", "0%", "cursor-ns-resize"],
+                          ["ne", "top right", "100%", "0%", "cursor-nesw-resize"],
+                          ["e", "right", "100%", "50%", "cursor-ew-resize"],
+                          ["se", "bottom right", "100%", "100%", "cursor-nwse-resize"],
+                          ["s", "bottom", "50%", "100%", "cursor-ns-resize"],
+                          ["sw", "bottom left", "0%", "100%", "cursor-nesw-resize"],
+                          ["w", "left", "0%", "50%", "cursor-ew-resize"],
+                        ] as const).map(([handle, label, left, top, cursor]) => (
+                          <button
+                            key={handle}
+                            type="button"
+                            aria-label={`Resize ${label}`}
+                            disabled={readOnly}
+                            title="Drag to resize · Shift keeps ratio · Alt/Option resizes from center · arrow keys resize"
+                            className={`absolute z-20 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded focus-visible:outline-2 focus-visible:outline-white disabled:opacity-40 ${cursor}`}
+                            style={{ left, top, width: Math.max(24, 24 / displayScale), height: Math.max(24, 24 / displayScale), touchAction: "none" }}
+                            onPointerDown={(e) => pointerDown(e, layer, `resize-${handle}`)}
+                            onKeyDown={(e) => {
+                              const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+                              if (!delta || readOnly) return;
+                              e.preventDefault(); e.stopPropagation();
+                              const step = e.shiftKey ? 10 : 1;
+                              const geometry = resizeCreativeBounds(layer, handle, { x: delta[0]! * step, y: delta[1]! * step }, { keepRatio: e.shiftKey, fromCenter: e.altKey });
+                              updateLayer(layer.id, { ...geometry, x: Math.max(-2000, Math.min(4000, geometry.x)), y: Math.max(-2000, Math.min(4000, geometry.y)) });
+                            }}
+                          ><span className="pointer-events-none h-3.5 w-3.5 rounded-sm border border-white bg-orange-500" /></button>
                         ))}
                         <div className="absolute left-1/2 -top-8 h-6 w-px -translate-x-1/2 bg-orange-500" />
                         <button
@@ -1215,7 +1222,7 @@ export function StudioCanvasEditor({
         </div>
 
         {/* Right: Properties */}
-        <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-white/10 bg-[#17181B] p-4 shadow-2xl md:static md:block md:w-[288px] md:shrink-0 md:rounded-none md:border-y-0 md:border-r-0 md:shadow-none space-y-3`}>
+        <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-white/10 bg-[#17181B] p-4 shadow-2xl lg:static lg:block lg:w-[288px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-none space-y-3`}>
           <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/40">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p>{selected ? <div className="mt-2 flex gap-1">{(["design","animate","position"] as const).map(t=><button key={t} type="button" onClick={()=>setInspectorTab(t)} className={`rounded-lg px-2.5 py-1 text-[9px] font-bold capitalize ${inspectorTab===t?"bg-orange-500 text-white":"bg-white/[.06] text-white/50 hover:bg-white/[.10]"}`}>{t}</button>)}</div> : null}</div>
           <fieldset disabled={readOnly} className="space-y-3 border-0 p-0 m-0 min-w-0 disabled:opacity-70">
           {selectedLayerIds.length > 1 ? (
@@ -1861,8 +1868,9 @@ export function StudioCanvasEditor({
         </aside>
       </div>
 
+      <div role="group" aria-label="Workspace panels" className="relative z-40 flex shrink-0 justify-center gap-1 border-t border-white/10 bg-[#151619] p-1.5 lg:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
       {/* Bottom page strip */}
-      <div className="shrink-0 border-t border-white/10 bg-[#101113] px-3 py-2 flex flex-wrap items-center gap-2">
+      <div className="shrink-0 border-t border-white/10 bg-[#101113] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-wrap items-center gap-2">
         <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 mr-1">Pages</span>
         {doc.pages.map((p, i) => (
           <button

@@ -303,7 +303,8 @@ test("viewers cannot save or invite collaborators in the editor", async ({ page 
 });
 
 test("design timeline export includes the saved soundtrack as audible samples", async ({ page }) => {
-  const fixture = await setup(page, { designSoundtrack: true }); await page.getByText("More", { exact: true }).click();
+  const fixture = await setup(page, { designSoundtrack: true });
+  await expect(page.getByRole("spinbutton", { name: "Scene duration", exact: true })).toBeVisible(); await page.getByText("More", { exact: true }).click();
   const download = page.waitForEvent("download", { timeout: 20000 }); await page.getByRole("button", { name: "Export timeline", exact: true }).click();
   const bytes = readFileSync((await (await download).path())!);
   const rms = await page.evaluate(async base64 => {
@@ -318,4 +319,203 @@ test("missing design soundtrack blocks timeline download with an honest error", 
   await page.getByText("More", { exact: true }).click(); await page.getByRole("button", { name: "Export timeline", exact: true }).click();
   await expect(page.getByText("Could not load the soundtrack for export. No file was exported.", { exact: true })).toBeVisible();
   expect(downloads).toEqual([]); expect(fixture.errors).toEqual([]);
+});
+
+
+test("eight resize handles support ratio, centered dragging, undo and persistent geometry", async ({ page }) => {
+  const fixture = await setup(page);
+  const layer = page.locator('[data-studio-layer-id="title"]');
+  await layer.click();
+  await expect(layer.getByRole("button", { name: /^Resize / })).toHaveCount(8);
+  const before = await layer.boundingBox(); expect(before).not.toBeNull();
+  const handle = layer.getByRole("button", { name: "Resize right", exact: true });
+  const bounds = await handle.boundingBox(); expect(bounds).not.toBeNull();
+  await page.keyboard.down("Alt"); await page.keyboard.down("Shift");
+  await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
+  await page.mouse.down(); await page.mouse.move(bounds!.x + bounds!.width / 2 + 30, bounds!.y + bounds!.height / 2, { steps: 5 }); await page.mouse.up();
+  await page.keyboard.up("Shift"); await page.keyboard.up("Alt");
+  await expect(layer.getByRole("button", { name: /^Resize / })).toHaveCount(8);
+  await expect(page.getByRole("status")).toHaveText("Unsaved changes");
+  const after = await layer.boundingBox(); expect(after!.width).toBeGreaterThan(before!.width + 50);
+  expect(after!.width / after!.height).toBeCloseTo(300 / 70, 3);
+  expect(after!.x + after!.width / 2).toBeCloseTo(before!.x + before!.width / 2, 0);
+  expect(after!.y + after!.height / 2).toBeCloseTo(before!.y + before!.height / 2, 0);
+  await page.getByRole("button", { name: "Undo", exact: true }).first().click();
+  await expect.poll(async () => (await layer.boundingBox())!.width).toBeCloseTo(before!.width, 0);
+  await page.getByRole("button", { name: "Redo", exact: true }).first().click();
+  await expect.poll(async () => (await layer.boundingBox())!.width).toBeCloseTo(after!.width, 0);
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.writes.length).toBeGreaterThan(0);
+  const saved = fixture.server().canvas!.pages[0]!.layers.find(x => x.id === "title")!;
+  expect(saved.width).toBeGreaterThan(300); expect(saved.width / saved.height).toBeCloseTo(300 / 70, 5);
+  expect(saved.x + saved.width / 2).toBeCloseTo(170, 5);
+  await expect.poll(async () => (await cached(page))?.dirty).toBe(false);
+  await page.reload(); await expect(layer).toBeVisible();
+  await expect.poll(async () => (await layer.boundingBox())!.width).toBeCloseTo(after!.width, 0);
+  expect(fixture.errors).toEqual([]);
+});
+
+test("edge handles resize with keyboard without moving the opposite edge", async ({ page }) => {
+  const fixture = await setup(page);
+  const layer = page.locator('[data-studio-layer-id="image"]'); await layer.click();
+  const before = await layer.boundingBox();
+  const handle = layer.getByRole("button", { name: "Resize right", exact: true });
+  await handle.focus(); await handle.press("ArrowRight");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.pages[0]!.layers.find(x => x.id === "image")!.width).toBe(101);
+  const saved = fixture.server().canvas!.pages[0]!.layers.find(x => x.id === "image")!;
+  expect(saved.x).toBe(20); expect(saved.y).toBe(120); expect(saved.height).toBe(100);
+  expect((await layer.boundingBox())!.x).toBeCloseTo(before!.x, 3);
+  expect(fixture.errors).toEqual([]);
+});
+
+
+test("the first text edit can undo, redo, and branch history without losing the document", async ({ page }) => {
+  const fixture = await setup(page);
+  await editText(page, "First edit", true);
+  const undo = page.getByRole("button", { name: "Undo", exact: true }).first();
+  const redo = page.getByRole("button", { name: "Redo", exact: true }).first();
+  const text = page.getByRole("textbox", { name: "Text", exact: true });
+  await undo.click(); await expect(text).toHaveValue("Original");
+  await redo.click(); await expect(text).toHaveValue("First edit");
+  await undo.click(); await text.fill("Branched edit"); await expect(redo).toBeDisabled();
+  await undo.click(); await expect(text).toHaveValue("Original");
+  await redo.click(); await expect(text).toHaveValue("Branched edit");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => JSON.stringify(fixture.server().canvas)).toContain("Branched edit");
+  await page.reload(); await expect(page.getByText("Branched edit", { exact: true }).first()).toBeVisible();
+  expect(fixture.errors).toEqual([]);
+});
+
+test("video composition history preserves distinct undo and redo snapshots", async ({ page }) => {
+  const fixture = await setup(page, { video: true });
+  const volume = page.getByRole("slider", { name: "Master volume", exact: true });
+  const undo = page.getByRole("button", { name: "Undo", exact: true });
+  const redo = page.getByRole("button", { name: "Redo", exact: true });
+  await volume.focus(); await volume.press("ArrowLeft"); await expect(volume).toHaveValue("0.95");
+  await undo.click(); await expect(volume).toHaveValue("1");
+  await redo.click(); await expect(volume).toHaveValue("0.95");
+  await undo.click(); await volume.focus(); await volume.press("ArrowRight");
+  await expect(volume).toHaveValue("1.05"); await expect(redo).toBeDisabled();
+  await undo.click(); await expect(volume).toHaveValue("1");
+  await redo.click(); await expect(volume).toHaveValue("1.05");
+  await expect.poll(() => fixture.server().composition?.masterVolume).toBe(1.05);
+  await page.reload(); await expect(volume).toHaveValue("1.05");
+  expect(fixture.errors).toEqual([]);
+});
+
+
+test("dragging an ungrouped multi-selection moves every selected layer and undoes once", async ({ page }) => {
+  const fixture = await setup(page);
+  const title = page.locator('[data-studio-layer-id="title"]');
+  const image = page.locator('[data-studio-layer-id="image"]');
+  await title.click(); await image.click({ modifiers: ["Shift"] });
+  await expect(page.getByText("2 layers selected.", { exact: false })).toBeVisible();
+  const beforeTitle = (await title.boundingBox())!, beforeImage = (await image.boundingBox())!;
+  await page.evaluate(() => {
+    const events: string[] = [];
+    (window as Window & { nativeManipulationEvents?: string[] }).nativeManipulationEvents = events;
+    for (const type of ["dragstart", "pointercancel"]) document.addEventListener(type, () => events.push(type), { once: true, capture: true });
+  });
+  await page.mouse.move(beforeTitle.x + beforeTitle.width / 2, beforeTitle.y + beforeTitle.height / 2);
+  await page.mouse.down(); await page.mouse.move(beforeTitle.x + beforeTitle.width / 2 + 45, beforeTitle.y + beforeTitle.height / 2 + 45, { steps: 5 }); await page.mouse.up();
+  await expect(page.getByText("2 layers selected.", { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => (window as Window & { nativeManipulationEvents?: string[] }).nativeManipulationEvents)).toEqual([]);
+  const afterTitle = (await title.boundingBox())!, afterImage = (await image.boundingBox())!;
+  expect(afterTitle.x - beforeTitle.x).toBeGreaterThan(30);
+  expect(afterImage.x - beforeImage.x).toBeCloseTo(afterTitle.x - beforeTitle.x, 1);
+  expect(afterImage.y - beforeImage.y).toBeCloseTo(afterTitle.y - beforeTitle.y, 1);
+  await page.getByRole("button", { name: "Undo", exact: true }).first().click();
+  await expect.poll(async () => (await title.boundingBox())!.x).toBeCloseTo(beforeTitle.x, 1);
+  expect((await image.boundingBox())!.x).toBeCloseTo(beforeImage.x, 1);
+  await page.getByRole("button", { name: "Redo", exact: true }).first().click();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.writes.length).toBeGreaterThan(0);
+  const saved = fixture.server().canvas!.pages[0]!.layers;
+  expect(saved[0]!.x - 20).toBeCloseTo(saved[1]!.x - 20, 5);
+  expect(saved[0]!.y - 20).toBeCloseTo(saved[1]!.y - 120, 5);
+  await expect.poll(async () => (await cached(page))?.dirty).toBe(false);
+  await page.reload(); await expect(title).toBeVisible();
+  expect((await image.boundingBox())!.x).toBeCloseTo(afterImage.x, 1);
+  expect(fixture.errors).toEqual([]);
+});
+
+
+for (const width of [390, 834]) test.describe(`touch transforms at ${width}px`, () => {
+  test.use({ viewport: { width, height: 1000 }, hasTouch: true });
+  test("resizes with touch and exact inspector fields, saves and reopens", async ({ page }) => {
+    const fixture = await setup(page);
+    const save = page.getByRole("button", { name: "Save draft", exact: true });
+    await expect(save).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2)).toBe(true);
+    const layer = page.locator('[data-studio-layer-id="image"]'); await layer.tap();
+    const handle = layer.getByRole("button", { name: "Resize right", exact: true });
+    const box = (await handle.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(23.9); expect(box.height).toBeGreaterThanOrEqual(23.9);
+    const client = await page.context().newCDPSession(page);
+    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest("button")?.getAttribute("aria-label"), { x, y })).toBe("Resize right");
+    await page.evaluate(() => {
+      const events: string[] = [];
+      (window as Window & { touchManipulationEvents?: string[] }).touchManipulationEvents = events;
+      for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) document.addEventListener(type, event => {
+        const target = event.target as HTMLElement, pointer = event as PointerEvent;
+        events.push(`${type}:${target.closest("button")?.getAttribute("aria-label")}:${pointer.clientX}:${target.closest<HTMLElement>("[data-studio-layer-id]")?.style.width}`);
+      }, { capture: true });
+    });
+    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    for (let i = 1; i <= 5; i++) {
+      await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + i * 6, y }] });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+    }
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await client.detach();
+    const events = await page.evaluate(() => (window as Window & { touchManipulationEvents?: string[] }).touchManipulationEvents);
+    await page.getByRole("button", { name: "Inspector", exact: true }).tap();
+    await page.getByRole("button", { name: "position", exact: true }).tap();
+    await expect.poll(async () => Number(await page.getByRole("spinbutton", { name: "Width", exact: true }).inputValue()), { message: JSON.stringify(events) }).toBeGreaterThan(100);
+    await page.getByRole("spinbutton", { name: "Width", exact: true }).fill("180");
+    await page.getByRole("spinbutton", { name: "Height", exact: true }).fill("90");
+    await page.getByRole("spinbutton", { name: "Rotate", exact: true }).fill("25");
+    await page.getByRole("button", { name: "Inspector", exact: true }).tap();
+    await page.screenshot({ path: test.info().outputPath("touch-editor.png"), fullPage: true });
+    await page.getByRole("button", { name: "Save draft", exact: true }).click();
+    await expect.poll(() => fixture.server().canvas!.pages[0]!.layers.find(x => x.id === "image")!.rotation).toBe(25);
+    const saved = fixture.server().canvas!.pages[0]!.layers.find(x => x.id === "image")!;
+    expect(saved.width).toBe(180); expect(saved.height).toBe(90);
+    await page.getByText("More", { exact: true }).tap();
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download PNG", exact: true }).tap();
+    const png = readFileSync((await (await download).path())!);
+    const pixels = await page.evaluate(async data => {
+      const image = new Image(); image.src = "data:image/png;base64," + data; await image.decode();
+      const output = document.createElement("canvas"); output.width = image.width; output.height = image.height;
+      const ctx = output.getContext("2d")!; ctx.drawImage(image, 0, 0);
+      return [[...ctx.getImageData(110,165,1,1).data], [...ctx.getImageData(240,165,1,1).data]];
+    }, png.toString("base64"));
+    expect(pixels).toEqual([[0,255,0,255], [255,255,255,255]]);
+    await expect.poll(async () => (await cached(page))?.dirty).toBe(false);
+    await page.reload(); await layer.tap();
+    await page.getByRole("button", { name: "Inspector", exact: true }).tap();
+    await page.getByRole("button", { name: "position", exact: true }).tap();
+    await expect(page.getByRole("spinbutton", { name: "Width", exact: true })).toHaveValue("180");
+    await expect(page.getByRole("spinbutton", { name: "Rotate", exact: true })).toHaveValue("25");
+    expect(fixture.errors).toEqual([]);
+  });
+});
+
+
+test("static design opens a quiet workspace and can explicitly reveal its timeline", async ({ page }) => {
+  const fixture = await setup(page);
+  await expect(page.getByRole("spinbutton", { name: "Scene duration", exact: true })).toHaveCount(0);
+  await page.getByText("More", { exact: true }).click();
+  await page.getByRole("button", { name: "Show timeline", exact: true }).click();
+  await page.getByText("More", { exact: true }).click();
+  await expect(page.getByRole("spinbutton", { name: "Scene duration", exact: true })).toBeVisible();
+  await page.getByText("More", { exact: true }).click();
+  await page.getByRole("button", { name: "Hide timeline", exact: true }).click();
+  await page.getByText("More", { exact: true }).click();
+  await expect(page.getByRole("spinbutton", { name: "Scene duration", exact: true })).toHaveCount(0);
+  expect(fixture.errors).toEqual([]);
 });

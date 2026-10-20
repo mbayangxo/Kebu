@@ -382,7 +382,8 @@ export default function StudioVideoEditorPage() {
 
   function applyComp(next: StudioComposition, recordHistory = true) {
     if (recordHistory && compRef.current) {
-      setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), compRef.current!]);
+      const previous = compRef.current;
+      setHistory((h) => [...h.slice(-(HISTORY_CAP - 1)), previous]);
       setFuture([]);
     }
     compRef.current = next;
@@ -843,25 +844,25 @@ export default function StudioVideoEditorPage() {
   }
 
   function undo() {
-    setHistory((h) => {
-      if (!h.length || !compRef.current) return h;
-      const prev = h[h.length - 1]!;
-      setFuture((f) => [compRef.current!, ...f].slice(0, HISTORY_CAP));
-      compRef.current = prev;
-      setComp(prev);
-      return h.slice(0, -1);
-    });
+    const current = compRef.current, previous = history[history.length - 1];
+    if (!current || !previous) return;
+    setHistory((h) => h.slice(0, -1));
+    setFuture((f) => [current, ...f].slice(0, HISTORY_CAP));
+    timelineGestureBaseline.current = null;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
+    compRef.current = previous;
+    setComp(previous);
   }
 
   function redo() {
-    setFuture((f) => {
-      if (!f.length || !compRef.current) return f;
-      const next = f[0]!;
-      setHistory((h) => [...h, compRef.current!].slice(-HISTORY_CAP));
-      compRef.current = next;
-      setComp(next);
-      return f.slice(1);
-    });
+    const current = compRef.current, next = future[0];
+    if (!current || !next) return;
+    setFuture((f) => f.slice(1));
+    setHistory((h) => [...h, current].slice(-HISTORY_CAP));
+    timelineGestureBaseline.current = null;
+    setSaveState(current => saveQueue.isBlocked() ? current : "pending");
+    compRef.current = next;
+    setComp(next);
   }
 
   function runAiEdit() {

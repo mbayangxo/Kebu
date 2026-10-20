@@ -1,0 +1,50 @@
+{
+  "scope": "eight resize handles|touch transforms|quiet workspace",
+  "hosted": false,
+  "stats": {
+    "startTime": "2026-10-20T14:27:18.142Z",
+    "duration": 24491.590999999997,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "name": "eight resize handles support ratio, centered dragging, undo and persistent geometry",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 14434
+        }
+      ]
+    },
+    {
+      "name": "static design opens a quiet workspace and can explicitly reveal its timeline",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1282
+        }
+      ]
+    },
+    {
+      "name": "resizes with touch and exact inspector fields, saves and reopens",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3364
+        }
+      ]
+    },
+    {
+      "name": "resizes with touch and exact inspector fields, saves and reopens",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3863
+        }
+      ]
+    }
+  ]
+}

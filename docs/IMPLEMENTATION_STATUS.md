@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## October 20 — Studio manipulation and history continuation
+
+Eight-way rotated resize, Shift ratio/Alt center, keyboard handles, multi-selection dragging and design/video history repaired. Tablet drawers, visible phone Save, unobstructed page actions and content-driven timeline improve the actual editor. Full local browser gate: 28 passed with zero skips/failures, including touch, undo/redo, saved/reopened transforms and decoded PNG pixels. Final `npm run ci` passes: TypeScript; lint zero errors/344 warnings; 6,058 tests/168 explicit skips; 221-page production build. Four focused browser cases pass after final state/safe-area refinements. See `audits/KEBU_STUDIO_TRANSFORMS_2026-10-20.md` for root causes, evidence and remaining gates. Full Studio/Builder/May/3J/99-group completion and production release remain OPEN.
+
 ## October 20 — hosted preview follow-through
 
 GitHub CI for `8005301` and `2c81260` is green; both previews reached READY. Hosted E2E at `2c81260` failed (269 passed, 7 failed, 27 skipped, 265 not run). Repaired hard-coded loopback health checks and the public-template auth redirect; retained private editor authentication and owner-portfolio 404. Five middleware tests and a real desktop/phone privacy browser journey pass. Render checks now require the actual template instead of network silence. Current local gate passes TypeScript, lint (zero errors/344 warnings), 6,022 tests/168 explicit skips and all 221 build pages. Repaired hosted execution remains open; this does not close May/Studio/3J/99-group acceptance.
@@ -76,7 +80,7 @@ Do **not** mark PRODUCTION READY without Definition of Done (see `docs/product/E
 | **Kebu pricing philosophy** | **IMPLEMENTED** (docs + catalog) | `docs/product/KEBU-PRICING.md` · limits enforced: customDomain · store · maxProducts · **maxWebsites** · **AI monthly metering (081)**. Student verification / transaction fees still later. |
 | Kebu Builder — core editor | **IMPLEMENTED** | On-canvas duplicate/remove/move + inline text; Aesthetics apply CSS vars + `aestheticId` persist |
 | Kebu Builder — merchant site hub | **IMPLEMENTED** | `/my-sites/[id]` — **Kebu Business** IA tree (`lib/navigation/kebu-business-nav.ts`) |
-| Kebu Builder — publish multipage sync | **IMPLEMENTED** | Portfolio design worlds sync pages before go-live (`ensureProjectPagesBeforePublish`). **Owner drafts (May Lecor):** seed sync on every `GET /api/projects/[id]` via `MAYLECOR_SEED_REVISION` — draft preview updates without publish; live still needs Publish. |
+| Kebu Builder — publish multipage sync | **IMPLEMENTED** | Portfolio design worlds sync pages before go-live (`ensureProjectPagesBeforePublish`). Owner drafts retain authored content: GET and publish do not reseed existing pages. Full hosted publish acceptance remains open. |
 | Kebu My Space (`/business`) | **IMPLEMENTED** | Tabs: Overview · Businesses (register) · Sites · Analytics · Messages · You & help. Inbox hub `/messages`. |
 | Kebu Builder — publish & hosting | **IMPLEMENTED** | Subdomain publish + Free `$0` entitlement (036/038 / `FIX_free_publish.sql`). Mark **TESTED** after one manual Free publish on your Supabase. |
 | Kebu Builder — custom domains | **IN PROGRESS** | API + UI + middleware + tests; migration **015**; DNS target `cname.vercel-dns.com` (accepts `*.vercel.app`); repair **030**; **must deploy latest code** for verify to stop expecting `*.kebu.africa` |

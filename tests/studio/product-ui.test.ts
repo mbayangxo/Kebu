@@ -12,10 +12,8 @@ describe("Studio product UI", () => {
     expect(source).toContain("/studio/video/new");
   });
   it("uses a compact non-wrapping editor command surface", () => {
-    const page = readFileSync(join(process.cwd(), "app/studio/[id]/page.tsx"), "utf8");
     const canvas = readFileSync(join(process.cwd(), "app/components/studio/studio-canvas-editor.tsx"), "utf8");
-    expect(page).toContain("overflow-x-auto whitespace-nowrap");
     expect(canvas).toContain("overflow-x-auto whitespace-nowrap");
-    expect(canvas).toContain('md:w-[268px]');
+    expect(canvas).toContain('lg:w-[268px]');
   });
 });
