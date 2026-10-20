@@ -1,0 +1,12 @@
+{
+  "startTime": "2026-10-20T06:58:01.388Z",
+  "duration": 29423.743,
+  "expected": 6,
+  "skipped": 0,
+  "unexpected": 0,
+  "flaky": 0,
+  "sqlQueries": 33,
+  "sqlAssertions": 3,
+  "schema": "Reconstructed minimal prerequisites plus exact archived form table/RLS SQL; not hosted schema verification",
+  "outboundEmail": "No provider keys; no external email sent"
+}

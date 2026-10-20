@@ -114,6 +114,7 @@ export default function NetworkJoinPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <fieldset disabled={loading} aria-busy={loading} className="min-w-0 space-y-6">
           <div className="bg-white border border-border rounded-2xl p-6">
             <h2 className="font-display text-base font-bold text-ink mb-4">About you</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -227,6 +228,7 @@ export default function NetworkJoinPage() {
           <p className="text-xs text-muted text-center">
             Your profile will be visible to other Kebu members. We never sell your data.
           </p>
+          </fieldset>
         </form>
       </div>
     </div>

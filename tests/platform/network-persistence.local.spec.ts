@@ -22,15 +22,15 @@ for(const width of [1440,390])test(`pending submission freezes every field and c
  }finally{release();}
  await expect(page.getByRole('heading',{name:"You're in the network",exact:true})).toBeVisible();
  const rows=(await state(request)).profiles;expect(rows).toHaveLength(1);expect(rows[0]).toMatchObject({name:'Awa Ndiaye',user_id:owner,languages:['Wolof','French'],looking_for:['Partner']});
- await page.getByRole('button',{name:'View the network →',exact:true}).click();await expect(page.getByRole('heading',{name:'Awa Ndiaye',exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'Awa Ndiaye',exact:true})).toBeVisible();
- await page.getByRole('textbox',{name:'Search members'}).fill('does-not-exist');await expect(page.getByRole('heading',{name:'Awa Ndiaye',exact:true})).toHaveCount(0);await page.getByRole('textbox',{name:'Search members'}).fill('creative studio');await expect(page.getByRole('heading',{name:'Awa Ndiaye',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'View the network →',exact:true}).click();await expect(page.getByText('Awa Ndiaye',{exact:true})).toBeVisible();await page.reload();await expect(page.getByText('Awa Ndiaye',{exact:true})).toBeVisible();
+ await page.getByRole('textbox',{name:'Search members'}).fill('does-not-exist');await expect(page.getByText('Awa Ndiaye',{exact:true})).toHaveCount(0);await page.getByRole('textbox',{name:'Search members'}).fill('creative studio');await expect(page.getByText('Awa Ndiaye',{exact:true})).toBeVisible();
  const directory=await page.request.get('/api/network/profiles');const profile=(await directory.json()).profiles[0];expect(profile).not.toHaveProperty('user_id');expect(profile).not.toHaveProperty('is_verified');expect(profile).not.toHaveProperty('contact_count');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`network-${width}.png`),fullPage:true});
 });
 test('lost response retry confirms one SQL row and preserves the submitted draft',async({page,request})=>{
  await setup(page,request);let first=true;const ids:string[]=[];
  await page.route('**/api/network/profiles',async route=>{if(route.request().method()==='POST'){ids.push(route.request().postDataJSON().submission_id);if(first){first=false;await route.fetch();await route.abort('failed');return;}}await route.continue();});
- await page.getByRole('button',{name:'Join the network →',exact:true}).click();await expect(page.getByRole('alert')).toContainText('not confirmed saved');await expect(page.getByLabel('Full name',{exact:true})).toBeEnabled();await expect(page.getByLabel('Full name',{exact:true})).toHaveValue('Awa Ndiaye');expect((await state(request)).profiles).toHaveLength(1);
+ await page.getByRole('button',{name:'Join the network →',exact:true}).click();await expect(page.getByRole('alert').filter({hasText:'not confirmed saved'})).toContainText('not confirmed saved');await expect(page.getByLabel('Full name',{exact:true})).toBeEnabled();await expect(page.getByLabel('Full name',{exact:true})).toHaveValue('Awa Ndiaye');expect((await state(request)).profiles).toHaveLength(1);
  await page.getByRole('button',{name:'Join the network →',exact:true}).click();await expect(page.getByRole('heading',{name:"You're in the network",exact:true})).toBeVisible();expect(ids).toHaveLength(2);expect(ids[0]).toBe(ids[1]);expect((await state(request)).profiles).toHaveLength(1);
 });
 test('API rejects wrong-owner retries and anonymous access without exposing identity fields',async({page,request,browser})=>{

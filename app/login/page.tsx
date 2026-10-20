@@ -77,33 +77,38 @@ function LoginForm() {
     }
     setResendStatus("sending");
     setError("");
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: trimmed,
-      options: { emailRedirectTo: authCallbackUrl(nextPath) },
-    });
-    if (error) {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: trimmed,
+        options: { emailRedirectTo: authCallbackUrl(nextPath) },
+      });
+      if (error) {
+        setResendStatus("idle");
+        setError(error.message);
+        return;
+      }
+      setEmailConfirmPending(true);
+      setResendStatus("sent");
+    } catch {
       setResendStatus("idle");
-      setError(error.message);
-      return;
+      setError("Kebu could not resend the confirmation email. Check your connection and try again.");
     }
-    setEmailConfirmPending(true);
-    setResendStatus("sent");
   }
 
   return (
     <div className="relative w-full max-w-md">
       <div className="text-center mb-10">
-        <Link href="/" className="inline-flex flex-col items-center gap-3">
+        <Link href="/" aria-label="Kebu" className="inline-flex flex-col items-center gap-3">
           <KebuMark size={64} />
           <span
             className="text-3xl font-bold uppercase tracking-[0.16em]"
-            style={{ fontFamily: "var(--font-fraunces)", color: KEBU.white }}
+            style={{ fontFamily: "var(--font-fraunces)", color: KEBU.black }}
           >
             Kebu
           </span>
         </Link>
-        <p className="mt-3 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <p className="mt-3 text-sm" style={{ color: KEBU.muted }}>
           Africa is the opportunity
         </p>
       </div>
@@ -142,6 +147,7 @@ function LoginForm() {
 
         {error && (
           <div
+            role="alert"
             className="rounded-xl px-4 py-3 text-sm mb-6"
             style={{
               background: emailConfirmPending ? "rgba(255,85,0,0.1)" : KEBU.errorBg,
@@ -172,10 +178,12 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: KEBU.black }}>
+            <label htmlFor="login-email" className="block text-sm font-semibold mb-2" style={{ color: KEBU.black }}>
               Email
             </label>
             <input
+              id="login-email"
+              autoComplete="username"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -188,7 +196,7 @@ function LoginForm() {
 
           <div>
             <div className="flex items-center justify-between gap-3 mb-2">
-              <label className="block text-sm font-semibold" style={{ color: KEBU.black }}>
+              <label htmlFor="login-password" className="block text-sm font-semibold" style={{ color: KEBU.black }}>
                 Password
               </label>
               <Link
@@ -200,6 +208,8 @@ function LoginForm() {
               </Link>
             </div>
             <input
+              id="login-password"
+              autoComplete="current-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

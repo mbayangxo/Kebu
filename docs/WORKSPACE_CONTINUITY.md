@@ -4,7 +4,7 @@ The authoritative development branch is `origin/work/kebu-completion-audit-oct13
 
 ## Start each fresh session
 
-Run `npm run workspace:check` before editing. It fetches the named branch and reports the current SHA, ahead/behind counts, dirty state and whether all work is durable. Wrong branch, failed fetch, missing remote checkpoint, behind or diverged history stop the check. The script never changes working files or rewrites history.
+Run `npm run workspace:check` before editing. It fetches the named authoritative branch and reports the current SHA, ahead/behind counts, dirty state and whether all work is durable on that branch. Isolated feature branches are allowed only when they contain the latest authoritative checkpoint. Detached HEAD, failed fetch, missing remote checkpoint, behind or diverged history stop the check. The script never changes working files or rewrites history. A feature-branch push alone does not make its changes durable on the authoritative branch; integrate and verify the authoritative remote SHA before reporting that checkpoint.
 
 If behind with a clean tree and no local commits, fast-forward to the fetched branch. If dirty or diverged, preserve a patch/untracked files and reconcile deliberately. Never reset/clean/force-push someone else's work. Claude and Codex should use separate feature branches/worktrees and exchange exact pushed commits; do not share an unstaged checkout.
 

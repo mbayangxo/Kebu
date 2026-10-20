@@ -6,6 +6,9 @@ import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 const source = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const suite = process.env.KEBU_PLATFORM_UI_SUITE ?? 'network';
+if (!['network', 'login'].includes(suite)) throw Error('Choose the network or login local UI suite.');
+const testMatch = suite === 'login' ? 'login.local.spec.ts' : 'network-persistence.local.spec.ts';
 const chromium = process.env.KEBU_CHROMIUM_EXECUTABLE_PATH, modulePath = process.env.KEBU_PGLITE_MODULE_PATH;
 if (!chromium || !modulePath) throw Error('Set local Chromium and PGlite paths. No hosted fallback.');
 const output = process.env.KEBU_UI_OUTPUT_DIR ?? mkdtempSync(join(tmpdir(), 'kebu-network-results-'));
@@ -23,6 +26,12 @@ async function stop(child) {
 try {
  for (const directory of ['app','lib','public','scripts','supabase','tests','node_modules']) cpSync(join(source,directory),join(root,directory),{recursive:true,mode:constants.COPYFILE_FICLONE});
  for (const entry of readdirSync(source,{withFileTypes:true})) if(entry.isFile()&&!entry.name.startsWith('.')&&/\.(?:[cm]?[jt]sx?|json)$/.test(entry.name)) copyFileSync(join(source,entry.name),join(root,entry.name));
+ // Browser auth uses a distinct loopback origin. Allow only that fixture in the
+ // disposable copy; the real application's production CSP is never relaxed.
+ const fixtureConfig = join(root, 'middleware.ts');
+ const fixtureConfigSource = readFileSync(fixtureConfig, 'utf8');
+ if (!fixtureConfigSource.includes("connect-src 'self' https:")) throw Error('Review the fixture CSP against the current Next configuration.');
+ writeFileSync(fixtureConfig, fixtureConfigSource.replace("connect-src 'self' https:", "connect-src 'self' https: http://127.0.0.1:38437"));
  await db.exec(`create role anon; create role authenticated; create schema auth;
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema public,auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;
@@ -68,7 +77,7 @@ try {
  });
  await new Promise((done,fail)=>{backend.once('error',fail);backend.listen(38437,'127.0.0.1',done);});
  const config=join(root,'scripts/network-ui-temporary.config.mjs');
- writeFileSync(config,`import{defineConfig}from'playwright/test';export default defineConfig({testDir:${JSON.stringify(join(root,'tests/platform'))},testMatch:'network-persistence.local.spec.ts',workers:1,retries:0,maxFailures:1,timeout:60000,reporter:[['list'],['json',{outputFile:${JSON.stringify(join(output,'results.json'))}}]],outputDir:${JSON.stringify(join(output,'traces'))},use:{actionTimeout:10000,baseURL:'http://127.0.0.1:38436',viewport:{width:1440,height:1000},launchOptions:{executablePath:${JSON.stringify(chromium)},args:['--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-zygote']}}});`);
+ writeFileSync(config,`import{defineConfig}from'playwright/test';export default defineConfig({testDir:${JSON.stringify(join(root,'tests/platform'))},testMatch:${JSON.stringify(testMatch)},workers:1,retries:0,maxFailures:1,timeout:60000,reporter:[['list'],['json',{outputFile:${JSON.stringify(join(output,'results.json'))}}]],outputDir:${JSON.stringify(join(output,'traces'))},use:{actionTimeout:10000,baseURL:'http://127.0.0.1:38436',viewport:{width:1440,height:1000},launchOptions:{executablePath:${JSON.stringify(chromium)},args:['--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-zygote']}}});`);
  const env={...process.env,NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:38437',NEXT_PUBLIC_SUPABASE_ANON_KEY:'isolated-local-fixture',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'',SUPABASE_SERVICE_ROLE_KEY:'',SUPABASE_SECRET_KEY:'',SUPABASE_URL:'',DATABASE_URL:'',ANTHROPIC_API_KEY:'',OPENAI_API_KEY:'',AI_GATEWAY_API_KEY:'',KEBU_REAL_PROVIDER_TEST:'',VERCEL_ENV:''};
  log=createWriteStream(join(output,'server.log'));server=spawn(process.execPath,[join(root,'node_modules/next/dist/bin/next'),'dev','--hostname','127.0.0.1','--port','38436'],{cwd:root,env,stdio:['ignore','pipe','pipe']});server.stdout.pipe(log);server.stderr.pipe(log);
  await new Promise((done,fail)=>{const timer=setTimeout(()=>fail(Error('Startup timeout')),30000);server.stdout.on('data',bytes=>{if(bytes.toString().includes('Ready')){clearTimeout(timer);done();}});server.once('exit',code=>{clearTimeout(timer);fail(Error('Server exit '+code));});});
@@ -76,7 +85,7 @@ try {
  const code=await new Promise((done,fail)=>{tests.once('exit',done);tests.once('error',fail);});
  const stats=JSON.parse(readFileSync(join(output,'results.json'),'utf8')).stats;
  writeFileSync(join(output,'verification.json'),JSON.stringify({...stats,sqlQueries:queries,transport:'loopback Auth/REST fixture; actual Next handlers and SQL/RLS'},null,2));
- console.log('NETWORK_PERSISTENCE_RESULT',JSON.stringify({...stats,sqlQueries:queries}));
+ console.log(suite === 'login' ? 'LOGIN_UI_RESULT' : 'NETWORK_PERSISTENCE_RESULT',JSON.stringify({...stats,sqlQueries:queries}));
  if(code!==0||stats.unexpected||stats.skipped||stats.expected<1)throw Error('Network persistence gate failed');
 }finally{
  await stop(tests);await stop(server);

@@ -1,5 +1,11 @@
 # Kebu — Implementation Status
 
+## October 20 — recovery guard, login and Network acceptance continuation
+
+Recovered authoritative source `1fee5aa` in an isolated worktree. Continuity checks now accept current feature branches while rejecting stale/diverged/detached states. Network freezes submitted fields until a receipt or error. Login contrast, labels/autocomplete, announced errors and confirmation retry handling repaired. Contact: six actual-component/API/isolated-SQL browser journeys passed, 33 queries and three permission assertions. Login fixture journey passed, including failed confirmation and retry. Network: four browser journeys passed with 17 SQL queries, including desktop/phone and lost-response retry. Final-source gate chain passed: 6,017 tests/168 skips, zero lint errors/346 warnings and a 221-page build. Recovered collage/video browser gate: 12 passed with zero skips, plus verified cleanup. See `audits/KEBU_RESUME_2026-10-20.md` for provenance and exact evidence limits.
+
+Read-only production inspection confirms native operation RPCs remain absent. Recovery preview `dpl_GBqVPZam7wWGCf1M4GQmBVHv13Ez` is READY at `1fee5aa`; authenticated page fetch is not ordinary-account acceptance. Full May/Studio/3J/99-group completion and production deployment remain OPEN. Mail remains Claude-owned. No production migrations or DNS changes.
+
 ## October 17 — reusable K↑ / DKLNS drafts; May exact acceptance still OPEN
 
 Added ordinary Gallery layouts **Directional world** and **Editorial campaign wall**, editable through the normal Content inspector: copy/colors, cards/uploads/links, directional panels, initial card geometry/order, motion, Drop mode, real audio/video. Brand-specific data is isolated in two explicit owner-only draft seeds; older seeds and existing hosted sites are preserved. Public users receive neutral content, not May's identity. Media-library application targets creative-world cards/media rather than invisible grid items; responsive editing preserves world settings.
