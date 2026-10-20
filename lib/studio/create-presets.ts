@@ -12,7 +12,7 @@ export type StudioCreatePreset = {
   description: string;
   width: number;
   height: number;
-  group: "social" | "print" | "web";
+  group: "social" | "print" | "web" | "document";
 };
 
 /** Canva-style “Create a design” size chips — maps to Studio design types. */
@@ -88,6 +88,110 @@ export const STUDIO_CREATE_PRESETS: StudioCreatePreset[] = [
     description: "1050 × 600",
     ...artboardSize("business_card"),
     group: "print",
+  },
+  {
+    id: "tiktok_video_cover",
+    label: "TikTok video cover",
+    designType: "tiktok_video_cover",
+    description: "1080 × 1920",
+    ...artboardSize("tiktok_video_cover"),
+    group: "social",
+  },
+  {
+    id: "linkedin_post",
+    label: "LinkedIn post",
+    designType: "linkedin_post",
+    description: "1200 × 1200",
+    ...artboardSize("linkedin_post"),
+    group: "social",
+  },
+  {
+    id: "pinterest_pin",
+    label: "Pinterest pin",
+    designType: "pinterest_pin",
+    description: "1000 × 1500",
+    ...artboardSize("pinterest_pin"),
+    group: "social",
+  },
+  {
+    id: "twitter_post",
+    label: "X / Twitter post",
+    designType: "twitter_post",
+    description: "1200 × 675",
+    ...artboardSize("twitter_post"),
+    group: "social",
+  },
+  {
+    id: "menu",
+    label: "Menu",
+    designType: "menu",
+    description: "Letter-ish print",
+    ...artboardSize("menu"),
+    group: "print",
+  },
+  {
+    id: "youtube_thumbnail",
+    label: "YouTube thumbnail",
+    designType: "youtube_thumbnail",
+    description: "1280 × 720",
+    ...artboardSize("youtube_thumbnail"),
+    group: "web",
+  },
+  {
+    id: "youtube_banner",
+    label: "YouTube channel banner",
+    designType: "youtube_banner",
+    description: "2560 × 1440",
+    ...artboardSize("youtube_banner"),
+    group: "web",
+  },
+  {
+    id: "linkedin_banner",
+    label: "LinkedIn banner",
+    designType: "linkedin_banner",
+    description: "1584 × 396",
+    ...artboardSize("linkedin_banner"),
+    group: "web",
+  },
+  {
+    id: "pitch_deck_slide",
+    label: "Pitch deck slide",
+    designType: "pitch_deck_slide",
+    description: "1920 × 1080",
+    ...artboardSize("pitch_deck_slide"),
+    group: "document",
+  },
+  {
+    id: "proposal",
+    label: "Proposal",
+    designType: "proposal",
+    description: "Letter-ish print",
+    ...artboardSize("proposal"),
+    group: "document",
+  },
+  {
+    id: "resume",
+    label: "Resume / CV",
+    designType: "resume",
+    description: "Letter-ish print",
+    ...artboardSize("resume"),
+    group: "document",
+  },
+  {
+    id: "invoice",
+    label: "Invoice",
+    designType: "invoice",
+    description: "Letter-ish print",
+    ...artboardSize("invoice"),
+    group: "document",
+  },
+  {
+    id: "digital_planner",
+    label: "Digital planner",
+    designType: "digital_planner",
+    description: "1536 × 2048",
+    ...artboardSize("digital_planner"),
+    group: "document",
   },
 ];
 

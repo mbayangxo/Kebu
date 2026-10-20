@@ -185,6 +185,19 @@ export const STUDIO_DESIGN_TYPES = [
   "whatsapp_status",
   "banner",
   "business_card",
+  "tiktok_video_cover",
+  "linkedin_post",
+  "linkedin_banner",
+  "pinterest_pin",
+  "twitter_post",
+  "youtube_thumbnail",
+  "youtube_banner",
+  "menu",
+  "pitch_deck_slide",
+  "proposal",
+  "resume",
+  "invoice",
+  "digital_planner",
 ] as const;
 
 export type StudioDesignType = (typeof STUDIO_DESIGN_TYPES)[number];
@@ -193,17 +206,37 @@ export function artboardSize(designType: StudioDesignType): { width: number; hei
   switch (designType) {
     case "instagram_story":
     case "whatsapp_status":
+    case "tiktok_video_cover":
       return { width: 1080, height: 1920 };
     case "instagram_post":
     case "social_square":
     case "facebook_post":
+    case "linkedin_post":
       return { width: 1080, height: 1080 };
     case "flyer":
+    case "menu":
+    case "proposal":
+    case "resume":
+    case "invoice":
       return { width: 816, height: 1056 };
     case "banner":
       return { width: 1500, height: 500 };
     case "business_card":
       return { width: 1050, height: 600 };
+    case "pinterest_pin":
+      return { width: 1000, height: 1500 };
+    case "twitter_post":
+      return { width: 1200, height: 675 };
+    case "youtube_thumbnail":
+      return { width: 1280, height: 720 };
+    case "youtube_banner":
+      return { width: 2560, height: 1440 };
+    case "linkedin_banner":
+      return { width: 1584, height: 396 };
+    case "pitch_deck_slide":
+      return { width: 1920, height: 1080 };
+    case "digital_planner":
+      return { width: 1536, height: 2048 };
     case "poster":
     default:
       return { width: 900, height: 1200 };
@@ -420,14 +453,27 @@ function defaultBgForDesignType(designType: StudioDesignType): string {
     case "flyer":
     case "poster":
     case "business_card":
+    case "menu":
+    case "proposal":
+    case "resume":
+    case "invoice":
+    case "pitch_deck_slide":
+    case "digital_planner":
       return "#FFFFFF";
     case "banner":
+    case "youtube_banner":
+    case "linkedin_banner":
       return "#F8F4EF";
     case "instagram_post":
     case "instagram_story":
     case "whatsapp_status":
     case "facebook_post":
     case "social_square":
+    case "tiktok_video_cover":
+    case "linkedin_post":
+    case "pinterest_pin":
+    case "twitter_post":
+    case "youtube_thumbnail":
     default:
       return "#0F0D33";
   }

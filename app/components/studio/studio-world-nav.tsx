@@ -10,6 +10,7 @@ import { KEBU } from "@/lib/kebu-brand";
 const LINKS = [
   { label: "Create something", href: "/studio/new" },
   { label: "Assets", href: "/studio/assets" },
+  { label: "Marketplace", href: "/studio/assets/marketplace" },
   { label: "Library", href: "/studio#library" },
   { label: "Themes", href: "/studio/templates" },
   { label: "Brand", href: "/studio/brand" },
@@ -36,7 +37,7 @@ export function StudioWorldNav() {
         {LINKS.map((item) => {
           const active = item.href === "/studio#library"
             ? false
-            : path === item.href || (item.href !== "/studio/new" && path.startsWith(item.href + "/"));
+            : path === item.href || (item.href !== "/studio/new" && item.href !== "/studio/assets" && path.startsWith(item.href + "/"));
           return (
             <Link
               key={item.href}

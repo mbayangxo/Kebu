@@ -29,6 +29,7 @@ import { GalaxyEmptyState, GalaxyInspectorSection, GalaxyToolRail } from "@/app/
 import { StudioInlineText } from "@/app/components/studio/studio-inline-text";
 import { StudioIcon } from "@/app/components/studio/studio-icons";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
+import { StudioMarketplaceLibraryPanel } from "@/app/components/studio/studio-marketplace-library-panel";
 import type { BrandSpace } from "@/lib/studio/brand-space";
 import { StudioBrandSpacePanel } from "@/app/components/studio/studio-brand-space-panel";
 import { StudioThemesPanel } from "@/app/components/studio/studio-themes-panel";
@@ -909,6 +910,7 @@ export function StudioCanvasEditor({
                 <input ref={videoFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(e)=>void onFilePicked(e.target.files?.[0]??null,"video")}/>
               </div>
             ) : leftTab === "uploads" ? (
+              <>
               <StudioUploadsLibrary approvedAssetIds={brandSpace?.approvedAssetIds??[]}
                 readOnly={readOnly}
                 designId={designId}
@@ -925,6 +927,11 @@ export function StudioCanvasEditor({
                   })
                 }
               />
+              <StudioMarketplaceLibraryPanel
+                readOnly={readOnly}
+                onPickImage={(url, name) => addLayer("image", { imageUrl: url, name, width: 320, height: 320 })}
+              />
+              </>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em]">Layers</p><p className="text-[9px] text-white/60">Top layer appears first</p></div><span className="rounded-full bg-white/[.06] px-2 py-1 text-[9px] font-bold">{layers.length}</span></div>

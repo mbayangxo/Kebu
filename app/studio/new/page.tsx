@@ -23,6 +23,19 @@ const PRESET_ACCENTS: Record<string, string> = {
   poster: "#FF6A00",
   banner: "#F4B400",
   business_card: "#0B6E4F",
+  tiktok_video_cover: "#111111",
+  linkedin_post: "#0A66C2",
+  pinterest_pin: "#E60023",
+  twitter_post: "#111111",
+  menu: "#B5541A",
+  youtube_thumbnail: "#FF0000",
+  youtube_banner: "#FF0000",
+  linkedin_banner: "#0A66C2",
+  pitch_deck_slide: "#7950F2",
+  proposal: "#1C7ED6",
+  resume: "#2F9E44",
+  invoice: "#F0A21A",
+  digital_planner: "#E05A2B",
 };
 
 const MOSAIC = [
@@ -72,6 +85,7 @@ function NewStudioDesignInner() {
     social: STUDIO_CREATE_PRESETS.filter((preset) => preset.group === "social"),
     print: STUDIO_CREATE_PRESETS.filter((preset) => preset.group === "print"),
     web: STUDIO_CREATE_PRESETS.filter((preset) => preset.group === "web"),
+    document: STUDIO_CREATE_PRESETS.filter((preset) => preset.group === "document"),
   }), []);
 
   async function createBlank(presetId: string) {
@@ -209,6 +223,7 @@ function NewStudioDesignInner() {
                   ["social", "Social & messaging", "Posts, stories and status formats"],
                   ["print", "Print", "Physical pieces and handouts"],
                   ["web", "Web", "Wide digital canvases"],
+                  ["document", "Documents & business", "Decks, proposals, resumes and planners"],
                 ] as const).map(([group, title, description]) => (
                   <section key={group}>
                     <div className="mb-3 flex items-end justify-between gap-4">
