@@ -55,6 +55,7 @@ await db.exec(read('supabase/migrations/20261016180000_liguey_worker_profiles.sq
 await db.exec(read('supabase/migrations/20261016190000_liguey_job_listings_applications.sql'));
 await db.exec(read('supabase/migrations/20261016200000_liguey_profile_visibility_for_reviewers.sql'));
 await db.exec(read('supabase/migrations/20261016210000_liguey_applicant_listing_visibility.sql'));
+await db.exec(read('supabase/migrations/20261020000000_liguey_yande_applicant_insight.sql'));
 
 const TABLES = {
   worker_profiles: { columns: ['user_id','headline','bio','skills','languages','experience','location','country_code','remote_eligible','availability','is_discoverable','verified_at','created_at','updated_at'], json: new Set(['experience']) },
@@ -64,6 +65,8 @@ const TABLES = {
   businesses: { columns: ['id','created_by','legal_name','trading_name'], json: new Set() },
   business_members: { columns: ['id','business_id','user_id','role','status'], json: new Set() },
   library_nodes: { columns: ['id','owner_id','parent_id','kind','title','storage_path','mime_type','byte_size','source_kind','source_id','metadata','starred','trashed_at','created_at','updated_at'], json: new Set(['metadata']) },
+  liguey_applicant_insights: { columns: ['id','application_id','business_id','generated_by','model','summary','strengths','questions_to_ask','caution','created_at','updated_at'], json: new Set() },
+  liguey_ai_usage: { columns: ['business_id','month_start','generation_count','updated_at'], json: new Set() },
 };
 
 async function run(uid, sql, params = []) {
@@ -85,6 +88,7 @@ function identity(req) {
 async function payload(req) { let body = ''; for await (const bytes of req) body += bytes; return body ? JSON.parse(body) : {}; }
 
 let queries = 0;
+let lastAnthropicRequest = null;
 const backend = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:38440');
   res.setHeader('Access-Control-Allow-Headers', 'authorization,apikey,x-client-info,content-type');
@@ -94,23 +98,51 @@ const backend = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1:38441');
   try {
     if (url.pathname === '/__qa/reset' && req.method === 'POST') {
-      await db.exec('truncate worker_profiles, worker_profile_evidence, job_listings, job_applications cascade');
-      queries = 0; send(200, { ok: true }); return;
+      await db.exec('truncate worker_profiles, worker_profile_evidence, job_listings, job_applications, liguey_ai_usage cascade');
+      queries = 0; lastAnthropicRequest = null; send(200, { ok: true }); return;
     }
     if (url.pathname === '/__qa/state') {
-      const [profiles, evidence, listings, applications] = await Promise.all([
+      const [profiles, evidence, listings, applications, insights] = await Promise.all([
         db.query('select row_to_json(w) as row from worker_profiles w'),
         db.query('select row_to_json(w) as row from worker_profile_evidence w'),
         db.query('select row_to_json(w) as row from job_listings w order by created_at'),
         db.query('select row_to_json(w) as row from job_applications w order by created_at'),
+        db.query('select row_to_json(w) as row from liguey_applicant_insights w order by created_at'),
       ]);
-      send(200, { profiles: profiles.rows.map((x) => x.row), evidence: evidence.rows.map((x) => x.row), listings: listings.rows.map((x) => x.row), applications: applications.rows.map((x) => x.row), queries });
+      send(200, { profiles: profiles.rows.map((x) => x.row), evidence: evidence.rows.map((x) => x.row), listings: listings.rows.map((x) => x.row), applications: applications.rows.map((x) => x.row), insights: insights.rows.map((x) => x.row), lastAnthropicRequest, queries });
       return;
     }
     const uid = identity(req);
     if (url.pathname.startsWith('/auth/')) {
       if (!uid || uid === 'SERVICE') { send(401, { message: 'Fixture session missing' }); return; }
       send(200, { id: uid, email: uid + '@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-10-16T12:00:00Z' });
+      return;
+    }
+    if (url.pathname === '/v1/messages' && req.method === 'POST') {
+      const body = await payload(req);
+      lastAnthropicRequest = body;
+      const text = String(body.system ?? '').includes('Yande')
+        ? JSON.stringify({
+            summary: 'Fixture-generated: strong fit based on the real applicant profile.',
+            strengths: ['Matches the listed language requirement', 'Has relevant informal experience'],
+            questionsToAsk: ['Can you describe a recent example of this work?'],
+            caution: '',
+          })
+        : '{}';
+      send(200, { id: 'msg_fixture', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'text', text }], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 10 } });
+      return;
+    }
+    if (url.pathname.startsWith('/rest/v1/rpc/')) {
+      const fn = url.pathname.slice('/rest/v1/rpc/'.length);
+      const uid = identity(req);
+      const args = await payload(req);
+      const keys = Object.keys(args);
+      const placeholders = keys.map((key, index) => `${key} := $${index + 1}`);
+      const values = keys.map((key) => args[key]);
+      const result = await run(uid, `select ${fn}(${placeholders.join(',')}) as result`, values);
+      queries++;
+      const row = result.rows[0] ?? {};
+      send(200, row.result);
       return;
     }
     if (!url.pathname.startsWith('/rest/v1/')) { send(404, { error: 'Fixture endpoint missing' }); return; }
@@ -172,7 +204,7 @@ await new Promise((done) => backend.listen(38441, '127.0.0.1', done));
 const temp = mkdtempSync(join(tmpdir(), 'kebu-liguey-config-'));
 const config = join(temp, 'playwright.config.mjs');
 writeFileSync(config, `import{defineConfig}from${JSON.stringify(join(root, 'node_modules/playwright/test.mjs'))};export default defineConfig({testDir:${JSON.stringify(join(root, 'tests/platform'))},testMatch:'liguey.local.spec.ts',workers:1,retries:0,maxFailures:1,timeout:60000,reporter:[['list'],['json',{outputFile:${JSON.stringify(join(output, 'results.json'))}}]],outputDir:${JSON.stringify(join(output, 'traces'))},use:{actionTimeout:10000,baseURL:'http://127.0.0.1:38440',viewport:{width:1440,height:1000},launchOptions:{executablePath:${JSON.stringify(chromium)},args:['--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-zygote']}}});`);
-const env = { ...process.env, NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:38441', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'isolated-local-fixture', NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '', SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey, SUPABASE_SECRET_KEY: '', SUPABASE_URL: '', DATABASE_URL: '', ANTHROPIC_API_KEY: '', VERCEL_ENV: '' };
+const env = { ...process.env, NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:38441', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'isolated-local-fixture', NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '', SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey, SUPABASE_SECRET_KEY: '', SUPABASE_URL: '', DATABASE_URL: '', ANTHROPIC_API_KEY: 'fixture-anthropic-key', ANTHROPIC_BASE_URL: 'http://127.0.0.1:38441', VERCEL_ENV: '' };
 rmSync(join(root, '.next/dev'), { recursive: true, force: true });
 
 async function stopChild(child) {
