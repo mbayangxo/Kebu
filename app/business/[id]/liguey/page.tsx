@@ -17,7 +17,7 @@ export default async function BusinessLigueyPage({ params }: Props) {
 
   const { data: listings } = await supabase
     .from("job_listings")
-    .select("id, public_id, title, description, requirements, employment_type, location_type, location, status")
+    .select("id, public_id, title, description, requirements, employment_type, location_type, location, pay_label, photo_url, status")
     .eq("business_id", businessId)
     .order("updated_at", { ascending: false })
     .limit(100);

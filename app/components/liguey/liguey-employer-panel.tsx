@@ -8,7 +8,7 @@ import { ligueyT, employmentTypeLabel, locationTypeLabel, listingStatusLabel, ap
 
 type Listing = {
   id: string; public_id: string; title: string; description: string; requirements: string;
-  employment_type: string; location_type: string; location: string; status: string;
+  employment_type: string; location_type: string; location: string; pay_label: string; photo_url: string; status: string;
 };
 type Application = { id: string; applicant_user_id: string; cover_note: string; status: string; decided_at: string | null; created_at: string };
 type ApplicantProfile = { user_id: string; headline: string | null; skills: string[]; languages: string[] };
@@ -46,6 +46,9 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
   const [employmentType, setEmploymentType] = useState<typeof EMPLOYMENT_TYPES[number]>("full_time");
   const [locationType, setLocationType] = useState<typeof LOCATION_TYPES[number]>("onsite");
   const [location, setLocation] = useState("");
+  const [payLabel, setPayLabel] = useState("");
+  const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
+  const [photoErrorByListing, setPhotoErrorByListing] = useState<Record<string, string>>({});
 
   async function handleCreate() {
     setCreating(true);
@@ -54,14 +57,31 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
       const res = await fetch(`/api/liguey/employers/${businessId}/listings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, requirements, employmentType, locationType, location }),
+        body: JSON.stringify({ title, description, requirements, employmentType, locationType, location, payLabel }),
       });
       const body = await res.json();
       if (!res.ok) { setError(body.error ?? "Could not create listing."); return; }
       setListings((prev) => [body.listing, ...prev]);
-      setTitle(""); setDescription(""); setRequirements(""); setLocation("");
+      setTitle(""); setDescription(""); setRequirements(""); setLocation(""); setPayLabel("");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function uploadPhoto(listingId: string, file: File) {
+    setPhotoBusyId(listingId);
+    setPhotoErrorByListing((prev) => ({ ...prev, [listingId]: "" }));
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`/api/liguey/employers/${businessId}/listings/${listingId}/photo`, { method: "POST", body: form });
+      const body = await res.json();
+      if (!res.ok) { setPhotoErrorByListing((prev) => ({ ...prev, [listingId]: body.error ?? "Could not upload photo." })); return; }
+      setListings((prev) => prev.map((listing) => (listing.id === listingId ? { ...listing, photo_url: body.photoUrl } : listing)));
+    } catch {
+      setPhotoErrorByListing((prev) => ({ ...prev, [listingId]: "Could not upload photo. Retry when connected." }));
+    } finally {
+      setPhotoBusyId(null);
     }
   }
 
@@ -162,6 +182,7 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
             {LOCATION_TYPES.map((value) => <option key={value} value={value}>{locationTypeLabel(value, lang)}</option>)}
           </select>
           <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("employer_field_location")} className="col-span-2 rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
+          <input value={payLabel} onChange={(e) => setPayLabel(e.target.value)} maxLength={60} placeholder={t("employer_field_pay")} className="col-span-2 rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("employer_field_description")} rows={2} className="col-span-2 rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
           <textarea value={requirements} onChange={(e) => setRequirements(e.target.value)} placeholder={t("employer_field_requirements")} rows={2} className="col-span-2 rounded-[8px] border px-2 py-1.5 text-[11px]" style={fieldStyle} />
         </div>
@@ -174,11 +195,32 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
         {listings.map((listing) => (
           <div key={listing.id} className="rounded-[12px] border p-3" style={fieldStyle}>
             <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-black">{listing.title}</p>
-                <p className="mt-0.5 text-[9px]" style={{ color: KEBU.faint }}>{employmentTypeLabel(listing.employment_type, lang)} · {locationTypeLabel(listing.location_type, lang)}{listing.location ? ` · ${listing.location}` : ""}</p>
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                {listing.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={listing.photo_url} alt="" className="h-9 w-9 shrink-0 rounded-[8px] object-cover" />
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-black">{listing.title}</p>
+                  <p className="mt-0.5 text-[9px]" style={{ color: KEBU.faint }}>
+                    {employmentTypeLabel(listing.employment_type, lang)} · {locationTypeLabel(listing.location_type, lang)}{listing.location ? ` · ${listing.location}` : ""}{listing.pay_label ? ` · ${listing.pay_label}` : ""}
+                  </p>
+                </div>
               </div>
               <StatusPill status={listing.status} lang={lang} kind="listing" />
+            </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <label className="cursor-pointer text-[8px] font-black uppercase tracking-wide underline" style={{ color: KEBU.muted }}>
+                {photoBusyId === listing.id ? t("employer_photo_uploading") : t("employer_field_photo_upload")}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={photoBusyId === listing.id}
+                  onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void uploadPhoto(listing.id, file); }}
+                />
+              </label>
+              {photoErrorByListing[listing.id] ? <span className="text-[8px]" style={{ color: "#B00020" }}>{photoErrorByListing[listing.id]}</span> : null}
             </div>
             {listing.status === "published" ? (
               <p className="mt-1 text-[9px]">

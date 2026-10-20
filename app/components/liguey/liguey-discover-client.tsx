@@ -7,7 +7,7 @@ import { LanguageBar } from "@/app/components/language-bar";
 import { useLocale } from "@/app/components/locale-context";
 import { ligueyT, employmentTypeLabel, locationTypeLabel, type LigueyKey } from "@/lib/liguey/liguey-i18n";
 
-type Listing = { publicId: string; title: string; employmentType: string; locationType: string; location: string; employerName: string };
+type Listing = { publicId: string; title: string; employmentType: string; locationType: string; location: string; payLabel: string; photoUrl: string; employerName: string };
 
 const fieldStyle = { borderColor: KEBU.borders.default } as const;
 
@@ -53,11 +53,17 @@ export function LigueyDiscoverClient() {
           <p className="text-[10px]" style={{ color: KEBU.faint }}>{t("discover_empty")}</p>
         ) : (
           listings.map((listing) => (
-            <Link key={listing.publicId} href={`/j/${listing.publicId}`} className="block rounded-[12px] border p-3 hover:bg-black/[.02]" style={fieldStyle}>
-              <p className="text-[12px] font-black">{listing.title}</p>
-              <p className="mt-0.5 text-[9px]" style={{ color: KEBU.faint }}>
-                {listing.employerName} · {employmentTypeLabel(listing.employmentType, lang)} · {locationTypeLabel(listing.locationType, lang)}{listing.location ? ` · ${listing.location}` : ""}
-              </p>
+            <Link key={listing.publicId} href={`/j/${listing.publicId}`} className="flex items-center gap-3 rounded-[12px] border p-3 hover:bg-black/[.02]" style={fieldStyle}>
+              {listing.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={listing.photoUrl} alt="" className="h-11 w-11 shrink-0 rounded-[8px] object-cover" />
+              ) : null}
+              <div className="min-w-0">
+                <p className="text-[12px] font-black">{listing.title}</p>
+                <p className="mt-0.5 text-[9px]" style={{ color: KEBU.faint }}>
+                  {listing.employerName} · {employmentTypeLabel(listing.employmentType, lang)} · {locationTypeLabel(listing.locationType, lang)}{listing.location ? ` · ${listing.location}` : ""}{listing.payLabel ? ` · ${listing.payLabel}` : ""}
+                </p>
+              </div>
             </Link>
           ))
         )}

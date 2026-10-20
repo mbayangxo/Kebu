@@ -64,13 +64,18 @@ export type LigueyKey =
   | "applications_title" | "applications_empty" | "applications_withdraw"
 
   | "employer_title" | "employer_new_listing" | "employer_field_title" | "employer_field_location"
-  | "employer_field_description" | "employer_field_requirements" | "employer_create" | "employer_creating"
+  | "employer_field_description" | "employer_field_requirements" | "employer_field_pay" | "employer_create" | "employer_creating"
   | "employer_publish" | "employer_close" | "employer_archive" | "employer_view_applicants" | "employer_hide_applicants"
   | "employer_no_applicants" | "employer_no_cover_note" | "employer_mark_reviewed" | "employer_accept" | "employer_decline"
   | "employer_no_listings" | "employer_profile_skills" | "employer_profile_languages" | "employer_no_profile" | "employer_profile_evidence"
-  | "employer_public_link_label"
+  | "employer_public_link_label" | "employer_field_photo_upload" | "employer_photo_uploading"
   | "employer_yande_ask" | "employer_yande_regenerate" | "employer_yande_thinking" | "employer_yande_label"
-  | "employer_yande_questions" | "employer_yande_disclaimer";
+  | "employer_yande_questions" | "employer_yande_disclaimer"
+
+  | "public_about_title" | "public_reviews_title" | "public_reviews_empty"
+  | "public_review_title" | "public_review_rating_label" | "public_review_body_placeholder" | "public_review_anonymous_label"
+  | "public_review_submit" | "public_review_submitting" | "public_review_update" | "public_review_remove"
+  | "public_review_removed" | "public_review_saved";
 
 export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
   en: {
@@ -165,6 +170,9 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_field_location: "Location (city, region)",
     employer_field_description: "Description",
     employer_field_requirements: "Requirements",
+    employer_field_pay: "Pay (e.g. 2,000 XOF/day, or Negotiable)",
+    employer_field_photo_upload: "Add photo",
+    employer_photo_uploading: "Uploading…",
     employer_create: "Create draft listing",
     employer_creating: "Creating…",
     employer_publish: "Publish",
@@ -189,6 +197,20 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_yande_label: "Yande's notes",
     employer_yande_questions: "Questions to ask",
     employer_yande_disclaimer: "AI-generated from this applicant's own profile. Not a score — read the application yourself.",
+
+    public_about_title: "About the company",
+    public_reviews_title: "Company reviews",
+    public_reviews_empty: "No reviews yet.",
+    public_review_title: "Rate this company",
+    public_review_rating_label: "Rating",
+    public_review_body_placeholder: "Share your honest experience working here.",
+    public_review_anonymous_label: "Post anonymously",
+    public_review_submit: "Submit review",
+    public_review_submitting: "Saving…",
+    public_review_update: "Update review",
+    public_review_remove: "Remove my review",
+    public_review_removed: "You removed this review. Saving again will post it.",
+    public_review_saved: "Saved.",
   },
   fr: {
     brand: "Kebu Liguey",
@@ -282,6 +304,9 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_field_location: "Lieu (ville, région)",
     employer_field_description: "Description",
     employer_field_requirements: "Exigences",
+    employer_field_pay: "Rémunération (ex. 2 000 XOF/jour, ou À négocier)",
+    employer_field_photo_upload: "Ajouter une photo",
+    employer_photo_uploading: "Envoi…",
     employer_create: "Créer un brouillon d'offre",
     employer_creating: "Création…",
     employer_publish: "Publier",
@@ -306,6 +331,20 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_yande_label: "Notes de Yande",
     employer_yande_questions: "Questions à poser",
     employer_yande_disclaimer: "Généré par IA à partir du profil de ce candidat. Pas un score — lisez la candidature vous-même.",
+
+    public_about_title: "À propos de l'entreprise",
+    public_reviews_title: "Avis sur l'entreprise",
+    public_reviews_empty: "Aucun avis pour le moment.",
+    public_review_title: "Évaluer cette entreprise",
+    public_review_rating_label: "Note",
+    public_review_body_placeholder: "Partagez votre expérience honnête de travail ici.",
+    public_review_anonymous_label: "Publier anonymement",
+    public_review_submit: "Envoyer l'avis",
+    public_review_submitting: "Enregistrement…",
+    public_review_update: "Mettre à jour l'avis",
+    public_review_remove: "Retirer mon avis",
+    public_review_removed: "Vous avez retiré cet avis. Enregistrer à nouveau le republiera.",
+    public_review_saved: "Enregistré.",
   },
   wo: {
     brand: "Kebu Liguey",
@@ -399,6 +438,9 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_field_location: "Fa mu nekk (dëkk, diiwaan)",
     employer_field_description: "Leeral",
     employer_field_requirements: "Li war",
+    employer_field_pay: "Pey (misaal: 2000 XOF/bës, walla Dégg nañu ko)",
+    employer_field_photo_upload: "Yokk nataal",
+    employer_photo_uploading: "Di yónnee…",
     employer_create: "Sos liggéey bu bind",
     employer_creating: "Di sos…",
     employer_publish: "Publier",
@@ -423,6 +465,20 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_yande_label: "Natte yu Yande",
     employer_yande_questions: "Laaj yi war a def",
     employer_yande_disclaimer: "AI bind ko ci profil liggéeykat. Du number — jàngal bind-bi sa bopp.",
+
+    public_about_title: "Ci business bi",
+    public_reviews_title: "Natte business bi",
+    public_reviews_empty: "Amul natte tay.",
+    public_review_title: "Natte business bi",
+    public_review_rating_label: "Natte",
+    public_review_body_placeholder: "Wax say dund bu dëgg ci liggéey fii.",
+    public_review_anonymous_label: "Yónnee ko bu ñu xamul la",
+    public_review_submit: "Yónnee natte bi",
+    public_review_submitting: "Dencu…",
+    public_review_update: "Soppi natte bi",
+    public_review_remove: "Jële sama natte",
+    public_review_removed: "Jële nga natte bii. Denc ko bu bees dina ko publier.",
+    public_review_saved: "Denc na.",
   },
 };
 

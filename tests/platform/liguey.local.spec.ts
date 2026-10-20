@@ -273,6 +273,73 @@ test("Ask Yande generates a real, grounded, non-numeric-score insight for a real
   expect((await employeeRes.json()).insight).toMatchObject({ summary: expect.stringContaining("Fixture-generated") });
 });
 
+test("employer adds pay and a photo to a listing; a hired worker can rate and review the real company, anonymously", async ({ page, request }) => {
+  await reset(request);
+  await session(page.context(), founder);
+  const errors = trackErrors(page);
+  await page.goto(`/business/${businessId}/liguey`);
+  await page.getByPlaceholder("Title", { exact: true }).fill("Community translator");
+  await page.getByPlaceholder("Pay (e.g. 2,000 XOF/day, or Negotiable)", { exact: true }).fill("2,000 XOF/day");
+  await page.getByRole("button", { name: "Create draft listing", exact: true }).click();
+  await expect(page.getByText("Community translator", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Add photo", { exact: true }).setInputFiles({ name: "photo.jpg", mimeType: "image/jpeg", buffer: Buffer.from([0xff, 0xd8, 0xff, 0xdb]) });
+  // The thumbnail only renders once the real upload + photo_url save round-trip completes.
+  await expect(page.locator("img").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  const publicHref = await page.locator('a[href^="/j/"]').getAttribute("href");
+
+  const afterPublish = await state(request);
+  expect(afterPublish.listings[0]).toMatchObject({ pay_label: "2,000 XOF/day" });
+  expect(afterPublish.listings[0].photo_url).toContain("/storage/v1/object/public/site-assets/");
+  expect(errors).toEqual([]);
+
+  await session(page.context(), applicant);
+  await page.goto(publicHref!);
+  await expect(page.getByText("2,000 XOF/day", { exact: false })).toBeVisible();
+  await expect(page.getByText("We translate community notices across Senegal.", { exact: true })).toBeVisible();
+  await page.getByPlaceholder("Tell them why you're a fit", { exact: false }).fill("I would love to help with this.");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(page.getByText("Application submitted", { exact: false })).toBeVisible();
+
+  await session(page.context(), founder);
+  await page.goto(`/business/${businessId}/liguey`);
+  await page.getByRole("button", { name: "View applicants", exact: true }).click();
+  await page.getByRole("button", { name: "Accept", exact: true }).click();
+  await expect(page.getByText("Accepted", { exact: true })).toBeVisible();
+
+  // A hired worker (status = accepted) is offered the real review form.
+  await session(page.context(), applicant);
+  await page.goto(publicHref!);
+  await expect(page.getByText("Rate this company", { exact: true })).toBeVisible();
+  await page.getByLabel("Rating", { exact: true }).selectOption("4");
+  await page.getByPlaceholder("Share your honest experience working here.", { exact: true }).fill("Paid on time, respectful team.");
+  await page.getByLabel("Post anonymously", { exact: true }).check();
+  await page.getByRole("button", { name: "Submit review", exact: true }).click();
+  await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+
+  const afterReview = await state(request);
+  expect(afterReview.reviews).toHaveLength(1);
+  expect(afterReview.reviews[0]).toMatchObject({ reviewer_user_id: applicant, rating: 4, is_anonymous: true, status: "visible" });
+  const hiredApplicationId = afterReview.applications[0].id;
+
+  // Reload as a fresh, anonymous visitor — the aggregate and the review text
+  // are real and persisted, and the reviewer's identity is genuinely hidden.
+  await page.reload();
+  await expect(page.getByRole("paragraph").filter({ hasText: "Paid on time, respectful team." })).toBeVisible();
+  await expect(page.getByText("Anonymous", { exact: true })).toBeVisible();
+
+  // A founder from an unrelated business who was never hired here cannot
+  // write a review via the real API, even trying to reuse the real
+  // applicant's own application id — RLS is the actual gate, not the UI.
+  await session(page.context(), strangerFounder);
+  const spoofAttempt = await page.request.post(`http://127.0.0.1:38440/api/liguey/businesses/${businessId}/reviews`, {
+    data: { applicationId: hiredApplicationId, rating: 5, body: "Fake review from an uninvolved stranger.", isAnonymous: false },
+  });
+  expect(spoofAttempt.status()).toBe(403);
+});
+
 test("mobile viewport: the worker profile page is usable and does not overflow", async ({ page, request }) => {
   await reset(request); await session(page.context(), applicant);
   await page.setViewportSize({ width: 390, height: 844 });

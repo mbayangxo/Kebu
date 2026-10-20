@@ -7,7 +7,8 @@ import { GET } from "@/app/api/public/liguey/listings/[publicId]/route";
 const businessId = "11111111-1111-4111-8111-111111111111";
 const listingRow = {
   id: "l1", business_id: businessId, public_id: "job_abc", title: "Translator", description: "Help people.",
-  requirements: "Fluent Wolof.", employment_type: "contract", location_type: "remote", location: "", status: "published",
+  requirements: "Fluent Wolof.", employment_type: "contract", location_type: "remote", location: "",
+  pay_label: "2,000 XOF/day", photo_url: "https://cdn.test/photo.jpg", status: "published",
   updated_at: "2026-10-16T00:00:00.000Z",
 };
 
@@ -16,7 +17,7 @@ const request = () => new Request("https://kebu.test/api/public/liguey/listings/
 
 function setup(opts: { listing?: unknown } = {}) {
   const listingMaybeSingle = vi.fn().mockResolvedValue({ data: opts.listing === undefined ? listingRow : opts.listing, error: null });
-  const businessMaybeSingle = vi.fn().mockResolvedValue({ data: { legal_name: "Legal Co", trading_name: "Trade Co" }, error: null });
+  const businessMaybeSingle = vi.fn().mockResolvedValue({ data: { legal_name: "Legal Co", trading_name: "Trade Co", description: "We translate for the community." }, error: null });
   const from = vi.fn((table: string) => {
     if (table === "job_listings") return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: listingMaybeSingle };
     if (table === "businesses") return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: businessMaybeSingle };
@@ -33,7 +34,10 @@ describe("Public Liguey listing detail route", () => {
     const response = await GET(request(), ctx);
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.listing).toMatchObject({ id: "l1", businessId, title: "Translator", employerName: "Trade Co" });
+    expect(body.listing).toMatchObject({
+      id: "l1", businessId, title: "Translator", employerName: "Trade Co",
+      payLabel: "2,000 XOF/day", photoUrl: "https://cdn.test/photo.jpg", employerAbout: "We translate for the community.",
+    });
   });
 
   it("404s a listing that does not exist", async () => {

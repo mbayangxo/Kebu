@@ -6,7 +6,7 @@ import { createJobListingSchema, newJobListingPublicId } from "@/lib/liguey/job-
 
 export const dynamic = "force-dynamic";
 
-const LISTING_COLUMNS = "id, business_id, public_id, title, description, requirements, employment_type, location_type, location, status, created_by, created_at, updated_at";
+const LISTING_COLUMNS = "id, business_id, public_id, title, description, requirements, employment_type, location_type, location, pay_label, photo_url, status, created_by, created_at, updated_at";
 
 type Params = { params: Promise<{ businessId: string }> };
 
@@ -63,6 +63,7 @@ export async function POST(req: Request, { params }: Params) {
       employment_type: parsed.data.employmentType,
       location_type: parsed.data.locationType,
       location: parsed.data.location,
+      pay_label: parsed.data.payLabel,
       status: parsed.data.status,
       created_by: user.id,
     })

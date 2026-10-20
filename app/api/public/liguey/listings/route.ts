@@ -26,7 +26,7 @@ export async function GET(req: Request) {
 
   let query = admin
     .from("job_listings")
-    .select("id, business_id, public_id, title, employment_type, location_type, location, updated_at")
+    .select("id, business_id, public_id, title, employment_type, location_type, location, pay_label, photo_url, updated_at")
     .eq("status", "published")
     .order("updated_at", { ascending: false })
     .limit(100);
@@ -51,6 +51,8 @@ export async function GET(req: Request) {
       employmentType: listing.employment_type,
       locationType: listing.location_type,
       location: listing.location,
+      payLabel: listing.pay_label,
+      photoUrl: listing.photo_url,
       employerName: businessNameById.get(listing.business_id) ?? "Kebu business",
       updatedAt: listing.updated_at,
     })),
