@@ -30,6 +30,7 @@ import { StudioInlineText } from "@/app/components/studio/studio-inline-text";
 import { StudioIcon } from "@/app/components/studio/studio-icons";
 import { StudioUploadsLibrary } from "@/app/components/studio/studio-uploads-library";
 import { StudioMarketplaceLibraryPanel } from "@/app/components/studio/studio-marketplace-library-panel";
+import { loadCustomFontFaces } from "@/lib/studio/custom-fonts";
 import type { BrandSpace } from "@/lib/studio/brand-space";
 import { StudioBrandSpacePanel } from "@/app/components/studio/studio-brand-space-panel";
 import { StudioThemesPanel } from "@/app/components/studio/studio-themes-panel";
@@ -200,6 +201,7 @@ export function StudioCanvasEditor({
   const [aiInput, setAiInput] = useState("");
   const [aiMessages, setAiMessages] = useState<{role:"user"|"assistant";text:string}[]>([]);
   const [aiBusy, setAiBusy] = useState(false);
+  const [customFontFamilies, setCustomFontFamilies] = useState<string[]>([]);
 
   useEffect(() => {
     if (!STUDIO_FONTS_HREF) return;
@@ -210,6 +212,22 @@ export function StudioCanvasEditor({
     link.rel = "stylesheet";
     link.href = STUDIO_FONTS_HREF;
     document.head.appendChild(link);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/studio/creative-assets/library", { credentials: "include" })
+      .then((res) => res.json())
+      .then(async (data) => {
+        const fontItems: { asset: { kind: string; name: string; fileUrl: string } }[] = Array.isArray(data.items) ? data.items : [];
+        const fonts = fontItems.filter((i) => i.asset.kind === "font").map((i) => ({ family: i.asset.name, fileUrl: i.asset.fileUrl }));
+        if (!fonts.length || cancelled) return;
+        const results = await loadCustomFontFaces(fonts);
+        if (cancelled) return;
+        setCustomFontFamilies(results.filter((r) => r.ok).map((r) => r.family));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
   }, []);
   const [snapGuides, setSnapGuides] = useState<{ v: number | null; h: number | null }>({
     v: null,
@@ -1330,6 +1348,15 @@ export function StudioCanvasEditor({
                           {f}
                         </option>
                       ))}
+                      {customFontFamilies.length > 0 ? (
+                        <optgroup label="Your fonts">
+                          {customFontFamilies.map((f) => (
+                            <option key={f} value={f}>
+                              {f}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ) : null}
                     </select>
                   </label>
                   <div className="grid grid-cols-2 gap-2">

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "playwright/test";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { PDFDocument } from "pdf-lib";
 import JSZip from "jszip";
 import { emptyCanvasDocument, canvasLayerSchema } from "../../lib/studio/canvas-document";
@@ -38,7 +39,7 @@ async function cached(page: Page, video = false) {
     };
   }), { owner, id, video });
 }
-async function setup(page: Page, options: { video?: boolean; missing?: boolean; delay?: boolean; malformed?: boolean; conflict?: boolean; twoPages?: boolean; audio?: boolean; missingAudio?: boolean; history?: boolean; designSoundtrack?: boolean; sharing?: "offline" | "malformed"; viewer?: boolean; delayedRestore?: boolean; failedHistory?: boolean } = {}) {
+async function setup(page: Page, options: { video?: boolean; missing?: boolean; delay?: boolean; malformed?: boolean; conflict?: boolean; twoPages?: boolean; audio?: boolean; missingAudio?: boolean; history?: boolean; designSoundtrack?: boolean; sharing?: "offline" | "malformed"; viewer?: boolean; delayedRestore?: boolean; failedHistory?: boolean; customFonts?: { family: string; fileUrl: string }[] } = {}) {
   const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
   const doc = canvas(options.missing); if (options.twoPages) doc.pages.push({ ...structuredClone(doc.pages[0]!), id: "second", name: "Second" });
   if (options.designSoundtrack) doc.soundtrack = { url: "http://127.0.0.1:38416/tone.wav", durationMs: 1000, bpm: null, beatsMs: [], snapToBeats: true };
@@ -67,6 +68,10 @@ async function setup(page: Page, options: { video?: boolean; missing?: boolean; 
         await route.fulfill({ json: { design: server } }); return;
       }
       await route.fulfill({ status: 201, json: { versionId: "receipt" } }); return;
+    }
+    if (options.customFonts && pathname === "/api/studio/creative-assets/library") {
+      await route.fulfill({ json: { items: options.customFonts.map((f, i) => ({ id: `asset-${i}`, acquiredAt: rev(1), asset: { id: `font-${i}`, kind: "font", name: f.family, fileUrl: f.fileUrl, previewUrl: null, licenseNote: null } })) } });
+      return;
     }
     if (pathname !== api) { await route.fulfill({ json: { projects: [], businesses: [], profile: null } }); return; }
     if (route.request().method() === "PATCH") {
@@ -623,5 +628,24 @@ test("dark editor inspector labels and primary Save meet readable text contrast"
     expect(ratio).toBeGreaterThanOrEqual(minimum);
   }
   await page.screenshot({ path: test.info().outputPath("dark-inspector.png") });
+  expect(fixture.errors).toEqual([]);
+});
+
+test("a marketplace custom font actually loads in the browser and renders on a text layer", async ({ page }) => {
+  // A real, valid .woff2 binary fixture, not a fabricated/invalid one — proves the FontFace
+  // API genuinely parses and loads real font data, not just a URL.
+  const realFontFile = readFileSync(join(__dirname, "fixtures/kente-display.woff2"));
+  await page.route("**/fonts/kente-display.woff2", (route) => route.fulfill({ contentType: "font/woff2", body: realFontFile }));
+  const fixture = await setup(page, { customFonts: [{ family: "Kente Display", fileUrl: "http://127.0.0.1:38416/fonts/kente-display.woff2" }] });
+  await expect.poll(() => page.evaluate(() => document.fonts.check('32px "Kente Display"'))).toBe(true);
+  const layer = page.locator('[data-studio-layer-id="title"]'); await layer.click();
+  await expect(page.getByText("Typography", { exact: true })).toBeVisible();
+  const fontSelect = page.getByRole("combobox", { name: "Font", exact: true });
+  await expect(fontSelect.locator("option", { hasText: "Kente Display" })).toHaveCount(1);
+  expect(await page.evaluate(() => document.querySelector("optgroup[label='Your fonts'] option")?.textContent)).toBe("Kente Display");
+  await fontSelect.selectOption("Kente Display");
+  await expect(page.getByText("Original", { exact: true }).first()).toHaveCSS("font-family", /Kente Display/);
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.pages[0]!.layers[0]!.fontFamily).toBe("Kente Display");
   expect(fixture.errors).toEqual([]);
 });
