@@ -202,6 +202,18 @@ export function WorkItemsSurface({ kind }: { kind: WorkItemKind }) {
                   <div><p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>{copy.noun}</p><h2 className="mt-1 text-lg font-black">{selected.title}</h2></div>
                   <button type="button" disabled={busy} onClick={() => void removeItem(selected.id)} className="text-[9px] font-black uppercase tracking-wide text-red-600">Delete</button>
                 </div>
+                {selected.business_id ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void patchItem(selected.id, { visibility: selected.visibility === "private" ? "team" : "private" })}
+                    title={selected.visibility === "private" ? "Only you can see this. Click to share with the team." : "Visible to the whole team. Click to make it private to you."}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wide disabled:opacity-40"
+                    style={{ borderColor: KEBU.borders.default, color: selected.visibility === "private" ? KEBU.orange : KEBU.muted }}
+                  >
+                    {selected.visibility === "private" ? "🔒 Private to you" : "👥 Visible to team"}
+                  </button>
+                ) : null}
                 {kind === "doc" ? (
                   <textarea
                     disabled={busy}

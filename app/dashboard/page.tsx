@@ -157,7 +157,7 @@ export default function KebuHomePage(){
 
               <section className="relative overflow-hidden rounded-[14px] bg-black p-4 text-white">
                 <div className="absolute -right-12 -top-12 h-32 w-32 rotate-[28deg] rounded-[40%] bg-[#FF5A1F]"/>
-                <div className="relative"><div className="flex items-center gap-2"><span className="text-[20px]" style={{fontFamily:"var(--font-fraunces)"}}>EVA</span><span className="text-[7px] uppercase text-[#FF8A67]">beta</span></div><p className="mt-2 max-w-[190px] text-[9px] leading-relaxed text-white/48">Your communication and thinking partner across Kebu.</p><Link href="/email" className="mt-4 inline-flex rounded-full bg-white px-3 py-2 text-[8px] font-semibold text-black">Open EVA →</Link></div>
+                <div className="relative"><div className="flex items-center gap-2"><span className="text-[20px]" style={{fontFamily:"var(--font-fraunces)"}}>K Mail</span><span className="text-[7px] uppercase text-[#FF8A67]">beta</span></div><p className="mt-2 max-w-[190px] text-[9px] leading-relaxed text-white/48">Your communication and thinking partner across Kebu.</p><Link href="/email" className="mt-4 inline-flex rounded-full bg-white px-3 py-2 text-[8px] font-semibold text-black">Open K Mail →</Link></div>
               </section>
             </aside>
           </div>

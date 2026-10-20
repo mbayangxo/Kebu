@@ -13,7 +13,7 @@ const order: Order = {
 };
 const ledger: Record<string, unknown>[] = [];
 const rpc = vi.fn();
-const fulfillPaidDigitalOrder = vi.fn();
+const fulfillPaidDigitalOrderDurable = vi.fn();
 
 function query(table: string) {
   const state: { patch?: Record<string, unknown> } = {};
@@ -47,7 +47,7 @@ const admin: AdminMock = { from: (table: string) => query(table), rpc: (...args:
 
 vi.mock("@/lib/opportunity/admin", () => ({ createServiceClient: () => admin }));
 vi.mock("@/lib/shop/digital-downloads", () => ({
-  fulfillPaidDigitalOrder: (...args: unknown[]) => fulfillPaidDigitalOrder(...args),
+  fulfillPaidDigitalOrderDurable: (...args: unknown[]) => fulfillPaidDigitalOrderDurable(...args),
 }));
 
 function request(raw: string, signature: string): NextRequest {
@@ -79,7 +79,7 @@ describe("payment lifecycle: verified webhook → paid order → ledger → fulf
       });
       return { data: [{ order_id: order.id, project_id: order.project_id, already_paid: false }], error: null };
     });
-    fulfillPaidDigitalOrder.mockReset().mockResolvedValue(undefined);
+    fulfillPaidDigitalOrderDurable.mockReset().mockResolvedValue(undefined);
     process.env.PAYSTACK_SECRET_KEY = "sk_test_lifecycle";
   });
 
@@ -109,7 +109,7 @@ describe("payment lifecycle: verified webhook → paid order → ledger → fulf
     expect(ledger).toEqual(expect.arrayContaining([
       expect.objectContaining({ order_id: "order-1", event_type: "paid", rail: "paystack", amount_xof: 12500 }),
     ]));
-    expect(fulfillPaidDigitalOrder).toHaveBeenCalledWith(admin, "order-1");
+    expect(fulfillPaidDigitalOrderDurable).toHaveBeenCalledWith(admin, "order-1");
   });
 
   it("is idempotent for duplicate provider webhooks", async () => {
@@ -144,7 +144,7 @@ describe("payment lifecycle: verified webhook → paid order → ledger → fulf
     expect(res.status).toBe(404);
     expect(order.payment_status).toBe("awaiting_payment");
     expect(ledger).toHaveLength(0);
-    expect(fulfillPaidDigitalOrder).not.toHaveBeenCalled();
+    expect(fulfillPaidDigitalOrderDurable).not.toHaveBeenCalled();
   });
 
   it("rejects malformed signed amount metadata before touching the database", async () => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
-import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
+import { fulfillPaidDigitalOrderDurable } from "@/lib/shop/digital-downloads";
 import { verifyPaystackSignature } from "@/lib/payments/paystack-adapter";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +76,6 @@ export async function POST(req: NextRequest) {
       alreadyPaid: Boolean(paid.already_paid),
     }),
   );
-  await fulfillPaidDigitalOrder(admin, paid.order_id);
+  await fulfillPaidDigitalOrderDurable(admin, paid.order_id);
   return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.order_id });
 }

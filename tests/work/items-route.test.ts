@@ -4,7 +4,7 @@ vi.mock("@/lib/create/auth", () => ({ requireUser: auth }));
 import { GET, POST, PATCH, DELETE } from "@/app/api/work/items/route";
 const id="11111111-1111-4111-8111-111111111111", owner="22222222-2222-4222-8222-222222222222";
 const revision="2026-10-14T12:00:00.000123+00:00";
-const row={id,owner_id:owner,business_id:null,kind:"doc",title:"Document",body:"Text",status:"draft",due_at:null,start_at:null,end_at:null,updated_at:revision};
+const row={id,owner_id:owner,business_id:null,kind:"doc",title:"Document",body:"Text",status:"draft",due_at:null,start_at:null,end_at:null,visibility:"team",updated_at:revision};
 const request=(method:string,body?:unknown,query="")=>new Request("https://kebu.test/api/work/items"+query,{method,headers:{"Content-Type":"application/json"},...(body!==undefined?{body:JSON.stringify(body)}:{})});
 function setup(result:{data:unknown;error:unknown}={data:row,error:null}){
   const read={select:vi.fn(),eq:vi.fn(),is:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:row,error:null})};
@@ -48,5 +48,19 @@ describe("Workspace work item persistence boundaries",()=>{
  });
  it("rejects invalid list filters instead of broadening the query",async()=>{
   setup();expect((await GET(request("GET",undefined,"?kind=unknown"))).status).toBe(400);expect((await GET(request("GET",undefined,"?kind=doc&businessId=bad"))).status).toBe(400);
+ });
+ it("a partial autosave patch (id+body only, as library-documents-panel.tsx actually sends) does not silently reset status/visibility",async()=>{
+  // Regression: createWorkItemSchema's defaults (status:"open", visibility:"team") used to
+  // survive .partial() into updateWorkItemSchema, so an update that never mentioned status
+  // would still patch it back to "open" — clobbering a "done"/"draft" document on every autosave.
+  const{write}=setup();await PATCH(request("PATCH",{id,body:"New",expectedUpdatedAt:revision}));
+  const patch=write.update.mock.calls[0][0];
+  expect(patch).not.toHaveProperty("status");
+  expect(patch).not.toHaveProperty("visibility");
+  expect(patch.body).toBe("New");
+ });
+ it("an explicit visibility change on PATCH is still applied",async()=>{
+  const{write}=setup();await PATCH(request("PATCH",{id,visibility:"private",expectedUpdatedAt:revision}));
+  expect(write.update.mock.calls[0][0]).toMatchObject({visibility:"private"});
  });
 });

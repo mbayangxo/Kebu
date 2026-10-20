@@ -6,6 +6,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendCampaignEmail } from "@/lib/email/send-campaign";
+import { enqueuePlatformJob } from "@/lib/platform/jobs";
 
 export type DigitalProduct = {
   id: string;
@@ -95,7 +96,15 @@ export async function createDigitalDownload(
   return { ok: true, token };
 }
 
-/** Fulfill a paid digital order. Safe to call repeatedly after duplicate webhooks. */
+/**
+ * Fulfill a paid digital order. Safe to call repeatedly after duplicate webhooks
+ * or worker retries — createDigitalDownload is idempotent per order/product.
+ *
+ * Throws on genuine failure (DB error, email provider rejection) so a caller that
+ * owns retry policy can act on it. The initial data-dependent no-ops below (order
+ * not paid yet, product not digital, etc.) return normally — retrying those would
+ * never help, so they are not failures.
+ */
 export async function fulfillPaidDigitalOrder(
   supabase: SupabaseClient,
   orderId: string,
@@ -119,12 +128,12 @@ export async function fulfillPaidDigitalOrder(
     projectId: order.project_id,
     product: product as DigitalProduct,
   });
-  if (!created.ok) return;
+  if (!created.ok) throw new Error(created.error);
 
   const from = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
   if (!from) return;
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://kebu.app";
-  await emailDownloadLink({
+  const sent = await emailDownloadLink({
     to: order.customer_email,
     shopName: "Kebu",
     productName: order.product_name || product.digital_file_name || "Digital product",
@@ -134,6 +143,56 @@ export async function fulfillPaidDigitalOrder(
     from,
     idempotencyKey: `digital-download:${order.id}:${product.id}`,
   });
+  if (!sent) throw new Error("Download email was not accepted by the mail provider.");
+}
+
+/**
+ * Webhook-facing entry point: attempt fulfillment now (fast path — the buyer gets
+ * their email immediately in the common case); on failure, hand off to the durable
+ * platform worker instead of depending on the payment provider's own webhook retry
+ * policy. Resolves (does not throw) once the work is either done or durably
+ * queued — a transient delivery failure never turns a successfully recorded
+ * payment into a 500 back to the provider.
+ *
+ * If enqueueing the retry job ALSO fails, this rethrows rather than swallowing
+ * the double failure: at that point nothing durable has been recorded, so the
+ * caller must not report success. Letting the webhook response fail is the
+ * correct fallback — the payment provider's own webhook redelivery becomes the
+ * last line of defense when our own queue is unreachable.
+ *
+ * Do not call this from lib/platform/worker.ts's own `digital.fulfill` handler —
+ * that must call fulfillPaidDigitalOrder directly so a genuine failure propagates
+ * to the worker's own attempt-count/backoff/dead-letter handling (failPlatformJob)
+ * instead of this function silently re-enqueueing a "successful" job forever.
+ */
+export async function fulfillPaidDigitalOrderDurable(
+  supabase: SupabaseClient,
+  orderId: string,
+): Promise<void> {
+  try {
+    await fulfillPaidDigitalOrder(supabase, orderId);
+  } catch (cause) {
+    console.error(JSON.stringify({
+      event: "shop.digital_fulfillment_deferred",
+      orderId,
+      error: cause instanceof Error ? cause.message : String(cause),
+    }));
+    try {
+      await enqueuePlatformJob(supabase, {
+        type: "digital.fulfill",
+        payload: { orderId },
+        idempotencyKey: `digital.fulfill:${orderId}`,
+      });
+    } catch (enqueueCause) {
+      console.error(JSON.stringify({
+        event: "shop.digital_fulfillment_unrecoverable",
+        orderId,
+        fulfillmentError: cause instanceof Error ? cause.message : String(cause),
+        enqueueError: enqueueCause instanceof Error ? enqueueCause.message : String(enqueueCause),
+      }));
+      throw enqueueCause;
+    }
+  }
 }
 
 /** Resolve and validate a download token. Returns null if expired / exhausted / not found. */
@@ -234,4 +293,73 @@ export async function emailDownloadLink(opts: {
     text,
     idempotencyKey: opts.idempotencyKey,
   });
+}
+
+/**
+ * Backstop for the one real gap the webhook-level durability above cannot cover:
+ * the request process dying (timeout, container restart, deploy) after
+ * complete_shop_payment commits but *before* fulfillPaidDigitalOrderDurable is
+ * ever called — in that case no platform_jobs row exists at all, so there is
+ * nothing for the worker's own lease-expiry recovery (claim_platform_jobs) to
+ * find. This scans recently-paid digital orders with no download row yet and
+ * enqueues a digital.fulfill job for each; enqueuePlatformJob's idempotency key
+ * makes re-running this sweep safe (it no-ops for orders a job already exists
+ * for, whatever that job's current status).
+ *
+ * Intended to run from the existing platform-worker cron alongside
+ * runPlatformWorker — this is a bounded backfill, not a second job queue.
+ */
+export async function reconcileOrphanedDigitalFulfillments(
+  supabase: SupabaseClient,
+  opts: { sinceHoursAgo?: number; limit?: number } = {},
+): Promise<{ scanned: number; enqueued: number }> {
+  const since = new Date(Date.now() - (opts.sinceHoursAgo ?? 72) * 60 * 60 * 1000).toISOString();
+  const limit = opts.limit ?? 200;
+
+  const { data: candidateOrders } = await supabase
+    .from("shop_orders")
+    .select("id, product_id")
+    .eq("payment_status", "paid")
+    .not("product_id", "is", null)
+    .gte("created_at", since)
+    .limit(limit);
+  const orders = (candidateOrders ?? []) as { id: string; product_id: string }[];
+  if (orders.length === 0) return { scanned: 0, enqueued: 0 };
+
+  const productIds = Array.from(new Set(orders.map((o) => o.product_id)));
+  const { data: digitalProducts } = await supabase
+    .from("project_products")
+    .select("id")
+    .in("id", productIds)
+    .eq("is_digital", true);
+  const digitalProductIds = new Set((digitalProducts ?? []).map((p: { id: string }) => p.id));
+  const digitalOrders = orders.filter((o) => digitalProductIds.has(o.product_id));
+  if (digitalOrders.length === 0) return { scanned: orders.length, enqueued: 0 };
+
+  const orderIds = digitalOrders.map((o) => o.id);
+  const { data: existingDownloads } = await supabase
+    .from("shop_digital_downloads")
+    .select("order_id")
+    .in("order_id", orderIds);
+  const fulfilled = new Set((existingDownloads ?? []).map((d: { order_id: string }) => d.order_id));
+  const orphaned = digitalOrders.filter((o) => !fulfilled.has(o.id));
+
+  let enqueued = 0;
+  for (const order of orphaned) {
+    try {
+      await enqueuePlatformJob(supabase, {
+        type: "digital.fulfill",
+        payload: { orderId: order.id },
+        idempotencyKey: `digital.fulfill:${order.id}`,
+      });
+      enqueued++;
+    } catch (cause) {
+      console.error(JSON.stringify({
+        event: "shop.digital_fulfillment_reconcile_enqueue_failed",
+        orderId: order.id,
+        error: cause instanceof Error ? cause.message : String(cause),
+      }));
+    }
+  }
+  return { scanned: orders.length, enqueued };
 }

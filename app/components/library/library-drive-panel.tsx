@@ -22,6 +22,15 @@ type ConnectionRow = {
   other: { id: string; name: string | null; avatar_url: string | null };
 };
 
+type ShareRow = {
+  node_id: string;
+  shared_with_user_id: string;
+  permission: "viewer" | "editor";
+  shared_by_user_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export function LibraryDrivePanel() {
   const [nodes, setNodes] = useState<NodeRow[]>([]);
   const [path, setPath] = useState<Array<{ id: string | null; title: string }>>([{ id: null, title: "Library" }]);
@@ -32,6 +41,10 @@ export function LibraryDrivePanel() {
   const [shareUserId, setShareUserId] = useState("");
   const [sharePermission, setSharePermission] = useState<"viewer" | "editor">("viewer");
   const [sharing, setSharing] = useState(false);
+  const [shares, setShares] = useState<ShareRow[]>([]);
+  const [sharesLoading, setSharesLoading] = useState(false);
+  const [sharesError, setSharesError] = useState<string | null>(null);
+  const [revokingUserId, setRevokingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const parentId = path[path.length - 1]?.id ?? null;
@@ -57,6 +70,32 @@ export function LibraryDrivePanel() {
       .then((data) => setConnections(Array.isArray(data.connections) ? data.connections : []))
       .catch(() => setConnections([]));
   }, []);
+
+  const loadShares = useCallback(async (nodeId: string) => {
+    setSharesLoading(true);
+    setSharesError(null);
+    try {
+      const res = await fetch(`/api/library/shares?nodeId=${nodeId}`, { credentials: "include", cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not load sharing.");
+      setShares(Array.isArray(data.shares) ? data.shares : []);
+    } catch (cause) {
+      setShares([]);
+      setSharesError(cause instanceof Error ? cause.message : "Could not load sharing.");
+    } finally {
+      setSharesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selected) void loadShares(selected.id);
+  }, [selected, loadShares]);
+
+  function closeShareModal() {
+    setSelected(null);
+    setShares([]);
+    setSharesError(null);
+  }
 
   async function createFolder(event: React.FormEvent) {
     event.preventDefault();
@@ -112,10 +151,30 @@ export function LibraryDrivePanel() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Could not share item.");
       setShareUserId("");
+      await loadShares(selected.id);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not share item.");
     } finally {
       setSharing(false);
+    }
+  }
+
+  async function revokeShare(nodeId: string, userId: string) {
+    if (revokingUserId) return;
+    setRevokingUserId(userId);
+    setSharesError(null);
+    try {
+      const res = await fetch(`/api/library/shares?nodeId=${nodeId}&userId=${userId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not remove access.");
+      await loadShares(nodeId);
+    } catch (cause) {
+      setSharesError(cause instanceof Error ? cause.message : "Could not remove access.");
+    } finally {
+      setRevokingUserId(null);
     }
   }
 
@@ -202,14 +261,46 @@ export function LibraryDrivePanel() {
       ) : null}
 
       {selected ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 p-4" onClick={() => setSelected(null)}>
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 p-4" onClick={() => closeShareModal()}>
           <div className="w-full max-w-md rounded-[24px] bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.orange }}>Share</p>
                 <h3 className="mt-1 text-xl font-black">{selected.title}</h3>
               </div>
-              <button type="button" onClick={() => setSelected(null)} className="rounded-full px-2 py-1 text-black/40">×</button>
+              <button type="button" onClick={() => closeShareModal()} className="rounded-full px-2 py-1 text-black/40">×</button>
+            </div>
+
+            <div className="mt-5">
+              <p className="text-[10px] font-black uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>Who has access</p>
+              {sharesError ? <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{sharesError}</p> : null}
+              {sharesLoading ? (
+                <p className="mt-2 text-xs" style={{ color: KEBU.muted }}>Loading…</p>
+              ) : shares.length ? (
+                <ul className="mt-2 space-y-1.5">
+                  {shares.map((share) => {
+                    const name = connections.find((c) => c.other.id === share.shared_with_user_id)?.other.name || "Kebu connection";
+                    return (
+                      <li key={share.shared_with_user_id} className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2" style={{ borderColor: KEBU.borders.subtle }}>
+                        <span className="min-w-0 truncate text-[11px] font-semibold">{name}</span>
+                        <span className="shrink-0 text-[9px] font-black uppercase tracking-wide" style={{ color: KEBU.muted }}>
+                          {share.permission === "editor" ? "Can edit" : "Can view"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void revokeShare(share.node_id, share.shared_with_user_id)}
+                          disabled={revokingUserId === share.shared_with_user_id}
+                          className="shrink-0 rounded-full px-2 py-1 text-[9px] font-bold text-black/50 hover:bg-black/[.04] disabled:opacity-40"
+                        >
+                          {revokingUserId === share.shared_with_user_id ? "Removing…" : "Remove"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs" style={{ color: KEBU.muted }}>Not shared with anyone yet.</p>
+              )}
             </div>
 
             {connections.length ? (

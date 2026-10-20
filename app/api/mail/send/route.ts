@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/opportunity/admin";
 import { canonicalAddress, mailThreadIdentity } from "@/lib/mail/threading";
 import { assertMailboxSendAccess } from "@/lib/mail/business-mail";
 import { activeSuppressions, externalMailReadiness } from "@/lib/mail/delivery";
+import { processMailForwarding } from "@/lib/mail/forwarding";
 
 export const dynamic = "force-dynamic";
 
@@ -368,6 +369,17 @@ export async function POST(req: Request) {
       subject: parsed.data.subject || "(no subject)",
       last_message_at: new Date().toISOString(),
     }).eq("id", recipientThreadId);
+
+    await processMailForwarding(service, {
+      mailboxId: recipientMailboxId,
+      messageId: recipientMessage.id,
+      fromAddress: mailbox.address,
+      toAddresses: to,
+      ccAddresses: cc,
+      subject: parsed.data.subject,
+      bodyText: parsed.data.text,
+      depth: 0,
+    });
 
     internalDelivered += 1;
   }
