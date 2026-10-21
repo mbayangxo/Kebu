@@ -49,22 +49,31 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Native publish and shared-budget lock barriers
-        run: >-
-          npx vitest run
-          tests/creative-core/kcd-publish-concurrency.local.test.ts
-          tests/creative-core/experience-concurrency.local.test.ts
-          --reporter=default --reporter=json --outputFile=native-postgres-results.json
-      - name: Require all nine cases and confirm database cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Three required runs, not retries: stop at the first failure.
+          for iteration in 1 2 3; do
+            npx vitest run \
+              tests/creative-core/kcd-publish-concurrency.local.test.ts \
+              tests/creative-core/experience-concurrency.local.test.ts \
+              tests/creative-core/native-postgres-cleanup.local.test.ts \
+              --reporter=default --reporter=json --outputFile="native-postgres-results-${iteration}.json"
+          done
+      - name: Require all ten cases in every run and confirm database cleanup
         run: |
           node --input-type=module <<'JS'
           import { readFileSync } from 'node:fs';
           import assert from 'node:assert/strict';
           import pg from 'pg';
-          const report = JSON.parse(readFileSync('native-postgres-results.json', 'utf8'));
-          assert.equal(report.numTotalTests, 9);
-          assert.equal(report.numPassedTests, 9);
-          assert.equal(report.numPendingTests, 0);
-          assert.equal(report.numFailedTests, 0);
+          for (const iteration of [1, 2, 3]) {
+            const report = JSON.parse(readFileSync(`native-postgres-results-${iteration}.json`, 'utf8'));
+            assert.equal(report.success, true);
+            assert.equal(report.numTotalTests, 10);
+            assert.equal(report.numPassedTests, 10);
+            assert.equal(report.numPendingTests, 0);
+            assert.equal(report.numFailedTests, 0);
+          }
           const db = new pg.Client({ connectionString: process.env.KEBU_PUBLISH_CONCURRENCY_DATABASE_URL });
           await db.connect();
           try {
@@ -72,6 +81,6 @@ jobs:
             assert.match(version, /^17\.6(?:\D|$)/);
             const leftovers = await db.query("select datname from pg_database where starts_with(datname, '_kebutest_publish_') or starts_with(datname, '_kebutest_experience_')");
             assert.deepEqual(leftovers.rows, []);
-            console.log(JSON.stringify({ postgres: version, passed: 9, skipped: 0, databasesCleaned: true }));
+            console.log(JSON.stringify({ postgres: version, uniqueCases: 10, requiredIterations: 3, passed: 30, skipped: 0, databasesCleaned: true }));
           } finally { await db.end(); }
           JS

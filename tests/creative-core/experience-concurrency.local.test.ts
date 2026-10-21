@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Pool } from "pg";
 import { setupExperienceDatabase } from "./experience-db-setup";
 import { assertLocalPublishDatabase } from "./publish-db-setup";
+import { dropNativeFixtureDatabase } from "./native-postgres-cleanup";
 type Connection = { processID: number; query: <T = Record<string, unknown>>(sql: string, args?: unknown[]) => Promise<{ rows: T[] }>; release: () => void };
 type DatabasePool = { query: Connection["query"]; connect: () => Promise<Connection>; end: () => Promise<void> };
 const adminUrl = process.env.KEBU_PUBLISH_CONCURRENCY_DATABASE_URL, database = `_kebutest_experience_${randomUUID().replaceAll("-", "")}`;
@@ -36,7 +37,7 @@ describe.skipIf(!adminUrl)("Experience gateway independent PostgreSQL reservatio
     await pool!.query("insert into auth.users(id) values($1),($2)", [owner, other]);
     await pool!.query("insert into projects(id,owner_id,title,document_schema_version) values($1,$2,'First','kcd-1'),($3,$4,'Second','kcd-1')", [project, owner, otherProject, other]);
   });
-  afterAll(async () => { try { if (pool) await pool.end(); } finally { try { if (created) await admin!.query(`drop database "${database}" with (force)`); } finally { if (admin) await admin.end(); } } });
+  afterAll(async () => { try { if (pool) await pool.end(); } finally { try { if (created) await dropNativeFixtureDatabase(admin!, database); } finally { if (admin) await admin.end(); } } });
   for (const replay of [false, true]) it(`${replay ? "duplicate request" : "last allowance"} admits one request under a real lock barrier`, async () => {
     const holder = await connection(), first = await connection(), second = await connection();
     try {

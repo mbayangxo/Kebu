@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { createKcdPublishedSnapshot } from "@/lib/create/kcd-published-snapshot";
 import { kcdPublishDocument } from "@/lib/create/kcd-publish";
 import { assertLocalPublishDatabase, setupPublishDatabase } from "./publish-db-setup";
+import { dropNativeFixtureDatabase } from "./native-postgres-cleanup";
 
 type Connection={processID:number;query:<T=Record<string,unknown>>(sql:string,args?:unknown[])=>Promise<{rows:T[]}>;release:()=>void};
 type DatabasePool={query:Connection["query"];connect:()=>Promise<Connection>;end:()=>Promise<void>};
@@ -62,7 +63,7 @@ describe.skipIf(!adminUrl)("S7 disposable PostgreSQL multi-connection publish ra
  });
  afterAll(async()=>{
   try{if(pool)await pool.end();}finally{
-   try{if(created)await admin!.query(`drop database "${database}" with (force)`);}finally{if(admin)await admin.end();}
+   try{if(created)await dropNativeFixtureDatabase(admin!,database);}finally{if(admin)await admin.end();}
   }
  });
  it("serializes same-project publishes and history versions under a real row-lock barrier",async()=>{
