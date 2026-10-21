@@ -1,0 +1,708 @@
+{
+  "date": "2026-10-21",
+  "sourceCommit": "7bab1a5de7a53330e48e6bf7e1c7027239330694",
+  "projectId": "tnygqgcqlnlsmjpygrca",
+  "hostedHistoryCount": 63,
+  "canonicalCount": 95,
+  "counts": {
+    "same-name-different-version-review-required": 37,
+    "recorded-exact-version": 4,
+    "unmatched-history-review-required": 54
+  },
+  "warning": "Identity comparison only, not semantic equivalence, checksum comparison with hosted SQL, unapplied-migration certification or authorization to execute/repair history. Do not run db push from this manifest.",
+  "files": [
+    {
+      "path": "supabase/migrations/20260919101521_quarantine_accidental_rect_objects.sql",
+      "sha256": "e18cb717c69646af67eabd1e74619746766bd890a0abd6726bfd01f55ea9f638",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "quarantine_accidental_rect_objects",
+        "version": "20260919102208"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260919101805_enforce_opportunity_verified_access.sql",
+      "sha256": "70a96b7c29ef0648c212cfa5c4803e0678e90f59fb54884874762adadd392843",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "enforce_opportunity_verified_access",
+        "version": "20260919102210"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260919204303_harden_public_database_boundaries.sql",
+      "sha256": "cf4dc6a68eca7a9b6f7e2eedcf8e59598ace0376d7dcf38a11ac27c64bc262d6",
+      "historyClassification": "recorded-exact-version",
+      "hostedEntry": {
+        "name": "harden_public_database_boundaries",
+        "version": "20260919204303"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260919212918_remove_duplicate_business_public_id_index.sql",
+      "sha256": "634735cf6961e34714fbb13a803b37f769aa5b32f449e3338b751b4a1c84d396",
+      "historyClassification": "recorded-exact-version",
+      "hostedEntry": {
+        "name": "remove_duplicate_business_public_id_index",
+        "version": "20260919212918"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260919233000_add_query_informed_fk_indexes.sql",
+      "sha256": "de3eb83f10d95ad1dafa4b550fb52965286f3ed2735b659c08921a7a75597593",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "add_query_informed_fk_indexes",
+        "version": "20260919221320"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260919234857_prevent_afrique_id_self_verification.sql",
+      "sha256": "fa1b10a0a5be4f9b05d730e9f8d03ae872a111c88f555ab4d22ab17564f7fd71",
+      "historyClassification": "recorded-exact-version",
+      "hostedEntry": {
+        "name": "prevent_afrique_id_self_verification",
+        "version": "20260919234857"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260919234936_restrict_afrique_id_reads_to_owner.sql",
+      "sha256": "9d6431880a2f248917c5f42350b7eb94027dc93b0c7fa7be2e3b91b9fcfba352",
+      "historyClassification": "recorded-exact-version",
+      "hostedEntry": {
+        "name": "restrict_afrique_id_reads_to_owner",
+        "version": "20260919234936"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920012000_complete_shop_payment_atomically.sql",
+      "sha256": "48ae37d342cd898b473a006ea25f5da4ef6cf6563c2d8bd66a75710eda34399b",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "complete_shop_payment_atomically",
+        "version": "20260920000627"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920014500_harden_support_access.sql",
+      "sha256": "bded211c93635a0c6e1af06c3e065fe09f8e830481bfce1fbe834b17c075d8d9",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "harden_support_access",
+        "version": "20260920000933"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920033000_project_tenancy_authorization.sql",
+      "sha256": "c6a0dafa17e6014db6b5de63a8a17c1b818c3c385f3ead24ec6a855816e6214e",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "project_tenancy_authorization",
+        "version": "20260920033106"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920034500_track_b_acceptance_hardening.sql",
+      "sha256": "2a80fa746238fc6a1dc40c0e2d9bf55b73cc14bfb8c296d7d6a4d8f238b5b395",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "track_b_acceptance_hardening",
+        "version": "20260920033823"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920040000_platform_durability.sql",
+      "sha256": "823b2918b57cfcb9289f7761c7f9858e73c18113864c68b04c408e04b7f59ced",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "platform_durability",
+        "version": "20260920033112"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920050000_platform_worker_recovery.sql",
+      "sha256": "e4909de610749c94dfb50d7afa685a5a23ca21b7636a67b8e4fcf9b62d3bd593",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "platform_worker_recovery",
+        "version": "20260920034650"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920070000_project_page_hierarchy.sql",
+      "sha256": "899e90eb589f22b18b770f384f7eac5d85dc851af040bd8984d700d47dfc67eb",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "project_page_hierarchy",
+        "version": "20260920053026"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920080000_kebu_ecosystem_setup.sql",
+      "sha256": "5cf79b8d6cb7907d2a233b1cf21cc20fbb47c037910a90060849e2c1ac17bd8c",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_ecosystem_setup",
+        "version": "20260920072602"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920081000_workspace_items.sql",
+      "sha256": "400d043fbbf3f73c0259cf83e9fa71aa781b9ee453d3a65b0cb7580266712ff4",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "workspace_items",
+        "version": "20260920073135"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920082000_space_chat.sql",
+      "sha256": "1fc348a164583faf823900d82ea70239660be8500a61e0bc9e347d6c4806f95c",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "space_chat",
+        "version": "20260920073842"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920083000_workspace_scope_hardening.sql",
+      "sha256": "d9d704a252025f037556d32bd74cb911791bb7dbe6c46f0b91983a52906eda27",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "workspace_scope_hardening",
+        "version": "20260920074208"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920084000_kebu_mail_m1.sql",
+      "sha256": "ab62d1f47b4b34325379a27e1558734b53d99ee985c95b155ebdf29240758a5f",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_mail_m1",
+        "version": "20260920080042"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920085000_kebu_rooms.sql",
+      "sha256": "dffdb374dc44bff693baa0c2cea7af2445a47895f67297e2e405978c83ea7214",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_rooms",
+        "version": "20260920080411"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920086000_room_scope_hardening.sql",
+      "sha256": "310e3c99b051206aa9b560d355553fa214ca3bcbe2db31f57c2282b5e0b96e87",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "room_scope_hardening",
+        "version": "20260920080537"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920087000_search_index_phase_one.sql",
+      "sha256": "ea2e2a92e94b77e37d82962929881c9716981d581db33337e6cad3111f15b714",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "search_index_phase_one",
+        "version": "20260920080832"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920088000_opportunity_research_lab.sql",
+      "sha256": "4c37091bb9b717f5f652448524b81997381aa76abb2d6fdc738d7d1df7a39485",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "opportunity_research_lab",
+        "version": "20260920081442"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920089000_kebu_browser_workspace.sql",
+      "sha256": "988a3e03f0111e48be74002fe2cc1cee05422facf074de215f427ed4ba8dbdf9",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_browser_workspace",
+        "version": "20260920081724"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920090000_room_files.sql",
+      "sha256": "0145b0dec4cae2607c04debe54546ecfe8da5c432a84506ccb5a62b4226c7ba5",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "room_files",
+        "version": "20260920082001"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920091000_kebu_mail_m2.sql",
+      "sha256": "0424348aea659eb0afc4c40e04e014ed5b0985fa95440c82a515ff83ade93f26",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_mail_m2",
+        "version": "20260920132314"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920092000_studio_video_workspace_link.sql",
+      "sha256": "340710684d4f4d69ee5a64ff1a8dcc59035eade0414f7a30849ae38dbeca7295",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "studio_video_workspace_link",
+        "version": "20260920134847"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920093000_studio_video_workspace_rls.sql",
+      "sha256": "2493c484703ecb22e8cacb70217d28195965a52dfa48e36463d9049b97fbc81b",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "studio_video_workspace_rls",
+        "version": "20260920134859"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920094000_studio_upload_workspace_scope.sql",
+      "sha256": "d53b1f50df7c44440c60eb4058e1b1258d5e121788ee98af44489c2e629b0390",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "studio_upload_workspace_scope",
+        "version": "20260920135100"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920095000_studio_campaign_workspace_rls.sql",
+      "sha256": "61e5677952a77bdfd0d94e3b92914204b74cc1db28ab624d2e8178252dc76d2c",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "studio_campaign_workspace_rls",
+        "version": "20260920140058"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920103000_studio_asset_library.sql",
+      "sha256": "76d24cdab6c888cf7f34b77cef56f337c4bfd822f13176f05a2f937818c5b33f",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20260920113000_studio_themes.sql",
+      "sha256": "2f1195aa8c323b8b0be02bf18534614e487b15316879abfe6c093a710e4d86c5",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20260920114000_studio_design_type_alignment.sql",
+      "sha256": "5f6b276708680065667364ad7f5677e815cbf499dba681c32fc9d5486bca5a47",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "studio_design_type_alignment",
+        "version": "20260920224310"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920120000_brand_spaces.sql",
+      "sha256": "c2e3db2ad2f19658b76880863e3612de30c4f2fe042c5f9e78798e8ebba58cbf",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20260920121000_kebu_business_mail_m3.sql",
+      "sha256": "addad7522f9c5c524a4acf2f65a794a271f5bc0f344ecd589cdc887dc96964a5",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_business_mail_m3",
+        "version": "20260920184000"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920223000_kebu_mail_delivery_infrastructure.sql",
+      "sha256": "4e7e99f00a29a6a4bd9c1ab39ef8ae123176d623a761f87d156e5948289f9119",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_mail_delivery_infrastructure",
+        "version": "20260921022609"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920223500_kebu_mail_platform_domain_and_alerts.sql",
+      "sha256": "183c5a48b39dedee8e9e15fff1e2b5f47ba28d1463914839c2bd9eee119065b1",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_mail_platform_domain_and_alerts",
+        "version": "20260921022734"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920224000_kebu_mail_domain_event_metrics.sql",
+      "sha256": "e41e36b9fa5e2947235aa4cff48d02cd1106883d975293f3ae465fa43f7c0213",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_mail_domain_event_metrics",
+        "version": "20260921022925"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260920230000_kebu_mail_reputation_guardrails.sql",
+      "sha256": "a37918d209c8076e5ccc7165bc4bcc5106ae8f55422e29012222cec891967e3a",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "kebu_mail_reputation_guardrails",
+        "version": "20260921024519"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260921005500_site_connections.sql",
+      "sha256": "d24625654feeb3b713960cfe605aa3696858541adea40ef1c92bb264914aab28",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "site_connections",
+        "version": "20260921045809"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260921011500_mail_message_attention_states.sql",
+      "sha256": "ed0a39679afe4420d3c436a71cd5cd6639a3cb193342262c7e1ed03a95f17b8c",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "mail_message_attention_states",
+        "version": "20260921050028"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260921013000_schedule_mail_workers_supabase.sql",
+      "sha256": "753963b277215b1930a7b44bcd02eb068c8442827a897f752c106d54331df245",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "schedule_mail_workers_supabase",
+        "version": "20260921053448"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260922012000_fix_studio_design_rls_recursion.sql",
+      "sha256": "0526798730c3c00d665a95370cf713135e201902c416c6ed634910797001d8ae",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "fix_studio_design_rls_recursion",
+        "version": "20260922011514"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260922014500_fix_studio_design_owner_returning_rls.sql",
+      "sha256": "c2cc2f8c13ed1f8591320fb2ff0d22d11ed5988cad13bbc82ca95b51b9647456",
+      "historyClassification": "same-name-different-version-review-required",
+      "hostedEntry": {
+        "name": "fix_studio_design_owner_returning_rls",
+        "version": "20260922012040"
+      }
+    },
+    {
+      "path": "supabase/migrations/20260924010000_builder_atomic_rpcs.sql",
+      "sha256": "6ac2b5e3abaebf6912ba96e00c699e69bc9e1eb70a71d25a1b3ac15df771cee3",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20260924020000_website_assets_stale.sql",
+      "sha256": "0b5cddb9daa54475b20d614e30fca60e4ba0bee9adc5a11d6ea973e47265bee5",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20260924040000_page_device_layouts.sql",
+      "sha256": "b597f8d02b1a8bf1e5afa3076a3bc4e3713ab3f38aeeeaf4c6fb4733553e7d2e",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20260925012420_revoke_anon_builder_rpcs.sql",
+      "sha256": "dcb0b749f370b877e4adba620dfe889f61581999f35a62155f729a5eb589f938",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20260930010000_kcd_document_storage.sql",
+      "sha256": "684e1ebbd7adc959a43ea06c9f7b6820ac6c722fd39db15462363d4d4ebf6806",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261002033337_kcd_responsive_state_ops.sql",
+      "sha256": "5c0e8ccdb165694e62d636ec32abbba7e4dec9a527854a8b0698983d0da3cff9",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261003023326_kcd_page_lifecycle_ops.sql",
+      "sha256": "bf05f5918e03c199fa0bfe539bbbce4f96bd02a9cf48b918180c7bce353a6015",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261005065838_kcd_transactional_publish.sql",
+      "sha256": "7293d82b92b8f29c086fee6cf22eccc6077987d56d3a6560704c19c9c43f4875",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261007021245_kcd_spatial_overrides.sql",
+      "sha256": "290aa4c2ee0275534f217b3ace4eec337ae87a9854c19b7929dbd200dcf675d9",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008003826_kcd_constraints_transforms.sql",
+      "sha256": "89e60e3eb5450c6b2d69fcd0c202eabfc4fe52332566a61803b45e75dd490e14",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008010612_kcd_nested_device_order.sql",
+      "sha256": "7b977452e8e82f225c1a6b098dd7412e2e6f01ba5d9ed76aea48794113df1900",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008033608_kcd_responsive_art_direction.sql",
+      "sha256": "926d4d6697520e1ba955ee5a9d74f8f1b12b7c131ee118ec0d918fafccbd2774",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008063959_kcd_native_motion_engine.sql",
+      "sha256": "973f9926e197222f7b27161f262232c89629ebd77fa2b17280df583471872d32",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008085728_kcd_motion_publishing.sql",
+      "sha256": "1e20a60a7e52400eff92855eac85d880532925a747be3d47791e44ee832ba23a",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008184700_kcd_native_visual_effects.sql",
+      "sha256": "a5dbee9e34059d1616cc8651e3208b9c4ce50dc7b5b9b081a878b3c5ea3e9a55",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008185133_kcd_native_rich_text.sql",
+      "sha256": "f2ead6a92f8775b6ee97dfd10c954d2ceafa01f860b42ef5e9dd5ab497c23b59",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008185757_kcd_native_video.sql",
+      "sha256": "ee0634a62fbdfcdec9a1da2b7da610750202e8ddf523da43fa5f973b56b09488",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008190325_kcd_editorial_composition.sql",
+      "sha256": "9173f8044aed2615d9d7276e706cb085177de3881a0c2fd2282ccb821d8045ab",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261008194553_brand_brain_profiles.sql",
+      "sha256": "146a72d1f7c19cbda5ca17d06bc89cb3fd3fab854f7b60e5299c09dd2636241c",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261009011958_brand_brain_site_binding.sql",
+      "sha256": "a3a919c3eedcc1f71473b59e2aecfff5a917686031bcacf0dceaf5c2b5522b39",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261009040802_experience_dna.sql",
+      "sha256": "8c59f638d0e3a8caaead6917ddf9763c2ecf2d2fe9c0dce0987972dc95998fbe",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261009083046_experience_engine.sql",
+      "sha256": "6cfbee80316647966245d38d3d7197c311de179be71a90788a5ffd5cec487c31",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261010020643_remaining_privileged_rpc_security.sql",
+      "sha256": "b8d8544b06dbd10a3d9f6460c6cb6bb34912a7741886cb9d6b6148f48d01d2f7",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261010134141_atomic_account_ai_reservations.sql",
+      "sha256": "03b148eb0f84450664f00e6d97b0434cf386fe5cd2a2ba0e39ca16cc1663b420",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261011005205_network_profile_ownership.sql",
+      "sha256": "56dc01c7ce601a1da38875cfafcb3d8410a7ab599e75b499145dedbf751d6b1d",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261014033708_studio_design_identity_guard.sql",
+      "sha256": "f4cbe086ee6084565ea1669dc93d1a614308f04a34715e58bead9123462b38a0",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261014034852_room_file_storage_identity.sql",
+      "sha256": "94e8be30ea28882911f25773bd078ff57cace09fd962db2732e4b230b715d0fb",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261014043916_workspace_item_identity_guard.sql",
+      "sha256": "78c67a73580a0d85bb4dfa1e7a48110d78e30a66def4545242d7a3df6ac0739a",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016120000_library_sharing.sql",
+      "sha256": "edf5c4b61c98da0844cc41ce492282785dba3e48fea9d0c2696e9a4b5e81a8c0",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016150000_workspace_item_visibility.sql",
+      "sha256": "b95b643e0793ae94888eb55910b7bd4d9251f11cba064161203000e934ded1d0",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016160000_room_chat_read_policy.sql",
+      "sha256": "5e582877ed472bf8f397eb2c89acb0010f7611c2a1f98643c0875870f2454c4d",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016161000_room_creation_returning_fix.sql",
+      "sha256": "348e432e1e60db4032bd1319f526a96a504ea9a777eba97baef252ad0b7b355d",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016162000_room_members_recursion_fix.sql",
+      "sha256": "d8d52967a13ec9789d8f4cbc2f2c101f741e1840644241387acc7c3a6c9ce12b",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016170000_business_members_select_recursion_repair.sql",
+      "sha256": "4f560278e047de280436adc075c0999ab5c075a662a4b800c604b401443f3d81",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016180000_liguey_worker_profiles.sql",
+      "sha256": "19b017516106ba9df21dc05448928b4ad9807ad6ac8d977cd659e5fe595b7898",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016190000_liguey_job_listings_applications.sql",
+      "sha256": "221fef93bcf98e94ff22d6b6999f4abc59a7ed52cd40206c5b6e580ec3d5bf5d",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016200000_liguey_profile_visibility_for_reviewers.sql",
+      "sha256": "83bee093479bb68ec2131254b4ce11baa47f5e9827d577695e8a8b87147b768b",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261016210000_liguey_applicant_listing_visibility.sql",
+      "sha256": "434110bb6be9e42be60169c531261c0dd3e5dfa6f48ad16ff081cc39e3dcf186",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261020000000_kebu_mail_forwarding.sql",
+      "sha256": "77234b09455a1c30a90319e301e6be7fbb21b4de6b74c7798bd104cd0f8f4e2d",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261020001000_yande_shared_gateway.sql",
+      "sha256": "ab168f43ffaa2dbbe9e8918578d2aef8404e2ef3d9ac79381e57d6cd62c36110",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261020002000_liguey_yande_applicant_insight.sql",
+      "sha256": "48bb236efeefe2b3aec397a156c4b0ac50afc85c0de2ce7c090001538ee3de48",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261020010000_kebu_business_mailbox_insert_repair.sql",
+      "sha256": "3dd0763cb7c892357fd9efc24d49731011dd5e5c0c125b234c4357260faad46a",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261020020000_liguey_listing_pay_photo_and_company_reviews.sql",
+      "sha256": "689477dea87a101a46e59a01b54838ef8c410a4983b1a4cea4a3addd2324769f",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261020030000_studio_creative_assets_marketplace.sql",
+      "sha256": "eb0bdc9073a3bc3d03229ffccecb352454f7c4288409e203d7856dcc10218146",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261020040000_developer_payout_settings.sql",
+      "sha256": "32b644844256a6eccfb9002751d377fae4c46296e4ec62dde3edb05fa0ca75eb",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261020202513_kcd_collage_responsive_presentation.sql",
+      "sha256": "fae5ba77cc5cf6f92e9a7ab552681c48031a7f408db02a5004c351294a54af82",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261021010000_creative_asset_buyer_checkout.sql",
+      "sha256": "24c7a3aee21ccb31123a843f5d43d340a44d2ca250e78c0906eee622d3e47ae7",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261021020000_aesthetics_marketplace_canonical.sql",
+      "sha256": "736f0a7cb738fe34c5a60ce689a231f295e31166a0f5e7925c759eace67e0949",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261021024451_kcd_collage_social_rail_responsive.sql",
+      "sha256": "e8bb725fa10bb8e50212e09b346a532ee60b1b1a6811f091613f287fb624798f",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261021030000_kebu_checkout_multi_provider.sql",
+      "sha256": "62a9333ef459da35e402a523be0955011b7cfbd0c755fc07eb473bad977e7a01",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    },
+    {
+      "path": "supabase/migrations/20261021030002_marketplace_paid_ownership_boundary.sql",
+      "sha256": "941c2b70ad48279ca78d3a2a6d47a5b8cb8addd6604e62474cc68f59ab446416",
+      "historyClassification": "unmatched-history-review-required",
+      "hostedEntry": null
+    }
+  ]
+}

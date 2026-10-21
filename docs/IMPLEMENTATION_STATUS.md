@@ -1,5 +1,13 @@
 # Kebu — Implementation Status
 
+## October 21 — hosted release inventory and native PostgreSQL verification
+
+Read this before the historical September summary below. Mail is **IN PROGRESS**, not absent: personal/business mail, provider delivery/webhooks, threading, attachments and forwarding have source and local evidence. Production catalogs confirm mailboxes/messages/threads/attachments with RLS; platform `kebu.africa` remains pending verification with sending disabled. Search has a real internal sites/opportunities index and `search_documents` in production; the full crawl/index/rank economic discovery engine remains incomplete.
+
+Reconciled candidate `7bab1a5` preserves Claude `68b62904`, Builder/security `bd82bf3` and adapters `45b27a`. Full combined local CI passed: 6,390 tests/298 explicit skips, 400 files passed/43 skipped, zero lint errors/349 existing warnings and finalized production build. New native PostgreSQL 17.6 CI executes all nine existing publish/quota races with independent backend sessions and real observed lock chains; 9/9 pass, zero skips, test databases cleaned. First run exposed four prepared-protocol harness failures; statements were split without weakening assertions. All five exact candidate remote gates (CI, Builder63, platform20, native PostgreSQL9 and hosted preview) passed; authoritative68b62904 was expected-head fast-forwarded to7bab1a5 and reread.
+
+Read-only production preflight: **22/37 schema/grant checks fail**. Native Builder columns/RPCs, operation journal, newer marketplace receipts, Liguey and Mail forwarding are missing. Production remains `71815f9`; source presence and preview E2E do not certify authenticated hosted flows. See `audits/KEBU_HOSTED_RELEASE_2026-10-21.md` and `scripts/hosted-release-preflight.sql`. No production schema, DNS, scheduler, protection, paid infrastructure or promotion changed.
+
 ## October 20 — direct text, composition input and export fidelity
 
 Continued after b22d828: direct-text focus/caret, Escape cancellation, one-gesture history and native IME repaired; schema/export preserve authored whitespace and Unicode graphemes. Dark inspector and action contrast repaired. Full local browser gate: 33 passed/zero skips/failures; focused contrast rerun passed; nine layout/schema cases and 23 isolated SQL assertions pass. Final full `npm run ci` passes after visual refinements: 6,069 tests/168 skips; zero lint errors/344 warnings; finalized 221-page build. See `audits/KEBU_STUDIO_TEXT_2026-10-20.md`. b22d828 remote CI/preview E2E passed (533 hosted cases/35 explicit skips); new text hosted acceptance is pending. Full rich text, Studio/Builder/May/3J/99-group and production release remain OPEN.

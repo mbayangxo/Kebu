@@ -14,6 +14,10 @@ Sources checked: repository `640d5d5434953c0c8daed43617e963e77e763368`, specific
 
 Production database restoration and successful user login do not deploy the newer application code or finish remaining flows. The native production guard in `lib/create/kcd-render-flag.ts` explicitly chooses the 3B path for production and the production database. QA is currently paused after freeing a free-plan slot for production. The inspection browser's secure sign-in attempt timed out; user login in another browser does not establish an authenticated inspection session.
 
+## October 21 freshness correction
+
+The register below preserves the October 10 audit and must not be treated as a fresh code inventory. Current Mail (K051–K055) is implemented in part with personal/business send, inbound/events, threading, attachments and forwarding; live external delivery remains open, and production `kebu.africa` is pending/sending disabled. Search (K056) has an internal sites/opportunities index, not the complete requested crawler/ranking engine. Network (K067) now reads authenticated visible database rows; the old static-directory defect was repaired, while hosted owner/session acceptance remains open. Native 3J independent publish/quota concurrency now has 9/9 actual PostgreSQL 17.6 CI passes with zero skips; this does not close real-provider/visual/hosted/performance acceptance or any broad group wholesale. Exact source, live schema gaps and limits: `audits/KEBU_HOSTED_RELEASE_2026-10-21.md`.
+
 ## Status meaning
 
 - **Development implemented/tested**: source plus recorded development evidence. Does not mean live/released.
