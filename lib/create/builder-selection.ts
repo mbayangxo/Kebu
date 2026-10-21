@@ -5,6 +5,8 @@ export type BuilderElementSelection = {
   elementId: string;
   kind: BuilderElementKind;
   label: string;
+  /** UI intent only: selecting a drag target must not open a drawer mid-gesture. */
+  inspect?: boolean;
 };
 
 export function builderElementSelection(

@@ -49,4 +49,14 @@ describe("actual collage crop frame geometry", () => {
     expect(result.scale).toBeCloseTo(4 / 14);
     samePoint(point(visibleCollageBounds(result.source, 20), 1, 1), point(visibleCollageBounds(original, 20), 1, 1));
   });
+  it.each([false, true])("caps an extreme resize at the persisted position boundary without shifting its anchor (center=%s)", fromCenter => {
+    const source = { ...original, rotation: 30 };
+    const bounds = { minX: -20, maxX: 400, minY: -20, maxY: 400 };
+    const result = resizeCollageSource(source, 1, 20, "nw", { x: -10000, y: -10000 }, { fromCenter, positionBounds: bounds });
+    expect(result.source.x).toBeGreaterThanOrEqual(bounds.minX - 0.000001);
+    expect(result.source.y).toBeGreaterThanOrEqual(bounds.minY - 0.000001);
+    expect(result.scale).toBeLessThanOrEqual(3);
+    const anchor = fromCenter ? 0.5 : 1;
+    samePoint(point(visibleCollageBounds(result.source, 20), anchor, anchor), point(visibleCollageBounds(source, 20), anchor, anchor));
+  });
 });

@@ -130,6 +130,7 @@ function ProjectPreviewInner() {
             definition={definition}
             nativeDocument={nativeDocument ?? undefined}
             mode="preview"
+            projectId={id}
             pageSlug={previewPageSlug}
             siteBase={subdomain ? `/sites/${subdomain}` : undefined}
             editor={{ onSpatialChange: (nodeId, patch) => new Promise<void>((resolve, reject) => {

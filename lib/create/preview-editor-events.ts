@@ -17,8 +17,9 @@ export function parsePreviewEditorEvent(value: unknown): PreviewEditorEvent | nu
   if (value.type === "kebu:element:select") {
     const s = value.selection;
     if (!record(s) || !text(s.sectionId, 100) || !text(s.elementId, 100) || !text(s.label, 300)
-      || typeof s.kind !== "string" || !["text", "image", "cutout", "background", "control"].includes(s.kind)) return null;
-    return { type: value.type, selection: { sectionId: s.sectionId, elementId: s.elementId, label: s.label, kind: s.kind as BuilderElementSelection["kind"] } };
+      || typeof s.kind !== "string" || !["text", "image", "cutout", "background", "control"].includes(s.kind)
+      || (s.inspect !== undefined && typeof s.inspect !== "boolean")) return null;
+    return { type: value.type, selection: { sectionId: s.sectionId, elementId: s.elementId, label: s.label, kind: s.kind as BuilderElementSelection["kind"], ...(typeof s.inspect === "boolean" ? { inspect: s.inspect } : {}) } };
   }
   if (value.type === "kebu:section:patch" && text(value.sectionId, 100) && record(value.patch)
     && Object.keys(value.patch).length <= 128

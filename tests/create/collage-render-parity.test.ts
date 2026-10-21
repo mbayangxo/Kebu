@@ -12,9 +12,12 @@ describe("saved collage visitor rendering", () => {
       ...defaultMaylecorKsendrProps(), title: "MAY LÈCOR", titleAsText: true,
       layerPositions: { cutoutAccent: { leftPct: 17, topPct: 29 } },
       layerScales: { cutoutAccent: 0.5 }, layerWidthScale: { cutoutAccent: 0.8 },
+      layerCrop: { cutoutAccent: 20 },
       layerZIndex: { cutoutAccent: 23 }, layerLinks: { cutoutAccent: "/music" },
     }, siteBase: "/sites/maylecor" }));
-    expect(html).toMatch(/data-kebu-layer="cutoutAccent"[^>]*left:17%;top:29%;width:16%/);
+    expect(html).toMatch(/data-kebu-source="cutoutAccent"[^>]*left:17%;top:29%;width:16%/);
+    expect(html).toMatch(/data-kebu-layer="cutoutAccent"[^>]*left:20%;top:20%;width:60%;height:60%/);
+    expect(html).not.toContain("data-kebu-selection");
     expect(html).toContain("z-index:23");
     expect(html).toContain('href="/sites/maylecor/music"');
     expect(html).toContain("/templates/maylecor/");

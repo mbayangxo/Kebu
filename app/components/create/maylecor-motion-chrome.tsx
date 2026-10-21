@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type MouseEvent } from "react";
+import { Z_LAYERS } from "./kebu-z-layers";
 import {
   MAYLECOR_LOCALES,
   MAYLECOR_LOCALE_STORAGE_KEY,
@@ -558,12 +559,12 @@ export function MaylecorMotionChrome({
     <header
       className={`@container ${
         overlay
-          ? `pointer-events-none absolute inset-x-0 top-0 z-[120] ${headerBgColor ? "" : "bg-gradient-to-b from-black/55 via-black/20 to-transparent"}`
+          ? `pointer-events-none absolute inset-x-0 top-0 ${headerBgColor ? "" : "bg-gradient-to-b from-black/55 via-black/20 to-transparent"}`
           : `border-b border-black/10 bg-white/92 backdrop-blur-md ${
               contained ? "relative z-20" : "sticky top-0 z-30"
             }`
       }`}
-      style={{ color: overlay ? "#fff" : "#111", background: headerBgColor || undefined }}
+      style={{ color: overlay ? "#fff" : "#111", background: headerBgColor || undefined, zIndex: overlay ? Z_LAYERS.siteNavigation : undefined }}
       data-kebu-site-nav="1"
       onClick={(e) => {
         e.stopPropagation();
