@@ -23,9 +23,10 @@ function paystackAmount(
     return { ok: true, amount: Math.max(1, Math.round(amountXof)) };
   }
   if (currency === "USD") {
-    const rate = Number(process.env.PAYSTACK_XOF_PER_USD ?? process.env.JOKO_XOF_PER_USD ?? "600");
-    const per = Number.isFinite(rate) && rate > 0 ? rate : 600;
-    return { ok: true, amount: Math.max(100, Math.round((amountXof / per) * 100)) };
+    const per = Number(process.env.PAYSTACK_XOF_PER_USD ?? process.env.JOKO_XOF_PER_USD);
+    if (!Number.isFinite(per) || per <= 0) return { ok: false, error: "Set a positive PAYSTACK_XOF_PER_USD before converting an XOF price to USD." };
+    const amount = Math.round((amountXof / per) * 100);
+    return Number.isSafeInteger(amount) && amount > 0 ? { ok: true, amount } : { ok: false, error: "Price cannot be represented safely in the card currency." };
   }
   // NGN / GHS / others with minor units — require explicit FX (XOF per 1 major unit)
   const raw = process.env.PAYSTACK_XOF_PER_UNIT?.trim();
@@ -40,7 +41,8 @@ function paystackAmount(
   if (!Number.isFinite(per) || per <= 0) {
     return { ok: false, error: "PAYSTACK_XOF_PER_UNIT must be a positive number." };
   }
-  return { ok: true, amount: Math.max(100, Math.round((amountXof / per) * 100)) };
+  const amount = Math.round((amountXof / per) * 100);
+  return Number.isSafeInteger(amount) && amount > 0 ? { ok: true, amount } : { ok: false, error: "Price cannot be represented safely in the card currency." };
 }
 
 export const paystackAdapter: PaymentAdapter = {
@@ -52,8 +54,15 @@ export const paystackAdapter: PaymentAdapter = {
       return { ok: false, configured: false, error: "Paystack not configured (PAYSTACK_SECRET_KEY)." };
     }
     const currency = paystackCurrency();
-    const amountXof = input.amountMinor;
-    const converted = paystackAmount(amountXof, currency);
+    const sourceCurrency = input.currency.trim().toUpperCase();
+    if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor <= 0) return { ok: false, configured: true, error: "Payment amount must be a positive integer." };
+    // Matching currencies already use provider subunits. Convert only the
+    // existing explicit XOF bridge; never reinterpret USD cents as XOF.
+    const converted = sourceCurrency === currency
+      ? { ok: true as const, amount: input.amountMinor }
+      : sourceCurrency === "XOF"
+        ? paystackAmount(input.amountMinor, currency)
+        : { ok: false as const, error: `Checkout currency ${sourceCurrency} cannot be charged as ${currency}; configure a matching card currency.` };
     if (!converted.ok) {
       return { ok: false, configured: true, error: converted.error };
     }
