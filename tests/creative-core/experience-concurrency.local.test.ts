@@ -41,7 +41,8 @@ describe.skipIf(!adminUrl)("Experience gateway independent PostgreSQL reservatio
     const holder = await connection(), first = await connection(), second = await connection();
     try {
       expect(new Set([holder.processID, first.processID, second.processID]).size).toBe(3);
-      await holder.query("begin;select pg_advisory_xact_lock(hashtextextended($1,391))", [owner]);
+      await holder.query("begin");
+      await holder.query("select pg_advisory_xact_lock(hashtextextended($1,391))", [owner]);
       const id = randomUUID(), a = settle(reserve(first, id)); await blocked(first, holder);
       const b = settle(reserve(second, replay ? id : randomUUID())); await blocked(second, holder);
       await holder.query("commit");
@@ -54,7 +55,8 @@ describe.skipIf(!adminUrl)("Experience gateway independent PostgreSQL reservatio
     const holder = await connection(), first = await connection(), second = await connection();
     try {
       expect(new Set([holder.processID, first.processID, second.processID]).size).toBe(3);
-      await holder.query("begin;select pg_advisory_xact_lock(hashtextextended($1,391))", [owner]);
+      await holder.query("begin");
+      await holder.query("select pg_advisory_xact_lock(hashtextextended($1,391))", [owner]);
       const pending = settle(reserve(first)); await blocked(first, holder);
       expect((await reserve(second, randomUUID(), other, otherProject)).rows[0].ok).toBe(true);
       await holder.query("commit"); expect((await pending).ok).toBe(true);
@@ -65,7 +67,8 @@ describe.skipIf(!adminUrl)("Experience gateway independent PostgreSQL reservatio
     const holder = await connection(), native = await connection(), legacy = await connection();
     try {
       expect(new Set([holder.processID, native.processID, legacy.processID]).size).toBe(3);
-      await holder.query("begin;select pg_advisory_xact_lock(hashtextextended($1,391))", [owner]);
+      await holder.query("begin");
+      await holder.query("select pg_advisory_xact_lock(hashtextextended($1,391))", [owner]);
       const a = settle(reserve(native)); await blocked(native, holder);
       const b = settle(legacy.query<{ ok: boolean }>("select reserve_account_ai_generation($1,null,$2,1,'studio_generate') as ok", [owner, randomUUID()]));
       await blocked(legacy, holder); await holder.query("commit");
