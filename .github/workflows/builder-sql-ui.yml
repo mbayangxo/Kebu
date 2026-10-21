@@ -3,7 +3,7 @@ name: Builder SQL and browser
 on:
   workflow_dispatch:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-builder-frames-oct20-recovery", "work/codex-may-contact-oct20", "work/codex-platform-verification-oct20"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-builder-frames-oct20-recovery", "work/codex-may-contact-oct20", "work/codex-platform-verification-oct20", "work/codex-frame-geometry-oct21"]
     paths:
       - "supabase/migrations/**"
       - "app/create/**"
@@ -84,4 +84,6 @@ jobs:
             ${{ runner.temp }}/kebu-builder-ui/results.json
             ${{ runner.temp }}/kebu-builder-ui/cleanup.json
             ${{ runner.temp }}/kebu-builder-ui/server.log
+            ${{ runner.temp }}/kebu-builder-ui/screenshots/collage
+            ${{ runner.temp }}/kebu-builder-ui/traces
             ${{ runner.temp }}/kebu-builder-performance.json

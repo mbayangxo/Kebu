@@ -9,7 +9,10 @@ import { collageVideosSchema } from "@/lib/create/collage-video";
  * - Click a photo (without dragging) → replace via file picker
  * - No orange inspector panels sitting under the site
  */
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { createPortal } from "react-dom";
+import { resizeCollageSource, type CollageCorner } from "@/lib/create/collage-frame-geometry";
+import { Z_LAYERS } from "./kebu-z-layers";
 import {
   CircularBrandRing,
   layerMotionClass,
@@ -463,8 +466,8 @@ export function LegallyBlondeEditCanvas({
     }
   }, [editingTitle]);
 
-  function selectElement(elementId: string, kind: BuilderElementKind, label: string) {
-    if (editable) onSelectElement?.({ elementId, kind, label });
+  function selectElement(elementId: string, kind: BuilderElementKind, label: string, inspect = true) {
+    if (editable) onSelectElement?.({ elementId, kind, label, inspect });
   }
 
   function defaultMotion(key: string): LayerMotion {
@@ -475,7 +478,7 @@ export function LegallyBlondeEditCanvas({
 
   const artboard = (
       <div
-        className="relative w-full flex-1 overflow-hidden"
+        className="relative isolate w-full flex-1 overflow-hidden"
         style={{
           minHeight: parallax ? `max(${sectionMinHeightPx}px, 100dvh)` : sectionMinHeightPx,
           backgroundColor: String(props.accentColor ?? "#E9006B"),
@@ -588,13 +591,14 @@ export function LegallyBlondeEditCanvas({
               onDuplicate={() => duplicateLayer(slot.key, slot)}
               onToggleLock={() => toggleLayerLocked(slot.key)}
               onHide={() => hideLayer(slot.key)}
-              onSelect={() => {
+              onSelect={(inspect = true) => {
                 setSelectedKey(slot.key);
                 setSelectedExtraId(null);
                 selectElement(
                   slot.key,
                   slot.key === "titleLogo" && titleAsText ? "text" : "image",
                   slot.label,
+                  inspect,
                 );
               }}
               onStartTitleEdit={() => {
@@ -621,14 +625,10 @@ export function LegallyBlondeEditCanvas({
                 setEditingTitle(false);
               }}
               onMoved={(leftPct, topPct) => saveSlotPos(slot.key, leftPct, topPct)}
-              onScaled={(nextScale) => {
-                onPatch({
-                  layerScales: {
-                    ...scales,
-                    [slot.key]: Math.min(3, Math.max(0.15, Number(nextScale.toFixed(2)))),
-                  },
-                });
-              }}
+              onResized={(nextScale, leftPct, topPct) => onPatch({
+                layerScales: { ...scales, [slot.key]: Number(nextScale.toFixed(6)) },
+                layerPositions: { ...positions, [slot.key]: { leftPct, topPct } },
+              })}
               baseWidthPct={slot.widthPct}
               scale={scale}
               widthScale={widthScales[slot.key] ?? 1}
@@ -690,11 +690,11 @@ export function LegallyBlondeEditCanvas({
                 onDuplicate={() => duplicateLayer(cut.id, cut)}
                 onToggleLock={() => toggleLayerLocked(cut.id)}
                 onHide={() => hideLayer(cut.id)}
-                onSelect={() => {
+                onSelect={(inspect = true) => {
                   setSelectedExtraId(cut.id);
                   setSelectedKey(null);
                   setEditingTitle(false);
-                  selectElement(`extra:${cut.id}`, "cutout", cut.alt || "Cutout");
+                  selectElement(`extra:${cut.id}`, "cutout", cut.alt || "Cutout", inspect);
                 }}
                 onReplaceImage={() => openUpload({ kind: "extra", id: cut.id })}
                 onDelete={() => {
@@ -714,14 +714,11 @@ export function LegallyBlondeEditCanvas({
                     },
                   });
                 }}
-                onScaled={(nextScale) => {
-                  onPatch({
-                    layerScales: {
-                      ...scales,
-                      [cut.id]: Math.min(3, Math.max(0.15, Number(nextScale.toFixed(2)))),
-                    },
-                  });
-                }}
+                onResized={(nextScale, leftPct, topPct) => onPatch({
+                  layerScales: { ...scales, [cut.id]: Number(nextScale.toFixed(6)) },
+                  layerPositions: { ...positions, [cut.id]: { leftPct, topPct } },
+                  extraCutouts: extraCutouts.map(c => c.id === cut.id ? { ...c, leftPct, topPct } : c),
+                })}
                 baseWidthPct={cut.widthPct}
                 scale={scale}
                 widthScale={widthScales[cut.id] ?? 1}
@@ -886,7 +883,7 @@ function CutoutChip({
   onOpenLink,
   onSelect,
   onMoved,
-  onScaled,
+  onResized,
   onTitleChange,
   onStartTitleEdit,
   onEndTitleEdit,
@@ -937,9 +934,9 @@ function CutoutChip({
   onNavigatePage?: (slug: string) => void;
   onLinkChange?: (href: string) => void;
   onOpenLink?: () => void;
-  onSelect: () => void;
+  onSelect: (inspect?: boolean) => void;
   onMoved: (leftPct: number, topPct: number) => void;
-  onScaled: (scale: number) => void;
+  onResized: (scale: number, leftPct: number, topPct: number) => void;
   onTitleChange?: (value: string) => void;
   onStartTitleEdit?: () => void;
   onEndTitleEdit?: () => void;
@@ -959,8 +956,47 @@ function CutoutChip({
   onSnapGuide?: (guide: { x: boolean; y: boolean }) => void;
 }) {
   const moved = useRef(false);
-  const [pulsing, setPulsing] = useState(false);
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const sourceRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const selectionRef = useRef<HTMLDivElement>(null);
+  const [scene, setScene] = useState<HTMLElement | null>(null);
+  const attachSource = useCallback((element: HTMLDivElement | null) => {
+    sourceRef.current = element;
+    setScene(element ? element.offsetParent as HTMLElement | null : null);
+  }, []);
+  const syncSelection = useCallback(() => {
+    const source = sourceRef.current, frame = frameRef.current, overlay = selectionRef.current;
+    if (!source || !frame || !overlay) return;
+    Object.assign(overlay.style, {
+      left: `${source.offsetLeft + frame.offsetLeft}px`, top: `${source.offsetTop + frame.offsetTop}px`,
+      width: `${frame.offsetWidth}px`, height: `${frame.offsetHeight}px`,
+      transform: source.ownerDocument.defaultView?.getComputedStyle(source).transform ?? "none",
+    });
+  }, []);
+  const activeGesture = useRef<(() => void) | null>(null);
+  const trailingClick = useRef<(() => void) | null>(null);
+  useEffect(() => () => { activeGesture.current?.(); trailingClick.current?.(); }, []);
+  const inset = titleText === null ? Math.max(0, Math.min(45, crop)) : 0;
+  const fraction = 1 - inset / 50;
+  useLayoutEffect(() => {
+    syncSelection();
+    const source = sourceRef.current, frame = frameRef.current;
+    if (!source || !frame || !scene) return;
+    const observer = new ResizeObserver(syncSelection);
+    observer.observe(source); observer.observe(frame); observer.observe(scene);
+    return () => observer.disconnect();
+  }, [scene, selected, titleEditing, leftPct, topPct, scale, widthScale, inset, rotation, syncSelection]);
+
+  function blockTrailingClick() {
+    trailingClick.current?.();
+    const doc = sourceRef.current?.ownerDocument;
+    if (!doc) return;
+    const clear = () => { doc.removeEventListener("click", block, true); doc.removeEventListener("pointerdown", clear, true); clearTimeout(timer); trailingClick.current = null; };
+    const block = (event: MouseEvent) => { if (event.detail === 0) return; event.preventDefault(); event.stopImmediatePropagation(); clear(); };
+    doc.addEventListener("click", block, true); doc.addEventListener("pointerdown", clear, true);
+    const timer = setTimeout(clear, 1000); trailingClick.current = clear;
+  }
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; host: HTMLElement } | null>(null);
 
   useEffect(() => {
     if (!ctxMenu) return;
@@ -978,203 +1014,138 @@ function CutoutChip({
         : undefined;
 
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-    const t = e.target as HTMLElement;
-    if (t.dataset?.resize === "1" || t.closest?.("[data-resize='1']")) return;
-    if (locked) {
-      e.stopPropagation();
-      onSelect();
-      return;
-    }
-    if (t.closest?.("[data-chip-toolbar='1']")) return;
-    if (t.closest?.("[data-link-field='1']")) return;
-    if (titleEditing && t.closest?.("[data-title-edit='1']")) return;
-
-    if (e.altKey && href.trim()) {
-      onOpenLink?.();
-      return;
-    }
-
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-resize], [data-chip-toolbar], [data-title-edit]")) return;
     e.stopPropagation();
-    e.preventDefault();
-    onSelect();
-
-    const parent = e.currentTarget.offsetParent as HTMLElement | null;
-    if (!parent) return;
-    const el = e.currentTarget;
-    try {
-      el.setPointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const originLeft = leftPct;
-    const originTop = topPct;
+    if (e.altKey && href.trim()) { onOpenLink?.(); return; }
+    e.preventDefault(); onSelect(false);
+    if (locked) return;
+    const source = sourceRef.current, frame = e.currentTarget;
+    const scene = source?.offsetParent as HTMLElement | null;
+    if (!source || !scene) return;
+    activeGesture.current?.();
+    const pointerId = e.pointerId, startX = e.clientX, startY = e.clientY;
+    const oldLeft = source.style.left, oldTop = source.style.top;
+    let lastLeft = leftPct, lastTop = topPct;
     moved.current = false;
-    let lastLeft = originLeft;
-    let lastTop = originTop;
-
-    const onMove = (ev: PointerEvent) => {
-      const rect = parent.getBoundingClientRect();
-      if (rect.width < 1 || rect.height < 1) return;
-      const dx = ((ev.clientX - startX) / rect.width) * 100;
-      const dy = ((ev.clientY - startY) / rect.height) * 100;
+    try { frame.setPointerCapture(pointerId); } catch { /* Synthetic/retired pointer. */ }
+    const clean = () => {
+      window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", cancel);
+      try { frame.releasePointerCapture(pointerId); } catch { /* Already released by browser. */ }
+      onSnapGuide?.({ x: false, y: false }); activeGesture.current = null;
+    };
+    const move = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return;
+      const rect = scene.getBoundingClientRect(); if (rect.width < 1 || rect.height < 1) return;
+      const dx = (event.clientX - startX) / rect.width * 100, dy = (event.clientY - startY) / rect.height * 100;
       if (Math.abs(dx) + Math.abs(dy) > 0.6) moved.current = true;
-      let nextLeft = Math.min(90, Math.max(-5, originLeft + dx));
-      let nextTop = Math.min(90, Math.max(-5, originTop + dy));
-      const widthPct = (el.getBoundingClientRect().width / rect.width) * 100;
-      const heightPct = (el.getBoundingClientRect().height / rect.height) * 100;
-      const snapX = Math.abs(nextLeft + widthPct / 2 - 50) <= 1.2;
-      const snapY = Math.abs(nextTop + heightPct / 2 - 50) <= 1.2;
-      if (snapX) nextLeft = 50 - widthPct / 2;
-      if (snapY) nextTop = 50 - heightPct / 2;
-      lastLeft = nextLeft;
-      lastTop = nextTop;
-      onSnapGuide?.({ x: snapX, y: snapY });
-      el.style.left = `${lastLeft}%`;
-      el.style.top = `${lastTop}%`;
+      lastLeft = Math.max(-5, Math.min(90, leftPct + dx)); lastTop = Math.max(-5, Math.min(90, topPct + dy));
+      const w = source.offsetWidth / scene.clientWidth * 100, h = source.offsetHeight / scene.clientHeight * 100;
+      const x = Math.abs(lastLeft + w / 2 - 50) <= 1.2, y = Math.abs(lastTop + h / 2 - 50) <= 1.2;
+      if (x) lastLeft = 50 - w / 2; if (y) lastTop = 50 - h / 2;
+      onSnapGuide?.({ x, y }); source.style.left = `${lastLeft}%`; source.style.top = `${lastTop}%`; syncSelection();
     };
-
-    const onUp = (ev: PointerEvent) => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-      try {
-        el.releasePointerCapture(ev.pointerId);
-      } catch {
-        /* ignore */
-      }
-      onSnapGuide?.({ x: false, y: false });
-      if (moved.current) {
-        onMoved(lastLeft, lastTop);
-        return;
-      }
-      /* Click (no drag): select · pulse cutout · type on name circle. */
-      if (titleText !== null) {
-        onStartTitleEdit?.();
-      } else if (href.trim()) {
-        onOpenLink?.();
-      } else {
-        setPulsing(true);
-        window.setTimeout(() => setPulsing(false), 360);
-      }
+    const cancel = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return;
+      clean(); source.style.left = oldLeft; source.style.top = oldTop; syncSelection(); blockTrailingClick();
     };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
+    const up = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return;
+      clean();
+      if (moved.current) { blockTrailingClick(); onMoved(lastLeft, lastTop); }
+      else { onSelect(true); if (titleText !== null) onStartTitleEdit?.(); }
+    };
+    activeGesture.current = () => { clean(); source.style.left = oldLeft; source.style.top = oldTop; };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", cancel);
   }
 
-  function onCornerResize(
-    e: ReactPointerEvent<HTMLButtonElement>,
-    corner: "nw" | "ne" | "sw" | "se",
-  ) {
-    e.stopPropagation();
-    e.preventDefault();
-    onSelect();
+  function onCornerResize(e: ReactPointerEvent<HTMLButtonElement>, corner: CollageCorner) {
+    e.stopPropagation(); e.preventDefault(); onSelect(false);
     if (locked) return;
-    const chip = e.currentTarget.parentElement as HTMLElement | null;
-    const parent = chip?.offsetParent as HTMLElement | null;
-    if (!parent || !chip) return;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startScale = scale;
-    const startLeft = leftPct;
-    const startTop = topPct;
-    const startW = baseWidthPct * startScale;
-    const parentRect = () => parent.getBoundingClientRect();
-
-    const onMove = (ev: PointerEvent) => {
-      const rect = parentRect();
-      if (rect.width < 1 || rect.height < 1) return;
-      const dxPct = ((ev.clientX - startX) / rect.width) * 100;
-      const dyPct = ((ev.clientY - startY) / rect.height) * 100;
-      // Use the dominant axis so mouse expand/shrink feels natural
-      const signed =
-        corner === "se" || corner === "ne"
-          ? dxPct
-          : corner === "sw" || corner === "nw"
-            ? -dxPct
-            : 0;
-      const signedY =
-        corner === "se" || corner === "sw"
-          ? dyPct
-          : corner === "ne" || corner === "nw"
-            ? -dyPct
-            : 0;
-      const delta = Math.abs(signed) > Math.abs(signedY) ? signed : signedY;
-      const nextW = Math.min(70, Math.max(6, startW + delta));
-
-      // Keep pointer movement entirely local to the canvas. Persist once on pointer-up so resizing
-      // never waits on React state, autosave, Supabase, or a parent re-render.
-      // Anchor opposite corner when resizing from NW/NE/SW
-      if (corner === "nw" || corner === "sw") {
-        const dw = nextW - startW;
-        chip.style.left = `${startLeft - dw}%`;
-      }
-      if (corner === "nw" || corner === "ne") {
-        const dh = ((nextW - startW) / Math.max(1, startW)) * (startW * 0.7);
-        chip.style.top = `${startTop - dh}%`;
-      }
-      chip.style.width = `${nextW}%`;
+    const source = sourceRef.current, handle = e.currentTarget;
+    const scene = source?.offsetParent as HTMLElement | null;
+    if (!source || !scene || !source.offsetWidth || !source.offsetHeight) return;
+    activeGesture.current?.();
+    const pointerId = e.pointerId, startX = e.clientX, startY = e.clientY;
+    const initial = { x: source.offsetLeft, y: source.offsetTop, width: source.offsetWidth, height: source.offsetHeight, rotation: baseRotate };
+    const initialStyle = { left: source.style.left, top: source.style.top, width: source.style.width };
+    const effectiveScale = Math.max(4 / baseWidthPct, scale);
+    let last = { source: initial, scale: effectiveScale }, changed = false;
+    try { handle.setPointerCapture(pointerId); } catch { /* Synthetic/retired pointer. */ }
+    const clean = () => {
+      window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", cancel);
+      try { handle.releasePointerCapture(pointerId); } catch { /* Already released by browser. */ }
+      activeGesture.current = null;
     };
-
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-      const finalW = parseFloat(chip.style.width) || startW;
-      const finalScale = finalW / Math.max(1, baseWidthPct);
-      onScaled(Math.min(3, Math.max(0.15, Number(finalScale.toFixed(3)))));
-      if (corner === "nw" || corner === "sw" || corner === "ne") {
-        const left = parseFloat(chip.style.left);
-        const top = parseFloat(chip.style.top);
-        if (!Number.isNaN(left) && !Number.isNaN(top)) {
-          onMoved(Math.min(90, Math.max(-5, left)), Math.min(90, Math.max(-5, top)));
-        }
-      }
+    const restore = () => Object.assign(source.style, initialStyle);
+    const move = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return;
+      const rect = scene.getBoundingClientRect(); if (rect.width < 1 || rect.height < 1) return;
+      const delta = { x: (event.clientX - startX) * scene.clientWidth / rect.width, y: (event.clientY - startY) * scene.clientHeight / rect.height };
+      changed = changed || Math.abs(delta.x) + Math.abs(delta.y) > 1;
+      last = resizeCollageSource(initial, effectiveScale, inset, corner, delta, { fromCenter: event.altKey, minimumScale: Math.max(0.15, 4 / baseWidthPct),
+        positionBounds: { minX: -scene.clientWidth * 0.2, maxX: scene.clientWidth * 1.1, minY: -scene.clientHeight * 0.2, maxY: scene.clientHeight * 1.1 } });
+      source.style.left = `${last.source.x / scene.clientWidth * 100}%`;
+      source.style.top = `${last.source.y / scene.clientHeight * 100}%`;
+      source.style.width = `${last.source.width / scene.clientWidth * 100}%`;
+      syncSelection();
     };
+    const cancel = (event: PointerEvent) => { if (event.pointerId !== pointerId) return; clean(); restore(); syncSelection(); blockTrailingClick(); };
+    const up = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return;
+      clean(); blockTrailingClick();
+      if (changed) onResized(last.scale, Number((last.source.x / scene.clientWidth * 100).toFixed(6)), Number((last.source.y / scene.clientHeight * 100).toFixed(6)));
+      else restore();
+    };
+    activeGesture.current = () => { clean(); restore(); };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", cancel);
+  }
 
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
+  function onHandleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, corner: CollageCorner) {
+    const delta = { x: event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0,
+      y: event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0 };
+    if (!delta.x && !delta.y) return;
+    event.preventDefault(); event.stopPropagation();
+    const source = sourceRef.current;
+    if (!source || !scene || locked) return;
+    const step = event.shiftKey ? 10 : 1;
+    const result = resizeCollageSource({ x: source.offsetLeft, y: source.offsetTop, width: source.offsetWidth, height: source.offsetHeight, rotation: baseRotate },
+      Math.max(scale, 4 / baseWidthPct), inset, corner, { x: delta.x * step, y: delta.y * step },
+      { fromCenter: event.altKey, minimumScale: Math.max(0.15, 4 / baseWidthPct),
+        positionBounds: { minX: -scene.clientWidth * 0.2, maxX: scene.clientWidth * 1.1, minY: -scene.clientHeight * 0.2, maxY: scene.clientHeight * 1.1 } });
+    onResized(result.scale, Number((result.source.x / scene.clientWidth * 100).toFixed(6)), Number((result.source.y / scene.clientHeight * 100).toFixed(6)));
   }
 
   const handleClass =
-    "absolute z-50 h-3.5 w-3.5 rounded-sm border-2 border-white bg-[#FF5500] shadow-md hover:scale-110";
+    "pointer-events-auto absolute z-50 h-6 w-6 rounded-sm border-2 border-white bg-[#FF5500] shadow-md hover:scale-110";
 
   return (
-    <div
-      data-kebu-layer={slot.key}
-      className={`absolute select-none ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
-      style={{
-        left: `${leftPct}%`,
-        top: `${topPct}%`,
-        width: `${slot.widthPct * widthScale}%`,
-        transform: scrollTransform,
-        zIndex: selected || titleEditing ? Math.max(zIndex, 40) : zIndex,
-        touchAction: editable ? "none" : "pan-y",
-        userSelect: "none",
-        WebkitUserSelect: "none",
-        filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.25))",
-        opacity,
-        outline: selected || titleEditing ? "2px solid #FF5500" : undefined,
-        outlineOffset: 3,
-      }}
+    <div ref={attachSource} data-kebu-source={slot.key} className="pointer-events-none absolute select-none"
+      style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${slot.widthPct * widthScale}%`, transform: scrollTransform,
+        zIndex: selected || titleEditing ? Math.max(zIndex, Z_LAYERS.chromeOverlay) : zIndex,
+        filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.25))", opacity }}>
+      {titleText === null ? (
+        // Intrinsic source dimensions are required even with JS disabled; the browser reuses this URL's decoded image.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={slot.src} alt="" aria-hidden draggable={false} className="invisible block h-auto w-full" />
+      ) : null}
+      <div className={layerMotionClass(motion, !pauseMotion && !selected && !titleEditing)}
+        style={{ position: titleText === null ? "absolute" : "relative", inset: titleText === null ? 0 : undefined, pointerEvents: "none" }}>
+    <div ref={frameRef} data-kebu-layer={slot.key}
+      className={`select-none ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
+      style={{ position: titleText === null ? "absolute" : "relative", left: titleText === null ? `${inset}%` : undefined,
+        top: titleText === null ? `${inset}%` : undefined, width: titleText === null ? `${100 * fraction}%` : "100%",
+        height: titleText === null ? `${100 * fraction}%` : undefined, pointerEvents: "auto",
+        touchAction: editable ? "none" : "pan-y", userSelect: "none", WebkitUserSelect: "none" }}
+      onClick={editable ? event => event.stopPropagation() : undefined}
+      onDragStart={editable ? event => event.preventDefault() : undefined}
       onPointerDown={editable ? onPointerDown : undefined}
       onContextMenu={(e) => {
         if (!editable) return;
         e.preventDefault();
         e.stopPropagation();
         onSelect();
-        setCtxMenu({ x: e.clientX, y: e.clientY });
+        setCtxMenu({ x: e.clientX, y: e.clientY, host: e.currentTarget.ownerDocument.body });
       }}
       onDoubleClick={(e) => {
         if (!editable) return;
@@ -1182,7 +1153,7 @@ function CutoutChip({
         if (titleText !== null) onStartTitleEdit?.();
         else onReplaceImage?.();
       }}
-      onFocus={editable ? onSelect : undefined}
+      onFocus={editable ? () => onSelect(false) : undefined}
       role={editable ? "button" : undefined}
       tabIndex={editable ? 0 : undefined}
       onKeyDown={(event) => {
@@ -1193,6 +1164,7 @@ function CutoutChip({
           onDelete();
           return;
         }
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(true); return; }
         const step = event.shiftKey ? 5 : 1;
         if (event.key === "ArrowLeft") {
           event.preventDefault();
@@ -1228,11 +1200,11 @@ function CutoutChip({
         />
       ) : null}
       {/* Right-click context menu — position: fixed so it escapes overflow:hidden */}
-      {ctxMenu ? (
+      {ctxMenu ? createPortal(
         <div
           data-chip-toolbar="1"
-          className="fixed z-[200] flex min-w-[168px] flex-col overflow-hidden rounded-xl bg-white py-1 shadow-2xl"
-          style={{ left: ctxMenu.x + 4, top: ctxMenu.y - 4 }}
+          className="fixed flex min-w-[168px] flex-col overflow-hidden rounded-xl bg-white py-1 shadow-2xl"
+          style={{ left: ctxMenu.x + 4, top: ctxMenu.y - 4, zIndex: Z_LAYERS.canvasContextMenu }}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
@@ -1270,12 +1242,10 @@ function CutoutChip({
           {onDelete ? (
             <CtxItem danger onClick={() => { onDelete(); setCtxMenu(null); }}>Delete</CtxItem>
           ) : null}
-        </div>
+        </div>, ctxMenu.host
       ) : null}
 
-      <div
-        className={`relative ${layerMotionClass(motion, !pauseMotion && !selected && !titleEditing)} ${pulsing ? "lb-cutout-pulse" : ""}`}
-      >
+      <div className="relative" style={{ width: "100%", height: titleText === null ? "100%" : undefined }}>
         {titleText !== null ? (
           <div className="relative">
             <CircularBrandRing
@@ -1339,16 +1309,13 @@ function CutoutChip({
             </div>
           </div>
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <div
-            className="pointer-events-none w-full overflow-hidden"
-            style={{ clipPath: crop > 0 ? `inset(${crop}% ${crop}% ${crop}% ${crop}%)` : undefined }}
-          >
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={slot.src}
               alt={slot.label}
-              className="pointer-events-none h-auto w-full select-none"
-              style={{ transform: heightScale !== 1 ? `scaleY(${heightScale})` : undefined, transformOrigin: "center" }}
+              className="pointer-events-none absolute max-w-none select-none"
+              style={{ width: `${100 / fraction}%`, height: `${100 / fraction}%`, left: `${-inset / fraction}%`, top: `${-inset / fraction}%`, transform: heightScale !== 1 ? `scaleY(${heightScale})` : undefined, transformOrigin: "center" }}
               draggable={false}
             />
           </div>
@@ -1356,8 +1323,9 @@ function CutoutChip({
       </div>
 
       {/* Shopify-style corner handles — drag with the mouse to make bigger / smaller */}
-      {editable && (selected || titleEditing) && !locked ? (
-        <>
+      {scene && editable && (selected || titleEditing) ? createPortal(
+        <div ref={selectionRef} data-kebu-selection={slot.key} style={{ position: "absolute", pointerEvents: "none", zIndex: Z_LAYERS.canvasSelection, outline: "2px solid #FF5500", outlineOffset: 3 }}>
+        {!locked ? <>
           <button
             type="button"
             data-resize="1"
@@ -1365,6 +1333,7 @@ function CutoutChip({
             className={`${handleClass} -left-1.5 -top-1.5 cursor-nwse-resize`}
             style={{ touchAction: "none" }}
             onPointerDown={(e) => onCornerResize(e, "nw")}
+            onKeyDown={(e) => onHandleKeyDown(e, "nw")}
           />
           <button
             type="button"
@@ -1373,6 +1342,7 @@ function CutoutChip({
             className={`${handleClass} -right-1.5 -top-1.5 cursor-nesw-resize`}
             style={{ touchAction: "none" }}
             onPointerDown={(e) => onCornerResize(e, "ne")}
+            onKeyDown={(e) => onHandleKeyDown(e, "ne")}
           />
           <button
             type="button"
@@ -1381,6 +1351,7 @@ function CutoutChip({
             className={`${handleClass} -bottom-1.5 -left-1.5 cursor-nesw-resize`}
             style={{ touchAction: "none" }}
             onPointerDown={(e) => onCornerResize(e, "sw")}
+            onKeyDown={(e) => onHandleKeyDown(e, "sw")}
           />
           <button
             type="button"
@@ -1389,9 +1360,13 @@ function CutoutChip({
             className={`${handleClass} -bottom-1.5 -right-1.5 cursor-nwse-resize`}
             style={{ touchAction: "none" }}
             onPointerDown={(e) => onCornerResize(e, "se")}
+            onKeyDown={(e) => onHandleKeyDown(e, "se")}
           />
-        </>
+        </> : null}
+        </div>, scene
       ) : null}
+    </div>
+    </div>
     </div>
   );
 }

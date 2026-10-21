@@ -1399,7 +1399,7 @@ function ProjectEditor({ projectId }: { projectId: string }) {
       setSelectedSectionId(selection.sectionId);
       setSelectedElement(selection);
       setSidebarTab("content");
-      setLeftPanelOpen(true);
+      if (selection.inspect !== false) setLeftPanelOpen(true);
       const match = sections.find((s) => s.id === selection.sectionId);
       if (match) setEditPageId(match.page_id);
     },

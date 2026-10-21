@@ -28,11 +28,11 @@ test("saved cutout geometry survives preview and fixture reload without Russian 
   await expect(layer).toBeVisible();
   await expect(page.getByTestId("fixture-controls")).toHaveAttribute("data-ready", "true");
   await layer.press("Enter");
-  await expect(layer).toHaveCSS("outline-width", "2px");
+  await expect(page.locator('[data-kebu-selection="cutoutAccent"]')).toHaveCSS("outline-width", "2px");
   await layer.press("ArrowRight");
   await expect(layer).toHaveCSS("left", /./);
   const geometry = () => layer.evaluate(el => {
-    const style = (el as HTMLElement).style;
+    const style = (el.closest("[data-kebu-source]") as HTMLElement).style;
     return { left: style.left, top: style.top, width: style.width, opacity: style.opacity };
   });
   await expect.poll(async () => (await geometry()).left).toBe("21%");
@@ -69,11 +69,11 @@ test("parallax changes geometry on scroll and motion-off removes the track", asy
   await expect(page.getByTestId("fixture-controls")).toHaveAttribute("data-ready", "true");
   await page.getByRole("button", { name: "Preview composition" }).click();
   const layer = page.locator('[data-kebu-layer="cutoutAccent"]');
-  const before = await layer.evaluate(el => getComputedStyle(el).transform);
+  const before = await layer.evaluate(el => el.getBoundingClientRect().x);
   await page.mouse.move(1100, 500);
   await page.mouse.wheel(0, 450);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
-  await expect.poll(() => layer.evaluate(el => getComputedStyle(el).transform)).not.toBe(before);
+  await expect.poll(() => layer.evaluate(el => el.getBoundingClientRect().x)).not.toBe(before);
   await page.getByRole("button", { name: "Toggle motion" }).click();
   await expect(page.locator(".lb-editor-scroll-scene")).toHaveCount(0);
 });
@@ -122,7 +122,7 @@ test("ordinary cutout controls make opposite horizontal movements on actual scro
   await page.getByRole("button", { name: "Preview composition", exact: true }).click();
   const right = page.locator('[data-kebu-layer="cutoutAccent"]');
   const left = page.locator('[data-kebu-layer="cutoutLeft"]');
-  const x = (layer: typeof right) => layer.evaluate(el => new DOMMatrix(getComputedStyle(el).transform === "none" ? undefined : getComputedStyle(el).transform).m41);
+  const x = (layer: typeof right) => layer.evaluate(el => el.getBoundingClientRect().x);
   const beforeRight = await x(right), beforeLeft = await x(left);
   await page.mouse.move(1100, 500); await page.mouse.wheel(0, 450);
   await expect.poll(() => x(right)).toBeGreaterThan(beforeRight);
@@ -141,8 +141,8 @@ test("stacked cutout scenes keep one navigation and independent scroll tracks", 
   await expect(page.locator('[data-kebu-site-nav="1"]')).toHaveCount(1);
   await expect(page.locator(".lb-editor-scroll-scene")).toHaveCount(2);
   const second = page.locator('[data-kebu-layer="cutoutAccent"]').nth(1);
-  const before = await second.evaluate(el => getComputedStyle(el).transform);
+  const before = await second.evaluate(el => el.getBoundingClientRect().x);
   const destination = await page.locator(".lb-editor-scroll-scene").nth(1).evaluate(el => el.getBoundingClientRect().top + window.scrollY + 400);
   await page.mouse.move(1100, 500); await page.mouse.wheel(0, destination);
-  await expect.poll(() => second.evaluate(el => getComputedStyle(el).transform)).not.toBe(before);
+  await expect.poll(() => second.evaluate(el => el.getBoundingClientRect().x)).not.toBe(before);
 });
