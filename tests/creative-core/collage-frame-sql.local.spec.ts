@@ -170,3 +170,57 @@ for (const [device, width] of [["Desktop",1440],["Tablet",768],["Phone",390]] as
     expect(published.rows[0]!.count).toBe(1); expect(authority.legacyWrites).toEqual([]); expect(errors).toEqual([]);
   } finally { await server.close(); }
 });
+
+for (const [device, key, width] of [["Tablet", "tablet", 768], ["Phone", "mobile", 390]] as const) test(`${device} selected-object responsive reset preserves neighbour → atomic Undo → reload → publish`, async ({ page }) => {
+  test.setTimeout(120000);
+  await page.setViewportSize({ width, height: 1000 });
+  const base = { ...defaultMaylecorKsendrProps(), layerWidthScale: { cutoutAccent: .9, titleLogo: .8 }, layerCrop: { cutoutAccent: 2, titleLogo: 3 } };
+  const overrides = { layerWidthScale: { cutoutAccent: 1.25, titleLogo: 1.4 }, layerCrop: { cutoutAccent: 12, titleLogo: 18 }, sectionMinHeightPx: 950 };
+  const authority = await openBuilderSqlBridge(page, async server => {
+    const doc = server.current();
+    const ops: Op[] = [{ op: "insertNode", node: { id, type: "legacy-section:legally-blonde-hero", typeVersion: 1, props: base, overrides: { [key]: overrides } }, pageId: doc.pages[0]!.id, parentId: null, orderKey: "V" }];
+    await server.apply({ txId: crypto.randomUUID(), origin: "user", label: "Responsive reset ownership specimen", ops, expect: expectFor(doc, ops) });
+  });
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  const canvas = page.frameLocator(`iframe[title="${key} preview"]`);
+  const select = async (elementId = "cutoutAccent") => {
+    const done = page.getByRole("button", { name: "Done — view site", exact: true });
+    if (await done.isVisible()) await done.click();
+    await page.getByRole("button", { name: device, exact: true }).first().click();
+    await canvas.locator(`[data-kebu-layer="${elementId}"]`).press("Enter");
+  };
+  const current = () => authority.server.current().nodes[id]!;
+  try {
+    await page.goto("/create/" + projectId); await select();
+    const reset = page.getByRole("button", { name: "Reset responsive changes", exact: true });
+    // These are exclusively width/crop changes: the old parent badge omitted both.
+    await expect(reset).toBeVisible();
+    const transactions = authority.transactions.length;
+    await reset.click();
+    await expect.poll(() => authority.transactions.length).toBe(transactions + 1);
+    await expect.poll(() => current().overrides[key]).toEqual({ ...overrides, layerWidthScale: { cutoutAccent: .9, titleLogo: 1.4 }, layerCrop: { cutoutAccent: 2, titleLogo: 18 } });
+    await expect(reset).toBeHidden();
+    expect(current().props).toMatchObject(base);
+    await page.getByRole("button", { name: "Done — view site", exact: true }).click();
+    await page.getByRole("button", { name: "Undo", exact: true }).first().click();
+    await expect.poll(() => current().overrides[key]).toEqual(overrides);
+    await page.getByRole("button", { name: "Redo", exact: true }).first().click();
+    await expect.poll(() => (current().overrides[key]?.layerCrop as Record<string, number>)?.cutoutAccent).toBe(2);
+    await page.reload(); await select(); await expect(reset).toBeHidden();
+    const size = page.locator("summary").filter({ hasText: /^Size$/ });
+    if (await size.locator("..").getAttribute("open") === null) await size.click();
+    await expect(page.getByRole("slider", { name: /^Width/ })).toHaveValue("0.9");
+    await expect(page.getByRole("slider", { name: /^Crop empty edges/ })).toHaveValue("2");
+    await select("titleLogo"); await expect(reset).toBeVisible();
+    const saved = (await authority.server.queryAs<{ props: Record<string, unknown> }>("authenticated", owner, "select props from project_sections where id=$1", [id])).rows[0]!.props;
+    expect((saved.deviceOverrides as Record<string, unknown>)[key]).toEqual(current().overrides[key]);
+    mkdirSync("evidence/collage", { recursive: true });
+    await page.screenshot({ path: `evidence/collage/reset-neighbour-${key}.png`, fullPage: true });
+    await page.getByRole("button", { name: "Done — view site", exact: true }).click();
+    await page.getByRole("button", { name: "Publish", exact: true }).first().click();
+    await expect(page.getByRole("button", { name: "Published ✓", exact: true })).toBeVisible();
+    const published = await authority.server.queryAs<{ count: number }>("postgres", owner, "select count(*)::int as count from deployments where project_id=$1 and status='live'", [projectId]);
+    expect(published.rows[0]!.count).toBe(1);
+    expect(authority.legacyWrites).toEqual([]); expect(errors).toEqual([]);
+  } finally { await authority.server.close(); }
+});
