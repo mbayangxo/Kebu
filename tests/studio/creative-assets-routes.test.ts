@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+const checkoutAuthority = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/opportunity/admin", () => ({ createServiceClient: checkoutAuthority }));
 const auth = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/create/auth", () => ({ requireUser: auth }));
 const jokoCheckout = vi.hoisted(() => vi.fn());
@@ -41,7 +43,7 @@ function request(url: string, method: string, body?: unknown) {
 }
 const ctx = { params: Promise.resolve({ id: assetId }) };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => { vi.clearAllMocks(); checkoutAuthority.mockReturnValue(null); });
 
 describe("Studio creative assets — browse route", () => {
   it("lists published assets", async () => {
@@ -141,6 +143,21 @@ describe("Studio creative assets — status route", () => {
 });
 
 describe("Studio creative assets — acquire route", () => {
+  it.each(["invalid-json", "invalid-method", "invalid-id"])("rejects %s before acquiring trusted write authority", async scenario => {
+    const from = vi.fn(); auth.mockResolvedValue({ user: { id: userId }, supabase: { from } });
+    const req = scenario === "invalid-json" ? new Request("https://kebu.test/api/studio/creative-assets/acquire", { method: "POST", body: "{" }) : request("https://kebu.test/api/studio/creative-assets/acquire", "POST", { method: scenario === "invalid-method" ? "bogus" : "joko" });
+    const res = await acquirePost(req, scenario === "invalid-id" ? { params: Promise.resolve({ id: "invalid" }) } : ctx);
+    expect(res.status).toBe(400); expect(from).not.toHaveBeenCalled(); expect(checkoutAuthority).not.toHaveBeenCalled(); expect(jokoCheckout).not.toHaveBeenCalled();
+  });
+  it("fails closed for paid checkout when trusted write authority is unavailable", async () => {
+    const from = vi.fn(table => chain({ data: table === "marketplace_creative_assets" ? { ...assetRow, price_cents: 2000 } : null, error: null }));
+    auth.mockResolvedValue({ user: { id: userId }, supabase: { from } });
+    const res = await acquirePost(request(`https://kebu.test/api/studio/creative-assets/${assetId}/acquire`, "POST"), ctx);
+    expect(res.status).toBe(503);
+    expect(jokoCheckout).not.toHaveBeenCalled();
+    expect((await res.json()).error).toContain("Secure checkout");
+  });
+
   it("adds a free published asset to the caller's library", async () => {
     const from = vi.fn((table: string) => {
       if (table === "marketplace_creative_assets") return chain({ data: { ...assetRow, acquire_count: 0 }, error: null });
@@ -181,6 +198,8 @@ describe("Studio creative assets — acquire route", () => {
       }
       throw new Error("unexpected table " + table);
     });
+    const adminFrom = vi.fn(from);
+    checkoutAuthority.mockReturnValue({ from: adminFrom });
     auth.mockResolvedValue({ user: { id: userId, email: "buyer@example.test" }, supabase: { from } });
     jokoCheckout.mockResolvedValue({ ok: true, paymentUrl: "https://joko.test/checkout/abc", paymentId: "pay_abc" });
 
@@ -189,6 +208,7 @@ describe("Studio creative assets — acquire route", () => {
     const body = await res.json();
     expect(body.paymentUrl).toBe("https://joko.test/checkout/abc");
     expect(body.alreadyOwned).toBe(false);
+    expect(adminFrom).toHaveBeenCalledWith("creative_asset_library");
     expect(jokoCheckout).toHaveBeenCalledWith(expect.objectContaining({ amountXof: 2000, customerEmail: "buyer@example.test" }));
   });
 });

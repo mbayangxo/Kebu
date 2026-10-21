@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOrCreateDeveloperProfile, type DeveloperProfileRow } from "@/lib/create/aesthetics-marketplace";
 import type { KebuCheckoutMethod } from "@/lib/payments/kebu-checkout";
@@ -238,6 +239,7 @@ export async function acquireCreativeAsset(
   assetId: string,
   appUrl: string,
   method: KebuCheckoutMethod = "joko",
+  checkoutAuthority?: SupabaseClient | null,
 ): Promise<
   | { ok: true; alreadyOwned: boolean; item?: { id: string; name: string; kind: CreativeAssetKind }; paymentUrl?: string; priceLabel?: string }
   | { ok: false; status: number; error: string }
@@ -282,10 +284,11 @@ export async function acquireCreativeAsset(
     return { ok: true, alreadyOwned: false, item: { id: asset.id, name: asset.name, kind: asset.kind } };
   }
 
+  if (!checkoutAuthority) return { ok: false, status: 503, error: "Secure checkout is unavailable. Please try again later." };
   const { startKebuCheckout } = await import("@/lib/payments/kebu-checkout");
-  const reference = `kebu-ca-${assetId.slice(0, 8)}-${Math.random().toString(36).slice(2, 10)}`;
+  const reference = `kebu-ca-${assetId.slice(0, 8)}-${randomUUID()}`;
 
-  const { data: pending, error: pendErr } = await supabase
+  const { data: pending, error: pendErr } = await checkoutAuthority
     .from("creative_asset_library")
     .insert({
       owner_id: userId,
@@ -318,11 +321,11 @@ export async function acquireCreativeAsset(
   });
 
   if (!checkout.ok) {
-    await supabase.from("creative_asset_library").update({ status: "failed" }).eq("id", pending.id);
+    await checkoutAuthority.from("creative_asset_library").update({ status: "failed" }).eq("id", pending.id);
     return { ok: false, status: 503, error: checkout.error };
   }
 
-  await supabase
+  await checkoutAuthority
     .from("creative_asset_library")
     .update({ provider_payment_id: checkout.providerPaymentId ?? null })
     .eq("id", pending.id);

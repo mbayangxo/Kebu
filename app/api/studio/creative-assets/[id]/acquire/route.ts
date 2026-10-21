@@ -1,3 +1,4 @@
+import { createServiceClient } from "@/lib/opportunity/admin";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
@@ -24,14 +25,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     bodyJson = rawBody ? JSON.parse(rawBody) : {};
   } catch {
-    bodyJson = {};
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
   const parsed = bodySchema.safeParse(bodyJson);
-  const method = parsed.success ? parsed.data.method ?? "joko" : "joko";
+  if (!parsed.success) return NextResponse.json({ error: "Choose a valid payment method." }, { status: 400 });
+  const method = parsed.data.method ?? "joko";
 
   const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success) return NextResponse.json({ error: "Invalid asset ID." }, { status: 400 });
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/$/, "");
-  const result = await acquireCreativeAsset(auth.supabase, { id: auth.user.id, email: auth.user.email }, id, appUrl, method);
+  const result = await acquireCreativeAsset(auth.supabase, { id: auth.user.id, email: auth.user.email }, id, appUrl, method, createServiceClient());
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
   return NextResponse.json({
