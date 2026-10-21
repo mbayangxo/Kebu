@@ -1,3 +1,4 @@
+import { saveWaveCheckoutQuote } from "@/lib/payments/wave-checkout-quote";
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOrCreateDeveloperProfile, type DeveloperProfileRow } from "@/lib/create/aesthetics-marketplace";
@@ -325,10 +326,15 @@ export async function acquireCreativeAsset(
     return { ok: false, status: 503, error: checkout.error };
   }
 
-  await checkoutAuthority
-    .from("creative_asset_library")
-    .update({ provider_payment_id: checkout.providerPaymentId ?? null })
-    .eq("id", pending.id);
+  if (method==="wave") {
+    const saved=await saveWaveCheckoutQuote(checkoutAuthority,{
+      kind:"creative_asset_purchase",purchaseId:pending.id,reference,checkoutId:checkout.providerPaymentId??"",
+      sourceAmountMinor:asset.price_cents,sourceCurrency:"XOF",settlement:checkout.settlement,
+    });
+    if (!saved.ok) return {ok:false,status:503,error:saved.error};
+  } else {
+    await checkoutAuthority.from("creative_asset_library").update({provider_payment_id:checkout.providerPaymentId??null}).eq("id",pending.id);
+  }
 
   return { ok: true, alreadyOwned: false, paymentUrl: checkout.paymentUrl, priceLabel: formatXof(asset.price_cents) };
 }

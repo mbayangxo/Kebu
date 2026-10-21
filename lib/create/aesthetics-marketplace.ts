@@ -1,3 +1,4 @@
+import { saveWaveCheckoutQuote } from "@/lib/payments/wave-checkout-quote";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WebsiteDefinition } from "./website-schema";
 import { validateWebsiteDefinition } from "./website-schema";
@@ -380,7 +381,7 @@ export async function acquireCatalogAesthetic(
     return { ok: true, item: inserted.item };
   }
 
-  const reference = `kebu-aes-${catalogSlug.slice(0, 10)}-${randomUUID().slice(0, 8)}`;
+  const reference = `kebu-aes-${catalogSlug.slice(0, 10)}-${randomUUID()}`;
   const pending = await insertPendingLibrary(checkoutAuthority, user.id, {
     kind: "catalog",
     catalogSlug,
@@ -415,15 +416,20 @@ export async function acquireCatalogAesthetic(
     return { ok: false, status: 503, error: checkout.error };
   }
 
-  await checkoutAuthority
-    .from("aesthetic_library")
-    .update({ provider_payment_id: checkout.providerPaymentId ?? null })
-    .eq("id", pending.item.id);
+  if (method==="wave") {
+    const saved=await saveWaveCheckoutQuote(checkoutAuthority,{
+      kind:"aesthetic_purchase",purchaseId:pending.item.id,reference,checkoutId:checkout.providerPaymentId??"",
+      sourceAmountMinor:pending.item.amount_usd_cents,sourceCurrency:"USD",settlement:checkout.settlement,
+    });
+    if (!saved.ok) return {ok:false,status:503,error:saved.error};
+  } else {
+    await checkoutAuthority.from("aesthetic_library").update({provider_payment_id:checkout.providerPaymentId??null}).eq("id",pending.item.id);
+  }
 
   return {
     ok: true,
     paymentUrl: checkout.paymentUrl,
-    priceLabel: formatUsdFromCents(priceUsdCents),
+    priceLabel: method==="wave" && checkout.settlement ? checkout.settlement.amountMinor.toLocaleString("fr-SN")+" XOF ("+formatUsdFromCents(priceUsdCents)+")" : formatUsdFromCents(priceUsdCents),
   };
 }
 
@@ -475,7 +481,7 @@ export async function acquireMarketplaceAesthetic(
     return { ok: true, item: inserted.item };
   }
 
-  const reference = `kebu-mp-${row.slug.slice(0, 10)}-${randomUUID().slice(0, 8)}`;
+  const reference = `kebu-mp-${row.slug.slice(0, 10)}-${randomUUID()}`;
   const pending = await insertPendingLibrary(checkoutAuthority, user.id, {
     kind: "marketplace",
     marketplaceId: row.id,
@@ -510,15 +516,20 @@ export async function acquireMarketplaceAesthetic(
     return { ok: false, status: 503, error: checkout.error };
   }
 
-  await checkoutAuthority
-    .from("aesthetic_library")
-    .update({ provider_payment_id: checkout.providerPaymentId ?? null })
-    .eq("id", pending.item.id);
+  if (method==="wave") {
+    const saved=await saveWaveCheckoutQuote(checkoutAuthority,{
+      kind:"aesthetic_purchase",purchaseId:pending.item.id,reference,checkoutId:checkout.providerPaymentId??"",
+      sourceAmountMinor:pending.item.amount_usd_cents,sourceCurrency:"USD",settlement:checkout.settlement,
+    });
+    if (!saved.ok) return {ok:false,status:503,error:saved.error};
+  } else {
+    await checkoutAuthority.from("aesthetic_library").update({provider_payment_id:checkout.providerPaymentId??null}).eq("id",pending.item.id);
+  }
 
   return {
     ok: true,
     paymentUrl: checkout.paymentUrl,
-    priceLabel: formatUsdFromCents(priceCents),
+    priceLabel: method==="wave" && checkout.settlement ? checkout.settlement.amountMinor.toLocaleString("fr-SN")+" XOF ("+formatUsdFromCents(priceCents)+")" : formatUsdFromCents(priceCents),
   };
 }
 

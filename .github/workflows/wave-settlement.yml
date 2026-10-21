@@ -1,0 +1,81 @@
+name: Verified Wave settlement
+on:
+  push:
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-wave-verification-oct21"]
+    paths: ["lib/payments/**", "lib/shop/**", "lib/studio/creative-assets-marketplace.ts", "lib/create/aesthetics-marketplace.ts", "app/api/webhooks/wave/**", "supabase/migrations/**", "tests/payments/**", "tests/creative-core/native-postgres-cleanup.ts", ".github/workflows/wave-settlement.yml"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verified-wave:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: kebu_disposable_ci_only
+          POSTGRES_DB: kebu_qa
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kebu_qa"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      KEBU_PUBLISH_CONCURRENCY_DATABASE_URL: postgresql://postgres:kebu_disposable_ci_only@127.0.0.1:5432/kebu_qa
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Install isolated SQL runtime
+        run: npm install --prefix "$RUNNER_TEMP/kebu-sql-runtime" --ignore-scripts --no-save --package-lock=false @electric-sql/pglite@0.5.10
+      - name: Configure isolated runtime
+        run: echo "KEBU_LOCAL_PGLITE_ROOT=$RUNNER_TEMP/kebu-sql-runtime/node_modules/@electric-sql/pglite" >> "$GITHUB_ENV"
+      - name: Actual callback and adapter contract
+        run: npx vitest run tests/payments/wave-webhook.test.ts tests/payments/wave-checkout.test.ts --reporter=default --reporter=json --outputFile=wave-unit.json
+      - name: Actual migration, roles, rollback and HTTP-to-SQL boundaries
+        run: npx vitest run tests/payments/wave-settlement.sql.local.test.ts --reporter=default --reporter=json --outputFile=wave-sql.json
+      - name: Native PostgreSQL independent-session races, three mandatory runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for iteration in 1 2 3; do
+            npx vitest run tests/payments/wave-settlement.native.local.test.ts --reporter=default --reporter=json --outputFile="wave-native-$iteration.json"
+          done
+      - name: Require every assertion and clean native databases
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import pg from 'pg';
+          for (const [file,count] of [['wave-unit.json',58],['wave-sql.json',13],...[1,2,3].map(i=>['wave-native-'+i+'.json',2])]) {
+            const report=JSON.parse(readFileSync(file,'utf8'));
+            assert.equal(report.success,true);assert.equal(report.numTotalTests,count);assert.equal(report.numPassedTests,count);assert.equal(report.numPendingTests,0);assert.equal(report.numFailedTests,0);
+          }
+          const db=new pg.Client({connectionString:process.env.KEBU_PUBLISH_CONCURRENCY_DATABASE_URL});await db.connect();
+          try {
+            const version=(await db.query('show server_version')).rows[0].server_version;assert.match(version,/^17\.6(?:\D|$)/);
+            assert.deepEqual((await db.query("select datname from pg_database where starts_with(datname,'_kebutest_payments_')")).rows,[]);
+            const summary={postgres:version,httpAndAdapterPassed:58,sqlPassed:13,nativeUniqueCases:2,mandatoryIterations:3,nativePassed:6,skipped:0,databasesCleaned:true};
+            writeFileSync('wave-summary.json',JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));
+          } finally {await db.end();}
+          JS
+      - name: Retain credential-free isolated evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verified-wave-evidence
+          retention-days: 3
+          if-no-files-found: ignore
+          path: |
+            wave-unit.json
+            wave-sql.json
+            wave-native-*.json
+            wave-summary.json

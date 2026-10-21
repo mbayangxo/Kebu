@@ -1,0 +1,11 @@
+# Verified Wave checkout and settlement
+
+Scope: one provider, not checkout certification for every provider. Follow the official https://docs.wave.com/webhook and https://docs.wave.com/checkout contracts. Timestamped signatures cover timestamp concatenated with exact raw body, with five-minute freshness and rotation support. Only completed/succeeded checkout events carry settlement proof; a checkout ID and a transaction ID are different identities.
+
+Positive safe integer amounts retain source units. XOF is direct; USD requires explicit WAVE_XOF_PER_USD, rounded once to positive whole XOF. No invented FX or minimum-charge clamp. Record both source and actual charge units in an immutable service-only quote before exposing the checkout URL. Template USD cents must not be compared directly with XOF callback amounts or recomputed using later FX settings.
+
+Service-only quote and settlement tables use RLS and restricted grants. Receipt-first locking is shared by initiation and completion. Bind provider/reference/session/source/charge before any grant. Unique checkout, transaction and event identities guard reuse across purchases. One transaction grants ownership and increments a counter once, or invokes existing Shop stock/payment completion. Retain durable delivery retry and correct its formerly hard-coded Paystack rail. Replays return the same receipt; mismatches never retry through an unverified dispatcher.
+
+Legacy missing quotes, inactive/changed checkout attempts and independent second payments for an already-owned asset require reconciliation/refund rather than guessed grants. This slice does not certify those wider refund workflows, private paid-file delivery, other provider proof, merchant credentials, hosted Auth/RLS or production release. No actual payments, payouts, production migrations or DNS changes are authorized by these tests.
+
+Verification must include actual-handler crypto/HTTP tests, actual canonical migration SQL and rollback/role checks, native PostgreSQL independent-session lock barriers, full CI and explicit hosted limits. Local runtime became unavailable after the first 30 callback cases passed; connected GitHub Actions supplies final exact-source verification. A prepared or pushed candidate is not a pass.

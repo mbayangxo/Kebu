@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { saveWaveCheckoutQuote } from "@/lib/payments/wave-checkout-quote";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { commitShopCheckout } from "@/lib/shop/stock";
 import { getShopPaymentAdapter } from "@/lib/payments/registry";
@@ -147,7 +149,7 @@ export async function startShopOrderProviderCheckout(opts: {
     };
   }
 
-  const reference = `shop_${adapter.id}_${opts.orderId.replace(/-/g, "").slice(0, 20)}`;
+  const reference = adapter.id === "wave" ? "shop_wave_"+opts.orderId+"_"+randomUUID() : `shop_${adapter.id}_${opts.orderId.replace(/-/g, "").slice(0, 20)}`;
   const provider =
     opts.paymentPreference === "mobile_money"
       ? adapter.id
@@ -183,7 +185,12 @@ export async function startShopOrderProviderCheckout(opts: {
     };
   }
 
-  const persisted = await persistProviderFields(opts.admin, opts.orderId, {
+  const persisted = adapter.id==="wave"
+    ? await saveWaveCheckoutQuote(opts.admin,{
+      kind:"shop_order",purchaseId:opts.orderId,reference,checkoutId:result.providerPaymentId,
+      sourceAmountMinor:opts.amountXof,sourceCurrency:"XOF",settlement:result.settlement,
+    })
+    : await persistProviderFields(opts.admin, opts.orderId, {
     payment_status: "awaiting_payment",
     payment_provider: provider,
     provider_reference: reference,

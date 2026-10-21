@@ -10,7 +10,8 @@ const fetchFixture = vi.fn(async (url: string | URL | Request) => {
 });
 beforeEach(() => {
   fetchFixture.mockClear(); vi.stubGlobal("fetch", fetchFixture);
-  vi.stubEnv("WAVE_API_KEY", "fixture-wave-key"); vi.stubEnv("WAVE_API_BASE_URL", "https://wave.provider.test");
+  vi.stubEnv("WAVE_API_KEY", "fixture-wave-key");
+  vi.stubEnv("WAVE_XOF_PER_USD", ""); vi.stubEnv("WAVE_API_BASE_URL", "https://wave.provider.test");
   vi.stubEnv("ORANGE_MONEY_API_KEY", "fixture-orange-key"); vi.stubEnv("ORANGE_MONEY_MERCHANT_ID", "fixture-merchant"); vi.stubEnv("ORANGE_MONEY_API_BASE_URL", "https://orange.provider.test");
   vi.stubEnv("PAYSTACK_SECRET_KEY", "fixture-card-key"); vi.stubEnv("PAYSTACK_CURRENCY", "USD"); vi.stubEnv("PAYSTACK_XOF_PER_USD", "600");
 });

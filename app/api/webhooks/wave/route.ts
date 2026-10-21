@@ -1,103 +1,54 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createServiceClient } from "@/lib/opportunity/admin";
-import { markKebuPurchasePaid } from "@/lib/payments/mark-purchase-paid";
 import { fulfillPaidDigitalOrderDurable } from "@/lib/shop/digital-downloads";
-import { waveConfigured } from "@/lib/payments/wave-adapter";
+import { verifyWaveWebhookSignature } from "@/lib/payments/wave-webhook";
 
-export const dynamic = "force-dynamic";
+export const dynamic="force-dynamic";
+const identity=z.string().trim().min(1).max(255);
+const completedCheckout=z.object({
+  id:identity,type:z.literal("checkout.session.completed"),
+  data:z.object({id:identity,client_reference:identity,transaction_id:identity,
+    amount:z.string().regex(/^[1-9]\d*$/).transform(Number).refine(Number.isSafeInteger),
+    currency:z.literal("XOF"),payment_status:z.literal("succeeded"),checkout_status:z.literal("complete")}),
+});
 
-function verifyWaveWebhook(rawBody: string, signature: string | null): boolean {
-  const secret = process.env.WAVE_WEBHOOK_SECRET?.trim();
-  if (!secret) return false;
-  if (!signature) return false;
-  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+/** Verified proof enters one service transaction, never the unverified fallback dispatcher. */
+export async function POST(req:Request) {
+  const secret=process.env.WAVE_WEBHOOK_SECRET?.trim();
+  if (!secret) return NextResponse.json({error:"Wave webhook verification is unavailable."},{status:503});
+  const raw=await req.text();
+  if (!verifyWaveWebhookSignature(raw,req.headers.get("Wave-Signature"),secret)) return NextResponse.json({error:"Invalid Wave signature."},{status:401});
+  let payload:unknown;
+  try {payload=JSON.parse(raw);} catch {return NextResponse.json({error:"Invalid JSON."},{status:400});}
+  if (!payload || typeof payload!=="object" || Array.isArray(payload) || typeof (payload as {type?:unknown}).type!=="string") return NextResponse.json({error:"Invalid Wave event."},{status:400});
+  const candidate=payload as {type:string;data?:{payment_status?:unknown;checkout_status?:unknown}};
+  if (candidate.type!=="checkout.session.completed") return NextResponse.json({ok:true,ignored:true});
+  if (candidate.data && typeof candidate.data==="object" && (
+    typeof candidate.data.payment_status==="string" && candidate.data.payment_status!=="succeeded" ||
+    typeof candidate.data.checkout_status==="string" && candidate.data.checkout_status!=="complete"
+  )) return NextResponse.json({ok:true,ignored:true});
+  const parsed=completedCheckout.safeParse(payload);
+  if (!parsed.success) return NextResponse.json({error:"Incomplete Wave settlement proof."},{status:400});
+  const admin=createServiceClient();
+  if (!admin) return NextResponse.json({error:"Payment verification is unavailable."},{status:503});
+  const proof=parsed.data;
+  let response;
   try {
-    const a = Buffer.from(expected, "utf8");
-    const b = Buffer.from(signature, "utf8");
-    return a.length === b.length && timingSafeEqual(a, b);
-  } catch {
-    return false;
+    response=await admin.rpc("complete_verified_wave_payment",{
+      p_reference:proof.data.client_reference,p_checkout_id:proof.data.id,p_transaction_id:proof.data.transaction_id,
+      p_event_id:proof.id,p_amount_xof:proof.data.amount,p_currency:proof.data.currency,
+    });
+  } catch {return NextResponse.json({error:"Payment verification must be retried."},{status:503});}
+  const {data,error}=response;
+  const receipt=Array.isArray(data)?data[0]:data;
+  if (error || !receipt || !["shop_order","creative_asset_purchase","aesthetic_purchase"].includes(receipt.kind)) return NextResponse.json({error:"Payment could not be verified against its saved checkout. Please retry delivery."},{status:503});
+  if (receipt.kind==="shop_order") {
+    if (typeof receipt.order_id!=="string" || !receipt.order_id || typeof receipt.project_id!=="string" || !receipt.project_id) return NextResponse.json({error:"Invalid payment receipt."},{status:503});
+    try {await fulfillPaidDigitalOrderDurable(admin,receipt.order_id);}
+    catch {return NextResponse.json({error:"Payment recorded; delivery must be retried."},{status:503});}
+    return NextResponse.json({ok:true,kind:receipt.kind,orderId:receipt.order_id});
   }
-}
-
-/**
- * Wave checkout.session.completed (or equivalent) → shop order paid.
- * Requires WAVE_WEBHOOK_SECRET. Never trusts the browser.
- */
-export async function POST(req: NextRequest) {
-  if (!waveConfigured() && !process.env.WAVE_WEBHOOK_SECRET?.trim()) {
-    return NextResponse.json({ error: "Wave webhooks not configured." }, { status: 503 });
-  }
-
-  const rawBody = await req.text();
-  const signature =
-    req.headers.get("x-wave-signature") ||
-    req.headers.get("wave-signature") ||
-    req.headers.get("x-webhook-signature");
-
-  if (!verifyWaveWebhook(rawBody, signature)) {
-    return NextResponse.json({ error: "Invalid Wave signature." }, { status: 401 });
-  }
-
-  let payload: {
-    type?: string;
-    id?: string;
-    data?: {
-      id?: string;
-      client_reference?: string;
-      payment_status?: string;
-      status?: string;
-    };
-    client_reference?: string;
-    payment_status?: string;
-  };
-  try {
-    payload = JSON.parse(rawBody) as typeof payload;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
-  }
-
-  const status =
-    payload.data?.payment_status ||
-    payload.data?.status ||
-    payload.payment_status ||
-    "";
-  const type = (payload.type || "").toLowerCase();
-  const success =
-    status === "succeeded" ||
-    status === "successful" ||
-    status === "completed" ||
-    type.includes("completed") ||
-    type.includes("success");
-
-  if (!success) {
-    return NextResponse.json({ ok: true, ignored: true, status: status || type || "unknown" });
-  }
-
-  const reference =
-    payload.data?.client_reference?.trim() || payload.client_reference?.trim() || "";
-  if (!reference) {
-    return NextResponse.json({ error: "Missing client_reference." }, { status: 400 });
-  }
-
-  const admin = createServiceClient();
-  if (!admin) {
-    return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
-  }
-
-  const paymentId = payload.data?.id || payload.id || null;
-  let result = await markKebuPurchasePaid(admin, { reference, paymentId, provider: "wave" });
-  if (!result.ok) {
-    result = await markKebuPurchasePaid(admin, { reference, paymentId });
-    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 404 });
-  }
-
-  console.info(JSON.stringify({ event: "kebu.purchase_paid_wave", kind: result.kind, reference, result }));
-
-  if (result.kind === "shop_order") {
-    await fulfillPaidDigitalOrderDurable(admin, result.orderId);
-    return NextResponse.json({ ok: true, kind: "shop_order", orderId: result.orderId });
-  }
-  return NextResponse.json({ ok: true, kind: result.kind });
+  if (typeof receipt.library_id!=="string" || !receipt.library_id) return NextResponse.json({error:"Invalid payment receipt."},{status:503});
+  return NextResponse.json({ok:true,kind:receipt.kind});
 }

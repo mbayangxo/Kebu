@@ -18,7 +18,7 @@ export const KEBU_CHECKOUT_METHODS = ["joko", "wave", "orange_money", "card", "p
 export type KebuCheckoutMethod = (typeof KEBU_CHECKOUT_METHODS)[number];
 
 export type KebuCheckoutResult =
-  | { ok: true; paymentUrl: string; provider: KebuCheckoutMethod; providerPaymentId?: string }
+  | { ok: true; paymentUrl: string; provider: KebuCheckoutMethod; providerPaymentId?: string; settlement?: { amountMinor: number; currency: "XOF" } }
   | { ok: false; error: string; configured: boolean };
 
 /** Which methods are actually usable right now — same status Shop's own checkout exposes. */
@@ -65,8 +65,8 @@ export async function startKebuCheckout(opts: {
       return { ok: true, paymentUrl: checkout.paymentUrl, provider: "joko", providerPaymentId: checkout.paymentId };
     }
 
-    // Wave and Orange Money are XOF-only rails — no currency conversion exists for them here.
-    if ((opts.method === "wave" || opts.method === "orange_money") && opts.currency !== "XOF") {
+    // Orange Money has no documented conversion path. Wave validates and snapshots its explicit quote.
+    if (opts.method === "orange_money" && opts.currency !== "XOF") {
       return { ok: false, error: `${opts.method} only supports XOF, not ${opts.currency}.`, configured: false };
     }
 
@@ -90,7 +90,7 @@ export async function startKebuCheckout(opts: {
       metadata: opts.metadata,
     });
     if (!result.ok) return { ok: false, error: result.error, configured: result.configured };
-    return { ok: true, paymentUrl: result.checkoutUrl, provider: opts.method, providerPaymentId: result.providerPaymentId };
+    return { ok: true, paymentUrl: result.checkoutUrl, provider: opts.method, providerPaymentId: result.providerPaymentId, ...(result.settlement ? { settlement: result.settlement } : {}) };
   } catch {
     return { ok: false, configured: true, error: "The payment provider could not be reached. Please try again." };
   }
