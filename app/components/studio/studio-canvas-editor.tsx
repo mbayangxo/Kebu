@@ -215,6 +215,16 @@ export function StudioCanvasEditor({
   }, []);
 
   useEffect(() => {
+    const id = "kebu-studio-self-hosted-fonts";
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = "/fonts/kebu-display/kebu-display.css";
+    document.head.appendChild(link);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     fetch("/api/studio/creative-assets/library", { credentials: "include" })
       .then((res) => res.json())

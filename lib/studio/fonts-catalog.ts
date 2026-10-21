@@ -73,6 +73,15 @@ export const STUDIO_FONTS_CATALOG: StudioFontEntry[] = [
     sample: "MAY LECOR",
   },
   {
+    id: "kebu-display",
+    family: "Kebu Display",
+    label: "Kebu Display",
+    role: "display",
+    googleFamily: "",
+    stack: '"Kebu Display", system-ui, sans-serif',
+    sample: "KEBU STUDIO",
+  },
+  {
     id: "ibm-plex",
     family: "IBM Plex Sans",
     label: "IBM Plex Sans",

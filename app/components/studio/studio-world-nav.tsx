@@ -13,6 +13,7 @@ const LINKS = [
   { label: "Marketplace", href: "/studio/assets/marketplace" },
   { label: "Library", href: "/studio#library" },
   { label: "Themes", href: "/studio/templates" },
+  { label: "Fonts", href: "/studio/fonts" },
   { label: "Brand", href: "/studio/brand" },
   { label: "Video", href: "/studio/video/new" },
 ];
