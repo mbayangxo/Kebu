@@ -22,6 +22,7 @@ function equal(a: unknown, b: unknown): boolean {
 
 /** A single scope is shared by the inspector badge and its reset action. */
 function scope(selection: BuilderElementSelection) {
+  if (selection.elementId === "socialRail") return { scalars: ["socialLinks", "socialRailVisible", "socialRailBg", "socialRailLeftPct", "socialRailTopPct", "socialRailIconSize"], layer: false };
   if (selection.elementId === "heroCanvas") return { scalars: ["sectionMinHeightPx"], layer: false };
   if (selection.elementId === "siteFooter") return { scalars: ["embeddedFooterPaddingTop", "embeddedFooterPaddingBottom"], layer: false };
   if (selection.kind === "background") return { scalars: ["backgroundLayer", "backgroundHidden"], layer: false };

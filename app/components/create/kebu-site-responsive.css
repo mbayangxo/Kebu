@@ -481,3 +481,15 @@ html.kebu-mode-ultra .kebu-app {
   }
 }
 
+
+/* Small social-link variants must work in the first HTML without JavaScript. */
+.kebu-social-device-desktop { display: contents; }
+.kebu-social-device-tablet, .kebu-social-device-mobile { display: none; }
+@media (640px < width <= 1024px) {
+  .kebu-social-device-desktop { display: none; }
+  .kebu-social-device-tablet { display: contents; }
+}
+@media (width <= 640px) {
+  .kebu-social-device-desktop { display: none; }
+  .kebu-social-device-mobile { display: contents; }
+}
