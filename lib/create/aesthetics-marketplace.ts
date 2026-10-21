@@ -15,7 +15,7 @@ export { KEBU_CHECKOUT_METHODS, kebuCheckoutMethodsAvailable, type KebuCheckoutM
 import { randomUUID } from "node:crypto";
 
 export const AESTHETICS_TABLE_MISSING =
-  "Aesthetics tables missing. Apply supabase/migrations/040_aesthetics_marketplace.sql (and 014 if marketplace tables are missing).";
+  "Aesthetic Gallery is temporarily unavailable. Please try again later.";
 
 function tableMissing(message: string | undefined): boolean {
   return Boolean(message?.includes("does not exist") || message?.includes("schema cache"));

@@ -11,6 +11,7 @@ const db=new pg.Client({connectionString:url.toString()});await db.connect();
 try{
  await setupWaveDatabase({exec:sql=>db.query(sql),query:(sql,args)=>db.query(sql,args)});
  await db.query(readFileSync("supabase/migrations/20261021223430_marketplace_template_source_boundary.sql","utf8"));
+ await db.query("revoke all on public.developer_profiles from anon");
  await db.query(`create or replace function auth.uid() returns uuid language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claim.sub',true),''),nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid
  $$;

@@ -56,8 +56,8 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
           const r=JSON.parse(readFileSync('template-source-before.json','utf8'));
-          assert.equal(r.numTotalTests,13);assert.equal(r.numFailedTests,7);assert.equal(r.numPassedTests,6);assert.equal(r.numPendingTests,0);
-          console.log(JSON.stringify({expectedRegression:true,failed:7,passed:6,skipped:0}));
+          assert.equal(r.numTotalTests,14);assert.equal(r.numFailedTests,8);assert.equal(r.numPassedTests,6);assert.equal(r.numPendingTests,0);
+          console.log(JSON.stringify({expectedRegression:true,failed:8,passed:6,skipped:0}));
           NODE
       - name: Verify repaired canonical SQL permissions
         run: npx vitest run tests/create/marketplace-template-source.sql.local.test.ts --maxWorkers=1 --reporter=default --reporter=json --outputFile=template-source-after.json
@@ -67,13 +67,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker pull postgrest/postgrest:v16.5
-          docker image inspect postgrest/postgrest:v16.5 --format '{{index .RepoDigests 0}}'
+          docker pull postgrest/postgrest:v16.5@sha256:1347d7552b88f17832912c06afbf7c43209af6eeeb60834b04aae12c9bd9d5cc
+          docker image inspect postgrest/postgrest:v16.5@sha256:1347d7552b88f17832912c06afbf7c43209af6eeeb60834b04aae12c9bd9d5cc --format '{{index .RepoDigests 0}}'
           docker run --rm -d --name kebu-template-source-rest --network host \
             -e PGRST_DB_URI=postgresql://kebu_rest_authenticator:kebu_disposable_rest_only@127.0.0.1:5432/kebu_template_source_ci \
             -e PGRST_DB_SCHEMAS=public -e PGRST_DB_ANON_ROLE=anon \
             -e PGRST_JWT_SECRET=kebu_disposable_rest_jwt_fixture_only_2026 \
-            -e PGRST_SERVER_PORT=33331 postgrest/postgrest:v16.5
+            -e PGRST_SERVER_PORT=33331 postgrest/postgrest:v16.5@sha256:1347d7552b88f17832912c06afbf7c43209af6eeeb60834b04aae12c9bd9d5cc
           node --input-type=module <<'NODE'
           let ready=false;
           for(let i=0;i<60;i++){try{const r=await fetch('http://127.0.0.1:33331/');if(r.ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,500));}
@@ -87,10 +87,10 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import {readFileSync,writeFileSync} from 'node:fs';import assert from 'node:assert/strict';
-          for(const [file,count] of [['template-source-after.json',13],['template-source-rest.json',10]]){
+          for(const [file,count] of [['template-source-after.json',14],['template-source-rest.json',10]]){
             const r=JSON.parse(readFileSync(file,'utf8'));assert.equal(r.success,true);assert.equal(r.numTotalTests,count);assert.equal(r.numPassedTests,count);assert.equal(r.numPendingTests,0);assert.equal(r.numFailedTests,0);
           }
-          const summary={originalRegressionFailures:7,sqlPassed:13,actualRestPassed:10,skipped:0,postgres:'17.6',postgrest:'16.5',syntheticJwtFixture:true,realMerchantRequests:false,managedHostedAuthAccepted:false};
+          const summary={originalRegressionFailures:8,sqlPassed:14,actualRestPassed:10,skipped:0,postgres:'17.6',postgrest:'16.5',syntheticJwtFixture:true,realMerchantRequests:false,managedHostedAuthAccepted:false};
           writeFileSync('template-source-summary.json',JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary));
           NODE
       - name: Stop REST and normally drop only the isolated fixture database

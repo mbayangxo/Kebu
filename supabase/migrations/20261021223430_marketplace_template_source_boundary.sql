@@ -1,3 +1,17 @@
+-- Anonymous metadata must work without depending on broad grants on developer
+-- profiles. Keep developer predicates scoped to the authenticated role.
+drop policy if exists "Public read published marketplace templates" on public.marketplace_templates;
+create policy "Public read published marketplace templates"
+  on public.marketplace_templates for select to authenticated
+  using (status = 'published' or exists (
+    select 1 from public.developer_profiles dp
+    where dp.id = marketplace_templates.developer_id and dp.user_id = (select auth.uid())
+  ));
+alter policy "Approved developers manage own templates" on public.marketplace_templates to authenticated;
+drop policy if exists "Anonymous read marketplace template metadata" on public.marketplace_templates;
+create policy "Anonymous read marketplace template metadata"
+  on public.marketplace_templates for select to anon using (status = 'published');
+
 -- Published marketplace cards are public metadata, never a grant to the
 -- purchasable definition. A table-level SELECT overrides column revocations,
 -- so remove both before granting the explicit metadata projection.
