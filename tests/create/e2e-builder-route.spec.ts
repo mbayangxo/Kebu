@@ -27,6 +27,7 @@
  */
 
 import { test, expect } from "playwright/test";
+import { openBuilder as openAuthenticatedBuilder, waitForBuilder, expectBuilderViewport } from "./e2e-builder-helpers";
 
 const BASE_URL = process.env.KEBU_E2E_BASE_URL ?? "http://127.0.0.1:3099";
 const HAS_LIVE_SERVER = Boolean(process.env.KEBU_E2E_BASE_URL);
@@ -49,26 +50,10 @@ test.describe("Builder route health (no auth required — auth gate is < 500)", 
   for (const vp of viewports) {
     test(`/create route responds < 500 at ${vp.label}`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      let status = 0;
-      try {
-        const res = await page.goto(`${BASE_URL}/create`, {
-          waitUntil: "commit",
-          timeout: 15_000,
-        });
-        status = res?.status() ?? 0;
-      } catch {
-        // TLS redirect is expected without a TLS server in this environment
-        const { execSync } = await import("child_process");
-        try {
-          const out = execSync(
-            `curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/create"`,
-            { timeout: 5000 },
-          ).toString();
-          status = parseInt(out.replace(/'/g, "").trim(), 10);
-        } catch {
-          status = 0;
-        }
-      }
+      const response = await page.goto(`${BASE_URL}/create`, {
+        waitUntil: "domcontentloaded", timeout: 15_000,
+      });
+      const status = response?.status() ?? 0;
       expect(status).toBeGreaterThan(0);
       expect(status).toBeLessThan(500);
     });
@@ -314,7 +299,7 @@ test.describe("responsive state badge UI contracts", () => {
 // the actual Builder route: panel open/close, device picker, add section,
 // undo/redo, preview, settings, assets, Yande.
 //
-// To enable: KEBU_E2E_BASE_URL=https://... KEBU_E2E_BUILDER_COOKIE="session=..." KEBU_E2E_PROJECT_ID=... playwright test
+// To enable: KEBU_E2E_BASE_URL=https://... KEBU_E2E_BUILDER_COOKIE="sb-<qa-ref>-auth-token=..." KEBU_E2E_PROJECT_ID=... playwright test
 // -------------------------------------------------------------------------
 
 const BUILDER_COOKIE = process.env.KEBU_E2E_BUILDER_COOKIE;
@@ -324,45 +309,22 @@ const CAN_TEST_BUILDER = Boolean(HAS_LIVE_SERVER && BUILDER_COOKIE && PROJECT_ID
 test.describe("live Builder smoke — requires auth (skip without env vars)", () => {
   test.skip(!CAN_TEST_BUILDER, "Set KEBU_E2E_BASE_URL, KEBU_E2E_BUILDER_COOKIE, KEBU_E2E_PROJECT_ID to enable");
 
-  const builderUrl = `${BASE_URL}/create/${PROJECT_ID}`;
-
   async function openBuilder(page: import("playwright/test").Page) {
-    if (BUILDER_COOKIE) {
-      await page.context().addCookies([
-        { name: "session", value: BUILDER_COOKIE, domain: new URL(BASE_URL).hostname, path: "/" },
-      ]);
-    }
-    await page.goto(builderUrl, { waitUntil: "networkidle", timeout: 30_000 });
+    await openAuthenticatedBuilder(page);
+    await waitForBuilder(page);
   }
 
-  for (const vp of [
+  for (const viewport of [
     { label: "phone-390", width: 390, height: 844 },
     { label: "phone-430", width: 430, height: 932 },
-  ]) {
-    test(`${vp.label}: sidebar opens as full-screen overlay`, async ({ page }) => {
-      await page.setViewportSize({ width: vp.width, height: vp.height });
-      await openBuilder(page);
-      // Builder chrome should load
-      await expect(page.locator('[data-testid="builder-rail"], [aria-label*="Builder"], [aria-label*="builder"]')).toBeVisible({ timeout: 10_000 }).catch(() => {
-        // Accept auth gate redirect as "server healthy"
-      });
-    });
-  }
-
-  for (const vp of [
     { label: "tablet-768", width: 768, height: 1024 },
     { label: "tablet-1024", width: 1024, height: 768 },
+    { label: "desktop-1440", width: 1440, height: 900 },
   ]) {
-    test(`${vp.label}: canvas is dominant, panel is drawer/docked`, async ({ page }) => {
-      await page.setViewportSize({ width: vp.width, height: vp.height });
+    test(`${viewport.label}: authenticated canvas, measured panel and dismissal`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await openBuilder(page);
-      // At 768 the sidebar should be a left drawer (not full-screen)
-      // At 1024 it should be docked
+      await expectBuilderViewport(page, viewport.width);
     });
   }
-
-  test("desktop-1440: sidebar docked, canvas fills remaining space", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await openBuilder(page);
-  });
 });

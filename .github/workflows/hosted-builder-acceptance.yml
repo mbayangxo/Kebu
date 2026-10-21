@@ -1,0 +1,76 @@
+name: Hosted Builder acceptance
+
+on:
+  push:
+    branches: ["work/kebu-completion-audit-oct13"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+
+jobs:
+  source:
+    name: Verify approved preview and authoritative CI without QA credentials
+    if: vars.KEBU_HOSTED_QA_ENABLED == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      verified: ${{ steps.preview.outputs.verified }}
+      origin: ${{ steps.preview.outputs.origin }}
+      source: ${{ steps.preview.outputs.source }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+      - id: preview
+        run: node scripts/verify-hosted-qa-deployment.mjs --wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEBU_HOSTED_SOURCE_SHA: ${{ github.sha }}
+          KEBU_HOSTED_QA_ORIGIN: ${{ vars.KEBU_HOSTED_QA_ORIGIN }}
+
+  acceptance:
+    name: Require 26 real authenticated staging cases
+    needs: source
+    if: needs.source.outputs.verified == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: hosted-qa
+    concurrency:
+      group: kebu-hosted-builder-disposable-fixture
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.source.outputs.source }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Authenticated native Builder acceptance
+        run: node scripts/verify-hosted-builder-acceptance.mjs
+        env:
+          KEBU_E2E_BASE_URL: ${{ needs.source.outputs.origin }}
+          KEBU_HOSTED_QA_ORIGIN: ${{ needs.source.outputs.origin }}
+          KEBU_HOSTED_SOURCE_SHA: ${{ needs.source.outputs.source }}
+          KEBU_E2E_BUILDER_COOKIE: ${{ secrets.KEBU_E2E_BUILDER_COOKIE }}
+          KEBU_E2E_PROJECT_ID: ${{ vars.KEBU_E2E_PROJECT_ID }}
+          KEBU_E2E_DISPOSABLE_PROJECT: ${{ vars.KEBU_E2E_DISPOSABLE_PROJECT }}
+          KEBU_HOSTED_ACCEPTANCE_REPORT_DIR: ${{ runner.temp }}/kebu-hosted-builder
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      - name: Retain credential-free acceptance summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hosted-builder-acceptance-summary
+          retention-days: 3
+          if-no-files-found: ignore
+          path: ${{ runner.temp }}/kebu-hosted-builder/summary.json

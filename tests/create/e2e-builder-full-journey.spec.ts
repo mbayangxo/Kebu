@@ -8,7 +8,9 @@
  *   No live Next.js server or Supabase credentials are present in this
  *   container. Tests are correctly authored and will run when the env vars
  *   above point to a live server with a seeded project.
- *   All tests are skipped cleanly (not removed) when credentials are absent.
+ *   Missing credentials are explicit skips, never release acceptance. The
+ *   seeded project must be disposable staging data. These cases still require
+ *   actual hosted execution; stricter assertions are not a claim they passed.
  *
  * Coverage — the 18 authenticated journey scenarios from the directive:
  *
@@ -38,6 +40,8 @@
 import { test, expect } from "playwright/test";
 import {
   CAN_TEST_BUILDER,
+  SECTION_SELECTOR,
+  renamePage,
   openBuilder,
   waitForBuilder,
   switchDevice,
@@ -53,7 +57,6 @@ import {
   goOnline,
   editFirstText,
   BUILDER_URL,
-  BASE_URL,
 } from "./e2e-builder-helpers";
 
 // Every test here is gated behind CAN_TEST_BUILDER.
@@ -64,10 +67,6 @@ test.describe("full authenticated Builder journey", () => {
   test("1 — Builder loads without error for the seeded project", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openBuilder(page);
-    // No 5xx error page.
-    const h1 = await page.locator("h1").textContent({ timeout: 5_000 }).catch(() => "");
-    expect(h1).not.toMatch(/server error|500|crash/i);
-    // The Builder shell or the auth gate are both acceptable (not a crash).
     await waitForBuilder(page);
   });
 
@@ -100,15 +99,11 @@ test.describe("full authenticated Builder journey", () => {
       '[data-testid="typography-panel"], [aria-label*="Typography"], [aria-label*="Fonts"], button:has-text("Typography"), button:has-text("Fonts")',
     ).first();
 
-    if (await typoBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await typoBtn.click();
-      // Font options or heading must appear.
-      await expect(
-        page.locator('[data-testid="font-option"], [role="listbox"], [aria-label*="font"]').first(),
-      ).toBeVisible({ timeout: 8_000 });
-    }
-    // If the panel is not exposed via these selectors, the test is still valid —
-    // we confirm the Builder loaded and did not crash.
+    await expect(typoBtn).toBeVisible({ timeout: 5_000 });
+    await typoBtn.click();
+    await expect(
+      page.locator('[data-testid="font-option"], [role="listbox"], [aria-label*="font"]').first(),
+    ).toBeVisible({ timeout: 8_000 });
   });
 
   // ── 4. Add section ────────────────────────────────────────────────────────
@@ -117,23 +112,18 @@ test.describe("full authenticated Builder journey", () => {
     await openBuilder(page);
     await waitForBuilder(page);
 
-    const before = await page.locator('[data-testid^="section-"]').count();
+    const before = await page.locator(SECTION_SELECTOR).count();
     await clickAddSection(page);
 
     // Wait for the count to increase.
     await page.waitForFunction(
-      (n) => document.querySelectorAll('[data-testid^="section-"]').length > n,
+      (n) => document.querySelectorAll('[aria-label="Site canvas"] [data-kcd-root-id], [aria-label="Site canvas"] [data-section-id]').length > n,
       before,
       { timeout: 10_000 },
-    ).catch(() => {});
+    );
 
-    const after = await page.locator('[data-testid^="section-"]').count();
-    // Either a new section appeared OR an add-section modal appeared.
-    const modalVisible = await page.locator(
-      '[data-testid="section-picker"], [role="dialog"]',
-    ).isVisible({ timeout: 2_000 }).catch(() => false);
-
-    expect(after > before || modalVisible).toBe(true);
+    const after = await page.locator(SECTION_SELECTOR).count();
+    expect(after).toBeGreaterThan(before);
   });
 
   // ── 5. Move section ───────────────────────────────────────────────────────
@@ -142,7 +132,7 @@ test.describe("full authenticated Builder journey", () => {
     await openBuilder(page);
     await waitForBuilder(page);
 
-    const sections = page.locator('[data-testid^="section-"]');
+    const sections = page.locator(SECTION_SELECTOR);
     const count = await sections.count();
     if (count < 2) {
       // Not enough sections to test reordering — add one.
@@ -151,13 +141,13 @@ test.describe("full authenticated Builder journey", () => {
     }
 
     const second = sections.nth(1);
-    const secondIdBefore = await second.getAttribute("data-testid");
+    const secondIdBefore = await second.getAttribute("data-kcd-root-id") ?? await second.getAttribute("data-section-id");
 
     await sectionAction(page, second, "move-up");
     await page.waitForTimeout(800);
 
     const first = sections.nth(0);
-    const firstIdAfter = await first.getAttribute("data-testid");
+    const firstIdAfter = await first.getAttribute("data-kcd-root-id") ?? await first.getAttribute("data-section-id");
 
     expect(firstIdAfter).toBe(secondIdBefore);
   });
@@ -168,17 +158,17 @@ test.describe("full authenticated Builder journey", () => {
     await openBuilder(page);
     await waitForBuilder(page);
 
-    const before = await page.locator('[data-testid^="section-"]').count();
+    const before = await page.locator(SECTION_SELECTOR).count();
     if (before === 0) {
       await clickAddSection(page);
       await page.waitForTimeout(1_500);
     }
 
-    const firstSection = page.locator('[data-testid^="section-"]').first();
+    const firstSection = page.locator(SECTION_SELECTOR).first();
     await sectionAction(page, firstSection, "duplicate");
     await page.waitForTimeout(800);
 
-    const after = await page.locator('[data-testid^="section-"]').count();
+    const after = await page.locator(SECTION_SELECTOR).count();
     expect(after).toBeGreaterThan(before === 0 ? 1 : before);
   });
 
@@ -189,27 +179,21 @@ test.describe("full authenticated Builder journey", () => {
     await waitForBuilder(page);
 
     // Ensure at least 2 sections so we don't delete the last one.
-    let count = await page.locator('[data-testid^="section-"]').count();
+    let count = await page.locator(SECTION_SELECTOR).count();
     if (count < 2) {
       await clickAddSection(page);
       await page.waitForTimeout(1_500);
-      count = await page.locator('[data-testid^="section-"]').count();
+      count = await page.locator(SECTION_SELECTOR).count();
     }
 
-    const last = page.locator('[data-testid^="section-"]').last();
-    const lastId = await last.getAttribute("data-testid");
+    const last = page.locator(SECTION_SELECTOR).last();
+    const lastId = await last.getAttribute("data-kcd-root-id") ?? await last.getAttribute("data-section-id");
 
     await sectionAction(page, last, "delete");
 
-    // Confirm dialog if it appears.
-    const confirmBtn = page.locator('button:has-text("Delete"), button:has-text("Confirm")');
-    if (await confirmBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await confirmBtn.first().click();
-    }
-
     await page.waitForTimeout(800);
-    const afterCount = await page.locator('[data-testid^="section-"]').count();
-    const stillPresent = await page.locator(`[data-testid="${lastId}"]`).isVisible({ timeout: 2_000 }).catch(() => false);
+    const afterCount = await page.locator(SECTION_SELECTOR).count();
+    const stillPresent = await page.locator(`[data-kcd-root-id="${lastId}"], [data-section-id="${lastId}"]`).isVisible({ timeout: 2_000 }).catch(() => false);
     expect(afterCount < count || !stillPresent).toBe(true);
   });
 
@@ -219,25 +203,25 @@ test.describe("full authenticated Builder journey", () => {
     await openBuilder(page);
     await waitForBuilder(page);
 
-    const before = await page.locator('[data-testid^="section-"]').count();
+    const before = await page.locator(SECTION_SELECTOR).count();
 
     await clickAddSection(page);
     await page.waitForTimeout(1_200);
 
-    const after = await page.locator('[data-testid^="section-"]').count();
-    if (after <= before) return; // Builder didn't expose add-section at this size — skip.
+    const after = await page.locator(SECTION_SELECTOR).count();
+    expect(after).toBeGreaterThan(before);
 
     await undo(page);
     await page.waitForTimeout(800);
 
-    const afterUndo = await page.locator('[data-testid^="section-"]').count();
-    expect(afterUndo).toBeLessThanOrEqual(after);
+    const afterUndo = await page.locator(SECTION_SELECTOR).count();
+    expect(afterUndo).toBe(before);
 
     await redo(page);
     await page.waitForTimeout(800);
 
-    const afterRedo = await page.locator('[data-testid^="section-"]').count();
-    expect(afterRedo).toBeGreaterThanOrEqual(afterUndo);
+    const afterRedo = await page.locator(SECTION_SELECTOR).count();
+    expect(afterRedo).toBe(after);
   });
 
   // ── 9. Upload asset ───────────────────────────────────────────────────────
@@ -251,14 +235,12 @@ test.describe("full authenticated Builder journey", () => {
       '[data-testid="media-panel"], [aria-label*="Media"], [aria-label*="Assets"], button:has-text("Media"), button:has-text("Assets")',
     ).first();
 
-    if (await mediaBtn.isVisible({ timeout: 6_000 }).catch(() => false)) {
-      await mediaBtn.click();
-      // File input or upload button should be visible.
-      const uploadEl = page.locator(
-        'input[type="file"], [data-testid="upload-asset"], [aria-label*="Upload"]',
-      ).first();
-      await expect(uploadEl).toBeAttached({ timeout: 8_000 });
-    }
+    await expect(mediaBtn).toBeVisible({ timeout: 6_000 });
+    await mediaBtn.click();
+    const uploadEl = page.locator(
+      'input[type="file"], [data-testid="upload-asset"], [aria-label*="Upload"]',
+    ).first();
+    await expect(uploadEl).toBeAttached({ timeout: 8_000 });
   });
 
   // ── 10. Replace asset — structural test ──────────────────────────────────
@@ -272,18 +254,15 @@ test.describe("full authenticated Builder journey", () => {
       '[data-testid="media-panel"], [aria-label*="Media"], button:has-text("Media")',
     ).first();
 
-    if (await mediaBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await mediaBtn.click();
-      const firstAsset = page.locator('[data-testid^="asset-"], [data-testid="asset-thumb"]').first();
-      if (await firstAsset.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await firstAsset.click();
-        // A replace or swap button should appear.
-        const replaceBtn = page.locator(
-          '[data-testid="replace-asset"], [aria-label*="Replace"], button:has-text("Replace")',
-        ).first();
-        await expect(replaceBtn).toBeAttached({ timeout: 6_000 });
-      }
-    }
+    await expect(mediaBtn).toBeVisible({ timeout: 5_000 });
+    await mediaBtn.click();
+    const firstAsset = page.locator('[data-testid^="asset-"], [data-testid="asset-thumb"]').first();
+    await expect(firstAsset).toBeVisible({ timeout: 5_000 });
+    await firstAsset.click();
+    const replaceBtn = page.locator(
+      '[data-testid="replace-asset"], [aria-label*="Replace"], button:has-text("Replace")',
+    ).first();
+    await expect(replaceBtn).toBeAttached({ timeout: 6_000 });
   });
 
   // ── 11. Page creation ─────────────────────────────────────────────────────
@@ -293,15 +272,10 @@ test.describe("full authenticated Builder journey", () => {
     await waitForBuilder(page);
 
     const pageName = `E2E-Page-${Date.now()}`;
-    const before = await page.locator('[data-testid="page-item"], [data-testid^="page-"]').count();
-
     await createPage(page, pageName);
-    await page.waitForTimeout(1_200);
-
-    const after = await page.locator('[data-testid="page-item"], [data-testid^="page-"]').count();
-    const newPageVisible = await page.locator(`text="${pageName}"`).isVisible({ timeout: 5_000 }).catch(() => false);
-
-    expect(after > before || newPageVisible).toBe(true);
+    await page.reload(); await waitForBuilder(page);
+    await page.getByRole("toolbar", { name: "Builder tools", exact: true }).getByRole("button", { name: "Pages", exact: true }).click();
+    await expect(page.getByRole("complementary", { name: "Section editor", exact: true }).getByRole("button", { name: pageName, exact: true })).toBeVisible();
   });
 
   // ── 12. Page edit / rename ────────────────────────────────────────────────
@@ -310,17 +284,10 @@ test.describe("full authenticated Builder journey", () => {
     await openBuilder(page);
     await waitForBuilder(page);
 
-    const pageItem = page.locator('[data-testid="page-item"]').first();
-    if (!(await pageItem.isVisible({ timeout: 5_000 }).catch(() => false))) return;
-
-    // Double-click to enter rename mode (common pattern).
-    await pageItem.dblclick({ timeout: 4_000 });
-    const input = page.locator('input[data-rename], input[aria-label*="Page name"]').first();
-    if (await input.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await input.fill("Renamed-Page");
-      await page.keyboard.press("Enter");
-      await expect(page.locator('text="Renamed-Page"')).toBeVisible({ timeout: 5_000 });
-    }
+    const title = `Rename-source-${Date.now()}`;
+    await createPage(page, title);
+    await renamePage(page, title, "Renamed-Page");
+    await expect(page.getByRole("button", { name: "Renamed-Page", exact: true })).toBeVisible();
   });
 
   // ── 13. Page deletion ─────────────────────────────────────────────────────
@@ -353,9 +320,7 @@ test.describe("full authenticated Builder journey", () => {
     // The navigation preview / nav editor should reflect the new page.
     const navLink = page.locator(`[data-testid="nav-link"]:has-text("${pageName}"), nav a:has-text("${pageName}")`).first();
     const hasSyncedNav = await navLink.isVisible({ timeout: 8_000 }).catch(() => false);
-    // Accept: either the nav link appeared or the Builder reflects the page in the sidebar.
-    const hasSidebarPage = await page.locator(`text="${pageName}"`).isVisible({ timeout: 3_000 }).catch(() => false);
-    expect(hasSyncedNav || hasSidebarPage).toBe(true);
+    expect(hasSyncedNav).toBe(true);
   });
 
   // ── 15. Desktop / Tablet / Phone device mode ──────────────────────────────
@@ -364,24 +329,22 @@ test.describe("full authenticated Builder journey", () => {
     await openBuilder(page);
     await waitForBuilder(page);
 
-    const canvasSelector = '[data-testid="builder-canvas"], [data-testid="canvas-wrapper"]';
+    const canvasSelector = '[aria-label="Site canvas"] > div > div';
 
     await switchDevice(page, "desktop");
     const desktopWidth = await page.locator(canvasSelector).first().evaluate(
       (el) => el.getBoundingClientRect().width,
-    ).catch(() => 0);
+    );
 
     await switchDevice(page, "phone");
     await page.waitForTimeout(500);
-    const phoneWidth = await page.locator(canvasSelector).first().evaluate(
+    const phoneWidth = await page.locator('iframe[title="mobile preview"]').evaluate(
       (el) => el.getBoundingClientRect().width,
-    ).catch(() => 0);
+    );
 
-    // Phone mode canvas must be narrower than desktop mode canvas.
-    if (desktopWidth > 0 && phoneWidth > 0) {
-      expect(phoneWidth).toBeLessThan(desktopWidth);
-    }
-    // Even if we can't measure widths, switching should not crash the Builder.
+    expect(desktopWidth).toBeGreaterThan(0);
+    expect(phoneWidth).toBeGreaterThan(0);
+    expect(phoneWidth).toBeLessThan(desktopWidth);
   });
 
   // ── 16. Responsive customization state badge ──────────────────────────────
@@ -397,13 +360,7 @@ test.describe("full authenticated Builder journey", () => {
     const badge = page.locator(
       '[data-testid="responsive-state-badge"], [data-responsive-state], [aria-label*="Auto-designed"], [aria-label*="Customized"]',
     ).first();
-    // This is a soft assertion — Builder may not have sections with overrides loaded.
-    const hasBadge = await badge.isVisible({ timeout: 6_000 }).catch(() => false);
-    // Pass unconditionally if the Builder loaded fine and showed no crash.
-    const builderLoaded = await page.locator(
-      '[data-testid="builder-canvas"], [data-testid="section-list"]',
-    ).isVisible({ timeout: 3_000 }).catch(() => false);
-    expect(hasBadge || builderLoaded).toBe(true);
+    await expect(badge).toBeVisible({ timeout: 6_000 });
   });
 
   // ── 17. Yande / panel viewport ────────────────────────────────────────────
@@ -416,14 +373,11 @@ test.describe("full authenticated Builder journey", () => {
       '[data-testid="yande-panel"], [data-testid="ai-panel"], [aria-label*="Yande"], [aria-label*="AI"], button:has-text("Yande"), button:has-text("AI")',
     ).first();
 
-    if (await yandeBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await yandeBtn.click();
-      // The panel or chat interface should appear.
-      await expect(
-        page.locator('[data-testid="yande-chat"], [data-testid="ai-chat"], textarea[placeholder*="Yande"]').first(),
-      ).toBeVisible({ timeout: 8_000 });
-    }
-    // No crash is the minimum bar.
+    await expect(yandeBtn).toBeVisible({ timeout: 5_000 });
+    await yandeBtn.click();
+    await expect(
+      page.locator('[data-testid="yande-chat"], [data-testid="ai-chat"], textarea[placeholder*="Yande"]').first(),
+    ).toBeVisible({ timeout: 8_000 });
   });
 
   // ── 18. Offline edit → reconnect → sync ──────────────────────────────────
@@ -448,33 +402,20 @@ test.describe("full authenticated Builder journey", () => {
     // The offline edit should still be present (offline queue should have
     // flushed or the content was never lost locally).
     const hasOfflineEdit = await page.locator('text="OfflineEdit"').isVisible({ timeout: 5_000 }).catch(() => false);
-    const hasDirty = await page.locator(
-      '[data-testid="dirty"], [aria-label*="unsaved"], [data-dirty="true"]',
-    ).isVisible({ timeout: 3_000 }).catch(() => false);
-
-    // Either the text is visible or the unsaved-changes indicator is shown.
-    expect(hasOfflineEdit || hasDirty).toBe(true);
+    expect(hasOfflineEdit).toBe(true);
   });
 
   // ── 19. Preview ───────────────────────────────────────────────────────────
-  test("19 — preview opens a separate tab / URL without crashing", async ({ page, context }) => {
+  test("19 — preview opens the actual private site preview", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openBuilder(page);
     await waitForBuilder(page);
 
-    const [newPage] = await Promise.all([
-      context.waitForEvent("page", { timeout: 10_000 }).catch(() => null),
-      page.locator(
-        '[data-testid="preview-btn"], [aria-label*="Preview"], button:has-text("Preview")',
-      ).first().click({ timeout: 6_000 }).catch(() => {}),
-    ]);
-
-    if (newPage) {
-      await newPage.waitForLoadState("domcontentloaded", { timeout: 15_000 }).catch(() => {});
-      const status = await newPage.evaluate(() => document.readyState).catch(() => "complete");
-      expect(["complete", "interactive", "loading"]).toContain(status);
-    }
-    // If no new tab appeared, the Builder handled preview inline — that's acceptable.
+    const heading = await page.getByRole("region", { name: "Site canvas", exact: true }).getByRole("heading").first().textContent();
+    expect(heading?.trim()).toBeTruthy();
+    await page.getByRole("link", { name: "Preview", exact: true }).click();
+    await expect(page).toHaveURL(`${BUILDER_URL}/preview`);
+    await expect(page.getByRole("heading", { name: heading!.trim(), exact: true }).first()).toBeVisible();
   });
 
   // ── 20. Publish / republish ───────────────────────────────────────────────
@@ -486,12 +427,7 @@ test.describe("full authenticated Builder journey", () => {
     await clickPublish(page);
     const success = await waitForPublishSuccess(page, 25_000);
 
-    // Accept either a success toast OR a publish modal that confirms the action.
-    const modalVisible = await page.locator(
-      '[data-testid="publish-modal"], [role="dialog"]:has-text("Publish")',
-    ).isVisible({ timeout: 5_000 }).catch(() => false);
-
-    expect(success || modalVisible).toBe(true);
+    expect(success).toBe(true);
   });
 
   // ── 21. Persistence after hard reload ─────────────────────────────────────
@@ -513,11 +449,6 @@ test.describe("full authenticated Builder journey", () => {
     // The text should be present in the canvas or in the section editor.
     const hasPersisted = await page.locator(`text="${marker}"`).isVisible({ timeout: 8_000 }).catch(() => false);
 
-    // Soft pass: if no dirty indicator is shown after reload, the edit was saved.
-    const noDirty = !(await page.locator(
-      '[data-testid="dirty"], [data-dirty="true"]',
-    ).isVisible({ timeout: 2_000 }).catch(() => false));
-
-    expect(hasPersisted || noDirty).toBe(true);
+    expect(hasPersisted).toBe(true);
   });
 });

@@ -22,7 +22,8 @@ export default defineConfig({
           "x-vercel-set-bypass-cookie": "true",
         }
       : undefined,
-    trace: "on-first-retry",
+    // Session/protection headers must not be persisted in trace archives.
+    trace: protectionBypass || process.env.KEBU_E2E_BUILDER_COOKIE ? "off" : "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });

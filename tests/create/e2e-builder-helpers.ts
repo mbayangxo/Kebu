@@ -6,39 +6,84 @@
  * themselves; they throw if called without auth.
  */
 
-import type { Page, BrowserContext } from "playwright/test";
+import { expect, type Page, type BrowserContext } from "playwright/test";
+import { builderAuthCookies } from "./e2e-auth-cookies";
 
-export const BASE_URL    = process.env.KEBU_E2E_BASE_URL ?? "http://127.0.0.1:3099";
+export const BASE_URL    = process.env.KEBU_E2E_BASE_URL?.trim().replace(/\/+$/, "") || "http://127.0.0.1:3099";
 export const COOKIE      = process.env.KEBU_E2E_BUILDER_COOKIE ?? "";
 export const PROJECT_ID  = process.env.KEBU_E2E_PROJECT_ID ?? "";
-export const CAN_TEST_BUILDER = Boolean(BASE_URL !== "http://127.0.0.1:3099" && COOKIE && PROJECT_ID);
+export const CAN_TEST_BUILDER = Boolean(process.env.KEBU_E2E_BASE_URL?.trim() && COOKIE && PROJECT_ID);
+if (process.env.KEBU_REQUIRE_HOSTED_BUILDER_ACCEPTANCE === "1" && !CAN_TEST_BUILDER) {
+  throw Error("Required hosted Builder acceptance is blocked: configure the QA origin, actual Supabase cookies and disposable project ID privately.");
+}
 
 export const BUILDER_URL = `${BASE_URL}/create/${PROJECT_ID}`;
+export const SECTION_SELECTOR = '[aria-label="Site canvas"] [data-kcd-root-id], [aria-label="Site canvas"] [data-section-id]';
 
 // ── auth / navigation ──────────────────────────────────────────────────────
 
 /** Inject the session cookie into the context and navigate to the Builder. */
 export async function openBuilder(page: Page): Promise<void> {
-  await page.context().addCookies([
-    {
-      name:   "session",
-      value:  COOKIE,
-      domain: new URL(BASE_URL).hostname,
-      path:   "/",
-    },
-  ]);
-  await page.goto(BUILDER_URL, { waitUntil: "networkidle", timeout: 40_000 });
+  if (process.env.KEBU_E2E_DISPOSABLE_PROJECT !== "1") {
+    throw Error("Authenticated Builder mutation tests require an explicitly disposable staging project.");
+  }
+  await page.context().addCookies(builderAuthCookies(COOKIE, BASE_URL));
+  // The render guard refuses native operation mode in production and against
+  // the production Supabase ref. Check it before any mutation-capable test.
+  const response = await page.request.get(`${BASE_URL}/api/projects/${PROJECT_ID}`);
+  let body: { project?: { id?: string; document_schema_version?: string }; renderPath?: string };
+  try { body = await response.json(); } catch { throw Error("QA project preflight did not return an authenticated project response."); }
+  if (!response.ok() || body.project?.id !== PROJECT_ID || body.project.document_schema_version !== "kcd-1" || body.renderPath !== "kcd") {
+    throw Error("QA project is not an authenticated, native non-production fixture; acceptance stopped before mutations.");
+  }
+  await page.goto(BUILDER_URL, { waitUntil: "domcontentloaded", timeout: 40_000 });
 }
 
 /** Wait for the Builder canvas to be interactive. */
 export async function waitForBuilder(page: Page): Promise<void> {
-  // The canvas iframe or the section list must appear.
-  await page.waitForSelector(
-    '[data-testid="builder-canvas"], [data-testid="section-list"], [data-builder-ready="true"]',
-    { timeout: 30_000 },
-  ).catch(() => {
-    // Acceptable: auth-gated redirect means server is healthy.
-  });
+  const path = new URL(page.url()).pathname;
+  if (!/^\/create\/[a-f\d-]{36}\/?$/i.test(path) || (PROJECT_ID && path !== `/create/${PROJECT_ID}`)) {
+    throw Error("Authenticated Builder acceptance did not reach the intended project editor. Sign-in and preview pages are not editor acceptance.");
+  }
+  await expect(page.getByRole("region", { name: "Site canvas", exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Save draft", exact: true }).first()).toBeVisible({ timeout: 30_000 });
+}
+
+/** Measure the actual editor, including opening/dismissing its responsive panel. */
+export async function expectBuilderViewport(page: Page, width: number): Promise<void> {
+  const tools = page.getByRole("toolbar", { name: "Builder tools", exact: true });
+  const build = tools.getByRole("button", { name: "Build", exact: true });
+  await expect(build).toBeVisible();
+  if (await build.getAttribute("aria-pressed") !== "true") await build.click();
+  const panel = page.getByRole("complementary", { name: "Section editor", exact: true });
+  await expect(panel).toBeVisible();
+  const bounds = await panel.boundingBox();
+  expect(bounds).not.toBeNull();
+  if (!bounds) throw Error("Section editor has no measurable geometry.");
+  if (width < 768) {
+    expect(Math.abs(bounds.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(bounds.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(bounds.width - width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(bounds.height - page.viewportSize()!.height)).toBeLessThanOrEqual(1);
+    await expect(panel).toHaveAttribute("aria-modal", "true");
+  } else if (width < 1024) {
+    expect(Math.abs(bounds.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(bounds.width - 300)).toBeLessThanOrEqual(1);
+    await expect(panel).toHaveAttribute("aria-modal", "true");
+  } else {
+    expect(Math.abs(bounds.width - 280)).toBeLessThanOrEqual(1);
+    await expect(panel).toHaveCSS("position", "relative");
+    expect(await panel.getAttribute("aria-modal")).toBeNull();
+  }
+  if (width < 1024) {
+    await panel.getByRole("button", { name: "Done — view site", exact: true }).click();
+    await expect(panel).toBeHidden();
+  }
+  const canvas = await page.getByRole("region", { name: "Site canvas", exact: true }).boundingBox();
+  expect(canvas).not.toBeNull();
+  expect(canvas!.width).toBeGreaterThan(width * (width < 1024 ? 0.7 : 0.5));
+  expect(canvas!.x + canvas!.width).toBeLessThanOrEqual(width + 1);
+  await expect(page.getByRole("button", { name: "Save draft", exact: true }).first()).toBeVisible();
 }
 
 // ── device mode ────────────────────────────────────────────────────────────
@@ -51,14 +96,8 @@ export type DeviceMode = "desktop" | "tablet" | "phone";
  * aria-label when data-testid is absent.
  */
 export async function switchDevice(page: Page, mode: DeviceMode): Promise<void> {
-  const testId = `device-${mode}`;
   const ariaLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
-  const btn =
-    page.locator(`[data-testid="${testId}"]`).first() ??
-    page.locator(`[aria-label*="${ariaLabel}"]`).first();
-  await btn.click({ timeout: 8_000 }).catch(() => {
-    // Non-fatal: Builder may not expose a visible toggle at this viewport.
-  });
+  await page.getByRole("button", { name: ariaLabel, exact: true }).first().click({ timeout: 8_000 });
 }
 
 // ── sections ───────────────────────────────────────────────────────────────
@@ -72,6 +111,7 @@ export async function clickAddSection(page: Page): Promise<void> {
     .locator('[data-testid="add-section"], [aria-label*="Add section"], button:has-text("Add section")')
     .first()
     .click({ timeout: 8_000 });
+  await page.getByRole("button", { name: /^Text\b/ }).first().click({ timeout: 8_000 });
 }
 
 /**
@@ -84,60 +124,61 @@ export async function sectionAction(
   sectionLocator: import("playwright/test").Locator,
   action: "move-up" | "move-down" | "duplicate" | "delete",
 ): Promise<void> {
-  // Hover the section to reveal action controls.
-  await sectionLocator.hover();
-
-  // Try data-testid first, then aria-label, then text match.
-  const actionMap: Record<string, string[]> = {
-    "move-up":   [`[data-testid="section-move-up"]`,   `[aria-label*="Move up"]`,   `button:has-text("Move up")`],
-    "move-down": [`[data-testid="section-move-down"]`,  `[aria-label*="Move down"]`,  `button:has-text("Move down")`],
-    "duplicate": [`[data-testid="section-duplicate"]`, `[aria-label*="Duplicate"]`, `button:has-text("Duplicate")`],
-    "delete":    [`[data-testid="section-delete"]`,    `[aria-label*="Delete"]`,    `button:has-text("Delete")`],
-  };
-
-  for (const sel of actionMap[action] ?? []) {
-    const el = page.locator(sel).first();
-    if (await el.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await el.click();
-      return;
-    }
+  // Select the intended root, rather than clicking a similarly named action
+  // elsewhere on the page or accidentally selecting one of its child nodes.
+  if (await sectionLocator.getAttribute("data-kcd-root-id")) {
+    await sectionLocator.focus(); await sectionLocator.press("Enter");
+  } else {
+    await sectionLocator.click({ position: { x: 2, y: 2 } });
+  }
+  const inspector = page.getByRole("complementary", { name: "Section editor", exact: true });
+  const name = { "move-up": /Move up/, "move-down": /Move down/, duplicate: /^Duplicate$/, delete: /^Remove$/ }[action];
+  await inspector.getByRole("button", { name }).first().click();
+  if (action === "delete") {
+    const primitive = inspector.getByRole("button", { name: "Confirm remove", exact: true });
+    const legacy = inspector.getByRole("group", { name: "Confirm remove section", exact: true });
+    await expect.poll(async () => await primitive.isVisible() || await legacy.isVisible()).toBe(true);
+    if (await primitive.isVisible()) await primitive.click();
+    else await legacy.getByRole("button", { name: "Remove", exact: true }).click();
   }
 }
 
 // ── undo / redo ────────────────────────────────────────────────────────────
 
 export async function undo(page: Page): Promise<void> {
-  await page.keyboard.press("Meta+Z");
+  await page.keyboard.press("ControlOrMeta+Z");
 }
 
 export async function redo(page: Page): Promise<void> {
-  await page.keyboard.press("Meta+Shift+Z");
+  await page.keyboard.press("ControlOrMeta+Shift+Z");
 }
 
 // ── page management ────────────────────────────────────────────────────────
 
 export async function createPage(page: Page, title: string): Promise<void> {
-  const btn = page.locator(
-    '[data-testid="add-page"], [aria-label*="Add page"], button:has-text("Add page")',
-  ).first();
-  await btn.click({ timeout: 8_000 });
-  // Type the page title in the modal / inline input that appears.
-  await page.waitForSelector('input[placeholder*="page"], input[name*="title"]', {
-    timeout: 6_000,
-  }).then((input) => input.type(title)).catch(() => {});
-  // Confirm.
-  await page.keyboard.press("Enter");
+  await page.getByRole("toolbar", { name: "Builder tools", exact: true }).getByRole("button", { name: "Pages", exact: true }).click();
+  await page.getByRole("button", { name: "+ New page", exact: true }).click();
+  await page.getByRole("textbox", { name: "New page title", exact: true }).fill(title);
+  await page.getByRole("button", { name: "Add page", exact: true }).click();
+  await expect(page.getByRole("complementary", { name: "Section editor", exact: true }).getByRole("button", { name: title, exact: true })).toBeVisible();
+}
+
+export async function renamePage(page: Page, title: string, nextTitle: string): Promise<void> {
+  const row = page.getByRole("complementary", { name: "Section editor", exact: true }).locator("li")
+    .filter({ has: page.getByRole("button", { name: title, exact: true }) });
+  await row.hover(); await row.getByRole("button", { name: "Rename page", exact: true }).click();
+  await page.getByRole("textbox", { name: "Page title", exact: true }).fill(nextTitle);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("complementary", { name: "Section editor", exact: true }).getByRole("button", { name: nextTitle, exact: true })).toBeVisible();
 }
 
 export async function deletePage(page: Page, title: string): Promise<void> {
-  const pageItem = page.locator(`[data-testid="page-item"]`).filter({ hasText: title }).first();
+  const pageItem = page.getByRole("complementary", { name: "Section editor", exact: true }).locator("li")
+    .filter({ has: page.getByRole("button", { name: title, exact: true }) });
   await pageItem.hover();
-  await pageItem.locator('[data-testid="page-delete"], [aria-label*="Delete"]').first().click({ timeout: 5_000 });
-  // Confirm deletion dialog if present.
-  const confirmBtn = page.locator('button:has-text("Delete"), button:has-text("Confirm")');
-  if (await confirmBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await confirmBtn.first().click();
-  }
+  page.once("dialog", dialog => dialog.accept());
+  await pageItem.getByRole("button", { name: "Delete page", exact: true }).click();
+  await expect(pageItem).toHaveCount(0);
 }
 
 // ── publish ────────────────────────────────────────────────────────────────
@@ -151,10 +192,7 @@ export async function clickPublish(page: Page): Promise<void> {
 
 export async function waitForPublishSuccess(page: Page, timeoutMs = 20_000): Promise<boolean> {
   try {
-    await page.waitForSelector(
-      '[data-testid="publish-success"], [aria-live]:has-text("published"), .toast:has-text("published")',
-      { timeout: timeoutMs },
-    );
+    await expect(page.getByRole("button", { name: "Published ✓", exact: true })).toBeVisible({ timeout: timeoutMs });
     return true;
   } catch {
     return false;
@@ -178,11 +216,8 @@ export async function goOnline(context: BrowserContext): Promise<void> {
  * Replaces existing content.
  */
 export async function editFirstText(page: Page, text: string): Promise<void> {
-  const field = page.locator(
-    '[data-testid="text-input"], [contenteditable="true"], textarea[data-builder-field]',
-  ).first();
-  await field.click({ timeout: 6_000 });
-  // Select all existing content before typing the replacement.
-  await page.keyboard.press("ControlOrMeta+A");
-  await field.fill(text).catch(() => field.type(text));
+  await page.getByRole("region", { name: "Site canvas", exact: true }).getByRole("heading").first().click();
+  await page.getByRole("textbox", { name: "Text", exact: true }).fill(text);
+  await page.getByRole("combobox", { name: "Text style", exact: true }).focus();
+  await expect(page.getByRole("region", { name: "Site canvas", exact: true }).getByRole("heading", { name: text, exact: true })).toBeVisible();
 }
