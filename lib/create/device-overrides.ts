@@ -249,7 +249,7 @@ export const DEVICE_OVERRIDE_KEYS: Partial<Record<string, readonly string[]>> = 
     "extraCutouts",
     "layerScales",
     "layerWidthScale",
-    "layerHeightScale",
+    "layerHeightScale", "layerFrameAspectRatio", "layerFrameFit",
     "layerCrop",
     "layerZIndex",
     "layerOpacity",

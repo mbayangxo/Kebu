@@ -10,9 +10,9 @@ const bucket = (props: Record<string, unknown>) => props.deviceOverrides as Devi
 const apply = (props: Record<string, unknown>, selection = image) => ({ ...props, ...reset(props, "mobile", selection) });
 
 describe("selected-object responsive inheritance", () => {
-  it.each(["layerScales", "layerWidthScale", "layerHeightScale", "layerCrop", "layerZIndex", "layerOpacity", "layerRotation", "layerPositions"])("restores only the selected entry in %s", field => {
-    const a = field === "layerPositions" ? { leftPct: 10, topPct: 20 } : .8;
-    const b = field === "layerPositions" ? { leftPct: 30, topPct: 40 } : 1.2;
+  it.each(["layerScales", "layerWidthScale", "layerHeightScale", "layerFrameAspectRatio", "layerFrameFit", "layerCrop", "layerZIndex", "layerOpacity", "layerRotation", "layerPositions"])("restores only the selected entry in %s", field => {
+    const a = field === "layerPositions" ? { leftPct: 10, topPct: 20 } : field === "layerFrameFit" ? "contain" : .8;
+    const b = field === "layerPositions" ? { leftPct: 30, topPct: 40 } : field === "layerFrameFit" ? "fill" : 1.2;
     const props = { [field]: { cutoutAccent: a, titleLogo: a }, deviceOverrides: { mobile: { [field]: { cutoutAccent: b, titleLogo: b }, sectionMinHeightPx: 900 }, tablet: { [field]: { cutoutAccent: b } }, _state: { mode: "custom" as const, baseHash: "keep" } } };
     const before = structuredClone(props);
     expect(has(props, "mobile", image)).toBe(true);

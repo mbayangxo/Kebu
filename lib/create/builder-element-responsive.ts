@@ -3,7 +3,7 @@ import type { BuilderElementSelection } from "./builder-selection";
 import { builderLayerStorageKey } from "./builder-layer-model";
 import type { DeviceBucket } from "./device-overrides";
 
-const layerMaps = ["layerScales", "layerWidthScale", "layerHeightScale", "layerCrop", "layerZIndex", "layerOpacity", "layerRotation", "layerPositions"] as const;
+const layerMaps = ["layerScales", "layerWidthScale", "layerHeightScale", "layerFrameAspectRatio", "layerFrameFit", "layerCrop", "layerZIndex", "layerOpacity", "layerRotation", "layerPositions"] as const;
 const memberships = ["hiddenLayers", "lockedLayers"] as const;
 
 function object(value: unknown): Record<string, unknown> {

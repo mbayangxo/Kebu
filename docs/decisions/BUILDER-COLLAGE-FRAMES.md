@@ -1,0 +1,9 @@
+# Collage image frames
+
+Scope: existing collage images, including uploaded extra cutouts. Preserve saved source/crop/stretch rendering until the owner explicitly edits a frame. Add optional per-layer frame aspect ratio and fit (contain/cover/fill), routed through canonical operation authority and existing per-device overrides. No artist asset is modified.
+
+Interaction: four existing corner handles preserve proportions and opposite-anchor geometry. Four new side handles independently resize one local axis; Shift preserves proportions. Alt anchors the center. Touch/pointer cancellation restores preview with no write. One completed gesture produces one atomic frame/scale/position transaction. Keyboard arrows resize1 logical pixel (Shift10); side handles act in object axes. Inspector exposes actual visible frame width/height in logical canvas pixels, based on measured DOM dimensions rather than viewport guesses; editing width or height enters explicit frame mode. Fit changes enter frame mode at the current measured ratio. Existing shape sliders remain available for historic documents.
+
+Rendering: in explicit frame mode source layout uses the stored ratio before symmetric crop, while the actual image uses the chosen object-fit. Editor and visitor use the shared renderer, including JavaScript-disabled output. Selection, hitbox and painted frame must agree. Reset shape removes explicit frame metadata for this object while preserving neighbours. Responsive reset includes both new maps. Public contract remains optional, bounded and schema validated.
+
+Acceptance: reproduce unchanged hitbox after old height slider; actual Builder/isolated migrated SQL test side handles, measured dimensions, fit, opposite anchor, one transaction, cancel, undo/redo, reload, responsive ownership and publication. Retain corner/rotation/crop/performance regressions. Local fixture Auth is not hosted acceptance; all hosted release gates remain open.

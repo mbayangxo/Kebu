@@ -164,6 +164,8 @@ export const deviceOverridesSchema = z
 
 /** Existing collage inspector fields, shared with responsive override validation. */
 export const collageImagePresentationSchema = z.object({
+  layerFrameAspectRatio: z.record(z.string().trim().min(1).max(40), z.number().finite().min(.02).max(50)).optional(),
+  layerFrameFit: z.record(z.string().trim().min(1).max(40), z.enum(["cover", "contain", "fill"])).optional(),
   layerWidthScale: z.record(z.string().trim().min(1).max(40), z.number().finite().min(0.15).max(3)).optional(),
   layerHeightScale: z.record(z.string().trim().min(1).max(40), z.number().finite().min(0.15).max(3)).optional(),
   layerCrop: z.record(z.string().trim().min(1).max(40), z.number().finite().min(0).max(45)).optional(),

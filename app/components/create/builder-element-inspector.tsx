@@ -1,5 +1,6 @@
 "use client";
 
+import { CollageFrameControls, measureCollageFrame } from "./collage-frame-controls";
 import { SocialLinksEditor } from "./social-links-editor";
 import type { SocialLink } from "@/lib/create/social-links";
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
@@ -586,9 +587,7 @@ export function BuilderElementInspector({
 
           {selection.kind === "image" || selection.kind === "cutout" ? (
             <div className="space-y-3 border-t border-black/[.06] pt-3">
-              <p className="text-[10px] leading-relaxed text-black/45">
-                Shape the photo independently. Width and height do not have to stay locked together.
-              </p>
+              <CollageFrameControls key={`${device}:${storageKey}`} storageKey={storageKey} device={device} sectionProps={sectionProps} onPatch={onPatch} />
               <div className="grid grid-cols-2 gap-2">
                 <label className="block text-[11px] font-semibold text-black/65">
                   Width
@@ -596,7 +595,11 @@ export function BuilderElementInspector({
                     type="range" min="0.15" max="3" step="0.05"
                     className="mt-1.5 w-full accent-[#FF6A00]"
                     value={widthScale}
-                    onChange={(event) => onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { widthScale: Number(event.target.value) }))}
+                    onChange={(event) => {
+                      const value = Number(event.target.value), frame = measureCollageFrame(storageKey, device);
+                      onPatch({ ...patchBuilderLayerPresentation(sectionProps, storageKey, { widthScale: value }),
+                        ...(frame ? { layerFrameAspectRatio: { ...(sectionProps.layerFrameAspectRatio as Record<string, number> ?? {}), [storageKey]: Math.max(.02, Math.min(50, frame.sourceWidth * value / widthScale / frame.sourceHeight)) } } : {}) });
+                    }}
                   />
                   <span className="text-[9px] text-black/40">{Math.round(widthScale * 100)}%</span>
                 </label>
@@ -606,7 +609,11 @@ export function BuilderElementInspector({
                     type="range" min="0.15" max="3" step="0.05"
                     className="mt-1.5 w-full accent-[#FF6A00]"
                     value={heightScale}
-                    onChange={(event) => onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { heightScale: Number(event.target.value) }))}
+                    onChange={(event) => {
+                      const value = Number(event.target.value), frame = measureCollageFrame(storageKey, device);
+                      onPatch({ ...patchBuilderLayerPresentation(sectionProps, storageKey, { heightScale: value }),
+                        ...(frame ? { layerFrameAspectRatio: { ...(sectionProps.layerFrameAspectRatio as Record<string, number> ?? {}), [storageKey]: Math.max(.02, Math.min(50, frame.sourceWidth / (frame.sourceHeight * value / heightScale))) } } : {}) });
+                    }}
                   />
                   <span className="text-[9px] text-black/40">{Math.round(heightScale * 100)}%</span>
                 </label>
@@ -626,7 +633,11 @@ export function BuilderElementInspector({
               <button
                 type="button"
                 className="w-full rounded-md border border-black/10 bg-white px-3 py-2 text-[11px] font-semibold text-black/60"
-                onClick={() => onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { widthScale: 1, heightScale: 1, crop: 0 }))}
+                onClick={() => {
+                  const ratios = { ...(sectionProps.layerFrameAspectRatio as Record<string, number> ?? {}) }, fits = { ...(sectionProps.layerFrameFit as Record<string, string> ?? {}) };
+                  delete ratios[storageKey]; delete fits[storageKey];
+                  onPatch({ ...patchBuilderLayerPresentation(sectionProps, storageKey, { widthScale: 1, heightScale: 1, crop: 0 }), layerFrameAspectRatio: ratios, layerFrameFit: fits });
+                }}
               >
                 Reset shape
               </button>

@@ -11,6 +11,8 @@ import { collageVideosSchema } from "@/lib/create/collage-video";
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { resizeCollageFrame } from "@/lib/create/collage-frame-sizing";
+import type { ResizeHandle } from "@/lib/creative-core/resize";
 import { resizeCollageSource, type CollageCorner } from "@/lib/create/collage-frame-geometry";
 import { Z_LAYERS } from "./kebu-z-layers";
 import {
@@ -158,6 +160,8 @@ export function LegallyBlondeEditCanvas({
   const scales = (props.layerScales as Record<string, number>) ?? {};
   const widthScales = (props.layerWidthScale as Record<string, number>) ?? {};
   const heightScales = (props.layerHeightScale as Record<string, number>) ?? {};
+  const frameRatios = (props.layerFrameAspectRatio as Record<string, number>) ?? {};
+  const frameFits = (props.layerFrameFit as Record<string, "cover" | "contain" | "fill">) ?? {};
   const crops = (props.layerCrop as Record<string, number>) ?? {};
   const motions = (props.layerMotions as Record<string, LayerMotion>) ?? {};
   const layerLinks = (props.layerLinks as Record<string, string>) ?? {};
@@ -218,6 +222,10 @@ export function LegallyBlondeEditCanvas({
       extraCutouts: [...extraCutouts, duplicate],
       ...(props.layerScroll && (props.layerScroll as Record<string, { x: number; y: number }>)[key] ? { layerScroll: { ...(props.layerScroll as Record<string, { x: number; y: number }>), [nextId]: (props.layerScroll as Record<string, { x: number; y: number }>)[key] } } : {}),
       layerScales: { ...scales, [nextId]: 1 },
+      ...Object.fromEntries(["layerWidthScale", "layerHeightScale", "layerCrop", "layerFrameAspectRatio", "layerFrameFit", "layerOpacity", "layerRotation"].flatMap(field => {
+        const map = props[field] as Record<string, unknown> | undefined;
+        return map && Object.hasOwn(map, key) ? [[field, { ...map, [nextId]: map[key] }]] : [];
+      })),
       layerZIndex: { ...layerZ, [nextId]: duplicate.zIndex ?? 11 },
       layerPositions: {
         ...positions,
@@ -629,13 +637,16 @@ export function LegallyBlondeEditCanvas({
                 setEditingTitle(false);
               }}
               onMoved={(leftPct, topPct) => saveSlotPos(slot.key, leftPct, topPct)}
-              onResized={(nextScale, leftPct, topPct) => onPatch({
+              onResized={(nextScale, leftPct, topPct, nextRatio) => onPatch({
                 layerScales: { ...scales, [slot.key]: Number(nextScale.toFixed(6)) },
+                ...(nextRatio !== undefined ? { layerFrameAspectRatio: { ...frameRatios, [slot.key]: nextRatio } } : {}),
                 layerPositions: { ...positions, [slot.key]: { leftPct, topPct } },
               })}
               baseWidthPct={slot.widthPct}
               scale={scale}
               widthScale={widthScales[slot.key] ?? 1}
+              frameAspectRatio={frameRatios[slot.key]}
+              frameFit={frameFits[slot.key] ?? "cover"}
               heightScale={heightScales[slot.key] ?? 1}
               crop={crops[slot.key] ?? 0}
               onSnapGuide={setSnapGuide}
@@ -718,14 +729,17 @@ export function LegallyBlondeEditCanvas({
                     },
                   });
                 }}
-                onResized={(nextScale, leftPct, topPct) => onPatch({
+                onResized={(nextScale, leftPct, topPct, nextRatio) => onPatch({
                   layerScales: { ...scales, [cut.id]: Number(nextScale.toFixed(6)) },
+                ...(nextRatio !== undefined ? { layerFrameAspectRatio: { ...frameRatios, [cut.id]: nextRatio } } : {}),
                   layerPositions: { ...positions, [cut.id]: { leftPct, topPct } },
                   extraCutouts: extraCutouts.map(c => c.id === cut.id ? { ...c, leftPct, topPct } : c),
                 })}
                 baseWidthPct={cut.widthPct}
                 scale={scale}
                 widthScale={widthScales[cut.id] ?? 1}
+              frameAspectRatio={frameRatios[cut.id]}
+              frameFit={frameFits[cut.id] ?? "cover"}
                 heightScale={heightScales[cut.id] ?? 1}
                 crop={crops[cut.id] ?? 0}
                 onSnapGuide={setSnapGuide}
@@ -873,6 +887,8 @@ function CutoutChip({
   scale,
   widthScale = 1,
   heightScale = 1,
+  frameAspectRatio,
+  frameFit = "cover",
   crop = 0,
   baseWidthPct,
   motion,
@@ -926,6 +942,8 @@ function CutoutChip({
   scale: number;
   widthScale?: number;
   heightScale?: number;
+  frameAspectRatio?: number;
+  frameFit?: "cover" | "contain" | "fill";
   crop?: number;
   baseWidthPct: number;
   motion: LayerMotion;
@@ -940,7 +958,7 @@ function CutoutChip({
   onOpenLink?: () => void;
   onSelect: (inspect?: boolean) => void;
   onMoved: (leftPct: number, topPct: number) => void;
-  onResized: (scale: number, leftPct: number, topPct: number) => void;
+  onResized: (scale: number, leftPct: number, topPct: number, aspectRatio?: number) => void;
   onTitleChange?: (value: string) => void;
   onStartTitleEdit?: () => void;
   onEndTitleEdit?: () => void;
@@ -980,6 +998,7 @@ function CutoutChip({
   const activeGesture = useRef<(() => void) | null>(null);
   const trailingClick = useRef<(() => void) | null>(null);
   useEffect(() => () => { activeGesture.current?.(); trailingClick.current?.(); }, []);
+  const framed = titleText === null && typeof frameAspectRatio === "number" && Number.isFinite(frameAspectRatio) && frameAspectRatio >= .02 && frameAspectRatio <= 50;
   const inset = titleText === null ? Math.max(0, Math.min(45, crop)) : 0;
   const fraction = 1 - inset / 50;
   useLayoutEffect(() => {
@@ -989,7 +1008,7 @@ function CutoutChip({
     const observer = new ResizeObserver(syncSelection);
     observer.observe(source); observer.observe(frame); observer.observe(scene);
     return () => observer.disconnect();
-  }, [scene, selected, titleEditing, leftPct, topPct, scale, widthScale, inset, rotation, syncSelection]);
+  }, [scene, selected, titleEditing, leftPct, topPct, scale, widthScale, frameAspectRatio, inset, rotation, syncSelection]);
 
   function blockTrailingClick() {
     trailingClick.current?.();
@@ -1018,6 +1037,7 @@ function CutoutChip({
         : undefined;
 
   function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest("[data-resize], [data-chip-toolbar], [data-title-edit]")) return;
     e.stopPropagation();
@@ -1063,7 +1083,8 @@ function CutoutChip({
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", cancel);
   }
 
-  function onCornerResize(e: ReactPointerEvent<HTMLButtonElement>, corner: CollageCorner) {
+  function onCornerResize(e: ReactPointerEvent<HTMLButtonElement>, corner: ResizeHandle) {
+    if (e.button !== 0) return;
     e.stopPropagation(); e.preventDefault(); onSelect(false);
     if (locked) return;
     const source = sourceRef.current, handle = e.currentTarget;
@@ -1072,9 +1093,9 @@ function CutoutChip({
     activeGesture.current?.();
     const pointerId = e.pointerId, startX = e.clientX, startY = e.clientY;
     const initial = { x: source.offsetLeft, y: source.offsetTop, width: source.offsetWidth, height: source.offsetHeight, rotation: baseRotate };
-    const initialStyle = { left: source.style.left, top: source.style.top, width: source.style.width };
+    const initialStyle = { left: source.style.left, top: source.style.top, width: source.style.width, aspectRatio: source.style.aspectRatio };
     const effectiveScale = Math.max(4 / baseWidthPct, scale);
-    let last = { source: initial, scale: effectiveScale }, changed = false;
+    let last: { source: typeof initial; scale: number; aspectRatio?: number } = { source: initial, scale: effectiveScale }, changed = false;
     try { handle.setPointerCapture(pointerId); } catch { /* Synthetic/retired pointer. */ }
     const clean = () => {
       window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", cancel);
@@ -1087,8 +1108,12 @@ function CutoutChip({
       const rect = scene.getBoundingClientRect(); if (rect.width < 1 || rect.height < 1) return;
       const delta = { x: (event.clientX - startX) * scene.clientWidth / rect.width, y: (event.clientY - startY) * scene.clientHeight / rect.height };
       changed = changed || Math.abs(delta.x) + Math.abs(delta.y) > 1;
-      last = resizeCollageSource(initial, effectiveScale, inset, corner, delta, { fromCenter: event.altKey, minimumScale: Math.max(0.15, 4 / baseWidthPct),
-        positionBounds: { minX: -scene.clientWidth * 0.2, maxX: scene.clientWidth * 1.1, minY: -scene.clientHeight * 0.2, maxY: scene.clientHeight * 1.1 } });
+      last = corner.length === 1 && titleText === null
+        ? resizeCollageFrame(initial, effectiveScale, inset, corner, delta, { fromCenter: event.altKey, keepRatio: event.shiftKey, minimumScale: Math.max(.15, 4 / baseWidthPct),
+          positionBounds: { minX: -scene.clientWidth * .2, maxX: scene.clientWidth * 1.1, minY: -scene.clientHeight * .2, maxY: scene.clientHeight * 1.1 } })
+        : resizeCollageSource(initial, effectiveScale, inset, corner as CollageCorner, delta, { fromCenter: event.altKey, minimumScale: Math.max(0.15, 4 / baseWidthPct),
+          positionBounds: { minX: -scene.clientWidth * 0.2, maxX: scene.clientWidth * 1.1, minY: -scene.clientHeight * 0.2, maxY: scene.clientHeight * 1.1 } });
+      if (last.aspectRatio !== undefined) source.style.aspectRatio = String(last.aspectRatio);
       source.style.left = `${last.source.x / scene.clientWidth * 100}%`;
       source.style.top = `${last.source.y / scene.clientHeight * 100}%`;
       source.style.width = `${last.source.width / scene.clientWidth * 100}%`;
@@ -1098,14 +1123,14 @@ function CutoutChip({
     const up = (event: PointerEvent) => {
       if (event.pointerId !== pointerId) return;
       clean(); blockTrailingClick();
-      if (changed) onResized(last.scale, Number((last.source.x / scene.clientWidth * 100).toFixed(6)), Number((last.source.y / scene.clientHeight * 100).toFixed(6)));
+      if (changed) onResized(last.scale, Number((last.source.x / scene.clientWidth * 100).toFixed(6)), Number((last.source.y / scene.clientHeight * 100).toFixed(6)), last.aspectRatio);
       else restore();
     };
     activeGesture.current = () => { clean(); restore(); };
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", cancel);
   }
 
-  function onHandleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, corner: CollageCorner) {
+  function onHandleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, corner: ResizeHandle) {
     const delta = { x: event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0,
       y: event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0 };
     if (!delta.x && !delta.y) return;
@@ -1113,25 +1138,28 @@ function CutoutChip({
     const source = sourceRef.current;
     if (!source || !scene || locked) return;
     const step = event.shiftKey ? 10 : 1;
-    const result = resizeCollageSource({ x: source.offsetLeft, y: source.offsetTop, width: source.offsetWidth, height: source.offsetHeight, rotation: baseRotate },
-      Math.max(scale, 4 / baseWidthPct), inset, corner, { x: delta.x * step, y: delta.y * step },
-      { fromCenter: event.altKey, minimumScale: Math.max(0.15, 4 / baseWidthPct),
-        positionBounds: { minX: -scene.clientWidth * 0.2, maxX: scene.clientWidth * 1.1, minY: -scene.clientHeight * 0.2, maxY: scene.clientHeight * 1.1 } });
-    onResized(result.scale, Number((result.source.x / scene.clientWidth * 100).toFixed(6)), Number((result.source.y / scene.clientHeight * 100).toFixed(6)));
+    const initial = { x: source.offsetLeft, y: source.offsetTop, width: source.offsetWidth, height: source.offsetHeight, rotation: baseRotate };
+    const options = { fromCenter: event.altKey, minimumScale: Math.max(.15, 4 / baseWidthPct),
+      positionBounds: { minX: -scene.clientWidth * .2, maxX: scene.clientWidth * 1.1, minY: -scene.clientHeight * .2, maxY: scene.clientHeight * 1.1 } };
+    const result = corner.length === 1 && titleText === null
+      ? resizeCollageFrame(initial, Math.max(scale, 4 / baseWidthPct), inset, corner, { x: delta.x * step, y: delta.y * step }, options)
+      : { ...resizeCollageSource(initial, Math.max(scale, 4 / baseWidthPct), inset, corner as CollageCorner, { x: delta.x * step, y: delta.y * step }, options), aspectRatio: undefined };
+
+    onResized(result.scale, Number((result.source.x / scene.clientWidth * 100).toFixed(6)), Number((result.source.y / scene.clientHeight * 100).toFixed(6)), result.aspectRatio);
   }
 
   const handleClass =
-    "pointer-events-auto absolute z-50 h-6 w-6 rounded-sm border-2 border-white bg-[#FF5500] shadow-md hover:scale-110";
+    "pointer-events-auto absolute z-50 h-6 w-6 rounded-sm bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[2px] after:border after:border-white after:bg-[#FF5500] after:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
 
   return (
     <div ref={attachSource} data-kebu-source={slot.key} className="pointer-events-none absolute select-none"
-      style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${slot.widthPct * widthScale}%`, transform: scrollTransform,
+      style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${slot.widthPct * widthScale}%`, aspectRatio: framed ? String(frameAspectRatio) : undefined, transform: scrollTransform,
         zIndex: selected || titleEditing ? Math.max(zIndex, Z_LAYERS.chromeOverlay) : zIndex,
         filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.25))", opacity }}>
       {titleText === null ? (
         // Intrinsic source dimensions are required even with JS disabled; the browser reuses this URL's decoded image.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={slot.src} alt="" aria-hidden draggable={false} className="invisible block h-auto w-full" />
+        <img src={slot.src} alt="" aria-hidden draggable={false} className={framed ? "invisible absolute h-full w-full" : "invisible block h-auto w-full"} />
       ) : null}
       <div className={layerMotionClass(motion, !pauseMotion && !selected && !titleEditing)}
         style={{ position: titleText === null ? "absolute" : "relative", inset: titleText === null ? 0 : undefined, pointerEvents: "none" }}>
@@ -1148,7 +1176,7 @@ function CutoutChip({
         if (!editable) return;
         e.preventDefault();
         e.stopPropagation();
-        onSelect();
+        onSelect(false);
         setCtxMenu({ x: e.clientX, y: e.clientY, host: e.currentTarget.ownerDocument.body });
       }}
       onDoubleClick={(e) => {
@@ -1319,7 +1347,7 @@ function CutoutChip({
               src={slot.src}
               alt={slot.label}
               className="pointer-events-none absolute max-w-none select-none"
-              style={{ width: `${100 / fraction}%`, height: `${100 / fraction}%`, left: `${-inset / fraction}%`, top: `${-inset / fraction}%`, transform: heightScale !== 1 ? `scaleY(${heightScale})` : undefined, transformOrigin: "center" }}
+              style={{ width: `${100 / fraction}%`, height: `${100 / fraction}%`, left: `${-inset / fraction}%`, top: `${-inset / fraction}%`, objectFit: framed ? frameFit : undefined, transform: !framed && heightScale !== 1 ? `scaleY(${heightScale})` : undefined, transformOrigin: "center" }}
               draggable={false}
             />
           </div>
@@ -1330,6 +1358,16 @@ function CutoutChip({
       {scene && editable && (selected || titleEditing) ? createPortal(
         <div ref={selectionRef} data-kebu-selection={slot.key} style={{ position: "absolute", pointerEvents: "none", zIndex: Z_LAYERS.canvasSelection, outline: "2px solid #FF5500", outlineOffset: 3 }}>
         {!locked ? <>
+          {titleText === null ? <>
+            <button type="button" data-resize="1" aria-label="Resize top edge" className={`${handleClass} left-1/2 -top-1.5 -translate-x-1/2 cursor-ns-resize`} style={{ touchAction: "none" }}
+              onPointerDown={event => onCornerResize(event, "n")} onKeyDown={event => onHandleKeyDown(event, "n")} />
+            <button type="button" data-resize="1" aria-label="Resize right edge" className={`${handleClass} -right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize`} style={{ touchAction: "none" }}
+              onPointerDown={event => onCornerResize(event, "e")} onKeyDown={event => onHandleKeyDown(event, "e")} />
+            <button type="button" data-resize="1" aria-label="Resize bottom edge" className={`${handleClass} left-1/2 -bottom-1.5 -translate-x-1/2 cursor-ns-resize`} style={{ touchAction: "none" }}
+              onPointerDown={event => onCornerResize(event, "s")} onKeyDown={event => onHandleKeyDown(event, "s")} />
+            <button type="button" data-resize="1" aria-label="Resize left edge" className={`${handleClass} -left-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize`} style={{ touchAction: "none" }}
+              onPointerDown={event => onCornerResize(event, "w")} onKeyDown={event => onHandleKeyDown(event, "w")} />
+          </> : null}
           <button
             type="button"
             data-resize="1"

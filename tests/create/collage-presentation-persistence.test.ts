@@ -6,7 +6,7 @@ import { prepareBuilderTransaction, normalizeBuilderNode } from "@/lib/create/kc
 import { websiteV1ToDocument, documentToWebsiteV1 } from "@/lib/create/kcd-adapter";
 import type { WebsiteDefinition } from "@/lib/create/website-schema";
 
-const presentation = { layerWidthScale: { cutoutAccent: .8 }, layerHeightScale: { cutoutAccent: 1.2 }, layerCrop: { cutoutAccent: 20 } };
+const presentation = { layerFrameAspectRatio: { cutoutAccent: 1.5 }, layerFrameFit: { cutoutAccent: "contain" }, layerWidthScale: { cutoutAccent: .8 }, layerHeightScale: { cutoutAccent: 1.2 }, layerCrop: { cutoutAccent: 20 } };
 function site(): WebsiteDefinition {
   return { schemaVersion: "website-v1", title: "Frame test", theme: { primary: "#111111", accent: "#E9006B", background: "#ffffff", text: "#111111", fontDisplay: "Oswald", fontBody: "Manrope", spacing: "comfortable" }, pages: [{ slug: "home", title: "Home", sections: [{ id: "scene", type: "legally-blonde-hero", props: { ...defaultCutoutCollageProps(), ...presentation } }] }] } as WebsiteDefinition;
 }
@@ -27,7 +27,7 @@ describe("ordinary collage presentation persistence", () => {
   });
 });
 describe("collage transform request validation", () => {
-  it.each([["layerWidthScale",0],["layerWidthScale",4],["layerHeightScale",-.1],["layerHeightScale",Infinity],["layerCrop",-1],["layerCrop",46],["layerCrop",NaN]] as const)("rejects invalid %s value %s", (key,value) => {
+  it.each([["layerFrameAspectRatio",0],["layerFrameAspectRatio",51],["layerFrameFit","invalid"],["layerWidthScale",0],["layerWidthScale",4],["layerHeightScale",-.1],["layerHeightScale",Infinity],["layerCrop",-1],["layerCrop",46],["layerCrop",NaN]] as const)("rejects invalid %s value %s", (key,value) => {
     expect(sectionPropsForSave("legally-blonde-hero", { ...defaultCutoutCollageProps(), [key]: { cutoutAccent: value } }).ok).toBe(false);
   });
   it("does not add transform metadata to a historical payload with none", () => {
@@ -39,6 +39,8 @@ describe("collage transform request validation", () => {
     const doc = websiteV1ToDocument(site(), { id: "11111111-1111-4111-8111-111111111111" }).document;
     const node = Object.values(doc.nodes).find(item => item.type.includes("legally-blonde-hero"))!;
     const ops: Op[] = [
+      { op: "setOverride", id: node.id, device: "mobile", key: "layerFrameAspectRatio", value: { cutoutAccent: .7 } },
+      { op: "setOverride", id: node.id, device: "mobile", key: "layerFrameFit", value: { cutoutAccent: "cover" } },
       { op: "setOverride", id: node.id, device: "mobile", key: "layerWidthScale", value: { cutoutAccent: .6 } },
       { op: "setOverride", id: node.id, device: "mobile", key: "layerHeightScale", value: { cutoutAccent: .9 } },
       { op: "setOverride", id: node.id, device: "mobile", key: "layerCrop", value: { cutoutAccent: 10 } },
@@ -52,10 +54,12 @@ describe("collage transform request validation", () => {
   });
 });
 it.each(["mobile", "tablet"] as const)("rejects invalid nested %s frame settings before a canonical write", device => {
-  const source = site(); source.pages[0]!.sections[0]!.props.deviceOverrides = { [device]: { layerCrop: { cutoutAccent: 80 } } };
+ for (const [key, value] of [["layerCrop",80], ["layerFrameAspectRatio",Infinity], ["layerFrameFit","invalid"]] as const) {
+  const source = site(); source.pages[0]!.sections[0]!.props.deviceOverrides = { [device]: { [key]: { cutoutAccent: value } } };
   expect(sectionPropsForSave("legally-blonde-hero", source.pages[0]!.sections[0]!.props).ok).toBe(false);
   const doc = websiteV1ToDocument(site(), { id: "11111111-1111-4111-8111-111111111111" }).document;
   const node = Object.values(doc.nodes).find(item => item.type.includes("legally-blonde-hero"))!;
-  const ops: Op[] = [{ op: "setOverride", id: node.id, device, key: "layerCrop", value: { cutoutAccent: 80 } }];
-  expect(prepareBuilderTransaction(doc, { txId: "33333333-3333-4333-8333-333333333333", origin: "user", label: "Invalid crop", ops, expect: expectFor(doc,ops) }).ok).toBe(false);
+  const ops: Op[] = [{ op: "setOverride", id: node.id, device, key, value: { cutoutAccent: value } }];
+  expect(prepareBuilderTransaction(doc, { txId: "33333333-3333-4333-8333-333333333333", origin: "user", label: "Invalid frame", ops, expect: expectFor(doc,ops) }).ok).toBe(false);
+ }
 });

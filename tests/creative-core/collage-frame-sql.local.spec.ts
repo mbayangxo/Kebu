@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { mkdirSync } from "node:fs";
 import { test, expect } from "playwright/test";
 import { openBuilderSqlBridge } from "./fixtures/builder-sql-bridge";
@@ -39,9 +40,13 @@ for (const [device, width] of [["Desktop",1440],["Tablet",768],["Phone",390]] as
   };
   try {
     await page.goto("/create/" + projectId); await selectImage();
+    const beforeWidthHeight = await canvas.locator('[data-kebu-layer="cutoutAccent"]').evaluate(e => (e as HTMLElement).offsetHeight);
     await page.getByRole("slider", { name: /^Width/ }).press("ArrowLeft"); await expect.poll(() => value("layerWidthScale")).toBe(.95);
+    await expect.poll(() => canvas.locator('[data-kebu-layer="cutoutAccent"]').evaluate(e => (e as HTMLElement).offsetHeight)).toBe(beforeWidthHeight);
+    const beforeHeight = await canvas.locator('[data-kebu-layer="cutoutAccent"]').evaluate(e => (e as HTMLElement).offsetHeight);
     await page.getByRole("slider", { name: /^Height/ }).press("ArrowRight"); await expect.poll(() => value("layerHeightScale")).toBe(1.05);
     const imageFrame = canvas.locator('[data-kebu-layer="cutoutAccent"]');
+    await expect.poll(() => imageFrame.evaluate(e => (e as HTMLElement).offsetHeight)).toBeGreaterThan(beforeHeight + 1);
     const beforeCrop = await imageFrame.boundingBox(); expect(beforeCrop).not.toBeNull();
     const crop = page.getByRole("slider", { name: /^Crop empty edges/ }); await crop.press("PageUp");
     const expectedCrop = Number(await crop.inputValue()); expect(expectedCrop).toBeGreaterThan(0);
@@ -221,6 +226,149 @@ for (const [device, key, width] of [["Tablet", "tablet", 768], ["Phone", "mobile
     await expect(page.getByRole("button", { name: "Published ✓", exact: true })).toBeVisible();
     const published = await authority.server.queryAs<{ count: number }>("postgres", owner, "select count(*)::int as count from deployments where project_id=$1 and status='live'", [projectId]);
     expect(published.rows[0]!.count).toBe(1);
+    expect(authority.legacyWrites).toEqual([]); expect(errors).toEqual([]);
+  } finally { await authority.server.close(); }
+});
+
+for (const [device, key, width] of [["Desktop", "desktop", 1440], ["Tablet", "tablet", 768], ["Phone", "mobile", 390]] as const) test(`${device} independent image frame → measured pixels → fit → side handles → SQL history and publication`, async ({ page, browser }) => {
+  test.setTimeout(120000);
+  await page.setViewportSize({ width, height: 1000 });
+  await page.route("**/qa-frame-source.svg", route => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><path fill="#ff0000" d="M0 0h100v100H0z"/><path fill="#0000ff" d="M100 0h100v100H100z"/></svg>' }));
+  const base = { ...defaultMaylecorKsendrProps(), cutoutAccent: "/qa-frame-source.svg", layerRotation: { cutoutAccent: 0 }, layerCrop: { cutoutAccent: 0 } };
+  const authority = await openBuilderSqlBridge(page, async server => {
+    const doc = server.current(), ops: Op[] = [{ op: "insertNode", node: { id, type: "legacy-section:legally-blonde-hero", typeVersion: 1, props: base, overrides: {} }, pageId: doc.pages[0]!.id, parentId: null, orderKey: "V" }];
+    await server.apply({ txId: crypto.randomUUID(), origin: "user", label: "Explicit image-frame fixture", ops, expect: expectFor(doc, ops) });
+  });
+  const current = () => authority.server.current().nodes[id]!;
+  const effective = () => ({ ...current().props, ...(key === "desktop" ? {} : current().overrides[key]) });
+  const canvas = key === "desktop" ? page : page.frameLocator(`iframe[title="${key} preview"]`);
+  const layer = canvas.locator('[data-kebu-layer="cutoutAccent"]');
+  const metrics = () => layer.evaluate(e => ({ width: (e as HTMLElement).offsetWidth, height: (e as HTMLElement).offsetHeight }));
+  const close = async () => { const done = page.getByRole("button", { name: "Done — view site", exact: true }); if (await done.isVisible()) await done.click(); };
+  const select = async () => {
+    await close(); if (key !== "desktop") await page.getByRole("button", { name: device, exact: true }).first().click();
+    await layer.press("Enter");
+    const summary = page.locator("summary").filter({ hasText: /^Size$/ }); if (await summary.locator("..").getAttribute("open") === null) await summary.click();
+    await expect(page.getByRole("spinbutton", { name: "Frame height in pixels", exact: true })).toBeEnabled();
+  };
+  const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
+  try {
+    await page.goto("/create/" + projectId); await select();
+    const initial = await metrics(), count = authority.transactions.length;
+    const heightInput = page.getByRole("spinbutton", { name: "Frame height in pixels", exact: true });
+    await expect(heightInput).toHaveValue(String(initial.height));
+    await heightInput.fill("0"); await heightInput.press("Enter");
+    await expect(heightInput).toHaveValue(String(initial.height)); expect(authority.transactions).toHaveLength(count);
+    await heightInput.fill(String(initial.height + 80)); await heightInput.press("Enter");
+    await expect.poll(() => authority.transactions.length).toBe(count + 1);
+    await expect.poll(async () => Math.abs((await metrics()).height - initial.height - 80)).toBeLessThan(2);
+    expect((await metrics()).width).toBe(initial.width);
+    const numericWidth = page.getByRole("spinbutton", {name:"Frame width in pixels",exact:true}), widthCount = authority.transactions.length;
+    await numericWidth.fill(String(initial.width + 16)); await numericWidth.press("Enter");
+    await expect.poll(() => authority.transactions.length).toBe(widthCount + 1);
+    await expect.poll(async () => Math.abs((await metrics()).width - initial.width - 16)).toBeLessThan(2);
+    expect(Math.abs((await metrics()).height - initial.height - 80)).toBeLessThan(2);
+    const beforeClamp = await metrics(), clampCount = authority.transactions.length;
+    await numericWidth.fill("10000"); await numericWidth.press("Enter");
+    await expect.poll(() => authority.transactions.length).toBe(clampCount + 1);
+    await expect.poll(async () => Number(await numericWidth.inputValue())).toBeGreaterThan(beforeClamp.width);
+    await expect.poll(async () => Number(await numericWidth.inputValue()) - (await metrics()).width).toBe(0);
+    expect(Math.abs((await metrics()).height - beforeClamp.height)).toBeLessThan(2);
+    await close(); await page.getByRole("button",{name:"Undo",exact:true}).first().click(); await expect.poll(metrics).toEqual(beforeClamp); await select();
+    const ratio = (effective().layerFrameAspectRatio as Record<string, number>).cutoutAccent;
+    expect(ratio).toBeGreaterThan(0);
+    const fit = page.getByRole("combobox", { name: "Image fit", exact: true });
+    await fit.selectOption("contain"); await expect.poll(() => (effective().layerFrameFit as Record<string,string>)?.cutoutAccent).toBe("contain");
+    await close();
+    const redAtTop = async () => {
+      mkdirSync("evidence/collage", {recursive:true});
+      const shot = await layer.screenshot({style:"[data-kebu-selection]{visibility:hidden!important}",path:`evidence/collage/frame-pixels-${key}-${(effective().layerFrameFit as Record<string,string>)?.cutoutAccent}.png`});
+      const { data, info } = await sharp(shot).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+      const offset = (Math.floor(info.height * .08) * info.width + Math.floor(info.width * .25)) * info.channels;
+      return data[offset] > 220 && data[offset + 1] < 30 && data[offset + 2] < 30;
+    };
+    expect(await redAtTop()).toBe(false);
+    await select(); await fit.selectOption("fill"); await expect.poll(() => (effective().layerFrameFit as Record<string,string>)?.cutoutAccent).toBe("fill");
+    await close(); await expect(layer.locator("img")).toHaveCSS("object-fit","fill"); expect(await redAtTop()).toBe(true);
+    await layer.focus();
+    const overlay = canvas.locator('[data-kebu-selection="cutoutAccent"]'); await expect(overlay.locator('[data-resize]')).toHaveCount(8);
+    const right = canvas.getByRole("button", { name: "Resize right edge", exact: true });
+    await right.scrollIntoViewIfNeeded();
+    const before = await metrics(), beforeBox = (await layer.boundingBox())!, grip = (await right.boundingBox())!, beforeDrag = authority.transactions.length;
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2); await page.mouse.down();
+    await page.mouse.move(grip.x + grip.width / 2 + 24, grip.y + grip.height / 2, { steps: 5 });
+    expect(authority.transactions).toHaveLength(beforeDrag); await page.mouse.up();
+    await expect.poll(() => authority.transactions.length).toBe(beforeDrag + 1);
+    await expect.poll(async () => (await metrics()).width).toBeGreaterThan(before.width);
+    expect(Math.abs((await metrics()).height - before.height)).toBeLessThan(2);
+    expect(Math.abs((await layer.boundingBox())!.x - beforeBox.x)).toBeLessThan(1.5);
+    expect(JSON.stringify(authority.transactions.at(-1)!.ops)).toContain("layerFrameAspectRatio");
+    const resized = await metrics();
+    await page.getByRole("button", { name: "Undo", exact: true }).first().click();
+    await expect.poll(metrics).toEqual(before);
+    await page.getByRole("button", { name: "Redo", exact: true }).first().click(); await expect.poll(metrics).toEqual(resized);
+    await layer.focus();
+    const bottom = canvas.getByRole("button", { name: "Resize bottom edge", exact: true }), centerBefore = (await layer.boundingBox())!, beforeKey = authority.transactions.length;
+    await bottom.press("Alt+ArrowDown"); await expect.poll(() => authority.transactions.length).toBe(beforeKey + 1);
+    const centerAfter = (await layer.boundingBox())!;
+    expect(Math.abs(centerAfter.x + centerAfter.width / 2 - centerBefore.x - centerBefore.width / 2)).toBeLessThan(1.5);
+    expect(Math.abs(centerAfter.y + centerAfter.height / 2 - centerBefore.y - centerBefore.height / 2)).toBeLessThan(1.5);
+    expect((await metrics()).width).toBe(resized.width);
+    await page.getByRole("button", { name: "Undo", exact: true }).first().click(); await expect.poll(metrics).toEqual(resized);
+    if (key === "mobile") {
+      await layer.focus(); await right.scrollIntoViewIfNeeded(); const cdp = await page.context().newCDPSession(page);
+      try {
+        await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+        const grip = (await right.boundingBox())!, x = grip.x + grip.width / 2, y = grip.y + grip.height / 2, count = authority.transactions.length;
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{x,y,id:1}] });
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{x:x+20,y,id:1}] });
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+        await page.getByRole("button", { name: "Save draft", exact: true }).first().click();
+        expect(authority.transactions).toHaveLength(count); expect(await metrics()).toEqual(resized);
+      } finally { await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false }); await cdp.detach(); }
+    }
+    await page.reload(); await select();
+    await expect.poll(metrics).toEqual(resized); await expect(fit).toHaveValue("fill");
+    await close(); await layer.scrollIntoViewIfNeeded();
+    // The authored mobile navigation overlaps the image's center. Use its
+    // visible lower surface; a context click must respect real hit testing.
+    const imageBox = (await layer.boundingBox())!;
+    await page.mouse.click(imageBox.x + imageBox.width / 2, imageBox.y + imageBox.height - 8, {button:"right"});
+    const copyCount = authority.transactions.length;
+    await canvas.locator("[data-chip-toolbar]").getByRole("button",{name:"Duplicate",exact:true}).click();
+    await expect.poll(() => authority.transactions.length).toBe(copyCount + 1);
+    const copy = (effective().extraCutouts as Array<{id:string}>).at(-1)!;
+    const copiedFrame = canvas.locator(`[data-kebu-layer="${copy.id}"]`);
+    await expect(copiedFrame).toBeVisible();
+    expect((effective().layerFrameAspectRatio as Record<string,number>)[copy.id]).toBe((effective().layerFrameAspectRatio as Record<string,number>).cutoutAccent);
+    expect((effective().layerFrameFit as Record<string,string>)[copy.id]).toBe("fill");
+    expect(await copiedFrame.evaluate(e=>({width:(e as HTMLElement).offsetWidth,height:(e as HTMLElement).offsetHeight}))).toEqual(resized);
+    await close(); await page.getByRole("button",{name:"Undo",exact:true}).first().click(); await expect(copiedFrame).toHaveCount(0);
+    await select(); const beforeReset = authority.transactions.length;
+    await page.getByRole("button",{name:"Reset shape",exact:true}).click();
+    await expect.poll(() => authority.transactions.length).toBe(beforeReset + 1);
+    expect((effective().layerFrameAspectRatio as Record<string,number>)?.cutoutAccent).toBeUndefined();
+    expect((effective().layerFrameFit as Record<string,string>)?.cutoutAccent).toBeUndefined();
+    await close(); await page.getByRole("button",{name:"Undo",exact:true}).first().click();
+    await expect.poll(metrics).toEqual(resized); await select(); await expect(fit).toHaveValue("fill");
+    const stored = (await authority.server.queryAs<{ props: Record<string,unknown> }>("authenticated",owner,"select props from project_sections where id=$1",[id])).rows[0]!.props;
+    const saved = key === "desktop" ? stored : (stored.deviceOverrides as Record<string,Record<string,unknown>>)[key];
+    expect(saved.layerFrameAspectRatio).toEqual(effective().layerFrameAspectRatio); expect(saved.layerFrameFit).toEqual({cutoutAccent:"fill"});
+    if (key !== "desktop") expect(current().props.layerFrameAspectRatio).toBeUndefined();
+    mkdirSync("evidence/collage", {recursive:true}); await page.screenshot({path:`evidence/collage/explicit-frame-${key}.png`,fullPage:true});
+    await close(); await page.getByRole("button", { name: "Publish", exact: true }).first().click(); await expect(page.getByRole("button", { name: "Published ✓", exact: true })).toBeVisible();
+    for (const javaScriptEnabled of key === "desktop" ? [true, false] : [true]) {
+      const context = await browser.newContext({javaScriptEnabled,viewport:{width,height:1000}});
+      try {
+        await context.route("**/qa-frame-source.svg", route => route.fulfill({contentType:"image/svg+xml",body:'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><path fill="#ff0000" d="M0 0h100v100H0z"/><path fill="#0000ff" d="M100 0h100v100H100z"/></svg>'}));
+        const visitor = await context.newPage(); await visitor.goto("http://127.0.0.1:38415/s7-local-probe/home");
+        const published = visitor.locator('[data-kebu-source="cutoutAccent"]');
+        await expect(published).toBeVisible();
+        await expect.poll(() => published.evaluate(e => (e as HTMLElement).offsetWidth / (e as HTMLElement).offsetHeight)).toBeCloseTo((effective().layerFrameAspectRatio as Record<string,number>).cutoutAccent,1);
+        await expect(published.locator('[data-kebu-layer] img')).toHaveCSS("object-fit","fill");
+        await expect(visitor.getByRole("button",{name:/Resize (top|bottom|left|right)/})).toHaveCount(0);
+      } finally { await context.close(); }
+    }
     expect(authority.legacyWrites).toEqual([]); expect(errors).toEqual([]);
   } finally { await authority.server.close(); }
 });

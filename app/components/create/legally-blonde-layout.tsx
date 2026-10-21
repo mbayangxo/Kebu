@@ -74,6 +74,8 @@ export type LegallyBlondeHeroProps = {
   layerScales?: Record<string, number>;
   layerWidthScale?: Record<string, number>;
   layerHeightScale?: Record<string, number>;
+  layerFrameAspectRatio?: Record<string, number>;
+  layerFrameFit?: Record<string, "cover" | "contain" | "fill">;
   layerCrop?: Record<string, number>;
   layerMotions?: Record<string, LayerMotion>;
   layerMotionDuration?: Record<string, number>;
