@@ -18,6 +18,10 @@ Production database restoration and successful user login do not deploy the newe
 
 The register below preserves the October 10 audit and must not be treated as a fresh code inventory. Current Mail (K051–K055) is implemented in part with personal/business send, inbound/events, threading, attachments and forwarding; live external delivery remains open, and production `kebu.africa` is pending/sending disabled. Search (K056) has an internal sites/opportunities index, not the complete requested crawler/ranking engine. Network (K067) now reads authenticated visible database rows; the old static-directory defect was repaired, while hosted owner/session acceptance remains open. Native 3J independent publish/quota concurrency now has 9/9 actual PostgreSQL 17.6 CI passes with zero skips; this does not close real-provider/visual/hosted/performance acceptance or any broad group wholesale. Exact source, live schema gaps and limits: `audits/KEBU_HOSTED_RELEASE_2026-10-21.md`.
 
+## October 21 Wave verification update
+
+Quote-bound Wave settlement is development-tested at runtime **45f29df913022b067bd12ca43f2c57bc09b56276**: 64 HTTP/adapter cases, 13 actual SQL cases and six native race passes (two cases across three mandatory runs), all zero skips. Fresh full CI/Builder/platform/native/public preview gates pass. This narrows a payment-proof gap within K079–K080; neither group is complete. No real merchant payment, private paid-source/file delivery, full refund/reconciliation, managed hosted Auth/RLS or production release is certified. See `audits/KEBU_WAVE_SETTLEMENT_2026-10-21.md` for exact source, evidence and limitations.
+
 ## Status meaning
 
 - **Development implemented/tested**: source plus recorded development evidence. Does not mean live/released.
