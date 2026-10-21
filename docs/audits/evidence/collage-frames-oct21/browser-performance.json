@@ -1,0 +1,141 @@
+{
+  "scope": "Real Builder input fill through visible heading update and two animation frames at Desktop/Tablet/Phone viewport and edited device; includes Playwright command overhead. Controlled authority, no auth/SQL/network latency. Two warmups, seven samples. Other nodes are legacy text sections.",
+  "chromium": "153.0.8010.0",
+  "results": [
+    {
+      "nodes": 100,
+      "device": "desktop",
+      "viewportWidth": 1440,
+      "samplesMs": [
+        128.6999999997206,
+        140.70000000018626,
+        134.10000000009313,
+        126.10000000009313,
+        115.79999999981374,
+        143.5,
+        113.70000000018626
+      ],
+      "medianMs": 128.6999999997206
+    },
+    {
+      "nodes": 500,
+      "device": "desktop",
+      "viewportWidth": 1440,
+      "samplesMs": [
+        246.39999999990687,
+        222.5,
+        262.10000000009313,
+        493.29999999981374,
+        147.90000000037253,
+        124,
+        128.40000000037253
+      ],
+      "medianMs": 222.5
+    },
+    {
+      "nodes": 2000,
+      "device": "desktop",
+      "viewportWidth": 1440,
+      "samplesMs": [
+        371.39999999990687,
+        355.39999999990687,
+        361.89999999990687,
+        332.39999999990687,
+        459.8000000002794,
+        391.70000000018626,
+        458
+      ],
+      "medianMs": 371.39999999990687
+    },
+    {
+      "nodes": 100,
+      "device": "tablet",
+      "viewportWidth": 768,
+      "samplesMs": [
+        212.60000000009313,
+        109.79999999981374,
+        154,
+        109.5,
+        164,
+        125.6999999997206,
+        484.89999999990687
+      ],
+      "medianMs": 154
+    },
+    {
+      "nodes": 500,
+      "device": "tablet",
+      "viewportWidth": 768,
+      "samplesMs": [
+        201.10000000009313,
+        157.5,
+        202.60000000009313,
+        159,
+        287.29999999981374,
+        154.89999999990687,
+        163.40000000037253
+      ],
+      "medianMs": 163.40000000037253
+    },
+    {
+      "nodes": 2000,
+      "device": "tablet",
+      "viewportWidth": 768,
+      "samplesMs": [
+        212.10000000009313,
+        231,
+        219.89999999990687,
+        214.1999999997206,
+        225.09999999962747,
+        218.60000000009313,
+        239.1999999997206
+      ],
+      "medianMs": 219.89999999990687
+    },
+    {
+      "nodes": 100,
+      "device": "mobile",
+      "viewportWidth": 390,
+      "samplesMs": [
+        315.89999999990687,
+        124.5,
+        171.79999999981374,
+        141.5,
+        183.70000000018626,
+        123.89999999990687,
+        166.60000000009313
+      ],
+      "medianMs": 166.60000000009313
+    },
+    {
+      "nodes": 500,
+      "device": "mobile",
+      "viewportWidth": 390,
+      "samplesMs": [
+        177,
+        161.60000000009313,
+        166.20000000018626,
+        159.39999999990687,
+        220.60000000009313,
+        188.79999999981374,
+        222.1999999997206
+      ],
+      "medianMs": 177
+    },
+    {
+      "nodes": 2000,
+      "device": "mobile",
+      "viewportWidth": 390,
+      "samplesMs": [
+        378.09999999962747,
+        248.8000000002794,
+        262.89999999990687,
+        209.29999999981374,
+        298.1999999997206,
+        331.89999999990687,
+        235
+      ],
+      "medianMs": 262.89999999990687
+    }
+  ]
+}

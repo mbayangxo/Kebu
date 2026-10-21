@@ -1,5 +1,14 @@
 # Kebu completion queue — October 11, 2026 UTC
 
+## October 21 — measured collage frames and independent sizing
+
+Verified runtime **6e1989d4afbd7bd4153985b546b8e14dbd59710a** is integrated and reread on the authoritative recovery branch. Actual frame W/H, contain/cover/stretch,4independent edge handles plus4preserved proportional corners, crop/rotation anchors, numeric limits, responsive/reset/duplicate preservation and phone context menus now work through canonical operations. Fractional CSS measurements fix reproduced phone pixel drift; secondary clicks no longer open the inspector over their context menu. Historical art keeps its original appearance until edited; no photo pixels changed.
+
+Exact full remote CI: **6,462 passes/299 explicit skips**, zero lint errors/347 existing warnings and finalized build. Actual local **77/77** Builder browser/SQL cases and unchanged9performance probes pass; exact remote **77/77** also pass, zero skips/flaky, cleanup true. Native PostgreSQL **30/30** across3mandatory iterations,20platform SQL suites/21browser cases and hosted public smoke **533/35explicit skips** pass. Preview is READY at https://kebu-pcy7k4nbw-mbayangxos-projects.vercel.app. See `audits/KEBU_COLLAGE_FRAMES_2026-10-21.md` and evidence.
+
+**Still open:** authenticated hosted26 (fresh existing-QA access denied),22/37 production schema prerequisites, production rollout, all-template parity and full May/Studio/3J/99-group acceptance. New96thmigration adds2registry keys only and remains production-unapplied. No DNS, paid setup or production schema/promotion change. Preserve Claude Mail/fonts and3C–3I. Continue real provider settlement/proof and remaining product workflows.
+
+
 ## October 21 — strict hosted acceptance and PostgreSQL teardown repair
 
 Verified runtime **e3eae02f43c62c034992c36bc24cde81f7533a80** is integrated on the authoritative recovery branch, preserving PayPal348e80dd and Claude68b62904. Final local CI: **6,438 passes/299 explicit skips**, zero lint errors/347 existing warnings, TypeScript and finalized build pass. Exact remote CI, Builder **74/74** (zero skips/flaky), platform SQL/browser, native PostgreSQL **30/30 across three mandatory runs** and hosted public smoke all pass. Native teardown now drains real sessions and uses normal DROP; a held-session regression proves it refuses to kill active backends. The initial b997 native gate failed with unhandled57P01 despite passing assertions; this root fix is verified rather than a rerun-only claim.
