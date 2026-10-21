@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { startKebuCheckout, type KebuCheckoutMethod } from "@/lib/payments/kebu-checkout";
 const request = (method: KebuCheckoutMethod, currency: "XOF" | "USD" = "XOF") => ({ method, currency, reference: "isolated-fixture-reference", amountMinor: 500, description: "Isolated adapter test", customerEmail: "buyer@example.test", returnUrl: "https://kebu.test/return", cancelUrl: "https://kebu.test/cancel", webhookBaseUrl: "https://kebu.test", metadata: { kind: "creative_asset_purchase" } });
-const fetchFixture = vi.fn(async (url: string | URL | Request) => {
+const fetchFixture = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
   const path = String(url);
-  if (path.startsWith("https://wave.provider.test/")) return Response.json({ id: "wave-session-fixture", wave_launch_url: "https://wave.provider.test/pay" });
+  if (path.startsWith("https://wave.provider.test/")) return Response.json({ id: "wave-session-fixture", wave_launch_url: "https://wave.provider.test/pay", ...JSON.parse(String(init?.body ?? "{}")) });
   if (path.startsWith("https://orange.provider.test/")) return Response.json({ payment_id: "orange-session-fixture", checkout_url: "https://orange.provider.test/pay" });
   if (path === "https://api.paystack.co/transaction/initialize") return Response.json({ status: true, data: { reference: "isolated-fixture-reference", authorization_url: "https://card.provider.test/pay" } });
   throw Error("Unexpected provider URL — no real provider requests are permitted in this test");

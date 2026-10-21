@@ -20,11 +20,16 @@ export function quoteWaveCharge(input: Pick<PaymentAdapterCheckoutInput, "amount
   const currency=input.currency.trim().toUpperCase();
   if (currency==="XOF") return {ok:true,amountMinor:input.amountMinor,currency:"XOF"};
   if (currency!=="USD") return {ok:false,error:"Wave does not support this currency. Choose another payment method."};
-  const raw=process.env.WAVE_XOF_PER_USD?.trim(), rate=raw ? Number(raw) : NaN;
-  if (!raw || !Number.isFinite(rate) || rate<=0) return {ok:false,error:"Wave currency conversion is unavailable. Choose another payment method."};
-  const amountMinor=Math.round(input.amountMinor*rate/100);
-  if (!Number.isSafeInteger(amountMinor) || amountMinor<=0) return {ok:false,error:"This amount cannot be represented safely by Wave."};
-  return {ok:true,amountMinor,currency:"XOF"};
+  const raw=process.env.WAVE_XOF_PER_USD?.trim();
+  const parts=raw && raw.length<=64 ? /^(\d+)(?:\.(\d+))?$/.exec(raw) : null;
+  if (!parts) return {ok:false,error:"Wave currency conversion is unavailable. Choose another payment method."};
+  const fraction=parts[2]??"", rate=BigInt(parts[1]!+fraction);
+  if (rate<=BigInt(0)) return {ok:false,error:"Wave currency conversion is unavailable. Choose another payment method."};
+  // Decimal rational arithmetic avoids rounding a rate up before the one permitted XOF rounding.
+  const denominator=BigInt("1"+"0".repeat(fraction.length))*BigInt(100);
+  const converted=(BigInt(input.amountMinor)*rate+denominator/BigInt(2))/denominator;
+  if (converted<=BigInt(0) || converted>BigInt(Number.MAX_SAFE_INTEGER)) return {ok:false,error:"This amount cannot be represented safely by Wave."};
+  return {ok:true,amountMinor:Number(converted),currency:"XOF"};
 }
 
 export const waveAdapter: PaymentAdapter = {
@@ -43,9 +48,10 @@ export const waveAdapter: PaymentAdapter = {
         method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
         body:JSON.stringify({amount:String(quote.amountMinor),currency:quote.currency,error_url:input.cancelUrl,success_url:input.returnUrl,client_reference:input.reference}),
       });
-      const data=await response.json().catch(()=>null) as {id?:unknown;wave_launch_url?:unknown;message?:unknown}|null;
+      const data=await response.json().catch(()=>null) as {id?:unknown;wave_launch_url?:unknown;message?:unknown;amount?:unknown;currency?:unknown;client_reference?:unknown}|null;
       if (!response.ok) return {ok:false,configured:true,error:typeof data?.message==="string" ? data.message.slice(0,300) : "Wave checkout could not be started."};
-      if (typeof data?.id!=="string" || !data.id.trim() || data.id.length>255 || typeof data.wave_launch_url!=="string") return {ok:false,configured:true,error:"Wave did not return a complete checkout."};
+      if (typeof data?.id!=="string" || !data.id.trim() || data.id!==data.id.trim() || data.id.length>255 || typeof data.wave_launch_url!=="string") return {ok:false,configured:true,error:"Wave did not return a complete checkout."};
+      if (typeof data.amount!=="string" || !/^[1-9]\d*$/.test(data.amount) || Number(data.amount)!==quote.amountMinor || data.currency!==quote.currency || data.client_reference!==input.reference) return {ok:false,configured:true,error:"Wave returned a different checkout quote. No payment link was accepted."};
       let launch:URL;
       try { launch=new URL(data.wave_launch_url); } catch { return {ok:false,configured:true,error:"Wave returned an invalid checkout link."}; }
       if (launch.protocol!=="https:" || launch.username || launch.password) return {ok:false,configured:true,error:"Wave returned an insecure checkout link."};

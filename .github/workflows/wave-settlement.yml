@@ -55,7 +55,7 @@ jobs:
           import assert from 'node:assert/strict';
           import {readFileSync,writeFileSync} from 'node:fs';
           import pg from 'pg';
-          for (const [file,count] of [['wave-unit.json',58],['wave-sql.json',13],...[1,2,3].map(i=>['wave-native-'+i+'.json',2])]) {
+          for (const [file,count] of [['wave-unit.json',64],['wave-sql.json',13],...[1,2,3].map(i=>['wave-native-'+i+'.json',2])]) {
             const report=JSON.parse(readFileSync(file,'utf8'));
             assert.equal(report.success,true);assert.equal(report.numTotalTests,count);assert.equal(report.numPassedTests,count);assert.equal(report.numPendingTests,0);assert.equal(report.numFailedTests,0);
           }
@@ -63,7 +63,7 @@ jobs:
           try {
             const version=(await db.query('show server_version')).rows[0].server_version;assert.match(version,/^17\.6(?:\D|$)/);
             assert.deepEqual((await db.query("select datname from pg_database where starts_with(datname,'_kebutest_payments_')")).rows,[]);
-            const summary={postgres:version,httpAndAdapterPassed:58,sqlPassed:13,nativeUniqueCases:2,mandatoryIterations:3,nativePassed:6,skipped:0,databasesCleaned:true};
+            const summary={postgres:version,httpAndAdapterPassed:64,sqlPassed:13,nativeUniqueCases:2,mandatoryIterations:3,nativePassed:6,skipped:0,databasesCleaned:true};
             writeFileSync('wave-summary.json',JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));
           } finally {await db.end();}
           JS

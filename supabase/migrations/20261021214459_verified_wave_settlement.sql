@@ -43,7 +43,7 @@ begin
    or v_receipt.provider_reference is distinct from p_reference or p_source_currency is distinct from 'USD'
    or v_receipt.amount is distinct from p_source_amount_minor then raise exception 'Wave purchase source mismatch'; end if;
  elsif p_kind='shop_order' then
-  select id,payment_status as status,amount_xof::bigint as amount into v_receipt from public.shop_orders where id=p_purchase_id for update;
+  select id,payment_status as status,amount_xof as amount into v_receipt from public.shop_orders where id=p_purchase_id for update;
   if not found or v_receipt.status not in ('unpaid','awaiting_payment','failed')
    or p_source_currency is distinct from 'XOF' or p_source_amount_minor is null or p_source_amount_minor not between 1 and 2147483647
    or (v_receipt.amount is not null and v_receipt.amount is distinct from p_source_amount_minor)
@@ -94,7 +94,7 @@ begin
   select id,status,provider,provider_reference,provider_payment_id,marketplace_id,amount_usd_cents::bigint as amount into v_receipt
    from public.aesthetic_library where id=v_quote.purchase_id for update;
  else
-  select id,payment_status as status,payment_provider as provider,provider_reference,provider_payment_id,project_id,amount_xof::bigint as amount into v_receipt
+  select id,payment_status as status,payment_provider as provider,provider_reference,provider_payment_id,project_id,amount_xof as amount into v_receipt
    from public.shop_orders where id=v_quote.purchase_id for update;
  end if;
  if not found or v_receipt.provider is distinct from 'wave' or v_receipt.provider_reference is distinct from p_reference

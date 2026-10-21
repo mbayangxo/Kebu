@@ -98,7 +98,7 @@ describe.skipIf(!root)("verified Wave settlement (actual SQL)",()=>{
   const db=await openWaveDatabase();try{
    const p=await seedWavePurchase(db,"aesthetic_purchase"),secret="fixture-only-wave-webhook-secret";
    vi.stubEnv("WAVE_API_KEY","fixture-only-wave-api-key");vi.stubEnv("WAVE_API_BASE_URL","https://wave.fixture");vi.stubEnv("WAVE_XOF_PER_USD","600");vi.stubEnv("WAVE_WEBHOOK_SECRET",secret);
-   const fetchFixture=vi.fn().mockResolvedValue(Response.json({id:p.checkoutId,wave_launch_url:"https://pay.wave.com/c/fixture"}));vi.stubGlobal("fetch",fetchFixture);
+   const fetchFixture=vi.fn().mockResolvedValue(Response.json({id:p.checkoutId,wave_launch_url:"https://pay.wave.com/c/fixture",amount:"3000",currency:"XOF",client_reference:p.reference}));vi.stubGlobal("fetch",fetchFixture);
    wire.admin={rpc:async(name,args)=>{
     try{
      await role(db,"service_role");
