@@ -1,0 +1,31 @@
+name: Template source boundary
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["work/codex-template-source-oct21"]
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-isolated-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+      - name: Discover CLI and create isolated migration file
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes supabase@2.121.0 --version
+          npx --yes supabase@2.121.0 --help
+          npx --yes supabase@2.121.0 migration --help
+          npx --yes supabase@2.121.0 migration new --help
+          npx --yes supabase@2.121.0 migration new marketplace_template_source_boundary
+          find supabase/migrations -maxdepth 1 -name '*_marketplace_template_source_boundary.sql' -print
