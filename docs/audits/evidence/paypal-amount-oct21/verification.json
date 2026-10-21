@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-21",
+  "sourceCommit": "348e80ddef1f71c9655a81ecd07710d28ef6d675",
+  "before": {
+    "cases": 22,
+    "passed": 2,
+    "failed": 20,
+    "actualAdapterCode": true,
+    "providerFetch": "isolated fixture only"
+  },
+  "after": {
+    "paypalCasesPassed": 26,
+    "focusedCasesPassed": 48
+  },
+  "fullLocalCi": {
+    "exitCode": 0,
+    "passed": 6416,
+    "explicitSkips": 298,
+    "passedFiles": 401,
+    "skippedFiles": 43,
+    "lintErrors": 0,
+    "existingWarnings": 349,
+    "build": "passed"
+  },
+  "remote": [
+    {
+      "name": "CI",
+      "run": 39565034205,
+      "conclusion": "success"
+    },
+    {
+      "name": "Preview E2E",
+      "run": 39565343902,
+      "conclusion": "success"
+    }
+  ],
+  "providerConfiguration": {
+    "access": "metadata only, decrypt=false; no decrypted values",
+    "returnedProviderEntries": [
+      {
+        "key": "JOKO_API_BASE_URL",
+        "target": [
+          "production"
+        ],
+        "gitBranch": null,
+        "type": "sensitive"
+      },
+      {
+        "key": "JOKO_WEBHOOK_SECRET",
+        "target": [
+          "production"
+        ],
+        "gitBranch": null,
+        "type": "sensitive"
+      },
+      {
+        "key": "JOKO_API_SECRET",
+        "target": [
+          "production"
+        ],
+        "gitBranch": null,
+        "type": "sensitive"
+      }
+    ],
+    "credentialValidityTested": false,
+    "merchantAgreementVerified": false
+  },
+  "remaining": [
+    "provider-confirmed amount/currency/payment binding at completion",
+    "settlement snapshot and atomic idempotent completion",
+    "paid source delivery protection",
+    "Orange partner callback contract",
+    "hosted merchant sandbox acceptance",
+    "production schema compatibility and release"
+  ],
+  "realPayments": 0,
+  "productionChanged": false
+}

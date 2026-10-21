@@ -1,5 +1,12 @@
 # Kebu — Implementation Status
 
+## October 21 — strict hosted acceptance and PostgreSQL teardown repair
+
+Verified runtime **e3eae02f43c62c034992c36bc24cde81f7533a80** is integrated on the authoritative recovery branch, preserving PayPal348e80dd and Claude68b62904. Final local CI: **6,438 passes/299 explicit skips**, zero lint errors/347 existing warnings, TypeScript and finalized build pass. Exact remote CI, Builder **74/74** (zero skips/flaky), platform SQL/browser, native PostgreSQL **30/30 across three mandatory runs** and hosted public smoke all pass. Native teardown now drains real sessions and uses normal DROP; a held-session regression proves it refuses to kill active backends. The initial b997 native gate failed with unhandled57P01 despite passing assertions; this root fix is verified rather than a rerun-only claim.
+
+Authenticated hosted readiness no longer accepts login pages; real Supabase cookie transport, disposable native project preflight, exact-source/origin CI binding and a separate strict26-case protected job are implemented. **Those26 hosted cases remain unexecuted**: existing QA access is explicitly denied and a separate organization-selection question was unanswered. No paid setup, production schema/DNS change or production promotion. Production migration prerequisites remain open. See `audits/KEBU_HOSTED_AUTH_GATE_2026-10-21.md` and `testing/HOSTED_BUILDER_ACCEPTANCE.md`. Next implementation: independent Builder frame sizing/fit; full Kebu, May, Studio,3J and99-group completion is not established.
+
+
 ## October 21 — hosted release inventory and native PostgreSQL verification
 
 Read this before the historical September summary below. Mail is **IN PROGRESS**, not absent: personal/business mail, provider delivery/webhooks, threading, attachments and forwarding have source and local evidence. Production catalogs confirm mailboxes/messages/threads/attachments with RLS; platform `kebu.africa` remains pending verification with sending disabled. Search has a real internal sites/opportunities index and `search_documents` in production; the full crawl/index/rank economic discovery engine remains incomplete.
