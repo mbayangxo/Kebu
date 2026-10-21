@@ -28,6 +28,12 @@ export const Z_LAYERS = {
   sheetBackdrop: 100,
   /** The sheet panel itself. */
   sheetPanel: 101,
+  /** Public artist navigation inside a canvas scene. */
+  siteNavigation: 120,
+  /** Selection tools sit above scene navigation without raising the artwork itself. */
+  canvasSelection: 140,
+  /** Canvas context actions escape transformed artwork; app modals remain above them. */
+  canvasContextMenu: 145,
   /** Fullscreen overlay panels (e.g. mobile editor full-screen). */
   fullscreenBackdrop: 150,
   fullscreenPanel: 151,

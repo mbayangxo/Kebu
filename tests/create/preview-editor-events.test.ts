@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { parsePreviewEditorEvent } from "../../lib/create/preview-editor-events";
 
 describe("embedded Builder editor commands", () => {
+  it("preserves bounded gesture intent without treating it as document data", () => {
+    const selection = { sectionId: "s", elementId: "cutoutAccent", kind: "image", label: "Photo", inspect: false };
+    expect(parsePreviewEditorEvent({ type: "kebu:element:select", selection })).toEqual({ type: "kebu:element:select", selection });
+    expect(parsePreviewEditorEvent({ type: "kebu:element:select", selection: { ...selection, inspect: "false" } })).toBeNull();
+  });
   it("retains the selected section, element and kind without extra fields", () => {
     expect(parsePreviewEditorEvent({ type: "kebu:element:select", selection: { sectionId: "section", elementId: "cutoutAccent", kind: "image", label: "Photo", unexpected: true } })).toEqual({ type: "kebu:element:select", selection: { sectionId: "section", elementId: "cutoutAccent", kind: "image", label: "Photo" } });
   });
