@@ -27,6 +27,35 @@ async function state(request: APIRequestContext) { return (await request.get("ht
 async function reset(request: APIRequestContext) { await request.post("http://127.0.0.1:38441/__qa/reset"); }
 function trackErrors(page: Page) { const errors: string[] = []; page.on("pageerror", (e) => errors.push(e.message)); return errors; }
 
+for (const failure of ["network", "invalid-json"] as const) {
+  test(`failed listing creation (${failure}) preserves the draft and retries into actual SQL`, async ({ page, request }) => {
+    await reset(request); await session(page.context(), founder);
+    const errors = trackErrors(page);
+    await page.goto(`/business/${businessId}/liguey`);
+    await page.getByPlaceholder("Title", { exact: true }).fill("Community translator retry");
+    let first = true;
+    await page.route(`**/api/liguey/employers/${businessId}/listings`, async route => {
+      if (route.request().method() === "POST" && first) {
+        first = false;
+        if (failure === "network") await route.abort("failed");
+        else await route.fulfill({ status: 502, contentType: "text/html", body: "Upstream unavailable" });
+        return;
+      }
+      await route.continue();
+    });
+    await page.getByRole("button", { name: "Create draft listing", exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Could not create listing. Your draft is kept. Try again when connected." })).toBeVisible();
+    await expect(page.getByPlaceholder("Title", { exact: true })).toHaveValue("Community translator retry");
+    expect((await state(request)).listings).toHaveLength(0);
+    await page.getByRole("button", { name: "Create draft listing", exact: true }).click();
+    await expect(page.getByText("Community translator retry", { exact: true })).toBeVisible();
+    const saved = await state(request);
+    expect(saved.listings).toHaveLength(1);
+    expect(saved.listings[0]).toMatchObject({ title: "Community translator retry", status: "draft", created_by: founder });
+    expect(errors).toEqual([]);
+  });
+}
+
 test("a worker can create and edit their profile, with real SQL persistence and reload", async ({ page, request }) => {
   await reset(request); await session(page.context(), applicant);
   const errors = trackErrors(page);
