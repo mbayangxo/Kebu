@@ -30,7 +30,7 @@ export function BuilderElementInspector({
   projectId: string;
   device: "desktop" | "tablet" | "mobile";
   responsiveOverrideActive: boolean;
-  onResetResponsive: (keys: readonly string[]) => void;
+  onResetResponsive: () => void;
   onAskAi: () => void;
 }) {
   const storageKey = builderLayerStorageKey(selection.elementId);
@@ -69,47 +69,6 @@ export function BuilderElementInspector({
       },
     });
 
-  const responsiveKeys =
-    selection.elementId === "titleLogo"
-      ? [
-          "title",
-          "titleAsText",
-          "titleTextFontFamily",
-          "titleTextFontSize",
-          "titleTextFontWeight",
-          "titleTextLetterSpacing",
-          "titleTextLineHeight",
-          "titleTextColor",
-          "layerScales",
-          "layerWidthScale",
-          "layerHeightScale",
-          "layerCrop",
-          "layerZIndex",
-          "layerOpacity",
-          "layerRotation",
-          "layerPositions",
-          "lockedLayers",
-        ]
-      : selection.elementId === "heroCanvas"
-        ? ["sectionMinHeightPx"]
-        : selection.elementId === "siteFooter"
-          ? ["embeddedFooterPaddingTop", "embeddedFooterPaddingBottom"]
-          : selection.kind === "background"
-            ? ["backgroundLayer", "backgroundHidden"]
-            : [
-                "extraCutouts",
-                "layerScales",
-                "layerWidthScale",
-                "layerHeightScale",
-                "layerCrop",
-                "layerZIndex",
-                "layerOpacity",
-                "layerRotation",
-                "layerPositions",
-                "hiddenLayers",
-                "lockedLayers",
-              ];
-
   const patchScale = (next: number) =>
     onPatch(patchBuilderLayerPresentation(sectionProps, storageKey, { scale: next }));
 
@@ -134,7 +93,7 @@ export function BuilderElementInspector({
           <button
             type="button"
             className="mt-2 rounded-md px-2 py-1 text-[10px] font-semibold text-[#C95000] hover:bg-[#FFF2E8]"
-            onClick={() => onResetResponsive(responsiveKeys)}
+            onClick={onResetResponsive}
           >
             Reset responsive changes
           </button>

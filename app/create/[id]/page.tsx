@@ -69,11 +69,8 @@ import {
   type KebuDragAsset,
 } from "@/lib/create/builder-media-drop";
 import { BUILDER_DEVICE_FRAME } from "@/lib/create/builder-device";
-import {
-  applyDeviceAwarePatch,
-  clearDeviceOverrideKeys,
-  hasDeviceOverrideKeys,
-} from "@/lib/create/device-overrides";
+import { applyDeviceAwarePatch } from "@/lib/create/device-overrides";
+import { hasBuilderElementDeviceOverride, resetBuilderElementDeviceOverride } from "@/lib/create/builder-element-responsive";
 import { orderSectionsForDevice } from "@/lib/create/device-composition";
 import { normalizeLegacyEditorialHeroProps } from "@/lib/create/editorial-hero-section";
 import { projectUsesMaylecorRussianLayout } from "@/lib/create/maylecor-russian-hero";
@@ -2632,53 +2629,13 @@ function ProjectEditor({ projectId }: { projectId: string }) {
                       )}
                       projectId={projectId}
                       device={device}
-                      responsiveOverrideActive={hasDeviceOverrideKeys(
-                        section.props as Record<string, unknown>,
-                        device,
-                        selectedElement.elementId === "titleLogo"
-                          ? [
-                              "title",
-                              "titleAsText",
-                              "titleTextFontFamily",
-                              "titleTextFontSize",
-                              "titleTextFontWeight",
-                              "titleTextLetterSpacing",
-                              "titleTextLineHeight",
-                              "titleTextColor",
-                              "layerScales",
-                              "layerZIndex",
-                              "layerOpacity",
-                              "layerRotation",
-                              "layerPositions",
-                              "lockedLayers",
-                            ]
-                          : selectedElement.elementId === "heroCanvas"
-                            ? ["sectionMinHeightPx"]
-                            : selectedElement.elementId === "siteFooter"
-                              ? ["embeddedFooterPaddingTop", "embeddedFooterPaddingBottom"]
-                              : selectedElement.kind === "background"
-                                ? ["backgroundLayer", "backgroundHidden"]
-                                : [
-                                    "extraCutouts",
-                                    "layerScales",
-                                    "layerZIndex",
-                                    "layerOpacity",
-                                    "layerRotation",
-                                    "layerPositions",
-                                    "hiddenLayers",
-                                    "lockedLayers",
-                                  ],
+                      responsiveOverrideActive={hasBuilderElementDeviceOverride(
+                        section.props as Record<string, unknown>, device, selectedElement,
                       )}
-                      onResetResponsive={(keys) =>
-                        updateProps(
-                          section.id,
-                          clearDeviceOverrideKeys(
-                            section.props as Record<string, unknown>,
-                            device,
-                            keys,
-                          ),
-                        )
-                      }
+                      onResetResponsive={() => updateProps(
+                        section.id,
+                        resetBuilderElementDeviceOverride(section.props as Record<string, unknown>, device, selectedElement),
+                      )}
                       onAskAi={() => {
                         setImproveInstruction(`Update only ${selectedElement.label}. `);
                         setImproveMode("free");
