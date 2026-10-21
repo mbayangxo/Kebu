@@ -60,9 +60,11 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
         body: JSON.stringify({ title, description, requirements, employmentType, locationType, location, payLabel }),
       });
       const body = await res.json();
-      if (!res.ok) { setError(body.error ?? "Could not create listing."); return; }
+      if (!res.ok) { setError(body.error ?? t("employer_create_error")); return; }
       setListings((prev) => [body.listing, ...prev]);
       setTitle(""); setDescription(""); setRequirements(""); setLocation(""); setPayLabel("");
+    } catch {
+      setError(t("employer_create_error"));
     } finally {
       setCreating(false);
     }
@@ -169,7 +171,7 @@ export function LigueyEmployerPanel({ businessId, initialListings }: { businessI
         <LanguageBar variant="builder" />
       </header>
 
-      {error ? <div className="mt-4 rounded-[10px] border px-3 py-2 text-[10px]" style={{ borderColor: "#FFB3B3", color: "#B00020", background: "#FFF3F3" }}>{error}</div> : null}
+      {error ? <div role="alert" className="mt-4 rounded-[10px] border px-3 py-2 text-[10px]" style={{ borderColor: "#FFB3B3", color: "#B00020", background: "#FFF3F3" }}>{error}</div> : null}
 
       <section className="mt-6 rounded-[14px] border p-4" style={fieldStyle}>
         <p className="text-[9px] font-semibold uppercase tracking-[.1em]" style={{ color: KEBU.muted }}>{t("employer_new_listing")}</p>

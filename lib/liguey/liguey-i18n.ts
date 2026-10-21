@@ -64,7 +64,7 @@ export type LigueyKey =
   | "applications_title" | "applications_empty" | "applications_withdraw"
 
   | "employer_title" | "employer_new_listing" | "employer_field_title" | "employer_field_location"
-  | "employer_field_description" | "employer_field_requirements" | "employer_field_pay" | "employer_create" | "employer_creating"
+  | "employer_field_description" | "employer_field_requirements" | "employer_field_pay" | "employer_create" | "employer_creating" | "employer_create_error"
   | "employer_publish" | "employer_close" | "employer_archive" | "employer_view_applicants" | "employer_hide_applicants"
   | "employer_no_applicants" | "employer_no_cover_note" | "employer_mark_reviewed" | "employer_accept" | "employer_decline"
   | "employer_no_listings" | "employer_profile_skills" | "employer_profile_languages" | "employer_no_profile" | "employer_profile_evidence"
@@ -175,6 +175,7 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_photo_uploading: "Uploading…",
     employer_create: "Create draft listing",
     employer_creating: "Creating…",
+    employer_create_error: "Could not create listing. Your draft is kept. Try again when connected.",
     employer_publish: "Publish",
     employer_close: "Close",
     employer_archive: "Archive",
@@ -309,6 +310,7 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_photo_uploading: "Envoi…",
     employer_create: "Créer un brouillon d'offre",
     employer_creating: "Création…",
+    employer_create_error: "Impossible de créer l’offre. Votre brouillon est conservé. Réessayez une fois connecté.",
     employer_publish: "Publier",
     employer_close: "Clôturer",
     employer_archive: "Archiver",
@@ -443,6 +445,7 @@ export const LIGUEY_STRINGS: Record<LigueyLang, Record<LigueyKey, string>> = {
     employer_photo_uploading: "Di yónnee…",
     employer_create: "Sos liggéey bu bind",
     employer_creating: "Di sos…",
+    employer_create_error: "Mënuñu sos liggéey bi. Sa brouillon des na. Jéemaat bu internet dellusee.",
     employer_publish: "Publier",
     employer_close: "Tëj",
     employer_archive: "Denc",
