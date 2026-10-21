@@ -1060,6 +1060,7 @@ const LegacySectionView = memo(function LegacySectionView({
               <LegallyBlondeHeroLayout
                 key={key}
                 props={resolved as LegallyBlondeHeroProps}
+                responsiveSocialProps={!editor ? raw : undefined}
                 contained={mode === "preview"}
                 fillCanvas={fillViewport}
                 sectionId={sectionId}

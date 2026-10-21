@@ -240,6 +240,12 @@ export const DEVICE_OVERRIDE_KEYS: Partial<Record<string, readonly string[]>> = 
   footer: ["text", "links"],
   /** Freeform May / cutout heroes — phone can rearrange layers independently. */
   "legally-blonde-hero": [
+    "socialLinks",
+    "socialRailVisible",
+    "socialRailBg",
+    "socialRailLeftPct",
+    "socialRailTopPct",
+    "socialRailIconSize",
     "extraCutouts",
     "layerScales",
     "layerWidthScale",

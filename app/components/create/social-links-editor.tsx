@@ -1,5 +1,7 @@
 "use client";
 
+import { SocialLinkIcon } from "./social-link-icon";
+import { socialDestination, stockSocialPlatform } from "@/lib/create/social-links";
 import { useState } from "react";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 
@@ -107,21 +109,22 @@ export function SocialLinksEditor({
 
       <button
         type="button"
-        className="w-full rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
+        disabled={links.length >= 12}
+        className="disabled:opacity-40 w-full rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider"
         style={{ border: "1px solid #DDE0F0" }}
         onClick={() =>
           onChange([
             ...links,
-            { label: "Instagram", href: "https://instagram.com/", iconUrl: links[0]?.iconUrl ?? "" },
+            { label: "Instagram", href: "", iconUrl: "" },
           ])
         }
       >
-        + Add social link
+        {links.length >= 12 ? "12 links maximum" : "+ Add social link"}
       </button>
 
       {links.map((link, idx) => (
         <div
-          key={`${link.label}-${idx}`}
+          key={idx}
           draggable
           onDragStart={() => setDraggedIndex(idx)}
           onDragOver={(event) => event.preventDefault()}
@@ -148,6 +151,7 @@ export function SocialLinksEditor({
             className="w-full text-xs rounded px-2 py-1"
             style={{ border: "1px solid #DDE0F0" }}
             value={link.label}
+            aria-label={`Social link ${idx + 1} label`}
             placeholder="Label (Spotify, Instagram…)"
             onChange={(e) => {
               const next = [...links];
@@ -159,6 +163,9 @@ export function SocialLinksEditor({
             className="w-full text-xs rounded px-2 py-1"
             style={{ border: "1px solid #DDE0F0" }}
             value={link.href}
+            inputMode="url" autoCapitalize="none" spellCheck={false}
+            aria-label={`Social link ${idx + 1} URL`}
+            aria-invalid={Boolean(link.href.trim() && !socialDestination(link.href))}
             placeholder="https://…"
             onChange={(e) => {
               const next = [...links];
@@ -166,10 +173,16 @@ export function SocialLinksEditor({
               onChange(next);
             }}
           />
+          <p aria-live="polite" className="text-[10px] text-black/60">{!link.href.trim() ? "Link not set — hidden on your published site." : !socialDestination(link.href) ? "Enter a complete http:// or https:// web address." : "Ready to publish."}</p>
+          <div className="flex gap-2">
+            <button type="button" aria-label={`Move social link ${idx + 1} up`} disabled={idx === 0} onClick={() => reorder(idx, idx - 1)} className="rounded border px-2 py-1 text-xs disabled:opacity-30">Move up</button>
+            <button type="button" aria-label={`Move social link ${idx + 1} down`} disabled={idx === links.length - 1} onClick={() => reorder(idx, idx + 1)} className="rounded border px-2 py-1 text-xs disabled:opacity-30">Move down</button>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-black/60"><SocialLinkIcon link={link} size={24} />Icon preview</div>
           <SectionPhotoField
             projectId={projectId}
-            label="Icon image"
-            value={link.iconUrl}
+            label="Custom icon (optional)"
+            value={stockSocialPlatform(link.iconUrl) ? "" : link.iconUrl}
             onChange={(url) => {
               const next = [...links];
               next[idx] = { ...next[idx]!, iconUrl: url };

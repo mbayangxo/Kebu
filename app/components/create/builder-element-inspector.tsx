@@ -1,5 +1,7 @@
 "use client";
 
+import { SocialLinksEditor } from "./social-links-editor";
+import type { SocialLink } from "@/lib/create/social-links";
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 import { SectionPhotoField } from "@/app/components/create/section-photo-field";
 import { PanelSection } from "@/app/components/create/builder-panel-section";
@@ -33,6 +35,17 @@ export function BuilderElementInspector({
   onResetResponsive: () => void;
   onAskAi: () => void;
 }) {
+  if (selection.elementId === "socialRail") return <div className="space-y-3 px-3 py-2">
+    <GalaxyInspectorCard eyebrow="Selected social rail" title="Social links" meta={<GalaxyBadge>{device}</GalaxyBadge>}>
+      <p className="text-xs text-black/60">Only configured web links appear on your published site.</p>
+      {device !== "desktop" && responsiveOverrideActive ? <button type="button" className="mt-2 text-xs font-semibold text-[#C95000]" onClick={onResetResponsive}>Reset responsive changes</button> : null}
+    </GalaxyInspectorCard>
+    <SocialLinksEditor projectId={projectId}
+      links={Array.isArray(sectionProps.socialLinks) ? sectionProps.socialLinks as SocialLink[] : []}
+      onChange={socialLinks => onPatch({ socialLinks })}
+      rail={{ visible: sectionProps.socialRailVisible !== false, bgColor: String(sectionProps.socialRailBg ?? "rgba(0,0,0,0.85)"), leftPct: Number(sectionProps.socialRailLeftPct ?? 0), topPct: Number(sectionProps.socialRailTopPct ?? 12), iconSize: Number(sectionProps.socialRailIconSize ?? 40) }}
+      onRailChange={onPatch} />
+  </div>;
   const storageKey = builderLayerStorageKey(selection.elementId);
   const presentation = readBuilderLayerPresentation(sectionProps, storageKey);
   const { scale, widthScale, heightScale, crop, zIndex, opacity, rotation, locked, hidden } = presentation;

@@ -1,5 +1,7 @@
 "use client";
 
+import { SocialLinkIcon } from "./social-link-icon";
+import { socialDestination } from "@/lib/create/social-links";
 import { MAYLECOR_SOCIAL_DEFAULTS } from "@/lib/create/maylecor-defaults";
 
 export type MaylecorSocialLink = {
@@ -27,7 +29,7 @@ export function MaylecorSocialBar({
 }) {
   const items = (
     links == null ? MAYLECOR_SOCIAL_DEFAULTS.map((s) => ({ ...s })) : links
-  ).filter((l) => String(l.href ?? "").trim() && String(l.href) !== "#");
+  ).flatMap(link => { const href = socialDestination(String(link.href ?? "")); return href ? [{ ...link, href }] : []; });
 
   if (!items.length) return null;
 
@@ -97,15 +99,7 @@ function SocialIcon({
       title={link.label}
       style={{ color: accentColor }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={link.iconUrl}
-        alt=""
-        width={size}
-        height={size}
-        className="rounded-full object-contain opacity-90 transition-opacity group-hover:opacity-100"
-        style={{ width: size, height: size }}
-      />
+      <SocialLinkIcon link={link} size={size} />
       {showLabel ? (
         <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/70 group-hover:text-white">
           {link.label}
