@@ -1,7 +1,7 @@
 name: Verified Wave settlement
 on:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-wave-verification-oct21"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-wave-verification-oct21", "work/codex-template-source-oct21"]
     paths: ["lib/payments/**", "lib/shop/**", "lib/studio/creative-assets-marketplace.ts", "lib/create/aesthetics-marketplace.ts", "app/api/webhooks/wave/**", "supabase/migrations/**", "tests/payments/**", "tests/creative-core/native-postgres-cleanup.ts", ".github/workflows/wave-settlement.yml"]
   pull_request:
     branches: [main]

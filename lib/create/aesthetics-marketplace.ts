@@ -53,7 +53,6 @@ export type MarketplaceAestheticRow = {
   description: string | null;
   category: string | null;
   price_cents: number;
-  definition: WebsiteDefinition;
   preview_url: string | null;
   status: string;
   sales_count: number;
@@ -115,7 +114,7 @@ export async function listPublishedMarketplaceAesthetics(
   const { data, error } = await supabase
     .from("marketplace_templates")
     .select(
-      "id, developer_id, slug, name, description, category, price_cents, definition, preview_url, status, sales_count, created_at, developer_profiles(display_name)",
+      "id, developer_id, slug, name, description, category, price_cents, preview_url, status, sales_count, created_at, developer_profiles(display_name)",
     )
     .eq("status", "published")
     .order("updated_at", { ascending: false })
@@ -129,7 +128,7 @@ export async function listPublishedMarketplaceAesthetics(
     const retry = await supabase
       .from("marketplace_templates")
       .select(
-        "id, developer_id, slug, name, description, category, price_cents, definition, preview_url, status, sales_count, created_at",
+        "id, developer_id, slug, name, description, category, price_cents, preview_url, status, sales_count, created_at",
       )
       .eq("status", "published")
       .order("updated_at", { ascending: false })
@@ -140,10 +139,7 @@ export async function listPublishedMarketplaceAesthetics(
     if (retry.error) return { ok: false, status: 500, error: retry.error.message };
     return {
       ok: true,
-      items: ((retry.data ?? []) as MarketplaceAestheticRow[]).map((row) => ({
-        ...row,
-        definition: row.definition,
-      })),
+      items: (retry.data ?? []) as MarketplaceAestheticRow[],
     };
   }
 
@@ -156,7 +152,6 @@ export async function listPublishedMarketplaceAesthetics(
     return {
       ...r,
       developer_name: name ?? undefined,
-      definition: r.definition,
     };
   });
   return { ok: true, items };
@@ -183,7 +178,7 @@ export async function listDeveloperMarketplaceAesthetics(
   const { data, error } = await supabase
     .from("marketplace_templates")
     .select(
-      "id, developer_id, slug, name, description, category, price_cents, definition, preview_url, status, sales_count, created_at",
+      "id, developer_id, slug, name, description, category, price_cents, preview_url, status, sales_count, created_at",
     )
     .eq("developer_id", profile.id)
     .order("updated_at", { ascending: false });
@@ -253,7 +248,7 @@ export async function uploadMarketplaceAesthetic(
       status,
     })
     .select(
-      "id, developer_id, slug, name, description, category, price_cents, definition, preview_url, status, sales_count, created_at",
+      "id, developer_id, slug, name, description, category, price_cents, preview_url, status, sales_count, created_at",
     )
     .single();
 
@@ -450,7 +445,9 @@ export async function acquireMarketplaceAesthetic(
   const existing = ownedLib.items.find((i) => i.marketplace_id === marketplaceId);
   if (existing) return { ok: true, alreadyOwned: true, item: existing };
 
-  const { data: row, error } = await supabase
+  // Only trusted server authority may read purchasable source. The authenticated
+  // store client has metadata-only column grants, even for published listings.
+  const { data: row, error } = await checkoutAuthority
     .from("marketplace_templates")
     .select(
       "id, developer_id, slug, name, description, category, price_cents, definition, status",

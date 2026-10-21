@@ -3,15 +3,34 @@ name: Template source boundary
 on:
   workflow_dispatch:
   push:
-    branches: ["work/codex-template-source-oct21"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-template-source-oct21"]
+    paths: ["app/**", "lib/**", "supabase/migrations/**", "tests/**", "scripts/*template-source*", "package*.json", ".github/workflows/template-source-boundary.yml"]
 
 permissions:
   contents: read
 
 jobs:
-  prepare-isolated-migration:
+  isolated-template-source:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: kebu_disposable_ci_only
+          POSTGRES_DB: kebu_template_source_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KEBU_TEMPLATE_SOURCE_POSTGRES_URL: postgresql://postgres:kebu_disposable_ci_only@127.0.0.1:5432/kebu_template_source_ci
+      KEBU_TEMPLATE_SOURCE_REST_ISOLATED: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_OPTIONS: "--max-old-space-size=6144"
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -19,13 +38,75 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
-      - name: Discover CLI and create isolated migration file
+          cache: npm
+      - name: Install repository and isolated SQL runtime
+        run: |
+          npm ci
+          npm install --prefix "$RUNNER_TEMP/kebu-source-runtime" --ignore-scripts --no-save --package-lock=false @electric-sql/pglite@0.5.10
+          printf 'KEBU_LOCAL_PGLITE_ROOT=%s\n' "$RUNNER_TEMP/kebu-source-runtime/node_modules/@electric-sql/pglite" >> "$GITHUB_ENV"
+      - name: Reproduce the original canonical SQL access bypass
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes supabase@2.121.0 --version
-          npx --yes supabase@2.121.0 --help
-          npx --yes supabase@2.121.0 migration --help
-          npx --yes supabase@2.121.0 migration new --help
-          npx --yes supabase@2.121.0 migration new marketplace_template_source_boundary
-          find supabase/migrations -maxdepth 1 -name '*_marketplace_template_source_boundary.sql' -print
+          set +e
+          KEBU_TEMPLATE_SOURCE_BEFORE=1 npx vitest run tests/create/marketplace-template-source.sql.local.test.ts --maxWorkers=1 --reporter=default --reporter=json --outputFile=template-source-before.json
+          result=$?
+          set -e
+          test "$result" -ne 0
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+          const r=JSON.parse(readFileSync('template-source-before.json','utf8'));
+          assert.equal(r.numTotalTests,13);assert.equal(r.numFailedTests,7);assert.equal(r.numPassedTests,6);assert.equal(r.numPendingTests,0);
+          console.log(JSON.stringify({expectedRegression:true,failed:7,passed:6,skipped:0}));
+          NODE
+      - name: Verify repaired canonical SQL permissions
+        run: npx vitest run tests/create/marketplace-template-source.sql.local.test.ts --maxWorkers=1 --reporter=default --reporter=json --outputFile=template-source-after.json
+      - name: Prepare actual PostgreSQL and Data API roles
+        run: node --experimental-strip-types scripts/prepare-template-source-rest-fixture.mjs
+      - name: Start isolated real PostgREST
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull postgrest/postgrest:v16.5
+          docker image inspect postgrest/postgrest:v16.5 --format '{{index .RepoDigests 0}}'
+          docker run --rm -d --name kebu-template-source-rest --network host \
+            -e PGRST_DB_URI=postgresql://kebu_rest_authenticator:kebu_disposable_rest_only@127.0.0.1:5432/kebu_template_source_ci \
+            -e PGRST_DB_SCHEMAS=public -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET=kebu_disposable_rest_jwt_fixture_only_2026 \
+            -e PGRST_SERVER_PORT=33331 postgrest/postgrest:v16.5
+          node --input-type=module <<'NODE'
+          let ready=false;
+          for(let i=0;i<60;i++){try{const r=await fetch('http://127.0.0.1:33331/');if(r.ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,500));}
+          if(!ready)throw Error('Actual PostgREST did not become ready');
+          NODE
+      - name: Verify actual app acquisition through real Data API and PostgreSQL
+        env:
+          KEBU_TEMPLATE_SOURCE_REST_URL: http://127.0.0.1:33331
+        run: npx vitest run tests/create/marketplace-template-source.rest.local.test.ts --maxWorkers=1 --reporter=default --reporter=json --outputFile=template-source-rest.json
+      - name: Require exact after counts and zero skips
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';import assert from 'node:assert/strict';
+          for(const [file,count] of [['template-source-after.json',13],['template-source-rest.json',10]]){
+            const r=JSON.parse(readFileSync(file,'utf8'));assert.equal(r.success,true);assert.equal(r.numTotalTests,count);assert.equal(r.numPassedTests,count);assert.equal(r.numPendingTests,0);assert.equal(r.numFailedTests,0);
+          }
+          const summary={originalRegressionFailures:7,sqlPassed:13,actualRestPassed:10,skipped:0,postgres:'17.6',postgrest:'16.5',syntheticJwtFixture:true,realMerchantRequests:false,managedHostedAuthAccepted:false};
+          writeFileSync('template-source-summary.json',JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary));
+          NODE
+      - name: Stop REST and normally drop only the isolated fixture database
+        if: always()
+        shell: bash
+        run: |
+          docker logs kebu-template-source-rest > template-source-rest.log 2>&1 || true
+          docker stop kebu-template-source-rest || true
+          node scripts/cleanup-template-source-rest-fixture.mjs
+      - name: Retain sanitized fixture evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: template-source-boundary-evidence
+          retention-days: 3
+          if-no-files-found: warn
+          path: |
+            template-source-*.json
+            template-source-rest.log
