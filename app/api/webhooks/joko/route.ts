@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
 
   if (kind === "aesthetic_purchase" && reference) {
     const { markAestheticPurchasePaid } = await import("@/lib/create/aesthetics-marketplace");
-    const paid = await markAestheticPurchasePaid(supabase, reference, paymentId ?? null);
+    const paid = await markAestheticPurchasePaid(supabase, reference, paymentId ?? null, "joko");
     if (!paid.ok) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }
@@ -229,7 +229,7 @@ export async function POST(req: NextRequest) {
 
   if (kind === "creative_asset_purchase" && reference) {
     const { markCreativeAssetPurchasePaid } = await import("@/lib/studio/creative-assets-marketplace");
-    const paid = await markCreativeAssetPurchasePaid(supabase, reference, paymentId ?? null);
+    const paid = await markCreativeAssetPurchasePaid(supabase, reference, paymentId ?? null, "joko");
     if (!paid.ok) {
       return NextResponse.json({ error: paid.error }, { status: 404 });
     }

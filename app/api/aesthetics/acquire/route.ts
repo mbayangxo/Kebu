@@ -6,18 +6,23 @@ import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import {
   acquireCatalogAesthetic,
   acquireMarketplaceAesthetic,
+  KEBU_CHECKOUT_METHODS,
 } from "@/lib/create/aesthetics-marketplace";
 
 export const dynamic = "force-dynamic";
+
+const methodSchema = z.enum(KEBU_CHECKOUT_METHODS).optional();
 
 const bodySchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("catalog"),
     catalogSlug: z.string().trim().min(1).max(80),
+    method: methodSchema,
   }),
   z.object({
     kind: z.literal("marketplace"),
     marketplaceId: z.string().uuid(),
+    method: methodSchema,
   }),
 ]);
 
@@ -49,10 +54,11 @@ export async function POST(req: Request) {
   );
   const user = { id: auth.user.id, email: auth.user.email };
 
+  const method = parsed.data.method ?? "joko";
   const result =
     parsed.data.kind === "catalog"
-      ? await acquireCatalogAesthetic(auth.supabase, user, parsed.data.catalogSlug, appUrl)
-      : await acquireMarketplaceAesthetic(auth.supabase, user, parsed.data.marketplaceId, appUrl);
+      ? await acquireCatalogAesthetic(auth.supabase, user, parsed.data.catalogSlug, appUrl, method)
+      : await acquireMarketplaceAesthetic(auth.supabase, user, parsed.data.marketplaceId, appUrl, method);
 
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 

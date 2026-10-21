@@ -1,8 +1,9 @@
 /**
  * Real-SQL verification of the Creative Assets Marketplace buyer checkout
- * (20261021010000_creative_asset_buyer_checkout.sql) and the aesthetics/
+ * (20261021010000_creative_asset_buyer_checkout.sql), the aesthetics/
  * template marketplace's canonical porting + security fix
- * (20261021020000_aesthetics_marketplace_canonical.sql), both applied
+ * (20261021020000_aesthetics_marketplace_canonical.sql), and the
+ * multi-provider Kebu Checkout column rename (20261021030000), all applied
  * verbatim against PGlite — not reimplemented.
  *
  * Confirms, for both creative_asset_library and aesthetic_library: a buyer
@@ -49,6 +50,7 @@ async function openDb(): Promise<Db> {
   await db.exec(readFileSync(resolve("supabase/migrations/20261020040000_developer_payout_settings.sql"), "utf8"));
   await db.exec(readFileSync(resolve("supabase/migrations/20261021010000_creative_asset_buyer_checkout.sql"), "utf8"));
   await db.exec(readFileSync(resolve("supabase/migrations/20261021020000_aesthetics_marketplace_canonical.sql"), "utf8"));
+  await db.exec(readFileSync(resolve("supabase/migrations/20261021030000_kebu_checkout_multi_provider.sql"), "utf8"));
   return db;
 }
 
@@ -78,7 +80,7 @@ describe.skipIf(!root)("Creative Asset Marketplace buyer checkout (real SQL)", (
       const pending = await asUser(
         db,
         buyer,
-        "insert into creative_asset_library(owner_id, asset_id, status, amount_cents, joko_reference) values ($1,$2,'pending',2000,'kebu-ca-ref-1') returning id",
+        "insert into creative_asset_library(owner_id, asset_id, status, amount_cents, provider, provider_reference) values ($1,$2,'pending',2000,'joko','kebu-ca-ref-1') returning id",
         [buyer, assetId],
       );
       expect(pending.rows.length).toBe(1);
@@ -86,9 +88,9 @@ describe.skipIf(!root)("Creative Asset Marketplace buyer checkout (real SQL)", (
 
       // The checkout flow's own bookkeeping update (payment id) must still work —
       // it doesn't touch status, so it isn't blocked by the new restriction.
-      await asUser(db, buyer, "update creative_asset_library set joko_payment_id='pay_123' where id=$1", [libraryId]);
-      const afterBookkeeping = await asUser(db, buyer, "select status, joko_payment_id from creative_asset_library where id=$1", [libraryId]);
-      expect(afterBookkeeping.rows[0]).toMatchObject({ status: "pending", joko_payment_id: "pay_123" });
+      await asUser(db, buyer, "update creative_asset_library set provider_payment_id='pay_123' where id=$1", [libraryId]);
+      const afterBookkeeping = await asUser(db, buyer, "select status, provider_payment_id from creative_asset_library where id=$1", [libraryId]);
+      expect(afterBookkeeping.rows[0]).toMatchObject({ status: "pending", provider_payment_id: "pay_123" });
 
       // Reproduce the exploit this closes: a buyer tries to self-grant ownership
       // without ever paying, by updating their own pending row directly.
@@ -99,7 +101,7 @@ describe.skipIf(!root)("Creative Asset Marketplace buyer checkout (real SQL)", (
       expect(stillPending.rows[0]!.status).toBe("pending");
 
       // Only service_role (the Joko webhook) can actually mark it owned.
-      await asService(db, "update creative_asset_library set status='owned', joko_payment_id='pay_123' where id=$1", [libraryId]);
+      await asService(db, "update creative_asset_library set status='owned', provider_payment_id='pay_123' where id=$1", [libraryId]);
       const nowOwned = await asUser(db, buyer, "select status from creative_asset_library where id=$1", [libraryId]);
       expect(nowOwned.rows[0]!.status).toBe("owned");
 
@@ -138,7 +140,7 @@ describe.skipIf(!root)("Creative Asset Marketplace buyer checkout (real SQL)", (
       const pending = await asUser(
         db,
         buyer,
-        "insert into aesthetic_library(owner_id, kind, marketplace_id, name, definition, status, amount_usd_cents, joko_reference) values ($1,'marketplace',$2,'Paid theme','{}'::jsonb,'pending',500,'kebu-mp-ref-1') returning id",
+        "insert into aesthetic_library(owner_id, kind, marketplace_id, name, definition, status, amount_usd_cents, provider, provider_reference) values ($1,'marketplace',$2,'Paid theme','{}'::jsonb,'pending',500,'joko','kebu-mp-ref-1') returning id",
         [buyer, templateId],
       );
       const libraryId = pending.rows[0]!.id as string;
@@ -169,9 +171,38 @@ describe.skipIf(!root)("Creative Asset Marketplace buyer checkout (real SQL)", (
       const stillPending = await asUser(db, buyer, "select status from aesthetic_library where id=$1", [libraryId]);
       expect(stillPending.rows[0]!.status).toBe("pending");
 
-      await asService(db, "update aesthetic_library set status='owned', joko_payment_id='pay_456' where id=$1", [libraryId]);
+      await asService(db, "update aesthetic_library set status='owned', provider_payment_id='pay_456' where id=$1", [libraryId]);
       const nowOwned = await asUser(db, buyer, "select status from aesthetic_library where id=$1", [libraryId]);
       expect(nowOwned.rows[0]!.status).toBe("owned");
+    } finally {
+      await db.close();
+    }
+  });
+
+  it("records which real provider paid a marketplace purchase, not just Joko", { timeout: 20000 }, async () => {
+    const db = await openDb();
+    try {
+      await asUser(db, devA, "insert into developer_profiles(user_id, display_name, status, reviewed_at, payout_method, payout_phone, payout_account_name) values ($1,'Dev A','approved',now(),'wave','+221700000000','Dev A')", [devA]);
+      const devAId = (await asUser(db, devA, "select id from developer_profiles where user_id=$1", [devA])).rows[0]!.id as string;
+      const asset = await asUser(
+        db,
+        devA,
+        "insert into marketplace_creative_assets(developer_id, slug, kind, name, file_url, price_cents, status) values ($1,'wave-photo','photo','Wave photo','https://files.example/w.jpg',1500,'published') returning id",
+        [devAId],
+      );
+      const assetId = asset.rows[0]!.id as string;
+
+      const pending = await asUser(
+        db,
+        buyer,
+        "insert into creative_asset_library(owner_id, asset_id, status, amount_cents, provider, provider_reference) values ($1,$2,'pending',1500,'wave','kebu-ca-wave-ref-1') returning id",
+        [buyer, assetId],
+      );
+      const libraryId = pending.rows[0]!.id as string;
+
+      await asService(db, "update creative_asset_library set status='owned', provider_payment_id='wave_pay_1' where id=$1", [libraryId]);
+      const owned = await asUser(db, buyer, "select status, provider, provider_payment_id from creative_asset_library where id=$1", [libraryId]);
+      expect(owned.rows[0]).toMatchObject({ status: "owned", provider: "wave", provider_payment_id: "wave_pay_1" });
     } finally {
       await db.close();
     }

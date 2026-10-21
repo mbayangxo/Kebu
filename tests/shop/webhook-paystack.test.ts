@@ -9,6 +9,7 @@ function mkReq(url: string, init?: RequestInit): NextRequest {
 const createServiceClient = vi.fn();
 const fulfillPaidDigitalOrderDurable = vi.fn();
 const completeShopPayment = vi.fn();
+const markKebuPurchasePaid = vi.fn();
 
 vi.mock("@/lib/opportunity/admin", () => ({
   createServiceClient: () => createServiceClient(),
@@ -16,6 +17,10 @@ vi.mock("@/lib/opportunity/admin", () => ({
 
 vi.mock("@/lib/shop/digital-downloads", () => ({
   fulfillPaidDigitalOrderDurable: (...args: unknown[]) => fulfillPaidDigitalOrderDurable(...args),
+}));
+
+vi.mock("@/lib/payments/mark-purchase-paid", () => ({
+  markKebuPurchasePaid: (...args: unknown[]) => markKebuPurchasePaid(...args),
 }));
 
 import { POST as paystackWebhook } from "@/app/api/webhooks/paystack/route";
@@ -62,6 +67,35 @@ describe("shop webhooks (C1)", () => {
       expect.objectContaining({ rpc: completeShopPayment }),
       "order-1",
     );
+  });
+
+  it("falls through to a Creative Asset / template marketplace purchase when the reference isn't a Shop order", async () => {
+    completeShopPayment.mockResolvedValue({ data: null, error: { message: "not found" } });
+    markKebuPurchasePaid.mockResolvedValue({ ok: true, kind: "creative_asset_purchase", libraryId: "lib-1", assetId: "asset-1" });
+
+    const payload = {
+      event: "charge.success",
+      data: { status: "success", reference: "kebu-ca-ref-1", id: 999, metadata: { kebu_reference: "kebu-ca-ref-1" } },
+    };
+    const raw = JSON.stringify(payload);
+    const signature = createHmac("sha512", process.env.PAYSTACK_SECRET_KEY!).update(raw).digest("hex");
+
+    const res = await paystackWebhook(
+      mkReq("http://localhost/api/webhooks/paystack", {
+        method: "POST",
+        headers: { "x-paystack-signature": signature },
+        body: raw,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ ok: true, kind: "creative_asset_purchase" });
+    expect(markKebuPurchasePaid).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ reference: "kebu-ca-ref-1", provider: "card" }),
+    );
+    expect(fulfillPaidDigitalOrderDurable).not.toHaveBeenCalled();
   });
 
   it("rejects invalid Paystack signature", async () => {

@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
-import { markShopOrderPaidByProviderRef } from "@/lib/shop/adapter-checkout";
+import { markKebuPurchasePaid } from "@/lib/payments/mark-purchase-paid";
 import { fulfillPaidDigitalOrderDurable } from "@/lib/shop/digital-downloads";
 import { waveConfigured } from "@/lib/payments/wave-adapter";
 
@@ -86,37 +86,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
   }
 
-  const paid = await markShopOrderPaidByProviderRef(admin, {
-    reference,
-    paymentId: payload.data?.id || payload.id || null,
-    provider: "wave",
-  });
-  if (!paid.ok) {
-    const retry = await markShopOrderPaidByProviderRef(admin, {
-      reference,
-      paymentId: payload.data?.id || payload.id || null,
-    });
-    if (!retry.ok) return NextResponse.json({ error: retry.error }, { status: 404 });
-    console.info(
-      JSON.stringify({
-        event: "shop.order_paid_wave",
-        orderId: retry.orderId,
-        projectId: retry.projectId,
-        reference,
-      }),
-    );
-    await fulfillPaidDigitalOrderDurable(admin, retry.orderId);
-    return NextResponse.json({ ok: true, kind: "shop_order", orderId: retry.orderId });
+  const paymentId = payload.data?.id || payload.id || null;
+  let result = await markKebuPurchasePaid(admin, { reference, paymentId, provider: "wave" });
+  if (!result.ok) {
+    result = await markKebuPurchasePaid(admin, { reference, paymentId });
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 404 });
   }
 
-  console.info(
-    JSON.stringify({
-      event: "shop.order_paid_wave",
-      orderId: paid.orderId,
-      projectId: paid.projectId,
-      reference,
-    }),
-  );
-  await fulfillPaidDigitalOrderDurable(admin, paid.orderId);
-  return NextResponse.json({ ok: true, kind: "shop_order", orderId: paid.orderId });
+  console.info(JSON.stringify({ event: "kebu.purchase_paid_wave", kind: result.kind, reference, result }));
+
+  if (result.kind === "shop_order") {
+    await fulfillPaidDigitalOrderDurable(admin, result.orderId);
+    return NextResponse.json({ ok: true, kind: "shop_order", orderId: result.orderId });
+  }
+  return NextResponse.json({ ok: true, kind: result.kind });
 }

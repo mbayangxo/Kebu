@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { fulfillPaidDigitalOrderDurable } from "@/lib/shop/digital-downloads";
 import { verifyPaystackSignature } from "@/lib/payments/paystack-adapter";
+import { markKebuPurchasePaid } from "@/lib/payments/mark-purchase-paid";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,16 @@ export async function POST(req: NextRequest) {
   });
   const paid = Array.isArray(completed) ? completed[0] : completed;
   if (error || !paid?.order_id || !paid?.project_id) {
+    // Not a Shop order — try the Creative Assets / template marketplaces before giving up.
+    const marketplace = await markKebuPurchasePaid(admin, {
+      reference,
+      paymentId: payload.data?.id != null ? String(payload.data.id) : payload.data?.reference ?? null,
+      provider: "card",
+    });
+    if (marketplace.ok && marketplace.kind !== "shop_order") {
+      console.info(JSON.stringify({ event: "kebu.purchase_paid_paystack", kind: marketplace.kind, reference }));
+      return NextResponse.json({ ok: true, kind: marketplace.kind });
+    }
     console.warn(JSON.stringify({ event: "shop.payment_completion_failed", reference, error: error?.message ?? "not_found" }));
     return NextResponse.json({ error: "Payment could not be matched to an active checkout." }, { status: 404 });
   }

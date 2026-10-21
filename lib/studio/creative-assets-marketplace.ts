@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOrCreateDeveloperProfile, type DeveloperProfileRow } from "@/lib/create/aesthetics-marketplace";
+import type { KebuCheckoutMethod } from "@/lib/payments/kebu-checkout";
+
+export { KEBU_CHECKOUT_METHODS, kebuCheckoutMethodsAvailable, type KebuCheckoutMethod } from "@/lib/payments/kebu-checkout";
 
 export { getOrCreateDeveloperProfile, type DeveloperProfileRow };
 
@@ -234,6 +237,7 @@ export async function acquireCreativeAsset(
   user: { id: string; email?: string | null },
   assetId: string,
   appUrl: string,
+  method: KebuCheckoutMethod = "joko",
 ): Promise<
   | { ok: true; alreadyOwned: boolean; item?: { id: string; name: string; kind: CreativeAssetKind }; paymentUrl?: string; priceLabel?: string }
   | { ok: false; status: number; error: string }
@@ -278,7 +282,7 @@ export async function acquireCreativeAsset(
     return { ok: true, alreadyOwned: false, item: { id: asset.id, name: asset.name, kind: asset.kind } };
   }
 
-  const { createJokoCheckout } = await import("@/lib/joko/payments");
+  const { startKebuCheckout } = await import("@/lib/payments/kebu-checkout");
   const reference = `kebu-ca-${assetId.slice(0, 8)}-${Math.random().toString(36).slice(2, 10)}`;
 
   const { data: pending, error: pendErr } = await supabase
@@ -288,20 +292,23 @@ export async function acquireCreativeAsset(
       asset_id: assetId,
       status: "pending",
       amount_cents: asset.price_cents,
-      joko_reference: reference,
+      provider: method,
+      provider_reference: reference,
     })
     .select("id")
     .single();
   if (pendErr || !pending) return { ok: false, status: 500, error: pendErr?.message ?? "Could not start checkout." };
 
-  const checkout = await createJokoCheckout({
+  const checkout = await startKebuCheckout({
+    method,
     reference,
-    amountXof: asset.price_cents,
+    amountMinor: asset.price_cents,
+    currency: "XOF",
     description: `Kebu Studio creative asset — ${asset.name}`,
     customerEmail: user.email ?? undefined,
     returnUrl: `${appUrl}/studio/assets/marketplace?billing=success`,
     cancelUrl: `${appUrl}/studio/assets/marketplace?billing=cancelled`,
-    webhookUrl: `${appUrl}/api/webhooks/joko`,
+    webhookBaseUrl: appUrl,
     metadata: {
       kind: "creative_asset_purchase",
       library_id: pending.id,
@@ -317,29 +324,30 @@ export async function acquireCreativeAsset(
 
   await supabase
     .from("creative_asset_library")
-    .update({ joko_payment_id: checkout.paymentId })
+    .update({ provider_payment_id: checkout.providerPaymentId ?? null })
     .eq("id", pending.id);
 
   return { ok: true, alreadyOwned: false, paymentUrl: checkout.paymentUrl, priceLabel: formatXof(asset.price_cents) };
 }
 
-/** Joko webhook callback — mirrors markAestheticPurchasePaid exactly. */
+/** Called by whichever provider's webhook confirms payment (see lib/payments/mark-purchase-paid.ts). */
 export async function markCreativeAssetPurchasePaid(
   supabase: SupabaseClient,
   reference: string,
   paymentId: string | null,
+  provider?: string | null,
 ): Promise<{ ok: true; libraryId: string; assetId: string | null } | { ok: false; error: string }> {
   const { data: row } = await supabase
     .from("creative_asset_library")
     .select("id, asset_id, status")
-    .eq("joko_reference", reference)
+    .eq("provider_reference", reference)
     .maybeSingle();
 
   if (!row) return { ok: false, error: "Creative asset purchase not found." };
 
   await supabase
     .from("creative_asset_library")
-    .update({ status: "owned", joko_payment_id: paymentId ?? row.id })
+    .update({ status: "owned", provider_payment_id: paymentId ?? row.id, ...(provider ? { provider } : {}) })
     .eq("id", row.id);
 
   if (row.asset_id) {

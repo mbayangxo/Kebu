@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
-import { acquireCreativeAsset } from "@/lib/studio/creative-assets-marketplace";
+import { acquireCreativeAsset, KEBU_CHECKOUT_METHODS } from "@/lib/studio/creative-assets-marketplace";
 
 export const dynamic = "force-dynamic";
 
-/** Add a published creative asset to my library — free assets unlock immediately, priced ones start a real Joko checkout. */
+const bodySchema = z.object({ method: z.enum(KEBU_CHECKOUT_METHODS).optional() });
+
+/** Add a published creative asset to my library — free assets unlock immediately, priced ones start a real Kebu Checkout. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
@@ -16,9 +19,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
 
+  const rawBody = await req.text();
+  let bodyJson: unknown = {};
+  try {
+    bodyJson = rawBody ? JSON.parse(rawBody) : {};
+  } catch {
+    bodyJson = {};
+  }
+  const parsed = bodySchema.safeParse(bodyJson);
+  const method = parsed.success ? parsed.data.method ?? "joko" : "joko";
+
   const { id } = await params;
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/$/, "");
-  const result = await acquireCreativeAsset(auth.supabase, { id: auth.user.id, email: auth.user.email }, id, appUrl);
+  const result = await acquireCreativeAsset(auth.supabase, { id: auth.user.id, email: auth.user.email }, id, appUrl, method);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
   return NextResponse.json({

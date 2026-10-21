@@ -33,6 +33,14 @@ const KIND_FILTERS = [
   { value: "font", label: "Fonts" },
 ] as const;
 
+const CHECKOUT_METHOD_LABELS: Record<string, string> = {
+  joko: "JOKO (Cauris)",
+  wave: "Wave",
+  orange_money: "Orange Money",
+  card: "Card",
+  paypal: "PayPal",
+};
+
 export default function StudioAssetMarketplacePage() {
   return (
     <Suspense fallback={<p className="p-8 text-sm text-black/60">Loading marketplace…</p>}>
@@ -50,6 +58,8 @@ function StudioAssetMarketplaceInner() {
   const [acquiringId, setAcquiringId] = useState<string | null>(null);
   const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set());
   const [note, setNote] = useState<string | null>(null);
+  const [availableMethods, setAvailableMethods] = useState<string[]>(["joko"]);
+  const [method, setMethod] = useState("joko");
 
   const billingNote = useMemo(() => {
     const b = search.get("billing");
@@ -79,6 +89,16 @@ function StudioAssetMarketplaceInner() {
   }, [kind, query]);
 
   useEffect(() => {
+    fetch("/api/payments/checkout-methods", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        const methods = Object.entries(data.methods ?? {}).filter(([, ok]) => ok).map(([id]) => id);
+        if (methods.length) { setAvailableMethods(methods); setMethod(methods[0]!); }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     fetch("/api/studio/creative-assets/library", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
@@ -96,6 +116,8 @@ function StudioAssetMarketplaceInner() {
       const res = await fetch(`/api/studio/creative-assets/${assetId}/acquire`, {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not add this to your library.");
@@ -182,6 +204,19 @@ function StudioAssetMarketplaceInner() {
                 <p className="mt-0.5 text-[10px]" style={{ color: KEBU.muted }}>
                   {item.developerName ?? "Kebu community"} · {item.priceCents === 0 ? "Free" : formatXof(item.priceCents)}
                 </p>
+                {item.priceCents > 0 && !ownedIds.has(item.id) && availableMethods.length > 1 ? (
+                  <select
+                    aria-label="Pay with"
+                    value={method}
+                    onChange={(e) => setMethod(e.target.value)}
+                    className="mt-2 w-full rounded-full border px-2 py-1.5 text-[10px] font-semibold"
+                    style={{ borderColor: KEBU.borders.default }}
+                  >
+                    {availableMethods.map((m) => (
+                      <option key={m} value={m}>{CHECKOUT_METHOD_LABELS[m] ?? m}</option>
+                    ))}
+                  </select>
+                ) : null}
                 <button
                   type="button"
                   disabled={acquiringId === item.id || ownedIds.has(item.id)}
