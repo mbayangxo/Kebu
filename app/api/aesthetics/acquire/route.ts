@@ -1,3 +1,4 @@
+import { createServiceClient } from "@/lib/opportunity/admin";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
@@ -55,10 +56,11 @@ export async function POST(req: Request) {
   const user = { id: auth.user.id, email: auth.user.email };
 
   const method = parsed.data.method ?? "joko";
+  const checkoutAuthority = createServiceClient();
   const result =
     parsed.data.kind === "catalog"
-      ? await acquireCatalogAesthetic(auth.supabase, user, parsed.data.catalogSlug, appUrl, method)
-      : await acquireMarketplaceAesthetic(auth.supabase, user, parsed.data.marketplaceId, appUrl, method);
+      ? await acquireCatalogAesthetic(auth.supabase, user, parsed.data.catalogSlug, appUrl, method, checkoutAuthority)
+      : await acquireMarketplaceAesthetic(auth.supabase, user, parsed.data.marketplaceId, appUrl, method, checkoutAuthority);
 
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 

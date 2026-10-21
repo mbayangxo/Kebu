@@ -116,9 +116,10 @@ type EditorHooks = {
 
 /** The same saved composition renders in the editor, draft preview and live site. */
 export function LegallyBlondeHeroLayout({
-  props, fillCanvas = true, sectionId, editor, projectId, siteBase = "", pageSlug = "home",
+  props, fillCanvas = true, sectionId, editor, projectId, siteBase = "", pageSlug = "home", responsiveSocialProps,
 }: {
   props: LegallyBlondeHeroProps;
+  responsiveSocialProps?: Record<string, unknown>;
   siteBase?: string;
   contained?: boolean;
   fillCanvas?: boolean;
@@ -133,6 +134,7 @@ export function LegallyBlondeHeroLayout({
       <SiteThemeFonts fontDisplay={props.displayFont ?? "Oswald"} fontBody="system-ui" />
       <LegallyBlondeEditCanvas
         props={props as unknown as Record<string, unknown>}
+        responsiveSocialProps={responsiveSocialProps}
         editable={editable}
         projectId={editable ? projectId : undefined}
         siteBase={siteBase}

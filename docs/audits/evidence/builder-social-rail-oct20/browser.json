@@ -1,0 +1,653 @@
+{
+  "source_commit": "3234515794849273abd59b8d149812b02da1e1f6",
+  "tree": "66bba908c1aa57e255c9b862b0de33bd6775a9a6",
+  "scope": "Ordinary Builder, actual isolated migration SQL with loopback transport; not hosted Auth/providers.",
+  "stats": {
+    "startTime": "2026-10-21T02:55:19.672Z",
+    "duration": 325691.89300000004,
+    "expected": 63,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cleanup": {
+    "testsStopped": true,
+    "serverStopped": true,
+    "restoredConfig": true,
+    "remainingFixtures": [],
+    "sourceSandboxRemoved": true,
+    "generatedFixtureTypesRemoved": true
+  },
+  "cases": [
+    {
+      "title": "May L\u00e8cor committed reply recovery retries once without a second database version",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 18561
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor Desktop: native inspector \u2192 PostgreSQL \u2192 history \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 9387
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor Tablet: native inspector \u2192 PostgreSQL \u2192 history \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 9615
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor Phone: native inspector \u2192 PostgreSQL \u2192 history \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 9126
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor five pages 1440px JavaScript off",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1694
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor five pages 768px JavaScript off",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1520
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor five pages 390px JavaScript off",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1350
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor five pages 1440px JavaScript on",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2741
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor five pages 768px JavaScript on",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2556
+        }
+      ]
+    },
+    {
+      "title": "May L\u00e8cor five pages 390px JavaScript on",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2417
+        }
+      ]
+    },
+    {
+      "title": "property save \u2192 operation Undo/Redo \u2192 reload uses canonical storage and no legacy writes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2859
+        }
+      ]
+    },
+    {
+      "title": "conflict preserves the user's edit and shows the failure",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1741
+        }
+      ]
+    },
+    {
+      "title": "device editing preserves Desktop and Undo/Redo travels override plus state atomically",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2332
+        }
+      ]
+    },
+    {
+      "title": "duplicate \u2192 remove \u2192 Undo restores the same id through structural operations",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1480
+        }
+      ]
+    },
+    {
+      "title": "a truncated committed reply retries the exact transaction without a second version bump",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2104
+        }
+      ]
+    },
+    {
+      "title": "missing operation protocol blocks the editing surface with Retry",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 817
+        }
+      ]
+    },
+    {
+      "title": "local operation Builder loads at 768px",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 824
+        }
+      ]
+    },
+    {
+      "title": "local operation Builder loads at 390px",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 849
+        }
+      ]
+    },
+    {
+      "title": "Builder desktop edit-to-painted-canvas baseline at 100 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 9977
+        }
+      ]
+    },
+    {
+      "title": "Builder desktop edit-to-painted-canvas baseline at 500 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 11213
+        }
+      ]
+    },
+    {
+      "title": "Builder desktop edit-to-painted-canvas baseline at 2000 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 15913
+        }
+      ]
+    },
+    {
+      "title": "Builder tablet edit-to-painted-canvas baseline at 100 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 10024
+        }
+      ]
+    },
+    {
+      "title": "Builder tablet edit-to-painted-canvas baseline at 500 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 11027
+        }
+      ]
+    },
+    {
+      "title": "Builder tablet edit-to-painted-canvas baseline at 2000 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 13594
+        }
+      ]
+    },
+    {
+      "title": "Builder mobile edit-to-painted-canvas baseline at 100 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 11269
+        }
+      ]
+    },
+    {
+      "title": "Builder mobile edit-to-painted-canvas baseline at 500 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 11225
+        }
+      ]
+    },
+    {
+      "title": "Builder mobile edit-to-painted-canvas baseline at 2000 nodes",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 15311
+        }
+      ]
+    },
+    {
+      "title": "Pages adds, renames, reorders and deletes through atomic operation history",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2415
+        }
+      ]
+    },
+    {
+      "title": "page save reports navigation failure and blocks Undo until reconciliation",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1970
+        }
+      ]
+    },
+    {
+      "title": "normal Builder saves campaign-wall content, reloads and exposes public interactions",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 4765
+        }
+      ]
+    },
+    {
+      "title": "normal Builder saves directional-world content, reloads and exposes public interactions",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 5900
+        }
+      ]
+    },
+    {
+      "title": "ordinary user creates a neutral directional world from Add section without code",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2229
+        }
+      ]
+    },
+    {
+      "title": "May cutout travel is editable and saved by the normal Builder",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 3110
+        }
+      ]
+    },
+    {
+      "title": "ordinary Builder uploads, choreographs, saves and reloads a video layer through canonical operations",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 4490
+        }
+      ]
+    },
+    {
+      "title": "unconfirmed creation keeps the title and does not select a nonexistent page",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1127
+        }
+      ]
+    },
+    {
+      "title": "unconfirmed rename retains the edit form and saved title",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1662
+        }
+      ]
+    },
+    {
+      "title": "unconfirmed deletion retains the page and reports the missing receipt",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1589
+        }
+      ]
+    },
+    {
+      "title": "unconfirmed reordering restores the visible order",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1678
+        }
+      ]
+    },
+    {
+      "title": "confirmed order survives refresh but navigation sync failure stays visible",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2598
+        }
+      ]
+    },
+    {
+      "title": "phone and keyboard users can discover page actions without hover",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1592
+        }
+      ]
+    },
+    {
+      "title": "desktop keyboard focus reveals otherwise hidden page actions",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1418
+        }
+      ]
+    },
+    {
+      "title": "ordinary Desktop image dimensions/crop \u2192 SQL \u2192 Undo/Redo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 14022
+        }
+      ]
+    },
+    {
+      "title": "ordinary Tablet image dimensions/crop \u2192 SQL \u2192 Undo/Redo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 15074
+        }
+      ]
+    },
+    {
+      "title": "ordinary Phone image dimensions/crop \u2192 SQL \u2192 Undo/Redo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 16162
+        }
+      ]
+    },
+    {
+      "title": "Tablet selected-object responsive reset preserves neighbour \u2192 atomic Undo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 6570
+        }
+      ]
+    },
+    {
+      "title": "Phone selected-object responsive reset preserves neighbour \u2192 atomic Undo \u2192 reload \u2192 publish",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 6580
+        }
+      ]
+    },
+    {
+      "title": "saved May navigation keeps team contact separate from the foundation at 1440px",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1970
+        }
+      ]
+    },
+    {
+      "title": "saved May navigation keeps team contact separate from the foundation at 390px",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1158
+        }
+      ]
+    },
+    {
+      "title": "saved cutout geometry survives preview and fixture reload without Russian fallback",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1431
+        }
+      ]
+    },
+    {
+      "title": "navigation uses narrow container width inside a desktop viewport",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 817
+        }
+      ]
+    },
+    {
+      "title": "parallax changes geometry on scroll and motion-off removes the track",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 996
+        }
+      ]
+    },
+    {
+      "title": "ordinary section picker creates an editable collage without private artist assets",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 837
+        }
+      ]
+    },
+    {
+      "title": "phone viewport respects reduced motion without hiding the saved portraits",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 753
+        }
+      ]
+    },
+    {
+      "title": "ordinary cutout controls make opposite horizontal movements on actual scroll",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1200
+        }
+      ]
+    },
+    {
+      "title": "stacked cutout scenes keep one navigation and independent scroll tracks",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 992
+        }
+      ]
+    },
+    {
+      "title": "real media frames follow scrolling and geometry, then a linked video opens another themed page",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2914
+        }
+      ]
+    },
+    {
+      "title": "silent loop plays, can be paused, and stops when outside the viewport",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1055
+        }
+      ]
+    },
+    {
+      "title": "phone reduced motion keeps a manually playable still composition after save and reload",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1462
+        }
+      ]
+    },
+    {
+      "title": "a failed file shows a real retry and preserves its saved page link",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 891
+        }
+      ]
+    },
+    {
+      "title": "a host without seek support exposes the real limitation and usable manual controls",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 821
+        }
+      ]
+    },
+    {
+      "title": "Desktop real social rail \u2192 link editing \u2192 atomic drag/cancel/history \u2192 SQL \u2192 reload \u2192 published icons",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 8614
+        }
+      ]
+    },
+    {
+      "title": "Tablet real social rail \u2192 link editing \u2192 atomic drag/cancel/history \u2192 SQL \u2192 reload \u2192 published icons",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 10115
+        }
+      ]
+    },
+    {
+      "title": "Phone real social rail \u2192 link editing \u2192 atomic drag/cancel/history \u2192 SQL \u2192 reload \u2192 published icons",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed",
+          "duration": 9823
+        }
+      ]
+    }
+  ]
+}

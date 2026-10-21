@@ -339,10 +339,12 @@ export async function acquireCatalogAesthetic(
   catalogSlug: string,
   appUrl: string,
   method: KebuCheckoutMethod = "joko",
+  checkoutAuthority?: SupabaseClient | null,
 ): Promise<
   | { ok: true; alreadyOwned?: boolean; item?: AestheticLibraryRow; paymentUrl?: string; priceLabel?: string }
   | { ok: false; status: number; error: string }
 > {
+  if (!checkoutAuthority) return { ok: false, status: 503, error: "Secure checkout is unavailable. Please try again later." };
   const ownedLib = await listOwnedAesthetics(supabase, user.id);
   if (!ownedLib.ok) return ownedLib;
   const existing = ownedLib.items.find((i) => i.kind === "catalog" && i.catalog_slug === catalogSlug);
@@ -351,7 +353,7 @@ export async function acquireCatalogAesthetic(
   if (await userOwnsTemplate(supabase, user.id, catalogSlug)) {
     const resolved = await resolveCatalogDefinition(catalogSlug, "My site");
     if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
-    const inserted = await insertOwnedLibrary(supabase, user.id, {
+    const inserted = await insertOwnedLibrary(checkoutAuthority, user.id, {
       kind: "catalog",
       catalogSlug,
       name: resolved.name,
@@ -367,7 +369,7 @@ export async function acquireCatalogAesthetic(
   if (!resolved.ok) return { ok: false, status: 400, error: resolved.error };
 
   if (!required || priceUsdCents <= 0) {
-    const inserted = await insertOwnedLibrary(supabase, user.id, {
+    const inserted = await insertOwnedLibrary(checkoutAuthority, user.id, {
       kind: "catalog",
       catalogSlug,
       name: resolved.name,
@@ -379,7 +381,7 @@ export async function acquireCatalogAesthetic(
   }
 
   const reference = `kebu-aes-${catalogSlug.slice(0, 10)}-${randomUUID().slice(0, 8)}`;
-  const pending = await insertPendingLibrary(supabase, user.id, {
+  const pending = await insertPendingLibrary(checkoutAuthority, user.id, {
     kind: "catalog",
     catalogSlug,
     name: resolved.name,
@@ -409,11 +411,11 @@ export async function acquireCatalogAesthetic(
   });
 
   if (!checkout.ok) {
-    await supabase.from("aesthetic_library").update({ status: "failed" }).eq("id", pending.item.id);
+    await checkoutAuthority.from("aesthetic_library").update({ status: "failed" }).eq("id", pending.item.id);
     return { ok: false, status: 503, error: checkout.error };
   }
 
-  await supabase
+  await checkoutAuthority
     .from("aesthetic_library")
     .update({ provider_payment_id: checkout.providerPaymentId ?? null })
     .eq("id", pending.item.id);
@@ -431,10 +433,12 @@ export async function acquireMarketplaceAesthetic(
   marketplaceId: string,
   appUrl: string,
   method: KebuCheckoutMethod = "joko",
+  checkoutAuthority?: SupabaseClient | null,
 ): Promise<
   | { ok: true; alreadyOwned?: boolean; item?: AestheticLibraryRow; paymentUrl?: string; priceLabel?: string }
   | { ok: false; status: number; error: string }
 > {
+  if (!checkoutAuthority) return { ok: false, status: 503, error: "Secure checkout is unavailable. Please try again later." };
   const ownedLib = await listOwnedAesthetics(supabase, user.id);
   if (!ownedLib.ok) return ownedLib;
   const existing = ownedLib.items.find((i) => i.marketplace_id === marketplaceId);
@@ -459,7 +463,7 @@ export async function acquireMarketplaceAesthetic(
 
   const priceCents = row.price_cents ?? 0;
   if (priceCents <= 0) {
-    const inserted = await insertOwnedLibrary(supabase, user.id, {
+    const inserted = await insertOwnedLibrary(checkoutAuthority, user.id, {
       kind: "marketplace",
       marketplaceId: row.id,
       name: row.name,
@@ -472,7 +476,7 @@ export async function acquireMarketplaceAesthetic(
   }
 
   const reference = `kebu-mp-${row.slug.slice(0, 10)}-${randomUUID().slice(0, 8)}`;
-  const pending = await insertPendingLibrary(supabase, user.id, {
+  const pending = await insertPendingLibrary(checkoutAuthority, user.id, {
     kind: "marketplace",
     marketplaceId: row.id,
     name: row.name,
@@ -502,11 +506,11 @@ export async function acquireMarketplaceAesthetic(
   });
 
   if (!checkout.ok) {
-    await supabase.from("aesthetic_library").update({ status: "failed" }).eq("id", pending.item.id);
+    await checkoutAuthority.from("aesthetic_library").update({ status: "failed" }).eq("id", pending.item.id);
     return { ok: false, status: 503, error: checkout.error };
   }
 
-  await supabase
+  await checkoutAuthority
     .from("aesthetic_library")
     .update({ provider_payment_id: checkout.providerPaymentId ?? null })
     .eq("id", pending.item.id);

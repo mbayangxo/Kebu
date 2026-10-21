@@ -75,6 +75,7 @@ describe("selected-object responsive inheritance", () => {
   it.each([
     ["heroCanvas", "control", "sectionMinHeightPx"],
     ["siteFooter", "control", "embeddedFooterPaddingTop"],
+    ["socialRail", "control", "socialRailTopPct"],
     ["background", "background", "backgroundLayer"],
   ] as const)("resets %s without touching layer maps or other section settings", (elementId, kind, field) => {
     const selection = { ...image, elementId, kind };

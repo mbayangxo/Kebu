@@ -23,6 +23,7 @@ import {
   MAYLECOR_FIGURE_ASSETS,
   MAYLECOR_LOCAL_ASSETS,
 } from "@/lib/create/maylecor-defaults";
+import { ResponsiveSocialRail } from "./responsive-social-rail";
 import { EditableSocialRail, socialRailStyleFromProps } from "./editable-social-rail";
 import { uploadProjectAsset } from "@/lib/create/upload-project-asset";
 import { MaylecorMotionChrome } from "@/app/components/create/maylecor-motion-chrome";
@@ -120,6 +121,7 @@ type UploadTarget =
 
 export function LegallyBlondeEditCanvas({
   props,
+  responsiveSocialProps,
   editable = true,
   projectId,
   siteBase = "",
@@ -132,6 +134,7 @@ export function LegallyBlondeEditCanvas({
   onNavigatePage,
 }: {
   props: Record<string, unknown>;
+  responsiveSocialProps?: Record<string, unknown>;
   editable?: boolean;
   projectId?: string;
   siteBase?: string;
@@ -547,13 +550,14 @@ export function LegallyBlondeEditCanvas({
         /> : null}
 
         {(collageVideosSchema.safeParse(props.sceneVideos ?? []).data ?? []).map(layer => <CollageVideoLayer key={`${layer.id}:${layer.src}`} layer={layer} progress={parallax ? scrollProgress : 0} motionEnabled={motionEnabled} editing={editable} siteBase={siteBase} onNavigatePage={onNavigatePage} />)}
-        <EditableSocialRail
+        {!editable && responsiveSocialProps ? <ResponsiveSocialRail props={responsiveSocialProps} siteBase={siteBase} /> : <EditableSocialRail
           links={Array.isArray(props.socialLinks) ? props.socialLinks as {label: string; href: string; iconUrl: string}[] : []}
           style={socialRailStyleFromProps(props)}
           editing={editable}
+          onSelect={(inspect = true) => selectElement("socialRail", "control", "Social links", inspect)}
           onPatch={editable ? onPatch : undefined}
           siteBase={siteBase}
-        />
+        />}
         {slots.map((slot) => {
           const pos = resolveSlotPos(slot);
           const scale = scales[slot.key] ?? (slot.key === "titleLogo" ? 0.75 : 1);
