@@ -25,6 +25,7 @@ export type PaymentProviderId =
 
 export type PaymentAdapterCheckoutInput = {
   reference: string;
+  /** Positive integer ISO currency minor units (USD cents, whole XOF/JPY). */
   amountMinor: number;
   currency: string;
   description: string;
