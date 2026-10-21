@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const auth = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/create/auth", () => ({ requireUser: auth }));
+const jokoCheckout = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/joko/payments", () => ({ createJokoCheckout: jokoCheckout }));
 import { GET as browseGet } from "@/app/api/studio/creative-assets/route";
 import { GET as devGet, POST as devPost } from "@/app/api/studio/creative-assets/developer/route";
 import { PATCH as statusPatch } from "@/app/api/studio/creative-assets/[id]/route";
@@ -163,5 +165,30 @@ describe("Studio creative assets — acquire route", () => {
     auth.mockResolvedValue({ user: { id: userId }, supabase: { from } });
     const res = await acquirePost(request(`https://kebu.test/api/studio/creative-assets/${assetId}/acquire`, "POST"), ctx);
     expect(res.status).toBe(404);
+  });
+
+  it("starts a real Joko checkout for a priced asset instead of unlocking it directly", async () => {
+    const pendingRow = { id: "44444444-4444-4444-8444-444444444444" };
+    const update = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) });
+    const from = vi.fn((table: string) => {
+      if (table === "marketplace_creative_assets") return chain({ data: { ...assetRow, price_cents: 2000 }, error: null });
+      if (table === "creative_asset_library") {
+        return {
+          ...chain({ data: null, error: null }),
+          insert: vi.fn(() => ({ select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: pendingRow, error: null }) })) })),
+          update,
+        };
+      }
+      throw new Error("unexpected table " + table);
+    });
+    auth.mockResolvedValue({ user: { id: userId, email: "buyer@example.test" }, supabase: { from } });
+    jokoCheckout.mockResolvedValue({ ok: true, paymentUrl: "https://joko.test/checkout/abc", paymentId: "pay_abc" });
+
+    const res = await acquirePost(request(`https://kebu.test/api/studio/creative-assets/${assetId}/acquire`, "POST"), ctx);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.paymentUrl).toBe("https://joko.test/checkout/abc");
+    expect(body.alreadyOwned).toBe(false);
+    expect(jokoCheckout).toHaveBeenCalledWith(expect.objectContaining({ amountXof: 2000, customerEmail: "buyer@example.test" }));
   });
 });

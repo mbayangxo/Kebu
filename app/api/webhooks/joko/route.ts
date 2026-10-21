@@ -227,6 +227,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, kind: "aesthetic_purchase", libraryId: paid.libraryId });
   }
 
+  if (kind === "creative_asset_purchase" && reference) {
+    const { markCreativeAssetPurchasePaid } = await import("@/lib/studio/creative-assets-marketplace");
+    const paid = await markCreativeAssetPurchasePaid(supabase, reference, paymentId ?? null);
+    if (!paid.ok) {
+      return NextResponse.json({ error: paid.error }, { status: 404 });
+    }
+    console.info(
+      JSON.stringify({
+        event: "billing.creative_asset_purchased",
+        libraryId: paid.libraryId,
+        assetId: paid.assetId,
+        reference,
+      }),
+    );
+    return NextResponse.json({ ok: true, kind: "creative_asset_purchase", libraryId: paid.libraryId });
+  }
+
   if (kind === "shop_order" && reference) {
     const { markShopOrderPaid } = await import("@/lib/shop/joko-order");
     const paid = await markShopOrderPaid(supabase, reference, paymentId ?? null);

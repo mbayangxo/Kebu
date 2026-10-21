@@ -13,6 +13,11 @@ function tableMissing(message: string | undefined): boolean {
   return Boolean(message?.includes("does not exist") || message?.includes("schema cache"));
 }
 
+/** price_cents here holds a raw XOF amount, matching the Sell page's own convention — not USD cents. */
+function formatXof(amount: number): string {
+  return `${Math.round(amount).toLocaleString()} XOF`;
+}
+
 function slugify(input: string): string {
   return input
     .toLowerCase()
@@ -45,7 +50,7 @@ export type CreativeAssetLibraryRow = {
   id: string;
   owner_id: string;
   asset_id: string;
-  status: "owned";
+  status: "owned" | "pending" | "failed";
   created_at: string;
 };
 
@@ -223,15 +228,17 @@ export async function setCreativeAssetStatus(
   return { ok: true };
 }
 
-/** Free-use "add to my library" — no payment path exists in this slice by design. */
+/** Free assets unlock immediately; priced ones start a real Joko checkout (mirrors acquireMarketplaceAesthetic). */
 export async function acquireCreativeAsset(
   supabase: SupabaseClient,
-  userId: string,
+  user: { id: string; email?: string | null },
   assetId: string,
+  appUrl: string,
 ): Promise<
-  | { ok: true; alreadyOwned: boolean; item: { id: string; name: string; kind: CreativeAssetKind } }
+  | { ok: true; alreadyOwned: boolean; item?: { id: string; name: string; kind: CreativeAssetKind }; paymentUrl?: string; priceLabel?: string }
   | { ok: false; status: number; error: string }
 > {
+  const userId = user.id;
   const { data: asset, error: assetErr } = await supabase
     .from("marketplace_creative_assets")
     .select("id, name, kind, status, price_cents, acquire_count")
@@ -244,32 +251,112 @@ export async function acquireCreativeAsset(
   if (!asset || asset.status !== "published") {
     return { ok: false, status: 404, error: "Asset not found." };
   }
-  if (asset.price_cents > 0) {
-    return { ok: false, status: 503, error: "Paid assets are not available yet." };
-  }
 
   const { data: existing, error: existErr } = await supabase
     .from("creative_asset_library")
     .select("id")
     .eq("owner_id", userId)
     .eq("asset_id", assetId)
+    .eq("status", "owned")
     .maybeSingle();
   if (existErr) return { ok: false, status: 500, error: existErr.message };
   if (existing) {
     return { ok: true, alreadyOwned: true, item: { id: asset.id, name: asset.name, kind: asset.kind } };
   }
 
-  const { error: insErr } = await supabase
+  if (asset.price_cents <= 0) {
+    const { error: insErr } = await supabase
+      .from("creative_asset_library")
+      .insert({ owner_id: userId, asset_id: assetId, status: "owned" });
+    if (insErr) return { ok: false, status: 500, error: insErr.message };
+
+    await supabase
+      .from("marketplace_creative_assets")
+      .update({ acquire_count: asset.acquire_count + 1 })
+      .eq("id", assetId);
+
+    return { ok: true, alreadyOwned: false, item: { id: asset.id, name: asset.name, kind: asset.kind } };
+  }
+
+  const { createJokoCheckout } = await import("@/lib/joko/payments");
+  const reference = `kebu-ca-${assetId.slice(0, 8)}-${Math.random().toString(36).slice(2, 10)}`;
+
+  const { data: pending, error: pendErr } = await supabase
     .from("creative_asset_library")
-    .insert({ owner_id: userId, asset_id: assetId, status: "owned" });
-  if (insErr) return { ok: false, status: 500, error: insErr.message };
+    .insert({
+      owner_id: userId,
+      asset_id: assetId,
+      status: "pending",
+      amount_cents: asset.price_cents,
+      joko_reference: reference,
+    })
+    .select("id")
+    .single();
+  if (pendErr || !pending) return { ok: false, status: 500, error: pendErr?.message ?? "Could not start checkout." };
+
+  const checkout = await createJokoCheckout({
+    reference,
+    amountXof: asset.price_cents,
+    description: `Kebu Studio creative asset — ${asset.name}`,
+    customerEmail: user.email ?? undefined,
+    returnUrl: `${appUrl}/studio/assets/marketplace?billing=success`,
+    cancelUrl: `${appUrl}/studio/assets/marketplace?billing=cancelled`,
+    webhookUrl: `${appUrl}/api/webhooks/joko`,
+    metadata: {
+      kind: "creative_asset_purchase",
+      library_id: pending.id,
+      owner_id: userId,
+      asset_id: assetId,
+    },
+  });
+
+  if (!checkout.ok) {
+    await supabase.from("creative_asset_library").update({ status: "failed" }).eq("id", pending.id);
+    return { ok: false, status: 503, error: checkout.error };
+  }
 
   await supabase
-    .from("marketplace_creative_assets")
-    .update({ acquire_count: asset.acquire_count + 1 })
-    .eq("id", assetId);
+    .from("creative_asset_library")
+    .update({ joko_payment_id: checkout.paymentId })
+    .eq("id", pending.id);
 
-  return { ok: true, alreadyOwned: false, item: { id: asset.id, name: asset.name, kind: asset.kind } };
+  return { ok: true, alreadyOwned: false, paymentUrl: checkout.paymentUrl, priceLabel: formatXof(asset.price_cents) };
+}
+
+/** Joko webhook callback — mirrors markAestheticPurchasePaid exactly. */
+export async function markCreativeAssetPurchasePaid(
+  supabase: SupabaseClient,
+  reference: string,
+  paymentId: string | null,
+): Promise<{ ok: true; libraryId: string; assetId: string | null } | { ok: false; error: string }> {
+  const { data: row } = await supabase
+    .from("creative_asset_library")
+    .select("id, asset_id, status")
+    .eq("joko_reference", reference)
+    .maybeSingle();
+
+  if (!row) return { ok: false, error: "Creative asset purchase not found." };
+
+  await supabase
+    .from("creative_asset_library")
+    .update({ status: "owned", joko_payment_id: paymentId ?? row.id })
+    .eq("id", row.id);
+
+  if (row.asset_id) {
+    const { data: asset } = await supabase
+      .from("marketplace_creative_assets")
+      .select("acquire_count")
+      .eq("id", row.asset_id)
+      .maybeSingle();
+    if (asset) {
+      await supabase
+        .from("marketplace_creative_assets")
+        .update({ acquire_count: asset.acquire_count + 1 })
+        .eq("id", row.asset_id);
+    }
+  }
+
+  return { ok: true, libraryId: row.id, assetId: row.asset_id };
 }
 
 export async function listMyCreativeAssetLibrary(
@@ -283,6 +370,7 @@ export async function listMyCreativeAssetLibrary(
     .from("creative_asset_library")
     .select(`id, owner_id, asset_id, status, created_at, marketplace_creative_assets(${ASSET_COLUMNS})`)
     .eq("owner_id", userId)
+    .eq("status", "owned")
     .order("created_at", { ascending: false });
 
   if (error && tableMissing(error.message)) {

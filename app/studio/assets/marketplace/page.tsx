@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { StudioWorldNav } from "@/app/components/studio/studio-world-nav";
 import { KEBU } from "@/lib/kebu-brand";
+
+function formatXof(amount: number): string {
+  return `${Math.round(amount).toLocaleString()} XOF`;
+}
 
 type MarketplaceAsset = {
   id: string;
@@ -29,6 +34,15 @@ const KIND_FILTERS = [
 ] as const;
 
 export default function StudioAssetMarketplacePage() {
+  return (
+    <Suspense fallback={<p className="p-8 text-sm text-black/60">Loading marketplace…</p>}>
+      <StudioAssetMarketplaceInner />
+    </Suspense>
+  );
+}
+
+function StudioAssetMarketplaceInner() {
+  const search = useSearchParams();
   const [kind, setKind] = useState<(typeof KIND_FILTERS)[number]["value"]>("all");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<MarketplaceAsset[] | null>(null);
@@ -36,6 +50,17 @@ export default function StudioAssetMarketplacePage() {
   const [acquiringId, setAcquiringId] = useState<string | null>(null);
   const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set());
   const [note, setNote] = useState<string | null>(null);
+
+  const billingNote = useMemo(() => {
+    const b = search.get("billing");
+    if (b === "success") return "Payment received (or pending webhook). Refresh if you just paid.";
+    if (b === "cancelled") return "Checkout cancelled — asset not unlocked.";
+    return null;
+  }, [search]);
+
+  useEffect(() => {
+    if (billingNote) setNote(billingNote);
+  }, [billingNote]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,6 +99,10 @@ export default function StudioAssetMarketplacePage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not add this to your library.");
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl as string;
+        return;
+      }
       setOwnedIds((prev) => new Set(prev).add(assetId));
       setNote(data.alreadyOwned ? "Already in your library." : "Added to your library — open it from Studio → Assets.");
     } catch (cause) {
@@ -151,7 +180,7 @@ export default function StudioAssetMarketplacePage() {
                 </div>
                 <p className="truncate text-sm font-bold">{item.name}</p>
                 <p className="mt-0.5 text-[10px]" style={{ color: KEBU.muted }}>
-                  {item.developerName ?? "Kebu community"} · {item.priceCents === 0 ? "Free" : `$${(item.priceCents / 100).toFixed(2)}`}
+                  {item.developerName ?? "Kebu community"} · {item.priceCents === 0 ? "Free" : formatXof(item.priceCents)}
                 </p>
                 <button
                   type="button"
@@ -160,7 +189,13 @@ export default function StudioAssetMarketplacePage() {
                   className="mt-3 w-full rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-wide text-white disabled:opacity-50"
                   style={{ background: ownedIds.has(item.id) ? KEBU.muted : KEBU.orange }}
                 >
-                  {ownedIds.has(item.id) ? "In your library" : acquiringId === item.id ? "Adding…" : "Add to library"}
+                  {ownedIds.has(item.id)
+                    ? "In your library"
+                    : acquiringId === item.id
+                      ? "Processing…"
+                      : item.priceCents > 0
+                        ? `Buy — ${formatXof(item.priceCents)}`
+                        : "Add to library"}
                 </button>
               </div>
             ))}

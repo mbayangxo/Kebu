@@ -6,7 +6,7 @@ import { acquireCreativeAsset } from "@/lib/studio/creative-assets-marketplace";
 
 export const dynamic = "force-dynamic";
 
-/** Add a free published creative asset to my library — no payment path in this slice. */
+/** Add a published creative asset to my library — free assets unlock immediately, priced ones start a real Joko checkout. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const limited = builderRateLimit(req);
   if (limited) return limited;
@@ -17,8 +17,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if ("error" in auth) return auth.error;
 
   const { id } = await params;
-  const result = await acquireCreativeAsset(auth.supabase, auth.user.id, id);
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+  const result = await acquireCreativeAsset(auth.supabase, { id: auth.user.id, email: auth.user.email }, id, appUrl);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
-  return NextResponse.json({ ok: true, alreadyOwned: result.alreadyOwned, item: result.item });
+  return NextResponse.json({
+    ok: true,
+    alreadyOwned: result.alreadyOwned,
+    item: result.item,
+    paymentUrl: result.paymentUrl,
+    priceLabel: result.priceLabel,
+  });
 }

@@ -346,7 +346,7 @@ export default function StudioAssetSellPage() {
             ) : null}
           </label>
           <p className="rounded-[14px] border px-4 py-3 text-[11px]" style={{ borderColor: KEBU.borders.default, color: KEBU.muted }}>
-            Buying a priced asset isn&apos;t wired up for buyers yet — publishing a price here is real and saved, but checkout for marketplace assets is a separate piece still to come. Free listings work fully today.
+            Buyers pay for a priced asset through a real Joko checkout — the same rail used for template purchases. Your payout is credited once a buyer completes payment and the webhook confirms it.
           </p>
           <button type="submit" disabled={busy || !name.trim() || !fileUrl.trim()} className="min-h-11 rounded-full px-6 text-[10px] font-black uppercase tracking-[.12em] text-white disabled:opacity-40" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>
             {busy ? "Publishing…" : "Publish →"}
