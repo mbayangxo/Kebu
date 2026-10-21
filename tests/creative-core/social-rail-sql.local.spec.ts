@@ -32,6 +32,10 @@ for (const [device, key, width] of [["Desktop", "desktop", 1440], ["Tablet", "ta
     await url.fill("https://soundcloud.com/kebu-isolated-artist");
     await expect.poll(() => authority.transactions.length).toBe(count + 1);
     await expect.poll(() => (effective().socialLinks as Array<{href: string}>)[0]!.href).toBe("https://soundcloud.com/kebu-isolated-artist");
+    await page.getByRole("button", { name: "Move social link 1 down", exact: true }).click();
+    await expect.poll(() => (effective().socialLinks as Array<{href: string}>)[1]!.href).toBe("https://soundcloud.com/kebu-isolated-artist");
+    await page.getByRole("button", { name: "Move social link 2 up", exact: true }).click();
+    await expect.poll(() => (effective().socialLinks as Array<{href: string}>)[0]!.href).toBe("https://soundcloud.com/kebu-isolated-artist");
     await close(); await rail.focus();
     const box = (await rail.boundingBox())!, x = box.x + box.width / 2, y = box.y + box.height / 2;
     const oldLeft = Number(effective().socialRailLeftPct), oldTop = Number(effective().socialRailTopPct), before = authority.transactions.length;
