@@ -1,0 +1,111 @@
+{
+  "runtime": "10906ee18966b22217cddcd1e6c7bacced4f6405",
+  "backendRuntime": "886baa30f4fd12b6f2367ba3bc19f8c77123790c",
+  "recoveryBranch": "work/kebu-completion-audit-oct13",
+  "integrated": true,
+  "followupPaths": [
+    ".github/workflows/studio-selection.yml",
+    "app/components/studio/studio-canvas-editor.tsx",
+    "scripts/verify-studio-local-ui.mjs",
+    "tests/studio/save-export.local.spec.ts"
+  ],
+  "backendBuilderSqlSourceUnchangedInFollowup": true,
+  "gates": {
+    "generation": {
+      "sha": "886baa30f4fd12b6f2367ba3bc19f8c77123790c",
+      "run": 39726303466,
+      "job": 119650873342,
+      "baseline": {
+        "failed": 18,
+        "passed": 6,
+        "skipped": 0
+      },
+      "repaired": 24,
+      "sql": 4,
+      "skipped": 0,
+      "realProvider": false
+    },
+    "ci": {
+      "sha": "10906ee18966b22217cddcd1e6c7bacced4f6405",
+      "run": 39726904444,
+      "job": 119652779235,
+      "passed": 6560,
+      "explicitSkips": 338,
+      "lintErrors": 0,
+      "existingWarnings": 346,
+      "typecheck": true,
+      "build": true
+    },
+    "studio": {
+      "sha": "10906ee18966b22217cddcd1e6c7bacced4f6405",
+      "run": 39726904445,
+      "job": 119652779108,
+      "full": 44,
+      "mandatoryTouchIterations": 3,
+      "touchCasesPerIteration": 2,
+      "skipped": 0,
+      "flaky": 0,
+      "retries": 0,
+      "cleanup": true,
+      "managedHostedAuth": false,
+      "artifact": 12403996515
+    },
+    "platform": {
+      "sha": "10906ee18966b22217cddcd1e6c7bacced4f6405",
+      "run": 39726904413,
+      "job": 119652779170,
+      "sqlSuites": 20,
+      "browser": 21,
+      "skipped": 0
+    },
+    "builder": {
+      "sha": "886baa30f4fd12b6f2367ba3bc19f8c77123790c",
+      "run": 39726303345,
+      "job": 119650872668,
+      "passed": 77,
+      "skipped": 0,
+      "performanceProbes": 9,
+      "cleanup": true
+    },
+    "native": {
+      "sha": "886baa30f4fd12b6f2367ba3bc19f8c77123790c",
+      "run": 39726303361,
+      "job": 119650872646,
+      "unique": 10,
+      "mandatoryIterations": 3,
+      "total": 30,
+      "skipped": 0
+    },
+    "publicPreview": {
+      "sha": "10906ee18966b22217cddcd1e6c7bacced4f6405",
+      "run": 39727065253,
+      "job": 119653294878,
+      "passed": 533,
+      "explicitSkips": 35,
+      "authenticatedAcceptance": false
+    }
+  },
+  "preview": {
+    "id": "dpl_DTFVZfQ4qwZbBR5sYy6UNeCah544",
+    "url": "https://kebu-dbssshi2i-mbayangxos-projects.vercel.app",
+    "state": "READY"
+  },
+  "production": {
+    "sha": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+    "id": "dpl_8XQYFY2rAkDvmUZ1pmdZq8uJHFj2",
+    "promoted": false,
+    "migrationsApplied": false,
+    "dnsChanged": false,
+    "preflightFailed": 4,
+    "preflightChecks": 7
+  },
+  "remaining": [
+    "managed hosted26",
+    "production schema reconciliation",
+    "Builder improvement and native Experience Yande reconciliation",
+    "real provider credentials/output quality",
+    "private paid-file delivery",
+    "full Builder/May/Studio/3J/99 acceptance"
+  ],
+  "fullyComplete": false
+}

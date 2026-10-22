@@ -1,5 +1,13 @@
 # Kebu — Implementation Status
 
+## October 22 — Builder/Studio generation authority reconciled
+
+Runtime **10906ee18966b22217cddcd1e6c7bacced4f6405** is integrated and reread on the authoritative recovery branch. Builder website generation and Studio design/campaign generation use the shared Yande gateway and authenticated session owner. Configured Builder model/thinking/timeout, exact-page validation, one repair attempt and honest503/502 behavior remain. Unfinished/refused/truncated output is rejected. Campaign generation now reserves the same allowance as Studio; both generation routes execute cross-origin checks before auth/quota work. Studio's explicit non-AI editable-engine flags remain honest.
+
+Verified: original generation code **18 failures/6 passes**, repaired **24/24 SDK HTTP/route cases + four actual usage-table SQL cases**, zero skips; full CI **6,560 passes/338 explicit skips**, zero lint errors/346 existing warnings, TypeScript and finalized230-page build; Studio **44 full + six mandatory phone/tablet passes**, zero skips/unexpected/flaky; platform **20 SQL suites/21 browser cases**; public preview **533 passes/35 explicit skips**. Builder77 and native30 passed at886baa30; the follow-up changes only Studio gesture observation/tests/harness, with backend/Builder/SQL source unchanged. Exact source/run attribution: `audits/KEBU_YANDE_GENERATION_2026-10-22.md`.
+
+READY preview: https://kebu-dbssshi2i-mbayangxos-projects.vercel.app. Fresh read-only production Yande preflight **four failures/seven checks**: reservation RPC absent, interaction table absent, and usage write grants not hardened. Existing usage/campaign/history tables have RLS. This does not replace the broader22/37 preflight or certify actual JWT/RLS behavior. **No production migration/DNS/promotion or real provider charge occurred.** Hosted26, real generation quality, private asset delivery, May/Builder/Studio/3J/99 acceptance remain open. Remaining older Yande reconciliation includes Builder improvement and the native Experience gateway; no claim every AI call site is centralized.
+
 ## October 22 — Studio selection reconciled and browser verified
 
 Runtime **8f4225e0a9059d40dca9e0129c4d9b492fa89687** is integrated and reread on the authoritative recovery branch. Marquee selection is reconciled from the older Studio work into the newer editor, preserving resize, direct text, save queues and history. Rotated geometry, visible group members, additive selection, phone/tablet touch, secondary pointers and cancellation are covered. Selection changes do not write the document. Touch resize retains selection and Inspector controls; canceled transforms restore their baseline without a save or history entry.

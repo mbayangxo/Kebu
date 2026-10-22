@@ -1,5 +1,45 @@
 # Kebu completion queue — October 11, 2026 UTC
 
+## October 22 — Builder/Studio generation authority reconciled
+
+Runtime **10906ee18966b22217cddcd1e6c7bacced4f6405** is integrated and reread on the authoritative recovery branch. Builder website generation and Studio design/campaign generation use the shared Yande gateway and authenticated session owner. Configured Builder model/thinking/timeout, exact-page validation, one repair attempt and honest503/502 behavior remain. Unfinished/refused/truncated output is rejected. Campaign generation now reserves the same allowance as Studio; both generation routes execute cross-origin checks before auth/quota work. Studio's explicit non-AI editable-engine flags remain honest.
+
+Verified: original generation code **18 failures/6 passes**, repaired **24/24 SDK HTTP/route cases + four actual usage-table SQL cases**, zero skips; full CI **6,560 passes/338 explicit skips**, zero lint errors/346 existing warnings, TypeScript and finalized230-page build; Studio **44 full + six mandatory phone/tablet passes**, zero skips/unexpected/flaky; platform **20 SQL suites/21 browser cases**; public preview **533 passes/35 explicit skips**. Builder77 and native30 passed at886baa30; the follow-up changes only Studio gesture observation/tests/harness, with backend/Builder/SQL source unchanged. Exact source/run attribution: `audits/KEBU_YANDE_GENERATION_2026-10-22.md`.
+
+READY preview: https://kebu-dbssshi2i-mbayangxos-projects.vercel.app. Fresh read-only production Yande preflight **four failures/seven checks**: reservation RPC absent, interaction table absent, and usage write grants not hardened. Existing usage/campaign/history tables have RLS. This does not replace the broader22/37 preflight or certify actual JWT/RLS behavior. **No production migration/DNS/promotion or real provider charge occurred.** Hosted26, real generation quality, private asset delivery, May/Builder/Studio/3J/99 acceptance remain open. Remaining older Yande reconciliation includes Builder improvement and the native Experience gateway; no claim every AI call site is centralized.
+
+### Creative OS acceptance register — October 22
+
+All25 groups remain **partial/open**. The recorded isolated browser and SQL evidence does not certify ordinary signed-in hosted users. Current evidence is in the Studio selection and Yande generation audits above; prior broad source inventories are not completion proof.
+
+| Group | Verified bounded evidence | Remaining acceptance |
+| --- | --- | --- |
+| COS01 | Selected image/text transforms, history, save/reopen/export in actual Studio tests | Every supported object and equivalent inspector/keyboard operations |
+| COS02 | Ordinary Builder collage controls and retained document adapters | Full May reference reproduction through ordinary tools |
+| COS03 | Builder measured frame/fit/crop development gate | All Studio frame hit bounds, background removal, hosted preservation |
+| COS04 | Eight handles; ratio/center; exact fields; phone/tablet gestures and reopening | Every transformed/grouped object and hosted responsive acceptance |
+| COS05 | Direct text, IME, caret, whitespace and decoded export tests | Rich inline styling and complete hosted text workflow |
+| COS06 | Existing guide/distribution source and focused geometry tests | Full transformed multi-object snapping/distribution browser journey |
+| COS07 | Marquee, additive selection, visible group expansion, cancel/secondary-pointer cases | Nested groups, hierarchy/reorder and full group transforms |
+| COS08 | Motion/timeline source and bounded export tests | All website triggers/presets/easing/reduced-motion persistence/export |
+| COS09 | Real decoded WebM and timeline history | Complete multi-track editing, captions, transitions and all error paths |
+| COS10 | Decoded audible samples; missing-audio refusal | Real uploads/library, trim/loop/fades/detach/beat/waveform end to end |
+| COS11 | Existing page/scene controls and history paths | Complete reorder/rename/copy-style/delete/restore output order |
+| COS12 | Existing editable Elements/source catalog | Full searchable catalog insertion, including tables/charts and assets |
+| COS13 | Existing asset/library/marketplace paths | Real storage, retries, folders/tags/favorites and multi-user sharing |
+| COS14 | Brand DNA schema/campaign tests | Apply/restyle/logo actions with undo, owner/team checks and reopen |
+| COS15 | Actual SDK/loopback transport; editable Studio canvases; honest fallback flags | Real provider quality/failure UX and subsequent hosted editing/export |
+| COS16 | IndexedDB, offline edits, reconnect and storage-error browser cases | Queued real uploads, full user isolation and hosted conflicts |
+| COS17 | Serialized saves, receipts, dirty state, malformed/slow/conflict cases | Managed hosted persistence/session acceptance |
+| COS18 | One-gesture transforms, text and composition undo/redo tests | All crop/animation/add/delete/reorder/page/style actions |
+| COS19 | Named capture, delayed restore protection and restore failures | Actual immutable hosted versions and cross-user permissions |
+| COS20 | Viewer restriction and failed-invite honesty tests | Two real sessions, live comments/cursors, concurrent edits and recovery |
+| COS21 | Phone/tablet touch, contrast, keyboard handles and IME | Complete tab order, assistive semantics and product-wide responsive audit |
+| COS22 | Existing Builder performance probes remain passing | Large-document Studio measurements, virtualization/workers/device limits |
+| COS23 | Decoded PNG/PDF/ZIP/WebM, supplied images/fonts/audio, missing-media failures | All supported formats, transparent/quality settings and durable job lifecycle |
+| COS24 | Template source boundary SQL/REST and editable document model | Full author/publish/purchase/use journey, licensing/private file delivery |
+| COS25 | Real isolated editor journeys;44 full cases plus6 touch repeats | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
+
 ## October 22 — Studio selection reconciled and browser verified
 
 Runtime **8f4225e0a9059d40dca9e0129c4d9b492fa89687** is integrated and reread on the authoritative recovery branch. Marquee selection is reconciled from the older Studio work into the newer editor, preserving resize, direct text, save queues and history. Rotated geometry, visible group members, additive selection, phone/tablet touch, secondary pointers and cancellation are covered. Selection changes do not write the document. Touch resize retains selection and Inspector controls; canceled transforms restore their baseline without a save or history entry.
