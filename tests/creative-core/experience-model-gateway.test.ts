@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ create: vi.fn(), options: vi.fn() }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/opportunity/admin", () => ({ createServiceClient: () => null }));
 vi.mock("@anthropic-ai/sdk", () => ({ default: class { constructor(options: unknown) { mocks.options(options); } messages = { create: mocks.create }; } }));
 import { requestExperienceModel } from "@/lib/create/experience-model-gateway";
 import { referenceAnalysisSchema } from "@/lib/create/experience-engine";

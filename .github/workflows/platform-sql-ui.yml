@@ -3,7 +3,7 @@ name: Platform SQL and browser
 on:
   workflow_dispatch:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-yande-reconcile-oct22", "work/codex-platform-verification-oct20", "work/codex-liguey-retry-oct20", "work/codex-frame-geometry-oct21", "work/codex-object-reset-oct21", "work/codex-marketplace-boundary-oct21", "work/codex-social-rail-oct21", "work/codex-hosted-release-oct21", "work/codex-hosted-auth-gate-oct21", "work/codex-builder-frame-verified-oct21", "work/codex-wave-verification-oct21", "work/codex-template-source-oct21"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-yande-experience-oct22", "work/codex-yande-reconcile-oct22", "work/codex-platform-verification-oct20", "work/codex-liguey-retry-oct20", "work/codex-frame-geometry-oct21", "work/codex-object-reset-oct21", "work/codex-marketplace-boundary-oct21", "work/codex-social-rail-oct21", "work/codex-hosted-release-oct21", "work/codex-hosted-auth-gate-oct21", "work/codex-builder-frame-verified-oct21", "work/codex-wave-verification-oct21", "work/codex-template-source-oct21"]
     paths:
       - "app/**"
       - "lib/**"

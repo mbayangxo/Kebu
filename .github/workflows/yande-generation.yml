@@ -3,8 +3,8 @@ name: Yande generation transport and authority
 on:
   workflow_dispatch:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-yande-reconcile-oct22"]
-    paths: ["app/api/studio/**", "app/api/projects/create-website/**", "lib/yande/**", "lib/studio/ai-generate.ts", "lib/studio/campaign-project.ts", "lib/create/ai-generate.ts", "tests/yande/**", "tests/studio/generation-authority.test.ts", "package*.json", ".github/workflows/yande-generation.yml"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-yande-experience-oct22", "work/codex-yande-reconcile-oct22"]
+    paths: ["app/api/studio/**", "app/api/projects/**", "lib/yande/**", "lib/studio/ai-generate.ts", "lib/studio/campaign-project.ts", "lib/create/ai-generate.ts", "lib/create/ai-improve.ts", "lib/create/ai-improve-route.ts", "lib/create/experience-model-gateway.ts", "lib/create/website-media-policy.ts", "tests/create/ai-improve-authority.test.ts", "tests/creative-core/experience-engine-api.integration.test.ts", "tests/creative-core/experience-model-gateway.test.ts", "tests/yande/**", "tests/studio/generation-authority.test.ts", "package*.json", ".github/workflows/yande-generation.yml"]
 
 permissions:
   contents: read
@@ -48,6 +48,32 @@ jobs:
           assert(failures.some(t=>t.title.includes('records its authenticated owner')));
           console.log('Original transport, quota and origin regressions reproduced:18 failures/6 passes.');
           NODE
+      - name: Prove original proposal logging, media and preview-authority failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          original="$RUNNER_TEMP/kebu-proposal-original"
+          git worktree add --detach "$original" eb1785edffaf65c1e14ea273be2b7195f2b2ad99
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$original/node_modules"
+          cp tests/yande/proposal-transport.test.ts "$original/tests/yande/proposal-transport.test.ts"
+          cp tests/create/ai-improve-authority.test.ts "$original/tests/create/ai-improve-authority.test.ts"
+          cp tests/creative-core/experience-engine-api.integration.test.ts "$original/tests/creative-core/experience-engine-api.integration.test.ts"
+          set +e
+          (cd "$original" && node "$GITHUB_WORKSPACE/node_modules/vitest/vitest.mjs" run tests/yande/proposal-transport.test.ts tests/create/ai-improve-authority.test.ts tests/creative-core/experience-engine-api.integration.test.ts --reporter=default --reporter=json --outputFile="$RUNNER_TEMP/proposal-before.json")
+          result=$?
+          set -e
+          test "$result" -ne 0
+          node --input-type=module - "$RUNNER_TEMP/proposal-before.json" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const r=JSON.parse(readFileSync(process.argv[2],'utf8'));
+          assert.equal(r.numTotalTests,50);assert.equal(r.numFailedTests,32);assert.equal(r.numPassedTests,18);assert.equal(r.numPendingTests,0);
+          const failures=r.testResults.flatMap(s=>s.assertionResults).filter(t=>t.status==='failed');
+          assert(failures.some(t=>t.title.includes('unapproved photograph substitution')));
+          assert(failures.some(t=>t.title.includes('preserves forced submit_proposal')));
+          assert.equal(failures.filter(t=>t.title.includes('cross-origin')).length,3);
+          console.log('Original proposal regressions reproduced:32 failures/18 passes.');
+          NODE
       - name: Verify repaired SDK HTTP transport and authenticated route authority
         run: |
           npx vitest run tests/yande/generation-transport.test.ts tests/studio/generation-authority.test.ts --reporter=default --reporter=json --outputFile="$RUNNER_TEMP/yande-after.json"
@@ -56,6 +82,15 @@ jobs:
           import assert from 'node:assert/strict';
           const report=JSON.parse(readFileSync(process.argv[2],'utf8'));
           assert.equal(report.numTotalTests,24);assert.equal(report.numPassedTests,24);assert.equal(report.numFailedTests,0);assert.equal(report.numPendingTests,0);
+          NODE
+      - name: Verify repaired improvement and native proposal contracts
+        run: |
+          npx vitest run tests/yande/proposal-transport.test.ts tests/create/ai-improve-authority.test.ts tests/creative-core/experience-engine-api.integration.test.ts tests/creative-core/experience-model-gateway.test.ts --reporter=default --reporter=json --outputFile="$RUNNER_TEMP/proposal-after.json"
+          node --input-type=module - "$RUNNER_TEMP/proposal-after.json" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const r=JSON.parse(readFileSync(process.argv[2],'utf8'));
+          assert.equal(r.numTotalTests,54);assert.equal(r.numPassedTests,54);assert.equal(r.numFailedTests,0);assert.equal(r.numPendingTests,0);
           NODE
       - name: Install isolated SQL runtime
         run: npm install --prefix "$RUNNER_TEMP/kebu-yande-runtime" --ignore-scripts --no-save --package-lock=false @electric-sql/pglite@0.5.10
@@ -80,3 +115,5 @@ jobs:
             ${{ runner.temp }}/yande-before.json
             ${{ runner.temp }}/yande-after.json
             ${{ runner.temp }}/yande-sql.json
+            ${{ runner.temp }}/proposal-before.json
+            ${{ runner.temp }}/proposal-after.json

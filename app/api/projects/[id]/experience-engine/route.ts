@@ -82,11 +82,11 @@ export async function POST(req: Request, { params }: Params) {
     const common = { id: proposalId, projectId: id, createdAt: new Date().toISOString() };
     let proposal: ExperienceProposal;
     if (input.kind === "reference") {
-      const result = await requestExperienceModel(referenceAnalysisSchema, REFERENCE_ANALYSIS_INSTRUCTION, modelData, req.signal);
+      const result = await requestExperienceModel(referenceAnalysisSchema, REFERENCE_ANALYSIS_INSTRUCTION, modelData, req.signal, gate.user.id);
       proposal = { ...common, kind: "reference", model: result.model, usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens }, label: input.label, excerpt: input.excerpt, analysis: validateReferenceAnalysis(result.output, input.excerpt) };
     } else {
       const current = context!;
-      const result = await requestExperienceModel(sitePlanSchema, SITE_PLAN_INSTRUCTION, modelData, req.signal);
+      const result = await requestExperienceModel(sitePlanSchema, SITE_PLAN_INSTRUCTION, modelData, req.signal, gate.user.id);
       const fresh = await loadExperienceContext(gate.supabase, id, gate.user.id);
       if (!sameSource(current.source, fresh.source)) return NextResponse.json({ error: "Site or direction changed while generating. Generate a fresh plan." }, { status: 409 });
       if (input.scope.kind === "site" && JSON.stringify(result.output.pages.map(page => page.slug)) !== JSON.stringify(current.record.dna!.pages.map(page => page.slug))) throw new Error("The proposal omitted or reordered desired pages");

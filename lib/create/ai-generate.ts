@@ -5,6 +5,7 @@ import {
   themeSchema,
 } from "./website-schema";
 import { TEMPLATE_SEEDS } from "./templates-seed";
+import { usesOnlyApprovedWebsiteMedia } from "./website-media-policy";
 
 function slugify(input: string): string {
   return input
@@ -321,6 +322,7 @@ Language: ${brief.locale}
 Description / creative brief: ${brief.description}
 Desired pages (build ALL of these fully): ${expanded.desiredPages.join(", ")}
 Visual direction: ${brief.visualDirection ?? "editorial magazine feel — not a generic Shopify starter"}
+Approved media URLs (use only these exact values; omit media when empty): ${JSON.stringify(brief.photoUrls ?? [])}
 
 JSON structure:
 {
@@ -373,6 +375,9 @@ Remember: NEVER use generic placeholder colors or text. Every section must be de
     if (!result.ok) return result;
     const missing = expanded.desiredPages.filter((slug) => !result.data.pages.some((page) => page.slug === slug));
     if (missing.length) return { ok: false as const, error: `Missing requested pages: ${missing.join(", ")}`, issues: [] };
+    if (!usesOnlyApprovedWebsiteMedia(result.data, new Set(brief.photoUrls ?? []))) {
+      return { ok: false as const, error: "Use only the supplied approved media URLs. Omit media if none were supplied.", issues: [] };
+    }
     return result;
   }
 

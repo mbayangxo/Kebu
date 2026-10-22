@@ -36,6 +36,7 @@ describe("Experience engine owner API", () => {
   });
   it("reserves before the provider and saves exact source provenance/actual usage", async () => {
     const result = await POST(request({ kind: "reference", label: "Source", excerpt: "Work for artists" }), params); expect(result.status).toBe(200); expect(m.calls).toEqual(["reserve", "model"]); const payload = (await result.json()).proposal; expect(payload).toMatchObject({ label: "Source", excerpt: "Work for artists", analysis, usage: { inputTokens: 10, outputTokens: 12 } }); expect(m.insert.mock.calls[0][0].payload).toEqual(payload);
+    expect(m.model.mock.calls[0][4]).toBe(uuidFor(11));
   });
   it("refuses invented evidence/provider failure/storage failure without a native write or diagnostic leak", async () => {
     for (const failure of ["evidence", "provider", "storage"]) {
@@ -51,6 +52,7 @@ describe("Experience engine owner API", () => {
   it("compiles a native plan with exact proposal identity and refuses changed source", async () => {
     m.model.mockResolvedValue({ output: { version: 1, summary: "Editorial intro", warnings: [], pages: [{ slug: "home", title: "Home", purpose: "Introduce", nodes: [{ type: "section", parent: null, rationale: "Clear root", props: {} }, { type: "text", parent: 0, rationale: "Opening", props: { text: "Work", variant: "heading" }, a11y: { headingLevel: 1 } }] }] }, model: "controlled-model", inputTokens: 10, outputTokens: 12 });
     const input = { kind: "plan", scope: { kind: "page", pageId: PAGE_A, replace: false }, analysisIds: [] }; const result = await POST(request(input), params); expect(result.status).toBe(200); const payload = (await result.json()).proposal; expect(payload.transaction.txId).toBe(payload.id); expect(payload.transaction.origin).toBe("ai");
+    expect(m.model.mock.calls[0][4]).toBe(uuidFor(11));
     m.context.mockResolvedValueOnce(context()).mockResolvedValueOnce({ ...context(), source: { ...context().source, dnaRevision: 2 } }); expect((await POST(request(input), params)).status).toBe(409);
   });
   it("refuses invalid scope before reserving and missing selected references before calling provider", async () => {

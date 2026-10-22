@@ -135,6 +135,8 @@ export async function yandeStructured<T extends z.ZodType>(opts: {
   data: unknown;
   maxTokens?: number;
   signal?: AbortSignal;
+  /** Preserve the native reviewable-proposal protocol when using this gateway. */
+  toolName?: "submit_result" | "submit_proposal";
 }): Promise<YandeStructuredResult<z.output<T>>> {
   if (!yandeConfigured()) throw new Error("Yande is not configured on this server yet (missing AI key).");
   assertInputSize(opts.data);
@@ -146,6 +148,9 @@ export async function yandeStructured<T extends z.ZodType>(opts: {
     ...(process.env.ANTHROPIC_BASE_URL ? { baseURL: process.env.ANTHROPIC_BASE_URL } : {}),
   });
   const system = `${YANDE_IDENTITY}\n\n${opts.systemPrompt}`;
+  const toolName = opts.toolName ?? "submit_result";
+  let inputTokens = 0;
+  let outputTokens = 0;
 
   try {
     const response = await client.messages.create({
@@ -154,16 +159,18 @@ export async function yandeStructured<T extends z.ZodType>(opts: {
       system,
       messages: [{ role: "user", content: `DATA\n${JSON.stringify(opts.data)}` }],
       tools: [{
-        name: "submit_result",
+        name: toolName,
         description: "Return the result without executing any change.",
         input_schema: z.toJSONSchema(opts.schema) as Anthropic.Tool.InputSchema,
       }],
-      tool_choice: { type: "tool", name: "submit_result" },
+      tool_choice: { type: "tool", name: toolName },
     }, { signal: opts.signal });
+    inputTokens = response.usage.input_tokens;
+    outputTokens = response.usage.output_tokens;
 
     if (response.stop_reason !== "tool_use") throw new Error("Yande did not complete a structured result.");
     const blocks = response.content.filter((block) => block.type === "tool_use");
-    if (blocks.length !== 1 || blocks[0].name !== "submit_result" || new TextEncoder().encode(JSON.stringify(blocks[0].input)).length > MAX_STRUCTURED_OUTPUT_BYTES) {
+    if (blocks.length !== 1 || blocks[0].name !== toolName || new TextEncoder().encode(JSON.stringify(blocks[0].input)).length > MAX_STRUCTURED_OUTPUT_BYTES) {
       throw new Error("Yande's response was incompatible.");
     }
     const output = opts.schema.parse(blocks[0].input);
@@ -174,7 +181,7 @@ export async function yandeStructured<T extends z.ZodType>(opts: {
     return { output, model: response.model, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Yande request failed.";
-    await recordInteraction({ feature: opts.feature, mode: "structured", userId: opts.userId, model: YANDE_MODEL, outcome: "error", inputTokens: 0, outputTokens: 0, errorMessage: message });
+    await recordInteraction({ feature: opts.feature, mode: "structured", userId: opts.userId, model: YANDE_MODEL, outcome: "error", inputTokens, outputTokens, errorMessage: message });
     throw new Error(message);
   }
 }
