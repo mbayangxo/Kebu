@@ -1,5 +1,13 @@
 # Kebu completion queue — October 11, 2026 UTC
 
+## October 22 — Studio selection reconciled and browser verified
+
+Runtime **8f4225e0a9059d40dca9e0129c4d9b492fa89687** is integrated and reread on the authoritative recovery branch. Marquee selection is reconciled from the older Studio work into the newer editor, preserving resize, direct text, save queues and history. Rotated geometry, visible group members, additive selection, phone/tablet touch, secondary pointers and cancellation are covered. Selection changes do not write the document. Touch resize retains selection and Inspector controls; canceled transforms restore their baseline without a save or history entry.
+
+Exact-source gates passed: **44 actual Studio browser cases**, zero skips/unexpected/flaky, with the original selection failure separately reproduced; full CI **6,536 passes / 338 explicit skips**, TypeScript, zero lint errors / 347 existing warnings and finalized 230-page build; hosted public **533 passes / 35 explicit skips**. READY preview: https://kebu-3f6qrxx6n-mbayangxos-projects.vercel.app. Desktop, phone and tablet screenshots were inspected. See `audits/KEBU_STUDIO_SELECTION_2026-10-22.md` and its evidence.
+
+**Limits:** Studio browser tests run the real application with explicitly isolated Auth/API fixtures, not managed hosted Auth/RLS. The signed-in hosted26 gate, production schema reconciliation and promotion, full Studio/Builder/May/3J/99-group acceptance remain open. No production migration, DNS, provider charge or paid setup occurred. Claude's Mail/fonts and phases3C–3I are preserved. Shared-Yande call-site reconciliation is the next source review; missing historical work must be adapted without losing newer validation and honest error paths.
+
 ## October 22 — developer template source boundary verified
 
 Runtime **5be2e0379be5bf8dc9101055038a54f6abf54d06** is integrated and reread on the authoritative recovery branch. Published store/developer queries now return metadata only. Column grants block direct definition reads, whole-row projections and source-filter inference; unpaid library snapshots are hidden. Trusted server checkout still snapshots the purchased source, and verified Wave settlement exposes the unchanged owned snapshot once. Anonymous metadata works without developer-profile grants. Creator uploads/publication and personal source uploads pass actual Data API verification.
