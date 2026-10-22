@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { loadActiveWorkspaceScope } from "@/lib/account/server-workspace";
+import { assertAiGenerationAllowance } from "@/lib/billing/ai-metering";
 import {
   BRAND_DNA_SELECT,
   rowToBrandDna,
@@ -21,6 +23,8 @@ type Params = { params: Promise<{ id: string }> };
  * Persists designs and links them on the campaign project.
  */
 export async function POST(_req: Request, { params }: Params) {
+  const originError = assertSameOriginMutation(_req);
+  if (originError) return originError;
   const limited = builderRateLimit(_req);
   if (limited) return limited;
 
@@ -64,7 +68,12 @@ export async function POST(_req: Request, { params }: Params) {
     if (kit) dna = rowToBrandDna(kit as Record<string, unknown>);
   }
 
-  const pack = await generateCampaignDesignPack({ campaign, dna });
+  const meter = await assertAiGenerationAllowance(supabase, user.id,
+    process.env.ANTHROPIC_API_KEY?.trim() ? { action: "studio_generate" } : undefined);
+  if (!meter.ok) {
+    return NextResponse.json({ error: meter.error, upgradeHint: meter.upgradeHint }, { status: meter.status });
+  }
+  const pack = await generateCampaignDesignPack({ campaign, dna, userId: user.id });
   const createdIds: string[] = [];
   const designsOut: { id: string; title: string; design_type: string }[] = [];
 

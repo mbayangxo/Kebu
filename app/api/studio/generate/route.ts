@@ -42,6 +42,8 @@ export async function GET() {
  * Studio S4: prompt → AI (or honest fallback) → create_designs rows → history run.
  */
 export async function POST(req: NextRequest) {
+  const originError = assertSameOriginMutation(req);
+  if (originError) return originError;
   const limited = aiRateLimit(req);
   if (limited) return limited;
 
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
   }
 
   const meter = await assertAiGenerationAllowance(supabase, user.id,
-    process.env.ANTHROPIC_API_KEY ? { action: "studio_generate" } : undefined);
+    process.env.ANTHROPIC_API_KEY?.trim() ? { action: "studio_generate" } : undefined);
   if (!meter.ok) {
     return NextResponse.json(
       {
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const generated = await generateStudioCampaignWithAi(parsed.data);
+  const generated = await generateStudioCampaignWithAi(parsed.data, user.id);
   if (!generated.ok) {
     return NextResponse.json({ error: `${generated.error}${process.env.ANTHROPIC_API_KEY ? " One AI attempt was reserved; retrying may use another allowance." : ""}` }, { status: 400 });
   }

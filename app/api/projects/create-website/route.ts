@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const ai = await generateWebsiteWithAi(brief);
+    const ai = await generateWebsiteWithAi(brief, user.id);
     if (!ai.ok) {
       return NextResponse.json({ error: `${ai.error} One AI attempt was reserved; retrying may use another allowance.`, code: ai.code }, { status: ai.status });
     }

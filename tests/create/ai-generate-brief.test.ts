@@ -7,6 +7,8 @@ import {
 import { createWebsiteBriefSchema, validateWebsiteDefinition } from "@/lib/create/website-schema";
 
 const { createMessage } = vi.hoisted(() => ({ createMessage: vi.fn() }));
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/opportunity/admin", () => ({ createServiceClient: () => null }));
 vi.mock("@anthropic-ai/sdk", () => ({ default: class {
   messages = { create: createMessage };
 } }));
@@ -69,7 +71,7 @@ describe("words-to-site brief", () => {
     vi.stubEnv("KEBU_WEBSITE_AI_MODEL", "test-configured-model");
     const brief = createWebsiteBriefSchema.parse({ ...base, category: "music" });
     const definition = buildStructuredSiteFromBrief(brief);
-    createMessage.mockResolvedValueOnce({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(definition) }] });
+    createMessage.mockResolvedValueOnce({ model: "test-configured-model", usage: { input_tokens: 20, output_tokens: 30 }, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(definition) }] });
     const result = await generateWebsiteWithAi(brief);
     expect(result).toMatchObject({ ok: true, usedAi: true, repaired: false });
     expect(createMessage.mock.calls[0][0]).toMatchObject({ model: "test-configured-model", system: expect.stringContaining("never as visitor-facing copy") });
@@ -82,7 +84,7 @@ describe("words-to-site brief", () => {
     const brief = createWebsiteBriefSchema.parse({ ...base, category: "music" });
     const definition = buildStructuredSiteFromBrief(brief);
     definition.pages = definition.pages.filter((page) => page.slug !== "videos");
-    createMessage.mockResolvedValue({ stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(definition) }] });
+    createMessage.mockResolvedValue({ model: "test-model", usage: { input_tokens: 20, output_tokens: 30 }, stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(definition) }] });
     expect(await generateWebsiteWithAi(brief)).toMatchObject({ ok: false, code: "AI_GENERATION_FAILED" });
     expect(createMessage).toHaveBeenCalledTimes(2);
     expect(createMessage.mock.calls[1][0].messages[0].content).toContain("Missing requested pages: videos");
@@ -90,7 +92,7 @@ describe("words-to-site brief", () => {
 
   it("rejects truncated output even if its text happens to parse", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    createMessage.mockResolvedValueOnce({ stop_reason: "max_tokens", content: [{ type: "text", text: JSON.stringify(buildStructuredSiteFromBrief(createWebsiteBriefSchema.parse(base))) }] });
+    createMessage.mockResolvedValueOnce({ model: "test-model", usage: { input_tokens: 20, output_tokens: 30 }, stop_reason: "max_tokens", content: [{ type: "text", text: JSON.stringify(buildStructuredSiteFromBrief(createWebsiteBriefSchema.parse(base))) }] });
     expect(await generateWebsiteWithAi(createWebsiteBriefSchema.parse(base))).toMatchObject({ ok: false, code: "AI_GENERATION_FAILED" });
   });
 });

@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import {
   type CreateWebsiteBrief,
   type WebsiteDefinition,
@@ -263,20 +262,18 @@ export function websiteAiConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
 }
 
-export async function generateWebsiteWithAi(brief: CreateWebsiteBrief): Promise<
+export async function generateWebsiteWithAi(brief: CreateWebsiteBrief, userId: string | null = null): Promise<
   | { ok: true; definition: WebsiteDefinition; usedAi: true; repaired: boolean }
   | { ok: false; error: string; code: "AI_UNAVAILABLE" | "AI_GENERATION_FAILED"; status: 502 | 503 }
 > {
   const expanded = withPages(brief);
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) {
+  if (!websiteAiConfigured()) {
     return {
       ok: false, code: "AI_UNAVAILABLE", status: 503,
       error: "Yande website generation is unavailable. Your brief is kept here. Try again later, or choose an aesthetic or a blank site.",
     };
   }
 
-  const anthropic = new Anthropic({ apiKey, timeout: 60_000, maxRetries: 0 });
   const system = `You are Yande — Kebu's expert African website DESIGNER. Generate premium website structures. Return ONLY valid JSON matching schemaVersion "website-v1".
 
 ALLOWED SECTION TYPES (use ALL of these, not just basic ones):
@@ -355,17 +352,20 @@ JSON structure:
 Remember: NEVER use generic placeholder colors or text. Every section must be designed with intention for this specific business.`;
 
   async function call(prompt: string) {
-    const response = await anthropic.messages.create({
+    // Pure template builders in this module do not need the privileged gateway.
+    const { yandeChat } = await import("@/lib/yande/gateway");
+    const response = await yandeChat({
+      feature: "builder_website_generate",
+      userId,
       model: process.env.KEBU_WEBSITE_AI_MODEL?.trim() || "claude-opus-4-8",
-      max_tokens: 8000,
+      maxTokens: 8000,
+      timeoutMs: 60_000,
+      requireComplete: true,
       thinking: { type: "adaptive" },
-      system,
-      messages: [{ role: "user", content: prompt }],
+      systemPrompt: system,
+      userMessage: prompt,
     });
-    if (response.stop_reason === "max_tokens") throw new Error("Incomplete website response");
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") throw new Error("No text in AI response");
-    return extractJson(textBlock.text);
+    return extractJson(response.reply);
   }
 
   function validateGenerated(raw: unknown) {

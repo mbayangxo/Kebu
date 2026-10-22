@@ -43,6 +43,7 @@ describe("website creation generation boundary", () => {
     expect(response.status).toBe(201); expect(await response.json()).toMatchObject({ usedAi: true, usedFallback: false });
     expect(h.persist.mock.calls[0][0].definition.pages.map((page: {slug: string}) => page.slug)).toEqual(brief.desiredPages);
     expect(h.persist.mock.calls[0][0].meta.source).toBe("ai");
+    expect(h.generate).toHaveBeenCalledWith(brief, "owner");
   });
   it("keeps explicit blank creation available without AI or AI metering", async () => {
     h.configured.mockReturnValue(false);

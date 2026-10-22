@@ -3,7 +3,7 @@ name: Studio selection browser
 on:
   workflow_dispatch:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-studio-marquee-oct22"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-yande-reconcile-oct22", "work/codex-studio-marquee-oct22"]
     paths: ["app/**", "lib/**", "tests/**", "scripts/verify-studio-local-ui.mjs", "package*.json", ".github/workflows/studio-selection.yml"]
 
 permissions:

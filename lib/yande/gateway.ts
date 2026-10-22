@@ -70,29 +70,43 @@ export async function yandeChat(opts: {
   systemPrompt: string;
   userMessage: string;
   maxTokens?: number;
+  model?: string;
+  thinking?: Anthropic.ThinkingConfigParam;
+  timeoutMs?: number;
+  /** Generators must not accept truncated, refused or unfinished text as a finished asset. */
+  requireComplete?: boolean;
 }): Promise<YandeChatResult> {
   if (!yandeConfigured()) throw new Error("Yande is not configured on this server yet (missing AI key).");
+  const model = opts.model?.trim() || YANDE_MODEL;
 
   const client = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
-    timeout: 45_000,
+    timeout: opts.timeoutMs ?? 45_000,
     maxRetries: 0,
     ...(process.env.ANTHROPIC_BASE_URL ? { baseURL: process.env.ANTHROPIC_BASE_URL } : {}),
   });
   const system = `${YANDE_IDENTITY}\n\n${opts.systemPrompt}`;
+  let inputTokens = 0;
+  let outputTokens = 0;
 
   try {
     const response = await client.messages.create({
-      model: YANDE_MODEL,
+      model,
       max_tokens: opts.maxTokens ?? 1024,
+      ...(opts.thinking ? { thinking: opts.thinking } : {}),
       system,
       messages: [{ role: "user", content: opts.userMessage }],
     });
+    inputTokens = response.usage.input_tokens;
+    outputTokens = response.usage.output_tokens;
     const reply = response.content
       .filter((block) => block.type === "text")
       .map((block) => (block.type === "text" ? block.text : ""))
       .join("\n")
       .trim();
+    if (opts.requireComplete && (response.stop_reason !== "end_turn" || !reply)) {
+      throw new Error("Yande did not complete a generation result.");
+    }
     await recordInteraction({
       feature: opts.feature, mode: "chat", userId: opts.userId, model: response.model,
       outcome: "ok", inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens,
@@ -100,7 +114,7 @@ export async function yandeChat(opts: {
     return { reply, model: response.model, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Yande request failed.";
-    await recordInteraction({ feature: opts.feature, mode: "chat", userId: opts.userId, model: YANDE_MODEL, outcome: "error", inputTokens: 0, outputTokens: 0, errorMessage: message });
+    await recordInteraction({ feature: opts.feature, mode: "chat", userId: opts.userId, model, outcome: "error", inputTokens, outputTokens, errorMessage: message });
     throw new Error(message);
   }
 }
