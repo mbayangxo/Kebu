@@ -54,6 +54,21 @@ jobs:
           assert(!errors.includes('executable doesn'));
           console.log(JSON.stringify({originalMarqueeFailureReproduced:true,unexpected:1,skipped:0}));
           NODE
+      - name: Require three independent phone and tablet touch passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          for iteration in 1 2 3; do
+            export KEBU_STUDIO_UI_OUTPUT_DIR="$RUNNER_TEMP/studio-touch-$iteration"
+            KEBU_STUDIO_UI_GREP='touch transforms at' node scripts/verify-studio-local-ui.mjs
+            node --input-type=module - "$KEBU_STUDIO_UI_OUTPUT_DIR/results.json" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const r=JSON.parse(readFileSync(process.argv[2],'utf8'));
+          assert.equal(r.stats.expected,2);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
+          NODE
+          done
       - name: Verify actual Studio selection, editing, drafts, history and decoded exports
         shell: bash
         run: |
@@ -75,6 +90,7 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
           path: |
+            ${{ runner.temp }}/studio-touch-*
             ${{ runner.temp }}/studio-marquee-before
             ${{ runner.temp }}/studio-marquee-after
 

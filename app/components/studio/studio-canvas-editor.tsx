@@ -1096,6 +1096,7 @@ export function StudioCanvasEditor({
         {/* Center canvas */}
         <div
           ref={boardRef}
+          data-studio-gesture={drag ? "transform" : pan ? "pan" : marquee ? "selection" : undefined}
           onDragOver={(e)=>{if(e.dataTransfer.types.includes("application/x-kebu-studio-asset")){e.preventDefault();e.dataTransfer.dropEffect="copy"}}}
           onDrop={(e)=>{const raw=e.dataTransfer.getData("application/x-kebu-studio-asset");if(!raw)return;e.preventDefault();try{const a=JSON.parse(raw) as {id?:string;kind:string;url:string;file_name?:string;width?:number|null;height?:number|null};if(a.kind==="image"||a.kind==="video")placeDroppedAsset({id:a.id,kind:a.kind,url:a.url,name:a.file_name,width:a.width,height:a.height},e.clientX,e.clientY)}catch{setUploadError("That asset could not be placed.")}}}
           className={`min-w-0 flex-1 overflow-hidden bg-[#EEEDEA] p-3 sm:p-6 flex justify-center items-start relative ${

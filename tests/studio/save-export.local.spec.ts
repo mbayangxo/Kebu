@@ -642,22 +642,34 @@ for (const width of [390, 834]) test.describe(`touch transforms at ${width}px`, 
     await page.evaluate(() => {
       const events: string[] = [];
       (window as Window & { touchManipulationEvents?: string[] }).touchManipulationEvents = events;
-      for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) document.addEventListener(type, event => {
+      for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel", "click"]) document.addEventListener(type, event => {
         const target = event.target as HTMLElement, pointer = event as PointerEvent;
-        events.push(`${type}:${target.closest("button")?.getAttribute("aria-label")}:${pointer.clientX}:${target.closest<HTMLElement>("[data-studio-layer-id]")?.style.width}`);
+        const button = target.closest("button");
+        events.push(`${type}:${button?.getAttribute("aria-label") ?? button?.textContent}:${pointer.clientX}:${target.closest<HTMLElement>("[data-studio-layer-id]")?.style.width}`);
       }, { capture: true });
     });
     await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    const board = page.locator('[data-studio-gesture="transform"]');
+    await expect(board).toHaveCount(1);
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     for (let i = 1; i <= 5; i++) {
       await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + i * 6, y }] });
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
     }
     await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    // Observe actual React gesture completion, rather than treating a CDP
+    // command receipt as the authority to start a different touch sequence.
+    await expect(board).toHaveCount(0);
+    await expect.poll(() => layer.evaluate(el => Number.parseFloat(el.style.width))).toBeGreaterThan(100);
     await client.detach();
     const events = await page.evaluate(() => (window as Window & { touchManipulationEvents?: string[] }).touchManipulationEvents);
     await expect(layer, { message: JSON.stringify(events) }).toHaveClass(/outline-orange-600/);
-    await page.getByRole("button", { name: "Inspector", exact: true }).tap();
+    const inspector = page.getByRole("button", { name: "Inspector", exact: true });
+    await expect(inspector).toHaveAttribute("aria-pressed", "false");
+    await inspector.tap();
+    const panelEvents = await page.evaluate(() => (window as Window & { touchManipulationEvents?: string[] }).touchManipulationEvents);
+    await test.info().attach("touch-events", { body: JSON.stringify(panelEvents), contentType: "application/json" });
+    await expect(inspector, { message: JSON.stringify(panelEvents) }).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "position", exact: true }).tap();
     await expect.poll(async () => Number(await page.getByRole("spinbutton", { name: "Width", exact: true }).inputValue()), { message: JSON.stringify(events) }).toBeGreaterThan(100);
     await page.getByRole("spinbutton", { name: "Width", exact: true }).fill("180");
