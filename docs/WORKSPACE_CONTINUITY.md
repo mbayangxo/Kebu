@@ -26,3 +26,9 @@ The recovery checkpoint preserves the available source, including inherited part
 Current source includes an independent repair preventing template reseeding during GET/publish and deriving chrome without updating saved drafts. The Studio creative-OS acceptance contract captures the user's 25 groups; it is a requirement, not a completion claim.
 
 Production deployment remains gated on real CI, hosted QA and required database migrations. The user's deployment/push authorization does not imply approval to apply production migrations or change DNS.
+
+## October 22 — live May data and old-editor preservation
+
+The published maylecor project is c11f9749-2d33-46d1-9649-8d762db4ce25 and contains13 saved pages, last observed updated2026-10-17T04:15:23Z. The ordinary authenticated browser's generic May draft is a different project and owner; do not treat it, or a five-page test fixture, as the actual portfolio. Preserve all existing page/section identifiers, order values, authored text and media before any changes.
+
+Production still runs71815f99. Its GET app/api/projects/[id]/route.ts invokes ensureProjectPagesBeforePublish and may reseed saved portfolio drafts on editor load. Do not open the actual May editor on that old deployment to perform a supposedly read-only inspection. Current recovery removes reseeding, but production schema/hosted rollout remain gated. Use read-only database/visitor inspection and capture a private recovery snapshot before further owner-data work. Different ownership is established; effective team/support authorization still needs verification, not a transfer or new access grant. No production project data, ownership, migration, DNS or promotion changed during this readback. See audits/KEBU_HOSTED_READBACK_2026-10-22.md.
