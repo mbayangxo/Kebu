@@ -123,12 +123,23 @@ for (const width of [390, 834]) test.describe(`marquee touch at ${width}px`, () 
       (window as Window & { marqueeCanceled?: boolean }).marqueeCanceled = false;
       document.addEventListener("pointercancel", () => { (window as Window & { marqueeCanceled?: boolean }).marqueeCanceled = true; }, { once: true });
     });
-    const x = box.x + 2, y = box.y + 2;
+    // Begin well inside empty canvas: near-edge touch adjustment can target a
+    // nearby text layer even when the same mouse coordinate hits background.
+    const x = box.x + box.width * 0.86, y = box.y + box.height * 0.55;
+    const endX = box.x + 2, endY = box.y + 2;
+    await page.evaluate(() => {
+      (window as Window & { marqueeStartLayer?: string | null }).marqueeStartLayer = undefined;
+      document.addEventListener("pointerdown", event => {
+        (window as Window & { marqueeStartLayer?: string | null }).marqueeStartLayer = (event.target as Element).closest("[data-studio-layer-id]")?.getAttribute("data-studio-layer-id") ?? null;
+      }, { once: true, capture: true });
+    });
     await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y, id: 1 }] });
+    expect(await page.evaluate(() => (window as Window & { marqueeStartLayer?: string | null }).marqueeStartLayer)).toBeNull();
     for (let i = 1; i <= 6; i++) {
-      await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + box.width * 0.55 * i / 6, y: y + box.height * 0.4 * i / 6, id: 1 }] });
+      await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + (endX - x) * i / 6, y: y + (endY - y) * i / 6, id: 1 }] });
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
     }
+    await expect(page.locator("[data-studio-marquee]")).toBeVisible();
     await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await client.detach();
     for (const id of ["title", "image"]) await expect(page.locator(`[data-studio-layer-id="${id}"]`)).toHaveClass(/outline-orange-600/);
@@ -147,7 +158,7 @@ test.describe("marquee touch interruption", () => {
     await image.tap();
     const box = await sceneBox(page), imageBox = (await image.boundingBox())!;
     const client = await page.context().newCDPSession(page);
-    const start = { x: box.x + 2, y: box.y + 2, id: 1 };
+    const start = { x: box.x + box.width * 0.86, y: box.y + box.height * 0.55, id: 1 };
     await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
     const primary = { x: box.x + box.width * 0.55, y: box.y + box.height * 0.16, id: 1 };
     await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [primary] });
