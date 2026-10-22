@@ -8,6 +8,20 @@ import { emptyStudioComposition, compositionClipSchema } from "../../lib/studio/
 
 const id = "22222222-2222-4222-8222-222222222222", owner = "33333333-3333-4333-8333-333333333333";
 const rev = (n: number) => `2026-10-13T12:00:${String(n).padStart(2, "0")}.000Z`;
+
+test("marquee selects visible layers without changing the saved document", async ({ page }) => {
+  const fixture = await setup(page);
+  const title = page.locator('[data-studio-layer-id="title"]');
+  const artboard = title.locator("..").locator("..");
+  const box = (await artboard.boundingBox())!;
+  await page.mouse.move(box.x + 2, box.y + 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.4, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByText("2 layers selected.", { exact: false })).toBeVisible();
+  expect(fixture.writes).toHaveLength(0);
+  expect(fixture.errors).toEqual([]);
+});
 function canvas(missing = false) {
   const doc = emptyCanvasDocument({ width: 640, height: 640 });
   const text = canvasLayerSchema.parse({ id: "title", type: "text", name: "Title", text: "Original", x: 20, y: 20, width: 300, height: 70, fontSize: 32, color: "#111111" });

@@ -1,0 +1,58 @@
+name: Studio selection browser
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["work/codex-studio-marquee-oct22"]
+
+permissions:
+  contents: read
+
+jobs:
+  studio-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Install actual Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Require the original interaction regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          export KEBU_STUDIO_UI_OUTPUT_DIR="$RUNNER_TEMP/studio-marquee-before"
+          export KEBU_STUDIO_UI_GREP="marquee selects visible layers"
+          set +e
+          node scripts/verify-studio-local-ui.mjs
+          result=$?
+          set -e
+          test "$result" -ne 0
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+          const r=JSON.parse(readFileSync(process.env.KEBU_STUDIO_UI_OUTPUT_DIR+'/results.json','utf8'));
+          assert.equal(r.stats.expected,0);assert.equal(r.stats.unexpected,1);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
+          const errors=JSON.stringify(r.suites);
+          assert(errors.includes('2 layers selected.'));assert(errors.includes('toBeVisible'));
+          assert(!errors.includes('executable doesn'));
+          console.log(JSON.stringify({originalMarqueeFailureReproduced:true,unexpected:1,skipped:0}));
+          NODE
+      - name: Retain isolated browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: studio-selection-browser-evidence
+          retention-days: 3
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/studio-marquee-before
+

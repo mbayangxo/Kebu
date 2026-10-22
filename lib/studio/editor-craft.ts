@@ -21,6 +21,42 @@ function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
 }
 
+/**
+ * Marquee intersection, adapted from Claude's preserved Studio2048 selection.
+ * Test the painted rotated rectangle, rather than its larger enclosing box.
+ */
+export function layersInRect(
+  layers: CanvasLayer[],
+  rect: { left: number; top: number; right: number; bottom: number },
+): string[] {
+  if (!Object.values(rect).every(Number.isFinite)) return [];
+  const left = Math.min(rect.left, rect.right);
+  const right = Math.max(rect.left, rect.right);
+  const top = Math.min(rect.top, rect.bottom);
+  const bottom = Math.max(rect.top, rect.bottom);
+  if (right <= left || bottom <= top) return [];
+  const centerX = (left + right) / 2;
+  const centerY = (top + bottom) / 2;
+  const halfWidth = (right - left) / 2;
+  const halfHeight = (bottom - top) / 2;
+
+  return layers.filter(layer => {
+    if (layer.locked || layer.opacity <= 0 || layer.width <= 0 || layer.height <= 0) return false;
+    if (![layer.x, layer.y, layer.width, layer.height, layer.rotation].every(Number.isFinite)) return false;
+    const angle = layer.rotation * Math.PI / 180;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const dx = layer.x + layer.width / 2 - centerX;
+    const dy = layer.y + layer.height / 2 - centerY;
+    // Separating axes: the marquee's two edges and the layer's two edges.
+    return [[1, 0], [0, 1], [cos, sin], [-sin, cos]].every(([ax, ay]) => {
+      const marqueeRadius = halfWidth * Math.abs(ax!) + halfHeight * Math.abs(ay!);
+      const layerRadius = layer.width / 2 * Math.abs(ax! * cos + ay! * sin)
+        + layer.height / 2 * Math.abs(-ax! * sin + ay! * cos);
+      return Math.abs(dx * ax! + dy * ay!) < marqueeRadius + layerRadius;
+    });
+  }).map(layer => layer.id);
+}
+
 export function snapValue(value: number, targets: number[], threshold: number): { value: number; snapped: boolean; guide: number | null } {
   let best = value;
   let guide: number | null = null;
