@@ -656,6 +656,7 @@ for (const width of [390, 834]) test.describe(`touch transforms at ${width}px`, 
     await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await client.detach();
     const events = await page.evaluate(() => (window as Window & { touchManipulationEvents?: string[] }).touchManipulationEvents);
+    await expect(layer, { message: JSON.stringify(events) }).toHaveClass(/outline-orange-600/);
     await page.getByRole("button", { name: "Inspector", exact: true }).tap();
     await page.getByRole("button", { name: "position", exact: true }).tap();
     await expect.poll(async () => Number(await page.getByRole("spinbutton", { name: "Width", exact: true }).inputValue()), { message: JSON.stringify(events) }).toBeGreaterThan(100);

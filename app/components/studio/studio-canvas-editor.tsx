@@ -491,6 +491,9 @@ export function StudioCanvasEditor({
     if (current) {
       if (current.pointerId !== e.pointerId) return;
       const box = artboardRef.current?.getBoundingClientRect();
+      // Selection clearing belongs to a gesture that began on background.
+      // Touch can retarget the later click to the board after resizing a layer.
+      if (!current.moved && !current.additive) onSelectLayers([]);
       if (current.moved && box && box.width > 0 && box.height > 0) {
         const scaleX = box.width / page.width, scaleY = box.height / page.height;
         const rect = {
@@ -514,8 +517,8 @@ export function StudioCanvasEditor({
         const hits = expandSelectionWithGroups(layers, layersInRect(paintedLayers, rect))
           .filter(id => selectableIds.has(id));
         onSelectLayers(current.additive ? [...new Set([...current.previousIds, ...hits])] : hits);
-        suppressSelectionClick.current = true;
       }
+      suppressSelectionClick.current = true;
       marqueeRef.current = null;
       setMarquee(null);
       return;
@@ -1110,9 +1113,6 @@ export function StudioCanvasEditor({
             if (!suppressSelectionClick.current) return;
             suppressSelectionClick.current = false;
             e.stopPropagation();
-          }}
-          onClick={(e) => {
-            if (!spaceHeld && !pan && !(e.target as Element).closest("[data-studio-layer-id]")) onSelectLayers([]);
           }}
           onContextMenu={(e) => {
             if (spaceHeld) e.preventDefault();
