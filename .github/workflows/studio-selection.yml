@@ -3,7 +3,8 @@ name: Studio selection browser
 on:
   workflow_dispatch:
   push:
-    branches: ["work/codex-studio-marquee-oct22"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-studio-marquee-oct22"]
+    paths: ["app/**", "lib/**", "tests/**", "scripts/verify-studio-local-ui.mjs", "package*.json", ".github/workflows/studio-selection.yml"]
 
 permissions:
   contents: read
@@ -19,6 +20,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
@@ -33,6 +35,11 @@ jobs:
           export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
           export KEBU_STUDIO_UI_OUTPUT_DIR="$RUNNER_TEMP/studio-marquee-before"
           export KEBU_STUDIO_UI_GREP="marquee selects visible layers"
+          cp app/components/studio/studio-canvas-editor.tsx "$RUNNER_TEMP/studio-component-after.tsx"
+          cp tests/studio/save-export.local.spec.ts "$RUNNER_TEMP/studio-spec-after.ts"
+          trap 'cp "$RUNNER_TEMP/studio-component-after.tsx" app/components/studio/studio-canvas-editor.tsx; cp "$RUNNER_TEMP/studio-spec-after.ts" tests/studio/save-export.local.spec.ts' EXIT
+          git show 053510adf1b2a7a00421d752d3bfb947ad90b525:app/components/studio/studio-canvas-editor.tsx > app/components/studio/studio-canvas-editor.tsx
+          git show 8753103c005477af4651a2ec58bbcbed7beacde7:tests/studio/save-export.local.spec.ts > tests/studio/save-export.local.spec.ts
           set +e
           node scripts/verify-studio-local-ui.mjs
           result=$?
@@ -47,6 +54,19 @@ jobs:
           assert(!errors.includes('executable doesn'));
           console.log(JSON.stringify({originalMarqueeFailureReproduced:true,unexpected:1,skipped:0}));
           NODE
+      - name: Verify actual Studio selection, editing, drafts, history and decoded exports
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
+          export KEBU_STUDIO_UI_OUTPUT_DIR="$RUNNER_TEMP/studio-marquee-after"
+          node scripts/verify-studio-local-ui.mjs
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+          const r=JSON.parse(readFileSync(process.env.KEBU_STUDIO_UI_OUTPUT_DIR+'/results.json','utf8'));
+          assert.equal(r.stats.expected,44);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
+          console.log(JSON.stringify({studioPassed:44,skipped:0,flaky:0,syntheticLoopbackAuth:true,managedHostedAuthAccepted:false}));
+          NODE
       - name: Retain isolated browser evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -54,5 +74,7 @@ jobs:
           name: studio-selection-browser-evidence
           retention-days: 3
           if-no-files-found: warn
-          path: ${{ runner.temp }}/studio-marquee-before
+          path: |
+            ${{ runner.temp }}/studio-marquee-before
+            ${{ runner.temp }}/studio-marquee-after
 

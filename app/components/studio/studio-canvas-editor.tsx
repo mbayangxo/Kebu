@@ -21,6 +21,7 @@ import { videoSourceTimeSec } from "@/lib/studio/timeline";
 import {
   clipboardPayloadFromLayers,
   layersFromClipboardPayload,
+  layersInRect,
   normalizeCrop,
   nudgeLayersWithinArtboard,
   snapLayerPosition,
@@ -59,6 +60,19 @@ type DragMode =
   | `resize-${ResizeHandle}`
   | "rotate"
   | null;
+
+type MarqueeSelection = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  boardLeft: number;
+  boardTop: number;
+  additive: boolean;
+  previousIds: string[];
+  moved: boolean;
+};
 
 function TimelineVideo({
   url,
@@ -170,6 +184,7 @@ export function StudioCanvasEditor({
   const fileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState<{
+    pointerId: number;
     mode: DragMode;
     layerId: string;
     startX: number;
@@ -181,12 +196,16 @@ export function StudioCanvasEditor({
     baseline: CanvasDocument;
   } | null>(null);
   const [pan, setPan] = useState<{
+    pointerId: number;
     startX: number;
     startY: number;
     origX: number;
     origY: number;
   } | null>(null);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [marquee, setMarquee] = useState<MarqueeSelection | null>(null);
+  const marqueeRef = useRef<MarqueeSelection | null>(null);
+  const suppressSelectionClick = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [zoom, setZoom] = useState(45);
   const [uploadBusy, setUploadBusy] = useState(false);
@@ -311,6 +330,7 @@ export function StudioCanvasEditor({
   }
 
   function pointerDown(e: React.PointerEvent, layer: CanvasLayer, mode: DragMode) {
+    if (!e.isPrimary || e.button !== 0 || marqueeRef.current) return;
     if (mode === "move" && editingTextId === layer.id) {
       e.stopPropagation();
       return; // Native caret/selection belongs to the on-canvas text editor.
@@ -335,6 +355,7 @@ export function StudioCanvasEditor({
     e.currentTarget.setPointerCapture(e.pointerId);
     const current = getPage(latestDoc.current, activePageId).layers;
     setDrag({
+      pointerId: e.pointerId,
       mode,
       layerId: layer.id,
       startX: e.clientX,
@@ -347,28 +368,56 @@ export function StudioCanvasEditor({
   }
 
   function boardPointerDown(e: React.PointerEvent) {
+    if (!e.isPrimary || marqueeRef.current) return;
+    suppressSelectionClick.current = false;
     const middle = e.button === 1;
-    if (spaceHeld || middle) {
+    if ((spaceHeld && e.button === 0) || middle) {
       e.preventDefault();
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       setPan({
+        pointerId: e.pointerId,
         startX: e.clientX,
         startY: e.clientY,
         origX: panOffset.x,
         origY: panOffset.y,
       });
+      return;
     }
+    if (e.button !== 0 || (e.target as Element).closest("[data-studio-layer-id]")) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const box = e.currentTarget.getBoundingClientRect();
+    const next: MarqueeSelection = {
+      pointerId: e.pointerId, startX: e.clientX, startY: e.clientY,
+      x: e.clientX, y: e.clientY, boardLeft: box.left, boardTop: box.top,
+      additive: e.shiftKey || e.metaKey || e.ctrlKey,
+      previousIds: [...selectedLayerIds], moved: false,
+    };
+    marqueeRef.current = next;
+    setMarquee(next);
   }
 
   function pointerMove(e: React.PointerEvent) {
+    const current = marqueeRef.current;
+    if (current) {
+      if (current.pointerId !== e.pointerId) return;
+      const next = {
+        ...current, x: e.clientX, y: e.clientY,
+        moved: current.moved || Math.hypot(e.clientX - current.startX, e.clientY - current.startY) > 4,
+      };
+      marqueeRef.current = next;
+      setMarquee(next);
+      return;
+    }
     if (pan) {
+      if (pan.pointerId !== e.pointerId) return;
       setPanOffset({
         x: pan.origX + (e.clientX - pan.startX),
         y: pan.origY + (e.clientY - pan.startY),
       });
       return;
     }
-    if (!drag) return;
+    if (!drag || drag.pointerId !== e.pointerId) return;
     const dx = (e.clientX - drag.startX) / displayScale;
     const dy = (e.clientY - drag.startY) / displayScale;
     const orig = drag.orig;
@@ -415,7 +464,67 @@ export function StudioCanvasEditor({
     }
   }
 
-  function pointerUp() {
+  function cancelMarquee() {
+    if (!marqueeRef.current) return;
+    marqueeRef.current = null;
+    setMarquee(null);
+    suppressSelectionClick.current = true;
+  }
+
+  function pointerCancel(e: React.PointerEvent) {
+    if (marqueeRef.current && marqueeRef.current.pointerId !== e.pointerId) return;
+    if (drag && drag.pointerId !== e.pointerId) return;
+    if (pan && pan.pointerId !== e.pointerId) return;
+    cancelMarquee();
+    if (drag) {
+      latestDoc.current = drag.baseline;
+      onChange(drag.baseline, { cancelGesture: true });
+    }
+    if (pan) setPanOffset({ x: pan.origX, y: pan.origY });
+    setDrag(null);
+    setSnapGuides({ v: null, h: null });
+    setPan(null);
+  }
+
+  function pointerUp(e: React.PointerEvent) {
+    const current = marqueeRef.current;
+    if (current) {
+      if (current.pointerId !== e.pointerId) return;
+      const box = artboardRef.current?.getBoundingClientRect();
+      if (current.moved && box && box.width > 0 && box.height > 0) {
+        const scaleX = box.width / page.width, scaleY = box.height / page.height;
+        const rect = {
+          left: (current.startX - box.left) / scaleX,
+          top: (current.startY - box.top) / scaleY,
+          right: (e.clientX - box.left) / scaleX,
+          bottom: (e.clientY - box.top) / scaleY,
+        };
+        const paintedLayers = layers.map(layer => {
+          const motion = layerMotionAtTime(layer, previewLocalMs);
+          return {
+            ...layer,
+            x: layer.x + motion.translateX + layer.width * (1 - motion.scale) / 2,
+            y: layer.y + motion.translateY + layer.height * (1 - motion.scale) / 2,
+            width: layer.width * motion.scale, height: layer.height * motion.scale,
+            opacity: layer.opacity * motion.opacityMultiplier,
+          };
+        });
+        const selectableIds = new Set(paintedLayers
+          .filter(layer => !layer.locked && layer.opacity > 0).map(layer => layer.id));
+        const hits = expandSelectionWithGroups(layers, layersInRect(paintedLayers, rect))
+          .filter(id => selectableIds.has(id));
+        onSelectLayers(current.additive ? [...new Set([...current.previousIds, ...hits])] : hits);
+        suppressSelectionClick.current = true;
+      }
+      marqueeRef.current = null;
+      setMarquee(null);
+      return;
+    }
+    if (drag && drag.pointerId !== e.pointerId) return;
+    if (pan && pan.pointerId !== e.pointerId) return;
+    if (pan && Math.hypot(e.clientX - pan.startX, e.clientY - pan.startY) > 4) {
+      suppressSelectionClick.current = true;
+    }
     if (drag && latestDoc.current !== drag.baseline) {
       onChange(latestDoc.current);
     }
@@ -627,6 +736,11 @@ export function StudioCanvasEditor({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && marqueeRef.current) {
+        e.preventDefault();
+        cancelMarquee();
+        return;
+      }
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.code === "Space" && !e.repeat) {
@@ -987,14 +1101,36 @@ export function StudioCanvasEditor({
           onPointerDown={boardPointerDown}
           onPointerMove={pointerMove}
           onPointerUp={pointerUp}
-          onPointerCancel={pointerUp}
-          onClick={() => {
-            if (!spaceHeld && !pan) onSelectLayers([]);
+          onPointerCancel={pointerCancel}
+          onLostPointerCapture={(e) => {
+            if (marqueeRef.current?.pointerId === e.pointerId) cancelMarquee();
+          }}
+          style={{ touchAction: "none" }}
+          onClickCapture={(e) => {
+            if (!suppressSelectionClick.current) return;
+            suppressSelectionClick.current = false;
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            if (!spaceHeld && !pan && !(e.target as Element).closest("[data-studio-layer-id]")) onSelectLayers([]);
           }}
           onContextMenu={(e) => {
             if (spaceHeld) e.preventDefault();
           }}
         >
+          {marquee?.moved ? (
+            <div
+              data-studio-marquee
+              aria-hidden="true"
+              className="pointer-events-none absolute z-50 border border-dashed border-orange-500 bg-orange-500/10"
+              style={{
+                left: Math.min(marquee.startX, marquee.x) - marquee.boardLeft,
+                top: Math.min(marquee.startY, marquee.y) - marquee.boardTop,
+                width: Math.abs(marquee.x - marquee.startX),
+                height: Math.abs(marquee.y - marquee.startY),
+              }}
+            />
+          ) : null}
           <div
             ref={artboardRef}
             className="relative shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
@@ -1004,7 +1140,6 @@ export function StudioCanvasEditor({
               background: page.backgroundColor,
               transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             <StudioLiveCursors
               designId={designId}

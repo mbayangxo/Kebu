@@ -1,7 +1,7 @@
 /** Actual Studio editors + IndexedDB + downloaded files, with isolated loopback transport fixtures. */
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, createWriteStream, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, createWriteStream, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -35,5 +35,16 @@ try {
   const code = await new Promise(done => tests.on("exit",done));
   const report = JSON.parse(readFileSync(join(output,"results.json"),"utf8"));
   console.log("STUDIO_UI_RESULT",JSON.stringify({ ...report.stats, scope: filter ?? "full" }));
-  if(code!==0 || report.stats.unexpected || report.stats.expected < (filter ? 1 : 20)) throw Error("Studio browser gate failed");
-} finally { await stopChild(tests); await stopChild(server); await new Promise(done => auth.close(done)); rmSync(temporary,{recursive:true,force:true}); }
+  if(code!==0 || report.stats.unexpected || report.stats.skipped || report.stats.flaky || report.stats.expected < (filter ? 1 : 44)) throw Error("Studio browser gate failed");
+} finally {
+  await stopChild(tests);
+  await stopChild(server);
+  await new Promise(done => auth.close(done));
+  rmSync(temporary,{recursive:true,force:true});
+  console.log("STUDIO_UI_CLEANUP", JSON.stringify({
+    testsStopped: !tests || tests.exitCode !== null || tests.signalCode !== null,
+    serverStopped: !server || server.exitCode !== null || server.signalCode !== null,
+    authStopped: !auth.listening,
+    temporaryConfigRemoved: !existsSync(temporary),
+  }));
+}

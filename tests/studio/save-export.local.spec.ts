@@ -17,8 +17,11 @@ test("marquee selects visible layers without changing the saved document", async
   await page.mouse.move(box.x + 2, box.y + 2);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.4, { steps: 8 });
+  await expect(page.locator("[data-studio-marquee]")).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("marquee-drag.png") });
   await page.mouse.up();
   await expect(page.getByText("2 layers selected.", { exact: false })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("marquee-selected.png") });
   expect(fixture.writes).toHaveLength(0);
   expect(fixture.errors).toEqual([]);
 });
@@ -30,6 +33,157 @@ function canvas(missing = false) {
   doc.pages[0]!.backgroundColor = "#ffffff";
   return doc;
 }
+
+async function sceneBox(page: Page) {
+  const title = page.locator('[data-studio-layer-id="title"]');
+  await expect(title).toBeVisible();
+  return (await title.locator("..").locator("..").boundingBox())!;
+}
+
+async function dragMarquee(page: Page, from: [number, number], to: [number, number], finish = true) {
+  const box = await sceneBox(page);
+  await page.mouse.move(box.x + from[0] * box.width / 640, box.y + from[1] * box.height / 640);
+  await page.mouse.down();
+  await page.mouse.move(box.x + to[0] * box.width / 640, box.y + to[1] * box.height / 640, { steps: 8 });
+  if (finish) await page.mouse.up();
+  return box;
+}
+
+test("marquee drawn backward selects both layers and a subsequent empty click clears selection", async ({ page }) => {
+  const fixture = await setup(page);
+  const box = await dragMarquee(page, [340, 250], [2, 2]);
+  await expect(page.getByText("2 layers selected.", { exact: false })).toBeVisible();
+  await page.mouse.click(box.x + box.width * 0.9, box.y + box.height * 0.9);
+  for (const id of ["title", "image"]) await expect(page.locator(`[data-studio-layer-id="${id}"]`)).not.toHaveClass(/outline-orange-600/);
+  expect(fixture.writes).toHaveLength(0);
+  expect(fixture.errors).toEqual([]);
+});
+
+test("marquee Shift-addition preserves the previous selection", async ({ page }) => {
+  const fixture = await setup(page);
+  await page.locator('[data-studio-layer-id="image"]').click();
+  await page.keyboard.down("Shift");
+  await dragMarquee(page, [2, 2], [340, 100]);
+  await page.keyboard.up("Shift");
+  await expect(page.getByText("2 layers selected.", { exact: false })).toBeVisible();
+  expect(fixture.writes).toHaveLength(0);
+  expect(fixture.errors).toEqual([]);
+});
+
+test("marquee Escape cancellation preserves the selection and history", async ({ page }) => {
+  const fixture = await setup(page);
+  const image = page.locator('[data-studio-layer-id="image"]');
+  await image.click();
+  await dragMarquee(page, [2, 2], [340, 100], false);
+  await expect(page.locator("[data-studio-marquee]")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(page.locator("[data-studio-marquee]")).toHaveCount(0);
+  await expect(image).toHaveClass(/outline-orange-600/);
+  await expect(page.locator('[data-studio-layer-id="title"]')).not.toHaveClass(/outline-orange-600/);
+  await expect(page.getByRole("button", { name: "Undo", exact: true }).first()).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0);
+  expect(fixture.errors).toEqual([]);
+});
+
+test("marquee expands visible group members and excludes locked or invisible layers", async ({ page }) => {
+  const fixture = await setup(page);
+  const source = fixture.server().canvas!;
+  const title = { ...source.layers[0]!, width: 100, groupId: "pair" };
+  const image = { ...source.layers[1]!, x: 400, y: 400, groupId: "pair" };
+  source.layers = [title, image,
+    canvasLayerSchema.parse({ id: "locked", type: "rect", x: 30, y: 30, width: 50, height: 50, locked: true, groupId: "pair" }),
+    canvasLayerSchema.parse({ id: "invisible", type: "rect", x: 30, y: 30, width: 50, height: 50, opacity: 0, groupId: "pair" }),
+  ];
+  source.pages[0]!.layers = source.layers;
+  await page.reload();
+  await dragMarquee(page, [2, 2], [130, 100]);
+  for (const id of ["title", "image"]) await expect(page.locator(`[data-studio-layer-id="${id}"]`)).toHaveClass(/outline-orange-600/);
+  for (const id of ["locked", "invisible"]) await expect(page.locator(`[data-studio-layer-id="${id}"]`)).not.toHaveClass(/outline-orange-600/);
+  expect(fixture.writes).toHaveLength(0);
+  expect(fixture.errors).toEqual([]);
+});
+
+test("marquee lets a viewer inspect a selection without granting edit authority", async ({ page }) => {
+  const fixture = await setup(page, { viewer: true });
+  await dragMarquee(page, [2, 2], [340, 250]);
+  for (const id of ["title", "image"]) await expect(page.locator(`[data-studio-layer-id="${id}"]`)).toHaveClass(/outline-orange-600/);
+  await expect(page.getByRole("button", { name: "Undo", exact: true }).first()).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0);
+  expect(fixture.errors).toEqual([]);
+});
+
+for (const width of [390, 834]) test.describe(`marquee touch at ${width}px`, () => {
+  test.use({ viewport: { width, height: 1000 }, hasTouch: true });
+  test("marquee uses real touch without native cancellation or document writes", async ({ page }) => {
+    const fixture = await setup(page);
+    const box = await sceneBox(page);
+    const client = await page.context().newCDPSession(page);
+    await page.evaluate(() => {
+      (window as Window & { marqueeCanceled?: boolean }).marqueeCanceled = false;
+      document.addEventListener("pointercancel", () => { (window as Window & { marqueeCanceled?: boolean }).marqueeCanceled = true; }, { once: true });
+    });
+    const x = box.x + 2, y = box.y + 2;
+    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y, id: 1 }] });
+    for (let i = 1; i <= 6; i++) {
+      await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + box.width * 0.55 * i / 6, y: y + box.height * 0.4 * i / 6, id: 1 }] });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+    }
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await client.detach();
+    for (const id of ["title", "image"]) await expect(page.locator(`[data-studio-layer-id="${id}"]`)).toHaveClass(/outline-orange-600/);
+    expect(await page.evaluate(() => (window as Window & { marqueeCanceled?: boolean }).marqueeCanceled)).toBe(false);
+    await page.screenshot({ path: test.info().outputPath(`marquee-${width}.png`) });
+    expect(fixture.writes).toHaveLength(0);
+    expect(fixture.errors).toEqual([]);
+  });
+});
+
+test.describe("marquee touch interruption", () => {
+  test.use({ viewport: { width: 390, height: 1000 }, hasTouch: true });
+  test("marquee ignores a second finger and cancels without changing the previous selection", async ({ page }) => {
+    const fixture = await setup(page);
+    const image = page.locator('[data-studio-layer-id="image"]');
+    await image.tap();
+    const box = await sceneBox(page), imageBox = (await image.boundingBox())!;
+    const client = await page.context().newCDPSession(page);
+    const start = { x: box.x + 2, y: box.y + 2, id: 1 };
+    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
+    const primary = { x: box.x + box.width * 0.55, y: box.y + box.height * 0.16, id: 1 };
+    await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [primary] });
+    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [primary, { x: imageBox.x + imageBox.width / 2, y: imageBox.y + imageBox.height / 2, id: 2 }] });
+    await expect(page.locator("[data-studio-marquee]")).toBeVisible();
+    await client.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+    await client.detach();
+    await expect(page.locator("[data-studio-marquee]")).toHaveCount(0);
+    await expect(image).toHaveClass(/outline-orange-600/);
+    await expect(page.locator('[data-studio-layer-id="title"]')).not.toHaveClass(/outline-orange-600/);
+    expect(fixture.writes).toHaveLength(0);
+    expect(fixture.errors).toEqual([]);
+  });
+  test("canceled touch transform restores its frame without an undo entry or save", async ({ page }) => {
+    const fixture = await setup(page);
+    const image = page.locator('[data-studio-layer-id="image"]');
+    await image.tap();
+    const before = (await image.boundingBox())!;
+    const handle = (await image.getByRole("button", { name: "Resize right", exact: true }).boundingBox())!;
+    const client = await page.context().newCDPSession(page);
+    const x = handle.x + handle.width / 2, y = handle.y + handle.height / 2;
+    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 4; i++) {
+      await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + i * 5, y }] });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+    }
+    expect((await image.boundingBox())!.width).toBeGreaterThan(before.width + 10);
+    await client.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+    await client.detach();
+    await expect.poll(async () => (await image.boundingBox())!.width).toBeCloseTo(before.width, 1);
+    await expect(page.getByRole("button", { name: "Undo", exact: true }).first()).toBeDisabled();
+    await page.waitForTimeout(800);
+    expect(fixture.writes).toHaveLength(0);
+    expect(fixture.errors).toEqual([]);
+  });
+});
 function composition(audio = false) {
   const c = emptyStudioComposition({ width: 640, height: 640 });
   c.tracks.push({ id: "overlay", kind: "overlay", name: "Title", order: 5, muted: false, solo: false, volume: 1, locked: false });

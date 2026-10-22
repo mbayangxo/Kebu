@@ -48,11 +48,12 @@ export function layersInRect(
     const dx = layer.x + layer.width / 2 - centerX;
     const dy = layer.y + layer.height / 2 - centerY;
     // Separating axes: the marquee's two edges and the layer's two edges.
-    return [[1, 0], [0, 1], [cos, sin], [-sin, cos]].every(([ax, ay]) => {
-      const marqueeRadius = halfWidth * Math.abs(ax!) + halfHeight * Math.abs(ay!);
-      const layerRadius = layer.width / 2 * Math.abs(ax! * cos + ay! * sin)
-        + layer.height / 2 * Math.abs(-ax! * sin + ay! * cos);
-      return Math.abs(dx * ax! + dy * ay!) < marqueeRadius + layerRadius;
+    const axes: [number, number][] = [[1, 0], [0, 1], [cos, sin], [-sin, cos]];
+    return axes.every(([ax, ay]) => {
+      const marqueeRadius = halfWidth * Math.abs(ax) + halfHeight * Math.abs(ay);
+      const layerRadius = layer.width / 2 * Math.abs(ax * cos + ay * sin)
+        + layer.height / 2 * Math.abs(-ax * sin + ay * cos);
+      return Math.abs(dx * ax + dy * ay) < marqueeRadius + layerRadius;
     });
   }).map(layer => layer.id);
 }
