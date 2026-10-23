@@ -1,5 +1,5 @@
 import type { CanvasDocument, CanvasLayer, CanvasPage, StudioDesignType } from "@/lib/studio/canvas-document";
-import { artboardSize, mirrorPageToDocument, newLayerId, newGroupId } from "@/lib/studio/canvas-document";
+import { artboardSize, mirrorPageToDocument, newLayerId, newGroupId, studioLayerBounds } from "@/lib/studio/canvas-document";
 
 /** Normalized crop window into the source image (0–1). Full image = x0 y0 w1 h1. */
 export function normalizeCrop(layer: {
@@ -81,14 +81,33 @@ export function layerSnapTargets(
   const x = [0, artboard.width / 2, artboard.width];
   const y = [0, artboard.height / 2, artboard.height];
   for (const l of layers) {
-    if (movingIds.has(l.id)) continue;
-    x.push(l.x, l.x + l.width / 2, l.x + l.width);
-    y.push(l.y, l.y + l.height / 2, l.y + l.height);
+    if (movingIds.has(l.id) || l.opacity <= 0) continue;
+    const bounds = studioLayerBounds(l);
+    x.push(bounds.left, (bounds.left + bounds.right) / 2, bounds.right);
+    y.push(bounds.top, (bounds.top + bounds.bottom) / 2, bounds.bottom);
   }
   return { x, y };
 }
 
-/** Snap layer top-left so edges/centers align. */
+/** Choose the smallest correction across edges and center, retaining target order on ties. */
+function snapAxis(anchors: number[], targets: number[], threshold: number) {
+  let delta = 0;
+  let guide: number | null = null;
+  let distance = threshold;
+  for (const anchor of anchors) {
+    for (const target of targets) {
+      const correction = target - anchor;
+      if (Math.abs(correction) <= threshold && (guide === null || Math.abs(correction) < distance)) {
+        delta = correction;
+        guide = target;
+        distance = Math.abs(correction);
+      }
+    }
+  }
+  return { delta, guide };
+}
+
+/** Snap the rotated footprint of the whole moving selection with one rigid translation. */
 export function snapLayerPosition(
   layer: CanvasLayer,
   dx: number,
@@ -98,43 +117,16 @@ export function snapLayerPosition(
   artboard: { width: number; height: number },
   threshold = 8,
 ): { x: number; y: number; guides: { v: number | null; h: number | null } } {
-  const nx = layer.x + dx;
-  const ny = layer.y + dy;
+  const moving = layers.filter(l => movingIds.has(l.id) && l.opacity > 0);
+  const bounds = (moving.length ? moving : [layer]).map(studioLayerBounds);
+  const left = Math.min(...bounds.map(b => b.left)) + dx;
+  const right = Math.max(...bounds.map(b => b.right)) + dx;
+  const top = Math.min(...bounds.map(b => b.top)) + dy;
+  const bottom = Math.max(...bounds.map(b => b.bottom)) + dy;
   const { x: xs, y: ys } = layerSnapTargets(layers, movingIds, artboard);
-
-  const left = snapValue(nx, xs, threshold);
-  const right = snapValue(nx + layer.width, xs, threshold);
-  const cx = snapValue(nx + layer.width / 2, xs, threshold);
-  let x = nx;
-  let vGuide: number | null = null;
-  if (left.snapped) {
-    x = left.value;
-    vGuide = left.guide;
-  } else if (right.snapped) {
-    x = right.value - layer.width;
-    vGuide = right.guide;
-  } else if (cx.snapped) {
-    x = cx.value - layer.width / 2;
-    vGuide = cx.guide;
-  }
-
-  const top = snapValue(ny, ys, threshold);
-  const bottom = snapValue(ny + layer.height, ys, threshold);
-  const cy = snapValue(ny + layer.height / 2, ys, threshold);
-  let y = ny;
-  let hGuide: number | null = null;
-  if (top.snapped) {
-    y = top.value;
-    hGuide = top.guide;
-  } else if (bottom.snapped) {
-    y = bottom.value - layer.height;
-    hGuide = bottom.guide;
-  } else if (cy.snapped) {
-    y = cy.value - layer.height / 2;
-    hGuide = cy.guide;
-  }
-
-  return { x, y, guides: { v: vGuide, h: hGuide } };
+  const x = snapAxis([left, right, (left + right) / 2], xs, threshold);
+  const y = snapAxis([top, bottom, (top + bottom) / 2], ys, threshold);
+  return { x: layer.x + dx + x.delta, y: layer.y + dy + y.delta, guides: { v: x.guide, h: y.guide } };
 }
 
 export function clipboardPayloadFromLayers(layers: CanvasLayer[]): string {
