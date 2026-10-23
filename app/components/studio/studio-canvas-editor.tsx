@@ -6,6 +6,7 @@ import {
   CANVAS_LAYER_TYPES,
   addCanvasPage,
   alignLayers,
+  alignmentSelectionCount,
   deleteCanvasPage,
   duplicateCanvasPage,
   duplicateLayers,
@@ -215,6 +216,7 @@ export function StudioCanvasEditor({
   const [elementQuery, setElementQuery] = useState("");
   const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [arrangeError, setArrangeError] = useState<string | null>(null);
   const [brandSpace,setBrandSpace]=useState<BrandSpace|null>(null);
   const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "themes" | "brand" | "tools" | "ai">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -658,12 +660,14 @@ export function StudioCanvasEditor({
   }
 
   function applyAlign(mode: AlignMode) {
-    if (!selectedLayerIds.length) return;
-    const next = alignLayers(layers, selectedLayerIds, mode, {
-      width: page.width,
-      height: page.height,
-    });
-    setPageLayers(next);
+    if (readOnly || !selectedLayerIds.length) return;
+    setArrangeError(null);
+    try {
+      const next = alignLayers(layers, selectedLayerIds, mode, { width: page.width, height: page.height });
+      if (next !== layers) setPageLayers(next);
+    } catch (error) {
+      setArrangeError(error instanceof Error ? error.message : "Could not arrange these objects.");
+    }
   }
 
   function applyGroup() {
@@ -814,7 +818,8 @@ export function StudioCanvasEditor({
   const canGroup = !readOnly && selectedLayerIds.length >= 2;
   const canUngroup =
     !readOnly && selectedLayerIds.some((id) => layers.find((l) => l.id === id)?.groupId);
-  const canAlign = !readOnly && selectedLayerIds.length >= 1;
+  const alignmentCount = alignmentSelectionCount(layers, selectedLayerIds);
+  const canAlign = !readOnly && alignmentCount >= 1;
 
   async function sendAiMessage(text: string) {
     if (!text.trim() || aiBusy) return;
@@ -900,7 +905,7 @@ export function StudioCanvasEditor({
             key={t.mode}
             type="button"
             title={t.title}
-            disabled={!canAlign || selectedLayerIds.length < (t.minSelection ?? 1)}
+            disabled={!canAlign || alignmentCount < (t.minSelection ?? 1)}
             onClick={() => applyAlign(t.mode)}
             aria-label={t.title}
             className="rounded-lg w-8 h-8 text-[11px] font-bold border border-white/10 bg-[#17181B] hover:bg-black/[.035] focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-30"
@@ -956,6 +961,9 @@ export function StudioCanvasEditor({
         </button>
       </div>
 
+      {arrangeError ? <div role="alert" aria-label="Arrange error" className="flex shrink-0 items-center justify-between gap-3 border-b border-red-400/30 bg-red-950 px-3 py-2 text-xs text-red-100">
+        <span>{arrangeError}</span><button type="button" onClick={() => setArrangeError(null)} className="shrink-0 rounded border border-white/30 px-2 py-1">Dismiss</button>
+      </div> : null}
       <div className="flex flex-1 min-h-0">
 
         {/* Left: Elements / Layers */}

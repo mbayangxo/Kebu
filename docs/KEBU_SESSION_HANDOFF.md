@@ -1,7 +1,15 @@
 # Kebu — Session Handoff and Recovery
 
 Updated: 2026-10-23
-Status: October23 Studio group-copy repair verified locally and in remote CI/browser; hosted authenticated acceptance and production promotion OPEN.
+Status: active Studio arrange checkpoint; hosted QA branch blocked by Supabase Pro requirement. Production acceptance OPEN.
+
+## Resume here — current operational state
+
+- Follow `origin/work/kebu-completion-audit-oct13`; do not restart from main or replay checkout/frames/Yande/pages work. Run workspace:check and reconcile a clean behind checkout before editing. The handoff branch mirrors the shared checkpoint.
+- Already integrated: PR12 group-copy isolation and PR13 page rename/reorder/delete continuity. Latest shared base before this slice:a588e46d. Current arrange runtime367d82d1e483d6308a04aa16695dd2fd532d2217 / PR14; exact-source CI, Studio52+6 and public smoke pass; READY preview verified. Check PR14 integration state before doing anything else; do not reimplement this slice.
+- Current QA blocker: the user renewed paid-branch authorization, but Supabase rejects branching unless the organization has Pro or above. Earlier cancellation is historical and no longer the reason. No upgrade or branch creation occurred. Do not test destructive QA fixtures on production customer projects.
+- Keep Claude's Search/Mail/Foundry work separate. Search95f8f111 has an independently reproduced stale-listing exposure and ranking/pagination/filter follow-ups; do not integrate that earlier slice as ready.
+- Remaining product work is tracked in the25-group Creative OS acceptance register. This arrange slice does not close nested groups, group resize/rotation, all smart guides, hosted collaboration or May reference acceptance.
 
 ## Source of truth
 GitHub commits and reviewed branches are authoritative. This document records evidence, not release certification.
@@ -30,12 +38,11 @@ GitHub commits and reviewed branches are authoritative. This document records ev
 - Mail provider implementation and Type Foundry original fonts/licensing remain separate workstreams.
 - Preserve Claude's work, avoid stale checkout tasks.
 
-## Open blockers and next implementation actions
-1. Compare Studio marquee with hosted-release, payment, and latest Claude branches in both directions; select nonconflicting base.
-2. Inspect Builder and Studio remaining feature gaps and implement isolated, testable changes on a dedicated branch.
-3. Secure hosted QA access and production schema prerequisites; run signed-in Auth/RLS, publishing and integration acceptance.
-4. Verify deployment status with actual deployment provider, not only a recorded preview URL.
-5. Merge only reviewed changes via PR after passing CI; do not infer production readiness from local fixtures.
+## Current next actions
+1. Finish verification/integration of the current arrange checkpoint without overwriting a newer shared head. Do not replay already integrated features.
+2. Unblock managed hosted QA with an authorized isolated environment; native branching currently requires Supabase Pro. Recheck live schema drift before any migration, then run signed-in Auth/RLS, save/publish and multi-user acceptance.
+3. Continue the remaining Creative OS requirements through isolated end-to-end slices, preserving formats, authored content and Claude-owned work.
+4. Verify deployment state with the actual provider. Production promotion remains separate from local/fixture acceptance.
 
 ## Session protocol
 Update this file with commit SHA, actual test evidence, deployment status, and next action. Do not mark tests passed unless run or independently verified. Never overwrite existing feature work.
@@ -73,3 +80,16 @@ Update this file with commit SHA, actual test evidence, deployment status, and n
 - Hosted migration history changed externally during this work. Point-in-time06:09Z inventory improved to2/7 Yande and10/37 broader failures. This is read-only catalog evidence, not current release certification. No production schema change by this slice. The QA branch request first expired; retry was cancelled by the user. Do not retry paid branch provisioning without renewed authorization.
 - Search branch `kebu-search-build-oct23`/95f8f111 was reviewed separately at the user's request.41 existing Search/KebuID tests independently pass, but an additional inactive-index regression fails: public search returns the cached listing while reading only search_documents. Other source findings: no relevance ranking order, no index pagination/stale cleanup, country/category encoded in summary. Do not merge Search until Claude fixes and verifies those boundaries. See `docs/audits/KEBU_SEARCH_REVIEW_2026-10-23.md`. No Search runtime file was edited on Claude's branch.
 - Full Kebu, all25 Creative OS groups, real hosted acceptance and May portfolio/reference requirements remain incomplete. Continue from this source; do not replay old checkout or overwrite concurrent Search/Mail/Foundry work.
+
+## October23 — renewed QA authorization and Studio arrange continuation
+- User explicitly renewed authorization to retry the paid QA branch. The retry reached Supabase and returned PaymentRequiredException: branching is supported only on Pro or above. This is now an account-plan prerequisite, not a cancellation refusal. No QA branch, plan upgrade or production mutation performed by this attempt.
+- Continued from clean shareda588e46d. Reproduced3 arrange regressions: grouped objects collapsed, rotated edges misaligned, and rotated visual gaps unequal. Repair treats each unlocked group as one rigid target, measures rotated frame bounds, distributes visible gaps, counts targets correctly and rejects unsupported coordinate translations atomically with a visible dismissible error.
+- Original regressions3/3failed; final12 arrange geometry tests plus10 existing canvas tests pass. New actual browser3/3 passes through undo/redo/save/reopen and unchanged-artwork error handling. Initial browser attempt could not launch because a temporary Chromium binary had been removed; restored a scratch-owned runtime. A subsequent test selector matched Next's route announcer too; the arrange error now has an accessible name and the exact named-alert case passes.
+- Preliminary local full CI passes6618 tests/338 explicit skips, TypeScript, lint0errors/346 existing warnings and finalized build. Final application differs only by the named alert added during verification; exact-source full browser/remote gates remain pending at this checkpoint. No test failure counted as acceptance.
+- Full Kebu, hosted real-session acceptance, nested group transforms and all25 Creative OS groups remain open. No Search/Mail/Foundry implementation edits; preserve Claude's work. Native Supabase branching remains blocked until the owning organization has Pro or higher.
+
+## Final arrange verification
+- Runtime367d82d1e483d6308a04aa16695dd2fd532d2217 on work/codex-studio-arrange-oct23: remote CI40010858925 passes TypeScript/lint0errors,6618 tests/338 skips and finalized230-page build. Remote Studio40010858749 passes52 full plus6 mandatory touch cases, zero skips/flaky/unexpected with normal cleanup. Public smoke40011165162 passes. Local frozen-source52/52, focused3/3, helpers22/22 and screenshot inspection pass.
+- Preview independently verified READY: https://kebu-1njz338cu-mbayangxos-projects.vercel.app / dpl_EXpzBq5kWi33ycLQKLJNdY9nocmB. PR14 targets the shared checkpoint only. Evidence: docs/audits/KEBU_STUDIO_ARRANGE_2026-10-23.md and docs/audits/evidence/studio-arrange-oct23/verification.json.
+- User renewed QA branch authorization. Actual retry result is PaymentRequiredException: Branching is supported only on Pro or above. No branch or plan change occurred. Native branching can be retried after the owning organization supports it; an authorized isolated QA environment is required for the managed hosted acceptance suite. Earlier cancellation is not the current blocker.
+- No production schema/data/DNS/ownership change or promotion in this slice. No Search/Mail/Foundry code edits. Full Kebu and all25 Creative OS groups remain incomplete; continue bounded user journeys and hosted certification rather than claiming a global release.

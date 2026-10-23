@@ -9,6 +9,88 @@ import { emptyStudioComposition, compositionClipSchema } from "../../lib/studio/
 const id = "22222222-2222-4222-8222-222222222222", owner = "33333333-3333-4333-8333-333333333333";
 const rev = (n: number) => `2026-10-13T12:00:${String(n).padStart(2, "0")}.000Z`;
 
+test("arrange preserves rotated group offsets through undo save and reopen", async ({ page }) => {
+  const fixture = await setup(page);
+  const source = fixture.server().canvas!;
+  source.layers[0] = { ...source.layers[0]!, x:100, y:100, width:180, height:50, rotation:30, groupId:"pair" };
+  source.layers[1] = { ...source.layers[1]!, x:300, y:300, width:80, height:100, rotation:-30, groupId:"pair" };
+  source.pages[0]!.layers = source.layers;
+  await page.reload();
+  const title = page.locator('[data-studio-layer-id="title"]'), image = page.locator('[data-studio-layer-id="image"]');
+  const board = await sceneBox(page), beforeTitle = (await title.boundingBox())!, beforeImage = (await image.boundingBox())!;
+  await title.click();
+  await expect(page.getByRole("button", { name:"Distribute horizontally", exact:true })).toBeDisabled();
+  await page.getByRole("button", { name:"Align left", exact:true }).click();
+  const afterTitle = (await title.boundingBox())!, afterImage = (await image.boundingBox())!;
+  expect(Math.min(afterTitle.x,afterImage.x)).toBeCloseTo(board.x,0);
+  expect(afterImage.x-afterTitle.x).toBeCloseTo(beforeImage.x-beforeTitle.x,0);
+  expect(afterImage.y-afterTitle.y).toBeCloseTo(beforeImage.y-beforeTitle.y,0);
+  await page.getByRole("button", { name:"Undo", exact:true }).click();
+  expect((await title.boundingBox())!.x).toBeCloseTo(beforeTitle.x,0);
+  expect((await image.boundingBox())!.x).toBeCloseTo(beforeImage.x,0);
+  await page.getByRole("button", { name:"Redo", exact:true }).click();
+  await page.getByRole("button", { name:"Save draft", exact:true }).click();
+  await expect.poll(()=>fixture.server().canvas!.layers[0]!.x).not.toBe(100);
+  expect(fixture.server().canvas!.layers[1]!.x-fixture.server().canvas!.layers[0]!.x).toBeCloseTo(200);
+  await page.reload();
+  expect((await image.boundingBox())!.x-(await title.boundingBox())!.x).toBeCloseTo(beforeImage.x-beforeTitle.x,0);
+  expect(fixture.errors).toEqual([]);
+  await page.screenshot({ path:test.info().outputPath("arranged-rotated-group.png") });
+});
+
+test("arrange distributes rotated visible frames with equal gaps and persistent history", async ({ page }) => {
+  const fixture = await setup(page);
+  const source = fixture.server().canvas!;
+  source.layers = [
+    canvasLayerSchema.parse({ id:"title",type:"rect",x:50,y:100,width:100,height:40,rotation:30,fill:"#ff0000" }),
+    canvasLayerSchema.parse({ id:"middle",type:"rect",x:180,y:220,width:80,height:120,rotation:-45,fill:"#00ff00" }),
+    canvasLayerSchema.parse({ id:"last",type:"rect",x:450,y:350,width:70,height:90,rotation:60,fill:"#0000ff" }),
+  ];
+  source.pages[0]!.layers = source.layers;
+  const ids = ["title","middle","last"];
+  const boxes = async () => Promise.all(ids.map(async id => (await page.locator(`[data-studio-layer-id="${id}"]`).boundingBox())!));
+  await page.reload();
+  await expect(page.locator('[data-studio-layer-id="last"]')).toBeVisible();
+  const before = await boxes();
+  await dragMarquee(page,[2,2],[620,620]);
+  await page.getByRole("button", { name:"Distribute horizontally", exact:true }).click();
+  const after = await boxes();
+  expect(after[1]!.x-after[0]!.x-after[0]!.width).toBeCloseTo(after[2]!.x-after[1]!.x-after[1]!.width,0);
+  expect(after[0]!.x).toBeCloseTo(before[0]!.x,0);
+  expect(after[2]!.x+after[2]!.width).toBeCloseTo(before[2]!.x+before[2]!.width,0);
+  await page.getByRole("button", { name:"Undo", exact:true }).click();
+  expect((await boxes())[1]!.x).toBeCloseTo(before[1]!.x,0);
+  await page.getByRole("button", { name:"Redo", exact:true }).click();
+  await page.getByRole("button", { name:"Save draft", exact:true }).click();
+  await expect.poll(()=>fixture.server().canvas!.layers[1]!.x).not.toBe(180);
+  expect(fixture.server().canvas!.layers.map(l=>[l.y,l.rotation])).toEqual([[100,30],[220,-45],[350,60]]);
+  await page.reload();
+  const reopened = await boxes();
+  expect(reopened[1]!.x-reopened[0]!.x-reopened[0]!.width).toBeCloseTo(reopened[2]!.x-reopened[1]!.x-reopened[1]!.width,0);
+  expect(fixture.errors).toEqual([]);
+  await page.screenshot({ path:test.info().outputPath("distributed-rotated-frames.png") });
+});
+
+test("arrange rejects out-of-range group movement without losing artwork or history", async ({ page }) => {
+  const fixture = await setup(page);
+  const source = fixture.server().canvas!;
+  source.layers[0] = {...source.layers[0]!,x:-2000,groupId:"wide"};
+  source.layers[1] = {...source.layers[1]!,x:4000,groupId:"wide"};
+  source.pages[0]!.layers = source.layers;
+  const before = structuredClone(source);
+  await page.reload();
+  await page.getByRole("button", { name:"Layers", exact:true }).click();
+  await page.getByRole("button").filter({has:page.getByText("Title",{exact:true})}).click();
+  await page.getByRole("button", { name:"Align left", exact:true }).click();
+  await expect(page.getByRole("alert", {name:"Arrange error",exact:true})).toContainText("supported canvas range");
+  await expect(page.getByRole("button", { name:"Undo", exact:true })).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0);
+  expect(fixture.server().canvas).toEqual(before);
+  await page.getByRole("button", { name:"Dismiss", exact:true }).click();
+  await expect(page.getByRole("alert", {name:"Arrange error",exact:true})).toHaveCount(0);
+  expect(fixture.errors).toEqual([]);
+});
+
 test("page settings rename reorder restore and export the saved page order", async ({ page }) => {
   const fixture = await setup(page, { twoPages: true });
   const second = fixture.server().canvas!.pages[1]!;
