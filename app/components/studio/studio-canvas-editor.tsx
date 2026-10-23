@@ -436,7 +436,7 @@ export function StudioCanvasEditor({
         drag.origLayers,
         moveIds,
         { width: page.width, height: page.height },
-        8,
+        8 / displayScale, // Keep the magnetic distance at eight screen pixels at every zoom.
       );
       setSnapGuides(snapped.guides);
       const adjX = snapped.x - primary.x;
@@ -480,6 +480,10 @@ export function StudioCanvasEditor({
     if (marqueeRef.current && marqueeRef.current.pointerId !== e.pointerId) return;
     if (drag && drag.pointerId !== e.pointerId) return;
     if (pan && pan.pointerId !== e.pointerId) return;
+    cancelPointerGesture();
+  }
+
+  function cancelPointerGesture() {
     cancelMarquee();
     if (drag) {
       latestDoc.current = drag.baseline;
@@ -755,9 +759,9 @@ export function StudioCanvasEditor({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && marqueeRef.current) {
+      if (e.key === "Escape" && (marqueeRef.current || drag || pan)) {
         e.preventDefault();
-        cancelMarquee();
+        cancelPointerGesture();
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -813,7 +817,7 @@ export function StudioCanvasEditor({
       window.removeEventListener("keyup", onKeyUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLayerIds, doc, activePageId, onUndo, onRedo, readOnly]);
+  }, [selectedLayerIds, doc, activePageId, onUndo, onRedo, readOnly, drag, pan]);
 
   const canGroup = !readOnly && selectedLayerIds.length >= 2;
   const canUngroup =
@@ -1388,12 +1392,14 @@ export function StudioCanvasEditor({
               {snapGuides.v != null ? (
                 <div
                   className="absolute top-0 bottom-0 w-px bg-pink-500 pointer-events-none z-20"
+                  data-studio-snap-guide="vertical"
                   style={{ left: snapGuides.v }}
                 />
               ) : null}
               {snapGuides.h != null ? (
                 <div
                   className="absolute left-0 right-0 h-px bg-pink-500 pointer-events-none z-20"
+                  data-studio-snap-guide="horizontal"
                   style={{ top: snapGuides.h }}
                 />
               ) : null}

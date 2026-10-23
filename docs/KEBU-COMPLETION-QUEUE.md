@@ -29,12 +29,12 @@ All25 groups remain **partial/open**. The recorded isolated browser and SQL evid
 | COS03 | Builder measured frame/fit/crop development gate | All Studio frame hit bounds, background removal, hosted preservation |
 | COS04 | Eight handles; ratio/center; exact fields; phone/tablet gestures and reopening | Every transformed/grouped object and hosted responsive acceptance |
 | COS05 | Direct text, IME, caret, whitespace and decoded export tests | Rich inline styling and complete hosted text workflow |
-| COS06 | Existing guide/distribution source and focused geometry tests | Full transformed multi-object snapping/distribution browser journey |
-| COS07 | Marquee, additive selection, visible group expansion, cancel/secondary-pointer cases | Nested groups, hierarchy/reorder and full group transforms |
+| COS06 | Rotated visible-frame alignment/distribution; whole-selection nearest snapping and zoom-independent tolerance in actual browser | Animated transforms, equal-distance smart guides, full supported-object/hosted acceptance |
+| COS07 | Marquee/additive selection, independent group copies, rigid-group arrange/snapping and cancellation | Nested groups, hierarchy/reorder and group resize/rotation |
 | COS08 | Motion/timeline source and bounded export tests | All website triggers/presets/easing/reduced-motion persistence/export |
 | COS09 | Real decoded WebM and timeline history | Complete multi-track editing, captions, transitions and all error paths |
 | COS10 | Decoded audible samples; missing-audio refusal | Real uploads/library, trim/loop/fades/detach/beat/waveform end to end |
-| COS11 | Existing page/scene controls and history paths | Complete reorder/rename/copy-style/delete/restore output order |
+| COS11 | Explicit page rename/reorder/delete/restore with undo/save/reopen and actual PDF/ZIP output order | Copy-style actions, full scene variants and managed hosted acceptance |
 | COS12 | Existing editable Elements/source catalog | Full searchable catalog insertion, including tables/charts and assets |
 | COS13 | Existing asset/library/marketplace paths | Real storage, retries, folders/tags/favorites and multi-user sharing |
 | COS14 | Brand DNA schema/campaign tests | Apply/restyle/logo actions with undo, owner/team checks and reopen |
@@ -48,7 +48,7 @@ All25 groups remain **partial/open**. The recorded isolated browser and SQL evid
 | COS22 | Existing Builder performance probes remain passing | Large-document Studio measurements, virtualization/workers/device limits |
 | COS23 | Decoded PNG/PDF/ZIP/WebM, supplied images/fonts/audio, missing-media failures | All supported formats, transparent/quality settings and durable job lifecycle |
 | COS24 | Template source boundary SQL/REST and editable document model | Full author/publish/purchase/use journey, licensing/private file delivery |
-| COS25 | Real isolated editor journeys;44 full cases plus6 touch repeats | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
+| COS25 | Real isolated editor journeys;55 local full cases; exact remote touch/full evidence in latest audit | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
 
 ## October 22 — Studio selection reconciled and browser verified
 

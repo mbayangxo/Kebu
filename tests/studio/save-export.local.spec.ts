@@ -9,6 +9,78 @@ import { emptyStudioComposition, compositionClipSchema } from "../../lib/studio/
 const id = "22222222-2222-4222-8222-222222222222", owner = "33333333-3333-4333-8333-333333333333";
 const rev = (n: number) => `2026-10-13T12:00:${String(n).padStart(2, "0")}.000Z`;
 
+for (const zoom of [50,100]) test(`snapping rotated groups at ${zoom}% uses visible bounds and one persistent gesture`, async ({ page }) => {
+  const fixture = await setup(page);
+  const source = fixture.server().canvas!;
+  source.layers = [
+    canvasLayerSchema.parse({id:"title",type:"rect",x:100,y:100,width:100,height:40,rotation:90,groupId:"pair",fill:"#f04b32"}),
+    canvasLayerSchema.parse({id:"image",type:"rect",x:250,y:230,width:60,height:100,rotation:-90,groupId:"pair",fill:"#24a07a"}),
+  ];
+  source.pages[0]!.layers = source.layers;
+  await page.reload();
+  await page.getByRole("slider").fill(String(zoom));
+  const board = await sceneBox(page), scale = board.width/640;
+  const title = page.locator('[data-studio-layer-id="title"]'), image = page.locator('[data-studio-layer-id="image"]');
+  const beforeTitle = (await title.boundingBox())!, beforeImage = (await image.boundingBox())!;
+  await page.mouse.move(beforeTitle.x+beforeTitle.width/2,beforeTitle.y+beforeTitle.height/2);
+  await page.mouse.down();
+  // End six screen pixels short of the visible right boundary: magnetism is zoom-independent.
+  await page.mouse.move(beforeTitle.x+beforeTitle.width/2+310*scale-6,beforeTitle.y+beforeTitle.height/2+13*scale,{steps:8});
+  const guide = page.locator('[data-studio-snap-guide="vertical"]');
+  await expect(guide).toBeVisible();
+  expect((await image.boundingBox())!.x+(await image.boundingBox())!.width).toBeCloseTo(board.x+board.width,0);
+  await page.screenshot({path:test.info().outputPath(`snapped-group-${zoom}.png`)});
+  await page.mouse.up();
+  await expect(guide).toHaveCount(0);
+  expect((await image.boundingBox())!.x-(await title.boundingBox())!.x).toBeCloseTo(beforeImage.x-beforeTitle.x,0);
+  await page.getByRole("button",{name:"Undo",exact:true}).click();
+  expect((await title.boundingBox())!.x).toBeCloseTo(beforeTitle.x,0);
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  await page.getByRole("button",{name:"Redo",exact:true}).click();
+  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect.poll(()=>fixture.server().canvas!.layers[0]!.x).toBeCloseTo(410);
+  expect(fixture.server().canvas!.layers[1]!.x).toBeCloseTo(560);
+  expect(fixture.server().canvas!.layers.map(l=>l.rotation)).toEqual([90,-90]);
+  await page.reload();
+  expect((await image.boundingBox())!.x+(await image.boundingBox())!.width).toBeCloseTo((await sceneBox(page)).x+(await sceneBox(page)).width,0);
+  expect(fixture.errors).toEqual([]);
+});
+
+test("snapping rotated artwork to a rotated stationary edge survives cancel undo and reopen", async ({ page }) => {
+  const fixture = await setup(page);
+  const source = fixture.server().canvas!;
+  source.layers = [
+    canvasLayerSchema.parse({id:"title",type:"rect",x:80,y:350,width:160,height:40,rotation:90,fill:"#f04b32"}),
+    canvasLayerSchema.parse({id:"image",type:"rect",x:330,y:100,width:180,height:60,rotation:90,locked:true,fill:"#24a07a"}),
+  ];
+  source.pages[0]!.layers = source.layers;
+  await page.reload();
+  const board = await sceneBox(page), scale = board.width/640;
+  const title = page.locator('[data-studio-layer-id="title"]'), image = page.locator('[data-studio-layer-id="image"]');
+  const before = (await title.boundingBox())!, target = (await image.boundingBox())!;
+  const drag = async () => {
+    await page.mouse.move(before.x+before.width/2,before.y+before.height/2);
+    await page.mouse.down();
+    await page.mouse.move(before.x+before.width/2+267*scale,before.y+before.height/2+11*scale,{steps:8});
+    await expect(page.locator('[data-studio-snap-guide="vertical"]')).toBeVisible();
+    const moved = (await title.boundingBox())!;
+    expect(moved.x+moved.width).toBeCloseTo(target.x+target.width,0);
+  };
+  await drag(); await page.keyboard.press("Escape"); await page.mouse.up();
+  expect((await title.boundingBox())!.x).toBeCloseTo(before.x,0);
+  await expect(page.locator('[data-studio-snap-guide]')).toHaveCount(0);
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0);
+  await drag(); await page.mouse.up();
+  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect.poll(()=>fixture.server().canvas!.layers[0]!.x).toBeCloseTo(350);
+  expect(fixture.server().canvas!.layers[1]!).toEqual(source.layers[1]);
+  await page.reload();
+  const reopened = (await title.boundingBox())!, stationary = (await image.boundingBox())!;
+  expect(reopened.x+reopened.width).toBeCloseTo(stationary.x+stationary.width,0);
+  expect(fixture.errors).toEqual([]);
+});
+
 test("arrange preserves rotated group offsets through undo save and reopen", async ({ page }) => {
   const fixture = await setup(page);
   const source = fixture.server().canvas!;
