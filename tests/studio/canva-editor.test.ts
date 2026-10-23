@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { CanvasLayer } from "@/lib/studio/canvas-document";
 import {
   addCanvasPage,
   alignLayers,
@@ -31,7 +32,7 @@ describe("Studio Canva editor helpers", () => {
       ...doc.layers[0]!, id: `source-${i}`, groupId: i < 2 ? "a" : i < 4 ? "b" : null,
     }));
     const snapshot = structuredClone(source);
-    const verify = (copies: typeof source) => {
+    const verify = (copies: CanvasLayer[]) => {
       expect(new Set(copies.map(l => l.id)).size).toBe(5);
       expect(copies[0]!.groupId).toBe(copies[1]!.groupId);
       expect(copies[2]!.groupId).toBe(copies[3]!.groupId);
