@@ -9,6 +9,86 @@ import { emptyStudioComposition, compositionClipSchema } from "../../lib/studio/
 const id = "22222222-2222-4222-8222-222222222222", owner = "33333333-3333-4333-8333-333333333333";
 const rev = (n: number) => `2026-10-13T12:00:${String(n).padStart(2, "0")}.000Z`;
 
+test("page settings rename reorder restore and export the saved page order", async ({ page }) => {
+  const fixture = await setup(page, { twoPages: true });
+  const second = fixture.server().canvas!.pages[1]!;
+  second.width = 800; second.height = 400; second.layers[0]!.text = "Second content";
+  await page.reload();
+  await page.getByRole("button", { name: "Page settings", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Move page earlier", exact: true })).toBeDisabled();
+  await page.getByLabel("Page name", { exact: true }).fill("Cover");
+  expect(fixture.writes).toHaveLength(0);
+  await page.getByRole("button", { name: "Rename page", exact: true }).click();
+  await page.getByRole("button", { name: "Move page later", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Move page later", exact: true })).toBeDisabled();
+  await expect(page.getByText("Page 2 of 2", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.getByText("Page 1 of 2", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Redo", exact: true }).click();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.pages.map(p => p.name)).toEqual(["Second", "Cover"]);
+  expect(fixture.server().canvas!.layers[0]!.text).toBe("Original");
+  await page.reload();
+  await expect(page.locator('[data-studio-layer-id="title"]')).toContainText("Second content");
+  await page.getByRole("button", { name: "Cover", exact: true }).click();
+  await expect(page.locator('[data-studio-layer-id="title"]')).toContainText("Original");
+  await page.getByText("More", { exact: true }).click();
+  const pdfDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export PDF", exact: true }).click();
+  const pdf = await PDFDocument.load(readFileSync((await (await pdfDownload).path())!));
+  expect(pdf.getPages().map(p => p.getSize())).toEqual([{ width: 600, height: 300 }, { width: 480, height: 480 }]);
+  const zipDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download pages ZIP", exact: true }).click();
+  const zip = await JSZip.loadAsync(readFileSync((await (await zipDownload).path())!));
+  expect(Object.keys(zip.files).filter(n => n.endsWith(".png"))).toEqual(["01-Second.png", "02-Cover.png"]);
+  await page.getByText("More", { exact: true }).click();
+  await page.getByRole("button", { name: "Delete page", exact: true }).click();
+  await expect(page.locator('[data-studio-layer-id="title"]')).toContainText("Second content");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await page.getByRole("button", { name: "Cover", exact: true }).click();
+  await expect(page.locator('[data-studio-layer-id="title"]')).toContainText("Original");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.pages.length).toBe(2);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Cover", exact: true })).toBeVisible();
+  expect(fixture.errors).toEqual([]);
+  await page.getByRole("button", { name: "Page settings", exact: true }).click();
+  await page.screenshot({ path: test.info().outputPath("page-settings-desktop.png") });
+});
+
+for (const width of [390, 834]) test(`page settings at ${width}px preserve renamed reordered pages`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  const fixture = await setup(page, { twoPages: true });
+  await page.getByRole("button", { name: "Page settings", exact: true }).click();
+  const name = page.getByLabel("Page name", { exact: true });
+  await expect(name).toBeFocused();
+  await name.fill("Phone cover"); await name.press("Enter");
+  await page.getByRole("button", { name: "Move page later", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Move page earlier", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Move page later", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Phone cover", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ path: test.info().outputPath(`page-settings-${width}.png`) });
+  await page.getByRole("button", { name: "Inspector", exact: true }).click();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.pages.map(p => p.name)).toEqual(["Second", "Phone cover"]);
+  await page.reload();
+  await page.getByRole("button", { name: "Phone cover", exact: true }).click();
+  await page.getByRole("button", { name: "Page settings", exact: true }).click();
+  await expect(page.getByLabel("Page name", { exact: true })).toHaveValue("Phone cover");
+  await expect(page.getByText("Page 2 of 2", { exact: true })).toBeVisible();
+  expect(fixture.errors).toEqual([]);
+});
+
+test("page settings do not give viewers page mutation controls", async ({ page }) => {
+  const fixture = await setup(page, { twoPages: true, viewer: true });
+  await page.getByRole("button", { name: "Page settings", exact: true }).click();
+  await expect(page.getByLabel("Page name", { exact: true })).toBeDisabled();
+  for (const name of ["Rename page", "Move page earlier", "Move page later", "Add page", "Duplicate page", "Delete page"])
+    await expect(page.getByRole("button", { name, exact: true })).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0);
+  expect(fixture.errors).toEqual([]);
+});
+
 test("duplicated groups move independently through undo save and reload", async ({ page }) => {
   const fixture = await setup(page);
   await dragMarquee(page, [2, 2], [340, 250]);

@@ -339,10 +339,30 @@ export function duplicateCanvasPage(
   return { doc: mirrorPageToDocument({ ...doc, pages }, page), pageId: page.id };
 }
 
-export function deleteCanvasPage(doc: CanvasDocument, pageId: string): CanvasDocument | null {
-  if (doc.pages.length <= 1) return null;
+/** Reject blank or oversized names without recording a spurious history change. */
+export function renameCanvasPage(doc: CanvasDocument, pageId: string, name: string): CanvasDocument {
+  const page = doc.pages.find((p) => p.id === pageId);
+  const trimmed = name.trim();
+  if (!page || !trimmed || trimmed.length > 80 || page.name === trimmed) return doc;
+  return updatePage(doc, pageId, { name: trimmed });
+}
+
+/** Reordering preserves IDs, authored page content and the active-page mirror. */
+export function moveCanvasPage(doc: CanvasDocument, pageId: string, toIndex: number): CanvasDocument {
+  const fromIndex = doc.pages.findIndex((p) => p.id === pageId);
+  if (fromIndex < 0 || !Number.isInteger(toIndex) || toIndex < 0 || toIndex >= doc.pages.length || fromIndex === toIndex) return doc;
+  const pages = [...doc.pages];
+  const [page] = pages.splice(fromIndex, 1);
+  pages.splice(toIndex, 0, page!);
+  return mirrorPageToDocument({ ...doc, pages }, page!);
+}
+
+export function deleteCanvasPage(doc: CanvasDocument, pageId: string, activePageId = pageId): CanvasDocument | null {
+  const index = doc.pages.findIndex((p) => p.id === pageId);
+  if (doc.pages.length <= 1 || index < 0) return null;
   const pages = doc.pages.filter((p) => p.id !== pageId);
-  return mirrorPageToDocument({ ...doc, pages }, pages[0]!);
+  const active = pages.find((p) => p.id === activePageId) ?? pages[Math.min(index, pages.length - 1)]!;
+  return mirrorPageToDocument({ ...doc, pages }, active);
 }
 
 export type AlignMode =

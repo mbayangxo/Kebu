@@ -1,0 +1,73 @@
+{
+  "runtime": "1b678ee9a455707837734994b8c0364061b39f70",
+  "base": "4ead007d94472b15be38958c84bc44765a30b22f",
+  "local": {
+    "focused": 14,
+    "newBrowserCases": 4,
+    "fullStudio": {
+      "startTime": "2026-10-23T06:08:39.862Z",
+      "duration": 197221.598,
+      "expected": 49,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "auth": "explicit isolated loopback fixture",
+    "hostedAcceptance": false,
+    "normalCleanup": true,
+    "preliminaryCi": {
+      "testsPassed": 6606,
+      "testsSkipped": 338,
+      "lintErrors": 0,
+      "existingWarnings": 346,
+      "build": "passed",
+      "limitation": "before final page-strip/accessibility follow-up"
+    }
+  },
+  "earlierBrowserFailure": {
+    "touchSelection": true,
+    "sourceEditedDuringRun": true,
+    "acceptedAsFinalEvidence": false
+  },
+  "remote": {
+    "ci": {
+      "id": 39909692565,
+      "status": "success",
+      "testsPassed": 6606,
+      "testsSkipped": 338,
+      "lintErrors": 0,
+      "existingWarnings": 346,
+      "build": "passed"
+    },
+    "studio": {
+      "id": 39909692429,
+      "status": "success"
+    },
+    "publicSmoke": {
+      "id": 39910296305,
+      "status": "success"
+    }
+  },
+  "hosted": {
+    "latestObservedAt": "2026-10-23T06:09Z",
+    "yandeFailed": 2,
+    "yandeTotal": 7,
+    "broaderFailed": 10,
+    "broaderTotal": 37,
+    "checks": "catalog-only",
+    "mutationsByThisSlice": false,
+    "qaBranchCreated": false,
+    "qaRequestError": "Invalid or expired requestState",
+    "qaRetry": "cancelled by user; do not retry"
+  },
+  "otherActiveBranch": {
+    "branch": "kebu-search-build-oct23",
+    "sha": "95f8f111",
+    "mergedHere": false
+  },
+  "preview": {
+    "state": "READY",
+    "url": "https://kebu-aosw8441p-mbayangxos-projects.vercel.app",
+    "deployment": "dpl_2wpouy5veq3gaWE3HFG9mB6BHL3e"
+  }
+}

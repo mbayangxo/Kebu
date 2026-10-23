@@ -12,6 +12,8 @@ import {
   expandSelectionWithGroups,
   getPage,
   groupLayers,
+  moveCanvasPage,
+  renameCanvasPage,
   newLayerId,
   ungroupLayers,
   updatePage,
@@ -183,6 +185,7 @@ export function StudioCanvasEditor({
   const artboardRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
+  const pageNameRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState<{
     pointerId: number;
     mode: DragMode;
@@ -692,12 +695,21 @@ export function StudioCanvasEditor({
 
   function removePage(pageId: string) {
     if (readOnly) return;
-    const next = deleteCanvasPage(latestDoc.current, pageId);
+    const current = latestDoc.current;
+    const next = deleteCanvasPage(current, pageId, activePageId);
     if (!next) return;
     onChange(next);
-    const fallback = next.pages[0]!;
+    const fallback = next.pages[Math.min(current.pages.findIndex((p) => p.id === pageId), next.pages.length - 1)]!;
     onActivePageChange(pageId === activePageId ? fallback.id : activePageId);
     onSelectLayers([]);
+  }
+
+  function movePage(direction: -1 | 1) {
+    if (readOnly) return;
+    const current = latestDoc.current;
+    const index = current.pages.findIndex((p) => p.id === activePageId);
+    const next = moveCanvasPage(current, activePageId, index + direction);
+    if (next !== current) onChange(next);
   }
 
   async function onFilePicked(file: File | null, kind: "image" | "video" = "image") {
@@ -1393,6 +1405,24 @@ export function StudioCanvasEditor({
           {!selected ? (
             <div className="space-y-3">
               <GalaxyEmptyState appearance="dark" title="Nothing selected" detail="Select something on the canvas to edit it, or adjust the page itself below." />
+              <form key={`${page.id}:${page.name}`} className="space-y-2" onSubmit={(event) => {
+                event.preventDefault();
+                if (readOnly) return;
+                const name = String(new FormData(event.currentTarget).get("pageName") ?? "").trim();
+                const current = latestDoc.current;
+                const next = renameCanvasPage(current, page.id, name);
+                if (next !== current) onChange(next);
+              }}>
+                <label className="block text-xs font-semibold">Page name
+                  <input ref={pageNameRef} name="pageName" defaultValue={page.name} required pattern=".*\S.*" maxLength={80} className="mt-1 w-full rounded-lg border border-white/10 px-2 py-2" />
+                </label>
+                <button type="submit" className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold disabled:opacity-30">Rename page</button>
+              </form>
+              <p aria-live="polite" className="text-xs text-white/70">Page {doc.pages.findIndex((p) => p.id === page.id) + 1} of {doc.pages.length}</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => movePage(-1)} disabled={doc.pages[0]?.id === page.id} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold disabled:opacity-30">Move page earlier</button>
+                <button type="button" onClick={() => movePage(1)} disabled={doc.pages.at(-1)?.id === page.id} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold disabled:opacity-30">Move page later</button>
+              </div>
               <label className="block text-xs font-semibold">
                 Background
                 <input
@@ -2039,12 +2069,13 @@ export function StudioCanvasEditor({
 
       <div role="group" aria-label="Workspace panels" className="relative z-40 flex shrink-0 justify-center gap-1 border-t border-white/10 bg-[#151619] p-1.5 lg:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
       {/* Bottom page strip */}
-      <div className="shrink-0 border-t border-white/10 bg-[#101113] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-wrap items-center gap-2">
+      <div role="group" aria-label="Pages" className="shrink-0 overflow-x-auto border-t border-white/10 bg-[#101113] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-nowrap items-center gap-2 [&>button]:shrink-0 [&>span]:shrink-0">
         <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 mr-1">Pages</span>
         {doc.pages.map((p, i) => (
           <button
             key={p.id}
             type="button"
+            aria-pressed={p.id === activePageId}
             onClick={() => {
               onActivePageChange(p.id);
               onSelectLayers([]);
@@ -2059,6 +2090,11 @@ export function StudioCanvasEditor({
           </button>
         ))}
         <span className="w-px h-5 bg-black/10 mx-1" />
+        <button type="button" onClick={() => {
+          onSelectLayers([]);
+          setMobilePanel("inspector");
+          requestAnimationFrame(() => pageNameRef.current?.focus());
+        }} className="rounded-lg border border-white/10 px-2.5 py-1 text-xs font-semibold">Page settings</button>
         <button
           type="button"
           onClick={addPage}
