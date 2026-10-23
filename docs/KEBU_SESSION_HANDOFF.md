@@ -1,15 +1,16 @@
 # Kebu — Session Handoff and Recovery
 
 Updated: 2026-10-23
-Status: active Studio snapping checkpoint; hosted QA branch blocked by Supabase Pro requirement. Full Kebu and production acceptance OPEN.
+Status: active shared-rotation checkpoint; managed QA blocked by access/Free-project quota and Pro branching requirements. Full Kebu and production acceptance OPEN.
 
 ## Resume here — current operational state
 
 - Follow `origin/work/kebu-completion-audit-oct13`; do not restart from main or replay checkout/frames/Yande/pages work. Run workspace:check and reconcile a clean behind checkout before editing. The handoff branch mirrors the shared checkpoint.
-- Already integrated: PR12 group-copy isolation, PR13 page lifecycle and PR14 rigid-group/rotated arrangement. Shared base a5ce2321. Current snapping runtime4fe75aa4e5e3ad9b8203b692ed4a2af0e53d080f / PR15 passes full local/remote CI6624/338, local55 and remote55+6 browser cases, and public preview smoke. READY preview verified. Check the authoritative PR15 integration state before further work; do not reimplement completed slices.
-- Current QA blocker: the user renewed paid-branch authorization, but Supabase rejects branching unless the organization has Pro or above. Earlier cancellation is historical and no longer the reason. No upgrade or branch creation occurred. Do not test destructive QA fixtures on production customer projects.
+- Integrated through b9acdc02: PR12 group-copy isolation, PR13 page lifecycle, PR14 rigid-group/rotated arrangement and PR15 visible-bound snapping/cancellation. Current shared-rotation runtime626a5d40833a7cbd54c7e443e909c3bdd9d1b693 / PR16 passes full local/remote CI6638/338, local61 and remote61+6 browser cases, public smoke and READY preview. Verify its authoritative integration state before further work; do not replay earlier slices.
+- Browser verification protocol: freeze the entire checkout, including documentation, while the dev harness runs; serialize local memory-heavy CI/build and browser work under the8GB cap. Preserve failed-run provenance and never suppress page errors to obtain a pass.
+- Current QA blockers independently retried: Kebu organization is Free; native branching requires Pro. A safer separate-project option quoted0/month but creation was rejected because the account already has2 active Free projects across organizations (only production is visible through this connection). Old QA skqnxyaeimvbyrmdfzvk still returns permission denied. No project/branch was created, no plan upgraded and no other project paused/deleted. Earlier cancellation is historical. Do not use production customer content for destructive fixtures.
 - Keep Claude's Search/Mail/Foundry work separate. Latest Search7b8ca47a addresses the earlier95f8f111 live-lifecycle/ranking/filter findings. Independent review59 pass/11 SQL skips; source-scale cleanup and strict SQL/CI verification still need follow-up. Read audits/KEBU_SEARCH_REVIEW_FOLLOWUP_2026-10-23.md before discussing Search readiness.
-- Remaining product work is tracked in the25-group Creative OS acceptance register. This arrange slice does not close nested groups, group resize/rotation, all smart guides, hosted collaboration or May reference acceptance.
+- Remaining work is tracked in the25-group Creative OS register. Shared rotation now has bounded desktop/phone/tablet acceptance. Nested groups, group resize, animated transform frames, all smart guides, rich text/media, hosted collaboration and May reference acceptance remain open.
 
 ## Source of truth
 GitHub commits and reviewed branches are authoritative. This document records evidence, not release certification.
@@ -39,7 +40,7 @@ GitHub commits and reviewed branches are authoritative. This document records ev
 - Preserve Claude's work, avoid stale checkout tasks.
 
 ## Current next actions
-1. Resume from the authoritative shared checkpoint containing verified PR15 snapping; confirm remote integration before editing. Preserve Claude Search separately and follow its review follow-up. Do not replay completed Studio slices.
+1. Resume from the authoritative checkpoint containing PR16 shared rotation; verify remote state before editing. Continue the remaining Studio/Builder slices. Keep Claude Search separate and follow its review follow-up; do not reimplement completed rotation/snapping/pages work.
 2. Unblock managed hosted QA with an authorized isolated environment; native branching currently requires Supabase Pro. Recheck live schema drift before any migration, then run signed-in Auth/RLS, save/publish and multi-user acceptance.
 3. Continue the remaining Creative OS requirements through isolated end-to-end slices, preserving formats, authored content and Claude-owned work.
 4. Verify deployment state with the actual provider. Production promotion remains separate from local/fixture acceptance.
@@ -111,3 +112,23 @@ Fresh read-only hosted catalogs at2026-10-23T21:21Z still fail2/7 Yande and10/37
 Runtime4fe75aa4e5e3ad9b8203b692ed4a2af0e53d080f / PR https://github.com/mbayangxo/Kebu/pull/15. All final gates pass: normal-checkout npm run ci exit0 (TypeScript, lint0errors/346 existing warnings,6624 tests/338 explicit skips, finalized230-page build); exact-source remote CI40025909080 SUCCESS; Studio40025909069 SUCCESS with55 full plus6 required phone/tablet cases across3 rounds, zero skips/flaky/unexpected and original marquee regression reproduced; public preview smoke40026600568 SUCCESS. Local55/55 and focused3/3 pass with normal teardown and inspected50%/100% screenshots. The earlier failed Escape run, auxiliary symlink-root build and first font-resolution deployment are explicitly nonaccepted runs; the final source/gates and READY exact-commit retry supersede them.
 
 The attempted independent Search PostgreSQL setup downloaded native binaries but could not initialize: this sandbox maps only UID0, cannot chown to another UID and rejects runuser/setgroups. No database was started; the11 SQL skips remain unverified independently. No Claude runtime changes or merge. Follow audits/KEBU_SEARCH_REVIEW_FOLLOWUP_2026-10-23.md for reconciliation/SQL gate/indexing follow-ups. Full Kebu, all25 Creative OS groups, hosted JWT/RLS/publish/integrations and production rollout remain OPEN.
+
+## October23 — shared rotation in progress
+
+Clean authoritative baseb9acdc02; isolated branch work/codex-studio-group-rotation-oct23. Reproduced the absent shared rotation control in the actual editor. Implemented visible selection pivot/outline/handle, exact relative angle, keyboard and native touch rotation, one-step history/cancellation and atomic error.14 new geometry cases/32 combined cases pass; TypeScript passes; focused actual browser6/6 with zero skips/flaky/unexpected, normal teardown and inspected desktop/390/834px screenshots, decoded PNG geometry and viewer/error paths. Full61/CI gates pending. No group resize/nesting/animated-frame or hosted completion claim. Claude remains separate. See audits/KEBU_STUDIO_GROUP_ROTATION_2026-10-23.md.
+
+### Current QA provisioning attempts and verification progress
+
+Organizationzdoqqcrxrbxkbxobjrsp is verified Free. get_cost(project) quoted0/month; create_project(kebu-hosted-qa-oct23, existing Kebu org, us-east-1) was rejected by the account-wide2-active-Free-project limit. Only production is listed through this connection, so no other project can safely be selected for pausing/deletion. Old QA skqnxyaeimvbyrmdfzvk was explicitly retried and remains permission-denied. These are provider/access blockers, not the historical canceled approval. No infrastructure created or billing changed.
+
+Runtime626a5d40 / PR16: full local CI(source tree79d4a8d5)/remote CI40029905798 pass6638 tests/338 explicit skips, TypeScript, lint0errors/346 existing warnings and finalized230-page build. Public smoke40030271969 passes; previewdpl_HmGjbiKGSHeArQGMiG2EAgCUa1uo READY at https://kebu-ps5vyyoo5-mbayangxos-projects.vercel.app. Initial local full browser53passed/1unexpected/7unrun was not accepted: workerSIGKILL while CI/build overlapped, cgroup8GB peak and oneOOMkill. CI finished; frozen source61-case browser rerun is now isolated from CI. Remote Studio40029905848 is still running.
+
+Fresh22:00Z read-only hosted catalog checks remain2/7 Yande and10/37 broader failures, with missingYande interactions, Mail forwarding and marketplace/worker/job tables. No schema/data writes or production promotion. Current exact-source verification status is tracked in audits/evidence/studio-group-rotation-oct23/verification.json.
+
+### Final shared-rotation verification and recovery checkpoint
+
+Runtime626a5d40833a7cbd54c7e443e909c3bdd9d1b693 / PR https://github.com/mbayangxo/Kebu/pull/16. Final frozen-source local61/61 browser cases pass with zero skips/flaky/unexpected and normal teardown. Remote Studio40029905848 passes61 full plus6 required phone/tablet cases across3 rounds, zero skips/flaky/unexpected; both the original marquee and missing shared-rotation control regressions are reproduced independently. Exact-source remote CI40029905798 and local full CI(tree79d4a8d5) pass6638 tests/338 explicit skips, TypeScript, lint0errors/346 existing warnings and finalized230-page build. Public preview smoke40030271969 passes; exact previewdpl_HmGjbiKGSHeArQGMiG2EAgCUa1uo is READY.
+
+Nonaccepted runs remain recorded: first full local run53passed/1unexpected/7unrun, workerSIGKILL at the8GB cgroup limit during concurrent local CI; second25passed/1unexpected/35unrun, Next dev hot-reloader dispatched before router initialization while handoff files were being edited. After CI finished, the entire checkout was frozen and all61 passed without suppression/retries. Do not run memory-heavy CI and browser together locally or edit docs during the harness.
+
+No production migration/promotion, subscription upgrade, project/branch creation or pausing/deletion of another project. Production remains71815f99; managed hosted acceptance remains blocked by old QA access, account-wide free-project capacity and Pro-only branching. Free0/month project creation was actually attempted and rejected by the provider, replacing speculation about that alternative. Full Kebu/all25 groups remain open. Detailed evidence: audits/KEBU_STUDIO_GROUP_ROTATION_2026-10-23.md and its verification.json.

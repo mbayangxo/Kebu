@@ -19,6 +19,7 @@ import {
   ungroupLayers,
   updatePage,
 } from "@/lib/studio/canvas-document";
+import { rotateSelectionLayers, selectionRotationGeometry } from "@/lib/studio/selection-rotation";
 import { resizeCreativeBounds, type ResizeHandle } from "@/lib/creative-core/resize";
 import { videoSourceTimeSec } from "@/lib/studio/timeline";
 import {
@@ -62,6 +63,7 @@ type DragMode =
   | "move"
   | `resize-${ResizeHandle}`
   | "rotate"
+  | "rotate-selection"
   | null;
 
 type MarqueeSelection = {
@@ -217,6 +219,7 @@ export function StudioCanvasEditor({
   const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [arrangeError, setArrangeError] = useState<string | null>(null);
+  const [rotationError, setRotationError] = useState<string | null>(null);
   const [brandSpace,setBrandSpace]=useState<BrandSpace|null>(null);
   const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "themes" | "brand" | "tools" | "ai">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -279,6 +282,7 @@ export function StudioCanvasEditor({
   const selectedSet = new Set(selectedLayerIds);
   const primarySelectedId = selectedLayerIds[selectedLayerIds.length - 1] ?? null;
   const selected = layers.find((l) => l.id === primarySelectedId);
+  const rotationGeometry = selectionRotationGeometry(layers, selectedLayerIds);
 
   useEffect(() => {
     if (fittedOnce.current) return;
@@ -447,6 +451,26 @@ export function StudioCanvasEditor({
         return { ...l, x: src.x + adjX, y: src.y + adjY };
       });
       setPageLayers(nextLayers, true);
+    } else if (drag.mode === "rotate-selection") {
+      const geometry = selectionRotationGeometry(drag.origLayers, drag.movingIds);
+      const box = artboardRef.current?.getBoundingClientRect();
+      if (!geometry || !box) return;
+      const cx = box.left + geometry.pivot.x * displayScale, cy = box.top + geometry.pivot.y * displayScale;
+      const start = Math.atan2(drag.startY-cy,drag.startX-cx), end = Math.atan2(e.clientY-cy,e.clientX-cx);
+      const degrees = (end-start)*180/Math.PI;
+      try {
+        const next = rotateSelectionLayers(drag.origLayers, drag.movingIds, e.shiftKey ? Math.round(degrees/15)*15 : degrees);
+        setRotationError(null);
+        if (next !== drag.origLayers) setPageLayers(next,true);
+        else if (latestDoc.current !== drag.baseline) {
+          latestDoc.current = drag.baseline;
+          onChange(drag.baseline,{cancelGesture:true});
+        }
+      } catch (error) {
+        latestDoc.current = drag.baseline;
+        onChange(drag.baseline,{cancelGesture:true});
+        setRotationError(error instanceof Error ? error.message : "Could not rotate this selection.");
+      }
     } else if (drag.mode === "rotate") {
       const artboardBox = artboardRef.current?.getBoundingClientRect();
       if (!artboardBox) return;
@@ -661,6 +685,18 @@ export function StudioCanvasEditor({
     const [item] = nextLayers.splice(idx, 1);
     nextLayers.splice(next, 0, item!);
     setPageLayers(nextLayers);
+  }
+
+  function applySelectionRotation(degrees: number) {
+    if (readOnly) return;
+    setRotationError(null);
+    try {
+      const current = getPage(latestDoc.current,activePageId).layers;
+      const next = rotateSelectionLayers(current,selectedLayerIds,degrees);
+      if (next !== current) setPageLayers(next);
+    } catch (error) {
+      setRotationError(error instanceof Error ? error.message : "Could not rotate this selection.");
+    }
   }
 
   function applyAlign(mode: AlignMode) {
@@ -965,6 +1001,9 @@ export function StudioCanvasEditor({
         </button>
       </div>
 
+      {rotationError ? <div role="alert" aria-label="Selection rotation error" className="flex shrink-0 items-center justify-between gap-3 border-b border-red-400/30 bg-red-950 px-3 py-2 text-xs text-red-100">
+        <span>{rotationError}</span><button type="button" onClick={() => setRotationError(null)} className="shrink-0 rounded border border-white/30 px-2 py-1">Dismiss rotation error</button>
+      </div> : null}
       {arrangeError ? <div role="alert" aria-label="Arrange error" className="flex shrink-0 items-center justify-between gap-3 border-b border-red-400/30 bg-red-950 px-3 py-2 text-xs text-red-100">
         <span>{arrangeError}</span><button type="button" onClick={() => setArrangeError(null)} className="shrink-0 rounded border border-white/30 px-2 py-1">Dismiss</button>
       </div> : null}
@@ -1377,6 +1416,24 @@ export function StudioCanvasEditor({
                   </div>
                 );
               })}
+              {rotationGeometry ? (
+                <div data-studio-selection-rotation className="absolute z-30 border-orange-500 pointer-events-none" style={{left:rotationGeometry.bounds.left,top:rotationGeometry.bounds.top,width:rotationGeometry.bounds.width,height:rotationGeometry.bounds.height,borderWidth:1/displayScale}}>
+                  <div aria-hidden className="absolute border border-orange-500 rounded-full -translate-x-1/2 -translate-y-1/2" data-studio-selection-pivot style={{left:rotationGeometry.pivot.x-rotationGeometry.bounds.left,top:rotationGeometry.pivot.y-rotationGeometry.bounds.top,width:10/displayScale,height:10/displayScale}} />
+                  <div aria-hidden className="absolute bottom-full w-px bg-orange-500" style={{left:rotationGeometry.pivot.x-rotationGeometry.bounds.left,height:24/displayScale}} />
+                  <button type="button" aria-label="Rotate selection" disabled={readOnly}
+                    title="Drag to rotate selection · Shift snaps to 15° · arrows rotate 1° · Shift+arrows rotate 15°"
+                    className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white bg-orange-500 text-black cursor-grab pointer-events-auto disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-white"
+                    style={{left:rotationGeometry.pivot.x-rotationGeometry.bounds.left,top:-28/displayScale,width:28/displayScale,height:28/displayScale,fontSize:18/displayScale,touchAction:"none"}}
+                    onPointerDown={e=>pointerDown(e,layers.find(l=>l.id===rotationGeometry.layerIds[0])!,"rotate-selection")}
+                    onClick={e=>e.stopPropagation()}
+                    onKeyDown={e=>{
+                      if (readOnly || !["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) return;
+                      e.preventDefault(); e.stopPropagation();
+                      applySelectionRotation((["ArrowLeft","ArrowDown"].includes(e.key)?-1:1)*(e.shiftKey?15:1));
+                    }}
+                  >↻</button>
+                </div>
+              ) : null}
               {layers.length === 0 && !readOnly ? (
                 <div
                   className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none select-none z-10"
@@ -1416,6 +1473,16 @@ export function StudioCanvasEditor({
               {selectedLayerIds.length} layers selected. Use Align / Group in the toolbar.
             </p>
           ) : null}
+          {rotationGeometry ? <form key={rotationGeometry.layerIds.join(":")} className="space-y-2 rounded-xl border border-white/10 p-3" onSubmit={e=>{
+            e.preventDefault();
+            applySelectionRotation(Number(new FormData(e.currentTarget).get("selectionAngle")));
+          }}>
+            <p className="text-xs text-white/70">Rotate {rotationGeometry.layerIds.length} unlocked layers together around the marked pivot.</p>
+            <label className="block text-xs font-semibold">Rotate selection by (°)
+              <input type="number" name="selectionAngle" required min={-360} max={360} step="any" defaultValue={15} className="mt-1 w-full rounded-lg border border-white/10 px-2 py-2" />
+            </label>
+            <button type="submit" className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold disabled:opacity-40">Apply selection rotation</button>
+          </form> : null}
           {!selected ? (
             <div className="space-y-3">
               <GalaxyEmptyState appearance="dark" title="Nothing selected" detail="Select something on the canvas to edit it, or adjust the page itself below." />

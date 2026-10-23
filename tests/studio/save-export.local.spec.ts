@@ -9,6 +9,145 @@ import { emptyStudioComposition, compositionClipSchema } from "../../lib/studio/
 const id = "22222222-2222-4222-8222-222222222222", owner = "33333333-3333-4333-8333-333333333333";
 const rev = (n: number) => `2026-10-13T12:00:${String(n).padStart(2, "0")}.000Z`;
 
+test("selection rotation has a shared handle and exact control with persistent undo", async ({ page }) => {
+  const fixture = await setupRotation(page);
+  await page.locator('[data-studio-layer-id="title"]').click();
+  await expect(page.getByRole("button",{name:"Rotate selection",exact:true})).toBeVisible();
+  await page.getByLabel("Rotate selection by (°)",{exact:true}).fill("90");
+  await page.getByRole("button",{name:"Apply selection rotation",exact:true}).click();
+  await page.getByRole("button",{name:"Undo",exact:true}).click();
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  await page.getByRole("button",{name:"Redo",exact:true}).click();
+  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect.poll(()=>fixture.server().canvas!.layers.map(l=>l.rotation)).toEqual([90,120]);
+  expect(fixture.server().canvas!.layers[0]!.x).toBeCloseTo(280);
+  expect(fixture.server().canvas!.layers[0]!.y).toBeCloseTo(110);
+  expect(fixture.server().canvas!.layers[1]!.x).toBeCloseTo(140);
+  expect(fixture.server().canvas!.layers[1]!.y).toBeCloseTo(250);
+  await page.reload();
+  await page.locator('[data-studio-layer-id="title"]').click();
+  await expect(page.getByRole("button",{name:"Rotate selection",exact:true})).toBeVisible();
+  await page.getByText("More",{exact:true}).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button",{name:"Download PNG",exact:true}).click();
+  const png = readFileSync((await (await download).path())!);
+  const pixels = await page.evaluate(async data=>{
+    const image = new Image(); image.src="data:image/png;base64,"+data; await image.decode();
+    const canvas = document.createElement("canvas"); canvas.width=image.width; canvas.height=image.height;
+    const context = canvas.getContext("2d")!; context.drawImage(image,0,0);
+    return [[...context.getImageData(330,130,1,1).data],[...context.getImageData(170,140,1,1).data]];
+  },png.toString("base64"));
+  expect(pixels).toEqual([[255,0,0,255],[255,255,255,255]]);
+  await page.getByText("More",{exact:true}).click();
+  expect(fixture.errors).toEqual([]);
+  await page.screenshot({path:test.info().outputPath("rotated-selection.png")});
+});
+
+async function setupRotation(page: Page, viewer = false) {
+  const fixture = await setup(page,{viewer});
+  const source = fixture.server().canvas!;
+  source.layers = [
+    canvasLayerSchema.parse({id:"title",name:"Title",type:"rect",x:120,y:120,width:100,height:40,rotation:0,groupId:"pair",fill:"#ff0000"}),
+    canvasLayerSchema.parse({id:"image",name:"Image",type:"rect",x:300,y:240,width:80,height:100,rotation:30,groupId:"pair",fill:"#00ff00"}),
+  ];
+  source.pages[0]!.layers = source.layers;
+  await page.reload();
+  return fixture;
+}
+
+test("selection rotation pointer gesture cancels restores and commits one undo step", async ({page})=>{
+  const fixture = await setupRotation(page);
+  const title = page.locator('[data-studio-layer-id="title"]'); await title.click();
+  const handle = page.getByRole("button",{name:"Rotate selection",exact:true});
+  const drag = async ()=>{
+    const start = (await handle.boundingBox())!, pivot = (await page.locator('[data-studio-selection-pivot]').boundingBox())!;
+    const x = start.x+start.width/2, y = start.y+start.height/2, cx=pivot.x+pivot.width/2,cy=pivot.y+pivot.height/2;
+    await page.mouse.move(x,y); await page.mouse.down(); await page.keyboard.down("Shift");
+    await page.mouse.move(cx+Math.hypot(x-cx,y-cy),cy,{steps:8}); await page.keyboard.up("Shift");
+  };
+  await drag(); await page.keyboard.press("Escape"); await page.mouse.up();
+  await expect(title).toHaveCSS("transform","matrix(1, 0, 0, 1, 0, 0)");
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0);
+  await drag(); await page.mouse.up();
+  await page.getByRole("button",{name:"Undo",exact:true}).click();
+  await expect(title).toHaveCSS("transform","matrix(1, 0, 0, 1, 0, 0)");
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  await page.getByRole("button",{name:"Redo",exact:true}).click();
+  await handle.focus(); await handle.press("ArrowRight"); await handle.press("ArrowLeft");
+  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect.poll(()=>fixture.server().canvas!.layers.map(l=>l.rotation)).toEqual([90,120]);
+  await page.reload(); expect(fixture.server().canvas!.layers[0]!.x).toBeCloseTo(280);
+  expect(fixture.errors).toEqual([]);
+});
+
+for (const width of [390,834]) test.describe(`selection rotation touch at ${width}px`,()=>{
+  test.use({viewport:{width,height:1000},hasTouch:true});
+  test("selection rotation touch and exact alternatives persist without native cancellation",async ({page})=>{
+    const fixture = await setupRotation(page);
+    const title = page.locator('[data-studio-layer-id="title"]'); await title.tap();
+    const handle = page.getByRole("button",{name:"Rotate selection",exact:true});
+    const client = await page.context().newCDPSession(page);
+    const touch = async (cancel: boolean)=>{
+      const start=(await handle.boundingBox())!, pivot=(await page.locator('[data-studio-selection-pivot]').boundingBox())!;
+      const x=start.x+start.width/2,y=start.y+start.height/2,cx=pivot.x+pivot.width/2,cy=pivot.y+pivot.height/2;
+      expect(start.width).toBeGreaterThanOrEqual(27.9);
+      await client.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[{x,y,id:1}]});
+      for(let i=1;i<=8;i++) {
+        const angle=-Math.PI/2+i/8*Math.PI/2, radius=Math.hypot(x-cx,y-cy);
+        await client.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[{x:cx+Math.cos(angle)*radius,y:cy+Math.sin(angle)*radius,id:1}]});
+        await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
+      }
+      await expect(page.locator('[data-studio-gesture="transform"]')).toHaveCount(1);
+      await client.send("Input.dispatchTouchEvent",{type:cancel?"touchCancel":"touchEnd",touchPoints:[]});
+    };
+    await touch(true);
+    await expect(title).toHaveCSS("transform","matrix(1, 0, 0, 1, 0, 0)");
+    await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+    expect(fixture.writes).toHaveLength(0);
+    await touch(false); await client.detach();
+    await page.getByRole("button",{name:"Inspector",exact:true}).tap();
+    await page.getByLabel("Rotate selection by (°)",{exact:true}).fill("15");
+    await page.getByRole("button",{name:"Apply selection rotation",exact:true}).tap();
+    await page.screenshot({path:test.info().outputPath(`selection-rotation-${width}.png`)});
+    await page.getByRole("button",{name:"Inspector",exact:true}).tap();
+    await handle.focus(); await handle.press("Shift+ArrowRight"); await handle.press("Shift+ArrowLeft");
+    await page.getByRole("button",{name:"Save draft",exact:true}).tap();
+    await expect.poll(()=>fixture.server().canvas!.layers[0]!.rotation).toBeGreaterThan(103);
+    const saved = structuredClone(fixture.server().canvas!.layers);
+    expect(saved[0]!.rotation).toBeLessThan(107); expect(saved[1]!.rotation-saved[0]!.rotation).toBeCloseTo(30);
+    await page.reload(); await title.tap();
+    expect(fixture.server().canvas!.layers).toEqual(saved);
+    await expect(handle).toBeVisible();
+    expect(fixture.errors).toEqual([]);
+  });
+});
+
+test("selection rotation refuses out-of-range changes without a partial save or undo entry",async ({page})=>{
+  const fixture = await setupRotation(page), source = fixture.server().canvas!;
+  source.layers[0] = {...source.layers[0]!,x:-2000,y:-2000};
+  source.layers[1] = {...source.layers[1]!,x:4000,y:4000}; source.pages[0]!.layers=source.layers;
+  const before=structuredClone(source); await page.reload();
+  await page.getByRole("button",{name:"Layers",exact:true}).click();
+  await page.getByRole("button").filter({has:page.getByText("Title",{exact:true})}).click();
+  await page.getByLabel("Rotate selection by (°)",{exact:true}).fill("45");
+  await page.getByRole("button",{name:"Apply selection rotation",exact:true}).click();
+  await expect(page.getByRole("alert",{name:"Selection rotation error",exact:true})).toContainText("supported canvas range");
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0); expect(fixture.server().canvas).toEqual(before);
+  await page.getByRole("button",{name:"Dismiss rotation error",exact:true}).click();
+  expect(fixture.errors).toEqual([]);
+});
+
+test("selection rotation controls never grant a viewer mutation authority",async ({page})=>{
+  const fixture = await setupRotation(page,true);
+  await page.locator('[data-studio-layer-id="title"]').click();
+  await expect(page.getByRole("button",{name:"Rotate selection",exact:true})).toBeDisabled();
+  await expect(page.getByLabel("Rotate selection by (°)",{exact:true})).toBeDisabled();
+  await expect(page.getByRole("button",{name:"Apply selection rotation",exact:true})).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
+});
+
 for (const zoom of [50,100]) test(`snapping rotated groups at ${zoom}% uses visible bounds and one persistent gesture`, async ({ page }) => {
   const fixture = await setup(page);
   const source = fixture.server().canvas!;
