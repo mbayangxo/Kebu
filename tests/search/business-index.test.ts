@@ -65,11 +65,39 @@ describe("refreshBusinessSearchIndex", () => {
     expect(baobab.trust_label).toBe("verified"); // real verification_level > 0
     expect(baobab.source_url).toBe("https://baobab.example");
     expect(baobab.source_key).toBe("business:biz-1");
+    // Real structured columns, not reconstructed later by splitting `summary` —
+    // that approach silently shifted fields out of alignment whenever one was empty.
+    expect(baobab.category).toBe("fashion");
+    expect(baobab.country_code).toBe("SN");
 
     const accra = docs.find((d) => d.entity_id === "biz-2")!;
     expect(accra.title).toBe("Accra Foods Ltd"); // falls back to legal name
     expect(accra.trust_label).toBe("unverified"); // verification_level 0 — not fabricated as verified
     expect(accra.source_url).toBeNull(); // no website — never invent one
+    expect(accra.category).toBe("food");
+    expect(accra.country_code).toBe("GH");
+  });
+
+  it("stores null category/country as real nulls, never shifting other fields", async () => {
+    const admin = mockAdmin([
+      {
+        id: "biz-3",
+        public_kebu_id: "KEBU-NG-01-QQQQQQ",
+        legal_name: "Lagos Textiles",
+        trading_name: null,
+        country_code: "NG",
+        category: null,
+        description: "Textile wholesaler.",
+        website: null,
+        verification_level: 0,
+        updated_at: "2026-10-03T00:00:00Z",
+      },
+    ]);
+    const result = await refreshBusinessSearchIndex(admin as never);
+    expect(result).toEqual({ businesses: 1 });
+    const [docs] = admin.upsert.mock.calls[0] as [Array<Record<string, unknown>>];
+    expect(docs[0]!.category).toBeNull();
+    expect(docs[0]!.country_code).toBe("NG"); // not corrupted by the missing category
   });
 
   it("is honest when nothing is active yet: zero documents, no upsert call", async () => {

@@ -64,6 +64,33 @@ describe("public business detail route", () => {
     expect(body.error).not.toMatch(/not found/i);
   });
 
+  it("never renders a non-http(s) website as a clickable link, even if one is already stored", async () => {
+    // Defense in depth: the write paths now reject javascript:/data:/etc URLs, but
+    // this re-checks at the one place that value is ever handed to a stranger as a
+    // raw href, in case a bad value was written before that fix, or by a path this
+    // route doesn't control.
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: VALID_ID,
+        public_kebu_id: "KEBU-SN-01-ABCDEF",
+        legal_name: "Atelier Baobab SARL",
+        trading_name: "Atelier Baobab",
+        country_code: "SN",
+        region: "Dakar",
+        category: "fashion",
+        description: "Handmade clothing workshop.",
+        website: "javascript:alert(document.cookie)",
+        verification_level: 1,
+        lifecycle_status: "active",
+        updated_at: "2026-10-01T00:00:00Z",
+      },
+    });
+    const res = await GET(mkReq("http://localhost"), { params: Promise.resolve({ id: VALID_ID }) });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.business.website).toBeNull();
+  });
+
   it("returns a minimal public card for an active business, withholding contact details", async () => {
     maybeSingle.mockResolvedValue({
       data: {

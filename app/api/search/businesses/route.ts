@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 const MAX_QUERY_LENGTH = 120;
 const RESULT_LIMIT = 20;
+const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
 
 type BusinessResult = {
   id: string;
@@ -27,17 +28,18 @@ type Row = {
   source_url: string | null;
   source_name: string | null;
   trust_label: string | null;
+  category: string | null;
+  country_code: string | null;
   fetched_at: string;
 };
 
 function toResult(row: Row): BusinessResult {
-  const [category, countryCode] = row.summary.split(" · ");
   return {
     id: row.entity_id,
     name: row.title,
     summary: row.summary,
-    category: category || null,
-    countryCode: countryCode && countryCode.length === 2 ? countryCode : null,
+    category: row.category,
+    countryCode: row.country_code,
     trustLabel: row.trust_label === "verified" ? "verified" : "unverified",
     sourceName: row.source_name || "Kebu Business Directory",
     sourceUrl: row.source_url,
@@ -45,6 +47,9 @@ function toResult(row: Row): BusinessResult {
     href: `/kebu-search/business/${row.entity_id}`,
   };
 }
+
+const SELECT_COLUMNS =
+  "entity_id, title, summary, source_url, source_name, trust_label, category, country_code, fetched_at";
 
 /**
  * Public, unauthenticated Business Search — the first real Kebu Search mode.
@@ -58,7 +63,8 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") ?? "").trim().slice(0, MAX_QUERY_LENGTH);
-  const country = (searchParams.get("country") ?? "").trim().toUpperCase().slice(0, 2);
+  const rawCountry = (searchParams.get("country") ?? "").trim().toUpperCase();
+  const country = COUNTRY_CODE_RE.test(rawCountry) ? rawCountry : null;
 
   const admin = createAdminClient();
 
@@ -66,12 +72,12 @@ export async function GET(req: Request) {
     // Honest empty-query state: real, recently-indexed businesses, not fabricated results.
     let browse = admin
       .from("search_documents")
-      .select("entity_id, title, summary, source_url, source_name, trust_label, fetched_at")
+      .select(SELECT_COLUMNS)
       .eq("mode", "businesses")
       .eq("access_scope", "public")
       .order("updated_at", { ascending: false })
       .limit(RESULT_LIMIT);
-    if (country) browse = browse.ilike("summary", `%· ${country}%`);
+    if (country) browse = browse.eq("country_code", country);
     const { data, error } = await browse;
     if (error) {
       console.error("[kebu-search/businesses] browse query failed:", error);
@@ -82,15 +88,18 @@ export async function GET(req: Request) {
 
   let query = admin
     .from("search_documents")
-    .select("entity_id, title, summary, source_url, source_name, trust_label, fetched_at")
+    .select(SELECT_COLUMNS)
     .eq("mode", "businesses")
     .eq("access_scope", "public")
     .textSearch("search_vector", q, { type: "websearch", config: "simple" })
     .limit(RESULT_LIMIT);
-  if (country) query = query.ilike("summary", `%· ${country}%`);
+  if (country) query = query.eq("country_code", country);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: "Search is temporarily unavailable." }, { status: 500 });
+  if (error) {
+    console.error("[kebu-search/businesses] search query failed:", error);
+    return NextResponse.json({ error: "Search is temporarily unavailable." }, { status: 500 });
+  }
 
   return NextResponse.json({ query: q, results: (data ?? []).map(toResult), mode: "query" as const });
 }

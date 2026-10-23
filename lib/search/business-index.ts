@@ -11,6 +11,8 @@ type BusinessSearchDocument = {
   source_name: string;
   trust_label: "verified" | "unverified";
   access_scope: "public";
+  category: string | null;
+  country_code: string | null;
   fetched_at: string;
   updated_at: string;
 };
@@ -67,6 +69,8 @@ export async function refreshBusinessSearchIndex(admin: SupabaseClient) {
       source_name: "Kebu Business Directory",
       trust_label: (business.verification_level ?? 0) > 0 ? ("verified" as const) : ("unverified" as const),
       access_scope: "public" as const,
+      category: business.category || null,
+      country_code: business.country_code || null,
       fetched_at: now,
       updated_at: business.updated_at || now,
     };
