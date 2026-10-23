@@ -1,5 +1,5 @@
 import type { CanvasDocument, CanvasLayer, CanvasPage, StudioDesignType } from "@/lib/studio/canvas-document";
-import { artboardSize, mirrorPageToDocument, newLayerId } from "@/lib/studio/canvas-document";
+import { artboardSize, mirrorPageToDocument, newLayerId, newGroupId } from "@/lib/studio/canvas-document";
 
 /** Normalized crop window into the source image (0–1). Full image = x0 y0 w1 h1. */
 export function normalizeCrop(layer: {
@@ -148,10 +148,13 @@ export function layersFromClipboardPayload(raw: string): CanvasLayer[] | null {
   try {
     const data = JSON.parse(raw) as { kebuStudioClipboard?: number; layers?: Partial<CanvasLayer>[] };
     if (data.kebuStudioClipboard !== 1 || !Array.isArray(data.layers)) return null;
+    const groups = new Map<string, string>();
     return data.layers.map((l) => {
+      if (l.groupId && !groups.has(l.groupId)) groups.set(l.groupId, newGroupId());
       const layer = {
         ...l,
         id: newLayerId(),
+        groupId: l.groupId ? groups.get(l.groupId)! : l.groupId,
         x: (l.x ?? 0) + 24,
         y: (l.y ?? 0) + 24,
         name: `${l.name ?? "Layer"}`.slice(0, 80),

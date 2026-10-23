@@ -329,7 +329,9 @@ export function duplicateCanvasPage(
     ...src,
     id: newPageId(),
     name: `${src.name} copy`.slice(0, 80),
-    layers: src.layers.map((l) => ({ ...l, id: newLayerId() })),
+    layers: duplicateLayers(src.layers).map((layer, i) => ({
+      ...layer, name: src.layers[i]!.name, x: src.layers[i]!.x, y: src.layers[i]!.y,
+    })),
   };
   const pages = [...doc.pages];
   const idx = pages.findIndex((p) => p.id === pageId);
@@ -1343,10 +1345,18 @@ export function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
-export function duplicateLayer(layer: CanvasLayer): CanvasLayer {
+/** One remapping per copy operation keeps copied groups independent of their sources. */
+export function duplicateLayers(layers: CanvasLayer[]): CanvasLayer[] {
+  const groups = new Map<string, string>();
+  return layers.map((layer) => duplicateLayer(layer, groups));
+}
+
+export function duplicateLayer(layer: CanvasLayer, groups = new Map<string, string>()): CanvasLayer {
+  if (layer.groupId && !groups.has(layer.groupId)) groups.set(layer.groupId, newGroupId());
   return {
     ...layer,
     id: newLayerId(),
+    groupId: layer.groupId ? groups.get(layer.groupId)! : layer.groupId,
     name: `${layer.name} copy`.slice(0, 80),
     x: layer.x + 24,
     y: layer.y + 24,

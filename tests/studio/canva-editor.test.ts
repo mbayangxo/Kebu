@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { CanvasLayer } from "@/lib/studio/canvas-document";
 import {
   addCanvasPage,
   alignLayers,
@@ -7,13 +8,54 @@ import {
   deleteCanvasPage,
   duplicateCanvasPage,
   duplicateLayer,
+  duplicateLayers,
+  expandSelectionWithGroups,
   groupLayers,
   newLayerId,
   parseCanvasDocument,
   ungroupLayers,
 } from "@/lib/studio/canvas-document";
+import { clipboardPayloadFromLayers, layersFromClipboardPayload } from "@/lib/studio/editor-craft";
 
 describe("Studio Canva editor helpers", () => {
+  it("a duplicated grouped layer cannot select or move its source group", () => {
+    const doc = defaultCanvasDocument("instagram_post");
+    const source = { ...doc.layers[0]!, groupId: "original-group" };
+    const copy = duplicateLayer(source);
+    expect(expandSelectionWithGroups([source, copy], [copy.id])).toEqual([copy.id]);
+    expect(copy.groupId).not.toBe(source.groupId);
+  });
+
+  it("preserves separate copied groups without joining originals or earlier copies", () => {
+    const doc = defaultCanvasDocument("poster");
+    const source = Array.from({ length: 5 }, (_, i) => ({
+      ...doc.layers[0]!, id: `source-${i}`, groupId: i < 2 ? "a" : i < 4 ? "b" : null,
+    }));
+    const snapshot = structuredClone(source);
+    const verify = (copies: CanvasLayer[]) => {
+      expect(new Set(copies.map(l => l.id)).size).toBe(5);
+      expect(copies[0]!.groupId).toBe(copies[1]!.groupId);
+      expect(copies[2]!.groupId).toBe(copies[3]!.groupId);
+      expect(copies[0]!.groupId).not.toBe(copies[2]!.groupId);
+      expect(copies[4]!.groupId).toBeNull();
+      expect(expandSelectionWithGroups([...source, ...copies], [copies[0]!.id]))
+        .toEqual([copies[0]!.id, copies[1]!.id]);
+    };
+    const copies = duplicateLayers(source);
+    verify(copies);
+    const again = duplicateLayers(source);
+    verify(again);
+    expect(again[0]!.groupId).not.toBe(copies[0]!.groupId);
+    const payload = clipboardPayloadFromLayers(source);
+    const pasted = layersFromClipboardPayload(payload)!;
+    verify(pasted);
+    expect(layersFromClipboardPayload(payload)![0]!.groupId).not.toBe(pasted[0]!.groupId);
+    doc.pages[0]!.layers = source;
+    const copiedPage = duplicateCanvasPage(doc, doc.pages[0]!.id)!.doc.pages[1]!;
+    verify(copiedPage.layers);
+    expect(copiedPage.layers.map(l => [l.x, l.y, l.name])).toEqual(source.map(l => [l.x, l.y, l.name]));
+    expect(source).toEqual(snapshot);
+  });
   it("duplicates a layer with new id and offset", () => {
     const doc = defaultCanvasDocument("instagram_post", { businessName: "Test" });
     const layer = doc.layers[0]!;
