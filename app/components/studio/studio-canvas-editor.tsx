@@ -8,7 +8,7 @@ import {
   alignLayers,
   deleteCanvasPage,
   duplicateCanvasPage,
-  duplicateLayer,
+  duplicateLayers,
   expandSelectionWithGroups,
   getPage,
   groupLayers,
@@ -638,7 +638,7 @@ export function StudioCanvasEditor({
   function duplicateSelected() {
     if (!selectedLayerIds.length) return;
     const ids = expandSelectionWithGroups(layers, selectedLayerIds);
-    const copies = layers.filter((l) => ids.includes(l.id)).map((l) => duplicateLayer(l));
+    const copies = duplicateLayers(layers.filter((l) => ids.includes(l.id)));
     if (!copies.length) return;
     setPageLayers([...layers, ...copies]);
     onSelectLayers(copies.map((c) => c.id));

@@ -9,6 +9,36 @@ import { emptyStudioComposition, compositionClipSchema } from "../../lib/studio/
 const id = "22222222-2222-4222-8222-222222222222", owner = "33333333-3333-4333-8333-333333333333";
 const rev = (n: number) => `2026-10-13T12:00:${String(n).padStart(2, "0")}.000Z`;
 
+test("duplicated groups move independently through undo save and reload", async ({ page }) => {
+  const fixture = await setup(page);
+  await dragMarquee(page, [2, 2], [340, 250]);
+  await page.keyboard.press("Control+g");
+  await page.keyboard.press("Control+d");
+  await page.keyboard.press("ArrowRight");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.layers.length).toBe(4);
+  const saved = structuredClone(fixture.server().canvas!);
+  expect(saved.layers[0]!.x).toBe(20);
+  expect(saved.layers[1]!.x).toBe(20);
+  expect(saved.layers[2]!.x).toBe(45);
+  expect(saved.layers[3]!.x).toBe(45);
+  expect(saved.layers[2]!.groupId).toBe(saved.layers[3]!.groupId);
+  expect(saved.layers[2]!.groupId).not.toBe(saved.layers[0]!.groupId);
+  await page.getByRole("button", { name: "Undo", exact: true }).first().click();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.layers[2]!.x).toBe(44);
+  expect(fixture.server().canvas!.layers[0]!.x).toBe(20);
+  await page.reload();
+  await page.locator(`[data-studio-layer-id="${saved.layers[2]!.id}"]`).click();
+  await page.keyboard.press("ArrowRight");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect.poll(() => fixture.server().canvas!.layers[2]!.x).toBe(45);
+  expect(fixture.server().canvas!.layers[3]!.x).toBe(45);
+  expect(fixture.server().canvas!.layers.slice(0, 2).map(l => l.x)).toEqual([20, 20]);
+  expect(fixture.errors).toEqual([]);
+  await page.screenshot({ path: test.info().outputPath("independent-duplicate-groups.png") });
+});
+
 test("marquee selects visible layers without changing the saved document", async ({ page }) => {
   const fixture = await setup(page);
   const title = page.locator('[data-studio-layer-id="title"]');
