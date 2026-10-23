@@ -1,0 +1,11 @@
+# Shared rotation for existing flat Studio selections
+
+The accepted COS01/07/18/21/25 contract requires direct manipulation, keyboard and inspector equivalents for selected groups, with atomic undo, save/reopen and viewer restrictions. Existing group movement/arrangement/snapping is retained; this slice adds shared rotation without changing stored layer/group formats.
+
+The canvas shows one shared outline, a visible pivot marker and a rotation handle for two or more unlocked selected members. The handle supports pointer/touch dragging, Shift15-degree increments and arrow-key1-degree/Shift15-degree adjustments. A contextual inspector form applies an exact relative angle. All controls use the same pure geometry helper and existing gesture/save queue. Locked members and unrelated artwork remain unchanged. Invalid transformations reject the entire operation visibly; Escape/pointer cancellation restores the baseline without writes or history.
+
+With flat persisted group IDs and no stored group transform frame, the pivot is the mean of visible, unlocked member centers (falling back to all unlocked members for an entirely hidden selection). This pivot is visible and rotation-invariant, so successive opposite rotations reverse without positional drift or adding metadata to authored documents. A freshly computed axis-aligned bounding-box center is not rotation-invariant for asymmetric collections and would introduce drift. Hidden unlocked members rotate around the same pivot to retain their relative composition. The shared outline encloses visible frames; each layer retains its own shape, size, crop, style, source and ID.
+
+Acceptance: reproduce the absent shared handle; independently measure member centers and angles; exercise drag, exact form and keyboard; undo/redo/cancel; preserve locked/unrelated artwork; actual save/reopen and decoded PNG geometry; desktop/phone/tablet and viewer/error paths. Full CI and the expanded browser gate must pass before integration. Fixtures are not managed hosted Auth/RLS certification.
+
+Group resize, skew, nested groups and animated-preview transform frames remain separate open requirements. This decision does not simplify or close those requirements. Claude Search/Mail/Foundry and production state are unchanged.
