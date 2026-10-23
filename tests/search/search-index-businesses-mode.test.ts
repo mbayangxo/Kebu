@@ -26,3 +26,25 @@ describe("search_documents businesses mode migration", () => {
     expect(sql).toContain("attname = 'mode'");
   });
 });
+
+describe("search_businesses RPC migration", () => {
+  const sql = readFileSync(
+    join(process.cwd(), "supabase/migrations/20261023020000_search_businesses_rpc.sql"),
+    "utf8",
+  );
+
+  it("joins live to businesses and re-checks lifecycle_status on every call", () => {
+    expect(sql).toContain("join public.businesses b on b.id = c.business_id");
+    expect(sql).toContain("b.lifecycle_status = 'active'");
+  });
+
+  it("ranks with ts_rank and a deterministic tie-break", () => {
+    expect(sql).toContain("ts_rank(c.search_vector, websearch_to_tsquery('simple', p_query))");
+    expect(sql).toMatch(/order by rank desc, c\.updated_at desc, c\.business_id/);
+  });
+
+  it("is locked down to service_role only, like search_documents itself", () => {
+    expect(sql).toContain("revoke execute on function public.search_businesses(text, text) from public, anon, authenticated");
+    expect(sql).toContain("grant execute on function public.search_businesses(text, text) to service_role");
+  });
+});
