@@ -375,76 +375,92 @@ export type AlignMode =
   | "distribute-h"
   | "distribute-v";
 
-/** Align selected layers to each other (or artboard if single). */
+/** Axis-aligned footprint of the rotated frame, matching the browser's painted box. */
+export function studioLayerBounds(layer: Pick<CanvasLayer, "x" | "y" | "width" | "height" | "rotation">) {
+  const angle = layer.rotation * Math.PI / 180;
+  const width = Math.abs(layer.width * Math.cos(angle)) + Math.abs(layer.height * Math.sin(angle));
+  const height = Math.abs(layer.width * Math.sin(angle)) + Math.abs(layer.height * Math.cos(angle));
+  const left = layer.x + (layer.width - width) / 2;
+  const top = layer.y + (layer.height - height) / 2;
+  return { left, top, right: left + width, bottom: top + height, width, height };
+}
+
+function alignmentUnits(layers: CanvasLayer[], selectedIds: string[]) {
+  const ids = new Set(expandSelectionWithGroups(layers, selectedIds));
+  const grouped = new Map<string, CanvasLayer[]>();
+  for (const layer of layers) {
+    if (!ids.has(layer.id) || layer.locked) continue;
+    const key = layer.groupId ? `group:${layer.groupId}` : `layer:${layer.id}`;
+    const members = grouped.get(key) ?? [];
+    members.push(layer);
+    grouped.set(key, members);
+  }
+  return [...grouped.values()].map(members => {
+    const boxes = members.map(studioLayerBounds);
+    const left = Math.min(...boxes.map(b => b.left)), right = Math.max(...boxes.map(b => b.right));
+    const top = Math.min(...boxes.map(b => b.top)), bottom = Math.max(...boxes.map(b => b.bottom));
+    return { members, left, right, top, bottom, width: right - left, height: bottom - top };
+  });
+}
+
+/** A selected group is one arrange target, regardless of its member count. */
+export function alignmentSelectionCount(layers: CanvasLayer[], selectedIds: string[]): number {
+  return alignmentUnits(layers, selectedIds).length;
+}
+
+/** Align visible bounds; translate grouped members together without changing their geometry. */
 export function alignLayers(
   layers: CanvasLayer[],
   selectedIds: string[],
   mode: AlignMode,
   artboard: { width: number; height: number },
 ): CanvasLayer[] {
-  const ids = new Set(selectedIds);
-  const selected = layers.filter((l) => ids.has(l.id) && !l.locked);
-  if (!selected.length) return layers;
-
-  const useArtboard = selected.length === 1;
-  const minX = useArtboard ? 0 : Math.min(...selected.map((l) => l.x));
-  const maxX = useArtboard ? artboard.width : Math.max(...selected.map((l) => l.x + l.width));
-  const minY = useArtboard ? 0 : Math.min(...selected.map((l) => l.y));
-  const maxY = useArtboard ? artboard.height : Math.max(...selected.map((l) => l.y + l.height));
-  const midX = (minX + maxX) / 2;
-  const midY = (minY + maxY) / 2;
-
-  if (mode === "distribute-h" && selected.length >= 3) {
-    const sorted = [...selected].sort((a, b) => a.x - b.x);
-    const first = sorted[0]!;
-    const last = sorted[sorted.length - 1]!;
-    const span = last.x + last.width - first.x;
-    const totalW = sorted.reduce((s, l) => s + l.width, 0);
-    const gap = (span - totalW) / (sorted.length - 1);
-    let cursor = first.x;
-    const pos = new Map<string, number>();
-    for (const l of sorted) {
-      pos.set(l.id, cursor);
-      cursor += l.width + gap;
+  const units = alignmentUnits(layers, selectedIds);
+  if (!units.length) return layers;
+  const distribute = mode === "distribute-h" || mode === "distribute-v";
+  if (distribute && units.length < 3) return layers;
+  const single = units.length === 1;
+  const minX = single ? 0 : Math.min(...units.map(u => u.left));
+  const maxX = single ? artboard.width : Math.max(...units.map(u => u.right));
+  const minY = single ? 0 : Math.min(...units.map(u => u.top));
+  const maxY = single ? artboard.height : Math.max(...units.map(u => u.bottom));
+  const moves = new Map<string, { x: number; y: number }>();
+  const move = (unit: typeof units[number], dx: number, dy: number) => {
+    for (const member of unit.members) moves.set(member.id, { x: member.x + dx, y: member.y + dy });
+  };
+  if (distribute) {
+    const horizontal = mode === "distribute-h";
+    const sorted = [...units].sort((a,b) => horizontal ? a.left - b.left : a.top - b.top);
+    const total = sorted.reduce((sum,u) => sum + (horizontal ? u.width : u.height), 0);
+    const gap = ((horizontal ? maxX-minX : maxY-minY) - total) / (sorted.length-1);
+    let cursor = horizontal ? minX : minY;
+    for (const unit of sorted) {
+      move(unit, horizontal ? cursor-unit.left : 0, horizontal ? 0 : cursor-unit.top);
+      cursor += (horizontal ? unit.width : unit.height) + gap;
     }
-    return layers.map((l) => (pos.has(l.id) ? { ...l, x: pos.get(l.id)! } : l));
+  } else {
+    for (const unit of units) {
+      switch (mode) {
+        case "left": move(unit, minX-unit.left, 0); break;
+        case "center-x": move(unit, (minX+maxX-unit.left-unit.right)/2, 0); break;
+        case "right": move(unit, maxX-unit.right, 0); break;
+        case "top": move(unit, 0, minY-unit.top); break;
+        case "center-y": move(unit, 0, (minY+maxY-unit.top-unit.bottom)/2); break;
+        case "bottom": move(unit, 0, maxY-unit.bottom); break;
+      }
+    }
   }
-
-  if (mode === "distribute-v" && selected.length >= 3) {
-    const sorted = [...selected].sort((a, b) => a.y - b.y);
-    const first = sorted[0]!;
-    const last = sorted[sorted.length - 1]!;
-    const span = last.y + last.height - first.y;
-    const totalH = sorted.reduce((s, l) => s + l.height, 0);
-    const gap = (span - totalH) / (sorted.length - 1);
-    let cursor = first.y;
-    const pos = new Map<string, number>();
-    for (const l of sorted) {
-      pos.set(l.id, cursor);
-      cursor += l.height + gap;
+  let changed = false;
+  const result = layers.map(layer => {
+    const target = moves.get(layer.id);
+    if (!target || (Math.abs(target.x-layer.x)<1e-9 && Math.abs(target.y-layer.y)<1e-9)) return layer;
+    if (![target.x,target.y].every(n => Number.isFinite(n) && n>=-2000 && n<=4000)) {
+      throw new Error("These objects would move outside the supported canvas range. Move them closer together and try again.");
     }
-    return layers.map((l) => (pos.has(l.id) ? { ...l, y: pos.get(l.id)! } : l));
-  }
-
-  return layers.map((l) => {
-    if (!ids.has(l.id) || l.locked) return l;
-    switch (mode) {
-      case "left":
-        return { ...l, x: minX };
-      case "center-x":
-        return { ...l, x: midX - l.width / 2 };
-      case "right":
-        return { ...l, x: maxX - l.width };
-      case "top":
-        return { ...l, y: minY };
-      case "center-y":
-        return { ...l, y: midY - l.height / 2 };
-      case "bottom":
-        return { ...l, y: maxY - l.height };
-      default:
-        return l;
-    }
+    changed = true;
+    return { ...layer, ...target };
   });
+  return changed ? result : layers;
 }
 
 export function groupLayers(layers: CanvasLayer[], selectedIds: string[]): CanvasLayer[] {
