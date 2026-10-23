@@ -1,14 +1,14 @@
 # Kebu — Session Handoff and Recovery
 
 Updated: 2026-10-23
-Status: active Studio arrange checkpoint; hosted QA branch blocked by Supabase Pro requirement. Production acceptance OPEN.
+Status: active Studio snapping checkpoint; hosted QA branch blocked by Supabase Pro requirement. Full Kebu and production acceptance OPEN.
 
 ## Resume here — current operational state
 
 - Follow `origin/work/kebu-completion-audit-oct13`; do not restart from main or replay checkout/frames/Yande/pages work. Run workspace:check and reconcile a clean behind checkout before editing. The handoff branch mirrors the shared checkpoint.
-- Already integrated: PR12 group-copy isolation and PR13 page rename/reorder/delete continuity. Latest shared base before this slice:a588e46d. Current arrange runtime367d82d1e483d6308a04aa16695dd2fd532d2217 / PR14; exact-source CI, Studio52+6 and public smoke pass; READY preview verified. Check PR14 integration state before doing anything else; do not reimplement this slice.
+- Already integrated: PR12 group-copy isolation, PR13 page lifecycle and PR14 rigid-group/rotated arrangement. Shared base a5ce2321. Current snapping runtime4fe75aa4e5e3ad9b8203b692ed4a2af0e53d080f / PR15 passes full local/remote CI6624/338, local55 and remote55+6 browser cases, and public preview smoke. READY preview verified. Check the authoritative PR15 integration state before further work; do not reimplement completed slices.
 - Current QA blocker: the user renewed paid-branch authorization, but Supabase rejects branching unless the organization has Pro or above. Earlier cancellation is historical and no longer the reason. No upgrade or branch creation occurred. Do not test destructive QA fixtures on production customer projects.
-- Keep Claude's Search/Mail/Foundry work separate. Search95f8f111 has an independently reproduced stale-listing exposure and ranking/pagination/filter follow-ups; do not integrate that earlier slice as ready.
+- Keep Claude's Search/Mail/Foundry work separate. Latest Search7b8ca47a addresses the earlier95f8f111 live-lifecycle/ranking/filter findings. Independent review59 pass/11 SQL skips; source-scale cleanup and strict SQL/CI verification still need follow-up. Read audits/KEBU_SEARCH_REVIEW_FOLLOWUP_2026-10-23.md before discussing Search readiness.
 - Remaining product work is tracked in the25-group Creative OS acceptance register. This arrange slice does not close nested groups, group resize/rotation, all smart guides, hosted collaboration or May reference acceptance.
 
 ## Source of truth
@@ -39,7 +39,7 @@ GitHub commits and reviewed branches are authoritative. This document records ev
 - Preserve Claude's work, avoid stale checkout tasks.
 
 ## Current next actions
-1. Finish verification/integration of the current arrange checkpoint without overwriting a newer shared head. Do not replay already integrated features.
+1. Resume from the authoritative shared checkpoint containing verified PR15 snapping; confirm remote integration before editing. Preserve Claude Search separately and follow its review follow-up. Do not replay completed Studio slices.
 2. Unblock managed hosted QA with an authorized isolated environment; native branching currently requires Supabase Pro. Recheck live schema drift before any migration, then run signed-in Auth/RLS, save/publish and multi-user acceptance.
 3. Continue the remaining Creative OS requirements through isolated end-to-end slices, preserving formats, authored content and Claude-owned work.
 4. Verify deployment state with the actual provider. Production promotion remains separate from local/fixture acceptance.
@@ -99,3 +99,15 @@ Update this file with commit SHA, actual test evidence, deployment status, and n
 - Clean authoritative base a5ce2321; isolated branch work/codex-studio-snapping-oct23. Four original snapping regressions reproduced, then repaired using rotated selection bounds and nearest correction. Eight-screen-pixel tolerance is consistent across zoom; invisible targets excluded.
 - Actual browser also reproduced Escape committing an intermediate drag. Gesture cancellation now restores the baseline and clears guides/history writes. New frozen-source 3-case browser rerun passes with zero skips/flaky/unexpected; full 55-case gate pending; focused geometry/craft/arrange25 pass, lint zero errors/five existing warnings.
 - Claude Search advanced to7b8ca47a. Source now has a live active-status join and explicit SQL rank. Independent review suite59 pass/11 local-PG skips; no SQL pass claimed in this environment. Remaining review: capped stale-row cleanup, server row-cap pagination behavior, batched writes, strict non-skipping SQL/CI gate and reconciliation onto the latest shared Studio base. No Search integration or migration.
+
+### Snapping runtime and fresh hosted readback
+
+Runtime4fe75aa4 / PR15, shared basea5ce2321. Local focused3/3 and full55/55 actual browser passes, zero skips/flaky/unexpected, normal teardown; both zoom screenshots inspected. Exact-source remote CI40025909080 passes6624 tests/338 explicit skips, TypeScript, lint0errors/346 existing warnings and finalized230-page build. Remote Studio40025909069 and public smoke40026600568 remain pending at this record. An auxiliary local CI worktree passed TypeScript/lint/tests but Turbopack refused its external node_modules symlink; a normal-checkout full CI rerun is in progress. Initial Vercel preview failed Google-font module resolution; exact-commit retry is READY at https://kebu-b574i64g5-mbayangxos-projects.vercel.app / dpl_bk9nGr8dvKWa3V3ESXvKem5vwFz8. No compiler/font changes were needed.
+
+Fresh read-only hosted catalogs at2026-10-23T21:21Z still fail2/7 Yande and10/37 broad release checks. MissingYande interactions, worker/job listings, Mail forwarding and marketplace asset/library tables remain real prerequisites. Supabase still lists only main; historical MIGRATIONS_FAILED branch metadata coexists with ACTIVE_HEALTHY project status and does not establish current application readiness. Production provider still reports71815f99 / dpl_8XQYFY2rAkDvmUZ1pmdZq8uJHFj2 READY. No production writes/migration/promotion or paid subscription upgrade.
+
+### Final snapping verification — October23
+
+Runtime4fe75aa4e5e3ad9b8203b692ed4a2af0e53d080f / PR https://github.com/mbayangxo/Kebu/pull/15. All final gates pass: normal-checkout npm run ci exit0 (TypeScript, lint0errors/346 existing warnings,6624 tests/338 explicit skips, finalized230-page build); exact-source remote CI40025909080 SUCCESS; Studio40025909069 SUCCESS with55 full plus6 required phone/tablet cases across3 rounds, zero skips/flaky/unexpected and original marquee regression reproduced; public preview smoke40026600568 SUCCESS. Local55/55 and focused3/3 pass with normal teardown and inspected50%/100% screenshots. The earlier failed Escape run, auxiliary symlink-root build and first font-resolution deployment are explicitly nonaccepted runs; the final source/gates and READY exact-commit retry supersede them.
+
+The attempted independent Search PostgreSQL setup downloaded native binaries but could not initialize: this sandbox maps only UID0, cannot chown to another UID and rejects runuser/setgroups. No database was started; the11 SQL skips remain unverified independently. No Claude runtime changes or merge. Follow audits/KEBU_SEARCH_REVIEW_FOLLOWUP_2026-10-23.md for reconciliation/SQL gate/indexing follow-ups. Full Kebu, all25 Creative OS groups, hosted JWT/RLS/publish/integrations and production rollout remain OPEN.

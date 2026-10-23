@@ -1,6 +1,6 @@
 # Studio visible-bound snapping — October 23, 2026
 
-Based on authoritative a5ce2321bae13405b8cf8e85a58f6dc8fb116b81. This is a bounded COS06/07/18 repair; full Kebu and hosted release acceptance remain open.
+Runtime4fe75aa4e5e3ad9b8203b692ed4a2af0e53d080f / PR15, based on authoritative a5ce2321bae13405b8cf8e85a58f6dc8fb116b81. This is a bounded COS06/07/18 repair; full Kebu and hosted release acceptance remain open.
 
 ## Reproduced defects and implementation
 
@@ -14,8 +14,10 @@ The actual browser uncovered a fifth defect: Escape during a drag committed its 
 - Focused lint: zero errors; five existing editor warnings.
 - First actual browser run: two zoom/group cases passed, one Escape restoration case failed. That failure is not acceptance. The corrected frozen source passes all three cases with zero skips/flaky/unexpected and normal cleanup.
 - New browser journeys measure visible frame edges, guides and relative group offsets at 50% and 100%, perform undo/redo/save/reopen, target a rotated locked object, and test Escape with zero writes/history.
-- Full CI and full 55-case browser gate are pending at this checkpoint. Loopback Auth/API are explicit fixtures, not managed hosted Supabase acceptance.
+- Frozen-source full55 actual local browser cases pass with zero skips/flaky/unexpected and normal teardown; both50%/100% rendered screenshots inspected. Exact-source remote CI40025909080 passes6624 tests/338 explicit skips, TypeScript, lint0errors/346 existing warnings and finalized230-page build. Remote Studio40025909069 passes55 full plus6 required phone/tablet cases across3 rounds, zero skips/flaky/unexpected, normal teardown and preserved original marquee regression. Public preview smoke40026600568 passes. Final normal-checkout npm run ci exits0 with the same6624/338,0errors/346warnings and finalized230-page build. Loopback Auth/API are explicit fixtures, not managed hosted Supabase acceptance.
 
 ## Remaining boundaries
 
 Saved document formats, authored content, migrations and permissions are unchanged. Animated transform snapping, equal-distance smart guides, nested groups and group resize/rotation remain open. Native isolated Supabase branching is blocked by the provider's Pro-plan requirement; no plan upgrade, production migration or promotion occurred. Claude retains Search/Mail/Foundry ownership.
+
+An auxiliary local full CI passed TypeScript/lint/tests but its build failed because Turbopack forbids a node_modules symlink outside the project root. That is recorded as a failed environment run, not a successful build; the normal checkout subsequently passed the full CI chain. Initial previewdpl_C8VJuA8bctMuT9fHQSqFSRYHkXAL failed Google-font module resolution. Exact-commit retrydpl_bk9nGr8dvKWa3V3ESXvKem5vwFz8 is independently READY at https://kebu-b574i64g5-mbayangxos-projects.vercel.app. Production remains71815f99; no promotion.

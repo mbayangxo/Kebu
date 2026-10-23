@@ -1,0 +1,447 @@
+{
+  "runtimeCommit": "4fe75aa4e5e3ad9b8203b692ed4a2af0e53d080f",
+  "baseCommit": "a5ce2321bae13405b8cf8e85a58f6dc8fb116b81",
+  "localFocused": {
+    "helpers": 25,
+    "browser": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "localFullBrowser": {
+    "passed": 55,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "normalTeardown": true,
+    "screenshotsInspected": [
+      50,
+      100
+    ]
+  },
+  "remoteCI": {
+    "runId": 40025909080,
+    "status": "success",
+    "testsPassed": 6624,
+    "testsSkipped": 338,
+    "lintErrors": 0,
+    "existingLintWarnings": 346,
+    "generatedPages": 230
+  },
+  "remoteStudio": {
+    "runId": 40025909069,
+    "status": "success",
+    "fullPassed": 55,
+    "touchPassed": 6,
+    "rounds": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "originalMarqueeRegressionReproduced": true,
+    "normalTeardown": true
+  },
+  "publicPreviewSmoke": {
+    "runId": 40026600568,
+    "status": "success"
+  },
+  "preview": {
+    "id": "dpl_bk9nGr8dvKWa3V3ESXvKem5vwFz8",
+    "url": "https://kebu-b574i64g5-mbayangxos-projects.vercel.app",
+    "status": "READY",
+    "initialDeployment": {
+      "id": "dpl_C8VJuA8bctMuT9fHQSqFSRYHkXAL",
+      "status": "ERROR",
+      "reason": "Turbopack Google-font module resolution; exact-commit retry succeeds"
+    }
+  },
+  "hostedInventory": {
+    "scripts/hosted-yande-preflight.sql": {
+      "yande_release_preflight": {
+        "scope": "yande-schema-and-grants-only",
+        "checks": [
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "anonExecute": false,
+              "serviceExecute": true,
+              "securityDefiner": false,
+              "authenticatedExecute": false
+            },
+            "requirement": "function:reserve_account_ai_generation"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "anonSelect": true,
+              "anonAnyWrite": false,
+              "serviceInsert": true,
+              "authenticatedSelect": true,
+              "authenticatedAnyWrite": false
+            },
+            "requirement": "grants:account_ai_usage_events"
+          },
+          {
+            "passed": false,
+            "details": {
+              "present": false,
+              "anonSelect": null,
+              "anonAnyWrite": null,
+              "serviceInsert": null,
+              "authenticatedSelect": null,
+              "authenticatedAnyWrite": null
+            },
+            "requirement": "grants:yande_interactions"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:account_ai_usage_events"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:studio_campaign_projects"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:studio_generation_runs"
+          },
+          {
+            "passed": false,
+            "details": {
+              "present": false,
+              "rlsEnabled": null
+            },
+            "requirement": "table:yande_interactions"
+          }
+        ],
+        "observedAt": "2026-10-23T21:21:11.879017+00:00",
+        "checksPassed": false,
+        "failedChecks": 2,
+        "releaseCertification": "not-established-by-this-query",
+        "authenticatedAcceptance": "not-established-by-this-query"
+      }
+    },
+    "scripts/hosted-release-preflight.sql": {
+      "hosted_release_preflight": {
+        "scope": "schema-and-grants-only",
+        "checks": [
+          {
+            "passed": false,
+            "details": {},
+            "requirement": "column:aesthetic_library.provider"
+          },
+          {
+            "passed": false,
+            "details": {},
+            "requirement": "column:aesthetic_library.provider_reference"
+          },
+          {
+            "passed": true,
+            "details": {},
+            "requirement": "column:create_designs.updated_at"
+          },
+          {
+            "passed": false,
+            "details": {},
+            "requirement": "column:creative_asset_library.provider"
+          },
+          {
+            "passed": false,
+            "details": {},
+            "requirement": "column:creative_asset_library.provider_reference"
+          },
+          {
+            "passed": true,
+            "details": {},
+            "requirement": "column:project_pages.layout_version"
+          },
+          {
+            "passed": true,
+            "details": {},
+            "requirement": "column:project_sections.node_version"
+          },
+          {
+            "passed": true,
+            "details": {},
+            "requirement": "column:project_sections.order_key"
+          },
+          {
+            "passed": true,
+            "details": {},
+            "requirement": "column:project_sections.parent_id"
+          },
+          {
+            "passed": true,
+            "details": {},
+            "requirement": "column:project_sections.type_version"
+          },
+          {
+            "passed": true,
+            "details": {},
+            "requirement": "column:projects.document_schema_version"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "anonExecute": false,
+              "serviceExecute": true,
+              "authenticatedExecute": true
+            },
+            "requirement": "function:public.apply_experience_plan(uuid,jsonb)"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "anonExecute": false,
+              "serviceExecute": true,
+              "authenticatedExecute": true
+            },
+            "requirement": "function:public.apply_node_ops(uuid,jsonb)"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "anonExecute": false,
+              "serviceExecute": true,
+              "authenticatedExecute": true
+            },
+            "requirement": "function:public.kcd_operation_protocol()"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "anonExecute": false,
+              "serviceExecute": true,
+              "authenticatedExecute": false
+            },
+            "requirement": "function:public.publish_kcd_document(uuid,uuid,text,jsonb,jsonb,text)"
+          },
+          {
+            "passed": false,
+            "details": {
+              "present": false,
+              "rlsEnabled": null
+            },
+            "requirement": "table:aesthetic_library"
+          },
+          {
+            "passed": false,
+            "details": {
+              "present": false,
+              "rlsEnabled": null
+            },
+            "requirement": "table:creative_asset_library"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:creative_op_journal"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:deployments"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:developer_profiles"
+          },
+          {
+            "passed": false,
+            "details": {
+              "present": false,
+              "rlsEnabled": null
+            },
+            "requirement": "table:job_listings"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:kcd_node_types"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:mail_attachments"
+          },
+          {
+            "passed": false,
+            "details": {
+              "present": false,
+              "rlsEnabled": null
+            },
+            "requirement": "table:mail_forwarding_rules"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:mail_messages"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:mail_threads"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:mailboxes"
+          },
+          {
+            "passed": false,
+            "details": {
+              "present": false,
+              "rlsEnabled": null
+            },
+            "requirement": "table:marketplace_creative_assets"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:marketplace_templates"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:network_profiles"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:personal_connections"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:project_pages"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:project_sections"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:projects"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:search_documents"
+          },
+          {
+            "passed": true,
+            "details": {
+              "present": true,
+              "rlsEnabled": true
+            },
+            "requirement": "table:website_versions"
+          },
+          {
+            "passed": false,
+            "details": {
+              "present": false,
+              "rlsEnabled": null
+            },
+            "requirement": "table:worker_profiles"
+          }
+        ],
+        "observedAt": "2026-10-23T21:21:14.067482+00:00",
+        "failedChecks": 10,
+        "postgresVersion": "17.6",
+        "schemaChecksPassed": false,
+        "releaseCertification": "not-established-by-this-query",
+        "authenticatedAcceptance": "not-established-by-this-query"
+      }
+    }
+  },
+  "managedHostedAcceptance": false,
+  "productionPromoted": false,
+  "productionCommit": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+  "localFullCI": {
+    "status": "success",
+    "exitCode": 0,
+    "testsPassed": 6624,
+    "testsSkipped": 338,
+    "lintErrors": 0,
+    "existingLintWarnings": 346,
+    "generatedPages": 230
+  },
+  "nonAcceptedRuns": [
+    "Original snapping geometry baseline: 4 failed/2 passed",
+    "First focused browser: Escape restoration failed after 2 passing zoom cases",
+    "Auxiliary CI worktree: external node_modules symlink rejected by Turbopack",
+    "Initial preview: Google-font resolver failure; exact-commit retry READY"
+  ],
+  "searchReview": {
+    "commit": "7b8ca47a0aba3149499300b2e78cc6045d9b7c09",
+    "testsPassed": 59,
+    "sqlTestsSkipped": 11,
+    "nativePgInitialization": "blocked by root-only UID map and rejected runuser/setgroups; no database started",
+    "merged": false
+  }
+}
