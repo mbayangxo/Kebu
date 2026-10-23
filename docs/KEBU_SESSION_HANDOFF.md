@@ -1,7 +1,7 @@
 # Kebu — Session Handoff and Recovery
 
 Updated: 2026-10-23
-Status: branch ancestry checked; hosted authenticated acceptance and production promotion OPEN.
+Status: October23 Studio group-copy repair verified locally and in remote CI/browser; hosted authenticated acceptance and production promotion OPEN.
 
 ## Source of truth
 GitHub commits and reviewed branches are authoritative. This document records evidence, not release certification.
@@ -49,3 +49,13 @@ Update this file with commit SHA, actual test evidence, deployment status, and n
 - Fresh hosted read-only catalog check: `reserve_account_ai_generation(uuid,uuid,uuid,integer,text)` absent; `yande_interactions` absent; usage RLS enabled but authenticated usage-table writes still granted. No migration or hosted write performed. This is catalog evidence, not JWT/RLS acceptance.
 - Fresh Vercel provider read: production remains READY on `dpl_8XQYFY2rAkDvmUZ1pmdZq8uJHFj2`, source `71815f99c50022482e545e22e1f6e040ee1cafe4`. No promotion.
 - Next: inspect CI/browser evidence for this exact source; fix any failures, then integrate verified checkpoint without overwriting newer remote work. Hosted schema reconciliation, signed-in acceptance, May portfolio and all25 Creative OS groups remain open.
+
+## Latest verified runtime — October23
+
+- Runtime `f9a07857f2b0a0b54913af529aacc0d82990658b` on `work/codex-resume-oct23`, PR https://github.com/mbayangxo/Kebu/pull/12 targets the designated shared development checkpoint. The initial runtime `c27d3337` failed typechecking because of a regression-test annotation; f9a07857 corrects it. Earlier failed CI is not counted as a pass.
+- Local full CI passes: TypeScript, zero lint errors/346 existing warnings,6,604 tests passed/338 explicit skips, finalized production build. Local default heap was insufficient; verified run used6144MB. Migration hygiene98 unchanged canonical migrations passes. Focused18/18 and local Studio45/45, zero unexpected/skips/flaky; normal teardown. Alternative npm-packaged Chromium enabled actual local browser verification after standard downloads failed.
+- Exact runtime remote CI39905270591 passes. Studio39905270558 passes45 full cases plus6 mandatory touch cases across3rounds, zero skips/flaky/unexpected; expected original marquee failure reproduced. Public preview smoke39905615702 is running at this checkpoint. No authenticated hosted26 result is claimed.
+- Provider verified runtime preview READY: https://kebu-ifzsdaiu8-mbayangxos-projects.vercel.app / dpl_GHGJ5mPZBrcFtfCmeXgWJag65WUA. Production remains71815f99 on dpl_8XQYFY2rAkDvmUZ1pmdZq8uJHFj2. No promotion/migration/DNS/ownership changes or real model/payment calls.
+- Hosted preflight script freshly executed read-only:4/7 checks fail, specifically missing reservation RPC, missing interactions table/grants, and legacy usage writes. RLS flags for existing usage/generation/campaign tables pass; this is not JWT/RLS acceptance.
+- Review evidence: `docs/audits/KEBU_STUDIO_GROUP_COPIES_2026-10-23.md` and `docs/audits/evidence/studio-groups-oct23/verification.json`. Bounded COS01/07/11/18 copy-isolation improvement only; all25 groups remain partial/open.
+- Next work: secure separately authorized disposable hosted QA/session configuration; review schema drift before any migration; run strict26 hosted Builder acceptance plus two-user Studio persistence/permission cases. Preserve the real13-page May portfolio; never open its old-production editor without the documented read-only backup. Continue nested/group transforms and complete page/scene journeys through ordinary tools; do not restart checkout, Mail or font work.
