@@ -30,7 +30,7 @@ All25 groups remain **partial/open**. The recorded isolated browser and SQL evid
 | COS04 | Eight handles; ratio/center; exact fields; phone/tablet gestures and reopening | Every transformed/grouped object and hosted responsive acceptance |
 | COS05 | Direct text, IME, caret, whitespace and decoded export tests | Rich inline styling and complete hosted text workflow |
 | COS06 | Rotated visible-frame alignment/distribution; whole-selection nearest snapping and zoom-independent tolerance in actual browser | Animated transforms, equal-distance smart guides, full supported-object/hosted acceptance |
-| COS07 | Marquee/additive selection, independent group copies, rigid-group arrange/snapping and cancellation | Nested groups, hierarchy/reorder and group resize/rotation |
+| COS07 | Marquee/additive selection, independent copies, rigid arrange/snapping; shared rotation via handle/exact field/keyboard/native touch with cancellation/save/reopen | Nested groups, hierarchy/reorder, group resize and animated transform frames |
 | COS08 | Motion/timeline source and bounded export tests | All website triggers/presets/easing/reduced-motion persistence/export |
 | COS09 | Real decoded WebM and timeline history | Complete multi-track editing, captions, transitions and all error paths |
 | COS10 | Decoded audible samples; missing-audio refusal | Real uploads/library, trim/loop/fades/detach/beat/waveform end to end |
@@ -48,7 +48,7 @@ All25 groups remain **partial/open**. The recorded isolated browser and SQL evid
 | COS22 | Existing Builder performance probes remain passing | Large-document Studio measurements, virtualization/workers/device limits |
 | COS23 | Decoded PNG/PDF/ZIP/WebM, supplied images/fonts/audio, missing-media failures | All supported formats, transparent/quality settings and durable job lifecycle |
 | COS24 | Template source boundary SQL/REST and editable document model | Full author/publish/purchase/use journey, licensing/private file delivery |
-| COS25 | Real isolated editor journeys;55 local full cases; exact remote touch/full evidence in latest audit | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
+| COS25 | Real isolated editor journeys;61 local full cases plus61+6 remote cases; exact evidence in rotation audit | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
 
 ## October 22 — Studio selection reconciled and browser verified
 
@@ -499,3 +499,7 @@ Full suite: typecheck 0 errors; lint 0 errors (same pre-existing warnings); vite
 Authoritative `7bab1a5de7a53330e48e6bf7e1c7027239330694` preserves Claude68b62904 + social/securitybd82bf3 + adapters45b27a. Expected-head fast-forward, force=false; remote reread matches. All five exact remote gates passed: CI39562571908, Builder63/zero-skips39562571905, platform 20-suite run 39562571894, native PostgreSQL9/zero-skips39562571925, hosted Preview39563041972. Local fullCI exit0:6390/298 explicit skips, finalizedbuild,0lint errors349warnings. Native independent sessions/lock chains and cleanup now verified; the first run's parameterized multi-command harness defect was repaired without weakening assertions.
 
 Read-only live schema/grant preflight fails 22/37 prerequisites. Production remains71815f9; native columns/RPCs and newer receipts/marketplace/Liguey/forwarding are absent. A 95-file checksum manifest identifies 37 same-name/different-version and 54 unmatched canonical/history identities, not an executable migration bundle. Mail is IN PROGRESS, not absent; production mailboxes/messages/threads/attachments with RLS exist, but kebu.africa is pending with sending disabled. Search has an internal index, not the full engine. Isolated hosted staging/JWT acceptance, reviewed schema rollout, provider/paid ownership completion and broader May/COS/3J/99 remain open. See `audits/KEBU_HOSTED_RELEASE_2026-10-21.md`. No production migration, DNS, scheduler/protection change, paid infrastructure, email/payment or promotion.
+
+## October23 — shared rotation accepted in isolated development
+
+Runtime626a5d40 / PR16 closes the absent shared rotation control with actual pointer/native-touch, keyboard and exact relative-angle mutation, retained member geometry/content and atomic cancellation/history/error behavior.14 new geometry cases, decoded PNG and6 focused browser cases; final local61/61 and remote61+6 pass with zero skips/flaky/unexpected. Full local/remote CI6638/338, public smoke and READY preview pass. Earlier memory/HMR failures are explicitly nonaccepted and recorded. This adds bounded COS01/07/18/21/25 evidence; group resize, nesting and all25 complete journeys remain open. Hosted QA is blocked by project access and provider plan/global-free-quota restrictions; a0/month separate-project creation was attempted and rejected. No production changes. See audits/KEBU_STUDIO_GROUP_ROTATION_2026-10-23.md.
