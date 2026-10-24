@@ -111,6 +111,33 @@ for(const width of [1440,834,390]) test.describe(`style transfer at ${width}px`,
   });
 });
 
+for (const width of [1440, 834, 390]) test.describe(`Inspector scrolling at ${width}px`, () => {
+  test.use({ viewport: { width, height: 740 }, hasTouch: width < 1024 });
+  test("keeps header controls reachable after scrolling without changing artwork", async ({ page }) => {
+    const fixture = await setupStyles(page);
+    const before = structuredClone(fixture.server().canvas);
+    const activate = (target: Locator) => width < 1024 ? target.tap() : target.click();
+    await activate(page.locator('[data-studio-layer-id="title"]'));
+    await showStyleInspector(page, width);
+    const panel = page.getByRole("complementary", { name: "Inspector", exact: true });
+    const header = panel.locator("[data-studio-inspector-header]");
+    await expect.poll(() => panel.evaluate(el => el.scrollHeight - el.clientHeight)).toBeGreaterThan(100);
+    await panel.evaluate(el => { el.scrollTop = el.scrollHeight; });
+    await expect.poll(() => panel.evaluate(el => el.scrollTop)).toBeGreaterThan(100);
+    const panelBox = (await panel.boundingBox())!;
+    const headerBox = (await header.boundingBox())!;
+    expect(Math.abs(headerBox.y - panelBox.y)).toBeLessThanOrEqual(2);
+    await activate(header.getByRole("button", { name: "animate", exact: true }));
+    await expect(panel.getByRole("combobox", { name: "Entrance", exact: true })).toBeVisible();
+    await activate(header.getByRole("button", { name: "design", exact: true }));
+    await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
+    expect(fixture.writes).toHaveLength(0);
+    expect(fixture.server().canvas).toEqual(before);
+    expect(fixture.errors).toEqual([]);
+    await page.screenshot({ path: test.info().outputPath(`inspector-scrolled-${width}.png`) });
+  });
+});
+
 test.describe("style viewer permissions",()=>{
   test.use({viewport:{width:390,height:1000},hasTouch:true});
   test("style transfer never gives viewers mutation controls",async ({page})=>{
