@@ -148,6 +148,93 @@ test("selection rotation controls never grant a viewer mutation authority",async
   expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
 });
 
+for (const zoom of [50,100]) test(`configurable snapping at ${zoom}% supports free movement distance and Alt bypass`, async ({page})=>{
+  const fixture = await setupRotation(page);
+  const source = fixture.server().canvas!;
+  source.layers[0] = {...source.layers[0]!,x:100,y:100,width:100,height:40,rotation:90};
+  source.layers[1] = {...source.layers[1]!,x:250,y:230,width:60,height:100,rotation:-90};
+  source.pages[0]!.layers=source.layers;
+  await page.reload(); await page.getByRole("slider").fill(String(zoom));
+  const settings=page.getByLabel("Snapping settings",{exact:true});
+  await settings.click();
+  const toggle=page.getByLabel("Snap to edges and centers",{exact:true});
+  const distance=page.getByLabel("Snap distance",{exact:true});
+  await distance.selectOption("4");
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0);
+  await settings.click();
+  const board=await sceneBox(page), scale=board.width/640;
+  const title=page.locator('[data-studio-layer-id="title"]'), image=page.locator('[data-studio-layer-id="image"]');
+  const before=(await title.boundingBox())!;
+  const move=async (alt=false)=>{
+    await page.mouse.move(before.x+before.width/2,before.y+before.height/2); await page.mouse.down();
+    if(alt) await page.keyboard.down("Alt");
+    await page.mouse.move(before.x+before.width/2+310*scale-6,before.y+before.height/2+13*scale,{steps:8});
+  };
+  const gap=async ()=>board.x+board.width-((await image.boundingBox())!.x+(await image.boundingBox())!.width);
+  await move(); expect(await gap()).toBeCloseTo(6,0);
+  await expect(page.locator('[data-studio-snap-guide="vertical"]')).toHaveCount(0);
+  await page.keyboard.press("Escape"); await page.mouse.up();
+  await settings.click(); await distance.selectOption("12"); await settings.click();
+  await move(); expect(await gap()).toBeCloseTo(0,0);
+  await expect(page.locator('[data-studio-snap-guide="vertical"]')).toBeVisible();
+  await page.keyboard.press("Escape"); await page.mouse.up();
+  await move(true); expect(await gap()).toBeCloseTo(6,0);
+  await expect(page.locator('[data-studio-snap-guide]')).toHaveCount(0);
+  await page.keyboard.up("Alt"); await page.keyboard.press("Escape"); await page.mouse.up();
+  await settings.click(); await toggle.uncheck(); await settings.click();
+  await move(); expect(await gap()).toBeCloseTo(6,0); await page.mouse.up();
+  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect.poll(()=>fixture.server().canvas!.layers[0]!.x).toBeCloseTo(410-6/scale);
+  await page.getByRole("button",{name:"Undo",exact:true}).click();
+  expect((await title.boundingBox())!.x).toBeCloseTo(before.x,0);
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  await page.getByRole("button",{name:"Redo",exact:true}).click();
+  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  const saved=structuredClone(fixture.server().canvas!.layers);
+  await page.reload(); expect(fixture.server().canvas!.layers).toEqual(saved);
+  await settings.click(); await expect(toggle).toBeChecked(); await expect(distance).toHaveValue("8");
+  expect(fixture.errors).toEqual([]);
+});
+
+test("snapping settings support native keyboard activation dismissal and focus return",async ({page})=>{
+  const fixture=await setup(page);
+  const settings=page.getByRole("button",{name:"Snapping settings",exact:true});
+  await settings.focus(); await settings.press("Space");
+  const panel=page.getByRole("dialog",{name:"Canvas snapping",exact:true});
+  await expect(panel).toBeVisible();
+  const toggle=page.getByLabel("Snap to edges and centers",{exact:true});
+  await toggle.focus(); await toggle.press("Space"); await expect(toggle).not.toBeChecked();
+  await toggle.press("Escape"); await expect(panel).not.toBeVisible(); await expect(settings).toBeFocused();
+  await settings.press("Enter"); await expect(panel).toBeVisible();
+  const close=page.getByRole("button",{name:"Close snapping settings",exact:true});
+  await close.focus(); await close.press("Space");
+  await expect(panel).not.toBeVisible(); await expect(settings).toBeFocused();
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
+});
+
+test.describe("snapping settings on phone",()=>{
+  test.use({viewport:{width:390,height:1000},hasTouch:true});
+  test("snapping settings are touch accessible and do not change a viewer document",async ({page})=>{
+    const fixture=await setup(page,{viewer:true});
+    const before=structuredClone(fixture.server());
+    await page.getByLabel("Snapping settings",{exact:true}).tap();
+    await page.getByLabel("Snap to edges and centers",{exact:true}).uncheck();
+    await page.getByLabel("Snap distance",{exact:true}).selectOption("24");
+    const panel=page.getByRole("dialog",{name:"Canvas snapping",exact:true});
+    const box=(await panel.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x+box.width).toBeLessThanOrEqual(390);
+    expect(box.y).toBeGreaterThanOrEqual(0); expect(box.y+box.height).toBeLessThanOrEqual(1000);
+    expect(await panel.evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
+    await expect(page.getByRole("button",{name:"Close snapping settings",exact:true})).toBeVisible();
+    await page.screenshot({path:test.info().outputPath("phone-snapping-settings.png")});
+    await page.getByLabel("Snapping settings",{exact:true}).tap();
+    expect(fixture.writes).toHaveLength(0); expect(fixture.server()).toEqual(before);
+    expect(fixture.errors).toEqual([]);
+  });
+});
+
 for (const zoom of [50,100]) test(`snapping rotated groups at ${zoom}% uses visible bounds and one persistent gesture`, async ({ page }) => {
   const fixture = await setup(page);
   const source = fixture.server().canvas!;

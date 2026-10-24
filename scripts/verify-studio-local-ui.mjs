@@ -37,7 +37,7 @@ try {
   const code = await new Promise(done => tests.on("exit",done));
   const report = JSON.parse(readFileSync(join(output,"results.json"),"utf8"));
   console.log("STUDIO_UI_RESULT",JSON.stringify({ ...report.stats, scope: filter ?? "full" }));
-  if(code!==0 || report.stats.unexpected || report.stats.skipped || report.stats.flaky || report.stats.expected < (filter ? 1 : 61)) throw Error("Studio browser gate failed");
+  if(code!==0 || report.stats.unexpected || report.stats.skipped || report.stats.flaky || report.stats.expected < (filter ? 1 : 65)) throw Error("Studio browser gate failed");
 } finally {
   await stopChild(tests);
   await stopChild(server);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { AlignMode, CanvasDocument, CanvasLayer } from "@/lib/studio/canvas-document";
 import {
   CANVAS_LAYER_TYPES,
@@ -214,6 +214,9 @@ export function StudioCanvasEditor({
   const suppressSelectionClick = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [zoom, setZoom] = useState(45);
+  const [snappingEnabled, setSnappingEnabled] = useState(true);
+  const [snapDistance, setSnapDistance] = useState(8);
+  const snappingPanelId = useId();
   const [uploadBusy, setUploadBusy] = useState(false);
   const [elementQuery, setElementQuery] = useState("");
   const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
@@ -433,15 +436,15 @@ export function StudioCanvasEditor({
     if (drag.mode === "move") {
       const moveIds = new Set(drag.movingIds);
       const primary = drag.origLayers.find((l) => l.id === drag.layerId)!;
-      const snapped = snapLayerPosition(
+      const snapped = snappingEnabled && !e.altKey ? snapLayerPosition(
         primary,
         dx,
         dy,
         drag.origLayers,
         moveIds,
         { width: page.width, height: page.height },
-        8 / displayScale, // Keep the magnetic distance at eight screen pixels at every zoom.
-      );
+        snapDistance / displayScale,
+      ) : { x: primary.x + dx, y: primary.y + dy, guides: { v: null, h: null } };
       setSnapGuides(snapped.guides);
       const adjX = snapped.x - primary.x;
       const adjY = snapped.y - primary.y;
@@ -803,6 +806,8 @@ export function StudioCanvasEditor({
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.code === "Space" && !e.repeat) {
+        // Native controls must keep their Space activation; canvas panning is for the workspace.
+        if ((e.target as HTMLElement)?.closest("button, summary, a, [role='button']")) return;
         e.preventDefault();
         setSpaceHeld(true);
         return;
@@ -971,6 +976,24 @@ export function StudioCanvasEditor({
           Ungroup
         </button>
         <span className="flex-1" />
+        <div>
+          <button type="button" popoverTarget={snappingPanelId} className="cursor-pointer rounded-lg border border-white/10 px-2.5 py-2 text-xs font-semibold whitespace-nowrap" aria-label="Snapping settings">
+            Snap {snappingEnabled ? "on" : "off"}
+          </button>
+          <div id={snappingPanelId} popover="auto" role="dialog" aria-label="Canvas snapping" className="fixed inset-0 m-auto h-fit w-72 max-w-[calc(100vw-2rem)] space-y-4 whitespace-normal rounded-xl border border-white/15 bg-[#17181B] p-4 text-white shadow-xl backdrop:bg-black/40">
+            <div className="flex items-center justify-between gap-3"><p className="text-sm font-bold">Canvas snapping</p><button type="button" popoverTarget={snappingPanelId} popoverTargetAction="hide" aria-label="Close snapping settings" className="rounded-lg border border-white/15 px-3 py-2 text-xs">Close</button></div>
+            <label className="flex items-center gap-2 text-xs font-semibold">
+              <input type="checkbox" checked={snappingEnabled} onChange={e=>{setSnappingEnabled(e.target.checked);setSnapGuides({v:null,h:null});}} />
+              Snap to edges and centers
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-semibold">Snap distance
+              <select aria-label="Snap distance" className="mt-1 w-full rounded-lg border border-white/15 bg-[#17181B] px-2 py-2" value={snapDistance} onChange={e=>{setSnapDistance(Number(e.target.value));setSnapGuides({v:null,h:null});}}>
+                {[2,4,8,12,16,24].map(distance=><option key={distance} value={distance}>{distance} screen pixels</option>)}
+              </select>
+            </label>
+            <p className="text-xs text-white/60">Hold Alt or Option while dragging to move freely. These settings apply while this editor is open.</p>
+          </div>
+        </div>
         <span className="text-[10px] opacity-50 hidden sm:inline">
           {spaceHeld ? "Pan…" : "Space+drag to pan"}
         </span>
