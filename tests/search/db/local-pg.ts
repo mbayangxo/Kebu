@@ -86,10 +86,74 @@ export async function createSearchTestDb(): Promise<Db> {
       )
     `);
 
+    // Real projects/project_products DDL (supabase/migrations_archive/legacy/004_create_projects.sql
+    // + 008_website_builder.sql's subdomain column + 022_site_products_and_create_designs.sql),
+    // trimmed of fields Products Search never reads — same convention as the businesses table above.
+    await c.query(`
+      CREATE TABLE public.projects (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+        title text NOT NULL,
+        project_type text NOT NULL DEFAULT 'website' CHECK (project_type IN ('website','store','portfolio','landing')),
+        status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+        subdomain text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await c.query(`
+      CREATE TABLE public.project_products (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+        name text NOT NULL,
+        description text NOT NULL DEFAULT '',
+        price_label text NOT NULL DEFAULT '',
+        image_url text NOT NULL DEFAULT '',
+        whatsapp_order_message text NOT NULL DEFAULT '',
+        sort_order integer NOT NULL DEFAULT 0,
+        is_active boolean NOT NULL DEFAULT true,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    // Real developer_profiles/marketplace_templates DDL (supabase/migrations/20261020030000_studio_creative_assets_marketplace.sql
+    // + 20261021020000_aesthetics_marketplace_canonical.sql).
+    await c.query(`
+      CREATE TABLE public.developer_profiles (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+        display_name text NOT NULL,
+        status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','suspended')),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (user_id)
+      )
+    `);
+    await c.query(`
+      CREATE TABLE public.marketplace_templates (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        developer_id uuid NOT NULL REFERENCES public.developer_profiles(id) ON DELETE CASCADE,
+        slug text NOT NULL UNIQUE,
+        name text NOT NULL,
+        description text,
+        category text,
+        price_cents integer NOT NULL DEFAULT 0 CHECK (price_cents >= 0),
+        definition jsonb NOT NULL DEFAULT '{}'::jsonb,
+        preview_url text,
+        status text NOT NULL DEFAULT 'draft'
+          CHECK (status IN ('draft','pending_review','published','rejected','archived')),
+        sales_count integer NOT NULL DEFAULT 0,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
     await c.query(migration("20260920087000_search_index_phase_one.sql"));
     await c.query(migration("20261023010000_search_index_businesses_mode.sql"));
     await c.query(migration("20261023020000_search_businesses_rpc.sql"));
     await c.query(migration("20261024010000_search_businesses_pagination.sql"));
+    await c.query(migration("20261024020000_search_index_products_mode.sql"));
+    await c.query(migration("20261024030000_search_products_rpc.sql"));
   } finally {
     c.release();
   }

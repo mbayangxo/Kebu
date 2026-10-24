@@ -80,3 +80,49 @@ describe("search_businesses pagination migration", () => {
     expect(sql).toContain("grant execute on function public.search_businesses(text, text, integer, integer) to service_role");
   });
 });
+
+describe("search_documents products mode migration", () => {
+  const sql = readFileSync(
+    join(process.cwd(), "supabase/migrations/20261024020000_search_index_products_mode.sql"),
+    "utf8",
+  );
+
+  it("is additive: widens the mode check constraint and adds price_label", () => {
+    expect(sql).toContain("check (mode in ('sites', 'opportunities', 'businesses', 'products'))");
+    expect(sql).toContain("add column if not exists price_label text");
+    expect(sql).not.toContain("drop table");
+    expect(sql).not.toContain("delete from");
+  });
+
+  it("does not guess the existing check constraint's name", () => {
+    expect(sql).not.toMatch(/drop constraint if exists search_documents_mode_check/);
+    expect(sql).toContain("pg_constraint");
+    expect(sql).toContain("attname = 'mode'");
+  });
+});
+
+describe("search_products RPC migration", () => {
+  const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261024030000_search_products_rpc.sql"), "utf8");
+
+  it("live-joins each entity type to its own real source table's publish status", () => {
+    expect(sql).toContain("entity_type = 'shop_product'");
+    expect(sql).toContain("join public.projects p on p.id = pp.project_id");
+    expect(sql).toContain("pp.is_active and p.status = 'published'");
+    expect(sql).toContain("entity_type = 'marketplace_template'");
+    expect(sql).toContain("mt.status = 'published'");
+  });
+
+  it("ranks with ts_rank and a deterministic tie-break, and clamps limit/offset", () => {
+    expect(sql).toContain("ts_rank(c.search_vector, websearch_to_tsquery('simple', p_query))");
+    expect(sql).toMatch(/order by rank desc, updated_at desc, pid/);
+    expect(sql).toMatch(/limit greatest\(1, least\(coalesce\(p_limit, 20\), 50\)\)/);
+    expect(sql).toMatch(/offset greatest\(0, least\(coalesce\(p_offset, 0\), 2000\)\)/);
+  });
+
+  it("is locked down to service_role only", () => {
+    expect(sql).toContain(
+      "revoke execute on function public.search_products(text, integer, integer) from public, anon, authenticated",
+    );
+    expect(sql).toContain("grant execute on function public.search_products(text, integer, integer) to service_role");
+  });
+});

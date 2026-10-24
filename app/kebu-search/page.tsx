@@ -20,13 +20,31 @@ type BusinessResult = {
   href: string;
 };
 
-type SearchResponse = { query: string; results: BusinessResult[]; mode: "recent" | "query"; total: number };
+type ProductResult = {
+  id: string;
+  kind: "shop_product" | "marketplace_template";
+  name: string;
+  summary: string;
+  category: string | null;
+  priceLabel: string | null;
+  trustLabel: "verified" | "unverified";
+  sourceName: string;
+  sourceUrl: string | null;
+  fetchedAt: string;
+  href: string;
+};
+
+type AnyResult = BusinessResult | ProductResult;
+
+type SearchResponse<T> = { query: string; results: T[]; mode: "recent" | "query"; total: number };
+
+type ModeId = "business" | "products";
 
 const MODES: Array<{ id: string; label: string; live: boolean }> = [
   { id: "business", label: "Business", live: true },
+  { id: "products", label: "Products", live: true },
   { id: "web", label: "Web", live: false },
   { id: "africa", label: "Africa", live: false },
-  { id: "products", label: "Products", live: false },
   { id: "people", label: "People & Talent", live: false },
   { id: "research", label: "Research", live: false },
   { id: "trade", label: "Trade", live: false },
@@ -48,10 +66,25 @@ function countryLabel(code: string): string {
 
 const PAGE_SIZE = 20;
 
+const RECENT_LABEL: Record<ModeId, string> = {
+  business: "Recently active on Kebu",
+  products: "Recently listed on Kebu",
+};
+const EMPTY_RECENT_LABEL: Record<ModeId, string> = {
+  business: "No active businesses are indexed yet",
+  products: "No products are indexed yet",
+};
+const EMPTY_QUERY_LABEL: Record<ModeId, string> = {
+  business: "No indexed businesses match",
+  products: "No indexed products match",
+};
+const NOUN: Record<ModeId, string> = { business: "businesses", products: "products" };
+
 export default function KebuSearchPage() {
+  const [activeMode, setActiveMode] = useState<ModeId>("business");
   const [q, setQ] = useState("");
   const [country, setCountry] = useState("");
-  const [results, setResults] = useState<BusinessResult[]>([]);
+  const [results, setResults] = useState<AnyResult[]>([]);
   const [total, setTotal] = useState(0);
   const [mode, setMode] = useState<"recent" | "query">("recent");
   const [queryEcho, setQueryEcho] = useState("");
@@ -71,12 +104,13 @@ export default function KebuSearchPage() {
       try {
         const params = new URLSearchParams();
         if (q) params.set("q", q);
-        if (country) params.set("country", country);
+        if (activeMode === "business" && country) params.set("country", country);
         params.set("limit", String(PAGE_SIZE));
         params.set("offset", String(offset));
-        const r = await fetch(`/api/search/businesses?${params.toString()}`, { signal: controller.signal });
+        const endpoint = activeMode === "business" ? "/api/search/businesses" : "/api/search/products";
+        const r = await fetch(`${endpoint}?${params.toString()}`, { signal: controller.signal });
         if (!r.ok) throw new Error("search");
-        const body: SearchResponse = await r.json();
+        const body: SearchResponse<AnyResult> = await r.json();
         setMode(body.mode);
         setQueryEcho(body.query);
         setTotal(body.total);
@@ -90,13 +124,22 @@ export default function KebuSearchPage() {
         }
       }
     },
-    [q, country],
+    [q, country, activeMode],
   );
 
   useEffect(() => {
     const timer = setTimeout(() => runSearch(0, false), q ? 200 : 0);
     return () => clearTimeout(timer);
   }, [runSearch, q]);
+
+  function switchMode(next: ModeId) {
+    if (next === activeMode) return;
+    setActiveMode(next);
+    setQ("");
+    setCountry("");
+    setResults([]);
+    setTotal(0);
+  }
 
   const hasMore = !loading && !failed && results.length < total;
 
@@ -130,8 +173,12 @@ export default function KebuSearchPage() {
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search businesses — e.g. “chocolate manufacturing Senegal”"
-              aria-label="Search Kebu businesses"
+              placeholder={
+                activeMode === "business"
+                  ? "Search businesses — e.g. “chocolate manufacturing Senegal”"
+                  : "Search products and templates — e.g. “Instagram post template”"
+              }
+              aria-label={`Search Kebu ${NOUN[activeMode]}`}
               className="min-h-6 min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-black/35"
             />
             {q ? (
@@ -141,51 +188,58 @@ export default function KebuSearchPage() {
             ) : null}
           </div>
 
-          <div className="mx-auto mt-3 flex max-w-[640px] items-center justify-center gap-2">
-            <label htmlFor="kebu-search-country" className="text-[10px] font-semibold" style={{ color: KEBU.muted }}>
-              Country
-            </label>
-            <select
-              id="kebu-search-country"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              aria-label="Filter businesses by country"
-              className="rounded-full border bg-white px-3 py-1.5 text-[11px] font-semibold"
-              style={{ borderColor: KEBU.border, color: KEBU.black }}
-            >
-              <option value="">All countries</option>
-              {COUNTRY_OPTIONS.map((o) => (
-                <option key={o.code} value={o.code}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
-            {country ? (
-              <button onClick={() => setCountry("")} className="text-[10px] font-semibold" style={{ color: KEBU.muted }}>
-                Clear
-              </button>
-            ) : null}
-          </div>
+          {activeMode === "business" ? (
+            <div className="mx-auto mt-3 flex max-w-[640px] items-center justify-center gap-2">
+              <label htmlFor="kebu-search-country" className="text-[10px] font-semibold" style={{ color: KEBU.muted }}>
+                Country
+              </label>
+              <select
+                id="kebu-search-country"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                aria-label="Filter businesses by country"
+                className="rounded-full border bg-white px-3 py-1.5 text-[11px] font-semibold"
+                style={{ borderColor: KEBU.border, color: KEBU.black }}
+              >
+                <option value="">All countries</option>
+                {COUNTRY_OPTIONS.map((o) => (
+                  <option key={o.code} value={o.code}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+              {country ? (
+                <button onClick={() => setCountry("")} className="text-[10px] font-semibold" style={{ color: KEBU.muted }}>
+                  Clear
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mx-auto mt-5 flex max-w-[680px] flex-wrap justify-center gap-2">
-            {MODES.map((mode) =>
-              mode.live ? (
-                <span
-                  key={mode.id}
+            {MODES.map((m) =>
+              m.live ? (
+                <button
+                  key={m.id}
+                  onClick={() => switchMode(m.id as ModeId)}
                   className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide"
-                  style={{ background: KEBU.black, color: "white" }}
+                  style={
+                    activeMode === m.id
+                      ? { background: KEBU.black, color: "white" }
+                      : { border: `1px solid ${KEBU.border}`, color: KEBU.black, background: "white" }
+                  }
                 >
-                  {mode.label}
-                </span>
+                  {m.label}
+                </button>
               ) : (
                 <span
-                  key={mode.id}
+                  key={m.id}
                   title="Not available yet"
                   aria-disabled="true"
                   className="cursor-not-allowed rounded-full border px-3 py-1.5 text-[10px] font-semibold opacity-45"
                   style={{ borderColor: KEBU.border, color: KEBU.muted }}
                 >
-                  {mode.label} · soon
+                  {m.label} · soon
                 </span>
               ),
             )}
@@ -208,23 +262,28 @@ export default function KebuSearchPage() {
         {!failed && !loading && mode === "recent" && !q ? (
           <>
             <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{ color: KEBU.muted }}>
-              Recently active on Kebu{country ? ` · ${countryLabel(country)}` : ""}
+              {RECENT_LABEL[activeMode]}
+              {activeMode === "business" && country ? ` · ${countryLabel(country)}` : ""}
             </h2>
             {results.length === 0 ? (
               <div className="rounded-[14px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
                 <p className="font-semibold">
-                  No active businesses are indexed yet{country ? ` in ${countryLabel(country)}` : ""}.
+                  {EMPTY_RECENT_LABEL[activeMode]}
+                  {activeMode === "business" && country ? ` in ${countryLabel(country)}` : ""}.
                 </p>
                 <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
-                  Kebu Search only shows businesses that have actually been reviewed and activated —
-                  nothing here is invented.
+                  Kebu Search only shows real, indexed records — nothing here is invented.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {results.map((item) => (
-                  <BusinessCard key={item.id} item={item} />
-                ))}
+                {results.map((item) =>
+                  activeMode === "business" ? (
+                    <BusinessCard key={item.id} item={item as BusinessResult} />
+                  ) : (
+                    <ProductCard key={item.id} item={item as ProductResult} />
+                  ),
+                )}
               </div>
             )}
           </>
@@ -233,12 +292,14 @@ export default function KebuSearchPage() {
         {!failed && !loading && mode === "query" ? (
           <>
             <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{ color: KEBU.muted }}>
-              {total} result{total === 1 ? "" : "s"} for “{queryEcho}”{country ? ` · ${countryLabel(country)}` : ""}
+              {total} result{total === 1 ? "" : "s"} for “{queryEcho}”
+              {activeMode === "business" && country ? ` · ${countryLabel(country)}` : ""}
             </h2>
             {results.length === 0 ? (
               <div className="rounded-[14px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
                 <p className="font-semibold">
-                  No indexed businesses match “{queryEcho}”{country ? ` in ${countryLabel(country)}` : ""}.
+                  {EMPTY_QUERY_LABEL[activeMode]} “{queryEcho}”
+                  {activeMode === "business" && country ? ` in ${countryLabel(country)}` : ""}.
                 </p>
                 <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
                   Kebu Search only shows real, indexed records — it will never invent a result to fill this space.
@@ -246,9 +307,13 @@ export default function KebuSearchPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {results.map((item) => (
-                  <BusinessCard key={item.id} item={item} />
-                ))}
+                {results.map((item) =>
+                  activeMode === "business" ? (
+                    <BusinessCard key={item.id} item={item as BusinessResult} />
+                  ) : (
+                    <ProductCard key={item.id} item={item as ProductResult} />
+                  ),
+                )}
               </div>
             )}
           </>
@@ -296,6 +361,36 @@ function BusinessCard({ item }: { item: BusinessResult }) {
         >
           {item.trustLabel}
         </span>
+      </div>
+      <p className="mt-2 text-[9px]" style={{ color: KEBU.faint }}>
+        Source: {item.sourceName} · indexed {new Date(item.fetchedAt).toLocaleDateString()}
+      </p>
+    </Link>
+  );
+}
+
+function ProductCard({ item }: { item: ProductResult }) {
+  return (
+    <Link
+      href={item.href}
+      className="block rounded-[14px] border bg-white p-4 transition hover:shadow-md"
+      style={{ borderColor: KEBU.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold">{item.name}</p>
+          <p className="mt-0.5 truncate text-xs" style={{ color: KEBU.muted }}>
+            {item.summary}
+          </p>
+        </div>
+        {item.priceLabel ? (
+          <span
+            className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide"
+            style={{ background: "#F3EEE9", color: KEBU.black }}
+          >
+            {item.priceLabel}
+          </span>
+        ) : null}
       </div>
       <p className="mt-2 text-[9px]" style={{ color: KEBU.faint }}>
         Source: {item.sourceName} · indexed {new Date(item.fetchedAt).toLocaleDateString()}

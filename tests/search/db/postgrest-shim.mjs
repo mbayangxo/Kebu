@@ -68,6 +68,55 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, rows);
     }
 
+    if (req.method === "POST" && url.pathname === "/rest/v1/rpc/search_products") {
+      const { p_query = null, p_limit = 20, p_offset = 0 } = await readJsonBody(req);
+      const { rows } = await pool.query("select * from public.search_products($1, $2, $3)", [p_query, p_limit, p_offset]);
+      return send(res, 200, rows);
+    }
+
+    // Mirrors the route's own always-applied filters (is_active/status='published')
+    // rather than parsing the embedded-select query string literally — same spirit
+    // as the /businesses handler above, which ignores the exact select list too.
+    if (req.method === "GET" && url.pathname === "/rest/v1/project_products") {
+      const idFilter = url.searchParams.get("id");
+      if (!idFilter || !idFilter.startsWith("eq.")) return send(res, 400, { error: "expected id=eq.<uuid>" });
+      const id = idFilter.slice(3);
+      const { rows } = await pool.query(
+        `select pp.id, pp.name, pp.description, pp.price_label, pp.image_url, pp.is_active, pp.updated_at,
+                p.status as project_status, p.subdomain as project_subdomain
+         from public.project_products pp
+         join public.projects p on p.id = pp.project_id
+         where pp.id = $1 and pp.is_active = true and p.status = 'published'`,
+        [id],
+      );
+      const shaped = rows.map((r) => ({
+        id: r.id, name: r.name, description: r.description, price_label: r.price_label,
+        image_url: r.image_url, is_active: r.is_active, updated_at: r.updated_at,
+        projects: { status: r.project_status, subdomain: r.project_subdomain },
+      }));
+      return send(res, 200, shaped);
+    }
+
+    if (req.method === "GET" && url.pathname === "/rest/v1/marketplace_templates") {
+      const idFilter = url.searchParams.get("id");
+      if (!idFilter || !idFilter.startsWith("eq.")) return send(res, 400, { error: "expected id=eq.<uuid>" });
+      const id = idFilter.slice(3);
+      const { rows } = await pool.query(
+        `select mt.id, mt.name, mt.description, mt.category, mt.price_cents, mt.preview_url, mt.status, mt.updated_at,
+                dp.display_name
+         from public.marketplace_templates mt
+         left join public.developer_profiles dp on dp.id = mt.developer_id
+         where mt.id = $1 and mt.status = 'published'`,
+        [id],
+      );
+      const shaped = rows.map((r) => ({
+        id: r.id, name: r.name, description: r.description, category: r.category, price_cents: r.price_cents,
+        preview_url: r.preview_url, status: r.status, updated_at: r.updated_at,
+        developer_profiles: r.display_name ? { display_name: r.display_name } : null,
+      }));
+      return send(res, 200, shaped);
+    }
+
     send(res, 404, { error: `shim has no route for ${req.method} ${url.pathname}` });
   } catch (err) {
     console.error("[postgrest-shim]", err);

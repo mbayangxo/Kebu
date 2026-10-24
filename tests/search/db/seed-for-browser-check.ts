@@ -117,6 +117,86 @@ async function main() {
     await indexBusiness(id, name, `Services · SN · General business services provider number ${i}, based in Senegal.`, "services", "SN", i % 2 === 0);
   }
 
+  // --- Products mode: a published site with an active product, plus a
+  // deactivated one and one on an unpublished site, all indexed (stale) ---
+  const publishedProjectId = "bbbbbbbb-1111-4111-8111-000000000001";
+  const unpublishedProjectId = "bbbbbbbb-1111-4111-8111-000000000002";
+  await db.pool.query(
+    `insert into public.projects (id, owner_id, title, project_type, status, subdomain) values ($1,$2,'Baobab Store','store','published','baobab-store')`,
+    [publishedProjectId, userId],
+  );
+  await db.pool.query(
+    `insert into public.projects (id, owner_id, title, project_type, status, subdomain) values ($1,$2,'Draft Store','store','draft','draft-store')`,
+    [unpublishedProjectId, userId],
+  );
+
+  const activeProductId = "bbbbbbbb-2222-4111-8111-000000000001";
+  await db.pool.query(
+    `insert into public.project_products (id, project_id, name, description, price_label, is_active)
+     values ($1,$2,'Baobab Honey Jar','Raw wildflower honey harvested near Casamance.','3,500 FCFA',true)`,
+    [activeProductId, publishedProjectId],
+  );
+  await db.pool.query(
+    `insert into public.search_documents (source_key, mode, entity_type, entity_id, title, summary, source_name, access_scope, price_label, fetched_at, updated_at)
+     values ('shop_product:' || $1, 'products', 'shop_product', $1, 'Baobab Honey Jar', 'Raw wildflower honey harvested near Casamance. · 3,500 FCFA', 'Kebu Shop', 'public', '3,500 FCFA', now(), now())`,
+    [activeProductId],
+  );
+
+  const deactivatedProductId = "bbbbbbbb-2222-4111-8111-000000000002";
+  await db.pool.query(
+    `insert into public.project_products (id, project_id, name, description, price_label, is_active)
+     values ($1,$2,'Discontinued Candle','No longer sold.','2,000 FCFA',false)`,
+    [deactivatedProductId, publishedProjectId],
+  );
+  await db.pool.query(
+    `insert into public.search_documents (source_key, mode, entity_type, entity_id, title, summary, source_name, access_scope, price_label, fetched_at, updated_at)
+     values ('shop_product:' || $1, 'products', 'shop_product', $1, 'Discontinued Candle', 'No longer sold. · 2,000 FCFA', 'Kebu Shop', 'public', '2,000 FCFA', now(), now())`,
+    [deactivatedProductId],
+  );
+
+  const unpublishedSiteProductId = "bbbbbbbb-2222-4111-8111-000000000003";
+  await db.pool.query(
+    `insert into public.project_products (id, project_id, name, description, price_label, is_active)
+     values ($1,$2,'Draft Site Product','Site never went live.','1,000 FCFA',true)`,
+    [unpublishedSiteProductId, unpublishedProjectId],
+  );
+  await db.pool.query(
+    `insert into public.search_documents (source_key, mode, entity_type, entity_id, title, summary, source_name, access_scope, price_label, fetched_at, updated_at)
+     values ('shop_product:' || $1, 'products', 'shop_product', $1, 'Draft Site Product', 'Site never went live. · 1,000 FCFA', 'Kebu Shop', 'public', '1,000 FCFA', now(), now())`,
+    [unpublishedSiteProductId],
+  );
+
+  // --- Products mode: Studio marketplace — one published template, one archived ---
+  const developerId = "bbbbbbbb-3333-4111-8111-000000000001";
+  await db.pool.query(
+    `insert into public.developer_profiles (id, user_id, display_name, status) values ($1,$2,'Amina Studio','approved')`,
+    [developerId, userId],
+  );
+
+  const publishedTemplateId = "bbbbbbbb-4444-4111-8111-000000000001";
+  await db.pool.query(
+    `insert into public.marketplace_templates (id, developer_id, slug, name, description, category, price_cents, definition, status)
+     values ($1,$2,'instagram-post-pack','Instagram Post Pack','20 editable Instagram post layouts.','social',1999,'{}'::jsonb,'published')`,
+    [publishedTemplateId, developerId],
+  );
+  await db.pool.query(
+    `insert into public.search_documents (source_key, mode, entity_type, entity_id, title, summary, source_name, access_scope, category, price_label, fetched_at, updated_at)
+     values ('marketplace_template:' || $1, 'products', 'marketplace_template', $1, 'Instagram Post Pack', 'Social · 20 editable Instagram post layouts. · $19.99', 'Kebu Studio Marketplace', 'public', 'social', '$19.99', now(), now())`,
+    [publishedTemplateId],
+  );
+
+  const archivedTemplateId = "bbbbbbbb-4444-4111-8111-000000000002";
+  await db.pool.query(
+    `insert into public.marketplace_templates (id, developer_id, slug, name, description, category, price_cents, definition, status)
+     values ($1,$2,'old-flyer-pack','Old Flyer Pack','No longer for sale.','flyers',999,'{}'::jsonb,'archived')`,
+    [archivedTemplateId, developerId],
+  );
+  await db.pool.query(
+    `insert into public.search_documents (source_key, mode, entity_type, entity_id, title, summary, source_name, access_scope, category, price_label, fetched_at, updated_at)
+     values ('marketplace_template:' || $1, 'products', 'marketplace_template', $1, 'Old Flyer Pack', 'Flyers · No longer for sale. · $9.99', 'Kebu Studio Marketplace', 'public', 'flyers', '$9.99', now(), now())`,
+    [archivedTemplateId],
+  );
+
   console.log(JSON.stringify({
     dbUrl: db.pool.options.connectionString,
     dbName: db.name,
@@ -126,6 +206,13 @@ async function main() {
       draft_stale_indexed: draftId,
       suspended_stale_indexed: suspendedId,
       other_country_active: accraId,
+    },
+    products: {
+      active_shop_product: activeProductId,
+      deactivated_shop_product_stale_indexed: deactivatedProductId,
+      unpublished_site_product_stale_indexed: unpublishedSiteProductId,
+      published_template: publishedTemplateId,
+      archived_template_stale_indexed: archivedTemplateId,
     },
   }));
 }
