@@ -3,7 +3,7 @@ name: Studio selection browser
 on:
   workflow_dispatch:
   push:
-    branches: ["work/kebu-completion-audit-oct13", "work/codex-yande-experience-oct22", "work/codex-yande-reconcile-oct22", "work/codex-studio-marquee-oct22", "work/codex-resume-oct23", "work/codex-studio-pages-oct23", "work/codex-studio-arrange-oct23", "work/codex-studio-snapping-oct23", "work/codex-studio-group-rotation-oct23", "work/codex-studio-snap-controls-oct24"]
+    branches: ["work/kebu-completion-audit-oct13", "work/codex-yande-experience-oct22", "work/codex-yande-reconcile-oct22", "work/codex-studio-marquee-oct22", "work/codex-resume-oct23", "work/codex-studio-pages-oct23", "work/codex-studio-arrange-oct23", "work/codex-studio-snapping-oct23", "work/codex-studio-group-rotation-oct23", "work/codex-studio-snap-controls-oct24", "work/codex-studio-styles-oct24"]
     paths: ["app/**", "lib/**", "tests/**", "scripts/verify-studio-local-ui.mjs", "package*.json", ".github/workflows/studio-selection.yml"]
 
 permissions:
@@ -102,8 +102,8 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
           const r=JSON.parse(readFileSync(process.env.KEBU_STUDIO_UI_OUTPUT_DIR+'/results.json','utf8'));
-          assert.equal(r.stats.expected,68);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
-          console.log(JSON.stringify({studioPassed:68,skipped:0,flaky:0,syntheticLoopbackAuth:true,managedHostedAuthAccepted:false}));
+          assert.equal(r.stats.expected,75);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
+          console.log(JSON.stringify({studioPassed:75,skipped:0,flaky:0,syntheticLoopbackAuth:true,managedHostedAuthAccepted:false}));
           NODE
       - name: Retain isolated browser evidence
         if: always()

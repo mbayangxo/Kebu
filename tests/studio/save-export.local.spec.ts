@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "playwright/test";
+import { test, expect, type Page, type Locator } from "playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PDFDocument } from "pdf-lib";
@@ -8,6 +8,120 @@ import { emptyStudioComposition, compositionClipSchema } from "../../lib/studio/
 
 const id = "22222222-2222-4222-8222-222222222222", owner = "33333333-3333-4333-8333-333333333333";
 const rev = (n: number) => `2026-10-13T12:00:${String(n).padStart(2, "0")}.000Z`;
+
+async function setupStyles(page:Page, viewer=false) {
+  const fixture=await setup(page,{viewer}), doc=fixture.server().canvas!;
+  doc.layers=[
+    canvasLayerSchema.parse({id:"title",type:"text",name:"Heading",text:"Source words",x:20,y:20,width:280,height:70,fontSize:32,color:"#ff0000",fontWeight:"700"}),
+    canvasLayerSchema.parse({id:"image",type:"text",name:"Body",text:"Keep these words",x:40,y:180,width:300,height:80,fontSize:18,color:"#00aa00",fontWeight:"400",shadowBlur:10,groupId:"pair"}),
+    canvasLayerSchema.parse({id:"locked",type:"text",name:"Locked",text:"Locked words",x:40,y:320,width:300,height:80,fontSize:18,color:"#0000ff",locked:true,groupId:"pair"}),
+  ];
+  doc.pages[0]!.layers=doc.layers;
+  await page.reload(); return fixture;
+}
+
+async function showStyleInspector(page:Page,width:number) {
+  if(width<1024) {
+    const button=page.getByRole("button",{name:"Inspector",exact:true});
+    if(await button.getAttribute("aria-pressed")!=="true") await button.tap();
+  }
+}
+async function hideStyleInspector(page:Page,width:number) {
+  if(width<1024) {
+    const button=page.getByRole("button",{name:"Inspector",exact:true});
+    if(await button.getAttribute("aria-pressed")==="true") await button.tap();
+  }
+}
+
+for(const width of [1440,834,390]) test.describe(`style transfer at ${width}px`,()=>{
+  test.use({viewport:{width,height:1000},hasTouch:width<1024});
+  test("object style preserves grouped content and locked artwork through undo save and reopen",async ({page})=>{
+    const activate=(target:Locator)=>width<1024?target.tap():target.click();
+    const fixture=await setupStyles(page), before=structuredClone(fixture.server().canvas!.layers);
+    const source=page.locator('[data-studio-layer-id="title"]'), target=page.locator('[data-studio-layer-id="image"]');
+    await activate(source); await showStyleInspector(page,width);
+    await activate(page.getByRole("button",{name:"Copy style",exact:true}));
+    await expect(page.getByRole("status").filter({hasText:"Style copied from Heading."})).toBeVisible();
+    await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled(); expect(fixture.writes).toHaveLength(0);
+    await hideStyleInspector(page,width); await activate(target); await showStyleInspector(page,width);
+    const paste=page.getByRole("button",{name:"Paste style",exact:true});
+    await activate(paste);
+    await expect(target.locator("p")).toHaveCSS("font-size","32px"); await expect(target.locator("p")).toHaveCSS("color","rgb(255, 0, 0)");
+    await expect(target.locator("p")).toHaveText("Keep these words");
+    await activate(paste); // An identical paste must not create another undo entry.
+    await activate(page.getByRole("button",{name:"Undo",exact:true}));
+    await expect(target.locator("p")).toHaveCSS("font-size","18px");
+    await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+    await activate(page.getByRole("button",{name:"Redo",exact:true}));
+    await activate(page.getByRole("button",{name:"Save draft",exact:true}));
+    await expect.poll(()=>fixture.server().canvas!.layers[1]!.fontSize).toBe(32);
+    const saved=structuredClone(fixture.server().canvas!.layers);
+    expect(saved[0]).toEqual(before[0]); expect(saved[2]).toEqual(before[2]);
+    expect(saved[1]).toMatchObject({id:"image",text:"Keep these words",x:40,y:180,width:300,height:80,groupId:"pair",color:"#ff0000",fontWeight:"700"});
+    expect(saved[1]!.shadowBlur).toBeUndefined();
+    await page.reload(); await expect(target.locator("p")).toHaveCSS("font-size","32px");
+    expect(fixture.server().canvas!.layers).toEqual(saved);
+    await activate(target); await showStyleInspector(page,width);
+    await page.screenshot({path:test.info().outputPath(`object-style-${width}.png`)});
+    expect(fixture.errors).toEqual([]);
+  });
+
+  test("page style and background apply atomically and persist in every exported PNG",async ({page})=>{
+    const activate=(target:Locator)=>width<1024?target.tap():target.click();
+    const fixture=await setup(page), doc=fixture.server().canvas!, original=doc.pages[0]!;
+    doc.pages=[
+      {...original,name:"Cover",backgroundColor:"#123456",durationMs:1000,transitionKind:"dissolve",transitionDurationMs:700},
+      {...original,id:"style-page-2",name:"Inside",backgroundColor:"#334455",durationMs:4000,transitionKind:"cut",transitionDurationMs:0,layers:original.layers.map(layer=>({...layer,id:layer.id+"2"}))},
+      {...original,id:"style-page-3",name:"End",backgroundColor:"#abcdef",durationMs:7000,transitionKind:"slide",transitionDurationMs:500,layers:original.layers.map(layer=>({...layer,id:layer.id+"3"}))},
+    ]; doc.backgroundColor=doc.pages[0]!.backgroundColor; doc.layers=doc.pages[0]!.layers;
+    const identities=doc.pages.map(item=>({id:item.id,name:item.name,layers:structuredClone(item.layers),durationMs:item.durationMs}));
+    await page.reload();
+    const settings=page.getByRole("button",{name:"Page settings",exact:true});
+    const switchPage=async (name:string)=>{
+      await activate(page.getByRole("group",{name:"Pages",exact:true}).getByRole("button",{name,exact:true})); await activate(settings);
+    };
+    await activate(settings); await activate(page.getByRole("button",{name:"Copy page style",exact:true}));
+    await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled(); expect(fixture.writes).toHaveLength(0);
+    await switchPage("Inside"); await activate(page.getByRole("button",{name:"Paste page style",exact:true}));
+    await expect(page.getByLabel("Background",{exact:true})).toHaveValue("#123456");
+    await activate(page.getByRole("button",{name:"Undo",exact:true})); await expect(page.getByLabel("Background",{exact:true})).toHaveValue("#334455");
+    await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+    await activate(page.getByRole("button",{name:"Redo",exact:true}));
+    await switchPage("End"); await activate(page.getByRole("button",{name:"Apply background to all pages",exact:true}));
+    await activate(page.getByRole("button",{name:"Undo",exact:true}));
+    await activate(page.getByRole("button",{name:"Save draft",exact:true}));
+    await expect.poll(()=>fixture.server().canvas!.pages.map(item=>item.backgroundColor)).toEqual(["#123456","#123456","#abcdef"]);
+    await activate(page.getByRole("button",{name:"Redo",exact:true})); await activate(page.getByRole("button",{name:"Save draft",exact:true}));
+    await expect.poll(()=>fixture.server().canvas!.pages.map(item=>item.backgroundColor)).toEqual(["#abcdef","#abcdef","#abcdef"]);
+    expect(fixture.server().canvas!.pages.map(item=>({id:item.id,name:item.name,layers:item.layers,durationMs:item.durationMs}))).toEqual(identities);
+    expect(fixture.server().canvas!.pages.map(item=>[item.transitionKind,item.transitionDurationMs])).toEqual([["dissolve",700],["dissolve",700],["slide",500]]);
+    const panel=(await page.getByRole("complementary",{name:"Inspector",exact:true}).boundingBox())!;
+    const header=(await page.locator("[data-studio-inspector-header]").boundingBox())!;
+    expect(header.y-panel.y).toBeLessThanOrEqual(2); expect(header.y-panel.y).toBeGreaterThanOrEqual(-1);
+    await page.screenshot({path:test.info().outputPath(`page-style-${width}.png`)});
+    await page.reload(); await activate(page.getByText("More",{exact:true}));
+    const downloaded=page.waitForEvent("download"); await activate(page.getByRole("button",{name:"Download pages ZIP",exact:true}));
+    const zip=await JSZip.loadAsync(readFileSync((await (await downloaded).path())!)), files=Object.values(zip.files).filter(item=>!item.dir);
+    expect(files).toHaveLength(3);
+    for(const file of files) {
+      const pixel=await page.evaluate(async data=>{const image=new Image();image.src="data:image/png;base64,"+data;await image.decode();const canvas=document.createElement("canvas");canvas.width=image.width;canvas.height=image.height;const ctx=canvas.getContext("2d")!;ctx.drawImage(image,0,0);return [...ctx.getImageData(600,600,1,1).data];},await file.async("base64"));
+      expect(pixel).toEqual([171,205,239,255]);
+    }
+    expect(fixture.errors).toEqual([]);
+  });
+});
+
+test.describe("style viewer permissions",()=>{
+  test.use({viewport:{width:390,height:1000},hasTouch:true});
+  test("style transfer never gives viewers mutation controls",async ({page})=>{
+    const fixture=await setupStyles(page,true);
+    await page.locator('[data-studio-layer-id="title"]').tap(); await showStyleInspector(page,390);
+    for(const name of ["Copy style","Paste style"]) await expect(page.getByRole("button",{name,exact:true})).toBeDisabled();
+    await page.getByRole("button",{name:"Page settings",exact:true}).tap();
+    for(const name of ["Copy page style","Paste page style","Apply background to all pages"]) await expect(page.getByRole("button",{name,exact:true})).toBeDisabled();
+    expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
+  });
+});
 
 test("selection rotation has a shared handle and exact control with persistent undo", async ({ page }) => {
   const fixture = await setupRotation(page);
