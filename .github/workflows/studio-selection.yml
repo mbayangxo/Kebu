@@ -77,19 +77,19 @@ jobs:
           assert(errors.includes('Rotate selection'));assert(errors.includes('toBeVisible'));assert(errors.includes('element(s) not found'));
           console.log(JSON.stringify({originalSharedRotationFailureReproduced:true,unexpected:1,skipped:0}));
           NODE
-      - name: Require three independent phone and tablet touch passes
+      - name: Require three independent resize and panel touch passes
         shell: bash
         run: |
           set -euo pipefail
           export KEBU_CHROMIUM_EXECUTABLE_PATH="$(node -p "require('playwright').chromium.executablePath()")"
           for iteration in 1 2 3; do
             export KEBU_STUDIO_UI_OUTPUT_DIR="$RUNNER_TEMP/studio-touch-$iteration"
-            KEBU_STUDIO_UI_GREP='touch transforms at' node scripts/verify-studio-local-ui.mjs
+            KEBU_STUDIO_UI_GREP='touch transforms at|workspace panel taps' node scripts/verify-studio-local-ui.mjs
             node --input-type=module - "$KEBU_STUDIO_UI_OUTPUT_DIR/results.json" <<'NODE'
           import {readFileSync} from 'node:fs';
           import assert from 'node:assert/strict';
           const r=JSON.parse(readFileSync(process.argv[2],'utf8'));
-          assert.equal(r.stats.expected,2);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
+          assert.equal(r.stats.expected,4);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
           NODE
           done
       - name: Verify actual Studio selection, editing, drafts, history and decoded exports
@@ -102,8 +102,8 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
           const r=JSON.parse(readFileSync(process.env.KEBU_STUDIO_UI_OUTPUT_DIR+'/results.json','utf8'));
-          assert.equal(r.stats.expected,65);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
-          console.log(JSON.stringify({studioPassed:65,skipped:0,flaky:0,syntheticLoopbackAuth:true,managedHostedAuthAccepted:false}));
+          assert.equal(r.stats.expected,67);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
+          console.log(JSON.stringify({studioPassed:67,skipped:0,flaky:0,syntheticLoopbackAuth:true,managedHostedAuthAccepted:false}));
           NODE
       - name: Retain isolated browser evidence
         if: always()

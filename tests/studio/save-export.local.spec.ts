@@ -100,13 +100,16 @@ for (const width of [390,834]) test.describe(`selection rotation touch at ${widt
       }
       await expect(page.locator('[data-studio-gesture="transform"]')).toHaveCount(1);
       await client.send("Input.dispatchTouchEvent",{type:cancel?"touchCancel":"touchEnd",touchPoints:[]});
+      // A CDP receipt precedes React's actual gesture completion.
+      await expect(page.locator('[data-studio-gesture="transform"]')).toHaveCount(0);
     };
     await touch(true);
     await expect(title).toHaveCSS("transform","matrix(1, 0, 0, 1, 0, 0)");
     await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
     expect(fixture.writes).toHaveLength(0);
     await touch(false); await client.detach();
-    await page.getByRole("button",{name:"Inspector",exact:true}).tap();
+    const inspector=page.getByRole("button",{name:"Inspector",exact:true});
+    await inspector.tap(); await expect(inspector).toHaveAttribute("aria-pressed","true");
     await page.getByLabel("Rotate selection by (°)",{exact:true}).fill("15");
     await page.getByRole("button",{name:"Apply selection rotation",exact:true}).tap();
     await page.screenshot({path:test.info().outputPath(`selection-rotation-${width}.png`)});
@@ -232,6 +235,33 @@ test.describe("snapping settings on phone",()=>{
     await page.getByLabel("Snapping settings",{exact:true}).tap();
     expect(fixture.writes).toHaveLength(0); expect(fixture.server()).toEqual(before);
     expect(fixture.errors).toEqual([]);
+  });
+});
+
+for (const width of [390,834]) test.describe(`workspace panel taps at ${width}px`,()=>{
+  test.use({viewport:{width,height:1000},hasTouch:true});
+  test("workspace panel taps reject cancellation and drags and activate exactly once",async ({page})=>{
+    const fixture=await setup(page,{viewer:true});
+    const inspector=page.getByRole("button",{name:"Inspector",exact:true});
+    const box=(await inspector.boundingBox())!, x=box.x+box.width/2,y=box.y+box.height/2;
+    const client=await page.context().newCDPSession(page);
+    const start=()=>client.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[{x,y,id:1}]});
+    await start(); await client.send("Input.dispatchTouchEvent",{type:"touchCancel",touchPoints:[]});
+    await expect(inspector).toHaveAttribute("aria-pressed","false");
+    await start(); await client.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[{x:x+20,y,id:1}]});
+    await client.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+    await expect(inspector).toHaveAttribute("aria-pressed","false");
+    await start(); await client.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+    await expect(inspector).toHaveAttribute("aria-pressed","true");
+    await client.detach();
+    await inspector.focus(); await inspector.press("Space");
+    await expect(inspector).toHaveAttribute("aria-pressed","false");
+    await inspector.tap(); await expect(inspector).toHaveAttribute("aria-pressed","true");
+    await inspector.tap(); await expect(inspector).toHaveAttribute("aria-pressed","false");
+    const create=page.getByRole("button",{name:"Create",exact:true});
+    await create.tap(); await expect(create).toHaveAttribute("aria-pressed","true");
+    await create.press("Enter"); await expect(create).toHaveAttribute("aria-pressed","false");
+    expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
   });
 });
 

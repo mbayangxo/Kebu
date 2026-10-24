@@ -138,6 +138,41 @@ const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string; minSelection
   { mode: "distribute-v", label: "↕", title: "Distribute vertically", minSelection: 3 },
 ];
 
+/** Canvas touch cancellation can suppress a later compatibility click. Use the
+ * completed tap itself, retaining native mouse/keyboard activation and deduping clicks. */
+function StudioWorkspacePanelButton({label, pressed, onActivate, className}: {
+  label: string; pressed: boolean; onActivate: () => void; className: string;
+}) {
+  const tap = useRef<{id:number; x:number; y:number} | null>(null);
+  const suppressClick = useRef(false);
+  return <button type="button" aria-pressed={pressed} className={className}
+    onPointerDown={event=>{
+      suppressClick.current=false;
+      tap.current=event.pointerType==="touch" && event.isPrimary && event.button===0
+        ? {id:event.pointerId,x:event.clientX,y:event.clientY} : null;
+    }}
+    onPointerMove={event=>{
+      if(tap.current?.id===event.pointerId && Math.hypot(event.clientX-tap.current.x,event.clientY-tap.current.y)>8) {
+        tap.current=null; suppressClick.current=true;
+      }
+    }}
+    onPointerCancel={()=>{tap.current=null;suppressClick.current=true;}}
+    onContextMenu={()=>{tap.current=null;suppressClick.current=true;}}
+    onPointerUp={event=>{
+      const start=tap.current; tap.current=null;
+      if(!start || start.id!==event.pointerId || !event.isPrimary) return;
+      const bounds=event.currentTarget.getBoundingClientRect();
+      suppressClick.current=true;
+      if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>8 || event.clientX<bounds.left || event.clientX>bounds.right || event.clientY<bounds.top || event.clientY>bounds.bottom) return;
+      onActivate();
+    }}
+    onClick={event=>{
+      if(suppressClick.current && event.detail!==0) {suppressClick.current=false;return;}
+      suppressClick.current=false; onActivate();
+    }}
+  >{label}</button>;
+}
+
 /**
  * Canva-class Studio workspace: Elements | Canvas | Properties.
  * Multi-page · pan · multi-select · align/group — Kebu Studio density.
@@ -2171,7 +2206,7 @@ export function StudioCanvasEditor({
         </aside>
       </div>
 
-      <div role="group" aria-label="Workspace panels" className="relative z-40 flex shrink-0 justify-center gap-1 border-t border-white/10 bg-[#151619] p-1.5 lg:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
+      <div role="group" aria-label="Workspace panels" className="relative z-40 flex shrink-0 justify-center gap-1 border-t border-white/10 bg-[#151619] p-1.5 lg:hidden"><StudioWorkspacePanelButton label="Create" onActivate={()=>setMobilePanel(current=>current==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" pressed={mobilePanel==="library"}/><StudioWorkspacePanelButton label="Inspector" onActivate={()=>setMobilePanel(current=>current==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" pressed={mobilePanel==="inspector"}/></div>
       {/* Bottom page strip */}
       <div role="group" aria-label="Pages" className="shrink-0 overflow-x-auto border-t border-white/10 bg-[#101113] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-nowrap items-center gap-2 [&>button]:shrink-0 [&>span]:shrink-0">
         <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 mr-1">Pages</span>
