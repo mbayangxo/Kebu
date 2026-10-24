@@ -86,10 +86,47 @@ async function main() {
   });
   await indexBusiness(suspendedId, "Suspended Chocolate Traders", "Food · SN · A chocolate trading business currently under suspension.", "food", "SN", true);
 
+  // A second country, active and verified — proves the country filter
+  // narrows to exactly one country rather than just reordering results.
+  const accraId = "aaaaaaaa-1111-4111-8111-000000000005";
+  await insertBusiness(accraId, {
+    legal_name: "Accra Textiles Ltd",
+    country_code: "GH",
+    category: "fashion",
+    description: "Textile manufacturer and wholesaler based in Accra, Ghana.",
+    lifecycle_status: "active",
+    verification_level: 2,
+  });
+  await indexBusiness(accraId, "Accra Textiles Ltd", "Fashion · GH · Textile manufacturer and wholesaler based in Accra, Ghana.", "fashion", "GH", true);
+
+  // 20 more active SN businesses — pushes the SN total past the 20-per-page
+  // cap so "Load more" has something real to load, not just a formula to trust.
+  for (let i = 1; i <= 20; i++) {
+    // Offset by 100 so the derived public_kebu_id suffix (last 6 hex digits)
+    // never collides with the fixed SN businesses above (...0001-...0005).
+    const id = `aaaaaaaa-2222-4111-8111-${String(100 + i).padStart(12, "0")}`;
+    const name = `Sahel Services Co ${i}`;
+    await insertBusiness(id, {
+      legal_name: name,
+      country_code: "SN",
+      category: "services",
+      description: `General business services provider number ${i}, based in Senegal.`,
+      lifecycle_status: "active",
+      verification_level: i % 2 === 0 ? 2 : 1,
+    });
+    await indexBusiness(id, name, `Services · SN · General business services provider number ${i}, based in Senegal.`, "services", "SN", i % 2 === 0);
+  }
+
   console.log(JSON.stringify({
     dbUrl: db.pool.options.connectionString,
     dbName: db.name,
-    businesses: { active_verified: baobabId, active_unverified: dakarSweetsId, draft_stale_indexed: draftId, suspended_stale_indexed: suspendedId },
+    businesses: {
+      active_verified: baobabId,
+      active_unverified: dakarSweetsId,
+      draft_stale_indexed: draftId,
+      suspended_stale_indexed: suspendedId,
+      other_country_active: accraId,
+    },
   }));
 }
 

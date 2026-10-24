@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { KebuMark } from "@/app/components/kebu-mark";
 import { KebuAuthHeaderCTA } from "@/app/components/kebu-auth-header-cta";
 import { KEBU } from "@/lib/kebu-brand";
+import { AFRICAN_COUNTRY_CODES } from "@/lib/kebu-id/schemas";
 
 type BusinessResult = {
   id: string;
@@ -19,7 +20,7 @@ type BusinessResult = {
   href: string;
 };
 
-type Payload = { query: string; results: BusinessResult[]; mode: "recent" | "query" };
+type SearchResponse = { query: string; results: BusinessResult[]; mode: "recent" | "query"; total: number };
 
 const MODES: Array<{ id: string; label: string; live: boolean }> = [
   { id: "business", label: "Business", live: true },
@@ -34,32 +35,70 @@ const MODES: Array<{ id: string; label: string; live: boolean }> = [
   { id: "local", label: "Local", live: false },
 ];
 
+// Same country list business registration validates country_code against
+// (lib/kebu-id/schemas.ts) — the filter can never offer a code no business
+// could ever actually have.
+const countryDisplay = new Intl.DisplayNames(["en"], { type: "region" });
+const COUNTRY_OPTIONS = AFRICAN_COUNTRY_CODES.map((code) => ({ code, name: countryDisplay.of(code) ?? code })).sort(
+  (a, b) => a.name.localeCompare(b.name),
+);
+function countryLabel(code: string): string {
+  return COUNTRY_OPTIONS.find((o) => o.code === code)?.name ?? code;
+}
+
+const PAGE_SIZE = 20;
+
 export default function KebuSearchPage() {
   const [q, setQ] = useState("");
-  const [data, setData] = useState<Payload>({ query: "", results: [], mode: "recent" });
+  const [country, setCountry] = useState("");
+  const [results, setResults] = useState<BusinessResult[]>([]);
+  const [total, setTotal] = useState(0);
+  const [mode, setMode] = useState<"recent" | "query">("recent");
+  const [queryEcho, setQueryEcho] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [failed, setFailed] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(async () => {
+  const runSearch = useCallback(
+    async (offset: number, append: boolean) => {
       abort.current?.abort();
       const controller = new AbortController();
       abort.current = controller;
-      setLoading(true);
+      if (append) setLoadingMore(true);
+      else setLoading(true);
       setFailed(false);
       try {
-        const r = await fetch(`/api/search/businesses?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+        const params = new URLSearchParams();
+        if (q) params.set("q", q);
+        if (country) params.set("country", country);
+        params.set("limit", String(PAGE_SIZE));
+        params.set("offset", String(offset));
+        const r = await fetch(`/api/search/businesses?${params.toString()}`, { signal: controller.signal });
         if (!r.ok) throw new Error("search");
-        setData(await r.json());
+        const body: SearchResponse = await r.json();
+        setMode(body.mode);
+        setQueryEcho(body.query);
+        setTotal(body.total);
+        setResults((prev) => (append ? [...prev, ...body.results] : body.results));
       } catch (e) {
         if ((e as Error).name !== "AbortError") setFailed(true);
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
-    }, q ? 200 : 0);
+    },
+    [q, country],
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => runSearch(0, false), q ? 200 : 0);
     return () => clearTimeout(timer);
-  }, [q]);
+  }, [runSearch, q]);
+
+  const hasMore = !loading && !failed && results.length < total;
 
   return (
     <main className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
@@ -101,6 +140,33 @@ export default function KebuSearchPage() {
               </button>
             ) : null}
           </div>
+
+          <div className="mx-auto mt-3 flex max-w-[640px] items-center justify-center gap-2">
+            <label htmlFor="kebu-search-country" className="text-[10px] font-semibold" style={{ color: KEBU.muted }}>
+              Country
+            </label>
+            <select
+              id="kebu-search-country"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              aria-label="Filter businesses by country"
+              className="rounded-full border bg-white px-3 py-1.5 text-[11px] font-semibold"
+              style={{ borderColor: KEBU.border, color: KEBU.black }}
+            >
+              <option value="">All countries</option>
+              {COUNTRY_OPTIONS.map((o) => (
+                <option key={o.code} value={o.code}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+            {country ? (
+              <button onClick={() => setCountry("")} className="text-[10px] font-semibold" style={{ color: KEBU.muted }}>
+                Clear
+              </button>
+            ) : null}
+          </div>
+
           <div className="mx-auto mt-5 flex max-w-[680px] flex-wrap justify-center gap-2">
             {MODES.map((mode) =>
               mode.live ? (
@@ -139,14 +205,16 @@ export default function KebuSearchPage() {
 
         {!failed && loading ? <p className="py-10 text-center text-[11px]" style={{ color: KEBU.muted }}>Searching…</p> : null}
 
-        {!failed && !loading && data.mode === "recent" && !q ? (
+        {!failed && !loading && mode === "recent" && !q ? (
           <>
             <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{ color: KEBU.muted }}>
-              Recently active on Kebu
+              Recently active on Kebu{country ? ` · ${countryLabel(country)}` : ""}
             </h2>
-            {data.results.length === 0 ? (
+            {results.length === 0 ? (
               <div className="rounded-[14px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
-                <p className="font-semibold">No active businesses are indexed yet.</p>
+                <p className="font-semibold">
+                  No active businesses are indexed yet{country ? ` in ${countryLabel(country)}` : ""}.
+                </p>
                 <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
                   Kebu Search only shows businesses that have actually been reviewed and activated —
                   nothing here is invented.
@@ -154,7 +222,7 @@ export default function KebuSearchPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {data.results.map((item) => (
+                {results.map((item) => (
                   <BusinessCard key={item.id} item={item} />
                 ))}
               </div>
@@ -162,26 +230,43 @@ export default function KebuSearchPage() {
           </>
         ) : null}
 
-        {!failed && !loading && data.mode === "query" ? (
+        {!failed && !loading && mode === "query" ? (
           <>
             <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{ color: KEBU.muted }}>
-              {data.results.length} result{data.results.length === 1 ? "" : "s"} for “{data.query}”
+              {total} result{total === 1 ? "" : "s"} for “{queryEcho}”{country ? ` · ${countryLabel(country)}` : ""}
             </h2>
-            {data.results.length === 0 ? (
+            {results.length === 0 ? (
               <div className="rounded-[14px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
-                <p className="font-semibold">No indexed businesses match “{data.query}”.</p>
+                <p className="font-semibold">
+                  No indexed businesses match “{queryEcho}”{country ? ` in ${countryLabel(country)}` : ""}.
+                </p>
                 <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
                   Kebu Search only shows real, indexed records — it will never invent a result to fill this space.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {data.results.map((item) => (
+                {results.map((item) => (
                   <BusinessCard key={item.id} item={item} />
                 ))}
               </div>
             )}
           </>
+        ) : null}
+
+        {!failed && !loading && hasMore ? (
+          <div className="mt-5 flex justify-center">
+            <button
+              onClick={() => {
+                if (!loadingMore) runSearch(results.length, true);
+              }}
+              disabled={loadingMore}
+              className="rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white disabled:opacity-50"
+              style={{ background: KEBU.black }}
+            >
+              {loadingMore ? "Loading…" : `Load more (${total - results.length} more)`}
+            </button>
+          </div>
         ) : null}
       </div>
     </main>

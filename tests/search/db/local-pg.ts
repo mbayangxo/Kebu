@@ -89,6 +89,7 @@ export async function createSearchTestDb(): Promise<Db> {
     await c.query(migration("20260920087000_search_index_phase_one.sql"));
     await c.query(migration("20261023010000_search_index_businesses_mode.sql"));
     await c.query(migration("20261023020000_search_businesses_rpc.sql"));
+    await c.query(migration("20261024010000_search_businesses_pagination.sql"));
   } finally {
     c.release();
   }

@@ -47,8 +47,11 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
 
     if (req.method === "POST" && url.pathname === "/rest/v1/rpc/search_businesses") {
-      const { p_query = null, p_country = null } = await readJsonBody(req);
-      const { rows } = await pool.query("select * from public.search_businesses($1, $2)", [p_query, p_country]);
+      const { p_query = null, p_country = null, p_limit = 20, p_offset = 0 } = await readJsonBody(req);
+      const { rows } = await pool.query(
+        "select * from public.search_businesses($1, $2, $3, $4)",
+        [p_query, p_country, p_limit, p_offset],
+      );
       return send(res, 200, rows);
     }
 

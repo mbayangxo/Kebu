@@ -50,7 +50,12 @@ async function insertSearchDocument(businessId: string, overrides: Partial<{ tit
 
 async function searchResults(query: string | null, country: string | null = null) {
   const { rows } = await db!.pool.query(`select * from public.search_businesses($1, $2)`, [query, country]);
-  return rows as Array<{ entity_id: string; title: string; rank: number; category: string; country_code: string }>;
+  return rows as Array<{ entity_id: string; title: string; rank: number; category: string; country_code: string; total_count: string }>;
+}
+
+async function searchPage(query: string | null, country: string | null, limit: number, offset: number) {
+  const { rows } = await db!.pool.query(`select * from public.search_businesses($1, $2, $3, $4)`, [query, country, limit, offset]);
+  return rows as Array<{ entity_id: string; total_count: string }>;
 }
 
 describe("Kebu Search — real migrated SQL", () => {
@@ -173,6 +178,47 @@ describe("Kebu Search — real migrated SQL", () => {
       const second = await searchResults("fashion");
       expect(first.map((r) => r.entity_id)).toEqual(second.map((r) => r.entity_id)); // same order every call
       expect(first[0]!.entity_id).toBe(newer); // more recently updated, same rank, wins the tie
+    });
+  });
+
+  describe("pagination", () => {
+    it("paginates with p_limit/p_offset and reports the true total across the full filtered set, not just the page", async () => {
+      const ids = [
+        "11111111-1111-4111-8111-100000000040",
+        "11111111-1111-4111-8111-100000000041",
+        "11111111-1111-4111-8111-100000000042",
+      ];
+      for (const id of ids) {
+        await insertBusiness(id, { legal_name: "Fashion House " + id.slice(-2) });
+        await insertSearchDocument(id, { title: "Fashion House " + id.slice(-2) });
+      }
+
+      const page1 = await searchPage("fashion", null, 2, 0);
+      expect(page1).toHaveLength(2);
+      expect(page1.every((r) => Number(r.total_count) === 3)).toBe(true);
+
+      const page2 = await searchPage("fashion", null, 2, 2);
+      expect(page2).toHaveLength(1);
+      expect(Number(page2[0]!.total_count)).toBe(3);
+
+      // No overlap and no gap between the two pages.
+      const pagedIds = [...page1, ...page2].map((r) => r.entity_id);
+      expect(new Set(pagedIds).size).toBe(3);
+    });
+
+    it("reports total_count = 0 (an empty page, not an error) when nothing matches", async () => {
+      const rows = await searchPage("nothing-matches-anything", null, 20, 0);
+      expect(rows).toHaveLength(0);
+    });
+
+    it("clamps p_limit and p_offset server-side instead of trusting the caller", async () => {
+      const { rows } = await db!.pool.query(
+        `select greatest(1, least(coalesce($1::int, 20), 50)) as clamped_limit,
+                greatest(0, least(coalesce($2::int, 0), 2000)) as clamped_offset`,
+        [9999, -5],
+      );
+      expect(rows[0].clamped_limit).toBe(50);
+      expect(rows[0].clamped_offset).toBe(0);
     });
   });
 
