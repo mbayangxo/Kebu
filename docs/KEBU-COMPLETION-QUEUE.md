@@ -34,21 +34,21 @@ All25 groups remain **partial/open**. The recorded isolated browser and SQL evid
 | COS08 | Motion/timeline source and bounded export tests | All website triggers/presets/easing/reduced-motion persistence/export |
 | COS09 | Real decoded WebM and timeline history | Complete multi-track editing, captions, transitions and all error paths |
 | COS10 | Decoded audible samples; missing-audio refusal | Real uploads/library, trim/loop/fades/detach/beat/waveform end to end |
-| COS11 | Explicit page rename/reorder/delete/restore with undo/save/reopen and actual PDF/ZIP output order | Copy-style actions, full scene variants and managed hosted acceptance |
+| COS11 | Page lifecycle plus object/page style snapshots, transition metadata copy, shared backgrounds, one-step history/save/reopen and decoded three-page PNG/ZIP output at1440/834/390; runtime3ee1bc7e | Full motion-scene playback/export and managed hosted acceptance |
 | COS12 | Existing editable Elements/source catalog | Full searchable catalog insertion, including tables/charts and assets |
 | COS13 | Existing asset/library/marketplace paths | Real storage, retries, folders/tags/favorites and multi-user sharing |
 | COS14 | Brand DNA schema/campaign tests | Apply/restyle/logo actions with undo, owner/team checks and reopen |
 | COS15 | Actual SDK/loopback transport; editable Studio canvases; honest fallback flags | Real provider quality/failure UX and subsequent hosted editing/export |
 | COS16 | IndexedDB, offline edits, reconnect and storage-error browser cases | Queued real uploads, full user isolation and hosted conflicts |
 | COS17 | Serialized saves, receipts, dirty state, malformed/slow/conflict cases | Managed hosted persistence/session acceptance |
-| COS18 | One-gesture transforms, text and composition undo/redo tests | All crop/animation/add/delete/reorder/page/style actions |
+| COS18 | One-gesture transforms, text/composition and page/style/shared-background undo/redo with no-op preservation | Remaining crop/animation/media/reorder/action families and managed hosted history acceptance |
 | COS19 | Named capture, delayed restore protection and restore failures | Actual immutable hosted versions and cross-user permissions |
 | COS20 | Viewer restriction and failed-invite honesty tests | Two real sessions, live comments/cursors, concurrent edits and recovery |
-| COS21 | Phone/tablet touch, native button Space, canvas keyboard focus/pan, panel cancel/drag/deduplication, contrast and IME; runtimeab2044c5 | Complete product-wide tab order, assistive semantics and responsive audit |
+| COS21 | Phone/tablet touch, native button Space, canvas focus/pan, panel cancellation/deduplication, toolbar access below responsive Inspector and flush sticky headers, contrast and IME | Complete product-wide tab order, assistive semantics and responsive audit |
 | COS22 | Existing Builder performance probes remain passing | Large-document Studio measurements, virtualization/workers/device limits |
 | COS23 | Decoded PNG/PDF/ZIP/WebM, supplied images/fonts/audio, missing-media failures | All supported formats, transparent/quality settings and durable job lifecycle |
 | COS24 | Template source boundary SQL/REST and editable document model | Full author/publish/purchase/use journey, licensing/private file delivery |
-| COS25 | Real isolated editor journeys;68full cases plus12mandatory touch repeats, no skips/flaky/unexpected | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
+| COS25 | Real isolated editor journeys;75full cases plus12mandatory touch repeats, no skipped/flaky/unexpected cases | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
 
 ## October 22 — Studio selection reconciled and browser verified
 

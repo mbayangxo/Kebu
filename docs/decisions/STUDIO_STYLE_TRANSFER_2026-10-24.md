@@ -7,3 +7,6 @@ One selected object can supply a style snapshot. Paste applies shared visual eff
 Page style snapshots contain background and transition kind/duration, preserving page identity, content, order, dimensions and scene duration. Background can also be applied to all pages in one action. These operations preserve the active-page mirror and reject invalid style data atomically. The internal clipboard lasts while the editor is open, and its source is named in the inspector.
 
 Acceptance includes matching and mixed object types, grouped/locked objects, clearing overrides, no-op identity, invalid input, active-page mirroring, undo/redo, save/reopen, phone controls, viewer restrictions and decoded exported page backgrounds. The existing managed hosted acceptance remains a separate gate.
+
+
+Native phone acceptance exposed an Inspector anchored to the editor root that intercepted Undo. The content row establishes the containing block so drawers begin below the toolbar. The Inspector has a named landmark; removing top padding/negative top margin keeps its sticky header flush while scrolling. Browser acceptance measures the header against the panel and uses real touch at390/834px, without forced clicks.
