@@ -390,6 +390,7 @@ export function StudioCanvasEditor({
     // Native text/image dragging cancels pointer capture after the first move.
     if (!readOnly) e.preventDefault();
     e.stopPropagation();
+    if (mode === "move") boardRef.current?.focus({preventScroll:true});
     // Shift constrains a resize; it must not toggle the selected object off.
     const selection = mode === "move" && e.shiftKey
       ? selectedSet.has(layer.id) ? selectedLayerIds.filter(id => id !== layer.id) : [...selectedLayerIds, layer.id]
@@ -417,6 +418,7 @@ export function StudioCanvasEditor({
   function boardPointerDown(e: React.PointerEvent) {
     if (!e.isPrimary || marqueeRef.current) return;
     suppressSelectionClick.current = false;
+    boardRef.current?.focus({preventScroll:true});
     const middle = e.button === 1;
     if ((spaceHeld && e.button === 0) || middle) {
       e.preventDefault();
@@ -1217,10 +1219,13 @@ export function StudioCanvasEditor({
         {/* Center canvas */}
         <div
           ref={boardRef}
+          role="region"
+          aria-label="Canvas workspace"
+          tabIndex={0}
           data-studio-gesture={drag ? "transform" : pan ? "pan" : marquee ? "selection" : undefined}
           onDragOver={(e)=>{if(e.dataTransfer.types.includes("application/x-kebu-studio-asset")){e.preventDefault();e.dataTransfer.dropEffect="copy"}}}
           onDrop={(e)=>{const raw=e.dataTransfer.getData("application/x-kebu-studio-asset");if(!raw)return;e.preventDefault();try{const a=JSON.parse(raw) as {id?:string;kind:string;url:string;file_name?:string;width?:number|null;height?:number|null};if(a.kind==="image"||a.kind==="video")placeDroppedAsset({id:a.id,kind:a.kind,url:a.url,name:a.file_name,width:a.width,height:a.height},e.clientX,e.clientY)}catch{setUploadError("That asset could not be placed.")}}}
-          className={`min-w-0 flex-1 overflow-hidden bg-[#EEEDEA] p-3 sm:p-6 flex justify-center items-start relative ${
+          className={`min-w-0 flex-1 overflow-hidden bg-[#EEEDEA] p-3 sm:p-6 flex justify-center items-start relative focus-visible:outline-2 focus-visible:outline-orange-500 ${
             spaceHeld || pan ? "cursor-grab" : ""
           } ${pan ? "cursor-grabbing" : ""}`}
           onPointerDown={boardPointerDown}

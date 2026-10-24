@@ -200,6 +200,23 @@ for (const zoom of [50,100]) test(`configurable snapping at ${zoom}% supports fr
   expect(fixture.errors).toEqual([]);
 });
 
+test("canvas regains keyboard focus after toolbar use and Space pans without editing artwork",async ({page})=>{
+  const fixture=await setup(page);
+  const title=page.locator('[data-studio-layer-id="title"]'); await title.click();
+  const copy=page.getByRole("button",{name:"Copy",exact:true}); await copy.click(); await expect(copy).toBeFocused();
+  await title.click();
+  await expect(page.getByRole("region",{name:"Canvas workspace",exact:true})).toBeFocused();
+  const before=await sceneBox(page);
+  await page.keyboard.down("Space");
+  await page.mouse.move(before.x-10,before.y+10); await page.mouse.down();
+  await expect(page.locator('[data-studio-gesture="pan"]')).toHaveCount(1);
+  await page.mouse.move(before.x+30,before.y+40,{steps:6}); await page.mouse.up(); await page.keyboard.up("Space");
+  const after=await sceneBox(page);
+  expect(after.x-before.x).toBeCloseTo(40,0); expect(after.y-before.y).toBeCloseTo(30,0);
+  await expect(page.getByRole("button",{name:"Undo",exact:true})).toBeDisabled();
+  expect(fixture.writes).toHaveLength(0); expect(fixture.errors).toEqual([]);
+});
+
 test("snapping settings support native keyboard activation dismissal and focus return",async ({page})=>{
   const fixture=await setup(page);
   const settings=page.getByRole("button",{name:"Snapping settings",exact:true});
