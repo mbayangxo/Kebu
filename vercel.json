@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/search-index",
-      "schedule": "45 5 * * *"
+      "schedule": "*/15 * * * *"
     }
   ]
 }
