@@ -1,5 +1,13 @@
 # Kebu — Implementation Status
 
+## October 24 — content-preserving object/page style transfer verified
+
+Runtime **3ee1bc7e8854d96de51ad4b97a96a4d262abfd79** adds allowlisted object style snapshots/paste for shared effects and compatible typography, paint, filters and icons; source text/glyph/media/crop/trim/identity/transforms/provenance and locked targets remain authored. Copying does not write/history, matching paste is a no-op, and each actual paste is one undo step. Page styles copy background/transition metadata while retaining duration/content/order/dimensions and active mirror; shared backgrounds apply atomically. Responsive Inspector drawers preserve toolbar/Undo access and a flush scrolling header. Viewers cannot mutate.
+
+Exact-source **local and remote CI6651passes/338explicit skips**, TypeScript, zero lint errors/346existing warnings and230-page builds pass. **75local full browser cases** and **75remote full+12mandatory touch passes**, no skips/flaky/unexpected, cover desktop1440/tablet834/phone390, undo/save/reopen, viewer/locked-member guards and independently decoded backgrounds from every page PNG. Local13focused units include atomic rejection after an earlier valid target and clearing default transitions. Preview smoke40048425173 passes; exact previewREADY. See `audits/KEBU_STUDIO_STYLE_TRANSFER_2026-10-24.md` and evidence.
+
+Fresh read-only production preflight at01:13UTC still fails2/7Yande and10/37release prerequisites; no customer rows or application RPCs were accessed. The connected organization isFree with only production/main visible. Branch retry authorization stands; a recurring Pro organization upgrade is a distinct unperformed billing action. Production migrations/DNS/promotion and Claude-owned source are unchanged. Managed hosted26, full25-group acceptance and remaining universal/group/text/media/collaboration/integration requirements retain their existing gates.
+
 ## October 24 — configurable Studio snapping and native input verified
 
 Runtime **ab2044c5d65e4cee3e40661fd6f327a7d6abab0d** adds session-scoped snapping on/off,2–24screen-pixel tolerance and Alt/Option bypass, with a phone-safe native popover. Full browser verification reproduced and repaired native tablet panel activation after canvas cancellation, Space interception on native buttons and canvas focus loss after toolbar use. Canceled/dragged taps do not activate panels; compatibility clicks do not double-toggle; text/IME focus is preserved.

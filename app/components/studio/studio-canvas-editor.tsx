@@ -20,6 +20,7 @@ import {
   updatePage,
 } from "@/lib/studio/canvas-document";
 import { rotateSelectionLayers, selectionRotationGeometry } from "@/lib/studio/selection-rotation";
+import { applyBackgroundToAllPages, applyLayerStyle, applyPageStyle, captureLayerStyle, capturePageStyle, type LayerStyle, type PageStyle } from "@/lib/studio/style-transfer";
 import { resizeCreativeBounds, type ResizeHandle } from "@/lib/creative-core/resize";
 import { videoSourceTimeSec } from "@/lib/studio/timeline";
 import {
@@ -258,6 +259,9 @@ export function StudioCanvasEditor({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [arrangeError, setArrangeError] = useState<string | null>(null);
   const [rotationError, setRotationError] = useState<string | null>(null);
+  const [styleError, setStyleError] = useState<string | null>(null);
+  const [layerStyle, setLayerStyle] = useState<LayerStyle | null>(null);
+  const [pageStyle, setPageStyle] = useState<PageStyle | null>(null);
   const [brandSpace,setBrandSpace]=useState<BrandSpace|null>(null);
   const [leftTab, setLeftTab] = useState<"elements" | "layers" | "uploads" | "themes" | "brand" | "tools" | "ai">("elements");
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
@@ -616,6 +620,30 @@ export function StudioCanvasEditor({
     const payload = clipboardPayloadFromLayers(selected);
     setLayerClipboard(payload);
     void navigator.clipboard?.writeText(payload).catch(() => undefined);
+  }
+
+  function copyObjectStyle() {
+    if(readOnly || selectedLayerIds.length !== 1 || !selected) return;
+    setLayerStyle(captureLayerStyle(selected)); setStyleError(null);
+  }
+
+  function pasteObjectStyle() {
+    if(readOnly || !layerStyle) return;
+    try {
+      const current = getPage(latestDoc.current, activePageId).layers;
+      const next = applyLayerStyle(current, selectedLayerIds, layerStyle);
+      if(next !== current) setPageLayers(next);
+      setStyleError(null);
+    } catch(error) {setStyleError(error instanceof Error ? error.message : "Could not apply this style.");}
+  }
+
+  function changePageStyle(change: (current:CanvasDocument)=>CanvasDocument) {
+    if(readOnly) return;
+    try {
+      const current = latestDoc.current, next = change(current);
+      if(next !== current) {latestDoc.current=next;onChange(next);}
+      setStyleError(null);
+    } catch(error) {setStyleError(error instanceof Error ? error.message : "Could not apply this page style.");}
   }
 
   function pasteLayers() {
@@ -1061,13 +1089,16 @@ export function StudioCanvasEditor({
         </button>
       </div>
 
+      {styleError ? <div role="alert" aria-label="Style error" className="flex shrink-0 items-center justify-between gap-3 border-b border-red-400/30 bg-red-950 px-3 py-2 text-xs text-red-100">
+        <span>{styleError}</span><button type="button" onClick={()=>setStyleError(null)} className="shrink-0 rounded border border-white/30 px-2 py-1">Dismiss style error</button>
+      </div> : null}
       {rotationError ? <div role="alert" aria-label="Selection rotation error" className="flex shrink-0 items-center justify-between gap-3 border-b border-red-400/30 bg-red-950 px-3 py-2 text-xs text-red-100">
         <span>{rotationError}</span><button type="button" onClick={() => setRotationError(null)} className="shrink-0 rounded border border-white/30 px-2 py-1">Dismiss rotation error</button>
       </div> : null}
       {arrangeError ? <div role="alert" aria-label="Arrange error" className="flex shrink-0 items-center justify-between gap-3 border-b border-red-400/30 bg-red-950 px-3 py-2 text-xs text-red-100">
         <span>{arrangeError}</span><button type="button" onClick={() => setArrangeError(null)} className="shrink-0 rounded border border-white/30 px-2 py-1">Dismiss</button>
       </div> : null}
-      <div className="flex flex-1 min-h-0">
+      <div className="relative flex flex-1 min-h-0">
 
         {/* Left: Elements / Layers */}
         <aside className={`${mobilePanel==="library"?"flex":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111214] shadow-2xl lg:static lg:flex lg:w-[268px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-l-0 lg:shadow-none`}>
@@ -1528,9 +1559,18 @@ export function StudioCanvasEditor({
         </div>
 
         {/* Right: Properties */}
-        <aside className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-white/10 bg-[#17181B] p-4 shadow-2xl lg:static lg:block lg:w-[288px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-none space-y-3`}>
-          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/60">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p>{selected ? <div className="mt-2 flex gap-1">{(["design","animate","position"] as const).map(t=><button key={t} type="button" onClick={()=>setInspectorTab(t)} className={`rounded-lg px-2.5 py-1 text-[9px] font-bold capitalize ${inspectorTab===t?"bg-orange-500 text-black":"bg-white/[.06] text-white/50 hover:bg-white/[.10]"}`}>{t}</button>)}</div> : null}</div>
+        <aside aria-label="Inspector" className={`${mobilePanel==="inspector"?"block":"hidden"} absolute inset-x-3 bottom-16 top-3 z-30 overflow-y-auto rounded-2xl border border-white/10 bg-[#17181B] px-4 pb-4 shadow-2xl lg:static lg:block lg:w-[288px] lg:shrink-0 lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-none space-y-3`}>
+          <div data-studio-inspector-header className="sticky top-0 z-10 -mx-4 border-b border-white/10 bg-[#151619]/95 px-4 py-3 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.18em]">Inspector{readOnly ? " · view only" : ""}</p><p className="mt-0.5 text-[9px] text-white/60">{selected ? `${selected.name} · ${selected.type}` : `${page.name} · ${page.width}×${page.height}`}</p>{selected ? <div className="mt-2 flex gap-1">{(["design","animate","position"] as const).map(t=><button key={t} type="button" onClick={()=>setInspectorTab(t)} className={`rounded-lg px-2.5 py-1 text-[9px] font-bold capitalize ${inspectorTab===t?"bg-orange-500 text-black":"bg-white/[.06] text-white/50 hover:bg-white/[.10]"}`}>{t}</button>)}</div> : null}</div>
           <fieldset disabled={readOnly} className="space-y-3 border-0 p-0 m-0 min-w-0 disabled:opacity-70">
+          {selected ? <div className="space-y-2 rounded-xl border border-white/10 p-3">
+            <p className="text-xs font-bold">Object style</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" disabled={selectedLayerIds.length!==1} title="Select one object to copy its style" onClick={copyObjectStyle} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold disabled:opacity-40">Copy style</button>
+              <button type="button" disabled={!layerStyle || !layers.some(layer=>selectedSet.has(layer.id) && !layer.locked)} onClick={pasteObjectStyle} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold disabled:opacity-40">Paste style</button>
+            </div>
+            <p className="text-xs text-white/60">Shared effects apply to unlocked objects. Typography, paint and filters transfer between matching object kinds.</p>
+            {layerStyle ? <p role="status" className="text-xs text-white/80">Style copied from {layerStyle.sourceName}.</p> : null}
+          </div> : null}
           {selectedLayerIds.length > 1 ? (
             <p className="text-xs opacity-60">
               {selectedLayerIds.length} layers selected. Use Align / Group in the toolbar.
@@ -1583,6 +1623,16 @@ export function StudioCanvasEditor({
               <p className="text-[10px] opacity-50">
                 Artboard {page.width}×{page.height}px · {page.name}
               </p>
+              <div className="space-y-2 rounded-xl border border-white/10 p-3">
+                <p className="text-xs font-bold">Page style</p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={()=>{if(!readOnly){setPageStyle(capturePageStyle(getPage(latestDoc.current,activePageId)));setStyleError(null);}}} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold">Copy page style</button>
+                  <button type="button" disabled={!pageStyle} onClick={()=>{if(pageStyle)changePageStyle(current=>applyPageStyle(current,activePageId,pageStyle));}} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold disabled:opacity-40">Paste page style</button>
+                </div>
+                <p className="text-xs text-white/60">Copy the background and scene transition.</p>
+                {pageStyle ? <p role="status" className="text-xs text-white/80">Page style copied from {pageStyle.sourceName}.</p> : null}
+                <button type="button" disabled={doc.pages.every(item=>item.backgroundColor===page.backgroundColor)} onClick={()=>changePageStyle(current=>applyBackgroundToAllPages(current,activePageId))} className="w-full rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold disabled:opacity-40">Apply background to all pages</button>
+              </div>
             </div>
           ) : (
             <div className="space-y-0 text-xs">
