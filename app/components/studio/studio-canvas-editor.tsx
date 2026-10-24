@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { AlignMode, CanvasDocument, CanvasLayer } from "@/lib/studio/canvas-document";
 import {
   CANVAS_LAYER_TYPES,
@@ -138,6 +138,41 @@ const ALIGN_TOOLS: { mode: AlignMode; label: string; title: string; minSelection
   { mode: "distribute-v", label: "↕", title: "Distribute vertically", minSelection: 3 },
 ];
 
+/** Canvas touch cancellation can suppress a later compatibility click. Use the
+ * completed tap itself, retaining native mouse/keyboard activation and deduping clicks. */
+function StudioWorkspacePanelButton({label, pressed, onActivate, className}: {
+  label: string; pressed: boolean; onActivate: () => void; className: string;
+}) {
+  const tap = useRef<{id:number; x:number; y:number} | null>(null);
+  const suppressClick = useRef(false);
+  return <button type="button" aria-pressed={pressed} className={className}
+    onPointerDown={event=>{
+      suppressClick.current=false;
+      tap.current=event.pointerType==="touch" && event.isPrimary && event.button===0
+        ? {id:event.pointerId,x:event.clientX,y:event.clientY} : null;
+    }}
+    onPointerMove={event=>{
+      if(tap.current?.id===event.pointerId && Math.hypot(event.clientX-tap.current.x,event.clientY-tap.current.y)>8) {
+        tap.current=null; suppressClick.current=true;
+      }
+    }}
+    onPointerCancel={()=>{tap.current=null;suppressClick.current=true;}}
+    onContextMenu={()=>{tap.current=null;suppressClick.current=true;}}
+    onPointerUp={event=>{
+      const start=tap.current; tap.current=null;
+      if(!start || start.id!==event.pointerId || !event.isPrimary) return;
+      const bounds=event.currentTarget.getBoundingClientRect();
+      suppressClick.current=true;
+      if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>8 || event.clientX<bounds.left || event.clientX>bounds.right || event.clientY<bounds.top || event.clientY>bounds.bottom) return;
+      onActivate();
+    }}
+    onClick={event=>{
+      if(suppressClick.current && event.detail!==0) {suppressClick.current=false;return;}
+      suppressClick.current=false; onActivate();
+    }}
+  >{label}</button>;
+}
+
 /**
  * Canva-class Studio workspace: Elements | Canvas | Properties.
  * Multi-page · pan · multi-select · align/group — Kebu Studio density.
@@ -214,6 +249,9 @@ export function StudioCanvasEditor({
   const suppressSelectionClick = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [zoom, setZoom] = useState(45);
+  const [snappingEnabled, setSnappingEnabled] = useState(true);
+  const [snapDistance, setSnapDistance] = useState(8);
+  const snappingPanelId = useId();
   const [uploadBusy, setUploadBusy] = useState(false);
   const [elementQuery, setElementQuery] = useState("");
   const [elementCategory, setElementCategory] = useState<StudioElementCategory | "all">("all");
@@ -352,6 +390,7 @@ export function StudioCanvasEditor({
     // Native text/image dragging cancels pointer capture after the first move.
     if (!readOnly) e.preventDefault();
     e.stopPropagation();
+    if (mode === "move") boardRef.current?.focus({preventScroll:true});
     // Shift constrains a resize; it must not toggle the selected object off.
     const selection = mode === "move" && e.shiftKey
       ? selectedSet.has(layer.id) ? selectedLayerIds.filter(id => id !== layer.id) : [...selectedLayerIds, layer.id]
@@ -379,6 +418,7 @@ export function StudioCanvasEditor({
   function boardPointerDown(e: React.PointerEvent) {
     if (!e.isPrimary || marqueeRef.current) return;
     suppressSelectionClick.current = false;
+    boardRef.current?.focus({preventScroll:true});
     const middle = e.button === 1;
     if ((spaceHeld && e.button === 0) || middle) {
       e.preventDefault();
@@ -433,15 +473,15 @@ export function StudioCanvasEditor({
     if (drag.mode === "move") {
       const moveIds = new Set(drag.movingIds);
       const primary = drag.origLayers.find((l) => l.id === drag.layerId)!;
-      const snapped = snapLayerPosition(
+      const snapped = snappingEnabled && !e.altKey ? snapLayerPosition(
         primary,
         dx,
         dy,
         drag.origLayers,
         moveIds,
         { width: page.width, height: page.height },
-        8 / displayScale, // Keep the magnetic distance at eight screen pixels at every zoom.
-      );
+        snapDistance / displayScale,
+      ) : { x: primary.x + dx, y: primary.y + dy, guides: { v: null, h: null } };
       setSnapGuides(snapped.guides);
       const adjX = snapped.x - primary.x;
       const adjY = snapped.y - primary.y;
@@ -803,6 +843,8 @@ export function StudioCanvasEditor({
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.code === "Space" && !e.repeat) {
+        // Native controls must keep their Space activation; canvas panning is for the workspace.
+        if ((e.target as HTMLElement)?.closest("button, summary, a, [role='button']")) return;
         e.preventDefault();
         setSpaceHeld(true);
         return;
@@ -971,6 +1013,24 @@ export function StudioCanvasEditor({
           Ungroup
         </button>
         <span className="flex-1" />
+        <div>
+          <button type="button" popoverTarget={snappingPanelId} className="cursor-pointer rounded-lg border border-white/10 px-2.5 py-2 text-xs font-semibold whitespace-nowrap" aria-label="Snapping settings">
+            Snap {snappingEnabled ? "on" : "off"}
+          </button>
+          <div id={snappingPanelId} popover="auto" role="dialog" aria-label="Canvas snapping" className="fixed inset-0 m-auto h-fit w-72 max-w-[calc(100vw-2rem)] space-y-4 whitespace-normal rounded-xl border border-white/15 bg-[#17181B] p-4 text-white shadow-xl backdrop:bg-black/40">
+            <div className="flex items-center justify-between gap-3"><p className="text-sm font-bold">Canvas snapping</p><button type="button" popoverTarget={snappingPanelId} popoverTargetAction="hide" aria-label="Close snapping settings" className="rounded-lg border border-white/15 px-3 py-2 text-xs">Close</button></div>
+            <label className="flex items-center gap-2 text-xs font-semibold">
+              <input type="checkbox" checked={snappingEnabled} onChange={e=>{setSnappingEnabled(e.target.checked);setSnapGuides({v:null,h:null});}} />
+              Snap to edges and centers
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-semibold">Snap distance
+              <select aria-label="Snap distance" className="mt-1 w-full rounded-lg border border-white/15 bg-[#17181B] px-2 py-2" value={snapDistance} onChange={e=>{setSnapDistance(Number(e.target.value));setSnapGuides({v:null,h:null});}}>
+                {[2,4,8,12,16,24].map(distance=><option key={distance} value={distance}>{distance} screen pixels</option>)}
+              </select>
+            </label>
+            <p className="text-xs text-white/60">Hold Alt or Option while dragging to move freely. These settings apply while this editor is open.</p>
+          </div>
+        </div>
         <span className="text-[10px] opacity-50 hidden sm:inline">
           {spaceHeld ? "Pan…" : "Space+drag to pan"}
         </span>
@@ -1159,10 +1219,13 @@ export function StudioCanvasEditor({
         {/* Center canvas */}
         <div
           ref={boardRef}
+          role="region"
+          aria-label="Canvas workspace"
+          tabIndex={0}
           data-studio-gesture={drag ? "transform" : pan ? "pan" : marquee ? "selection" : undefined}
           onDragOver={(e)=>{if(e.dataTransfer.types.includes("application/x-kebu-studio-asset")){e.preventDefault();e.dataTransfer.dropEffect="copy"}}}
           onDrop={(e)=>{const raw=e.dataTransfer.getData("application/x-kebu-studio-asset");if(!raw)return;e.preventDefault();try{const a=JSON.parse(raw) as {id?:string;kind:string;url:string;file_name?:string;width?:number|null;height?:number|null};if(a.kind==="image"||a.kind==="video")placeDroppedAsset({id:a.id,kind:a.kind,url:a.url,name:a.file_name,width:a.width,height:a.height},e.clientX,e.clientY)}catch{setUploadError("That asset could not be placed.")}}}
-          className={`min-w-0 flex-1 overflow-hidden bg-[#EEEDEA] p-3 sm:p-6 flex justify-center items-start relative ${
+          className={`min-w-0 flex-1 overflow-hidden bg-[#EEEDEA] p-3 sm:p-6 flex justify-center items-start relative focus-visible:outline-2 focus-visible:outline-orange-500 ${
             spaceHeld || pan ? "cursor-grab" : ""
           } ${pan ? "cursor-grabbing" : ""}`}
           onPointerDown={boardPointerDown}
@@ -2148,7 +2211,7 @@ export function StudioCanvasEditor({
         </aside>
       </div>
 
-      <div role="group" aria-label="Workspace panels" className="relative z-40 flex shrink-0 justify-center gap-1 border-t border-white/10 bg-[#151619] p-1.5 lg:hidden"><button type="button" onClick={()=>setMobilePanel(mobilePanel==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" aria-pressed={mobilePanel==="library"}>Create</button><button type="button" onClick={()=>setMobilePanel(mobilePanel==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" aria-pressed={mobilePanel==="inspector"}>Inspector</button></div>
+      <div role="group" aria-label="Workspace panels" className="relative z-40 flex shrink-0 justify-center gap-1 border-t border-white/10 bg-[#151619] p-1.5 lg:hidden"><StudioWorkspacePanelButton label="Create" onActivate={()=>setMobilePanel(current=>current==="library"?null:"library")} className="rounded-xl px-3 py-2 text-[10px] font-black" pressed={mobilePanel==="library"}/><StudioWorkspacePanelButton label="Inspector" onActivate={()=>setMobilePanel(current=>current==="inspector"?null:"inspector")} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black text-white" pressed={mobilePanel==="inspector"}/></div>
       {/* Bottom page strip */}
       <div role="group" aria-label="Pages" className="shrink-0 overflow-x-auto border-t border-white/10 bg-[#101113] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-nowrap items-center gap-2 [&>button]:shrink-0 [&>span]:shrink-0">
         <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 mr-1">Pages</span>

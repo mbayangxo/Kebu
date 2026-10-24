@@ -1,5 +1,11 @@
 # Kebu — Implementation Status
 
+## October 24 — configurable Studio snapping and native input verified
+
+Runtime **ab2044c5d65e4cee3e40661fd6f327a7d6abab0d** adds session-scoped snapping on/off,2–24screen-pixel tolerance and Alt/Option bypass, with a phone-safe native popover. Full browser verification reproduced and repaired native tablet panel activation after canvas cancellation, Space interception on native buttons and canvas focus loss after toolbar use. Canceled/dragged taps do not activate panels; compatibility clicks do not double-toggle; text/IME focus is preserved.
+
+Exact-source CI **6638passes/338explicit skips**, zero lint errors/346existing warnings, TypeScript and230-page build pass. Local **68/68** and remote **68+12mandatory touch passes** have zero skipped/flaky/unexpected cases. Public preview smoke passed; exact previewREADY. Failed runs, rejected hypotheses and source-shape-test migration are retained in `audits/KEBU_STUDIO_SNAP_CONTROLS_2026-10-24.md`. Production remains71815f99; managed QA access/plan/quota and hosted release gates remain separate. Next implementation: content-preserving object/page styles and shared page backgrounds.
+
 ## October 22 — Yande proposals and approved media verified
 
 Runtime **5cd43a35e5f8379124ab71cc2568be3eeddeae2b** is integrated and reread on recovery. Builder improvements and native Experience now share Yande with authenticated owner attribution, preserving submit_proposal, cancellation, bounded input/output, schema checks, reviewed proposals and existing quota/write authority. Existing structured callers retain submit_result. Improvement/confirmation routes reject cross-origin mutations; missing-key requests do not reserve usage, and provider errors are safe. New-site generation supplies photoUrls to the provider and rejects invented media; improvement rejects references outside saved media, including nested/mobile/CSS cases. Manual media editing remains available.
