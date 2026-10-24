@@ -29,7 +29,7 @@ All25 groups remain **partial/open**. The recorded isolated browser and SQL evid
 | COS03 | Builder measured frame/fit/crop development gate | All Studio frame hit bounds, background removal, hosted preservation |
 | COS04 | Eight handles; ratio/center; exact fields; phone/tablet gestures and reopening | Every transformed/grouped object and hosted responsive acceptance |
 | COS05 | Direct text, IME, caret, whitespace and decoded export tests | Rich inline styling and complete hosted text workflow |
-| COS06 | Rotated visible-frame alignment/distribution; whole-selection nearest snapping and zoom-independent tolerance in actual browser | Animated transforms, equal-distance smart guides, full supported-object/hosted acceptance |
+| COS06 | Rotated/group visible-edge/center guides, equal-gap arrangement and configurable2–24screen-pixel/off/Alt snapping; undo/save/reopen at50/100% zoom | Managed hosted full workflow acceptance |
 | COS07 | Marquee/additive selection, independent copies, rigid arrange/snapping; shared rotation via handle/exact field/keyboard/native touch with cancellation/save/reopen | Nested groups, hierarchy/reorder, group resize and animated transform frames |
 | COS08 | Motion/timeline source and bounded export tests | All website triggers/presets/easing/reduced-motion persistence/export |
 | COS09 | Real decoded WebM and timeline history | Complete multi-track editing, captions, transitions and all error paths |
@@ -44,11 +44,11 @@ All25 groups remain **partial/open**. The recorded isolated browser and SQL evid
 | COS18 | One-gesture transforms, text and composition undo/redo tests | All crop/animation/add/delete/reorder/page/style actions |
 | COS19 | Named capture, delayed restore protection and restore failures | Actual immutable hosted versions and cross-user permissions |
 | COS20 | Viewer restriction and failed-invite honesty tests | Two real sessions, live comments/cursors, concurrent edits and recovery |
-| COS21 | Phone/tablet touch, contrast, keyboard handles and IME | Complete tab order, assistive semantics and product-wide responsive audit |
+| COS21 | Phone/tablet touch, native button Space, canvas keyboard focus/pan, panel cancel/drag/deduplication, contrast and IME; runtimeab2044c5 | Complete product-wide tab order, assistive semantics and responsive audit |
 | COS22 | Existing Builder performance probes remain passing | Large-document Studio measurements, virtualization/workers/device limits |
 | COS23 | Decoded PNG/PDF/ZIP/WebM, supplied images/fonts/audio, missing-media failures | All supported formats, transparent/quality settings and durable job lifecycle |
 | COS24 | Template source boundary SQL/REST and editable document model | Full author/publish/purchase/use journey, licensing/private file delivery |
-| COS25 | Real isolated editor journeys;61 local full cases plus61+6 remote cases; exact evidence in rotation audit | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
+| COS25 | Real isolated editor journeys;68full cases plus12mandatory touch repeats, no skips/flaky/unexpected | Complete ordinary-user workflow under managed hosted Auth/RLS on all devices |
 
 ## October 22 — Studio selection reconciled and browser verified
 

@@ -1,7 +1,12 @@
 # Kebu — Session Handoff and Recovery
 
-Updated: 2026-10-23
-Status: active shared-rotation checkpoint; managed QA blocked by access/Free-project quota and Pro branching requirements. Full Kebu and production acceptance OPEN.
+Updated: 2026-10-24
+Status: PR17 snapping/native input verified; style-transfer implementation in progress; managed QA blocked by access/Free-project quota and Pro branching requirements. Full Kebu and production acceptance OPEN.
+
+## Latest verified checkpoint — October24
+
+- PR17 runtimeab2044c5d65e4cee3e40661fd6f327a7d6abab0d passes exact-source CI6638/338, local68 and remote68+12browser cases, public smoke and READY preview. Audit/evidence: audits/KEBU_STUDIO_SNAP_CONTROLS_2026-10-24.md. Verify PR17 integration state before proceeding; do not redo snapping/native panel/focus repairs.
+- Next runtime work is content-preserving object/page styles and shared page backgrounds, isolated on work/codex-studio-styles-oct24. Keep the existing checkpoints and Claude-owned work intact.
 
 ## Resume here — current operational state
 
@@ -11,6 +16,19 @@ Status: active shared-rotation checkpoint; managed QA blocked by access/Free-pro
 - Current QA blockers independently retried: Kebu organization is Free; native branching requires Pro. A safer separate-project option quoted0/month but creation was rejected because the account already has2 active Free projects across organizations (only production is visible through this connection). Old QA skqnxyaeimvbyrmdfzvk still returns permission denied. No project/branch was created, no plan upgraded and no other project paused/deleted. Earlier cancellation is historical. Do not use production customer content for destructive fixtures.
 - Keep Claude's Search/Mail/Foundry work separate. Latest Search7b8ca47a addresses the earlier95f8f111 live-lifecycle/ranking/filter findings. Independent review59 pass/11 SQL skips; source-scale cleanup and strict SQL/CI verification still need follow-up. Read audits/KEBU_SEARCH_REVIEW_FOLLOWUP_2026-10-23.md before discussing Search readiness.
 - Remaining work is tracked in the25-group Creative OS register. Shared rotation now has bounded desktop/phone/tablet acceptance. Nested groups, group resize, animated transform frames, all smart guides, rich text/media, hosted collaboration and May reference acceptance remain open.
+
+## October 24 continuation — configurable snapping
+
+- Reconciled the clean checkout by fast-forward from a5ce2321 to authoritative3aa94bcb; no work was discarded. Claude Search is still7b8ca47a and remains separate.
+- Pushed runtime0cb8f23a8ce99d0ad74ce5ad020c86187c2ed611 on work/codex-studio-snap-controls-oct24; PR17 targets the authoritative branch. It adds session-scoped snapping on/off,2–24 screen-pixel tolerance, Alt/Option bypass and a phone-safe native popover.
+- Actual browser review caught and repaired toolbar clipping, nowrap clipping and native Space activation intercepted by panning. The latter is independently reproduced by the new keyboard regression. Initial focused gate4/4 passes; phone screenshot inspected. Initial exact0cb8f23 CI6638/338 and preview smoke passed, previewREADY, but local and remote65-case gates stopped at the834px Inspector after native touch rotation (3passed/1failed/61unrun). Do not accept that run.
+- The same native missing-click failure reproduced against prior3aa94bcb. Trace shows primary pointer/touch down/up reaching Inspector, zero remaining touches, but no click. Waiting for React completion, changing CDP detach timing and a speculative touch-action change did not fix it; speculative runtime changes were removed. Completed primary pointer taps now activate panel controls directly, with cancel/movement/context-menu rejection and compatibility-click deduplication. Mouse/keyboard behavior remains native.
+- Corrective runtimee5f114b9d938051b0b52941d5e9c5347729d0ce0 is pushed. Final focused8/8 passes: rotation phone/tablet, snapping50/100%, keyboard, phone viewer and new panel cancel/drag/double-activation cases at390/834. The full gate is now67 cases, with12 additional mandatory resize/panel touch passes over3rounds. Exact-source CI/browser/preview verification is running; integration pending.
+- Full CI uses a6GB Node heap; a separate default2GB typecheck invocation exhausted its heap and is not recorded as a pass. Keep memory-heavy checks serialized with local browser work, and freeze all checkout files while the browser harness runs.
+
+- Follow-up source11ba0583 replaces two obsolete inline-state source-string assertions with the already-running native390/834 panel semantics acceptance; the safe-area assertion and all other chrome checks remain. Focused unit3/3 passes. No application/browser source changed in that commit.
+- Adversarial keyboard review reproduced a new focus regression: clicking artwork after Copy retained toolbar focus and prevented Space pan. Runtimeab2044c5d65e4cee3e40661fd6f327a7d6abab0d adds a named tabbable canvas region and restores canvas focus for background/object manipulation without stealing inline text/IME focus. Final focused8/8 passes, including pan, native button Space, phone/tablet panels, direct text and IME. Required full gate is now68 plus12 touch repeats. Exact-source remote checks and a frozen local full run are underway.
+- Independent current readback still shows Kebu organizationFree and only the production project through this connection. No QA provision/plan upgrade or production mutation occurred. Claude Search7b8ca47a is unchanged; old Claude sync is an ancestor. Legacy codex/builder-access-query-errors has2 graph-only commits, but its actual query-error class/owner/project/membership behavior and owner-error tests are already present alongside newer support authorization; no replay merge is needed.
 
 ## Source of truth
 GitHub commits and reviewed branches are authoritative. This document records evidence, not release certification.
