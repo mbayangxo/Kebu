@@ -32,16 +32,29 @@ export function retryDelaySeconds(attempt: number): number {
   return Math.min(3600, 15 * 2 ** (safeAttempt - 1));
 }
 
-export async function failPlatformJob(admin: SupabaseClient, job: { id: string; attempts: number; max_attempts: number }, error: unknown) {
+export type PlatformJobClaim = { id: string; attempts: number; max_attempts: number };
+
+/** The claim attempt is the fencing token, including when a worker name is reused. */
+export async function updateClaimedPlatformJob(
+  admin: SupabaseClient, job: PlatformJobClaim, workerId: string, patch: Record<string, unknown>,
+): Promise<boolean> {
+  const { data, error } = await admin.from("platform_jobs").update(patch)
+    .eq("id", job.id).eq("status", "running")
+    .eq("locked_by", workerId).eq("attempts", job.attempts)
+    .select("id").maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
+}
+
+export async function failPlatformJob(admin: SupabaseClient, job: PlatformJobClaim, workerId: string, error: unknown): Promise<boolean> {
   const dead = job.attempts >= job.max_attempts;
   const runAfter = new Date(Date.now() + retryDelaySeconds(job.attempts) * 1000).toISOString();
-  const { error: updateError } = await admin.from("platform_jobs").update({
+  return updateClaimedPlatformJob(admin, job, workerId, {
     status: dead ? "dead" : "failed",
     last_error: error instanceof Error ? error.message.slice(0, 2000) : String(error).slice(0, 2000),
     locked_at: null,
     locked_by: null,
     run_after: runAfter,
     completed_at: dead ? new Date().toISOString() : null,
-  }).eq("id", job.id);
-  if (updateError) throw updateError;
+  });
 }

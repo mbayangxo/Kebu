@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { failPlatformJob } from "@/lib/platform/jobs";
+import { failPlatformJob, updateClaimedPlatformJob } from "@/lib/platform/jobs";
 import { platformLog } from "@/lib/platform/observability";
 import { fulfillPaidDigitalOrder } from "@/lib/shop/digital-downloads";
 
@@ -36,20 +36,22 @@ async function executeJob(admin: SupabaseClient, job: Job) {
 export async function runPlatformWorker(admin: SupabaseClient, workerId:string, limit=10) {
   const {data,error}=await admin.rpc("claim_platform_jobs",{p_worker:workerId,p_limit:limit});
   if(error) throw new Error(`Could not claim platform jobs: ${error.message}`);
-  let succeeded=0,failed=0;
+  let succeeded=0,failed=0,superseded=0;
   for(const raw of data??[]){
     const job=raw as Job;
     try{
       await executeJob(admin,job);
-      const {error:doneError}=await admin.from("platform_jobs").update({status:"succeeded",completed_at:new Date().toISOString(),locked_at:null,locked_by:null,last_error:null}).eq("id",job.id);
-      if(doneError) throw doneError;
-      succeeded++;
+      const completed=await updateClaimedPlatformJob(admin,job,workerId,{status:"succeeded",completed_at:new Date().toISOString(),locked_at:null,locked_by:null,last_error:null});
+      if(completed) succeeded++;
+      else superseded++;
     }catch(cause){
-      failed++;
-      await failPlatformJob(admin,job,cause);
-      platformLog.error("job.failed",{jobId:job.id,jobType:job.job_type,attempt:job.attempts});
+      const recorded=await failPlatformJob(admin,job,workerId,cause);
+      if(recorded){
+        failed++;
+        platformLog.error("job.failed",{jobId:job.id,jobType:job.job_type,attempt:job.attempts});
+      } else superseded++;
     }
   }
-  platformLog.info("worker.completed",{workerId,claimed:(data??[]).length,succeeded,failed});
-  return {claimed:(data??[]).length,succeeded,failed};
+  platformLog.info("worker.completed",{workerId,claimed:(data??[]).length,succeeded,failed,superseded});
+  return {claimed:(data??[]).length,succeeded,failed,superseded};
 }

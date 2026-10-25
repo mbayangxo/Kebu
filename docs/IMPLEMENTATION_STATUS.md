@@ -1,5 +1,12 @@
 # Kebu — Implementation Status
 
+## October 25 — Builder job prerequisite: fenced worker finalization
+
+The first runtime prerequisite for the approved generation/inspection/repair pipeline is implemented locally: completion and retry/dead-letter updates now compare job ID, running state, worker identity and claim attempt. A reclaimed job cannot be overwritten by its expired worker, including when the worker name is reused. Superseded attempts are reported separately from successes/failures. Existing notification and digital-fulfillment paths remain in place.
+
+Four original overwrite regressions reproduced using actual claim/recovery migration SQL; final seven SQL cases and fourteen combined worker/durability cases pass without skips. Full local CI passes TypeScript, lint0errors/346existing warnings,6651tests/345explicit environment skips and production build. The seven new environment-gated SQL cases are included in that skip count and were executed separately; the strict platform SQL workflow now includes them. No browser UI changed, no hosted worker acceptance or deployment is claimed. See audits/KEBU_BUILDER_WORKER_FENCING_2026-10-25.md. This does not implement the full generation pipeline.
+
+
 ## October 24 — content-preserving object/page style transfer verified
 
 Runtime **3ee1bc7e8854d96de51ad4b97a96a4d262abfd79** adds allowlisted object style snapshots/paste for shared effects and compatible typography, paint, filters and icons; source text/glyph/media/crop/trim/identity/transforms/provenance and locked targets remain authored. Copying does not write/history, matching paste is a no-op, and each actual paste is one undo step. Page styles copy background/transition metadata while retaining duration/content/order/dimensions and active mirror; shared backgrounds apply atomically. Responsive Inspector drawers preserve toolbar/Undo access and a flush scrolling header. Viewers cannot mutate.
