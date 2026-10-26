@@ -21,7 +21,12 @@ const ADMIN_URL = process.env.DATABASE_URL;
 const SKIP = !ADMIN_URL;
 const DB_NAME = `_kebtest_authz_${Math.random().toString(36).slice(2, 10)}`;
 const MIGRATIONS = join(__dirname, "../../supabase/migrations");
+const LEGACY_MIGRATIONS = join(__dirname, "../../supabase/migrations_archive/legacy");
 const migration = (file: string) => readFileSync(join(MIGRATIONS, file), "utf8");
+// 004_create_projects.sql was moved into migrations_archive/legacy/ (the canonical
+// migration chain only keeps timestamp-named files); this suite still needs its
+// real projects/project_sections DDL, so it reads from the archive by name.
+const legacyMigration = (file: string) => readFileSync(join(LEGACY_MIGRATIONS, file), "utf8");
 const RPCS = ["batch_update_section_props(uuid, jsonb)", "reorder_sections(uuid, uuid[])"];
 
 function disposableDbUrl(adminUrl: string): string {
@@ -70,7 +75,7 @@ describe.skipIf(SKIP)("builder RPC grants under Supabase default privileges [Pos
         END $$`);
       // Supabase's default privileges for the public schema (as observed in the QA project).
       await c.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role`);
-      await c.query(migration("004_create_projects.sql"));
+      await c.query(legacyMigration("004_create_projects.sql"));
       await c.query(migration("20260924010000_builder_atomic_rpcs.sql"));
     } finally {
       c.release();
