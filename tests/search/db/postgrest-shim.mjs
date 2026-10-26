@@ -117,6 +117,64 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, shaped);
     }
 
+    if (req.method === "POST" && url.pathname === "/rest/v1/rpc/search_opportunities") {
+      const { p_user_id = null, p_query = null, p_limit = 20, p_offset = 0 } = await readJsonBody(req);
+      const { rows } = await pool.query(
+        "select * from public.search_opportunities($1, $2, $3, $4)",
+        [p_user_id, p_query, p_limit, p_offset],
+      );
+      return send(res, 200, rows);
+    }
+
+    if (req.method === "POST" && url.pathname === "/rest/v1/rpc/search_people") {
+      const { p_query = null, p_limit = 20, p_offset = 0 } = await readJsonBody(req);
+      const { rows } = await pool.query("select * from public.search_people($1, $2, $3)", [p_query, p_limit, p_offset]);
+      return send(res, 200, rows);
+    }
+
+    if (req.method === "GET" && url.pathname === "/rest/v1/developer_profiles") {
+      const idFilter = url.searchParams.get("id");
+      if (!idFilter || !idFilter.startsWith("eq.")) return send(res, 400, { error: "expected id=eq.<uuid>" });
+      const id = idFilter.slice(3);
+      const { rows } = await pool.query(
+        `select id, display_name, bio, website_url, status, updated_at
+         from public.developer_profiles where id = $1 and status = 'approved'`,
+        [id],
+      );
+      return send(res, 200, rows);
+    }
+
+    if (req.method === "POST" && url.pathname === "/rest/v1/rpc/search_country_intel") {
+      const { p_mode = null, p_query = null, p_limit = 20, p_offset = 0 } = await readJsonBody(req);
+      const { rows } = await pool.query(
+        "select * from public.search_country_intel($1, $2, $3, $4)",
+        [p_mode, p_query, p_limit, p_offset],
+      );
+      return send(res, 200, rows);
+    }
+
+    if (req.method === "GET" && url.pathname === "/rest/v1/country_profiles") {
+      const codeFilter = url.searchParams.get("country_code");
+      if (!codeFilter || !codeFilter.startsWith("eq.")) return send(res, 400, { error: "expected country_code=eq.<CC>" });
+      const code = codeFilter.slice(3);
+      const { rows } = await pool.query(
+        `select country, country_code, capital, population, gdp, economy_overview, startup_ecosystem,
+                technology_ecosystem, universities, major_exports, major_imports, trade_agreements,
+                industrial_zones, manufacturing_sectors, logistics, cultural_notes, historical_notes,
+                historical_empires, ethnic_groups, business_etiquette, diaspora_notes, data_confidence,
+                publish_status, last_verified_at
+         from public.country_profiles where country_code = $1 and publish_status = 'published'`,
+        [code],
+      );
+      return send(res, 200, rows);
+    }
+
+    if (req.method === "POST" && url.pathname === "/rest/v1/rpc/search_sites") {
+      const { p_query = null, p_limit = 20, p_offset = 0 } = await readJsonBody(req);
+      const { rows } = await pool.query("select * from public.search_sites($1, $2, $3)", [p_query, p_limit, p_offset]);
+      return send(res, 200, rows);
+    }
+
     send(res, 404, { error: `shim has no route for ${req.method} ${url.pathname}` });
   } catch (err) {
     console.error("[postgrest-shim]", err);

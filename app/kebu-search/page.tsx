@@ -34,22 +34,68 @@ type ProductResult = {
   href: string;
 };
 
-type AnyResult = BusinessResult | ProductResult;
+type OpportunityResult = {
+  id: string;
+  title: string;
+  summary: string;
+  trustLabel: string;
+  sourceName: string;
+  sourceUrl: string | null;
+  fetchedAt: string;
+  href: string;
+};
+
+type PersonResult = {
+  id: string;
+  name: string;
+  summary: string;
+  trustLabel: string;
+  sourceName: string;
+  sourceUrl: string | null;
+  fetchedAt: string;
+  href: string;
+};
+
+type CountryIntelResult = {
+  id: string;
+  name: string;
+  summary: string;
+  trustLabel: string;
+  sourceName: string;
+  sourceUrl: string | null;
+  fetchedAt: string;
+  href: string;
+};
+
+type SiteResult = {
+  id: string;
+  kind: "site" | "store";
+  name: string;
+  summary: string;
+  trustLabel: string;
+  sourceName: string;
+  sourceUrl: string;
+  fetchedAt: string;
+  href: string;
+};
+
+type AnyResult = BusinessResult | ProductResult | OpportunityResult | PersonResult | CountryIntelResult | SiteResult;
 
 type SearchResponse<T> = { query: string; results: T[]; mode: "recent" | "query"; total: number };
 
-type ModeId = "business" | "products";
+type ModeId = "business" | "products" | "opportunities" | "people" | "research" | "trade" | "africa" | "culture";
+type AuthState = "signin" | "verify" | null;
 
 const MODES: Array<{ id: string; label: string; live: boolean }> = [
   { id: "business", label: "Business", live: true },
   { id: "products", label: "Products", live: true },
+  { id: "opportunities", label: "Opportunities", live: true },
+  { id: "people", label: "People & Talent", live: true },
+  { id: "research", label: "Research", live: true },
+  { id: "trade", label: "Trade", live: true },
+  { id: "africa", label: "Africa", live: true },
+  { id: "culture", label: "Culture", live: true },
   { id: "web", label: "Web", live: false },
-  { id: "africa", label: "Africa", live: false },
-  { id: "people", label: "People & Talent", live: false },
-  { id: "research", label: "Research", live: false },
-  { id: "trade", label: "Trade", live: false },
-  { id: "opportunities", label: "Opportunities", live: false },
-  { id: "culture", label: "Culture", live: false },
   { id: "local", label: "Local", live: false },
 ];
 
@@ -66,19 +112,66 @@ function countryLabel(code: string): string {
 
 const PAGE_SIZE = 20;
 
+const ENDPOINT: Record<ModeId, string> = {
+  business: "/api/search/businesses",
+  products: "/api/search/products",
+  opportunities: "/api/search/opportunities",
+  people: "/api/search/people",
+  research: "/api/search/research",
+  trade: "/api/search/trade",
+  africa: "/api/search/africa",
+  culture: "/api/search/culture",
+};
 const RECENT_LABEL: Record<ModeId, string> = {
   business: "Recently active on Kebu",
   products: "Recently listed on Kebu",
+  opportunities: "Recently indexed opportunities",
+  people: "Kebu developers & creators",
+  research: "Country market intelligence",
+  trade: "Country trade context",
+  africa: "Published Kebu sites & stores",
+  culture: "Country cultural & historical notes",
 };
 const EMPTY_RECENT_LABEL: Record<ModeId, string> = {
   business: "No active businesses are indexed yet",
   products: "No products are indexed yet",
+  opportunities: "No opportunities are indexed yet",
+  people: "No approved developers are indexed yet",
+  research: "No published country profiles are indexed yet",
+  trade: "No published country profiles are indexed yet",
+  africa: "No published sites are indexed yet",
+  culture: "No published country profiles are indexed yet",
 };
 const EMPTY_QUERY_LABEL: Record<ModeId, string> = {
   business: "No indexed businesses match",
   products: "No indexed products match",
+  opportunities: "No indexed opportunities match",
+  people: "No indexed developers match",
+  research: "No indexed country profiles match",
+  trade: "No indexed country profiles match",
+  africa: "No indexed sites match",
+  culture: "No indexed country profiles match",
 };
-const NOUN: Record<ModeId, string> = { business: "businesses", products: "products" };
+const NOUN: Record<ModeId, string> = {
+  business: "businesses",
+  products: "products",
+  opportunities: "opportunities",
+  people: "developers",
+  research: "country profiles",
+  trade: "country profiles",
+  africa: "sites",
+  culture: "country profiles",
+};
+const PLACEHOLDER: Record<ModeId, string> = {
+  business: "Search businesses — e.g. “chocolate manufacturing Senegal”",
+  products: "Search products and templates — e.g. “Instagram post template”",
+  opportunities: "Search opportunities — e.g. “youth entrepreneurship grant”",
+  people: "Search developers & creators — e.g. “fashion templates”",
+  research: "Search market intelligence — e.g. “Senegal startup ecosystem”",
+  trade: "Search trade context — e.g. “Senegal exports”",
+  africa: "Search Kebu sites & stores — e.g. “Baobab Chocolate”",
+  culture: "Search cultural & historical notes — e.g. “Senegal ethnic groups”",
+};
 
 export default function KebuSearchPage() {
   const [activeMode, setActiveMode] = useState<ModeId>("business");
@@ -91,6 +184,7 @@ export default function KebuSearchPage() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>(null);
   const abort = useRef<AbortController | null>(null);
 
   const runSearch = useCallback(
@@ -101,14 +195,26 @@ export default function KebuSearchPage() {
       if (append) setLoadingMore(true);
       else setLoading(true);
       setFailed(false);
+      setAuthState(null);
       try {
         const params = new URLSearchParams();
         if (q) params.set("q", q);
         if (activeMode === "business" && country) params.set("country", country);
         params.set("limit", String(PAGE_SIZE));
         params.set("offset", String(offset));
-        const endpoint = activeMode === "business" ? "/api/search/businesses" : "/api/search/products";
-        const r = await fetch(`${endpoint}?${params.toString()}`, { signal: controller.signal });
+        const r = await fetch(`${ENDPOINT[activeMode]}?${params.toString()}`, { signal: controller.signal });
+        if (r.status === 401) {
+          setAuthState("signin");
+          setResults([]);
+          setTotal(0);
+          return;
+        }
+        if (r.status === 403) {
+          setAuthState("verify");
+          setResults([]);
+          setTotal(0);
+          return;
+        }
         if (!r.ok) throw new Error("search");
         const body: SearchResponse<AnyResult> = await r.json();
         setMode(body.mode);
@@ -139,9 +245,10 @@ export default function KebuSearchPage() {
     setCountry("");
     setResults([]);
     setTotal(0);
+    setAuthState(null);
   }
 
-  const hasMore = !loading && !failed && results.length < total;
+  const hasMore = !loading && !failed && !authState && results.length < total;
 
   return (
     <main className="min-h-screen" style={{ background: KEBU.bright, color: KEBU.black }}>
@@ -173,11 +280,7 @@ export default function KebuSearchPage() {
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={
-                activeMode === "business"
-                  ? "Search businesses — e.g. “chocolate manufacturing Senegal”"
-                  : "Search products and templates — e.g. “Instagram post template”"
-              }
+              placeholder={PLACEHOLDER[activeMode]}
               aria-label={`Search Kebu ${NOUN[activeMode]}`}
               className="min-h-6 min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-black/35"
             />
@@ -248,7 +351,40 @@ export default function KebuSearchPage() {
       </section>
 
       <div className="mx-auto max-w-[900px] px-5 py-8 sm:px-8">
-        {failed ? (
+        {authState === "signin" ? (
+          <div className="rounded-[14px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
+            <p className="font-semibold">Sign in to search Opportunities.</p>
+            <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
+              Opportunity listings are only shown to signed-in, verified Kebu accounts.
+            </p>
+            <Link
+              href="/login"
+              className="mt-4 inline-block rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white"
+              style={{ background: KEBU.black }}
+            >
+              Sign in →
+            </Link>
+          </div>
+        ) : null}
+
+        {authState === "verify" ? (
+          <div className="rounded-[14px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
+            <p className="font-semibold">Verify your Afrique ID to search Opportunities.</p>
+            <p className="mt-1 text-[11px]" style={{ color: KEBU.muted }}>
+              Opportunity listings are reserved for Kebu accounts with a verified, indigenous Afrique ID —
+              this protects grant and funding programs from scraping and misuse.
+            </p>
+            <Link
+              href="/account"
+              className="mt-4 inline-block rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white"
+              style={{ background: KEBU.black }}
+            >
+              Verify my Afrique ID →
+            </Link>
+          </div>
+        ) : null}
+
+        {!authState && failed ? (
           <div className="rounded-[14px] border p-5" style={{ borderColor: KEBU.status.errorBorder, background: KEBU.status.errorBg }}>
             <p className="font-semibold">Search could not load.</p>
             <p className="mt-1 text-[11px]" style={{ color: KEBU.status.errorText }}>
@@ -257,14 +393,19 @@ export default function KebuSearchPage() {
           </div>
         ) : null}
 
-        {!failed && loading ? <p className="py-10 text-center text-[11px]" style={{ color: KEBU.muted }}>Searching…</p> : null}
+        {!authState && !failed && loading ? <p className="py-10 text-center text-[11px]" style={{ color: KEBU.muted }}>Searching…</p> : null}
 
-        {!failed && !loading && mode === "recent" && !q ? (
+        {!authState && !failed && !loading && mode === "recent" && !q ? (
           <>
             <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{ color: KEBU.muted }}>
               {RECENT_LABEL[activeMode]}
               {activeMode === "business" && country ? ` · ${countryLabel(country)}` : ""}
             </h2>
+            {activeMode === "culture" ? (
+              <p className="-mt-2 mb-3 text-[11px]" style={{ color: KEBU.muted }}>
+                Kebu&rsquo;s own country cultural & historical reference data — not RECT video or creator content.
+              </p>
+            ) : null}
             {results.length === 0 ? (
               <div className="rounded-[14px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
                 <p className="font-semibold">
@@ -277,24 +418,25 @@ export default function KebuSearchPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {results.map((item) =>
-                  activeMode === "business" ? (
-                    <BusinessCard key={item.id} item={item as BusinessResult} />
-                  ) : (
-                    <ProductCard key={item.id} item={item as ProductResult} />
-                  ),
-                )}
+                {results.map((item) => (
+                  <ResultCard key={item.id} mode={activeMode} item={item} />
+                ))}
               </div>
             )}
           </>
         ) : null}
 
-        {!failed && !loading && mode === "query" ? (
+        {!authState && !failed && !loading && mode === "query" ? (
           <>
             <h2 className="mb-3 text-xs font-black uppercase tracking-[.16em]" style={{ color: KEBU.muted }}>
               {total} result{total === 1 ? "" : "s"} for “{queryEcho}”
               {activeMode === "business" && country ? ` · ${countryLabel(country)}` : ""}
             </h2>
+            {activeMode === "culture" ? (
+              <p className="-mt-2 mb-3 text-[11px]" style={{ color: KEBU.muted }}>
+                Kebu&rsquo;s own country cultural & historical reference data — not RECT video or creator content.
+              </p>
+            ) : null}
             {results.length === 0 ? (
               <div className="rounded-[14px] border border-dashed p-10 text-center" style={{ borderColor: KEBU.border }}>
                 <p className="font-semibold">
@@ -307,19 +449,15 @@ export default function KebuSearchPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {results.map((item) =>
-                  activeMode === "business" ? (
-                    <BusinessCard key={item.id} item={item as BusinessResult} />
-                  ) : (
-                    <ProductCard key={item.id} item={item as ProductResult} />
-                  ),
-                )}
+                {results.map((item) => (
+                  <ResultCard key={item.id} mode={activeMode} item={item} />
+                ))}
               </div>
             )}
           </>
         ) : null}
 
-        {!failed && !loading && hasMore ? (
+        {hasMore ? (
           <div className="mt-5 flex justify-center">
             <button
               onClick={() => {
@@ -336,6 +474,15 @@ export default function KebuSearchPage() {
       </div>
     </main>
   );
+}
+
+function ResultCard({ mode, item }: { mode: ModeId; item: AnyResult }) {
+  if (mode === "business") return <BusinessCard item={item as BusinessResult} />;
+  if (mode === "products") return <ProductCard item={item as ProductResult} />;
+  if (mode === "people") return <PersonCard item={item as PersonResult} />;
+  if (mode === "research" || mode === "trade" || mode === "culture") return <CountryIntelCard item={item as CountryIntelResult} />;
+  if (mode === "africa") return <SiteCard item={item as SiteResult} />;
+  return <OpportunityCard item={item as OpportunityResult} />;
 }
 
 function BusinessCard({ item }: { item: BusinessResult }) {
@@ -391,6 +538,126 @@ function ProductCard({ item }: { item: ProductResult }) {
             {item.priceLabel}
           </span>
         ) : null}
+      </div>
+      <p className="mt-2 text-[9px]" style={{ color: KEBU.faint }}>
+        Source: {item.sourceName} · indexed {new Date(item.fetchedAt).toLocaleDateString()}
+      </p>
+    </Link>
+  );
+}
+
+function PersonCard({ item }: { item: PersonResult }) {
+  return (
+    <Link
+      href={item.href}
+      className="block rounded-[14px] border bg-white p-4 transition hover:shadow-md"
+      style={{ borderColor: KEBU.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold">{item.name}</p>
+          <p className="mt-0.5 truncate text-xs" style={{ color: KEBU.muted }}>
+            {item.summary}
+          </p>
+        </div>
+        <span
+          className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide"
+          style={{ background: KEBU.status.successBg, color: KEBU.status.successText }}
+        >
+          {item.trustLabel}
+        </span>
+      </div>
+      <p className="mt-2 text-[9px]" style={{ color: KEBU.faint }}>
+        Source: {item.sourceName} · indexed {new Date(item.fetchedAt).toLocaleDateString()}
+      </p>
+    </Link>
+  );
+}
+
+function CountryIntelCard({ item }: { item: CountryIntelResult }) {
+  return (
+    <Link
+      href={item.href}
+      className="block rounded-[14px] border bg-white p-4 transition hover:shadow-md"
+      style={{ borderColor: KEBU.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold">{item.name}</p>
+          <p className="mt-0.5 truncate text-xs" style={{ color: KEBU.muted }}>
+            {item.summary}
+          </p>
+        </div>
+        <span
+          className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide"
+          style={{
+            background: item.trustLabel === "high" ? KEBU.status.successBg : "#F3EEE9",
+            color: item.trustLabel === "high" ? KEBU.status.successText : KEBU.muted,
+          }}
+        >
+          {item.trustLabel} confidence
+        </span>
+      </div>
+      <p className="mt-2 text-[9px]" style={{ color: KEBU.faint }}>
+        Source: {item.sourceName} · indexed {new Date(item.fetchedAt).toLocaleDateString()}
+      </p>
+    </Link>
+  );
+}
+
+function SiteCard({ item }: { item: SiteResult }) {
+  return (
+    <a
+      href={item.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-[14px] border bg-white p-4 transition hover:shadow-md"
+      style={{ borderColor: KEBU.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold">{item.name}</p>
+          <p className="mt-0.5 truncate text-xs" style={{ color: KEBU.muted }}>
+            {item.summary}
+          </p>
+        </div>
+        <span
+          className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide"
+          style={{ background: "#F3EEE9", color: KEBU.black }}
+        >
+          {item.kind}
+        </span>
+      </div>
+      <p className="mt-2 text-[9px]" style={{ color: KEBU.faint }}>
+        {item.sourceUrl} · indexed {new Date(item.fetchedAt).toLocaleDateString()}
+      </p>
+    </a>
+  );
+}
+
+function OpportunityCard({ item }: { item: OpportunityResult }) {
+  return (
+    <Link
+      href={item.href}
+      className="block rounded-[14px] border bg-white p-4 transition hover:shadow-md"
+      style={{ borderColor: KEBU.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold">{item.title}</p>
+          <p className="mt-0.5 truncate text-xs" style={{ color: KEBU.muted }}>
+            {item.summary}
+          </p>
+        </div>
+        <span
+          className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide"
+          style={{
+            background: item.trustLabel === "verified" ? KEBU.status.successBg : "#F3EEE9",
+            color: item.trustLabel === "verified" ? KEBU.status.successText : KEBU.muted,
+          }}
+        >
+          {item.trustLabel}
+        </span>
       </div>
       <p className="mt-2 text-[9px]" style={{ color: KEBU.faint }}>
         Source: {item.sourceName} · indexed {new Date(item.fetchedAt).toLocaleDateString()}

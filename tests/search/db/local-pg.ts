@@ -116,6 +116,57 @@ export async function createSearchTestDb(): Promise<Db> {
         updated_at timestamptz NOT NULL DEFAULT now()
       )
     `);
+    // Real afrique_ids DDL (supabase/migrations_archive/legacy/027_afrique_id.sql
+    // + 037_african_id_aid_types.sql's identity_type column), trimmed to the
+    // columns search_opportunities() reads -- same convention as above.
+    await c.query(`
+      CREATE TABLE public.afrique_ids (
+        user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+        public_afrique_id text NOT NULL UNIQUE CHECK (char_length(public_afrique_id) BETWEEN 12 AND 28),
+        country_code char(2) NOT NULL,
+        identity_type text NOT NULL DEFAULT 'visitor' CHECK (identity_type IN ('indigenous', 'visitor')),
+        eligibility_status text NOT NULL DEFAULT 'unverified'
+          CHECK (eligibility_status IN ('unverified', 'pending', 'verified', 'rejected', 'expired', 'suspended', 'manual_review')),
+        verified_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    // Real country_profiles DDL (supabase/migrations_archive/legacy/001_alkebulan_schema.sql
+    // + 009_opportunity_country_explorer.sql's economy/trade columns), trimmed
+    // to the columns Research/Trade/Culture Search and the public country
+    // detail route read -- same convention as above.
+    await c.query(`
+      CREATE TABLE public.country_profiles (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        country text NOT NULL UNIQUE,
+        country_code char(2) NOT NULL UNIQUE,
+        capital text,
+        population bigint,
+        gdp text,
+        economy_overview text,
+        startup_ecosystem text,
+        technology_ecosystem text,
+        universities text[] DEFAULT '{}',
+        major_exports text[] DEFAULT '{}',
+        major_imports text[] DEFAULT '{}',
+        trade_agreements text[] DEFAULT '{}',
+        industrial_zones text[] DEFAULT '{}',
+        manufacturing_sectors text[] DEFAULT '{}',
+        logistics text,
+        cultural_notes text,
+        historical_notes text,
+        historical_empires text[] DEFAULT '{}',
+        ethnic_groups text[] DEFAULT '{}',
+        business_etiquette text[] DEFAULT '{}',
+        diaspora_notes text,
+        data_confidence text NOT NULL DEFAULT 'moderate' CHECK (data_confidence IN ('low', 'moderate', 'high')),
+        publish_status text NOT NULL DEFAULT 'draft' CHECK (publish_status IN ('draft', 'published', 'archived')),
+        last_verified_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
     // Real developer_profiles/marketplace_templates DDL (supabase/migrations/20261020030000_studio_creative_assets_marketplace.sql
     // + 20261021020000_aesthetics_marketplace_canonical.sql).
     await c.query(`
@@ -123,6 +174,8 @@ export async function createSearchTestDb(): Promise<Db> {
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
         display_name text NOT NULL,
+        bio text,
+        website_url text,
         status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','suspended')),
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now(),
@@ -154,6 +207,14 @@ export async function createSearchTestDb(): Promise<Db> {
     await c.query(migration("20261024010000_search_businesses_pagination.sql"));
     await c.query(migration("20261024020000_search_index_products_mode.sql"));
     await c.query(migration("20261024030000_search_products_rpc.sql"));
+    await c.query(migration("20261024040000_search_opportunities_rpc.sql"));
+    await c.query(migration("20261024050000_search_index_people_mode.sql"));
+    await c.query(migration("20261024060000_search_people_rpc.sql"));
+    await c.query(migration("20261024070000_search_index_research_trade_mode.sql"));
+    await c.query(migration("20261024080000_search_country_intel_rpc.sql"));
+    await c.query(migration("20261024090000_search_sites_rpc.sql"));
+    await c.query(migration("20261024100000_search_index_culture_mode.sql"));
+    await c.query(migration("20261024110000_search_country_intel_culture_mode.sql"));
   } finally {
     c.release();
   }
