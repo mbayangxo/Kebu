@@ -165,6 +165,15 @@ The handoff/acceptance register and implementation status are updated. Managed h
 
 Claude advanced Search from7b8ca47a tob0111ee59ccd2a8abcb0b33ffdb4dde4ab6f127a during this session. It adds real UI pagination/country filtering and another unapplied RPC migration. The latest Vercel deploymentdpl_9tAXLxcj7ih2Gr5wjY7yqkCP1saZ isERROR: the15-minute cron exceeds this project's Hobby daily-cron limit. Its Preview E2E40047152695 isSKIPPED, not passed. The indexer is byte-identical to7b8ca47a, so prior row-cap/cleanup/batching follow-ups remain. Claude's reported local SQL/browser evidence is attributed to Claude, not independently certified here; his reported full suite still has3failures. The bare Search branch also does not match the current automatic CI push filters. Preserve the branch and resolve these gates on a composed integration candidate before merging. No Search runtime/config was changed by Codex. Full details and actionable follow-up: audits/KEBU_SEARCH_REVIEW_UPDATE_2026-10-24.md.
 
+## October 24 — recovered chat and Inspector scroll verification
+
+Recovered the existing clean checkout and fast-forwarded fifteen commits to authoritative `5ce8923923008d716b2c37dd79c6db860f91cd0a`; workspace:check passed ahead0/behind0/durable. The previously mentioned Inspector layout repair is already integrated with style transfer; it was not reimplemented.
+
+Added three actual-editor regressions at1440/834/390px and740px height. Each verifies real overflow, a scrolled panel with a flush sticky header, usable animation/design tabs and unchanged artwork, write count and undo history. Final focused Chromium run:3passed,0skipped/flaky/unexpected; normal teardown; phone screenshot inspected. Scroll position is set programmatically; native scroll gestures and managed hosted Auth/RLS are outside this check. Initial test attempts used incorrect case/label/summary selectors and are rejected test-authoring evidence, not application regressions. Runtime source is unchanged.
+
+Continue remaining Creative OS journeys from this recovered shared source. Existing managed hosted QA plan/access/quota prerequisites and Claude Search follow-ups retain their documented status; no infrastructure or production changes occurred.
+
+Recovery validation: TypeScript passes with documented6144MB heap; focused ESLint and git diff --check pass. Default2048MB TypeScript run exhausted the heap and is not a pass. Browser gate counts now require78cases after adding these3regressions; full78/remote runs have not been executed at this recovery checkpoint. No application runtime change or release certification.
 ## October 25 — first generation pipeline runtime prerequisite
 
 Approved pipeline specification PR20 is merged into the shared development branch as faae4fe0cd956341ecc0c249aa4046a193d1dd1c. Runtime work is isolated on work/codex-builder-pipeline-runtime-oct25, starting from PR20 source0d258af1. The recovered migration checkout remains separate.
