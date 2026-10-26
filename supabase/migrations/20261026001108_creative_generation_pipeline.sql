@@ -121,7 +121,29 @@ begin
    if r.state not in ('accepted','cancelled') then update public.creative_generation_runs set state='cancelled',lease_token=null,lease_until=null,revision=revision+1,updated_at=now() where id=p_id returning * into r;end if;
  elsif p_action='approve' then
    if r.state<>'awaiting_approval' or r.revision is distinct from p_revision then raise exception 'Direction changed' using errcode='40001';end if;
-   if p_direction is null or jsonb_typeof(p_direction)<>'object' or octet_length(p_direction::text)>10000 then raise exception 'Invalid direction';end if;
+   -- This function is directly callable by any authenticated client via
+   -- PostgREST (grant below), bypassing the Next.js route's directionSchema
+   -- validation entirely -- so the shape stored here must be checked at
+   -- this boundary too, not just "is an object under 10KB". Without this,
+   -- a malformed p_direction is stored verbatim and later crashes
+   -- generation-workbench.tsx, which renders direction.palette.map(...),
+   -- direction.contentReview.map(...) and direction.summary unconditionally.
+   -- jsonb_typeof(missing_key) is SQL NULL, and `NULL <> 'string'` is NULL
+   -- (not TRUE) under three-valued logic -- plpgsql's IF treats a NULL
+   -- condition as false, so a plain <> comparison here would silently
+   -- accept a direction missing every required key. IS DISTINCT FROM is
+   -- NULL-safe and was verified directly against Postgres for exactly that
+   -- case before landing.
+   if p_direction is null or jsonb_typeof(p_direction) is distinct from 'object' or octet_length(p_direction::text)>10000
+     or jsonb_typeof(p_direction->'summary') is distinct from 'string'
+     or jsonb_typeof(p_direction->'typography') is distinct from 'string'
+     or jsonb_typeof(p_direction->'composition') is distinct from 'string'
+     or jsonb_typeof(p_direction->'motion') is distinct from 'string'
+     or jsonb_typeof(p_direction->'palette') is distinct from 'array'
+     or jsonb_typeof(p_direction->'contentReview') is distinct from 'array'
+     or exists(select 1 from jsonb_array_elements(p_direction->'palette') v where jsonb_typeof(v) is distinct from 'string' or v#>>'{}' !~ '^#[0-9a-fA-F]{6}$')
+     or exists(select 1 from jsonb_array_elements(p_direction->'contentReview') v where jsonb_typeof(v) is distinct from 'string')
+   then raise exception 'Invalid direction';end if;
    update public.creative_generation_runs set state='queued',phase='generating',data=jsonb_set(data,'{direction}',p_direction),revision=revision+1,updated_at=now() where id=p_id returning * into r;
  else raise exception 'Invalid action';end if;
  return r;

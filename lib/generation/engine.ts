@@ -68,13 +68,17 @@ export async function advanceCreativeGeneration(admin: SupabaseClient, id?: stri
       source: async () => (await loadGenerationTarget(admin, run.target_kind, run.target_id, run.actor_id)).source,
       request: async (schema, instruction, data, images) => {
         if (!provider.configured || !provider.supportsVision) throw new Error("Generation and visual review must be configured before starting.");
-        validateGenerationInput(data, images);
+        // Validate (and keep) the stringified input here so we fail fast,
+        // before spending AI-meter quota, on an oversized request — then
+        // pass the already-computed string through to provider.request()
+        // instead of making it re-stringify the same payload a second time.
+        const preValidatedInput = validateGenerationInput(data, images);
         const meter = await getAiMeterStatus(admin, run.actor_id);
         if ("error" in meter) throw new Error("AI usage is unavailable. Your candidate is kept.");
         const reservation = await admin.rpc("begin_creative_generation_call", { p_id: run.id, p_token: run.lease_token, p_limit: meter.limit });
         if (reservation.error || reservation.data !== true) throw new Error("This request is cancelled, superseded, or has reached its AI allowance. Your work is kept.");
         calls++;
-        const result = await provider.request(schema, instruction, data, images); usage.push({ model: result.model, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+        const result = await provider.request(schema, instruction, data, images, preValidatedInput); usage.push({ model: result.model, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
         return result;
       },
       inspect: async current => (await inspectCandidate(admin, current)).report,

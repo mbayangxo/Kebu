@@ -13,11 +13,16 @@ export function inspectStudioPage(input: unknown, pageId: string): GenerationIss
     const bounds = studioLayerBounds(layer);
     if (bounds.left < -1 || bounds.top < -1 || bounds.right > page.width + 1 || bounds.bottom > page.height + 1) issues.push({ code: "artboard_overflow", message: "An object extends beyond the artboard. Review intentional bleed before changing it.", pageId, objectId: layer.id, severity: "error", repairable: !layer.locked });
     if (layer.type === "text" && layer.text) {
-      const size = layer.fontSize ?? 24, spacing = layer.letterSpacing ?? 0;
+      const size = layer.fontSize ?? 24, spacing = layer.letterSpacing ?? 0, lineHeight = size * (layer.lineHeight ?? 1.2);
       context.font = `${layer.fontStyle ?? "normal"} ${layer.fontWeight ?? "400"} ${size}px ${layer.fontFamily ?? "system-ui"}`;
       const lines = wrapCreativeText(layer.text, layer.width, text => context.measureText(text).width + Math.max(0, [...text].length - 1) * spacing);
-      const required = size + Math.max(0, lines.length - 1) * size * (layer.lineHeight ?? 1.2);
-      if (required > layer.height + 1) issues.push({ code: "text_clipping", message: "The text needs a taller text box or a smaller type size.", pageId, objectId: layer.id, severity: "error", repairable: !layer.locked });
+      const required = size + Math.max(0, lines.length - 1) * lineHeight;
+      // Must match the real renderer's own break condition exactly
+      // (paintTextLayer: `if (y > layer.y + layer.height + lineHeight) break`),
+      // which never clips to the box and tolerates up to one full extra
+      // lineHeight of overflow — a smaller threshold here flags text as
+      // clipped that the real editor renders completely and correctly.
+      if (required > layer.height + lineHeight + 1) issues.push({ code: "text_clipping", message: "The text needs a taller text box or a smaller type size.", pageId, objectId: layer.id, severity: "error", repairable: !layer.locked });
     }
   }
   return issues;

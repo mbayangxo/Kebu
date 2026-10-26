@@ -37,7 +37,7 @@ export function mediaReferences(value: unknown): string[] {
   function walk(item: unknown) {
     if (!item || typeof item !== "object") return;
     for (const [key, child] of Object.entries(item)) {
-      if (["src", "imageUrl", "videoUrl", "posterUrl", "poster", "captionsSrc", "url"].includes(key) && typeof child === "string" && child) found.add(child);
+      if (["src", "imageUrl", "videoUrl", "posterUrl", "poster", "captionsSrc", "url", "frameMediaUrl"].includes(key) && typeof child === "string" && child) found.add(child);
       else if (child && typeof child === "object") walk(child);
     }
   }
