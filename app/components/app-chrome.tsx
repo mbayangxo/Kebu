@@ -12,6 +12,7 @@ function shouldHideFloatingActions(pathname: string): boolean {
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/studio") ||
+    pathname.startsWith("/generation") ||
     pathname.startsWith("/email") ||
     pathname.startsWith("/browser") ||
     pathname.startsWith("/create/") ||

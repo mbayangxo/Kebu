@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, "claude/**", "feature/**", "work/**", "chatgpt/**"]
   pull_request:
-    branches: [main]
+    branches: [main, "work/kebu-completion-audit-oct13"]
 
 env:
   NODE_VERSION: "20"

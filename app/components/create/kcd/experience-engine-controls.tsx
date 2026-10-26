@@ -85,6 +85,7 @@ export function ExperienceEngineControls(props: Props) {
     <summary className="cursor-pointer font-semibold">Yande · experience engine</summary>
     <section aria-label="Experience engine" className="mt-3 min-w-0 space-y-3">
       <p>Review source evidence and an original native plan before changing your site.</p>
+      <a href={`/generation/builder/${native.id}`} target="_blank" rel="noopener noreferrer" aria-disabled={disabled} onClick={event => { if(disabled) event.preventDefault(); }} className="inline-block rounded-lg border px-3 py-2 font-semibold">Generate, inspect and repair</a>
       <p role="status" aria-live="polite">{busy ?? status ?? (uncertain ? "Request unconfirmed · reload required" : loaded ? "Saved proposals loaded" : "Proposals not loaded")}</p>
       {error ? <p role="alert" className="text-[12px] break-words" style={{ color: BUILDER.error }}>{error}</p> : null}
       <div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={Boolean(busy)} onClick={() => void reload()}>Reload proposals</button>{busy && !busy.startsWith("Saving reviewed plan") ? <button type="button" className={button} onClick={() => controller.current?.abort()}>Cancel request</button> : null}</div>

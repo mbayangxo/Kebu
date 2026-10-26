@@ -1,5 +1,19 @@
 # Kebu — Implementation Status
 
+## Shared generation follow-up — unattended stage driver complete
+
+`npm run generation:worker` now drives the existing authenticated recovery endpoint without an open review page. It processes one fenced stage at a time, verifies bounded receipts, backs off on unconfirmed requests, refuses redirects/unsafe configuration, redacts private responses and stops on SIGINT/SIGTERM. The server retains all quota/permission/repair/acceptance authority. It is implemented but not running on hosted infrastructure under the no-deployment instruction.
+
+Follow-up local full CI:6683passes/361explicit environment skips, zero lint errors/346existing warnings, TypeScript and230-page build. Strict loopback acceptance48/48 with no skips covers the original38native/SQL/API/SDK/browser cases plus10actual worker CLI/HTTP cases. Required full CI now also targets PRs into the authoritative development branch. Source remains on PR22; handoff/audit updated. No hosted SQL, cron, runtime configuration or deployment changed.
+
+## October 26 — shared Builder and Studio native generation/inspection/repair
+
+Source implementation connects both editors to one durable brief → approved direction → native editable candidate → all-page private browser/vision checks → bounded presentation repairs → explicit transactional draft acceptance. Studio format briefs include slides/carousels, portfolios, documents/e-books, ads, stickers, quotes and social posts within current native page/layer/text limits. Existing editors/exports and native write/quota authority are retained. Source-only migration and a recovery-worker endpoint are included; no hosted cron is added.
+
+Final local CI passes TypeScript, lint0errors/346existing warnings,6673tests/361explicit environment skips and230-page production build. The final exact runtime focused loopback journey passes38/38 with0skips:8stage/guard,9API,5SDK/compatible transport,9actual-SQL and7browser cases. All native/provider/hosted scope distinctions and final observed results are maintained in `docs/audits/KEBU_SHARED_GENERATION_REPAIR_2026-10-26.md`.
+
+User explicitly forbids deployment. This source is isolated on `work/codex-shared-generation-repair-oct26`, whose Vercel Git deployments are disabled. It is a Claude review checkpoint, not integration into the authoritative branch or hosted release certification. New SQL is unapplied; production provider/browser configuration, managed hosted acceptance and scheduler activation remain separate release gates. Handoff: `docs/handoffs/CLAUDE_SHARED_GENERATION_REPAIR_2026-10-26.md`.
+
 ## October 25 — Builder job prerequisite: fenced worker finalization
 
 The first runtime prerequisite for the approved generation/inspection/repair pipeline is implemented locally: completion and retry/dead-letter updates now compare job ID, running state, worker identity and claim attempt. A reclaimed job cannot be overwritten by its expired worker, including when the worker name is reused. Superseded attempts are reported separately from successes/failures. Existing notification and digital-fulfillment paths remain in place.

@@ -175,6 +175,13 @@ Fresh hosted readback confirms workspace_item_visibility exists in history at202
 
 Next pipeline task: durable generation stage/candidate storage and permission-aware job/status/cancellation paths using the existing proposal/operation/quota primitives. The fencing change protects job state finalization only; it does not guarantee exactly-once external side effects, renew leases, cancel provider requests or implement the complete brief-to-reviewed-preview journey. Keep those boundaries explicit.
 
+## October 26 — source-only shared Builder/Studio generation
+
+User explicitly requests **no deployment**. Continue from `work/codex-shared-generation-repair-oct26`, based on `679180a3a8c9a06cf8bd231c998bd3b0874a7aa6`; read `docs/handoffs/CLAUDE_SHARED_GENERATION_REPAIR_2026-10-26.md` and its audit. The feature branch disables its own Vercel Git deployments. Do not merge into an automatically deploying branch, run hosted SQL, enable hosted cron or promote as part of this handoff. The separate feature branch/PR is the Claude review checkpoint; do not describe it as integrated into the authoritative branch until that separately authorized integration is verified.
+
+The new migration is `20261026001108_creative_generation_pipeline.sql`, source-only. Both Builder and Studio use shared durable generation, private native previews, all-page browser/vision inspection, bounded presentation repair and transactional draft acceptance. Existing Studio exports/editors and Builder native operations remain the output path. Final observed test results are recorded in the audit; fixture vision output does not certify hosted/provider quality.
+
+The unattended-worker follow-up adds `npm run generation:worker` (or `-- --once` for one actual stage), with serial authenticated execution, bounded receipts, redirect refusal, redacted failures, backoff and SIGTERM handling. This closes the source gap where a closed review page required an external scheduler to advance stages. The command is not started on hosted infrastructure. Local full CI6683/361 and strict48/48acceptance pass. Required CI also runs on PRs targeting the authoritative development branch. See PR22 and its updated handoff for activation steps; the no-deployment instruction still applies.
 
 ## October 26 UTC — migration rollout completed
 
@@ -183,3 +190,7 @@ Read docs/audits/KEBU_HOSTED_MIGRATION_ROLLOUT_2026-10-26.md before any further 
 Current authoritative vercel.json already schedules Search daily at45 5 * * *, compatible with Hobby; the separate Claude Search branch still has the15-minute schedule and is not merged/deployed by this rollout. Supabase readback confirms four active cron jobs: email flows hourly, cart abandonment every2hours, Mail delivery every minute and Mail health every5minutes. No scheduler change/deployment was made.
 
 Fresh project listing exposes production tnygqgcqlnlsmjpygrca only (ACTIVE_HEALTHY). Isolated hosted QA and signed-in acceptance credentials are still unavailable. No customer production fixtures were repurposed. Migration hygiene passes98canonical source files. The newer Builder worker-fencing/generation work is preserved; this migration session does not certify or replace its outstanding pipeline implementation.
+
+## October 26 — generation review branch reconciled
+
+PR22 now includes authoritative migration-handoff checkpoint `1f677e7`. Both records above are preserved: the earlier hosted rollout covers the older migration inventory; it does not establish application of `20261026001108_creative_generation_pipeline.sql`, which remains source-only in PR22. The migration audit records catalog/grant checks, not signed-in generation acceptance. No runtime files, hosted configuration, database state or deployment were changed by this reconciliation. Prior 48/48 generation acceptance and full CI results apply to the unchanged runtime source; new remote checks, when run, must be reported separately. Keep PR22 draft and unmerged while the no-deployment instruction stands.
