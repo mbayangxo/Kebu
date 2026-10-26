@@ -1,0 +1,200 @@
+{
+  "scope": "Local disposable SQL and actual Chromium/Next previews; fixture provider responses and UI transport, not hosted or paid model acceptance",
+  "passed": 38,
+  "failed": 0,
+  "skipped": 0,
+  "suites": [
+    {
+      "name": "api.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "generation API authority and durable request receipts blocks cross-origin before any auth/provider work",
+          "status": "passed"
+        },
+        {
+          "name": "generation API authority and durable request receipts requires an authenticated identity",
+          "status": "passed"
+        },
+        {
+          "name": "generation API authority and durable request receipts builder creates a durable job for the authenticated actor, never client ownership",
+          "status": "passed"
+        },
+        {
+          "name": "generation API authority and durable request receipts studio creates a durable job for the authenticated actor, never client ownership",
+          "status": "passed"
+        },
+        {
+          "name": "generation API authority and durable request receipts does not charge or schedule when prerequisites or editing permission are unavailable",
+          "status": "passed"
+        },
+        {
+          "name": "generation API authority and durable request receipts returns the same confirmed job after a lost response without enqueueing another",
+          "status": "passed"
+        },
+        {
+          "name": "generation API authority and durable request receipts does not expose or control someone else's run",
+          "status": "passed"
+        },
+        {
+          "name": "generation API authority and durable request receipts sends the reviewed revision to the transactional acceptance boundary",
+          "status": "passed"
+        },
+        {
+          "name": "generation API authority and durable request receipts rejects oversized requests before any durable or provider work",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "name": "authority.local.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "generation actual PostgreSQL authority deduplicates creates, refuses changed briefs and forbids browser writes/service calls",
+          "status": "passed"
+        },
+        {
+          "name": "generation actual PostgreSQL authority reserves each lease once, enforces allowance, and never retries an ambiguous provider call",
+          "status": "passed"
+        },
+        {
+          "name": "generation actual PostgreSQL authority fences old workers, keeps immutable inputs, and cancellation wins over completion",
+          "status": "passed"
+        },
+        {
+          "name": "generation actual PostgreSQL authority requires current approval revision and permission, including editor removal",
+          "status": "passed"
+        },
+        {
+          "name": "generation actual PostgreSQL authority accepts an exact Studio candidate with a rollback version and replays acceptance once",
+          "status": "passed"
+        },
+        {
+          "name": "generation actual PostgreSQL authority preserves newer Studio edits ",
+          "status": "passed"
+        },
+        {
+          "name": "generation actual PostgreSQL authority blocks inspection-only acceptance even with a passing report",
+          "status": "passed"
+        },
+        {
+          "name": "generation actual PostgreSQL authority revoked business membership prevents completion and removes access to private evidence",
+          "status": "passed"
+        },
+        {
+          "name": "generation actual PostgreSQL authority accepts Builder through the actual native transaction authority",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "name": "browser.local.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "actual Next native previews, browser checks and user review studio: actual browser detects failure, bounded repair fixes it, actual screenshots feed visual review",
+          "status": "passed"
+        },
+        {
+          "name": "actual Next native previews, browser checks and user review builder: actual browser detects failure, bounded repair fixes it, actual screenshots feed visual review",
+          "status": "passed"
+        },
+        {
+          "name": "actual Next native previews, browser checks and user review private preview rejects missing or cancelled capabilities",
+          "status": "passed"
+        },
+        {
+          "name": "actual Next native previews, browser checks and user review builder at 1280px: user can submit, approve, review results and accept a saved draft",
+          "status": "passed"
+        },
+        {
+          "name": "actual Next native previews, browser checks and user review studio at 1280px: user can submit, approve, review results and accept a saved draft",
+          "status": "passed"
+        },
+        {
+          "name": "actual Next native previews, browser checks and user review builder at 390px: user can submit, approve, review results and accept a saved draft",
+          "status": "passed"
+        },
+        {
+          "name": "actual Next native previews, browser checks and user review studio at 390px: user can submit, approve, review results and accept a saved draft",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "name": "engine.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "shared native generation and bounded repair builder: plans, builds, inspects, repairs, reinspects and becomes ready",
+          "status": "passed"
+        },
+        {
+          "name": "shared native generation and bounded repair studio: plans, builds, inspects, repairs, reinspects and becomes ready",
+          "status": "passed"
+        },
+        {
+          "name": "shared native generation and bounded repair stops before calling a provider when saved work changed",
+          "status": "passed"
+        },
+        {
+          "name": "shared native generation and bounded repair never repairs content, media, locked objects or exhausted budgets",
+          "status": "passed"
+        },
+        {
+          "name": "shared native generation and bounded repair rejects introduced media, unsafe IDs, removed locked artwork and changed preserved text",
+          "status": "passed"
+        },
+        {
+          "name": "shared native generation and bounded repair reviews every page batch before readiness and never hides a later-page failure",
+          "status": "passed"
+        },
+        {
+          "name": "shared native generation and bounded repair inspection of saved empty media is a failure, rather than successful placeholder output",
+          "status": "passed"
+        },
+        {
+          "name": "shared native generation and bounded repair preview capability expires and is fenced by candidate/revision/cancellation",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "name": "provider.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "provider independent structured multimodal transport 'simple' uses the actual Anthropic SDK with forced schema, vision and no hidden retries",
+          "status": "passed"
+        },
+        {
+          "name": "provider independent structured multimodal transport 'builder' uses the actual Anthropic SDK with forced schema, vision and no hidden retries",
+          "status": "passed"
+        },
+        {
+          "name": "provider independent structured multimodal transport 'studio' uses the actual Anthropic SDK with forced schema, vision and no hidden retries",
+          "status": "passed"
+        },
+        {
+          "name": "provider independent structured multimodal transport supports a compatible provider without coupling to a media vendor",
+          "status": "passed"
+        },
+        {
+          "name": "provider independent structured multimodal transport does not retry ambiguous transport failures and refuses malformed structured output",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "ci": {
+    "typecheck": "pass",
+    "lintErrors": 0,
+    "preexistingLintWarnings": 346,
+    "testsPassed": 6673,
+    "explicitEnvironmentSkips": 361,
+    "productionBuild": "pass",
+    "staticPages": 230
+  },
+  "hostedChanges": false
+}

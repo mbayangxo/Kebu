@@ -1,0 +1,14 @@
+/** Local real Next previews + native SQL acceptance. Never connects to hosted services. */
+import {spawn} from "node:child_process";
+import {createWriteStream,mkdirSync} from "node:fs";
+import {resolve} from "node:path";
+const root=process.cwd(),output=process.env.KEBU_GENERATION_OUTPUT_DIR??resolve(".test-output/generation");mkdirSync(output,{recursive:true});
+if(!process.env.KEBU_CHROMIUM_EXECUTABLE_PATH||!process.env.KEBU_LOCAL_PGLITE_ROOT)throw Error("Local Chromium and SQL runtime are required.");
+const env={...process.env,NEXT_PUBLIC_SUPABASE_URL:"http://127.0.0.1:38429",NEXT_PUBLIC_SUPABASE_ANON_KEY:"isolated-local-fixture",NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:"",SUPABASE_SERVICE_ROLE_KEY:"isolated-local-service-fixture",SUPABASE_SECRET_KEY:"",SUPABASE_URL:"",DATABASE_URL:"",ANTHROPIC_API_KEY:"",VERCEL_ENV:"",CREATIVE_PREVIEW_SECRET:"isolated-preview-signing-secret-123456789",NODE_OPTIONS:"--max-old-space-size=6144",KEBU_GENERATION_PREVIEW_ORIGIN:"http://127.0.0.1:38426",KEBU_GENERATION_OUTPUT_DIR:output};
+const log=createWriteStream(resolve(output,"server.log"));const server=spawn(process.execPath,[resolve("node_modules/next/dist/bin/next"),"dev","--webpack","--hostname","127.0.0.1","--port","38426"],{cwd:root,env,stdio:["ignore","pipe","pipe"]});server.stdout.pipe(log);server.stderr.pipe(log);
+let tests;
+async function stop(child){if(!child||child.exitCode!==null||child.signalCode!==null)return;await new Promise(done=>{const timer=setTimeout(()=>child.kill("SIGKILL"),5000);child.once("close",()=>{clearTimeout(timer);done();});child.kill();});}
+try{await new Promise((done,fail)=>{const timer=setTimeout(()=>fail(Error("Local Next startup timeout")),30000);server.stdout.on("data",data=>{if(data.toString().includes("Ready")){clearTimeout(timer);done();}});server.once("exit",code=>{clearTimeout(timer);fail(Error("Local Next exited "+code));});});
+ tests=spawn(process.execPath,[resolve("node_modules/vitest/vitest.mjs"),"run","tests/generation","--reporter=default","--reporter=json",`--outputFile=${resolve(output,"results.json")}`],{cwd:root,env,stdio:"inherit"});const code=await new Promise(done=>tests.on("exit",done));if(code!==0)throw Error("Generation gate failed");
+ const {readFileSync}=await import("node:fs");const result=JSON.parse(readFileSync(resolve(output,"results.json"),"utf8"));if(result.numPendingTests||result.numFailedTests||result.numPassedTests<38)throw Error("Incomplete generation acceptance");console.log("GENERATION_LOCAL_RESULT",JSON.stringify({passed:result.numPassedTests,failed:result.numFailedTests,skipped:result.numPendingTests}));
+}finally{await stop(tests);await stop(server);log.end();console.log("GENERATION_LOCAL_CLEANUP",JSON.stringify({serverStopped:server.exitCode!==null||server.signalCode!==null,testsStopped:!tests||tests.exitCode!==null||tests.signalCode!==null}));}

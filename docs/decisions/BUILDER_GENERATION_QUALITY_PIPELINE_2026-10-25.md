@@ -1,6 +1,7 @@
 # Builder generation, inspection and repair pipeline
 
-Status: APPROVED DIRECTION / IMPLEMENTATION CONTRACT. No runtime completion claim.
+Status: SHARED BUILDER/STUDIO SOURCE IMPLEMENTATION; hosted release not performed.
+Implementation and verification: `docs/handoffs/CLAUDE_SHARED_GENERATION_REPAIR_2026-10-26.md` and `docs/audits/KEBU_SHARED_GENERATION_REPAIR_2026-10-26.md`. The original architecture contract remains below; shipped native limits and actual check coverage are explicit in the handoff.
 Date: 2026-10-25.
 User approval: extend Kebu's existing Builder with a provider-independent brief → editable website → inspection → bounded repair → saved preview workflow.
 This document does not supersede product law, existing pricing, permission boundaries or the completion register.

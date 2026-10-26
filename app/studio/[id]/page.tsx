@@ -964,6 +964,7 @@ export default function StudioEditorPage() {
         </div>
       ) : null}
 
+      {canEdit ? <div className="px-4 py-2"><a href={`/generation/studio/${designId}`} target="_blank" rel="noopener noreferrer" aria-disabled={saveState === "pending" || saveState === "saving" || syncState !== "online"} onClick={event => { if(saveState === "pending" || saveState === "saving" || syncState !== "online") event.preventDefault(); }} className="inline-block rounded-lg border px-3 py-2 text-sm font-semibold">Generate, inspect and repair</a></div> : null}
       {showBrandKit ? (
         <div className="px-4 py-3 border-b bg-white shrink-0">
           <StudioBrandKitPanel businessId={design.business_id} />
