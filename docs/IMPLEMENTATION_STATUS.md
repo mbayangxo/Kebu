@@ -1,5 +1,11 @@
 # Kebu — Implementation Status
 
+## Shared generation follow-up — unattended stage driver complete
+
+`npm run generation:worker` now drives the existing authenticated recovery endpoint without an open review page. It processes one fenced stage at a time, verifies bounded receipts, backs off on unconfirmed requests, refuses redirects/unsafe configuration, redacts private responses and stops on SIGINT/SIGTERM. The server retains all quota/permission/repair/acceptance authority. It is implemented but not running on hosted infrastructure under the no-deployment instruction.
+
+Follow-up local full CI:6683passes/361explicit environment skips, zero lint errors/346existing warnings, TypeScript and230-page build. Strict loopback acceptance48/48 with no skips covers the original38native/SQL/API/SDK/browser cases plus10actual worker CLI/HTTP cases. Required full CI now also targets PRs into the authoritative development branch. Source remains on PR22; handoff/audit updated. No hosted SQL, cron, runtime configuration or deployment changed.
+
 ## October 26 — shared Builder and Studio native generation/inspection/repair
 
 Source implementation connects both editors to one durable brief → approved direction → native editable candidate → all-page private browser/vision checks → bounded presentation repairs → explicit transactional draft acceptance. Studio format briefs include slides/carousels, portfolios, documents/e-books, ads, stickers, quotes and social posts within current native page/layer/text limits. Existing editors/exports and native write/quota authority are retained. Source-only migration and a recovery-worker endpoint are included; no hosted cron is added.

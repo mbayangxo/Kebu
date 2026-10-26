@@ -1,6 +1,6 @@
 {
   "scope": "Local disposable SQL and actual Chromium/Next previews; fixture provider responses and UI transport, not hosted or paid model acceptance",
-  "passed": 38,
+  "passed": 48,
   "failed": 0,
   "skipped": 0,
   "suites": [
@@ -185,16 +185,63 @@
           "status": "passed"
         }
       ]
+    },
+    {
+      "name": "worker.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport authenticates and acknowledges a stage or idle receipt: null",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport authenticates and acknowledges a stage or idle receipt: 11111111-1111-4111-8111-111111111111",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport refuses unsafe configuration without network: http://external.invalid",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport refuses unsafe configuration without network: https://user:password@external.invalid",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport refuses unsafe configuration without network: https://external.invalid/?token=private",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport refuses missing credentials before contacting the endpoint",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport does not follow a redirect or forward its worker credential",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport refuses unconfirmed status/body without exposing private responses: 503",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport refuses unconfirmed status/body without exposing private responses: 200",
+          "status": "passed"
+        },
+        {
+          "name": "unattended generation worker actual CLI and HTTP transport continues after a browser is absent, serializes calls and stops without submitting again",
+          "status": "passed"
+        }
+      ]
     }
   ],
   "ci": {
     "typecheck": "pass",
     "lintErrors": 0,
     "preexistingLintWarnings": 346,
-    "testsPassed": 6673,
+    "testsPassed": 6683,
     "explicitEnvironmentSkips": 361,
     "productionBuild": "pass",
     "staticPages": 230
   },
-  "hostedChanges": false
+  "hostedChanges": false,
+  "workerActivatedHosted": false
 }

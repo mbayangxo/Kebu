@@ -29,11 +29,12 @@ Studio format briefs include slides, carousels, portfolios, documents, e-books, 
 - `app/api/generation/`: authenticated creation/status/control/acceptance and the private preview API.
 - `app/api/cron/creative-generation/route.ts`: authenticated recovery worker entry point; **not added to the hosted cron configuration**.
 - `supabase/migrations/20261026001108_creative_generation_pipeline.sql`: source-only table/RLS/lease/quota/acceptance/private-evidence migration.
+- `scripts/creative-generation-worker.mjs`: serial unattended stage driver, bounded receipts, backoff and graceful shutdown.
 - `tests/generation/`, `scripts/verify-generation-local.mjs`, `.github/workflows/creative-generation.yml`: reproducible local acceptance and strict CI gate.
 
 ## Durable execution and safety
 
-The generic platform worker supports notifications and fulfillment, but has no persisted creative stages, direction approval, native base, candidate report or transactional document acceptance. This feature uses a dedicated small run table with fenced 110-second stage leases, rather than making a long multi-stage build fit a generic task lease. It reuses the existing atomic account AI reservation and Builder native write authority. `after()` performs one bounded stage after a request; workbench polling resumes queued stages. A separately authorized scheduler can later call the cron endpoint for recovery when no browser is open. Durable records do not depend on the browser remaining connected.
+The generic platform worker supports notifications and fulfillment, but has no persisted creative stages, direction approval, native base, candidate report or transactional document acceptance. This feature uses a dedicated small run table with fenced 110-second stage leases, rather than making a long multi-stage build fit a generic task lease. It reuses the existing atomic account AI reservation and Builder native write authority. `after()` performs one bounded stage after a request; workbench polling resumes queued stages. The included `npm run generation:worker` process continuously calls the authenticated recovery endpoint when no browser is open; it is stopped/uninstalled on hosted environments under the no-deployment instruction. An existing authorized scheduler can call the same endpoint instead. Durable records do not depend on the browser remaining connected.
 
 Provider submission is reserved once per lease before calling the provider. A provider timeout with uncertain receipt is `needs_attention`, not an automatic resubmission. Attempt allowance may be used even on failure/cancellation; UI discloses that. Late workers and cancelled runs cannot commit. Permission is checked at creation, claim, reservation, private preview and completion/acceptance. Business membership removal revokes run/evidence access. Both acceptance paths compare the saved source and retain the previous work: Studio version checkpoint, Builder operation journal plus immutable run base.
 
@@ -53,6 +54,14 @@ Server configuration:
 - Existing Supabase public/server service configuration; existing account AI metering and reservation tables/RPCs.
 - `CREATIVE_GENERATION_MEDIA_HOSTS`: optional comma-separated trusted public media hostnames. Exact saved HTTPS media URLs on the configured hosts and `*.supabase.co` are allowed; other worker network destinations are blocked. Preview credentials are only attached to the exact private preview API, never external media.
 - Existing `CRON_SECRET` when a recovery scheduler is separately authorized. Worker endpoint: `GET /api/cron/creative-generation`, bearer authentication. One stage per call, bounded120-second route duration. No new hosted cron was enabled here.
+
+### Unattended worker operation
+
+The worker command is implemented and tested; it was not started against hosted services. Once runtime activation is authorized, provision the server configuration above and supply `CRON_SECRET` plus `CREATIVE_GENERATION_WORKER_URL` from a secret/environment manager. The worker URL is the Kebu app origin, not a Supabase or provider endpoint. If unset, it uses `CREATIVE_GENERATION_APP_URL`.
+
+Run `npm run generation:worker` under the deployment's process supervisor. It sends one authenticated request at a time to `/api/cron/creative-generation`, then waits5seconds before the next stage. `CREATIVE_GENERATION_WORKER_INTERVAL_MS` permits1000–60000milliseconds. Multiple supervised workers can share the existing SQL lease/skip-locked authority. `npm run generation:worker -- --once` processes one claim/check and exits; this is a real execution command and can consume a queued request's approved allowance, not a dry run.
+
+The driver never decides that a generation passed and never reads/forwards provider or Supabase credentials. The app endpoint retains quota, permission, lease, repair-budget and acceptance authority. Non-2xx, invalid/oversized receipts and transport failures remain unconfirmed; the process backs off to at most60seconds. It refuses credential-bearing URLs and redirects, redacts response bodies/secrets and bounds requests at125seconds. SIGINT/SIGTERM stops further claims; an interrupted HTTP request does not mean the server stage was cancelled. SQL leases preserve the existing ambiguous-provider/no-rebilling behavior. No hosted scheduler or system service was installed or enabled.
 
 No environment values or credentials are included in this handoff.
 
