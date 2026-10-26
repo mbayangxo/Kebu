@@ -1,5 +1,6 @@
 import "server-only";
 import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Browser } from "playwright";
 import { generationHash } from "./hash";
@@ -10,8 +11,15 @@ import type { ReviewImage } from "./provider";
 
 export function browserConfiguration() {
   const origin = process.env.CREATIVE_GENERATION_APP_URL, executable = process.env.CREATIVE_CHROMIUM_EXECUTABLE_PATH ?? process.env.KEBU_CHROMIUM_EXECUTABLE_PATH;
-  if (!origin || !executable || !existsSync(executable) || !process.env.CREATIVE_PREVIEW_SECRET || process.env.CREATIVE_PREVIEW_SECRET.length < 32) return null;
-  try { const url = new URL(origin); if (url.username || url.password || url.pathname !== "/" || (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)))) return null; return { origin: url.origin, executable }; } catch { return null; }
+  if (!origin || !process.env.CREATIVE_PREVIEW_SECRET || process.env.CREATIVE_PREVIEW_SECRET.length < 32) return null;
+  try {
+    const url = new URL(origin);
+    if (url.username || url.password || url.pathname !== "/" || (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)))) return null;
+    if (executable) return existsSync(executable) ? { origin: url.origin, executable } : null;
+    if (process.env.VERCEL !== "1") return null;
+    const archive = resolve(dirname(require.resolve("@sparticuz/chromium")), "../../bin/chromium.br");
+    return existsSync(archive) ? { origin: url.origin, executable: null } : null;
+  } catch { return null; }
 }
 export async function inspectCandidate(admin: SupabaseClient, run: GenerationRun): Promise<{ report: QualityReport; images: ReviewImage[] }> {
   const config = browserConfiguration(); if (!config) throw new Error("Browser inspection is not configured. Your candidate is kept.");
@@ -25,11 +33,12 @@ export async function inspectCandidate(admin: SupabaseClient, run: GenerationRun
     try { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password && (allowedHosts.has(url.hostname) || /^[a-z0-9-]+\.supabase\.co$/.test(url.hostname)); } catch { return false; }
   })), token = previewToken(run), images: ReviewImage[] = [];
   const { chromium } = await import("playwright");
+  const executablePath = config.executable ?? await (await import("@sparticuz/chromium")).default.executablePath();
   let browser: Browser | undefined;
   const deadline = Date.now() + 65_000;
   const timer = setTimeout(() => { void browser?.close(); }, 65_000);
   try {
-    browser = await chromium.launch({ executablePath: config.executable, args: ["--no-sandbox", "--disable-dev-shm-usage"], headless: true });
+    browser = await chromium.launch({ executablePath, args: ["--no-sandbox", "--disable-dev-shm-usage"], headless: true });
     const context = await browser.newContext({ serviceWorkers: "block", reducedMotion: "no-preference" });
     await context.route("**/*", async route => {
       const request = route.request(), url = new URL(request.url());
