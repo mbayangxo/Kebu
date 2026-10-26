@@ -42,9 +42,27 @@ async function readJsonBody(req) {
   return text ? JSON.parse(text) : {};
 }
 
+// Chaos toggle for browser-level error-handling tests (e.g.
+// discovery-journey.local.spec.ts): POST /__qa/break {on:true} makes every
+// subsequent RPC/table call fail with a real network-level error, the same
+// way a real outage would -- not a fabricated 500 JSON body, an actual
+// dropped connection, so the route under test genuinely exercises its own
+// catch block exactly as it would in production.
+let broken = false;
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://localhost");
+
+    if (req.method === "POST" && url.pathname === "/__qa/break") {
+      const { on } = await readJsonBody(req);
+      broken = Boolean(on);
+      return send(res, 200, { broken });
+    }
+    if (broken) {
+      req.destroy();
+      return;
+    }
 
     if (req.method === "POST" && url.pathname === "/rest/v1/rpc/search_businesses") {
       const { p_query = null, p_country = null, p_limit = 20, p_offset = 0 } = await readJsonBody(req);

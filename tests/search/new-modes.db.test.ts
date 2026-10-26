@@ -79,11 +79,11 @@ describe("Kebu Search — Opportunities/People/Research/Trade/Culture/Africa —
         [userId],
       );
       const verified = await db!.pool.query(`select * from public.search_opportunities($1)`, [userId]);
-      expect(verified.rows.map((r) => r.entity_id)).toContain(entityId);
+      expect(verified.rows.map((r: { entity_id: string }) => r.entity_id)).toContain(entityId);
 
       await db!.pool.query(`update public.afrique_ids set eligibility_status = 'suspended' where user_id = $1`, [userId]);
       const suspended = await db!.pool.query(`select * from public.search_opportunities($1)`, [userId]);
-      expect(suspended.rows.map((r) => r.entity_id)).not.toContain(entityId);
+      expect(suspended.rows.map((r: { entity_id: string }) => r.entity_id)).not.toContain(entityId);
     });
   });
 
@@ -97,11 +97,11 @@ describe("Kebu Search — Opportunities/People/Research/Trade/Culture/Africa —
       await insertDoc("people", devId, { title: "Amina Dev" });
 
       const before = await db!.pool.query(`select * from public.search_people(null)`);
-      expect(before.rows.map((r) => r.entity_id)).toContain(devId);
+      expect(before.rows.map((r: { entity_id: string }) => r.entity_id)).toContain(devId);
 
       await db!.pool.query(`update public.developer_profiles set status = 'suspended' where id = $1`, [devId]);
       const after = await db!.pool.query(`select * from public.search_people(null)`);
-      expect(after.rows.map((r) => r.entity_id)).not.toContain(devId);
+      expect(after.rows.map((r: { entity_id: string }) => r.entity_id)).not.toContain(devId);
     });
   });
 
@@ -118,7 +118,7 @@ describe("Kebu Search — Opportunities/People/Research/Trade/Culture/Africa —
 
     it.each(["research", "trade", "culture"])("mode '%s' returns the published country", async (mode) => {
       const { rows } = await db!.pool.query(`select * from public.search_country_intel($1, null)`, [mode]);
-      expect(rows.map((r) => r.entity_id)).toContain("SN");
+      expect(rows.map((r: { entity_id: string }) => r.entity_id)).toContain("SN");
     });
 
     it("rejects an unrecognized p_mode value (no fourth mode exists)", async () => {
@@ -131,7 +131,7 @@ describe("Kebu Search — Opportunities/People/Research/Trade/Culture/Africa —
       async (mode) => {
         await db!.pool.query(`update public.country_profiles set publish_status = 'draft' where country_code = 'SN'`);
         const { rows } = await db!.pool.query(`select * from public.search_country_intel($1, null)`, [mode]);
-        expect(rows.map((r) => r.entity_id)).not.toContain("SN");
+        expect(rows.map((r: { entity_id: string }) => r.entity_id)).not.toContain("SN");
       },
     );
   });
@@ -146,11 +146,11 @@ describe("Kebu Search — Opportunities/People/Research/Trade/Culture/Africa —
       await insertDoc("sites", projectId, { title: "Baobab Store", entityType: "store" });
 
       const before = await db!.pool.query(`select * from public.search_sites(null)`);
-      expect(before.rows.map((r) => r.entity_id)).toContain(projectId);
+      expect(before.rows.map((r: { entity_id: string }) => r.entity_id)).toContain(projectId);
 
       await db!.pool.query(`update public.projects set status = 'draft' where id = $1`, [projectId]);
       const after = await db!.pool.query(`select * from public.search_sites(null)`);
-      expect(after.rows.map((r) => r.entity_id)).not.toContain(projectId);
+      expect(after.rows.map((r: { entity_id: string }) => r.entity_id)).not.toContain(projectId);
     });
 
     it("excludes a project with no subdomain assigned yet, even if marked published", async () => {
@@ -162,7 +162,7 @@ describe("Kebu Search — Opportunities/People/Research/Trade/Culture/Africa —
       await insertDoc("sites", projectId, { title: "No Subdomain Yet" });
 
       const { rows } = await db!.pool.query(`select * from public.search_sites(null)`);
-      expect(rows.map((r) => r.entity_id)).not.toContain(projectId);
+      expect(rows.map((r: { entity_id: string }) => r.entity_id)).not.toContain(projectId);
     });
   });
 });
