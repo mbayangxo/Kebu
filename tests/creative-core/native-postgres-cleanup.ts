@@ -2,7 +2,7 @@ type FixtureAdmin = { query: (sql: string, args?: unknown[]) => Promise<{ rows: 
 
 /** pool.end() can resolve before the server observes the last socket close. */
 export async function dropNativeFixtureDatabase(admin: FixtureAdmin, database: string) {
-  if (!/^_kebutest_(?:publish|experience|payments)_[a-f\d]{32}$/.test(database)) {
+  if (!/^_kebutest_(?:publish|experience|payments|teaminvite)_[a-f\d]{32}$/.test(database)) {
     throw Error("Refusing to drop a database outside the generated native fixture namespace.");
   }
   const deadline = Date.now() + 5000;

@@ -214,7 +214,7 @@ export async function acceptBusinessInvite(
       role: invite.role,
       status: "active",
     });
-    if (insErr) {
+    if (insErr && insErr.code !== "23505") {
       // role check may reject manager/creative until 055 applied
       return {
         ok: false,
@@ -224,6 +224,12 @@ export async function acceptBusinessInvite(
         status: 500,
       };
     }
+    // 23505 (unique_violation on business_members(business_id, user_id)) means
+    // a concurrent accept of this same invite already created the membership
+    // between our SELECT and this INSERT -- the real race two near-simultaneous
+    // requests for a brand-new invite produce. That's not a failure: the
+    // membership exists either way, so fall through and mark the invite
+    // accepted, same as the existing-member branch above.
   }
 
   await admin
