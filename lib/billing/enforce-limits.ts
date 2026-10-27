@@ -9,6 +9,7 @@ import {
   subscriptionTierId,
   type SiteSubscriptionRow,
 } from "@/lib/billing/subscriptions";
+import { PRODUCTS_ALLOWED_BELOW_VERIFICATION_LEVEL_2 } from "@/lib/kebu-id/verification-level";
 
 export type PlanLimitKey = "customDomain" | "store" | "maxProducts" | "maxWebsites";
 
@@ -134,13 +135,40 @@ export async function assertProjectPlanLimit(
       .select("id", { count: "exact", head: true })
       .eq("project_id", projectId);
 
-    const max = plan.limits.maxProducts;
+    // A paid plan's own ceiling never overrides Kebu ID's real, earned trust
+    // floor: a project whose business hasn't reached verification level 2
+    // yet stays capped at the same informal soft-limit as an unlinked shop
+    // (lib/shop/seller-trust.ts), however generous its paid tier's own
+    // maxProducts is -- the tier buys headroom, not a bypass of trust.
+    const { data: project } = await supabase
+      .from("projects")
+      .select("business_id")
+      .eq("id", projectId)
+      .maybeSingle();
+    let max = plan.limits.maxProducts;
+    if (project?.business_id) {
+      const { data: business } = await supabase
+        .from("businesses")
+        .select("verification_level")
+        .eq("id", project.business_id)
+        .maybeSingle();
+      if (business && business.verification_level < 2) {
+        max = max > 0 ? Math.min(max, PRODUCTS_ALLOWED_BELOW_VERIFICATION_LEVEL_2) : PRODUCTS_ALLOWED_BELOW_VERIFICATION_LEVEL_2;
+      }
+    }
+
     if (max > 0 && (count ?? 0) >= max) {
       return {
         ok: false,
         tier,
-        error: `Your ${plan.name} plan allows up to ${max} products.`,
-        upgradeHint: "Upgrade to Business for a higher product limit.",
+        error:
+          max === PRODUCTS_ALLOWED_BELOW_VERIFICATION_LEVEL_2
+            ? `Your Kebu ID hasn't reached verification level 2 yet, so this shop is capped at ${max} products regardless of plan. Add a commerce detail (delivery radius, cross-border willingness, years operating, or supply capacity) on your Kebu ID to unlock your plan's full limit.`
+            : `Your ${plan.name} plan allows up to ${max} products.`,
+        upgradeHint:
+          max === PRODUCTS_ALLOWED_BELOW_VERIFICATION_LEVEL_2
+            ? "Complete a commerce detail on your Kebu ID business profile."
+            : "Upgrade to Business for a higher product limit.",
       };
     }
   }

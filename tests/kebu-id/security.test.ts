@@ -19,6 +19,18 @@ vi.mock("@/lib/kebu-id/create-registration", () => ({
   recalculateAndStoreReadiness: (...args: unknown[]) => recalculateAndStoreReadiness(...args),
 }));
 
+// app/api/businesses/[id]/route.ts's commerce-fields recompute path pulls in
+// the real service-role admin client, which guards itself with
+// `import "server-only"` — correct in the real Next.js runtime, but that
+// package isn't resolvable in this plain vitest context. Mock both so the
+// route module can load; no test in this file exercises the recompute path
+// itself (see tests/kebu-id/verification-level.test.ts for that).
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
+vi.mock("@/lib/kebu-id/verification-level", () => ({
+  recomputeBusinessVerificationLevel: vi.fn().mockResolvedValue(null),
+  PRODUCTS_ALLOWED_BELOW_VERIFICATION_LEVEL_2: 3,
+}));
+
 import { GET as getPublic } from "@/app/api/public/kebu-id/[kebuId]/route";
 import { GET as getBusiness, POST as postBusiness } from "@/app/api/businesses/route";
 import { GET as getBusinessById, PATCH as patchBusiness } from "@/app/api/businesses/[id]/route";

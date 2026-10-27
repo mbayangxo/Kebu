@@ -8,6 +8,7 @@ import { KebuMark } from "@/app/components/kebu-mark";
 import { RegistrationProgressTimeline } from "@/app/components/business/registration-progress-timeline";
 import { BusinessDocumentsPanel } from "@/app/components/business/business-documents-panel";
 import { BusinessStructureEditor } from "@/app/components/business/business-structure-editor";
+import { BusinessCommerceFieldsEditor } from "@/app/components/business/business-commerce-fields-editor";
 import { B2bProfileEditor } from "@/app/components/business/b2b-profile-editor";
 import { BusinessLogoEditor } from "@/app/components/business/business-logo-editor";
 import { EmailMarketingPanel } from "@/app/components/business/email-marketing-panel";
@@ -38,6 +39,10 @@ type Business = {
   lifecycle_status: string;
   verification_level: number;
   logo_url?: string | null;
+  delivery_radius_km?: number | null;
+  cross_border_willing?: boolean;
+  years_operating?: number | null;
+  supply_capacity?: string | null;
 };
 
 type Readiness = {
@@ -609,6 +614,36 @@ export default function BusinessDashboardPage() {
                   <p className="mb-3 text-[10px] leading-relaxed" style={{ color: KEBU.faint }}>Current: <strong>{structureLabel}</strong></p>
                   <BusinessStructureEditor businessId={business.id} countryCode={business.country_code} currentStructure={business.legal_structure} canEdit={canEditStructure} onUpdated={(code) => { setBusiness((prev) => (prev ? { ...prev, legal_structure: code } : prev)); void load(); }} />
                 </section>
+                {(role === "founder" || role === "administrator") && (
+                  <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
+                    <h2 className="mb-1 text-xs font-bold uppercase tracking-wider">Commerce details</h2>
+                    <p className="mb-3 text-[10px] leading-relaxed" style={{ color: KEBU.faint }}>
+                      Verification level: <strong>{business.verification_level}</strong> of 4
+                    </p>
+                    <BusinessCommerceFieldsEditor
+                      businessId={business.id}
+                      verificationLevel={business.verification_level}
+                      deliveryRadiusKm={business.delivery_radius_km ?? null}
+                      crossBorderWilling={Boolean(business.cross_border_willing)}
+                      yearsOperating={business.years_operating ?? null}
+                      supplyCapacity={business.supply_capacity ?? null}
+                      onUpdated={(patch) =>
+                        setBusiness((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                delivery_radius_km: patch.deliveryRadiusKm,
+                                cross_border_willing: patch.crossBorderWilling,
+                                years_operating: patch.yearsOperating,
+                                supply_capacity: patch.supplyCapacity,
+                                verification_level: patch.verificationLevel,
+                              }
+                            : prev,
+                        )
+                      }
+                    />
+                  </section>
+                )}
                 {(role === "founder" || role === "administrator") && (
                   <section className="rounded-2xl p-5" style={{ background: KEBU.white, border: `1px solid ${KEBU.border}` }}>
                     <BusinessLogoEditor businessId={business.id} logoUrl={business.logo_url ?? null} businessName={business.trading_name || business.legal_name} onUpdated={(url) => setBusiness((prev) => (prev ? { ...prev, logo_url: url } : prev))} />

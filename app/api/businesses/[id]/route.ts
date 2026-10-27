@@ -6,6 +6,8 @@ import { SAFE_REGISTRATION_FIELDS } from "@/lib/kebu-id/registration-schema";
 import { z } from "zod";
 
 import { isValidLegalStructure } from "@/lib/kebu-id/countries";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { recomputeBusinessVerificationLevel } from "@/lib/kebu-id/verification-level";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,10 @@ const founderUpdateSchema = z.object({
   businessPhone: z.string().trim().min(5).max(40).optional(),
   website: z.string().trim().url().max(300).optional().nullable().or(z.literal("")),
   legalStructure: z.string().trim().min(1).max(80).optional(),
+  deliveryRadiusKm: z.number().min(0).max(20000).optional().nullable(),
+  crossBorderWilling: z.boolean().optional(),
+  yearsOperating: z.number().int().min(0).max(200).optional().nullable(),
+  supplyCapacity: z.string().trim().max(500).optional().nullable(),
 });
 
 /** Load business dashboard payload — members only. */
@@ -229,6 +235,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (parsed.data.legalStructure !== undefined) {
     patch.legal_structure = parsed.data.legalStructure;
   }
+  if (parsed.data.deliveryRadiusKm !== undefined) patch.delivery_radius_km = parsed.data.deliveryRadiusKm;
+  if (parsed.data.crossBorderWilling !== undefined) patch.cross_border_willing = parsed.data.crossBorderWilling;
+  if (parsed.data.yearsOperating !== undefined) patch.years_operating = parsed.data.yearsOperating;
+  if (parsed.data.supplyCapacity !== undefined) patch.supply_capacity = parsed.data.supplyCapacity || null;
 
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "No updatable fields provided." }, { status: 400 });
@@ -254,8 +264,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const scoreResult = await recalculateAndStoreReadiness({ supabase, businessId: id });
 
+  const commerceFieldChanged = [
+    "delivery_radius_km",
+    "cross_border_willing",
+    "years_operating",
+    "supply_capacity",
+  ].some((key) => key in patch);
+  let verificationLevel = business.verification_level;
+  if (commerceFieldChanged) {
+    const recomputed = await recomputeBusinessVerificationLevel(createAdminClient(), id);
+    if (recomputed !== null) verificationLevel = recomputed;
+  }
+
   return NextResponse.json({
-    business,
+    business: { ...business, verification_level: verificationLevel },
     readiness: scoreResult.ok ? scoreResult.score : null,
     readinessError: scoreResult.ok ? null : scoreResult.error,
   });

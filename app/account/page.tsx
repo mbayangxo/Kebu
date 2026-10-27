@@ -7,6 +7,7 @@ import { BusinessReadinessCard, type ReadinessSummary } from "@/app/components/b
 import { KEBU } from "@/lib/kebu-brand";
 import { useKebuUser } from "@/app/hooks/use-kebu-user";
 import { AfriqueIdCard } from "@/app/components/account/afrique-id-card";
+import { AfriqueIdDepthPanel } from "@/app/components/account/afrique-id-depth-panel";
 import { AccountHostingBilling } from "@/app/components/account/account-hosting-billing";
 import { DataModeControls } from "@/app/components/create/data-mode-provider";
 import { displayFirstName } from "@/lib/account/user-profile";
@@ -304,11 +305,14 @@ export default function AccountPage() {
                 drawer is planned; treat as sensitive for now.
               </p>
               {profile.afriqueId ? (
-                <AfriqueIdCard
-                  afriqueId={profile.afriqueId}
-                  displayName={profile.name || first}
-                  onRefresh={() => void refresh()}
-                />
+                <>
+                  <AfriqueIdCard
+                    afriqueId={profile.afriqueId}
+                    displayName={profile.name || first}
+                    onRefresh={() => void refresh()}
+                  />
+                  <AfriqueIdDepthPanel />
+                </>
               ) : (
                 <p className="text-sm" style={{ color: KEBU.muted }}>
                   No Afri ID yet.{" "}
