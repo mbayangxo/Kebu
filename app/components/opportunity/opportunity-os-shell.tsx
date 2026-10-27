@@ -10,6 +10,9 @@ const TABS=[
   {href:"/opportunity/listings",label:"Opportunities",exact:false},
   {href:"/opportunity/countries",label:"Places",exact:false},
   {href:"/opportunity/cards",label:"Saved",exact:false},
+  {href:"/opportunity/discovery",label:"Discovery",exact:false},
+  {href:"/opportunity/import-replacement",label:"Import replacement",exact:false},
+  {href:"/opportunity/trade",label:"Trade",exact:false},
   {href:"/opportunity/research",label:"Research",exact:false},
 ] as const;
 
