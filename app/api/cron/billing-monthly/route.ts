@@ -98,6 +98,23 @@ export async function GET(req: NextRequest) {
       if (Date.now() - last < 20 * 60 * 60 * 1000) continue; // at most once / ~day
     }
 
+    // Atomically claim this subscription's renewal-attempt slot BEFORE calling
+    // JOKO or inserting the pending row below. The read above can race another
+    // invocation (a true concurrent overlap, or this same function retried
+    // after crashing/timing out between the old post-charge update and here)
+    // -- without this conditional claim, a retry sees the same stale
+    // last_renewal_attempt_at and creates a second real charge with a fresh,
+    // unrelated reference, so JOKO has no way to recognize it as a duplicate.
+    const staleBefore = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+    const { data: claimed, error: claimErr } = await supabase
+      .from("site_subscriptions")
+      .update({ last_renewal_attempt_at: nowIso, updated_at: nowIso })
+      .eq("id", sub.id)
+      .or(`last_renewal_attempt_at.is.null,last_renewal_attempt_at.lt.${staleBefore}`)
+      .select("id")
+      .maybeSingle();
+    if (claimErr || !claimed) continue; // another run already claimed/charged this one
+
     const { data: profile } = await supabase
       .from("user_profiles")
       .select("email")
@@ -162,11 +179,6 @@ export async function GET(req: NextRequest) {
         previous_subscription_id: sub.id,
       },
     });
-
-    await supabase
-      .from("site_subscriptions")
-      .update({ last_renewal_attempt_at: nowIso, updated_at: nowIso })
-      .eq("id", sub.id);
 
     if (!charge.ok) {
       await supabase

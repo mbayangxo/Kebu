@@ -23,6 +23,22 @@
     {
       "path": "/api/cron/search-index",
       "schedule": "45 5 * * *"
+    },
+    {
+      "path": "/api/cron/mail-delivery",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/mail-health",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/cart-abandonment",
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/process-email-flows",
+      "schedule": "0 * * * *"
     }
   ]
 }
