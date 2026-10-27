@@ -1,11 +1,117 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/app/components/app-shell";
 import { KEBU } from "@/lib/kebu-brand";
-import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
+import { MY_SITES_HREF, mySiteDetailHref } from "@/lib/navigation/product-nav";
 import { customDomainDnsTarget, normalizeHostname, validateCustomHostname } from "@/lib/create/dns-target";
+
+type MyDomain = {
+  id: string;
+  hostname: string;
+  status: string;
+  isPrimary: boolean;
+  lastError: string | null;
+  projectId: string;
+  siteTitle: string;
+  siteSubdomain: string | null;
+};
+
+function statusBadge(status: string): { label: string; bg: string; fg: string } {
+  if (status === "verified") return { label: "Verified", bg: "#DCFCE7", fg: "#166534" };
+  if (status === "failed") return { label: "Needs attention", bg: "#FEE2E2", fg: "#B91C1C" };
+  return { label: "Pending DNS", bg: "#FEF3C7", fg: "#92400E" };
+}
+
+/** Signed-in cross-site domain management: every domain across every site, in one place. */
+function MyDomainsPanel() {
+  const [state, setState] = useState<"loading" | "signed-out" | "loaded" | "error">("loading");
+  const [domains, setDomains] = useState<MyDomain[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/me/domains", { credentials: "include" });
+        if (!active) return;
+        if (res.status === 401) {
+          setState("signed-out");
+          return;
+        }
+        if (!res.ok) {
+          setState("error");
+          return;
+        }
+        const data = (await res.json().catch(() => ({}))) as { domains?: MyDomain[] };
+        setDomains(Array.isArray(data.domains) ? data.domains : []);
+        setState("loaded");
+      } catch {
+        if (active) setState("error");
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (state === "loading" || state === "signed-out") return null;
+
+  return (
+    <section className="rounded-2xl p-6 bg-white border space-y-4" style={{ borderColor: KEBU.border }}>
+      <h2 className="text-sm font-bold uppercase tracking-wider">Your connected domains</h2>
+      {state === "error" ? (
+        <p className="text-sm" style={{ color: KEBU.muted }}>
+          Could not load your domains right now.
+        </p>
+      ) : domains.length === 0 ? (
+        <p className="text-sm" style={{ color: KEBU.muted }}>
+          No custom domains connected yet. Open a site in{" "}
+          <Link href={MY_SITES_HREF} className="font-bold underline" style={{ color: KEBU.orange }}>
+            My sites
+          </Link>{" "}
+          → Domain &amp; SEO to connect one.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {domains.map((d) => {
+            const badge = statusBadge(d.status);
+            return (
+              <li
+                key={d.id}
+                className="flex items-center justify-between gap-3 rounded-xl p-3"
+                style={{ background: KEBU.cream }}
+              >
+                <div className="min-w-0">
+                  <p className="font-bold text-sm truncate">{d.hostname}</p>
+                  <p className="text-xs truncate" style={{ color: KEBU.muted }}>
+                    {d.siteTitle}
+                    {d.status === "failed" && d.lastError ? ` — ${d.lastError}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span
+                    className="rounded-full px-3 py-1 text-[10px] font-bold uppercase"
+                    style={{ background: badge.bg, color: badge.fg }}
+                  >
+                    {badge.label}
+                  </span>
+                  <Link
+                    href={mySiteDetailHref(d.projectId)}
+                    className="rounded-full px-3 py-1 text-[10px] font-bold uppercase border"
+                    style={{ borderColor: KEBU.border }}
+                  >
+                    Manage
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 export default function KebuDomainsPage() {
   const [query, setQuery] = useState("");
@@ -67,6 +173,8 @@ export default function KebuDomainsPage() {
             at a registrar.
           </p>
         </div>
+
+        <MyDomainsPanel />
 
         <section className="rounded-2xl p-6 bg-white border space-y-4" style={{ borderColor: KEBU.border }}>
           <h2 className="text-sm font-bold uppercase tracking-wider">Search a domain</h2>
