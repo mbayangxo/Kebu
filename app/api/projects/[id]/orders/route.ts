@@ -339,10 +339,11 @@ export async function PATCH(req: Request, { params }: Params) {
     );
   }
 
-  if (
-    (action === "status" && status === "cancelled") ||
-    (result.order.status === "cancelled" && existing.status !== "cancelled")
-  ) {
+  // Restore stock only on the transition into cancelled, never on a request
+  // that merely asks for it again -- a duplicate submission or client retry
+  // of the exact same cancel request must not double-restore stock that was
+  // only ever decremented once.
+  if (result.order.status === "cancelled" && existing.status !== "cancelled") {
     if (existing.product_id && existing.quantity > 0 && admin) {
       const { data: items } = await db
         .from("shop_order_items")
