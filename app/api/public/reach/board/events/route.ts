@@ -90,8 +90,6 @@ export async function POST(req: Request) {
       ownerId: campaign.owner_id as string,
       campaignId: campaign.id as string,
       bidCpc: Number(campaign.bid_cpc_cauris),
-      budgetCap: Number(campaign.budget_cap_cauris),
-      spent: Number(campaign.spent_cauris),
     });
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 402 });

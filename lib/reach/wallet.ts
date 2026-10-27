@@ -72,8 +72,15 @@ export async function topUpReachWallet(
 }
 
 /**
- * Charge CPC for a board click: wallet + campaign spent.
- * Service role recommended for atomicity across owners.
+ * Charge CPC for a board click: wallet + campaign spent, atomically.
+ * Delegates to public.charge_board_click_cpc() (migration
+ * 20261027020000_reach_board_click_cpc_atomic.sql) rather than reading
+ * balance/spent here and writing them back — this endpoint is public and
+ * unauthenticated, so two concurrent board_click events for the same
+ * campaign are a real, easily-triggered case, and a read-then-write here
+ * would race exactly like the old version did (see that migration's header
+ * for the failure mode). The SQL function re-reads and locks the real rows
+ * at charge time instead of trusting values read earlier in the request.
  */
 export async function chargeBoardClickCpc(
   service: SupabaseClient,
@@ -81,46 +88,28 @@ export async function chargeBoardClickCpc(
     ownerId: string;
     campaignId: string;
     bidCpc: number;
-    budgetCap: number;
-    spent: number;
   },
 ): Promise<{ charged: number } | { error: string }> {
   const bid = roundCauris(opts.bidCpc);
   if (bid <= 0) return { error: "Invalid bid." };
 
-  const remaining = roundCauris(opts.budgetCap - opts.spent);
-  const charge = roundCauris(Math.min(bid, remaining));
-  if (charge <= 0) return { error: "Campaign budget exhausted." };
-
-  const balance = await getReachWalletBalance(service, opts.ownerId);
-  if (balance < charge) return { error: "Insufficient Reach wallet balance." };
-
-  const nextBal = roundCauris(balance - charge);
-  const nextSpent = roundCauris(opts.spent + charge);
-
-  const { error: wErr } = await service
-    .from("reach_wallets")
-    .update({ balance_cauris: nextBal })
-    .eq("owner_id", opts.ownerId);
-  if (wErr) return { error: "Wallet charge failed." };
-
-  const { error: cErr } = await service
-    .from("reach_campaigns")
-    .update({ spent_cauris: nextSpent })
-    .eq("id", opts.campaignId)
-    .eq("owner_id", opts.ownerId);
-  if (cErr) {
-    await service.from("reach_wallets").update({ balance_cauris: balance }).eq("owner_id", opts.ownerId);
-    return { error: "Campaign spend update failed." };
-  }
-
-  await service.from("reach_wallet_ledger").insert({
-    owner_id: opts.ownerId,
-    amount_cauris: -charge,
-    reason: "board_click_cpc",
-    campaign_id: opts.campaignId,
-    meta: { bid_cpc: bid },
+  const { data, error } = await service.rpc("charge_board_click_cpc", {
+    p_owner_id: opts.ownerId,
+    p_campaign_id: opts.campaignId,
+    p_bid_cpc: bid,
   });
 
-  return { charged: charge };
+  if (error) {
+    const msg = error.message || "";
+    if (msg.includes("budget_exhausted")) return { error: "Campaign budget exhausted." };
+    if (msg.includes("insufficient_balance")) return { error: "Insufficient Reach wallet balance." };
+    if (msg.includes("campaign_not_found")) return { error: "Campaign not found." };
+    if (msg.includes("invalid_bid")) return { error: "Invalid bid." };
+    return { error: "Could not charge board click." };
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const charged = roundCauris(Number(row?.charged ?? 0));
+  if (charged <= 0) return { error: "Campaign budget exhausted." };
+  return { charged };
 }
