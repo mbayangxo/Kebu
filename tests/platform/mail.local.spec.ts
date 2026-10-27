@@ -4,6 +4,7 @@ const userA = "11111111-1111-4111-8111-111111111111"; // alice
 const userB = "22222222-2222-4222-8222-222222222222"; // bob
 const userC = "33333333-3333-4333-8333-333333333333"; // carol
 const founder = "44444444-4444-4444-8444-444444444444";
+const employee = "77777777-7777-4777-8777-777777777777"; // active business member, not a founder
 
 async function session(context: BrowserContext, id: string) {
   const exp = Math.floor(Date.now() / 1000) + 3600;
@@ -224,4 +225,49 @@ test("mobile viewport: the mail inbox is usable and does not overflow", async ({
   await expect(page.getByRole("button", { name: "+ New message", exact: true }).first()).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("mail-inbox-mobile.png"), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("shared mailbox: founder creates it, grants an employee access, employee uses it, founder revokes access and it disappears for them", async ({ page, request }) => {
+  await reset(request);
+
+  await session(page.context(), founder);
+  await page.goto("/email");
+  await page.getByRole("button", { name: "Shared mailboxes", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Team access, no shared password", exact: true })).toBeVisible();
+  await page.getByPlaceholder("support", { exact: true }).fill("support");
+  await page.locator('input[placeholder="Display name"]').fill("Support Team");
+  await page.getByRole("button", { name: "Create shared mailbox →", exact: true }).click();
+  await expect(page.getByRole("main").getByText("support@bizmail.test", { exact: true })).toBeVisible();
+
+  // founder is auto-added as manager; grant the employee access as a plain member.
+  await page.getByRole("combobox").first().selectOption({ label: "Eve Employee" });
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByText("Eve Employee", { exact: true })).toBeVisible();
+
+  // The employee now sees it in their own mailbox switcher (real RLS access,
+  // not just this fixture's trust of the request) and can open it with no error.
+  await session(page.context(), employee);
+  await page.goto("/email");
+  await expect(page.getByRole("button", { name: "Support Team support@bizmail.test" })).toBeVisible();
+  await page.getByRole("button", { name: "Support Team support@bizmail.test" }).click();
+  await expect(page.getByText("Nothing here yet.", { exact: true })).toBeVisible();
+
+  const afterGrant = await state(request);
+  expect(afterGrant.sharedAccess).toHaveLength(2); // founder (manager, auto) + employee (member)
+  expect(afterGrant.sharedAccess.some((row: { user_id: string; role: string }) => row.user_id === employee && row.role === "member")).toBe(true);
+
+  // Founder revokes access; the mailbox must vanish from the employee's own
+  // switcher on their next real load — not just stop appearing in some cache.
+  await session(page.context(), founder);
+  await page.goto("/email");
+  await page.getByRole("button", { name: "Shared mailboxes", exact: true }).click();
+  await page.getByRole("button", { name: "Remove: Eve Employee", exact: true }).click();
+  await expect(page.getByText("Eve Employee", { exact: true })).not.toBeVisible();
+
+  await session(page.context(), employee);
+  await page.goto("/email");
+  await expect(page.getByRole("button", { name: "Support Team support@bizmail.test" })).not.toBeVisible();
+
+  const afterRevoke = await state(request);
+  expect(afterRevoke.sharedAccess).toHaveLength(1);
 });

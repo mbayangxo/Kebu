@@ -8,6 +8,7 @@ import { AppShell } from "@/app/components/app-shell";
 import { KebuIcon } from "@/app/components/kebu/kebu-icon";
 import { KEBU } from "@/lib/kebu-brand";
 import { BusinessMailSetup } from "@/app/components/mail/business-mail-setup";
+import { SharedMailboxManager } from "@/app/components/mail/shared-mailbox-manager";
 
 type Folder = "inbox" | "sent" | "drafts" | "archive" | "spam" | "trash";
 type MailView = Folder | "priority" | "waiting" | "starred";
@@ -98,6 +99,7 @@ function MailWorkspace({ initialCompose }: { initialCompose: { to: string; subje
   const [mailContext, setMailContext] = useState<"personal" | "business">("personal");
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
+  const [showSharedMailboxManager, setShowSharedMailboxManager] = useState(false);
   const [needsPersonalSetup, setNeedsPersonalSetup] = useState(false);
   const [mailDomain, setMailDomain] = useState("kebu.africa");
   const [mailSuggestions, setMailSuggestions] = useState<string[]>([]);
@@ -716,7 +718,12 @@ function MailWorkspace({ initialCompose }: { initialCompose: { to: string; subje
               ) : null}
 
               <div className="mt-5 border-t border-black/[.07] pt-3"><p className="px-2 text-[8px] font-semibold uppercase tracking-[.12em] text-black/30">Spaces</p><div className="mt-2 space-y-1">{mailboxes.slice(0,5).map((mailbox)=><button key={"space-"+mailbox.id} type="button" onClick={()=>setMailboxId(mailbox.id)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[8px] hover:bg-black/[.03]"><span className="h-5 w-5 rounded-[6px] bg-[#FFF0E8]"/><span className="truncate">{mailbox.display_name}</span></button>)}</div></div>
-              {mailContext === "business" ? <button type="button" onClick={()=>setShowBusinessSetup(v=>!v)} className="mt-4 px-2 text-[9px] font-semibold text-[#C95000]">{showBusinessSetup?"Back to inbox":"Business mail settings"}</button> : <Link href="/business" className="mt-4 block px-2 text-[9px] font-semibold text-black/40">Business Mail →</Link>}
+              {mailContext === "business" ? (
+                <>
+                  <button type="button" onClick={()=>{setShowBusinessSetup(v=>!v);setShowSharedMailboxManager(false)}} className="mt-4 px-2 text-[9px] font-semibold text-[#C95000]">{showBusinessSetup?"Back to inbox":"Business mail settings"}</button>
+                  <button type="button" onClick={()=>{setShowSharedMailboxManager(v=>!v);setShowBusinessSetup(false)}} className="mt-2 block px-2 text-[9px] font-semibold text-[#C95000]">{showSharedMailboxManager?"Back to inbox":"Shared mailboxes"}</button>
+                </>
+              ) : <Link href="/business" className="mt-4 block px-2 text-[9px] font-semibold text-black/40">Business Mail →</Link>}
               <div className="mt-auto hidden rounded-[12px] bg-black p-3 text-white lg:block"><p className="text-[9px] font-semibold">✦ Let Yande help</p><p className="mt-1 text-[8px] leading-relaxed text-white/45">Summarize, draft, schedule or find anything.</p></div>
             </aside>
 
@@ -759,7 +766,9 @@ function MailWorkspace({ initialCompose }: { initialCompose: { to: string; subje
             </section>
 
             <main className="min-w-0 bg-[#FFFCF8]">
-              {mailContext === "business" && (showBusinessSetup || mailboxes.length===0) ? (
+              {mailContext === "business" && showSharedMailboxManager ? (
+                <div className="h-full overflow-y-auto p-6"><SharedMailboxManager onMailboxCreated={()=>{void loadMailboxes()}}/></div>
+              ) : mailContext === "business" && (showBusinessSetup || mailboxes.length===0) ? (
                 <div className="h-full overflow-y-auto p-6"><BusinessMailSetup onMailboxCreated={()=>{setShowBusinessSetup(false);void loadMailboxes()}}/></div>
               ) : selected && thread ? (
                 <article className="flex h-full flex-col">

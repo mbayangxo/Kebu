@@ -18,6 +18,7 @@ const userC = '33333333-3333-4333-8333-333333333333'; // forward target, then ex
 const founder = '44444444-4444-4444-8444-444444444444';
 const businessId = '55555555-5555-4555-8555-555555555555';
 const siteDomainId = '66666666-6666-4666-8666-666666666666';
+const employee = '77777777-7777-4777-8777-777777777777'; // active business member, granted shared-mailbox access in the shared-mailbox tests
 
 const output = process.env.KEBU_MAIL_UI_OUTPUT_DIR ?? mkdtempSync(join(tmpdir(), 'kebu-mail-ui-'));
 mkdirSync(output, { recursive: true });
@@ -40,14 +41,34 @@ await db.exec(`
     status text not null default 'active' check (status in ('pending','active','removed')), unique(business_id,user_id)
   );
   alter table public.business_members enable row level security;
-  create policy "members select own" on public.business_members for select using (user_id = auth.uid());
+  -- Mirrors the real 20261016170000_business_members_select_recursion_repair.sql
+  -- policy (self row, or a founder/administrator sees the whole roster via a
+  -- non-recursive security-definer check) -- needed for real by the shared
+  -- mailbox member-picker, which lists active teammates still eligible to add.
+  create function business_members_is_active_business_admin(p_business_id uuid)
+  returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+    select exists (
+      select 1 from public.business_members m2
+      where m2.business_id = p_business_id and m2.user_id = auth.uid() and m2.status = 'active'
+        and m2.role in ('founder', 'administrator')
+    );
+  $$;
+  create policy "members select own or team if admin" on public.business_members for select
+    using (user_id = auth.uid() or business_members_is_active_business_admin(business_id));
   create table public.user_profiles(id uuid primary key references auth.users(id), active_business_id uuid references public.businesses(id), name text, email text);
   create table public.projects(id uuid primary key default gen_random_uuid(), business_id uuid references public.businesses(id));
   create table public.site_domains(id uuid primary key default gen_random_uuid(), project_id uuid references public.projects(id), hostname text, status text, verified boolean, is_primary boolean, verified_at timestamptz);
-  insert into auth.users(id) values ('${userA}'),('${userB}'),('${userC}'),('${founder}');
+  insert into auth.users(id) values ('${userA}'),('${userB}'),('${userC}'),('${founder}'),('${employee}');
   insert into public.businesses(id, created_by, trading_name) values ('${businessId}', '${founder}', 'Fixture Biz Co');
-  insert into public.business_members(business_id,user_id,role,status) values ('${businessId}','${founder}','founder','active');
-  insert into public.user_profiles(id, active_business_id) values ('${userA}',null),('${userB}',null),('${userC}',null),('${founder}','${businessId}');
+  insert into public.business_members(business_id,user_id,role,status) values
+    ('${businessId}','${founder}','founder','active'),
+    ('${businessId}','${employee}','employee','active');
+  insert into public.user_profiles(id, active_business_id, name, email) values
+    ('${userA}',null,'Alice','alice@example.test'),
+    ('${userB}',null,'Bob','bob@example.test'),
+    ('${userC}',null,'Carol','carol@example.test'),
+    ('${founder}','${businessId}','Founder','founder@example.test'),
+    ('${employee}','${businessId}','Eve Employee','eve@example.test');
   insert into public.site_domains(id, hostname, status, verified, is_primary) values ('${siteDomainId}', 'bizmail.test', 'verified', true, true);
 `);
 await db.exec(read('supabase/migrations/20260920084000_kebu_mail_m1.sql'));
@@ -60,6 +81,7 @@ await db.exec(read('supabase/migrations/20260920230000_kebu_mail_reputation_guar
 await db.exec(read('supabase/migrations/20260921011500_mail_message_attention_states.sql'));
 await db.exec(read('supabase/migrations/20261020000000_kebu_mail_forwarding.sql'));
 await db.exec(read('supabase/migrations/20261020010000_kebu_business_mailbox_insert_repair.sql'));
+await db.exec(read('supabase/migrations/20261027030000_kebu_mail_shared_access.sql'));
 
 // Pre-seeded as already-real-provider-verified, bypassing the register/verify
 // steps this harness cannot drive for real without a live Resend account.
@@ -79,6 +101,7 @@ const TABLES = {
   mail_platform_domains: { columns: ['domain','purpose','provider','provider_domain_id','status','sending_enabled','inbound_enabled','reputation_status','dns_records','last_error','verified_at','created_at','updated_at'], json: new Set(['dns_records']) },
   mail_delivery_jobs: { columns: ['id','message_id','mailbox_id','provider','status','attempt_count','max_attempts','next_attempt_at','provider_message_id','idempotency_key','last_error_code','last_error','sent_at','created_at','updated_at'], json: new Set() },
   mail_audit_events: { columns: ['id','mailbox_id','business_id','actor_user_id','event_type','metadata','created_at'], json: new Set(['metadata']) },
+  mail_shared_access: { columns: ['id','mailbox_id','user_id','role','added_by','created_at'], json: new Set() },
   user_profiles: { columns: ['id','active_business_id','name','email'], json: new Set() },
   businesses: { columns: ['id','created_by','legal_name','trading_name'], json: new Set() },
   business_members: { columns: ['id','business_id','user_id','role','status'], json: new Set() },
@@ -86,7 +109,7 @@ const TABLES = {
   site_domains: { columns: ['id','project_id','hostname','status','verified','is_primary','verified_at'], json: new Set() },
 };
 
-const ALL_IDS = [userA, userB, userC, founder];
+const ALL_IDS = [userA, userB, userC, founder, employee];
 const serviceRoleKey = 'fixture-service-role-key';
 
 function identity(req) {
@@ -128,12 +151,14 @@ const backend = createServer(async (req, res) => {
       const messages = await db.query('select row_to_json(x) as row from mail_messages x order by created_at');
       const forwarding = await db.query('select row_to_json(f) as row from mail_forwarding_rules f order by created_at');
       const jobs = await db.query('select row_to_json(j) as row from mail_delivery_jobs j order by created_at');
+      const sharedAccess = await db.query('select row_to_json(s) as row from mail_shared_access s order by created_at');
       send(200, {
         mailboxes: mailboxes.rows.map((x) => x.row),
         threads: threads.rows.map((x) => x.row),
         messages: messages.rows.map((x) => x.row),
         forwarding: forwarding.rows.map((x) => x.row),
         deliveryJobs: jobs.rows.map((x) => x.row),
+        sharedAccess: sharedAccess.rows.map((x) => x.row),
         queries: totalQueries,
       });
       return;
