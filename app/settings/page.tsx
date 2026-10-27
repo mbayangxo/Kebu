@@ -8,6 +8,7 @@ const SECTIONS: Array<{label:string;detail:string;href:string;icon:KebuIconName}
   { label:"Personalization", detail:"Choose how Kebu starts and which tools matter to you.", href:"/welcome?edit=1", icon:"settings" },
   { label:"Business settings", detail:"Business identities, teams and workspace configuration.", href:"/business", icon:"spaces" },
   { label:"Security", detail:"Sign-in and account security controls.", href:"/account#security", icon:"settings" },
+  { label:"Privacy & connected services", detail:"Your control center — see and revoke cross-product access.", href:"/account#privacy", icon:"settings" },
   { label:"Offline & data", detail:"Connection-aware behavior and data-saving preferences.", href:"/account#data", icon:"library" },
 ];
 

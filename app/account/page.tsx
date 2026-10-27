@@ -8,6 +8,7 @@ import { KEBU } from "@/lib/kebu-brand";
 import { useKebuUser } from "@/app/hooks/use-kebu-user";
 import { AfriqueIdCard } from "@/app/components/account/afrique-id-card";
 import { AccountHostingBilling } from "@/app/components/account/account-hosting-billing";
+import { PrivacyControlCenter } from "@/app/components/account/privacy-control-center";
 import { DataModeControls } from "@/app/components/create/data-mode-provider";
 import { displayFirstName } from "@/lib/account/user-profile";
 import { evaluateKb, measureResponseBytes } from "@/lib/create/kb-budget";
@@ -22,7 +23,7 @@ type BusinessRow = {
   logo_url?: string | null;
 };
 
-type SectionId = "personal" | "security" | "ids" | "data" | "billing" | null;
+type SectionId = "personal" | "security" | "ids" | "data" | "billing" | "privacy" | null;
 
 function ListRow({
   title,
@@ -75,6 +76,15 @@ export default function AccountPage() {
       setCountry(profile.residenceCountry ?? "");
     }
   }, [profile]);
+
+  // /settings links here with #security, #data, #privacy, etc. — open the
+  // matching drawer on load instead of landing on a dead anchor.
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash === "personal" || hash === "security" || hash === "ids" || hash === "data" || hash === "billing" || hash === "privacy") {
+      setSection(hash);
+    }
+  }, []);
 
   const loadBusinesses = useCallback(async () => {
     setBizLoading(true);
@@ -378,6 +388,18 @@ export default function AccountPage() {
           {section === "billing" ? (
             <div className="px-4 py-4 bg-transparent">
               <AccountHostingBilling />
+            </div>
+          ) : null}
+
+          <ListRow
+            title="Privacy & connected services"
+            hint="Your control center — see and revoke cross-product access"
+            open={section === "privacy"}
+            onClick={() => toggle("privacy")}
+          />
+          {section === "privacy" ? (
+            <div className="px-4 py-4 bg-transparent">
+              <PrivacyControlCenter />
             </div>
           ) : null}
 
