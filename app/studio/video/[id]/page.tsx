@@ -9,15 +9,18 @@ import {
   addClipFromAsset,
   addMarker,
   addStoryboardScene,
+  addTrack,
   attachSoundtrack,
   compileStoryboardToClips,
   compositionDurationMs,
+  COMPOSITION_TRACK_KINDS,
   deleteClip,
   deleteMarker,
   maybeSnapTime,
   newCompositionId,
   primaryVideoTrackId,
   removeStoryboardScene,
+  removeTrack,
   splitClipAt,
   updateClip,
   updateStoryboardScene,
@@ -1421,7 +1424,7 @@ export default function StudioVideoEditorPage() {
       </div>
 
       <div className="shrink-0 border-t border-white/[.08] bg-[#111] px-2 py-2 space-y-1 max-h-[42vh] overflow-auto">
-        <div className="flex items-center gap-2 px-1"><p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Timeline · multi-track · music-aware</p><span className="text-[9px] opacity-40">S split · ⌫ delete · ←/→ nudge · Shift 1s · Alt-drag slip</span><div className="ml-auto flex gap-1"><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=fitSequenceToDuration(comp,selectedClipIds,15000);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Fit 15s</button><button type="button" disabled={selectedClipIds.length<2} onClick={()=>{const n=linkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Link</button><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=unlinkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Unlink</button></div></div>
+        <div className="flex items-center gap-2 px-1"><p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Timeline · multi-track · music-aware</p><span className="text-[9px] opacity-40">S split · ⌫ delete · ←/→ nudge · Shift 1s · Alt-drag slip</span><div className="ml-auto flex gap-1">{COMPOSITION_TRACK_KINDS.map((kind) => (<button key={kind} type="button" title={`Add a ${kind} track`} onClick={()=>{const n=addTrack(comp,{kind});if("error"in n)setError(n.error);else{applyComp(n);setNote(`Added a ${kind} track.`)}}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">+{kind}</button>))}<button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=fitSequenceToDuration(comp,selectedClipIds,15000);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Fit 15s</button><button type="button" disabled={selectedClipIds.length<2} onClick={()=>{const n=linkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Link</button><button type="button" disabled={!selectedClipIds.length} onClick={()=>{const n=unlinkClips(comp,selectedClipIds);if("error"in n)setError(n.error);else applyComp(n)}} className="rounded bg-white/10 px-2 py-1 text-[9px] disabled:opacity-30">Unlink</button></div></div>
         <div className="relative" style={{ minWidth: (totalMs / 1000) * pxPerSec + 80 }}>
           <div className="h-5 ml-14 relative border-b border-white/10 mb-1">
             {Array.from({ length: Math.min(600, Math.ceil(totalMs / Math.max(1000, Math.ceil(totalMs / 600 / 1000) * 1000)) + 1) }).map((_, i) => (
@@ -1466,7 +1469,7 @@ export default function StudioVideoEditorPage() {
 
           {tracks.map((track) => (
             <div key={track.id} className="flex items-stretch gap-1 mb-1">
-              <div className="w-14 shrink-0 text-[9px] font-semibold flex items-center gap-0.5 px-0.5"><span className="min-w-0 flex-1 truncate opacity-60">{track.name}</span>{track.kind==="audio"||track.kind==="music"?<><input aria-label={`${track.name} volume`} className="w-10" type="range" min="0" max="2" step=".1" value={track.volume} onChange={e=>applyComp(setTrackMix(comp,track.id,{volume:Number(e.target.value)}))}/><button type="button" title={track.solo?"Unsolo":"Solo"} onClick={()=>applyComp(setTrackMix(comp,track.id,{solo:!track.solo}))} className={track.solo?"text-emerald-300":"opacity-40"}>S</button></>:null}<button type="button" title={track.muted?"Unmute":"Mute"} onClick={()=>applyComp(setTrackMix(comp,track.id,{muted:!track.muted}))} className={track.muted?"text-amber-300":"opacity-40"}>{track.muted?"M":"m"}</button><button type="button" title={track.locked?"Unlock":"Lock"} onClick={()=>applyComp(setTrackState(comp,track.id,{locked:!track.locked}))} className={track.locked?"text-orange-300":"opacity-40"}>{track.locked?"L":"l"}</button></div>
+              <div className="w-14 shrink-0 text-[9px] font-semibold flex items-center gap-0.5 px-0.5"><span className="min-w-0 flex-1 truncate opacity-60">{track.name}</span>{track.kind==="audio"||track.kind==="music"?<><input aria-label={`${track.name} volume`} className="w-10" type="range" min="0" max="2" step=".1" value={track.volume} onChange={e=>applyComp(setTrackMix(comp,track.id,{volume:Number(e.target.value)}))}/><button type="button" title={track.solo?"Unsolo":"Solo"} onClick={()=>applyComp(setTrackMix(comp,track.id,{solo:!track.solo}))} className={track.solo?"text-emerald-300":"opacity-40"}>S</button></>:null}<button type="button" title={track.muted?"Unmute":"Mute"} onClick={()=>applyComp(setTrackMix(comp,track.id,{muted:!track.muted}))} className={track.muted?"text-amber-300":"opacity-40"}>{track.muted?"M":"m"}</button><button type="button" title={track.locked?"Unlock":"Lock"} onClick={()=>applyComp(setTrackState(comp,track.id,{locked:!track.locked}))} className={track.locked?"text-orange-300":"opacity-40"}>{track.locked?"L":"l"}</button><button type="button" title="Remove track" aria-label={`Remove ${track.name} track`} onClick={()=>{const n=removeTrack(comp,track.id);if("error"in n)setError(n.error);else{applyComp(n);setNote(`Removed ${track.name}.`)}}} className="opacity-40 hover:text-red-300">×</button></div>
               <div
                 className="relative h-10 flex-1 rounded bg-black/40 border border-white/5"
                 style={{ width: (totalMs / 1000) * pxPerSec }}
