@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   addAssetToComposition,
   addClipFromAsset,
+  addTrack,
   compileStoryboardToClips,
   emptyStudioComposition,
   everyNthBeat,
   parseStudioComposition,
+  removeTrack,
   snapCompositionTimeToBeats,
   splitClipAt,
   studioCompositionSchema,
@@ -72,5 +74,64 @@ describe("Studio composition architecture", () => {
     const beats = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500];
     expect(snapCompositionTimeToBeats(480, beats, 80)).toBe(500);
     expect(everyNthBeat(beats, 4)).toEqual([0, 2000]);
+  });
+
+  describe("addTrack / removeTrack — the fixed-6-track gap", () => {
+    it("adds a new track of the requested kind, ordered after the existing tracks", () => {
+      const c = emptyStudioComposition({ width: 1080, height: 1920 });
+      const maxOrder = Math.max(...c.tracks.map((t) => t.order));
+      const next = addTrack(c, { kind: "video", name: "V3" });
+      expect("error" in next).toBe(false);
+      if ("error" in next) return;
+      expect(next.tracks).toHaveLength(c.tracks.length + 1);
+      const added = next.tracks.find((t) => t.name === "V3")!;
+      expect(added.kind).toBe("video");
+      expect(added.order).toBe(maxOrder + 1);
+      expect(studioCompositionSchema.safeParse(next).success).toBe(true);
+    });
+
+    it("refuses to add a track past the 32-track schema limit", () => {
+      let c = emptyStudioComposition({ width: 1080, height: 1920 });
+      for (let i = c.tracks.length; i < 32; i++) {
+        const next = addTrack(c, { kind: "overlay" });
+        expect("error" in next).toBe(false);
+        if ("error" in next) return;
+        c = next;
+      }
+      expect(c.tracks).toHaveLength(32);
+      const overflow = addTrack(c, { kind: "overlay" });
+      expect(overflow).toEqual({ error: "Track limit reached (32)." });
+    });
+
+    it("removes an empty track", () => {
+      const c = emptyStudioComposition({ width: 1080, height: 1920 });
+      const trackId = c.tracks.find((t) => t.kind === "overlay")!.id;
+      const next = removeTrack(c, trackId);
+      expect("error" in next).toBe(false);
+      if ("error" in next) return;
+      expect(next.tracks.some((t) => t.id === trackId)).toBe(false);
+    });
+
+    it("refuses to remove a track that still holds a clip — no silent data loss", () => {
+      let c = emptyStudioComposition({ width: 1080, height: 1920 });
+      const videoTrackId = c.tracks.find((t) => t.kind === "video")!.id;
+      c = addAssetToComposition(c, {
+        id: "as1",
+        kind: "video",
+        url: "https://example.com/a.mp4",
+        fileName: "a.mp4",
+        durationMs: 8000,
+      });
+      const placed = addClipFromAsset(c, "as1", { trackId: videoTrackId, atMs: 0 });
+      expect("error" in placed).toBe(false);
+      if ("error" in placed) return;
+      const result = removeTrack(placed, videoTrackId);
+      expect(result).toEqual({ error: "Move or delete this track's clips before removing it." });
+    });
+
+    it("errors on an unknown track id", () => {
+      const c = emptyStudioComposition({ width: 1080, height: 1920 });
+      expect(removeTrack(c, "not-a-real-track")).toEqual({ error: "Track not found." });
+    });
   });
 });

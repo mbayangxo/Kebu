@@ -63,6 +63,7 @@ export default function StudioEditorPage() {
   const [design, setDesign] = useState<Design | null>(null);
   const [access, setAccess] = useState<StudioDesignAccess | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [hasOtherCollaborators, setHasOtherCollaborators] = useState(false);
   const [doc, setDoc] = useState<CanvasDocument | null>(null);
   const [activePageId, setActivePageId] = useState<string>("");
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
@@ -209,6 +210,15 @@ export default function StudioEditorPage() {
       }
       if (data.access) setAccess(data.access as StudioDesignAccess);
       setUserId(nextUserId);
+      // Live cursors should only ever broadcast when someone else could
+      // really be watching — fetch the real collaborator count rather than
+      // assuming (see fix(studio): gate live-cursor broadcasting commit).
+      if (nextUserId) {
+        void fetch(`/api/create/designs/${designId}/collaborators`, { credentials: "include" })
+          .then((r) => r.json())
+          .then((cd) => setHasOtherCollaborators(typeof cd.collaboratorCount === "number" && cd.collaboratorCount > 1))
+          .catch(() => setHasOtherCollaborators(false));
+      }
       setDoc(initialDoc);
       docRef.current = initialDoc;
       setActivePageId(initialDoc.pages[0]?.id ?? "");
@@ -1097,7 +1107,7 @@ export default function StudioEditorPage() {
         canUndo={canEdit && history.length > 0}
         canRedo={canEdit && future.length > 0}
         readOnly={!canEdit}
-        liveCursorsUserId={userId}
+        liveCursorsUserId={hasOtherCollaborators ? userId : null}
         liveCursorsLabel={access?.role === "owner" ? "Owner" : access?.role === "editor" ? "Editor" : "Viewer"}
         businessId={design.business_id}
         previewLocalMs={pageLocalTimeMs(doc, playheadMs)?.localMs ?? 0}

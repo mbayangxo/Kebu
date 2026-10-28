@@ -1,5 +1,10 @@
 # Kebu — Implementation Status
 
+## October 28 — recovered Studio source integrated
+
+Track-management/keyframe work, captions tests and collaborator-gated cursor broadcasting from Claude’s v4 bundle are reconciled into the shared development line. Focused tests 47/47 and TypeScript pass. Full browser/hosted acceptance is not certified. Current coordination and unresolved work: [Claude/Codex handoff](handoffs/CLAUDE_CURRENT_SYNC.md). Older dated status entries below are historical.
+
+
 ## October 28 — May native authoring and local acceptance
 
 Independent outlined collage text and shaped video frames are implemented in the normal Builder. The 14-page May candidate passed desktop/phone edits, SQL persistence, published rendering, scroll movement and navigation clicks. The 12-page save blocker is fixed consistently at 20 pages, with a new **hosted-unapplied** migration. Local browser: 20 collage/video + 6 contact cases pass; 2 actual SQL cases pass. Required code gates pass (6,752 tests / 415 explicit skips; build retry after generated-cache cleanup). See [the detailed May audit](audits/KEBU_MAY_LOCAL_DESIGN_2026-10-28.md). **Hosted launch, real May video/audio and exact-reference sign-off remain open.** GitHub source sharing is authorized; deployments/hosted activation remain on hold.

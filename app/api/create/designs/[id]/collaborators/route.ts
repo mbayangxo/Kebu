@@ -43,12 +43,25 @@ export async function GET(_req: Request, { params }: Params) {
         { status: error.message?.includes("does not exist") ? 503 : 500 },
       );
     }
-    return NextResponse.json({ access, collaborators: data ?? [] });
+    return NextResponse.json({ access, collaborators: data ?? [], collaboratorCount: 1 + (data ?? []).length });
   }
+
+  // Non-owners never see the roster (privacy), but a bare count is safe to
+  // expose and is the only way the live-cursors feature can honestly know
+  // whether anyone besides the owner could ever be watching this design —
+  // without it, cursor broadcasting has no real way to gate itself on
+  // "collaborators are in the editor at the same time" (the promise already
+  // made in the share panel's own copy).
+  const { count, error: countError } = await supabase
+    .from("studio_design_collaborators")
+    .select("id", { count: "exact", head: true })
+    .eq("design_id", id)
+    .eq("status", "active");
 
   return NextResponse.json({
     access,
     collaborators: [],
+    collaboratorCount: countError ? 1 : 1 + (count ?? 0),
   });
 }
 

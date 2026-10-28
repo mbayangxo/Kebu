@@ -291,6 +291,45 @@ export function emptyStudioComposition(opts: {
   });
 }
 
+/**
+ * Add a new track of the given kind — the one genuine "add a track" gap this
+ * project's fixed 6-track default (V1/V2/Graphics/Text/Voice/Music) left
+ * unaddressed: a user who needs a second overlay or a separate voiceover
+ * track beyond what emptyStudioComposition() provisions had no way to get
+ * one, despite the schema already allowing up to 32.
+ */
+export function addTrack(
+  c: StudioComposition,
+  opts: { kind: CompositionTrackKind; name?: string },
+): StudioComposition | { error: string } {
+  if (c.tracks.length >= 32) return { error: "Track limit reached (32)." };
+  const order = c.tracks.reduce((m, t) => Math.max(m, t.order), -1) + 1;
+  const track = {
+    id: newCompositionId("tr"),
+    kind: opts.kind,
+    name: (opts.name ?? opts.kind.charAt(0).toUpperCase() + opts.kind.slice(1)).slice(0, 80),
+    muted: false,
+    locked: false,
+    order,
+  };
+  return studioCompositionSchema.parse({ ...c, tracks: [...c.tracks, track] });
+}
+
+/**
+ * Remove a track. Refuses to remove a track that still holds clips (or
+ * transitions/keyframes referencing those clips) rather than silently
+ * discarding a user's work — the caller must move or delete those clips
+ * first, same "no silent data loss" contract as every other destructive
+ * composition operation in this module.
+ */
+export function removeTrack(c: StudioComposition, trackId: string): StudioComposition | { error: string } {
+  if (!c.tracks.some((t) => t.id === trackId)) return { error: "Track not found." };
+  if (c.clips.some((cl) => cl.trackId === trackId)) {
+    return { error: "Move or delete this track's clips before removing it." };
+  }
+  return studioCompositionSchema.parse({ ...c, tracks: c.tracks.filter((t) => t.id !== trackId) });
+}
+
 export function compositionDurationMs(c: StudioComposition): number {
   if (!c.clips.length) return 5000;
   return Math.max(1000, ...c.clips.map((cl) => cl.startMs + cl.durationMs));
