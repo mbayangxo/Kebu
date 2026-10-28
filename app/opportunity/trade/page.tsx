@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { OpportunityOsShell } from "@/app/components/opportunity/opportunity-os-shell";
+import { TrustLabelBadge } from "@/app/components/opportunity/trust-label-badge";
 import { KEBU } from "@/lib/kebu-brand";
 
 type TradeGap = {
@@ -70,14 +71,23 @@ export default function TradePage() {
           </div>
         ) : (
           <div className="space-y-4">
+            {gaps.some((g) => g.trust_label === "unverified_example") ? (
+              <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "#F59E0B", background: "#FEF3C7", color: "#92400E" }}>
+                Some pairs below are labeled <strong>unverified example</strong> content — imported for illustration, not
+                independently fact-checked. Only pairs without that badge are genuinely sourced from curated country data.
+              </div>
+            ) : null}
             {gaps.map((g) => (
               <article key={g.slug} className="rounded-2xl border bg-white p-6" style={{ borderColor: KEBU.border }}>
                 <p className="text-sm font-bold">
                   {g.origin_country_code} → {g.destination_country_code}: {g.product_category}
                 </p>
-                <p className="text-[9px] font-bold uppercase tracking-wider mt-1" style={{ color: KEBU.muted }}>
-                  {g.confidence === "exploratory" ? "Exploratory" : g.confidence}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                    {g.confidence === "exploratory" ? "Exploratory" : g.confidence}
+                  </span>
+                  <TrustLabelBadge trustLabel={g.trust_label} />
+                </div>
               </article>
             ))}
           </div>

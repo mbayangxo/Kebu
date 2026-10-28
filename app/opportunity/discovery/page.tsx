@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { OpportunityOsShell } from "@/app/components/opportunity/opportunity-os-shell";
+import { TrustLabelBadge } from "@/app/components/opportunity/trust-label-badge";
 import { Skeleton } from "@/app/components/kebu-skeleton";
 import { KEBU } from "@/lib/kebu-brand";
 import type { DiscoveryHypothesisDetail } from "@/lib/opportunity/explore-engines-schema";
@@ -81,6 +82,7 @@ export default function DiscoveryPage() {
                   <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
                     {h.confidence === "exploratory" ? "Exploratory" : h.confidence === "high" ? "High confidence" : "Medium confidence"}
                   </span>
+                  <TrustLabelBadge trustLabel={h.trustLabel} />
                 </div>
                 <h3 className="text-lg font-bold mb-2" style={{ fontFamily: "var(--font-fraunces)" }}>
                   {h.title}

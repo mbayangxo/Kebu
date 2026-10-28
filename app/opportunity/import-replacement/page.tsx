@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { OpportunityOsShell } from "@/app/components/opportunity/opportunity-os-shell";
+import { TrustLabelBadge } from "@/app/components/opportunity/trust-label-badge";
 import { Skeleton } from "@/app/components/kebu-skeleton";
 import { KEBU } from "@/lib/kebu-brand";
 import type { ImportReplacementDetail } from "@/lib/opportunity/explore-engines-schema";
@@ -87,6 +88,7 @@ export default function ImportReplacementPage() {
                   <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
                     {a.confidence === "exploratory" ? "Exploratory" : a.confidence === "high" ? "High confidence" : "Medium confidence"}
                   </span>
+                  <TrustLabelBadge trustLabel={a.trustLabel} />
                   <span
                     className="text-[9px] font-bold uppercase tracking-wider rounded-full px-2.5 py-1"
                     style={{
