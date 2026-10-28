@@ -11,6 +11,7 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+// @ts-expect-error — @types/pg is not in devDependencies; pg itself is present
 import { Pool } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { generateShopPoNumber } from "@/lib/shop/codes";
