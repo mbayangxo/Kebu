@@ -7,6 +7,7 @@ import {
   markCartDraftRecovered,
   recoveryWhatsAppHref,
   recoveryWhatsAppMessage,
+  resolveCartDraftLineDetails,
   sendCartRecoveryEmail,
   cartDraftItemCount,
 } from "@/lib/shop/cart-drafts";
@@ -114,11 +115,17 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   // send_recovery
+  const lineDetails = await resolveCartDraftLineDetails(
+    supabase,
+    projectId,
+    Array.isArray(draft.items) ? draft.items : [],
+  );
   const message = recoveryWhatsAppMessage({
     shopName,
     siteUrl,
     discountCode,
     customerName: draft.customer_name,
+    items: lineDetails,
   });
   const whatsappHref = draft.customer_phone
     ? recoveryWhatsAppHref(draft.customer_phone, message)
@@ -132,6 +139,7 @@ export async function PATCH(req: Request, { params }: Params) {
       shopName,
       siteUrl,
       discountCode,
+      items: lineDetails,
     });
     emailSent = sent.sent;
     emailReason = sent.reason;

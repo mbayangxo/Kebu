@@ -62,17 +62,53 @@ export function cartDraftItemCount(items: unknown): number {
   }, 0);
 }
 
+export type CartDraftLineDetail = { name: string; priceLabel: string | null; quantity: number };
+
+/** Resolve a draft's {productId, quantity} lines to real, currently-active product names/prices. */
+export async function resolveCartDraftLineDetails(
+  supabase: SupabaseClient,
+  projectId: string,
+  items: { productId?: string; quantity?: number }[],
+): Promise<CartDraftLineDetail[]> {
+  const ids = [...new Set(items.map((l) => l.productId).filter((id): id is string => typeof id === "string"))];
+  if (ids.length === 0) return [];
+  const { data } = await supabase
+    .from("project_products")
+    .select("id, name, price_label")
+    .eq("project_id", projectId)
+    .in("id", ids);
+  const byId = new Map((data ?? []).map((p) => [p.id as string, p]));
+  return items
+    .filter((it): it is { productId: string; quantity?: number } => typeof it.productId === "string")
+    .map((it) => {
+      const p = byId.get(it.productId);
+      return {
+        name: p ? (p.name as string) : "Item no longer available",
+        priceLabel: p ? ((p.price_label as string | null) ?? null) : null,
+        quantity: typeof it.quantity === "number" && it.quantity > 0 ? it.quantity : 1,
+      };
+    });
+}
+
+function formatLineDetailsText(lines: CartDraftLineDetail[]): string {
+  return lines
+    .map((l) => `${l.quantity}x ${l.name}${l.priceLabel ? ` (${l.priceLabel})` : ""}`)
+    .join(", ");
+}
+
 export function recoveryWhatsAppMessage(opts: {
   shopName: string;
   siteUrl: string;
   discountCode?: string | null;
   customerName?: string | null;
+  items?: CartDraftLineDetail[];
 }): string {
   const name = opts.customerName?.trim() || "there";
   const disc = opts.discountCode?.trim()
     ? `\nUse code ${opts.discountCode.trim()} at checkout if offered.`
     : "";
-  return `Hi ${name} — you left items in your cart at ${opts.shopName}. Finish here: ${opts.siteUrl}${disc}`;
+  const itemsLine = opts.items && opts.items.length > 0 ? `\nYour items: ${formatLineDetailsText(opts.items)}` : "";
+  return `Hi ${name} — you left items in your cart at ${opts.shopName}. Finish here: ${opts.siteUrl}${itemsLine}${disc}`;
 }
 
 export function recoveryWhatsAppHref(phone: string, message: string): string | null {
@@ -102,6 +138,7 @@ export async function sendCartRecoveryEmail(opts: {
   shopName: string;
   siteUrl: string;
   discountCode?: string | null;
+  items?: CartDraftLineDetail[];
 }): Promise<{ sent: boolean; reason?: string }> {
   const from = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
   if (!process.env.RESEND_API_KEY || !from) {
@@ -110,10 +147,18 @@ export async function sendCartRecoveryEmail(opts: {
   const disc = opts.discountCode?.trim()
     ? `<p>If we offered a code, use <strong>${opts.discountCode.trim()}</strong> at checkout.</p>`
     : "";
-  const text = `You left items in your cart at ${opts.shopName}. Finish here: ${opts.siteUrl}${
+  const itemsHtml =
+    opts.items && opts.items.length > 0
+      ? `<ul>${opts.items
+          .map((l) => `<li>${l.quantity}x ${l.name}${l.priceLabel ? ` — ${l.priceLabel}` : ""}</li>`)
+          .join("")}</ul>`
+      : "";
+  const itemsText =
+    opts.items && opts.items.length > 0 ? ` Your items: ${formatLineDetailsText(opts.items)}.` : "";
+  const text = `You left items in your cart at ${opts.shopName}.${itemsText} Finish here: ${opts.siteUrl}${
     opts.discountCode ? ` Code: ${opts.discountCode}` : ""
   }`;
-  const html = `<p>You left items in your cart at <strong>${opts.shopName}</strong>.</p><p><a href="${opts.siteUrl}">Finish your order</a></p>${disc}<p style="font-size:12px;opacity:0.7">This is not a payment receipt.</p>`;
+  const html = `<p>You left items in your cart at <strong>${opts.shopName}</strong>.</p>${itemsHtml}<p><a href="${opts.siteUrl}">Finish your order</a></p>${disc}<p style="font-size:12px;opacity:0.7">This is not a payment receipt.</p>`;
   const ok = await sendCampaignEmail({
     to: opts.to,
     from,
