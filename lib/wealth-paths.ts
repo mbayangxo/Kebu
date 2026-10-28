@@ -1,3 +1,18 @@
+/**
+ * Real, substantial content — not a duplicate of anything. Checked against
+ * both other "WEALTH_PATHS"-named identifiers in this codebase before
+ * concluding that: app/compare/page.tsx's local array is just 7 short label
+ * strings feeding a different data source (lib/data/migration-data.ts's
+ * route-vs-local-path comparison numbers), and app/starts/page.tsx's two
+ * locals are `Object.keys()` of an icon lookup for displaying submitted
+ * "Start" stories. Neither overlaps this file's actual content (milestones,
+ * programs, prefilled goals per persona) — they were only ever name-alike,
+ * renamed to WEALTH_PATH_LABELS / WEALTH_PATH_FILTER_OPTIONS to stop that
+ * confusion. This file itself has no importer anywhere and no page renders
+ * it — it needs a real UI home (a "pick your path" explainer is the shape
+ * this data is clearly built for) before it does anything, which is new
+ * feature work, not a fix.
+ */
 export interface WealthPath {
   id: string;
   persona: string;

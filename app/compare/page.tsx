@@ -5,7 +5,7 @@ import { Nav } from "@/app/components/nav";
 import { getMigrationData, type MigrationRoute, type WealthPathLocal } from "@/lib/data/migration-data";
 import Link from "next/link";
 
-const WEALTH_PATHS = [
+const WEALTH_PATH_LABELS = [
   "Farmer / Producer",
   "Creator / Freelancer",
   "Tech Founder",
@@ -240,7 +240,7 @@ export default function ComparePage() {
           <h2 className="font-display text-xl font-bold text-ink mb-2">What kind of business would you build?</h2>
           <p className="text-xs text-muted mb-4">Select the path that fits you — the comparison adjusts to show your specific starting position.</p>
           <div className="flex flex-wrap gap-2">
-            {WEALTH_PATHS.map(p => (
+            {WEALTH_PATH_LABELS.map(p => (
               <button
                 key={p}
                 onClick={() => handleSelect(p)}

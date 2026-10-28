@@ -128,7 +128,7 @@ function AddStartForm({ onSuccess }: { onSuccess: (start: LocalStart) => void })
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
 
   const REGIONS = SENEGAL_REGIONS_WITH_COORDS.map(r => r.region);
-  const WEALTH_PATHS = Object.keys(WEALTH_PATH_ICONS);
+  const WEALTH_PATH_FILTER_OPTIONS = Object.keys(WEALTH_PATH_ICONS);
   const STRUCTURES = ["GIE", "Auto-Entrepreneur", "SARL", "Commerçant (RC)", "Informal (planning to register)"];
 
   async function submit(e: React.FormEvent) {
@@ -238,7 +238,7 @@ function AddStartForm({ onSuccess }: { onSuccess: (start: LocalStart) => void })
         <div>
           <label className="text-xs font-bold text-ink block mb-1.5">Wealth path (closest match)</label>
           <div className="flex flex-wrap gap-1.5">
-            {WEALTH_PATHS.map(p => (
+            {WEALTH_PATH_FILTER_OPTIONS.map(p => (
               <button key={p} type="button" onClick={() => setWealthPath(p)}
                 className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
                   wealthPath === p ? "bg-deep-green text-ivory border-deep-green" : "bg-white text-ink border-border hover:border-deep-green"
@@ -291,7 +291,7 @@ export default function StartsPage() {
     return true;
   });
 
-  const WEALTH_PATHS = Object.keys(WEALTH_PATH_ICONS);
+  const WEALTH_PATH_FILTER_OPTIONS = Object.keys(WEALTH_PATH_ICONS);
 
   return (
     <div className="min-h-screen bg-warm-ivory">
@@ -335,7 +335,7 @@ export default function StartsPage() {
           >
             All paths
           </button>
-          {WEALTH_PATHS.map(p => (
+          {WEALTH_PATH_FILTER_OPTIONS.map(p => (
             <button
               key={p}
               onClick={() => setFilterPath(filterPath === p ? null : p)}
