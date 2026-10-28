@@ -3,24 +3,35 @@
 import { useCallback, useEffect, useState } from "react";
 import { KEBU } from "@/lib/kebu-brand";
 
-type POItem = {
+type FormItem = {
   product_name: string;
   sku: string;
   quantity: number;
   unit_cost_xof?: number;
 };
 
+type POItem = {
+  id: string;
+  product_name: string;
+  sku: string | null;
+  qty_ordered: number;
+  qty_received: number;
+  unit_cost_xof: number;
+  line_total_xof: number;
+};
+
 type PurchaseOrder = {
   id: string;
   po_number: string | null;
   supplier_name: string;
-  supplier_contact: string;
+  supplier_phone: string | null;
+  supplier_email: string | null;
   items: POItem[];
-  total_amount_xof: number;
-  status: "pending" | "received" | "cancelled";
+  total_xof: number;
+  status: "draft" | "ordered" | "partial" | "received" | "cancelled";
   expected_at: string | null;
   received_at: string | null;
-  note: string;
+  note: string | null;
   created_at: string;
 };
 
@@ -34,12 +45,14 @@ function today(): string {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  pending: { bg: "#fef9c3", color: "#92400e" },
+  draft: { bg: "#f1f1f1", color: "#525252" },
+  ordered: { bg: "#fef9c3", color: "#92400e" },
+  partial: { bg: "#fef3c7", color: "#92400e" },
   received: { bg: "#dcfce7", color: "#15803d" },
   cancelled: { bg: "#fee2e2", color: "#991b1b" },
 };
 
-const EMPTY_ITEM: POItem = { product_name: "", sku: "", quantity: 1, unit_cost_xof: undefined };
+const EMPTY_ITEM: FormItem = { product_name: "", sku: "", quantity: 1, unit_cost_xof: undefined };
 
 export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -54,10 +67,11 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
 
   // Form state
   const [supplierName, setSupplierName] = useState("");
-  const [supplierContact, setSupplierContact] = useState("");
+  const [supplierPhone, setSupplierPhone] = useState("");
+  const [supplierEmail, setSupplierEmail] = useState("");
   const [expectedAt, setExpectedAt] = useState("");
   const [note, setNote] = useState("");
-  const [items, setItems] = useState<POItem[]>([{ ...EMPTY_ITEM }]);
+  const [items, setItems] = useState<FormItem[]>([{ ...EMPTY_ITEM }]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,16 +102,15 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
     setSaving(true);
     setSaveError(null);
     try {
-      const totalXof = items.reduce((s, i) => s + (i.unit_cost_xof ?? 0) * i.quantity, 0);
       const res = await fetch(`/api/projects/${projectId}/purchase-orders`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           supplier_name: supplierName.trim(),
-          supplier_contact: supplierContact.trim(),
+          supplier_phone: supplierPhone.trim(),
+          supplier_email: supplierEmail.trim(),
           items,
-          total_amount_xof: totalXof || undefined,
           expected_at: expectedAt || undefined,
           note,
         }),
@@ -108,7 +121,8 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
         return;
       }
       setSupplierName("");
-      setSupplierContact("");
+      setSupplierPhone("");
+      setSupplierEmail("");
       setExpectedAt("");
       setNote("");
       setItems([{ ...EMPTY_ITEM }]);
@@ -136,7 +150,7 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
     }
   }
 
-  function updateItem(idx: number, field: keyof POItem, value: string | number) {
+  function updateItem(idx: number, field: keyof FormItem, value: string | number) {
     setItems((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
   }
 
@@ -170,7 +184,7 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
             Purchase orders table not set up yet
           </p>
           <p className="mt-1 text-xs" style={{ color: KEBU.muted }}>
-            Ask Kebu support to run migration 061 (shop_purchase_orders table).
+            Ask Kebu support to run migration 088 (shop_purchase_orders table).
           </p>
         </div>
       ) : null}
@@ -200,14 +214,27 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
             </div>
             <div>
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
-                Supplier contact
+                Supplier phone
               </label>
               <input
                 className="w-full rounded-xl border px-3 py-2 text-sm"
                 style={{ borderColor: KEBU.border }}
-                value={supplierContact}
-                onChange={(e) => setSupplierContact(e.target.value)}
+                value={supplierPhone}
+                onChange={(e) => setSupplierPhone(e.target.value)}
                 placeholder="+225 07 00 00 00 00"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>
+                Supplier email
+              </label>
+              <input
+                type="email"
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+                style={{ borderColor: KEBU.border }}
+                value={supplierEmail}
+                onChange={(e) => setSupplierEmail(e.target.value)}
+                placeholder="fournisseur@example.com"
               />
             </div>
             <div>
@@ -333,7 +360,7 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
       ) : (
         <ul className="space-y-3">
           {orders.map((po) => {
-            const colors = STATUS_COLORS[po.status] ?? STATUS_COLORS.pending;
+            const colors = STATUS_COLORS[po.status] ?? STATUS_COLORS.ordered;
             return (
               <li
                 key={po.id}
@@ -365,7 +392,7 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
                       </p>
                       <p className="mt-0.5 text-xs" style={{ color: KEBU.muted }}>
                         {po.items?.length ?? 0} item{(po.items?.length ?? 0) !== 1 ? "s" : ""}
-                        {po.total_amount_xof ? ` · ${formatXof(po.total_amount_xof)}` : ""}
+                        {po.total_xof ? ` · ${formatXof(po.total_xof)}` : ""}
                         {po.expected_at ? ` · Expected ${po.expected_at}` : ""}
                       </p>
                     </div>
@@ -375,9 +402,19 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
 
                 {expanded === po.id ? (
                   <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: KEBU.border }}>
-                    {po.supplier_contact ? (
+                    {po.supplier_phone || po.supplier_email ? (
                       <p className="text-xs" style={{ color: KEBU.muted }}>
-                        Contact: <a href={`tel:${po.supplier_contact}`} className="underline" style={{ color: KEBU.orange }}>{po.supplier_contact}</a>
+                        {po.supplier_phone ? (
+                          <>
+                            Phone: <a href={`tel:${po.supplier_phone}`} className="underline" style={{ color: KEBU.orange }}>{po.supplier_phone}</a>
+                          </>
+                        ) : null}
+                        {po.supplier_phone && po.supplier_email ? " · " : ""}
+                        {po.supplier_email ? (
+                          <>
+                            Email: <a href={`mailto:${po.supplier_email}`} className="underline" style={{ color: KEBU.orange }}>{po.supplier_email}</a>
+                          </>
+                        ) : null}
                       </p>
                     ) : null}
                     {Array.isArray(po.items) && po.items.length > 0 ? (
@@ -387,14 +424,16 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
                             <th className="pb-1">Product</th>
                             <th className="pb-1 text-right">Qty</th>
                             <th className="pb-1 text-right">Unit cost</th>
+                            <th className="pb-1 text-right">Line total</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {po.items.map((item, i) => (
-                            <tr key={i}>
+                          {po.items.map((item) => (
+                            <tr key={item.id}>
                               <td className="py-0.5">{item.product_name}{item.sku ? ` (${item.sku})` : ""}</td>
-                              <td className="py-0.5 text-right">{item.quantity}</td>
+                              <td className="py-0.5 text-right">{item.qty_ordered}</td>
                               <td className="py-0.5 text-right">{item.unit_cost_xof ? formatXof(item.unit_cost_xof) : "—"}</td>
+                              <td className="py-0.5 text-right">{item.line_total_xof ? formatXof(item.line_total_xof) : "—"}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -402,7 +441,7 @@ export function ShopPurchaseOrdersPanel({ projectId }: { projectId: string }) {
                     ) : null}
                     {po.note ? <p className="text-xs italic" style={{ color: KEBU.muted }}>{po.note}</p> : null}
 
-                    {po.status === "pending" ? (
+                    {po.status === "ordered" || po.status === "partial" ? (
                       <div className="flex gap-2">
                         <button
                           type="button"

@@ -88,3 +88,17 @@ function fallbackOrderNumber(projectId: string): string {
   const r = Math.random().toString(36).toUpperCase().slice(2, 5);
   return `ORD-${hex}-${t}${r}`.slice(0, 24);
 }
+
+/**
+ * Purchase-order number — no dedicated counter table exists for POs (a merchant
+ * creates far fewer of these than customer orders), so this always uses the
+ * same timestamp+random fallback style `allocateShopOrderNumber` falls back to
+ * when its own counter table is missing, rather than building a new counters
+ * table for a low-volume, internal-only identifier.
+ */
+export function generateShopPoNumber(projectId: string): string {
+  const hex = projectId.replace(/-/g, "").slice(0, 4).toUpperCase() || "KEBU";
+  const t = Date.now().toString(36).toUpperCase().slice(-5);
+  const r = Math.random().toString(36).toUpperCase().slice(2, 5);
+  return `PO-${hex}-${t}${r}`.slice(0, 24);
+}
