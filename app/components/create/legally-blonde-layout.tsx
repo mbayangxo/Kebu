@@ -1,12 +1,13 @@
 "use client";
 import type { CollageVideo } from "@/lib/create/collage-video";
+import type { CollageText } from "@/lib/create/collage-text";
 
 import { LegallyBlondeEditCanvas } from "./legally-blonde-edit-canvas";
 import { SiteThemeFonts } from "./site-theme-fonts";
 import type { LayerMotion } from "./circular-brand-ring";
 import type { BuilderElementSelection } from "@/lib/create/builder-selection";
 
-export type ExtraCutout = {
+export type ExtraCutout = Partial<CollageText> & {
   id: string;
   src: string;
   alt?: string;

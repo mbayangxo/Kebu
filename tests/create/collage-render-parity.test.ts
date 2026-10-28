@@ -32,6 +32,16 @@ describe("saved collage visitor rendering", () => {
     expect(html).not.toContain('data-kebu-layer="cutoutAccent"');
   });
 
+  it("renders an extra cutout's saved stacking order and honors an explicit override", () => {
+    const props = defaultMaylecorKsendrProps();
+    const base = renderToStaticMarkup(createElement(LegallyBlondeHeroLayout, { props }));
+    expect(base).toMatch(/data-kebu-source="may-city-skyline"[^>]*z-index:5/);
+    const adjusted = renderToStaticMarkup(createElement(LegallyBlondeHeroLayout, {
+      props: { ...props, layerZIndex: { "may-city-skyline": 19 } },
+    }));
+    expect(adjusted).toMatch(/data-kebu-source="may-city-skyline"[^>]*z-index:19/);
+  });
+
   it("offers a public collage section without private May or Russian photos", () => {
     expect(BUILDER_SECTION_CATALOG.find(item => item.type === "legally-blonde-hero")?.label).toBe("Cutout collage");
     const html = renderToStaticMarkup(createElement(LegallyBlondeHeroLayout, { props: defaultCutoutCollageProps() }));

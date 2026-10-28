@@ -30,7 +30,7 @@ export const plannedNodeSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("image"), ...placement, props: imagePropsSchema, overrides: overrides(imagePropsSchema.partial()) }),
   z.strictObject({ type: z.literal("video"), ...placement, props: videoPropsSchema, overrides: overrides(videoPropsSchema.partial()) }),
 ]);
-export const sitePlanSchema = z.strictObject({ version: z.literal(1), summary: note(1500), warnings: z.array(note(500)).max(12), pages: z.array(z.strictObject({ slug: note(60).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), title: note(120), purpose: note(1000), nodes: z.array(plannedNodeSchema).min(1).max(100) })).min(1).max(12) });
+export const sitePlanSchema = z.strictObject({ version: z.literal(1), summary: note(1500), warnings: z.array(note(500)).max(12), pages: z.array(z.strictObject({ slug: note(60).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), title: note(120), purpose: note(1000), nodes: z.array(plannedNodeSchema).min(1).max(100) })).min(1).max(20) });
 export type SitePlan = z.infer<typeof sitePlanSchema>;
 export const experienceSourceSchema = z.strictObject({ dnaRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), bindingRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), profileId: z.string().uuid().nullable(), profileRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), versions: z.record(z.string().uuid(), z.number().int().positive()) });
 export type ExperienceSource = z.infer<typeof experienceSourceSchema>;

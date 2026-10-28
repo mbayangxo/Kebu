@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { collageVideoProgress, collageVideoTransform, type CollageVideo } from "@/lib/create/collage-video";
+import { collageVideoClip, collageVideoProgress, collageVideoTransform, type CollageVideo } from "@/lib/create/collage-video";
 import { resolveCutoutHref, cutoutHrefToPageSlug } from "@/lib/create/cutout-links";
 
 /** Shared editor/preview/visitor media. Scroll scrubbing never starts audio. */
@@ -45,7 +45,7 @@ export function CollageVideoLayer({ layer, progress, motionEnabled, editing, sit
   useEffect(() => { if (layer.mode === "scrub" && enabled && visible) seekToProgress(); }, [layer.mode, enabled, visible, position]);
   if (!layer.src) return editing ? <p role="status" className="absolute left-4 top-24 z-20 rounded bg-white p-3 text-sm text-black">Choose a video in Video layers.</p> : null;
   return <figure ref={frame} data-collage-video={layer.id} className="absolute m-0" style={{ left:`${layer.leftPct}%`, top:`${layer.topPct}%`, width:`${layer.widthPct}%`, zIndex:layer.zIndex, transform:collageVideoTransform(layer,progress,enabled) }}>
-    <div className="relative overflow-hidden bg-black" style={{borderRadius:layer.radius,aspectRatio:layer.aspectRatio}}>
+    <div data-video-frame={layer.frameShape??'rectangle'} className="relative overflow-hidden bg-black" style={{borderRadius:layer.radius,aspectRatio:layer.aspectRatio,clipPath:layer.mode!=='controls'&&enabled&&!blocked&&!scrubUnavailable?collageVideoClip(layer.frameShape):undefined,border:`${layer.frameWidth??0}px solid ${layer.frameColor??'#ffffff'}`}}>
       <video key={`${layer.src}:${retry}`} ref={video} aria-label={layer.label} src={layer.src} poster={layer.poster || undefined}
         className="h-full w-full object-cover" playsInline controls={layer.mode === "controls" || !enabled || blocked || scrubUnavailable}
         muted={layer.mode !== "controls"} loop={layer.mode === "loop"} preload={visible || editing ? "metadata" : "none"}
@@ -55,7 +55,7 @@ export function CollageVideoLayer({ layer, progress, motionEnabled, editing, sit
         onSeeked={() => { if (layer.mode === "scrub" && enabled) seekToProgress(); }}>
         {layer.captionsSrc ? <track kind="captions" src={layer.captionsSrc} srcLang={layer.captionsLanguage} label={layer.captionsLanguage} /> : null}
       </video>
-      {layer.mode === "loop" && enabled && !failed ? <button type="button" className="absolute right-3 top-3 min-h-11 rounded-full bg-white px-4 text-xs text-black" onClick={() => {
+      {layer.mode === "loop" && enabled && !failed ? <button type="button" className="absolute left-1/2 top-3 min-h-11 -translate-x-1/2 rounded-full bg-white px-4 text-xs text-black" onClick={() => {
         const element=video.current; if (!element) return;
         if (playing) { setUserPaused(true); element.pause(); }
         else { setUserPaused(false); element.play().then(()=>setBlocked(false)).catch(()=>setBlocked(true)); }

@@ -9,7 +9,7 @@ export const experienceDnaSchema = z.strictObject({
   version: z.literal(1), goal: required(1500), audience: required(1500),
   visitorAction: required(500), experience: z.string().trim().max(1500),
   references: z.array(z.strictObject({ url: referenceUrl, label: required(120), observations: required(1500) })).max(12),
-  pages: z.array(z.strictObject({ slug: required(60).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), title: required(120), purpose: required(1000) })).min(1).max(12),
+  pages: z.array(z.strictObject({ slug: required(60).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), title: required(120), purpose: required(1000) })).min(1).max(20),
 }).superRefine((dna, context) => {
   if (!dna.pages.some(page => page.slug === "home")) context.addIssue({ code: "custom", path: ["pages"], message: "Keep a home page in the desired plan." });
   if (new Set(dna.pages.map(page => page.slug)).size !== dna.pages.length) context.addIssue({ code: "custom", path: ["pages"], message: "Desired page addresses must be unique." });

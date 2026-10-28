@@ -3196,6 +3196,8 @@ export function SiteRenderer({
         editingPreview && !sideNav ? " flex min-h-full flex-col" : ""
       }`}
       data-kebu-button={theme.buttonStyle ?? "solid"}
+      data-kebu-aesthetic={theme.aestheticId}
+      data-kebu-page={page.slug}
       style={{
         ...themeVars,
         ...shellStyle,

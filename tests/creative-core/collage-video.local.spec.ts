@@ -8,7 +8,7 @@ async function serveVideo(route: Route) {
   const body=bytes.subarray(start,end+1);
   await route.fulfill({status:range?206:200,contentType:'video/webm',headers:{'Accept-Ranges':'bytes','Content-Length':String(body.length),...(range?{'Content-Range':`bytes ${start}-${end}/${bytes.length}`}:{})},body});
 }
-async function create(page: Page,mode='scrub',seekable=true) {
+async function create(page: Page,mode='scrub',seekable=true,shape='rectangle') {
   await page.route('**/qa-native-video.webm',seekable?serveVideo:route=>route.fulfill({status:200,contentType:'video/webm',body:bytes}));
   await page.goto('/video-scene-local-probe');
   await expect(page.getByTestId('video-fixture-ready')).toHaveAttribute('data-ready','true');
@@ -16,6 +16,8 @@ async function create(page: Page,mode='scrub',seekable=true) {
   await page.getByRole('button',{name:'Add video layer',exact:true}).click();
   const src=page.getByLabel('Video file address',{exact:true});await src.fill('/qa-native-video.webm');await src.press('Tab');
   await page.getByLabel('Video playback',{exact:true}).selectOption(mode);
+  await page.getByLabel('Video frame shape',{exact:true}).selectOption(shape);
+  await page.getByLabel('Video frame width',{exact:true}).fill('4');
   await page.getByLabel('Video horizontal travel (px)',{exact:true}).fill('160');
   await page.getByLabel('Video vertical travel (px)',{exact:true}).fill('0');
   await page.getByLabel('Video page link',{exact:true}).fill('/music');await page.getByLabel('Video page link',{exact:true}).press('Tab');
@@ -24,6 +26,18 @@ async function create(page: Page,mode='scrub',seekable=true) {
   await page.mouse.move(10,100);await page.mouse.wheel(0,-5000);
   await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBe(0);
 }
+
+for(const shape of ['oval','torn','ticket']) test(`saved ${shape} video frame preserves its shape after reload`,async({page})=>{
+  await create(page,'loop',true,shape);
+  await expect(page.locator('[data-video-frame]')).toHaveAttribute('data-video-frame',shape);
+  expect(await page.locator('[data-video-frame]').evaluate(el=>getComputedStyle(el).clipPath)).not.toBe('none');
+  await page.reload();
+  await expect(page.getByTestId('video-fixture-ready')).toHaveAttribute('data-ready','true');
+  await page.getByRole('button',{name:'Load local fixture',exact:true}).click();
+  await page.getByRole('button',{name:'Preview video scene',exact:true}).click();
+  await expect(page.locator('[data-video-frame]')).toHaveAttribute('data-video-frame',shape);
+  await expect(page.locator('[data-video-frame]')).toHaveCSS('border-top-width','4px');
+});
 
 test('real media frames follow scrolling and geometry, then a linked video opens another themed page',async({page})=>{
   await page.setViewportSize({width:1440,height:900});

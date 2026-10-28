@@ -29,42 +29,50 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const [country, setCountryState] = useState("");
 
   useEffect(() => {
-    const savedLang = localStorage.getItem("alkebulan_lang");
-    const savedCurrency = localStorage.getItem("alkebulan_currency");
-    const savedCountry = localStorage.getItem("alkebulan_country");
+    // Reading localStorage can throw (private browsing, blocked storage) — never
+    // let that take down the subtree below the provider.
+    try {
+      const savedLang = localStorage.getItem("alkebulan_lang");
+      const savedCurrency = localStorage.getItem("alkebulan_currency");
+      const savedCountry = localStorage.getItem("alkebulan_country");
 
-    if (savedLang) {
-      setLangState(savedLang);
-    } else {
-      const detected = detectLanguageFromBrowser();
-      setLangState(detected);
+      if (savedLang) {
+        setLangState(savedLang);
+      } else {
+        const detected = detectLanguageFromBrowser();
+        setLangState(detected);
+      }
+      if (savedCurrency) setCurrencyState(savedCurrency);
+      if (savedCountry) setCountryState(savedCountry);
+    } catch {
+      // Storage blocked — keep the English/USD defaults already in state.
     }
-    if (savedCurrency) setCurrencyState(savedCurrency);
-    if (savedCountry) setCountryState(savedCountry);
   }, []);
 
   function setLang(lang: string) {
     setLangState(lang);
-    localStorage.setItem("alkebulan_lang", lang);
+    try { localStorage.setItem("alkebulan_lang", lang); } catch { /* storage blocked — in-memory selection still applies this session */ }
   }
 
   function setCurrency(currency: string) {
     setCurrencyState(currency);
-    localStorage.setItem("alkebulan_currency", currency);
+    try { localStorage.setItem("alkebulan_currency", currency); } catch { /* storage blocked */ }
   }
 
   function setCountry(country: string) {
     setCountryState(country);
-    localStorage.setItem("alkebulan_country", country);
+    try { localStorage.setItem("alkebulan_country", country); } catch { /* storage blocked */ }
     // Auto-set language and currency based on country
     const defaults = COUNTRY_LOCALE[country];
     if (defaults) {
-      if (!localStorage.getItem("alkebulan_lang_manual")) {
-        setLang(defaults.lang);
-      }
-      if (!localStorage.getItem("alkebulan_currency_manual")) {
-        setCurrency(defaults.currency);
-      }
+      let langIsManual = false;
+      let currencyIsManual = false;
+      try {
+        langIsManual = Boolean(localStorage.getItem("alkebulan_lang_manual"));
+        currencyIsManual = Boolean(localStorage.getItem("alkebulan_currency_manual"));
+      } catch { /* storage blocked — treat as not manually overridden */ }
+      if (!langIsManual) setLang(defaults.lang);
+      if (!currencyIsManual) setCurrency(defaults.currency);
     }
   }
 
@@ -72,9 +80,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     return translate(lang, key);
   }
 
-  // Keep the provider in the tree from SSR through preference loading.
-  // Swapping a Fragment for this provider remounts every descendant and
-  // discards drafts typed while the initial effect is still running.
+  // Always render the same Provider element — never swap it for a Fragment
+  // based on an async-ready flag, which would remount (and discard the state
+  // of) everything below it the instant the stored preference loads.
   return (
     <LocaleContext.Provider value={{ lang, currency, country, setLang, setCurrency, setCountry, t }}>
       {children}

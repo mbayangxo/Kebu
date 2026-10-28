@@ -22,5 +22,15 @@ test.skipIf(!process.env.KEBU_LOCAL_PGLITE_ROOT)("collage responsive image field
       expect(server.current().nodes[id].overrides[device]).toMatchObject({layerWidthScale:{cutoutAccent:.95}});
       expect(server.current().nodes[id].props.layerWidthScale).toBeUndefined();
     }
+    doc=server.current();
+    const text={id:'story-text',src:'',kind:'text',text:'May’s story',leftPct:10,topPct:20,widthPct:60,fontSize:96,fontFamily:'editorial',textColor:'#e9006b',outlineColor:'#ffffff',outlineWidth:4,zIndex:20};
+    ops=builderPatchOperations(doc.nodes[id],{extraCutouts:[text]});
+    await server.apply({txId:crypto.randomUUID(),origin:'user',label:'Save editable scene text',ops,expect:expectFor(doc,ops)});
+    expect((await server.read()).nodes[id].props.extraCutouts).toEqual(expect.arrayContaining([expect.objectContaining({kind:'text',text:'May’s story',outlineWidth:4})]));
+    doc=server.current();
+    const mobilePatch=deviceScopedPatch('legally-blonde-hero',writeRowProps(doc.nodes[id]),'mobile',{extraCutouts:[{...text,leftPct:22,fontSize:72}]});
+    ops=builderPatchOperations(doc.nodes[id],mobilePatch);
+    await server.apply({txId:crypto.randomUUID(),origin:'user',label:'Save phone scene text',ops,expect:expectFor(doc,ops)});
+    expect((await server.read()).nodes[id].overrides.mobile?.extraCutouts).toEqual(expect.arrayContaining([expect.objectContaining({kind:'text',leftPct:22,fontSize:72})]));
   } finally { await server.close(); }
 }, 60000);

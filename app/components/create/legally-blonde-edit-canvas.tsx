@@ -1,6 +1,8 @@
 "use client";
 import { CollageVideoLayer } from "./collage-video-layer";
 import { collageVideosSchema } from "@/lib/create/collage-video";
+import { CollageTextLayer } from "./collage-text-layer";
+import type { CollageText } from "@/lib/create/collage-text";
 
 /**
  * Shopify-style May Lecor / Legally Blonde canvas.
@@ -103,7 +105,7 @@ function slotFallbackSrc(key: string, props: Record<string, unknown>): string {
 }
 
 type LayerPos = { leftPct: number; topPct: number };
-type ExtraCut = {
+type ExtraCut = Partial<CollageText> & {
   id: string;
   src: string;
   alt?: string;
@@ -170,6 +172,12 @@ export function LegallyBlondeEditCanvas({
   const layerRotation = (props.layerRotation as Record<string, number>) ?? {};
   const lockedLayers = Array.isArray(props.lockedLayers) ? (props.lockedLayers as string[]) : [];
 
+  function layerOrder(key: string) {
+    return typeof layerZ[key] === "number"
+      ? layerZ[key]!
+      : extraCutouts.find((cut) => cut.id === key)?.zIndex ?? 10;
+  }
+
   function toggleLayerLocked(key: string) {
     onPatch({
       lockedLayers: lockedLayers.includes(key)
@@ -189,7 +197,7 @@ export function LegallyBlondeEditCanvas({
   }
 
   function stepLayer(key: string, delta: -1 | 1) {
-    const current = typeof layerZ[key] === "number" ? layerZ[key]! : 10;
+    const current = layerOrder(key);
     const next = Math.min(80, Math.max(1, current + delta));
     const extras = extraCutouts.map((cut) =>
       cut.id === key ? { ...cut, zIndex: next } : cut,
@@ -216,7 +224,8 @@ export function LegallyBlondeEditCanvas({
       topPct: Math.min(90, position.topPct + 3),
       widthPct: Math.max(4, source.widthPct * currentScale),
       rotate: source.rotate ?? 0,
-      zIndex: Math.min(80, (typeof layerZ[key] === "number" ? layerZ[key]! : 10) + 1),
+      zIndex: Math.min(80, layerOrder(key) + 1),
+      ...("parallaxRole" in source ? { parallaxRole: source.parallaxRole } : {}),
     };
     onPatch({
       extraCutouts: [...extraCutouts, duplicate],
@@ -245,7 +254,7 @@ export function LegallyBlondeEditCanvas({
       ? (props.extraCutouts as { id?: string }[]).map((c) => c.id ?? "")
       : [];
     const otherKeys = [...allSlotKeys, ...allExtraIds].filter((k) => k && k !== key);
-    const othersZ = otherKeys.map((k) => (typeof layerZ[k] === "number" ? layerZ[k]! : 10));
+    const othersZ = otherKeys.map(layerOrder);
     const maxOther = othersZ.length > 0 ? Math.max(...othersZ) : 10;
     const minOther = othersZ.length > 0 ? Math.min(...othersZ) : 10;
     // Bring to Front = above everyone; Send to Back = below everyone
@@ -498,6 +507,7 @@ export function LegallyBlondeEditCanvas({
           backgroundPosition: "center",
           touchAction: editable ? "none" : "pan-y",
           cursor: busy ? "wait" : "default",
+          containerType: "inline-size",
         }}
         onClick={(e) => {
           if (!editable || e.target !== e.currentTarget) return;
@@ -655,7 +665,7 @@ export function LegallyBlondeEditCanvas({
         })}
 
         {extraCutouts
-          .filter((c) => c.src && !hiddenLayers.includes(c.id))
+          .filter((c) => c.kind !== "text" && c.src && !hiddenLayers.includes(c.id))
           .map((cut) => {
             const scale = scales[cut.id] ?? 1;
             const pos = positions[cut.id] ?? { leftPct: cut.leftPct, topPct: cut.topPct };
@@ -694,7 +704,7 @@ export function LegallyBlondeEditCanvas({
                   });
                 }}
                 onOpenLink={() => openCutoutLink(cut.href ?? "")}
-                zIndex={typeof layerZ[cut.id] === "number" ? layerZ[cut.id]! : 10}
+                zIndex={layerOrder(cut.id)}
                 opacity={typeof layerOpacity[cut.id] === "number" ? layerOpacity[cut.id]! : 1}
                 rotation={typeof layerRotation[cut.id] === "number" ? layerRotation[cut.id]! : cut.rotate ?? 0}
                 locked={lockedLayers.includes(cut.id)}
@@ -746,6 +756,8 @@ export function LegallyBlondeEditCanvas({
               />
             );
           })}
+
+        {extraCutouts.filter(c=>c.kind==='text'&&!hiddenLayers.includes(c.id)).map(c=><CollageTextLayer key={c.id} layer={{...c,leftPct:positions[c.id]?.leftPct??c.leftPct,topPct:positions[c.id]?.topPct??c.topPct,zIndex:layerOrder(c.id)}} progress={parallax?scrollProgress:0} travel={(props.layerScroll as Record<string,{x:number;y:number}>|undefined)?.[c.id]} editing={editable} onMove={(leftPct,topPct)=>onPatch({extraCutouts:extraCutouts.map(item=>item.id===c.id?{...item,leftPct,topPct}:item),layerPositions:{...positions,[c.id]:{leftPct,topPct}}})} />)}
 
         {snapGuide.x ? (
           <div

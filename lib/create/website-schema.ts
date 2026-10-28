@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { collageVideosSchema } from "./collage-video";
+import { collageTextFields } from "./collage-text";
 import { creativeWorldSchema } from "./creative-world";
 import { siteSeoSchema, containsUnsafeSiteContent } from "./site-seo";
 import { navLinksArraySchema } from "./maylecor-nav";
@@ -1214,6 +1215,7 @@ export const sectionPropsSchemas = {
             rotate: z.number().min(-45).max(45).optional().default(0),
             zIndex: z.number().int().min(1).max(80).optional().default(12),
             parallaxRole: z.enum(["city", "figure", "none"]).optional().default("none"),
+            ...collageTextFields.shape,
           }),
         )
         .max(12)

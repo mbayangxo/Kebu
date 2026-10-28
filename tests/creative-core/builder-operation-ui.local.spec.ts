@@ -94,6 +94,19 @@ test("property save → operation Undo/Redo → reload uses canonical storage an
   expect(server.legacyWrites).toEqual([]); expect(errors).toEqual([]);
   await page.screenshot({ path: "evidence/3c/s5/local-builder-1440.png" });
 });
+test("phone user edits, saves and reopens a draft", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const server = await authority(page);
+  await openInspector(page);
+  await page.getByRole("textbox", { name: "Hero heading" }).fill("Saved from phone");
+  await expect.poll(() => server.document().nodes[id].props.heading).toBe("Saved from phone");
+  await expect(page.getByText("Draft saved", { exact: true }).first()).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Build", exact: true }).first().click();
+  await page.getByRole("button", { name: "Edit section", exact: true }).first().click();
+  await expect(page.getByRole("textbox", { name: "Hero heading" })).toHaveValue("Saved from phone");
+  expect(server.legacyWrites).toEqual([]);
+});
 test("conflict preserves the user's edit and shows the failure", async ({ page }) => {
   const server = await authority(page, "conflict"); await openInspector(page);
   await page.getByRole("textbox", { name: "Hero heading" }).fill("My pending edit");

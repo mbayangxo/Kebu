@@ -1,5 +1,7 @@
 # Kebu completion queue — October 11, 2026 UTC
 
+> Current consolidated state: [KEBU_CURRENT_STATE.md](KEBU_CURRENT_STATE.md). Dated entries below are historical evidence; they do not establish current release readiness.
+
 ## October 22 — Yande proposals and approved media verified
 
 Runtime **5cd43a35e5f8379124ab71cc2568be3eeddeae2b** is integrated and reread on recovery. Builder improvements and native Experience now share Yande with authenticated owner attribution, preserving submit_proposal, cancellation, bounded input/output, schema checks, reviewed proposals and existing quota/write authority. Existing structured callers retain submit_result. Improvement/confirmation routes reject cross-origin mutations; missing-key requests do not reserve usage, and provider errors are safe. New-site generation supplies photoUrls to the provider and rejects invented media; improvement rejects references outside saved media, including nested/mobile/CSS cases. Manual media editing remains available.

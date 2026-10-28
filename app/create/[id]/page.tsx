@@ -44,6 +44,7 @@ import { enqueueSaveSettings, flushOfflineQueue } from "@/lib/create/offline-que
 import type { PublishState } from "@/lib/create/publish-state";
 import { SiteFormInspector } from "@/app/components/create/site-form-inspector";
 import { CollageVideoInspector } from "@/app/components/create/collage-video-inspector";
+import { CollageTextInspector } from "@/app/components/create/collage-text-inspector";
 import { CollageScrollInspector } from "@/app/components/create/collage-scroll-inspector";
 import { CreativeWorldInspector } from "@/app/components/create/creative-world-inspector";
 import { defaultCreativeWorld } from "@/lib/create/creative-world";
@@ -3269,8 +3270,9 @@ function ProjectEditor({ projectId }: { projectId: string }) {
                             + Add my cutout (drag on preview)
                           </button>
                           <CollageVideoInspector projectId={projectId} value={section.props.sceneVideos} onChange={sceneVideos => updateSectionPropsForDevice(section.id, { sceneVideos })} />
+                          <CollageTextInspector value={section.props.extraCutouts} onChange={extraCutouts => updateSectionPropsForDevice(section.id, { extraCutouts })} />
                           <CollageScrollInspector value={section.props} onChange={layerScroll => updateSectionPropsForDevice(section.id, { layerScroll })} onNavigationChange={showNavigation => updateSectionPropsForDevice(section.id, { showNavigation })} />
-                          {((section.props.extraCutouts as { id?: string; src?: string; parallaxRole?: "city" | "figure" | "none" }[]) ?? []).map((cut, idx) => (
+                          {((section.props.extraCutouts as { kind?: string; id?: string; src?: string; parallaxRole?: "city" | "figure" | "none" }[]) ?? []).map((cut, idx) => cut.kind === "text" ? null : (
                             <div key={cut.id ?? idx} className="space-y-1 rounded-lg p-2" style={{ border: "1px solid #EEE" }}>
                               <SectionPhotoField
                                 projectId={projectId}

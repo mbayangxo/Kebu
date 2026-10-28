@@ -7,8 +7,8 @@ const slots = [["cutoutLeft", "Left image"], ["cutoutRight", "Right image"], ["c
 
 /** Saved scroll travel, in pixels across the section's complete pinned scene. */
 export function CollageScrollInspector({ value, onChange, onNavigationChange }: { value: Record<string, unknown>; onChange: (layerScroll: Record<string, Travel>) => void; onNavigationChange?: (visible: boolean) => void }) {
-  const extras = (Array.isArray(value.extraCutouts) ? value.extraCutouts : []) as { id: string; src?: string; alt?: string; parallaxRole?: string }[];
-  const layers = [...slots.filter(([id]) => id === "titleLogo" || Boolean(value[id])).map(([id, label]) => ({ id, label: String(label), scrollKey: id })), ...extras.filter(item => item.src).map((item, index) => ({ id: item.id, label: item.alt || `Cutout ${index + 1}`, scrollKey: item.parallaxRole === "city" ? "macbook" : item.parallaxRole === "figure" ? "cutoutAccent" : item.id }))];
+  const extras = (Array.isArray(value.extraCutouts) ? value.extraCutouts : []) as { id: string; src?: string; alt?: string; parallaxRole?: string; kind?:string; text?:string }[];
+  const layers = [...slots.filter(([id]) => id === "titleLogo" || Boolean(value[id])).map(([id, label]) => ({ id, label: String(label), scrollKey: id })), ...extras.filter(item => item.src||item.kind==='text').map((item, index) => ({ id: item.id, label: item.text?.slice(0,40)||item.alt || `Cutout ${index + 1}`, scrollKey: item.parallaxRole === "city" ? "macbook" : item.parallaxRole === "figure" ? "cutoutAccent" : item.id }))];
   const [chosen, setChosen] = useState("");
   const layer = layers.find(item => item.id === chosen) ?? layers[0];
   if (!layer) return null;

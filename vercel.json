@@ -24,5 +24,11 @@
       "path": "/api/cron/search-index",
       "schedule": "45 5 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "work/kebu-completion-audit-oct13": false,
+      "work/codex-shared-generation-repair-oct26": false
+    }
+  }
 }

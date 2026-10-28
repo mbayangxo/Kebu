@@ -1,6 +1,48 @@
 import { test, expect } from "playwright/test";
 test.skip(process.env.KEBU_LOCAL_OPERATION_UI !== "1", "Isolated real-component harness only");
 
+for(const width of [1440,390]) test(`editable outlined scene text survives save and reload at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});
+  await page.goto('/collage-local-probe');
+  await expect(page.getByTestId('fixture-controls')).toHaveAttribute('data-ready','true');
+  await page.getByText('Scene text',{exact:true}).click();
+  await page.getByRole('button',{name:'Add scene text',exact:true}).click();
+  await page.getByLabel('Scene text content',{exact:true}).fill('MAY’S STORY');
+  await page.getByLabel('Scene text typeface',{exact:true}).selectOption('serif');
+  await page.getByLabel('Text left (%)',{exact:true}).fill('12');
+  await page.getByLabel('Text top (%)',{exact:true}).fill('30');
+  const text=page.locator('[data-collage-text]');
+  await expect(text).toHaveText('MAY’S STORY');
+  await text.press('ArrowRight');
+  await expect(text).toHaveCSS('left',/./);
+  const position=await text.evaluate(el=>(el as HTMLElement).style.left);
+  expect(position).toBe('13%');
+  await page.getByRole('button',{name:'Save fixture',exact:true}).click();
+  await page.reload();
+  await page.getByRole('button',{name:'Load fixture',exact:true}).click();
+  await page.getByRole('button',{name:'Preview composition',exact:true}).click();
+  await expect(text).toHaveText('MAY’S STORY');
+  expect(await text.evaluate(el=>(el as HTMLElement).style.left)).toBe(position);
+  await expect(text).toHaveCSS('-webkit-text-stroke-width','4px');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
+
+test("saved skyline stacking is honored in editor, preview and after reload", async ({ page }) => {
+  await page.goto("/collage-local-probe");
+  await expect(page.getByTestId("fixture-controls")).toHaveAttribute("data-ready", "true");
+  await page.getByRole("button", { name: "Add skyline fixture" }).click();
+  const skyline = page.locator('[data-kebu-source="skyline-test"]');
+  await expect(skyline).toHaveCSS("z-index", "5");
+  await page.getByRole("button", { name: "Save fixture", exact: true }).click();
+  await page.getByRole("button", { name: "Preview composition" }).click();
+  await expect(skyline).toHaveCSS("z-index", "5");
+  await page.reload();
+  await page.getByRole("button", { name: "Load fixture", exact: true }).click();
+  await expect(skyline).toHaveCSS("z-index", "5");
+  await page.getByRole("button", { name: "Move skyline forward" }).click();
+  await expect(skyline).toHaveCSS("z-index", "19");
+});
+
 for (const width of [1440, 390]) {
   test(`saved May navigation keeps team contact separate from the foundation at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

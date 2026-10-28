@@ -102,8 +102,8 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
           const r=JSON.parse(readFileSync(process.env.KEBU_STUDIO_UI_OUTPUT_DIR+'/results.json','utf8'));
-          assert.equal(r.stats.expected,75);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
-          console.log(JSON.stringify({studioPassed:75,skipped:0,flaky:0,syntheticLoopbackAuth:true,managedHostedAuthAccepted:false}));
+          assert.equal(r.stats.expected,78);assert.equal(r.stats.unexpected,0);assert.equal(r.stats.skipped,0);assert.equal(r.stats.flaky,0);
+          console.log(JSON.stringify({studioPassed:78,skipped:0,flaky:0,syntheticLoopbackAuth:true,managedHostedAuthAccepted:false}));
           NODE
       - name: Retain isolated browser evidence
         if: always()

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { CollageScrollInspector } from "@/app/components/create/collage-scroll-inspector";
+import { CollageTextInspector } from "@/app/components/create/collage-text-inspector";
 import { AddSectionPicker } from "@/app/components/create/add-section-picker";
 import { defaultCutoutCollageProps } from "@/lib/create/legally-blonde-defaults";
 import { SiteRenderer } from "@/app/components/create/site-renderer";
@@ -35,9 +36,12 @@ export default function CollageProbe() {
       <button onClick={() => setNarrow(!narrow)}>Toggle narrow frame</button>
       <button onClick={() => setProps(p => ({ ...p, motionEnabled: !p.motionEnabled }))}>Toggle motion</button>
       <button onClick={() => setSecondScene(!secondScene)}>Toggle second scene</button>
+      <button onClick={() => setProps(p => ({ ...p, extraCutouts: [{ id: "skyline-test", src: "/templates/maylecor/city-skyline.png", alt: "Skyline", topPct: 30, leftPct: 30, widthPct: 40, zIndex: 5, parallaxRole: "city" }], layerZIndex: {} }))}>Add skyline fixture</button>
+      <button onClick={() => setProps(p => ({ ...p, layerZIndex: { "skyline-test": 19 } }))}>Move skyline forward</button>
       <output>{message}</output>
     </div>
     <CollageScrollInspector value={props} onNavigationChange={showNavigation => setProps(current => ({ ...current, showNavigation }))} onChange={layerScroll => setProps(current => ({ ...current, layerScroll }))} />
+    <CollageTextInspector value={props.extraCutouts} onChange={extraCutouts=>setProps(current=>({...current,extraCutouts}))} />
     <AddSectionPicker pageTitle="Home" onAdd={type => {
       if (type === "legally-blonde-hero") { setProps(defaultCutoutCollageProps()); setPreview(false); }
     }} />

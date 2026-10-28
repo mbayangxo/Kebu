@@ -1,0 +1,413 @@
+{
+  "developmentBranch": "work/kebu-completion-audit-oct13",
+  "sourceCommit": "d3a5538d511a633becebdda68590055f000c8d01",
+  "scope": "Fetched remote refs available in this checkout. History inclusion does not certify feature completeness or a deployment.",
+  "remoteChangesMade": false,
+  "branches": [
+    {
+      "ref": "origin",
+      "commit": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/chatgpt/kebu-product-worlds-rebuild",
+      "commit": "bb260a0e88fda8efa09e236534353ec7649094ff",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/claude/alkebulan-files-migration-aty6p0",
+      "commit": "75c0343a51f3c809ae91b5c669a384bec3eb712e",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 56,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/codex/builder-access-query-errors",
+      "commit": "58a1b7011ff6c1d9da1abb388a1e5de1f6814c30",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/codex/cowork-recovery",
+      "commit": "c5ddfec55ef14b5a6bb7b20d46e0b2bab17f5c35",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/kebu-search-build-oct23",
+      "commit": "8dfc5fdeb808533a20ffa0ace86e1275079986b7",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/main",
+      "commit": "71815f99c50022482e545e22e1f6e040ee1cafe4",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/qa/kebu-ready-oct10",
+      "commit": "6267a80d6cd3ed4d253adc95a1b0fe2458d52462",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 20,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/work/builder-generation-pipeline-oct25",
+      "commit": "0d258af121eff845437d4a086821a5bb55434e6d",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/builder-p0-stabilization",
+      "commit": "09f08b7540ae53413cad75051267c44d3e193702",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 112,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/work/claude-sync-oct20",
+      "commit": "68b62904f3ef20e759c5d36d5d045bbc133e6434",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-builder-frame-verified-oct21",
+      "commit": "6e1989d4afbd7bd4153985b546b8e14dbd59710a",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-builder-frames-oct20-recovery",
+      "commit": "ee9852431d3cfadcc178b2cbd81644ede7c4fbe0",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-builder-pipeline-runtime-oct25",
+      "commit": "6d2d8a3421c7c5e1ffc8cdd39b4349e57cfc8df6",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-frame-geometry-oct21",
+      "commit": "c7a0e38617973ed019d30262d34f818a3ab8f88c",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-generation-readiness-oct26",
+      "commit": "22039999debd5bb5421e7d026b42959f3dbae8b0",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-hosted-auth-gate-oct21",
+      "commit": "e3eae02f43c62c034992c36bc24cde81f7533a80",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-hosted-release-oct21",
+      "commit": "901e02abf5022b0d142666425ac7837e0b4448b3",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-inspector-resume-oct24",
+      "commit": "615b681e39c0e50e0696ee907358f979047c9ea4",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-liguey-retry-oct20",
+      "commit": "aef20756b6c75d01d34c6cd4f38f7233716d2f55",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-marketplace-boundary-oct21",
+      "commit": "465a9b56a07049fe30a7146814620cbabc4846c5",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-may-contact-oct20",
+      "commit": "6bdfcb72d7b695b30f100154cedce85354ca11c5",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-migration-resume-oct24",
+      "commit": "8854ded89345a21d9b6e7fd1b73945a665d7aa5b",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-object-reset-oct21",
+      "commit": "0910bdac0554aadf635d809fa2f14b916394e259",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-payment-adapters-oct21",
+      "commit": "45b27a24f3b2e356cbb7aab37b95666783fb2a6e",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-paypal-amount-oct21",
+      "commit": "348e80ddef1f71c9655a81ecd07710d28ef6d675",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-platform-verification-oct20",
+      "commit": "36052276b56f8fcbbef1a1a9f0dcaa7adfcd1222",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-resume-oct23",
+      "commit": "9face5be5dc95495a5ea28f99ae37da734eae76e",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-shared-generation-repair-oct26",
+      "commit": "ff33e9bf6f81a83b8dd614ac28b477b821460c51",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-social-rail-oct21",
+      "commit": "bd82bf3e0d7af4d9c6536351442997e68da37079",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-studio-arrange-oct23",
+      "commit": "3e5062a660bd607d4ff56e89074d34629bd56827",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-studio-group-rotation-oct23",
+      "commit": "4db1c5537cd609eedc57afa3b512d8c57b42bd6e",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-studio-marquee-oct22",
+      "commit": "49c139b2d9dedfb974e4ed907403a716c0b656b0",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-studio-pages-oct23",
+      "commit": "da4e80c830d697c802f09b643b245553619c91b9",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-studio-snap-controls-oct24",
+      "commit": "1ef6c9285141ee7f90e30d97527aec3434292a66",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-studio-snapping-oct23",
+      "commit": "05b66d917b747b117cb2554095cbb3ac9d6cd3d0",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-studio-styles-oct24",
+      "commit": "cfd255280ff20371ce7081f5a20c914d4236c30a",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-template-source-oct21",
+      "commit": "5be2e0379be5bf8dc9101055038a54f6abf54d06",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-wave-verification-oct21",
+      "commit": "45f29df913022b067bd12ca43f2c57bc09b56276",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-yande-experience-oct22",
+      "commit": "4d2d96d42ab92a47386c2c6b2e8aba168c956cec",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/codex-yande-reconcile-oct22",
+      "commit": "eb1785edffaf65c1e14ea273be2b7195f2b2ad99",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/kebu-builder-core-rebuild",
+      "commit": "f6674a095a5744fb1e8c085d32399487e8f5670d",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/kebu-builder-ux-reference-pass",
+      "commit": "c018d627b421e27712cc416b8b705dcd4a404581",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 5,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/work/kebu-completion-audit-oct13",
+      "commit": "1f677e7145cdc117c3a87e34ffd11c7f81b774ab",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/kebu-ecosystem-ux",
+      "commit": "f4ef717f3978e1d4f778a779eba9a642341d9ce4",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 75,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/work/kebu-foundation-scale",
+      "commit": "f71cf068289ac599e75e650814844758210d138d",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/kebu-liguey-k066-oct20",
+      "commit": "1011570576ce4daa2cdf6530557e224b3861221b",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 22,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/work/kebu-liguey-yande-oct20",
+      "commit": "13f0cec73e407ae69be4b234ebda51e618f3c617",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 27,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/work/kebu-mail-k0xx-oct20",
+      "commit": "250d7217c624b8486751f72e2591abd61e38db3e",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 22,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/work/kebu-security-remediation",
+      "commit": "0d534a8a7bbd60799c38b751e5fc38f1c5e6cefd",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/kebu-session-handoff-oct23",
+      "commit": "5ce8923923008d716b2c37dd79c6db860f91cd0a",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/kebu-studio-oct20",
+      "commit": "2048d120cac0a3d86f1bd2020867a200070f9d2b",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 23,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    },
+    {
+      "ref": "origin/work/kebu-track-b-platform",
+      "commit": "fb21a19ddb65eb79d671cd8757237f1693e5433f",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/kebu-type-foundry-design-oct20",
+      "commit": "8ed2a2f9a1da40bcfdb7d777ce122a86b037ef07",
+      "historyIncluded": true,
+      "uniqueCommitsNotInCurrentHistory": 0,
+      "status": "included in local development history"
+    },
+    {
+      "ref": "origin/work/kebu-yande-gateway-oct20",
+      "commit": "a6a03382d83b1381c00e1938d7ebd6cf78c3eefb",
+      "historyIncluded": false,
+      "uniqueCommitsNotInCurrentHistory": 22,
+      "status": "preserved; conflicting historical tip requires patch-by-patch review"
+    }
+  ],
+  "notAvailable": [
+    "Claude search-discovery-journey-verify @96a847e (four verification files; implementation base 8dfc5fd is included)",
+    "Claude current Stores/Payments audit and any other unexported local work",
+    "Reported May checkpoints 814fa63 / 9f46081: not recovered in available objects"
+  ],
+  "recoveredPatches": [
+    {
+      "commit": "1167543ed6f6541b7d9309bc9a0d62d777fdb479",
+      "localCommit": "328fc49",
+      "scope": "Network English/French/Wolof support, retaining current form-state behavior",
+      "unitPasses": 32,
+      "browserSqlPasses": 8,
+      "browserSkips": 0
+    }
+  ],
+  "equivalentHistoriesReconciled": [
+    "origin/work/codex-shared-generation-repair-oct26",
+    "origin/codex/builder-access-query-errors",
+    "origin/work/kebu-security-remediation"
+  ]
+}

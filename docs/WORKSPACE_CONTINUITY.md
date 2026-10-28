@@ -2,6 +2,10 @@
 
 The authoritative development branch is `origin/work/kebu-completion-audit-oct13` in `mbayangxo/Kebu`. A temporary workspace, a chat summary or an unpushed local commit is not a durable checkpoint. Deployment serves the application; it does not repair an old source checkout.
 
+## Current authorization — October 28
+
+The local `work/kebu-completion-audit-oct13` branch is the single development integration line. When it exists and contains newer commits than GitHub, every feature checkout must contain it before further edits. `workspace:check` now enforces this local ancestry as well as the fetched remote checkpoint. Do not resume an older worktree just because it matches GitHub. Preserve local changes, reconcile the consolidated branch, then rerun the check. The check does not write files or push. The user now explicitly authorizes updating all reviewed source on GitHub so Claude can see it. The deployment and hosted-write hold remains: do not deploy, activate workers or apply hosted migrations. The shared branch is disabled in vercel.json git.deploymentEnabled. Preserve original local commit authors in the recovery bundle when connector-only source sharing is necessary.
+
 ## Start each fresh session
 
 Run `npm run workspace:check` before editing. It fetches the named authoritative branch and reports the current SHA, ahead/behind counts, dirty state and whether all work is durable on that branch. Isolated feature branches are allowed only when they contain the latest authoritative checkpoint. Detached HEAD, failed fetch, missing remote checkpoint, behind or diverged history stop the check. The script never changes working files or rewrites history. A feature-branch push alone does not make its changes durable on the authoritative branch; integrate and verify the authoritative remote SHA before reporting that checkpoint.

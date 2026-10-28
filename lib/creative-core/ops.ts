@@ -445,7 +445,7 @@ const STEPS: Record<OpName, Step> = {
     const o = op as Extract<Op, { op: "insertPage" }>;
     const page = pageContent(w, o.page, i);
     if (!isUuidV4(page.id) || w.page(page.id) || w.nodes[page.id as unknown as NodeId] || w.removedPages.has(page.id)) invalid("New page id is already used or is not UUID v4", i);
-    if (w.pages.length >= 12) invalid("Maximum 12 pages per site", i);
+    if (w.pages.length >= 20) invalid("Maximum 20 pages per site", i);
     w.pages = [...w.pages, { ...page, layoutVersion: 1 }]; w.insertedPages.add(page.id);
     return [{ op: "removePage", pageId: page.id }];
   },
@@ -482,7 +482,7 @@ const STEPS: Record<OpName, Step> = {
   restorePage(w, op, i) {
     const o = op as Extract<Op, { op: "restorePage" }>;
     const page = pageContent(w, o.page, i);
-    if (w.page(page.id) || w.nodes[page.id as unknown as NodeId] || w.pages.length >= 12 || !Number.isSafeInteger(o.page.layoutVersion) || o.page.layoutVersion < 1) invalid("Page cannot be restored", i);
+    if (w.page(page.id) || w.nodes[page.id as unknown as NodeId] || w.pages.length >= 20 || !Number.isSafeInteger(o.page.layoutVersion) || o.page.layoutVersion < 1) invalid("Page cannot be restored", i);
     const pageVersion = w.removedPages.delete(page.id) ? w.doc.pages.find((p) => p.id === page.id)!.layoutVersion + 1 : o.page.layoutVersion + 1;
     w.pages = [...w.pages, { ...page, layoutVersion: pageVersion }]; w.restoredPages.set(page.id, pageVersion);
     if (!Array.isArray(o.nodes)) invalid("Restored page elements must be an array", i);
@@ -791,7 +791,7 @@ export function applyTransaction(doc: KcdDocument, tx: Transaction, registry: Re
       inverse.unshift(...inv);
     });
     const rebalanced = finishSlots(w, inverse);
-    if (w.pages.length < 1 || w.pages.length > 12) invalid("Sites need 1–12 pages");
+    if (w.pages.length < 1 || w.pages.length > 20) invalid("Sites need 1–20 pages");
     const slugs = new Set<string>(), positions = new Set<string>();
     for (const page of w.pages) {
       if (slugs.has(page.slug) || positions.has(page.orderKey) || w.nodes[page.id as unknown as NodeId]) invalid("Page slug, position or identity is duplicated");

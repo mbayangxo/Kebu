@@ -36,7 +36,7 @@ const patchPageSchema = z.union([
     parentId: z.string().uuid().nullable().optional(),
   }),
   z.object({
-    order: z.array(z.string().uuid()).min(1).max(12),
+    order: z.array(z.string().uuid()).min(1).max(20),
   }),
 ]);
 
@@ -104,8 +104,8 @@ export async function POST(req: Request, { params }: Params) {
     .select("id, slug, sort_order")
     .eq("project_id", projectId);
 
-  if ((existing?.length ?? 0) >= 12) {
-    return NextResponse.json({ error: "Maximum 12 pages per site." }, { status: 400 });
+  if ((existing?.length ?? 0) >= 20) {
+    return NextResponse.json({ error: "Maximum 20 pages per site." }, { status: 400 });
   }
 
   if (existing?.some((p) => p.slug === parsed.data.slug)) {
