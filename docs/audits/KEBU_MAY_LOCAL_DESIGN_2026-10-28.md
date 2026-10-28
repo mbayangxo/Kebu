@@ -1,5 +1,9 @@
 # May native draft and Builder verification — October 28, 2026
 
+## Hosted follow-up
+
+The user subsequently authorized the hosted migration. `builder_twenty_pages` has now been applied successfully to the Kebu Supabase project. Readback confirms the canonical 20-page limit; direction validation accepts 20 pages and rejects 21. Both functions remain SECURITY INVOKER with their original `search_path=public, pg_temp`. No project content, ownership, RLS or deployment was changed. References to an unapplied migration in the original local audit below are historical. Hosted owner save/publish acceptance and exact-reference matching remain open. Storage still contains no artist audio/video for this project, and public searches did not establish confirmed May listening destinations.
+
 ## Result and scope
 
 The private recovered May draft now has 14 native editable pages: Home, Music, Photos, Videos, May’s World, Shop, Updates, About May, Press, Audio, Maygazine, May by May, Mayjor Good and Contact. It is a local reference-informed candidate, not a launched website or an exact-reference acceptance claim. The original 13-page/36-section recovery snapshot is unchanged.
