@@ -97,6 +97,15 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "marketing",
+    icon: "messages",
+    label: "Marketing",
+    items: [
+      { tab: "flows",       label: "Email flows" },
+      { tab: "newsletter",  label: "Newsletter" },
+    ],
+  },
+  {
     id: "settings",
     icon: "settings",
     label: "Settings",

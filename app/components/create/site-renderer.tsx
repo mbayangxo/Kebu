@@ -19,6 +19,9 @@ import { PublicProductActions } from "@/app/components/create/public-product-act
 import { PublicShopCart } from "@/app/components/create/public-shop-cart";
 import { SiteFormSection } from "@/app/components/create/site-form-section";
 import { SiteBlogSection } from "@/app/components/create/site-blog-section";
+import { SiteCountdown } from "@/app/components/create/site-countdown";
+import { SiteSocialProof } from "@/app/components/create/site-social-proof";
+import { SiteProductReviews } from "@/app/components/create/site-product-reviews";
 import { readDeviceOverride, applyDeviceAwarePatch, mergeDeviceAwareSectionProps } from "@/lib/create/device-overrides";
 import { heroContentPaddingClass, heroMinHeightCss, normalizeLegacyHeroProps, resolveHeroHeight } from "@/lib/create/hero-section";
 import { normalizeLegacyEditorialHeroProps } from "@/lib/create/editorial-hero-section";
@@ -117,6 +120,10 @@ function sectionAnchor(section: { id?: string; type: string }): string | undefin
       return "map";
     case "testimonials":
       return "testimonials";
+    case "reviews":
+      return "reviews";
+    case "countdown":
+      return "countdown";
     case "faq":
       return "faq";
     case "products":
@@ -1627,7 +1634,7 @@ const LegacySectionView = memo(function LegacySectionView({
             const raw = section.props as Record<string, unknown>;
             const p = {
               heading: String(readDeviceOverride(raw, device, "heading") ?? "Products"),
-              layout: raw.layout as "grid" | "grid-dense" | "list" | "featured" | undefined,
+              layout: raw.layout as "grid" | "grid-dense" | "list" | "featured" | "carousel" | undefined,
               columns: raw.columns as 2 | 3 | 4 | undefined,
               orderStyle: raw.orderStyle as "inline" | "sheet" | "card" | "minimal" | undefined,
               orderCtaLabel: raw.orderCtaLabel as string | undefined,
@@ -1660,7 +1667,9 @@ const LegacySectionView = memo(function LegacySectionView({
             const columns = p.columns ?? 3;
             const items = p.items ?? [];
             const gridClass =
-              layout === "list"
+              layout === "carousel"
+                ? "flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory [-webkit-overflow-scrolling:touch]"
+                : layout === "list"
                 ? "flex flex-col gap-4"
                 : layout === "grid-dense"
                   ? columns === 2
@@ -1801,12 +1810,21 @@ const LegacySectionView = memo(function LegacySectionView({
                   </p>
                 ) : null}
                 <div className={gridClass}>
-                  {featuredFirst
+                  {(featuredFirst
                     ? [
                         renderItem(items[0]!, { featured: true }),
                         ...items.slice(1).map((item) => renderItem(item)),
                       ]
-                    : items.map((item) => renderItem(item))}
+                    : items.map((item) => renderItem(item))
+                  ).map((el, i) =>
+                    layout === "carousel" ? (
+                      <div key={`carousel-${i}`} className="shrink-0 w-56 snap-start">
+                        {el}
+                      </div>
+                    ) : (
+                      el
+                    ),
+                  )}
                 </div>
                 {items.length === 0 ? (
                   <p className="text-sm opacity-60">
@@ -2863,6 +2881,73 @@ const LegacySectionView = memo(function LegacySectionView({
                 fontDisplay={theme.fontDisplay}
                 motionExpressive={motionExpressive}
               />,
+            );
+          }
+          case "countdown": {
+            const p = _ep as {
+              heading?: string; subheading?: string; target?: string; expiredMessage?: string;
+              expiredHref?: string; background?: string; color?: string; accent?: string;
+              layout?: "hero" | "strip" | "card"; showDays?: boolean;
+              labelDays?: string; labelHours?: string; labelMinutes?: string; labelSeconds?: string;
+              hidden?: boolean;
+            };
+            if (p.hidden || !p.target) return null;
+            return wrap(
+              <section key={key} id={anchor} className="kebu-section">
+                <SiteCountdown
+                  target={p.target}
+                  heading={p.heading}
+                  subheading={p.subheading}
+                  expiredMessage={p.expiredMessage}
+                  expiredHref={p.expiredHref}
+                  background={p.background}
+                  color={p.color}
+                  accent={p.accent}
+                  layout={p.layout}
+                  showDays={p.showDays}
+                  labelDays={p.labelDays}
+                  labelHours={p.labelHours}
+                  labelMinutes={p.labelMinutes}
+                  labelSeconds={p.labelSeconds}
+                />
+              </section>,
+            );
+          }
+          case "social-proof": {
+            const p = _ep as {
+              items?: { name: string; location?: string; product?: string; minutesAgo?: number }[];
+              interval?: number; position?: "bottom-left" | "bottom-right"; hidden?: boolean;
+            };
+            if (p.hidden || !p.items?.length) return null;
+            return wrap(
+              <SiteSocialProof
+                key={key}
+                items={p.items}
+                interval={p.interval}
+                position={p.position}
+                isPreview={Boolean(editor)}
+              />,
+            );
+          }
+          case "reviews": {
+            const p = _ep as {
+              heading?: string; productId?: string; showForm?: boolean; maxVisible?: number;
+              layout?: "list" | "grid"; hidden?: boolean;
+            };
+            if (p.hidden) return null;
+            return wrap(
+              <section key={key} id={anchor} className="kebu-section px-5 max-w-5xl mx-auto">
+                <SiteProductReviews
+                  productId={p.productId}
+                  subdomain={liveSubdomain}
+                  heading={p.heading}
+                  showForm={p.showForm}
+                  maxVisible={p.maxVisible}
+                  layout={p.layout}
+                  accent={theme.accent || theme.primary}
+                  preview={Boolean(editor)}
+                />
+              </section>,
             );
           }
           default:

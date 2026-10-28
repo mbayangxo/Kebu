@@ -45,6 +45,8 @@ export async function GET(_req: Request, { params }: Params) {
       ...row,
       is_subscription: false,
       subscription_interval: null,
+      is_digital: false,
+      digital_file_name: null,
     }));
     error = codes.error;
   }
@@ -61,6 +63,8 @@ export async function GET(_req: Request, { params }: Params) {
       stock_qty: null,
       is_subscription: false,
       subscription_interval: null,
+      is_digital: false,
+      digital_file_name: null,
     }));
     error = codes.error;
   }
@@ -79,6 +83,8 @@ export async function GET(_req: Request, { params }: Params) {
       stock_qty: null,
       is_subscription: false,
       subscription_interval: null,
+      is_digital: false,
+      digital_file_name: null,
     }));
     error = mid.error;
   }
@@ -98,6 +104,8 @@ export async function GET(_req: Request, { params }: Params) {
       stock_qty: null,
       is_subscription: false,
       subscription_interval: null,
+      is_digital: false,
+      digital_file_name: null,
     }));
     error = fallback.error;
   }
@@ -227,6 +235,8 @@ export async function POST(req: NextRequest, { params }: Params) {
           ...retry.data,
           is_subscription: false,
           subscription_interval: null,
+          is_digital: false,
+          digital_file_name: null,
         }
       : null;
     error = retry.error;
@@ -247,6 +257,8 @@ export async function POST(req: NextRequest, { params }: Params) {
           stock_qty: null,
           is_subscription: false,
           subscription_interval: null,
+          is_digital: false,
+          digital_file_name: null,
         }
       : null;
     error = retry.error;
@@ -275,6 +287,8 @@ export async function POST(req: NextRequest, { params }: Params) {
           stock_qty: null,
           is_subscription: false,
           subscription_interval: null,
+          is_digital: false,
+          digital_file_name: null,
         }
       : null;
     error = retry.error;
@@ -299,6 +313,8 @@ export async function POST(req: NextRequest, { params }: Params) {
           stock_qty: null,
           is_subscription: false,
           subscription_interval: null,
+          is_digital: false,
+          digital_file_name: null,
         }
       : null;
     error = retry.error;

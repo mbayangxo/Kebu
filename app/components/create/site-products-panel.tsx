@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { SiteImageUpload } from "@/app/components/create/site-image-upload";
+import { ProductDigitalFileUpload } from "@/app/components/create/product-digital-file-upload";
 import type { ProjectProductRow } from "@/lib/create/project-products";
 import { ProductVariantsEditor } from "@/app/components/shop/product-variants-editor";
 import { useCatalogSync } from "@/lib/create/use-catalog-sync";
@@ -412,6 +413,20 @@ export function SiteProductsPanel({
           onChange={(imageUrl) => setForm((f) => ({ ...f, imageUrl }))}
           label="Product photo"
         />
+        {editingId ? (
+          <ProductDigitalFileUpload
+            projectId={projectId}
+            productId={editingId}
+            currentFileName={products.find((p) => p.id === editingId)?.digital_file_name}
+            currentIsDigital={products.find((p) => p.id === editingId)?.is_digital}
+            onSaved={() => void load()}
+            onRemoved={() => void load()}
+          />
+        ) : (
+          <p className="text-[10px]" style={{ color: "#9CA3AF" }}>
+            Save this product first, then attach a digital download file.
+          </p>
+        )}
         <label className="block text-[10px] uppercase tracking-wider">
           WhatsApp order message (optional)
           <input

@@ -81,12 +81,15 @@ export type ProjectProductRow = {
   whatsapp_order_message: string;
   sort_order: number;
   is_active: boolean;
+  is_digital?: boolean;
+  digital_file_path?: string | null;
+  digital_file_name?: string | null;
   created_at: string;
   updated_at: string;
 };
 
 const PRODUCT_SELECT =
-  "id, project_id, business_id, name, description, price_label, price_xof, upc, sku, track_stock, stock_qty, is_subscription, subscription_interval, image_url, whatsapp_order_message, sort_order, is_active, created_at, updated_at";
+  "id, project_id, business_id, name, description, price_label, price_xof, upc, sku, track_stock, stock_qty, is_subscription, subscription_interval, image_url, whatsapp_order_message, sort_order, is_active, is_digital, digital_file_name, created_at, updated_at";
 
 const PRODUCT_SELECT_LEGACY =
   "id, project_id, business_id, name, description, price_label, image_url, whatsapp_order_message, sort_order, is_active, created_at, updated_at";
