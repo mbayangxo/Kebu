@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {exportEditableSvg} from "@/lib/studio/vector-export";
 import { StudioSaveQueue, validStudioSaveReceipt } from "@/lib/studio/save-queue";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -636,6 +637,32 @@ export default function StudioEditorPage() {
     setExportNote("PNG downloaded.");
   }
 
+  function downloadSvg() {
+    if (!doc || !design) return;
+    try {
+      const page = doc.pages.find(page => page.id === activePageId) ?? doc.pages[0];
+      if (!page) return;
+      downloadBlob(new Blob([exportEditableSvg(page)], {type:"image/svg+xml"}), `${design.title || "kebu-studio"}.svg`);
+      setExportNote("Editable SVG downloaded. Open in Illustrator to save as .ai. Fonts must be installed there.");
+    } catch (error) { setExportNote(error instanceof Error ? error.message : "Could not export editable vectors."); }
+  }
+
+  async function downloadJpg() {
+    if (!doc || !design) return;
+    setExportNote("Rendering JPG…");
+    try {
+      const source = await exportCanvasToPngDataUrlAsync(documentWithResolvedMedia(doc), 1, activePageId || undefined);
+      if (!source) throw new Error("Could not render JPG.");
+      const image = new Image(); image.src = source; await image.decode();
+      const canvas = document.createElement("canvas"); canvas.width = image.width; canvas.height = image.height;
+      const context = canvas.getContext("2d"); if (!context) throw new Error("Could not render JPG.");
+      context.fillStyle = "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(image, 0, 0);
+      const blob = await new Promise<Blob | null>(done => canvas.toBlob(done, "image/jpeg", .95));
+      if (!blob) throw new Error("Could not encode JPG.");
+      downloadBlob(blob, `${design.title || "kebu-studio"}.jpg`); setExportNote("JPG downloaded.");
+    } catch { setExportNote("Could not render JPG. Check that the design’s media is available."); }
+  }
+
   async function downloadZip() {
     if (!doc || !design) return;
     setPackBusy(true);
@@ -921,6 +948,8 @@ export default function StudioEditorPage() {
             <button type="button" onClick={()=>{setShowShare(v=>!v);setShowVersions(false);setShowComments(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-[11px] text-white/80 sm:hidden">Share</button>
             <button type="button" onClick={()=>{setTimelineOverride(!timelineVisible);if(timelineVisible){setTimelinePlaying(false);setPlayheadMs(0)}}} className="block w-full rounded-lg px-3 py-2 text-left text-[11px] text-white/80 hover:bg-white/[.06]">{timelineVisible ? "Hide timeline" : "Show timeline"}</button>
             <button type="button" onClick={()=>void downloadPng()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Download PNG</button>
+            <button type="button" onClick={()=>void downloadJpg()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Download JPG</button>
+            <button type="button" onClick={downloadSvg} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Download editable SVG</button>
             <button type="button" disabled={packBusy} onClick={()=>void downloadPdf()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Export PDF</button>
             <button type="button" disabled={packBusy} onClick={()=>void downloadZip()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Download pages ZIP</button>
             <button type="button" disabled={motionBusy} onClick={()=>void downloadMotion()} className="block w-full rounded-lg px-3 py-2 text-left text-[9px] text-white/70 hover:bg-white/[.06]">Export timeline</button>

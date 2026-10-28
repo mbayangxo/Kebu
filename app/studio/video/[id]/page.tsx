@@ -40,6 +40,7 @@ import { applyAiMusicCommand } from "@/lib/studio/ai-music-edit";
 import { downsamplePeaks, normalizeClipVolume, duckMusicUnderVoice, cutClipsOnBeats, fitSequenceToDuration, setTrackMix, setMasterVolume, effectiveClipVolume } from "@/lib/studio/audio-engine";
 import { deleteClips, moveClips, rippleDeleteClip, linkClips, unlinkClips, linkedClipIds, trimClipEdge, slipClip, setTrackState } from "@/lib/studio/timeline-operations";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { timelineRecordingToWav } from "@/lib/studio/wav-export";
 import { exportStudioComposition } from "@/lib/studio/composition-browser-export";
 import {
   cacheRemoteStudioMedia,
@@ -802,7 +803,7 @@ export default function StudioVideoEditorPage() {
     );
   }
 
-  async function exportVideo() {
+  async function exportVideo(format: "webm" | "wav" = "webm") {
     if (!comp || exportBusy) return;
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setNote("Offline export works only when every media file used by this video is already available to the browser. Reconnect if export cannot load media.");
@@ -828,15 +829,18 @@ export default function StudioVideoEditorPage() {
         return;
       }
 
-      const url = URL.createObjectURL(result.blob);
+      const blob = format === "wav" ? await timelineRecordingToWav(result.blob) : result.blob;
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = (title.trim() || "kebu-studio-video").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 100) + ".webm";
+      link.download = (title.trim() || "kebu-studio-video").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 100) + `.${format}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-      setNote(`Video exported · ${(result.durationMs / 1000).toFixed(1)}s · includes timeline visuals and available audio.`);
+      setNote(`${format === "wav" ? "WAV audio" : "Video"} exported · ${(result.durationMs / 1000).toFixed(1)}s · includes timeline visuals and available audio.`);
+    } catch {
+      setError("Could not export this timeline. Check that its media and audio are available.");
     } finally {
       setExportBusy(false);
       setExportProgress(0);
@@ -983,6 +987,7 @@ export default function StudioVideoEditorPage() {
         >
           {exportBusy ? `Exporting ${exportProgress}%` : "Export video"}
         </button>
+        <button type="button" disabled={exportBusy} onClick={() => void exportVideo("wav")} className="rounded-lg border border-white/20 px-3 py-2 text-xs">Download WAV audio</button>
         <button
           type="button"
           disabled={saveState === "conflict"}

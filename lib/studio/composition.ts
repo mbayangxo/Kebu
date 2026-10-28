@@ -4,8 +4,8 @@
  * Architecture law: Quick Edit · Smart Edit · Full Timeline all mutate THIS model.
  * Do not invent a second “toy” timeline format.
  *
- * Live today: page-based design timeline + soundtrack beats (see timeline.ts / music-analysis).
- * Multi-track composition fields are reserved for V1+ slices — parse-tolerant, not fake UI.
+ * The page-based design timeline and dedicated multi-track video editor use this model.
+ * Runtime/browser acceptance is recorded separately; schema support alone is not acceptance.
  */
 
 import { z } from "zod";

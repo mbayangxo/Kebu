@@ -1,6 +1,7 @@
 "use client";
 
 import { CreativeWorld } from "./creative-world";
+import { MayPageEffects } from "./may-page-effects";
 import type { CSSProperties, ReactNode } from "react";
 import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { buildIndex, isNodeId, type KcdDocument, type NodeId } from "@/lib/creative-core";
@@ -3207,6 +3208,7 @@ export function SiteRenderer({
       }}
     >
       {theme.customCss ? <style>{theme.customCss}</style> : null}
+      {theme.aestheticId === "may-reference" && motionExpressive && !editingPreview ? <MayPageEffects key={page.slug} pageSlug={page.slug} /> : null}
       {chrome}
       {sideNav ? (
         <div className="min-w-0 flex-1">{body}</div>

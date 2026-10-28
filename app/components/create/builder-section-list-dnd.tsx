@@ -227,6 +227,14 @@ export function BuilderSectionListDnd({
   onToggleHidden?: (id: string) => void;
   onReorderBlocks?: (sectionId: string, fromIndex: number, toIndex: number) => void;
 }) {
+  // Bound the navigator DOM on very large documents; the canonical section list
+  // and move/reorder operations retain every section.
+  const [window, setWindow] = useState({ anchor: selectedSectionId, page: 0 });
+  const pageCount = Math.max(1, Math.ceil(sections.length / 100));
+  const selectedIndex = sections.findIndex(section => section.id === selectedSectionId);
+  const pageIndex = Math.min(pageCount - 1, window.anchor === selectedSectionId ? window.page : Math.max(0, Math.floor(selectedIndex / 100)));
+  const startIndex = pageIndex * 100;
+  const visibleSections = sections.slice(startIndex, startIndex + 100);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -259,9 +267,15 @@ export function BuilderSectionListDnd({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+      {pageCount > 1 ? <nav aria-label="Section list pages" className="flex items-center justify-between gap-2 px-2 py-2 text-[11px]">
+        <button type="button" disabled={pageIndex === 0} onClick={() => setWindow({anchor:selectedSectionId,page:pageIndex-1})}>Previous sections</button>
+        <label>Page <select aria-label="Section list page" value={pageIndex} onChange={event => setWindow({anchor:selectedSectionId,page:Number(event.target.value)})}>{Array.from({length:pageCount},(_,index)=><option key={index} value={index}>{index+1} of {pageCount}</option>)}</select></label>
+        <button type="button" disabled={pageIndex === pageCount-1} onClick={() => setWindow({anchor:selectedSectionId,page:pageIndex+1})}>Next sections</button>
+      </nav> : null}
+      <SortableContext items={visibleSections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-0.5">
-          {sections.map((section, index) => {
+          {visibleSections.map((section, localIndex) => {
+            const index = startIndex + localIndex;
             const blocks = blocksForSection(section.section_type, section.props);
             const expanded = expandedId === section.id || selectedSectionId === section.id;
             const isSelected = selectedSectionId === section.id;

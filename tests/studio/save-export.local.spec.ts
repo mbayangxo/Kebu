@@ -896,11 +896,11 @@ async function cached(page: Page, video = false) {
     };
   }), { owner, id, video });
 }
-async function setup(page: Page, options: { video?: boolean; missing?: boolean; delay?: boolean; malformed?: boolean; conflict?: boolean; twoPages?: boolean; audio?: boolean; missingAudio?: boolean; history?: boolean; designSoundtrack?: boolean; sharing?: "offline" | "malformed"; viewer?: boolean; delayedRestore?: boolean; failedHistory?: boolean; customFonts?: { family: string; fileUrl: string }[] } = {}) {
+async function setup(page: Page, options: { video?: boolean; socialPost?: boolean; missing?: boolean; delay?: boolean; malformed?: boolean; conflict?: boolean; twoPages?: boolean; audio?: boolean; missingAudio?: boolean; history?: boolean; designSoundtrack?: boolean; sharing?: "offline" | "malformed"; viewer?: boolean; delayedRestore?: boolean; failedHistory?: boolean; customFonts?: { family: string; fileUrl: string }[] } = {}) {
   const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
-  const doc = canvas(options.missing); if (options.twoPages) doc.pages.push({ ...structuredClone(doc.pages[0]!), id: "second", name: "Second" });
+  const doc = canvas(options.missing); if(options.socialPost){doc.width=1080;doc.height=1080;doc.pages[0]!.width=1080;doc.pages[0]!.height=1080;} if (options.twoPages) doc.pages.push({ ...structuredClone(doc.pages[0]!), id: "second", name: "Second" });
   if (options.designSoundtrack) doc.soundtrack = { url: "http://127.0.0.1:38416/tone.wav", durationMs: 1000, bpm: null, beatsMs: [], snapToBeats: true };
-  let server: { id: string; title: string; updated_at: string; business_id: null; source_design_id?: null; design_type?: string; canvas?: ReturnType<typeof canvas>; composition?: ReturnType<typeof composition> } = options.video ? { id, title: "Original video", composition: composition(options.audio), updated_at: rev(1), business_id: null, source_design_id: null } : { id, title: "QA design", design_type: "poster", canvas: doc, updated_at: rev(1), business_id: null };
+  let server: { id: string; title: string; updated_at: string; business_id: null; source_design_id?: null; design_type?: string; canvas?: ReturnType<typeof canvas>; composition?: ReturnType<typeof composition> } = options.video ? { id, title: "Original video", composition: composition(options.audio), updated_at: rev(1), business_id: null, source_design_id: null } : { id, title: "QA design", design_type: options.socialPost?"instagram_post":"poster", canvas: doc, updated_at: rev(1), business_id: null };
   const writes: Record<string, unknown>[] = []; let release: (() => void) | undefined;
   const barrier = new Promise<void>(done => { release = done; });
   let releaseSecond!: () => void; const secondBarrier = new Promise<void>(done => { releaseSecond = done; });
@@ -965,6 +965,64 @@ async function editText(page: Page, text: string, initial = false) {
   if (initial) await page.getByText("Original", { exact: true }).first().locator("..").dblclick();
   await page.getByRole("textbox", { name: "Text", exact: true }).fill(text);
 }
+
+test("social-post template edits save reopen and export a real 1080-square image",async({page})=>{
+  const fixture=await setup(page,{socialPost:true});
+  await editText(page,'Yaw Laa Taan — May Lècor',true);
+  await page.getByRole('button',{name:'Save draft',exact:true}).click();
+  await expect.poll(()=>fixture.server().canvas!.layers[0]!.text).toBe('Yaw Laa Taan — May Lècor');
+  await page.reload();
+  await expect(page.locator('[data-studio-layer-id="title"]')).toContainText('Yaw Laa Taan — May Lècor');
+  await page.getByText('More',{exact:true}).click();
+  const download=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Download PNG',exact:true}).click();
+  const png=readFileSync((await(await download).path())!);
+  const dimensions=await page.evaluate(async data=>{const image=new Image();image.src='data:image/png;base64,'+data;await image.decode();return[image.width,image.height];},png.toString('base64'));
+  expect(dimensions).toEqual([1080,1080]);
+  const jpgDownload=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Download JPG',exact:true}).click();
+  const jpg=readFileSync((await(await jpgDownload).path())!);
+  expect([...jpg.subarray(0,3)]).toEqual([255,216,255]);
+  const jpgDimensions=await page.evaluate(async data=>{const image=new Image();image.src='data:image/jpeg;base64,'+data;await image.decode();return[image.width,image.height];},jpg.toString('base64'));
+  expect(jpgDimensions).toEqual([1080,1080]);
+  expect(fixture.errors).toEqual([]);
+});
+
+test("artist footage can be trimmed saved reopened and exported with real video and audio",async({page})=>{
+  const fixture=await setup(page,{video:true});
+  const composition=fixture.server().composition!;
+  const track=composition.tracks.find(t=>t.kind==='video')!;
+  composition.clips.unshift(compositionClipSchema.parse({id:'artist-footage',trackId:track.id,name:'May supplied footage',sourceUrl:'http://127.0.0.1:38416/may-design-draft/artist/yaw-laa-taan-preview.mp4',startMs:0,durationMs:1000,sourceInMs:0}));
+  await page.reload();
+  const clip=page.getByRole('button').filter({has:page.getByText('May supplied footage',{exact:true})}).first();
+  await clip.click();
+  await page.getByLabel('Duration (ms)',{exact:true}).fill('600');
+  await page.getByLabel('Source in (ms)',{exact:true}).fill('1000');
+  await expect.poll(()=>fixture.server().composition!.clips.find(c=>c.id==='artist-footage')?.sourceInMs).toBe(1000);
+  await expect.poll(()=>fixture.server().composition!.clips.find(c=>c.id==='artist-footage')?.durationMs).toBe(600);
+  await page.reload();await clip.click();
+  await expect(page.getByLabel('Source in (ms)',{exact:true})).toHaveValue('1000');
+  const download=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Export video',exact:true}).click();
+  const file=await download;await file.saveAs(test.info().outputPath('artist-trimmed.webm'));
+  const bytes=readFileSync((await file.path())!);
+  const result=await page.evaluate(async data=>{
+    const bytes=Uint8Array.from(atob(data),c=>c.charCodeAt(0)),context=new AudioContext();
+    const url=URL.createObjectURL(new Blob([bytes],{type:'video/webm'}));
+    try{
+      const decoded=await context.decodeAudioData(bytes.buffer);let sum=0;for(const sample of decoded.getChannelData(0))sum+=sample*sample;
+      const video=document.createElement('video');video.src=url;await new Promise<void>((done,fail)=>{video.onloadeddata=()=>done();video.onerror=()=>fail(Error('Could not decode artist export'));});
+      // loadeddata alone can precede Chromium's drawable video frame. Observe a
+      // presented frame, as a visitor playing the downloaded file would.
+      const presented=new Promise<void>(done=>video.requestVideoFrameCallback(()=>done()));
+      video.muted=true;await video.play();await presented;video.pause();
+      const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;const ctx=canvas.getContext('2d')!;ctx.drawImage(video,0,0);
+      const colors=new Set<string>();for(let y=20;y<canvas.height;y+=40)for(let x=20;x<canvas.width;x+=40)colors.add([...ctx.getImageData(x,y,1,1).data].join(','));
+      return{rms:Math.sqrt(sum/decoded.length),colors:colors.size};
+    }finally{await context.close();URL.revokeObjectURL(url);}
+  },bytes.toString('base64'));
+  expect(result.rms).toBeGreaterThan(.001);expect(result.colors).toBeGreaterThan(5);expect(fixture.errors).toEqual([]);
+});
 
 test("design saves serialize and keep the newest IndexedDB draft dirty until acknowledged", async ({ page }) => {
   const fixture = await setup(page, { delay: true });
@@ -1081,7 +1139,13 @@ test("video export includes decodable audible samples", async ({ page }) => {
     try { const decoded = await context.decodeAudioData(bytes.buffer); const samples = decoded.getChannelData(0); let sum = 0; for (const sample of samples) sum += sample * sample; return Math.sqrt(sum / samples.length); }
     finally { await context.close(); }
   }, bytes.toString("base64"));
-  expect(rms).toBeGreaterThan(0.001); expect(fixture.errors).toEqual([]);
+  expect(rms).toBeGreaterThan(0.001);
+  const wavDownload=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Download WAV audio',exact:true}).click();
+  const wav=readFileSync((await(await wavDownload).path())!);
+  expect(wav.subarray(0,4).toString()).toBe('RIFF');expect(wav.subarray(8,12).toString()).toBe('WAVE');
+  const wavRms=await page.evaluate(async data=>{const context=new AudioContext();try{const buffer=Uint8Array.from(atob(data),c=>c.charCodeAt(0));const decoded=await context.decodeAudioData(buffer.buffer);let sum=0;for(const sample of decoded.getChannelData(0))sum+=sample*sample;return Math.sqrt(sum/decoded.length);}finally{await context.close();}},wav.toString('base64'));
+  expect(wavRms).toBeGreaterThan(.001);expect(fixture.errors).toEqual([]);
 });
 
 test("unavailable audio blocks video export instead of producing a silent success", async ({ page }) => {
