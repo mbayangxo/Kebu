@@ -48,7 +48,7 @@ export function DemoTemplateView({
         <div className="pointer-events-auto flex max-w-[min(100%,42rem)] flex-wrap items-center justify-end gap-2">
           {pages.length > 1 ? (
             <div
-              className="flex max-h-[40vh] max-w-[70vw] flex-wrap justify-end gap-1 overflow-y-auto rounded-2xl p-1 backdrop-blur-md"
+              className="flex max-w-[70vw] flex-nowrap items-center gap-1 overflow-x-auto rounded-2xl p-1 backdrop-blur-md"
               style={{ background: "rgba(10,10,10,0.55)" }}
               role="navigation"
               aria-label="Demo pages"
@@ -58,7 +58,7 @@ export function DemoTemplateView({
                   key={p.slug}
                   type="button"
                   onClick={() => setPageSlug(p.slug)}
-                  className="rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider"
+                  className="flex-shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider"
                   style={{
                     background: pageSlug === p.slug ? "#FF5500" : "transparent",
                     color: "#fff",

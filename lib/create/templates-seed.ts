@@ -586,10 +586,17 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   font-family: 'Steelfish', 'Oswald', sans-serif;
   letter-spacing: 0.01em;
 }
-.kebu-site .kebu-section {
+.kebu-site .kebu-section,
+.kebu-site .kebu-heavy-media {
   position: relative;
 }
-.kebu-site .kebu-section + .kebu-section::before {
+/*
+ * Plain section element here, not .kebu-section -- the "video"/"audio" section
+ * renderers (kebu-heavy-media) are real section elements too but never carry
+ * the .kebu-section class, so a class-scoped sibling selector silently skipped
+ * them. An element selector catches every section type uniformly.
+ */
+.kebu-site section + section::before {
   content: "";
   display: block;
   height: 20px;
@@ -597,6 +604,25 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
   background: #fff;
   opacity: 0.85;
   clip-path: polygon(0% 0%,3% 100%,6% 15%,9% 90%,12% 25%,15% 85%,18% 10%,21% 95%,24% 20%,27% 90%,30% 10%,33% 85%,36% 15%,39% 95%,42% 10%,45% 90%,48% 15%,51% 85%,54% 10%,57% 95%,60% 20%,63% 90%,66% 10%,69% 85%,72% 15%,75% 95%,78% 10%,81% 90%,84% 15%,87% 85%,90% 10%,93% 95%,96% 15%,100% 0%);
+}
+/*
+ * Reference's signature mid-scroll motif: a pink-duotone video clip inside a
+ * torn-paper frame. Targets the real img/video/iframe leaf elements VideoGrid
+ * renders directly, rather than a specific wrapper depth, so it survives
+ * VideoEmbed's layout changes and activates automatically once real video
+ * content replaces the current empty placeholders -- no extra wiring needed
+ * when May's real clips are added.
+ */
+.kebu-site .kebu-heavy-media img,
+.kebu-site .kebu-heavy-media video,
+.kebu-site .kebu-heavy-media iframe {
+  /* filter applies to an iframe's rendered box itself, not its cross-origin
+     DOM -- no access to the embedded page needed for this to tint it. */
+  filter: grayscale(1) sepia(1) hue-rotate(290deg) saturate(4) brightness(0.85);
+  border: 10px solid #fff;
+  border-radius: 2px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+  clip-path: polygon(0% 2%,2% 0%,98% 1%,100% 3%,99% 97%,97% 100%,3% 99%,1% 98%);
 }
 `.trim(),
       },

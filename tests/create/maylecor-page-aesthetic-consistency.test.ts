@@ -34,8 +34,22 @@ describe("May Lecor — page aesthetic consistency (customCss)", () => {
 
   it("carries a torn-paper divider between consecutive sections", () => {
     const css = maylecor?.definition.theme.customCss ?? "";
-    expect(css).toContain(".kebu-section + .kebu-section");
+    // Plain element selector, not `.kebu-section + .kebu-section`: the video/audio
+    // section renderers are real `<section>` elements but never carry the
+    // `kebu-section` class, so a class-scoped sibling selector silently skipped them.
+    expect(css).toContain(".kebu-site section + section");
     expect(css).toMatch(/clip-path:\s*polygon\(/);
+  });
+
+  it("carries a pink-duotone, torn-paper treatment for embedded video/audio clips", () => {
+    const css = maylecor?.definition.theme.customCss ?? "";
+    // Targets the real img/video/iframe leaf elements directly (not a specific
+    // wrapper depth), so it survives VideoEmbed's layout changes and activates
+    // automatically once real video content replaces the current empty placeholders.
+    expect(css).toContain(".kebu-heavy-media img");
+    expect(css).toContain(".kebu-heavy-media video");
+    expect(css).toContain(".kebu-heavy-media iframe");
+    expect(css).toMatch(/filter:\s*grayscale\(1\)\s*sepia\(1\)\s*hue-rotate\(290deg\)/);
   });
 
   it("the full definition, customCss included, is schema-valid (length limits, etc.)", () => {
