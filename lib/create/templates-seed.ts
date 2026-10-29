@@ -564,6 +564,41 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
         headingScale: "md" as const,
         bodySize: "md" as const,
         letterSpacing: "normal" as const,
+        /**
+         * Carries the Russian-reference's scratched-paper world onto every page, not
+         * only the hero. Without this, non-hero pages (About, Music, Press…) render with
+         * the generic flat `theme.background` every Kebu site gets, so the brand reads as
+         * "a styled hero bolted onto plain pages" instead of one consistent aesthetic.
+         * The hero's own opaque backgroundLayer image fully covers this within its own
+         * bounds, so there is nothing to exclude here — this only ever shows through on
+         * sections that currently paint no background of their own.
+         */
+        customCss: `
+.kebu-site {
+  /* !important: the root element also carries an inline background:theme.background
+     style (site-renderer.tsx), which otherwise always wins the cascade over this rule. */
+  background-image: url('/templates/legally-blonde/background.png') !important;
+  background-size: 900px !important;
+  background-repeat: repeat !important;
+  background-attachment: fixed !important;
+}
+.kebu-site h1, .kebu-site h2, .kebu-site h3 {
+  font-family: 'Steelfish', 'Oswald', sans-serif;
+  letter-spacing: 0.01em;
+}
+.kebu-site .kebu-section {
+  position: relative;
+}
+.kebu-site .kebu-section + .kebu-section::before {
+  content: "";
+  display: block;
+  height: 20px;
+  margin: 0 0 28px 0;
+  background: #fff;
+  opacity: 0.85;
+  clip-path: polygon(0% 0%,3% 100%,6% 15%,9% 90%,12% 25%,15% 85%,18% 10%,21% 95%,24% 20%,27% 90%,30% 10%,33% 85%,36% 15%,39% 95%,42% 10%,45% 90%,48% 15%,51% 85%,54% 10%,57% 95%,60% 20%,63% 90%,66% 10%,69% 85%,72% 15%,75% 95%,78% 10%,81% 90%,84% 15%,87% 85%,90% 10%,93% 95%,96% 15%,100% 0%);
+}
+`.trim(),
       },
       pages: [
         {
