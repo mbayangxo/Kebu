@@ -118,6 +118,18 @@ def main():
         except Exception as cause:  # noqa: BLE001
             errors.append(f"{path}: could not load/decompress woff2 — {cause}")
 
+    # Every desktop CFF instance must keep the same GPOS spacing as its web TTF.
+    for path in sorted(glob.glob(os.path.join(dist_dir, "*.otf"))):
+        sibling = os.path.splitext(path)[0] + ".ttf"
+        try:
+            otf, ttf = TTFont(path), TTFont(sibling)
+            if "GPOS" not in otf or "GPOS" not in ttf:
+                errors.append(f"{path}: missing static kerning table")
+            elif otf["GPOS"].compile(otf) != ttf["GPOS"].compile(ttf):
+                errors.append(f"{path}: desktop/web kerning differs")
+        except Exception as cause:
+            errors.append(f"{path}: could not compare desktop/web kerning — {cause}")
+
     if errors:
         print(f"QA FAILED — {len(errors)} problem(s) across {checked} file(s) checked:")
         for e in errors:

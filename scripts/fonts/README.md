@@ -61,5 +61,4 @@ catalog fonts so it shows up in every text layer's font picker automatically.
 - Display/headline use only — no lowercase yet, so it is not suited to body text.
 - Kerning is a bounding-box heuristic, not hand-tuned by eye; it is
   deliberately conservative (clamped) rather than aggressive.
-- The OTF (CFF) export does not currently carry the kerning feature —
-  only the TTF/woff2 path does (the primary Studio/web delivery format).
+- Static OTF, TTF and WOFF2 carry matching GPOS kerning; qa.py checks the desktop/web tables for parity. The variable font’s kerning still needs a separate interpolation pass.

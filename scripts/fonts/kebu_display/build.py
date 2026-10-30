@@ -119,6 +119,7 @@ def main():
         ttf.flavor = None
 
         otf = build_otf_instance(stem, shear, style_name, ps_name)
+        apply_kerning(otf, stem)
         otf_path = os.path.join(args.out, f"KebuDisplay-{ps_name}.otf")
         otf.save(otf_path)
 

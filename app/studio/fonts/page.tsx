@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { StudioWorldNav } from "@/app/components/studio/studio-world-nav";
+import { unsupportedKebuDisplayCharacters } from "@/lib/studio/kebu-display-coverage";
 import { KEBU } from "@/lib/kebu-brand";
 
 const STYLES = [
@@ -18,6 +19,7 @@ const BASE = "/fonts/kebu-display";
 export default function StudioFontsPage() {
   const [styleId, setStyleId] = useState<(typeof STYLES)[number]["id"]>("Regular");
   const [sample, setSample] = useState("KEBU STUDIO 2026");
+  const unsupported = unsupportedKebuDisplayCharacters(sample);
   const style = STYLES.find((s) => s.id === styleId)!;
 
   useEffect(() => {
@@ -52,11 +54,16 @@ export default function StudioFontsPage() {
             Try it
           </label>
           <input
+            aria-label="Kebu Display preview text"
+            aria-describedby="kebu-display-coverage"
             value={sample}
             onChange={(e) => setSample(e.target.value.toUpperCase())}
             className="mb-5 w-full rounded-xl border px-4 py-3 text-sm"
             style={{ borderColor: KEBU.borders.default }}
           />
+          <p id="kebu-display-coverage" role="status" className="mb-3 text-xs leading-relaxed">
+            {unsupported.length ? `Not included in this display font: ${unsupported.join(" ")}. These characters may use a fallback font.` : "Uppercase preview · A–Z, digits, É È À Ç and essential punctuation."}
+          </p>
           <div
             className="rounded-[20px] border bg-white p-6"
             style={{ borderColor: KEBU.borders.default, minHeight: 140 }}
@@ -82,6 +89,7 @@ export default function StudioFontsPage() {
               key={s.id}
               type="button"
               onClick={() => setStyleId(s.id)}
+              aria-pressed={styleId === s.id}
               className="rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-wider"
               style={{
                 background: styleId === s.id ? KEBU.black : "transparent",
