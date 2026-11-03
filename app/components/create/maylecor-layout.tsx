@@ -293,11 +293,11 @@ export function MaylecorMusicLayout({
               animation: motion ? "maylecor-float-portrait 5s ease-in-out infinite" : undefined,
             }}
           />
-        ) : (
+        ) : editing ? (
           <div className="mx-auto mb-8 flex h-40 w-80 items-center justify-center border border-white/20 text-sm text-white/50">
             Add album art URL in the editor
           </div>
-        )}
+        ) : null}
         <p className="mb-6 text-center text-[10px] uppercase tracking-[0.4em] text-white/50">Music</p>
 
         <ul className="space-y-5">

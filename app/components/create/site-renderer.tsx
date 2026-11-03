@@ -2078,6 +2078,7 @@ const LegacySectionView = memo(function LegacySectionView({
               columns?: 1 | 2 | 3;
               items?: { src?: string; title?: string; caption?: string; thumbnail?: string }[];
             };
+            const editingVideo = Boolean(editor?.inlineEdit);
             const fromItems = (p.items ?? [])
               .map((it) => ({
                 src: String(it.src ?? "").trim(),
@@ -2085,7 +2086,10 @@ const LegacySectionView = memo(function LegacySectionView({
                 caption: it.caption,
                 thumbnail: it.thumbnail,
               }))
-              .filter((it) => it.src || it.thumbnail || it.title);
+              // In the builder canvas, show unfilled slots (thumbnail/title only) so the owner can see
+              // and fill them. On a live or preview render, an empty src plays nothing when clicked —
+              // drop those cards instead of showing a dim, broken-looking placeholder to visitors.
+              .filter((it) => (editingVideo ? it.src || it.thumbnail || it.title : it.src));
             const legacy =
               p.src?.trim()
                 ? [{ src: p.src.trim(), title: p.title, caption: p.caption, thumbnail: p.thumbnail }]
