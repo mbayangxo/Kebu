@@ -20,12 +20,12 @@ export const MAYLECOR_NAV_SLUGS = [
 
 export type MaylecorNavSlug = (typeof MAYLECOR_NAV_SLUGS)[number];
 
-/** Inside May's World — moodboard rooms + May by May (cooking). */
+/** Inside May's World — moodboard rooms + May by May (cooking). Maygazine carries the
+ * photo galleries (editorial layout) — there is no separate "Photos" room. */
 export const MAYLECOR_WORLD_SLUGS = [
   "music",
   "videos",
   "audio",
-  "photos",
   "maygazine",
   "may-by-may",
 ] as const;
@@ -46,7 +46,6 @@ const WORLD_KEYS: Record<MaylecorWorldSlug, Record<MaylecorLocale, string>> = {
   music: { en: "Music", fr: "Musique", wo: "Musiik" },
   videos: { en: "Video", fr: "Vidéo", wo: "Wideo" },
   audio: { en: "Audio", fr: "Audio", wo: "Audio" },
-  photos: { en: "Photos", fr: "Photos", wo: "Nataal yi" },
   maygazine: { en: "Maygazine", fr: "Maygazine", wo: "Maygazine" },
   "may-by-may": { en: "May by May", fr: "May by May", wo: "May by May" },
 };

@@ -48,15 +48,17 @@ describe("maylecor content defaults", () => {
     ).toBe(true);
   });
 
-  it("seeds music, photos, and shop pages with editable sections", () => {
+  it("seeds music, maygazine (photos live here), and shop pages with editable sections", () => {
     const pages = maylecorMotionSitePages("MAY LECOR");
     const music = pages.find((p) => p.slug === "music");
-    const photos = pages.find((p) => p.slug === "photos");
+    // Maygazine absorbs the photo gallery — there is no separate bare "photos" page/nav entry.
+    const maygazine = pages.find((p) => p.slug === "maygazine");
     const shop = pages.find((p) => p.slug === "shop");
 
+    expect(pages.some((p) => p.slug === "photos")).toBe(false);
     expect(music?.sections.some((s) => s.type === "maylecor-music")).toBe(true);
     expect(music?.sections.some((s) => s.type === "audio")).toBe(true);
-    expect(photos?.sections.some((s) => s.type === "gallery")).toBe(true);
+    expect(maygazine?.sections.some((s) => s.type === "gallery")).toBe(true);
     expect(shop?.sections.some((s) => s.type === "products")).toBe(true);
   });
 });

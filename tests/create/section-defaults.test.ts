@@ -2,8 +2,45 @@ import { describe, expect, it } from "vitest";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
 import { validateWebsiteDefinition } from "@/lib/create/website-schema";
 import { defaultMaylecorHomeProps } from "@/lib/create/maylecor-defaults";
+import { BUILDER_SECTION_CATALOG } from "@/lib/create/builder-section-catalog";
 
 describe("section defaults", () => {
+  it('"Track list" (maylecor-music) is a real catalog entry any user can add, with neutral defaults', () => {
+    // Generalized from May Lècor's own music page for the Kebu-buildability pass: the
+    // component/schema/renderer were already generic, only the catalog entry and a
+    // May-specific default-props fallback were missing/leaking — see defaultTrackListProps().
+    const entry = BUILDER_SECTION_CATALOG.find((o) => o.type === "maylecor-music");
+    expect(entry).toBeTruthy();
+    expect(entry?.category).toBe("media");
+
+    const props = defaultSectionProps("maylecor-music");
+    expect(JSON.stringify(props)).not.toMatch(/MAY LECOR|templates\/maylecor/i);
+    expect(props).toMatchObject({ artistName: "Your artist name", albumArt: "" });
+
+    const def = {
+      schemaVersion: "website-v1" as const,
+      title: "Test",
+      theme: {
+        primary: "#000",
+        accent: "#fff",
+        background: "#000",
+        text: "#fff",
+        fontDisplay: "Fraunces",
+        fontBody: "system-ui",
+        spacing: "comfortable" as const,
+      },
+      pages: [
+        {
+          slug: "music",
+          title: "Music",
+          sections: [{ id: "m1", type: "maylecor-music" as const, props }],
+        },
+      ],
+    };
+    expect(validateWebsiteDefinition(def).ok).toBe(true);
+  });
+
+
   it("maylecor-home defaults validate", () => {
     const props = defaultSectionProps("maylecor-home");
     expect(props).toMatchObject({ ctaLabel: "LISTEN TO MAY'S NEW SINGLE" });

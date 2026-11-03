@@ -149,7 +149,7 @@ function rewriteHref(
     if (labelLower.includes("video") || lower.includes("video")) next = "/videos";
     else if (labelLower.includes("music") || lower.includes("music")) next = "/music";
     else if (labelLower.includes("photo") || lower.includes("photo") || lower.includes("gallery"))
-      next = "/photos";
+      next = "/maygazine";
     else if (labelLower.includes("shop") || labelLower.includes("store") || lower.includes("shop"))
       next = "/shop";
     else if (labelLower.includes("world") || lower.includes("world")) next = "/mays-world";

@@ -128,37 +128,22 @@ export function defaultMaylecorTracks() {
   return [
     {
       id: "track-1",
-      title: "New single",
-      coverUrl: MAYLECOR_LOCAL_ASSETS.logoStacked,
+      // Real release: "Yaw Laa Taan" — cover art lives in maylecor-content-defaults.ts
+      // (MAYLECOR_REAL_MEDIA.yawLaaTaanCover); kept as a literal path here to avoid a
+      // circular import (that file imports from this one).
+      title: "Yaw Laa Taan",
+      coverUrl: "/templates/maylecor/yaw-laa-taan-cover.png",
       links: [
         { platform: "spotify", href: "" },
         { platform: "apple", href: "" },
         { platform: "youtube", href: "" },
-        { platform: "soundcloud", href: "https://soundcloud.com/maylecor" },
-      ],
-    },
-    {
-      id: "track-2",
-      title: "Track 2",
-      coverUrl: MAYLECOR_LOCAL_ASSETS.mayFigure,
-      links: [
-        { platform: "spotify", href: "" },
-        { platform: "apple", href: "" },
-        { platform: "youtube", href: "" },
+        // The site's old soundcloud.com/maylecor link 404s live — dropped rather than
+        // shipping a dead link. Fill in a verified URL in the editor when one exists.
         { platform: "soundcloud", href: "" },
       ],
     },
-    {
-      id: "track-3",
-      title: "Track 3",
-      coverUrl: MAYLECOR_LOCAL_ASSETS.portrait,
-      links: [
-        { platform: "spotify", href: "" },
-        { platform: "apple", href: "" },
-        { platform: "youtube", href: "" },
-        { platform: "soundcloud", href: "" },
-      ],
-    },
+    // Only one real release exists today. Add more tracks for May in the Music page editor —
+    // a fake "Track 2" / "Track 3" placeholder card is not shown to visitors.
   ];
 }
 
@@ -201,6 +186,35 @@ export function defaultMaylecorMusicProps(artistName = "MAY LECOR") {
     socialRailLeftPct: 0,
     socialRailTopPct: 12,
     socialRailIconSize: 40,
+    motionEnabled: true,
+  };
+}
+
+/**
+ * Neutral "Track list" defaults for the generic Builder catalog — any musician on Kebu,
+ * not just May. Mirrors defaultCutoutCollageProps()'s pattern (legally-blonde-defaults.ts):
+ * empty/placeholder values only, zero May-specific assets or copy.
+ */
+export function defaultTrackListProps() {
+  return {
+    artistName: "Your artist name",
+    albumArt: "",
+    homePageSlug: "home",
+    tracks: [
+      {
+        id: "track-1",
+        title: "Your first track",
+        coverUrl: "",
+        links: [
+          { platform: "spotify" as const, href: "" },
+          { platform: "apple" as const, href: "" },
+          { platform: "youtube" as const, href: "" },
+          { platform: "soundcloud" as const, href: "" },
+        ],
+      },
+    ],
+    socialLinks: [],
+    socialRailVisible: false,
     motionEnabled: true,
   };
 }
