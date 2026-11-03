@@ -1414,6 +1414,14 @@ const LegacySectionView = memo(function LegacySectionView({
                   {items.map((item, itemIdx) => {
                     const img = String(item.image ?? "").trim();
                     const accentColor = theme.accent || theme.primary;
+                    /** Tile background is picked independently of the page's ambient text color
+                     *  (which can be white on a dark hero/footer theme) — without an explicit,
+                     *  matching text color here, title/body silently inherit that ambient color
+                     *  and render invisible (white-on-white) whenever the tile itself is light. */
+                    const tileIsDark = Boolean(theme.surface)
+                      ? false
+                      : theme.background === "#0A0A0A" || theme.background === "#0D0D0D";
+                    const tileTextColor = tileIsDark ? "#F5F5F5" : "#111111";
                     const card = moodboard ? (
                       <>
                         {img ? (
@@ -1467,7 +1475,7 @@ const LegacySectionView = memo(function LegacySectionView({
                         <EditableText
                           tag="h2"
                           className="font-semibold mb-2 text-lg leading-snug"
-                          style={{ fontFamily: cssFontStack(theme.fontDisplay) }}
+                          style={{ fontFamily: cssFontStack(theme.fontDisplay), color: tileTextColor }}
                           value={item.title}
                           editor={editor}
                           onChange={(title) => {
@@ -1478,6 +1486,7 @@ const LegacySectionView = memo(function LegacySectionView({
                         <EditableText
                           tag="p"
                           className="text-sm leading-relaxed opacity-68"
+                          style={{ color: tileTextColor }}
                           value={item.body}
                           editor={editor}
                           onChange={(body) => {
