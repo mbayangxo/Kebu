@@ -141,6 +141,7 @@ export async function POST(req: Request, { params }: Params) {
     gift: parsed.data,
     buyerCountry: parsed.data.buyerCountry ?? null,
     sellerCountry: "SN",
+    shippingOptionId: parsed.data.shippingOptionId ?? null,
   });
 
   if (!created.ok) {

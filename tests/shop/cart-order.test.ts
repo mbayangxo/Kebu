@@ -72,6 +72,35 @@ describe("shop cart checkout", () => {
     expect(message.toLowerCase()).not.toContain("paid");
   });
 
+  it("accepts a shippingOptionId as an id only — the schema has no field for a client-supplied price", () => {
+    const base = {
+      items: [{ productId: "11111111-2222-4333-a444-555555555555", quantity: 1 }],
+      customerName: "Awa",
+      customerPhone: "221770000000",
+    };
+    const withValidId = shopCartCheckoutSchema.safeParse({
+      ...base,
+      shippingOptionId: "99999999-8888-4777-a666-555555555555",
+    });
+    expect(withValidId.success).toBe(true);
+
+    const withBadId = shopCartCheckoutSchema.safeParse({ ...base, shippingOptionId: "not-a-uuid" });
+    expect(withBadId.success).toBe(false);
+
+    // The only shipping-related input accepted is an id — there is no key
+    // through which a client could submit its own shipping amount; the real
+    // price always comes from a server-side lookup (resolveShippingOptionForOrder).
+    const sneakAmount = shopCartCheckoutSchema.safeParse({
+      ...base,
+      shippingOptionId: "99999999-8888-4777-a666-555555555555",
+      shippingAmountXof: 1,
+    });
+    expect(sneakAmount.success).toBe(true); // parses fine...
+    if (sneakAmount.success) {
+      expect("shippingAmountXof" in sneakAmount.data).toBe(false); // ...but the extra field is stripped, never read.
+    }
+  });
+
   it("ships migration 046 with order items + cart drafts RLS", () => {
     const sql = readFileSync(
       join(process.cwd(), "supabase/migrations_archive/legacy/046_shop_cart_order_items.sql"),
