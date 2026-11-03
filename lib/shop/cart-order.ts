@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { allocateShopOrderNumber } from "@/lib/shop/codes";
 import { applyPercentOff, resolveActiveDiscount, incrementDiscountUse } from "@/lib/shop/discounts";
+import { resolveAffiliateCodeForAttribution, incrementAffiliateUse } from "@/lib/shop/affiliates";
 import {
   giftCardApplyAmount,
   redeemGiftCardBalance,
@@ -42,6 +43,12 @@ export const shopCartCheckoutSchema = z
       .optional(),
     paymentPreference: z.enum(SHOP_PAYMENT_PREFERENCES).optional().default("whatsapp"),
     discountCode: z
+      .preprocess(
+        (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+        z.string().trim().max(32).optional(),
+      )
+      .optional(),
+    affiliateCode: z
       .preprocess(
         (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
         z.string().trim().max(32).optional(),
@@ -241,6 +248,7 @@ export async function createCartOrder(opts: {
   customerEmail: string | null;
   paymentPreference: string;
   discountCode?: string | null;
+  affiliateCode?: string | null;
   giftCardCode?: string | null;
   customerUserId?: string | null;
   gift?: ShopGiftFields;
@@ -267,6 +275,7 @@ export async function createCartOrder(opts: {
   );
   if (!discountResult.ok) return { ok: false, error: discountResult.error };
   const discount = discountResult.discount;
+  const affiliateCode = await resolveAffiliateCodeForAttribution(opts.admin, opts.projectId, opts.affiliateCode);
 
   const giftCardResult = await resolveActiveGiftCard(
     opts.admin,
@@ -344,6 +353,7 @@ export async function createCartOrder(opts: {
     insertOrder.discount_code = discount.code;
     insertOrder.discount_percent = discount.percent_off;
   }
+  if (affiliateCode) insertOrder.affiliate_code = affiliateCode;
   if (giftCard && giftCardAmount > 0) {
     insertOrder.gift_card_code = giftCard.code;
     insertOrder.gift_card_amount_xof = giftCardAmount;
@@ -416,6 +426,13 @@ export async function createCartOrder(opts: {
   if (discount) {
     try {
       await incrementDiscountUse(opts.admin, discount.id);
+    } catch {
+      /* best-effort */
+    }
+  }
+  if (affiliateCode) {
+    try {
+      await incrementAffiliateUse(opts.admin, opts.projectId, affiliateCode);
     } catch {
       /* best-effort */
     }
