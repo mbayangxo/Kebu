@@ -576,8 +576,12 @@ export const TEMPLATE_SEEDS: TemplateSeed[] = [
         customCss: `
 .kebu-site {
   /* !important: the root element also carries an inline background:theme.background
-     style (site-renderer.tsx), which otherwise always wins the cascade over this rule. */
-  background-image: url('/templates/legally-blonde/background.png') !important;
+     style (site-renderer.tsx), which otherwise always wins the cascade over this rule.
+     Asset moved to the maylecor/ templates folder (May's own site) — a real site must
+     never reference the gated showcase template's asset folder by path, even for a
+     generic non-movie texture, since isElleStockCutout() only scans structured image
+     props, not raw CSS strings like this one. */
+  background-image: url('/templates/maylecor/paper-texture-bg.png') !important;
   background-size: 900px !important;
   background-repeat: repeat !important;
   background-attachment: fixed !important;

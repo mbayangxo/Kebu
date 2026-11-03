@@ -23,13 +23,19 @@ describe("May Lecor — page aesthetic consistency (customCss)", () => {
   it("carries the site-wide paper-texture background, overriding the root inline background style", () => {
     const css = maylecor?.definition.theme.customCss ?? "";
     expect(css).toContain(".kebu-site");
-    expect(css).toContain("/templates/legally-blonde/background.png");
+    // Must never reference /templates/legally-blonde/ on May's real, live site — that path is
+    // reserved for the access-gated owner_portfolio demo template, and isElleStockCutout()
+    // only scans structured image props, never raw CSS strings like this one, so a literal
+    // path reference here would slip past that guard entirely. The texture itself is generic
+    // (plain pink scratched paper, no movie imagery) but now lives under /templates/maylecor/.
+    expect(css).not.toContain("/templates/legally-blonde/");
+    expect(css).toContain("/templates/maylecor/paper-texture-bg.png");
     // The root element also carries an inline `background: theme.background` style
     // (site-renderer.tsx), which always wins the cascade over a plain class rule —
     // !important is load-bearing here, not optional polish. Catches a silent
     // regression where someone "cleans up" the !important and the fix goes dark
     // again without any test failing elsewhere.
-    expect(css).toMatch(/background-image:\s*url\([^)]*legally-blonde\/background\.png[^)]*\)\s*!important/);
+    expect(css).toMatch(/background-image:\s*url\([^)]*maylecor\/paper-texture-bg\.png[^)]*\)\s*!important/);
   });
 
   it("carries a torn-paper divider between consecutive sections", () => {
