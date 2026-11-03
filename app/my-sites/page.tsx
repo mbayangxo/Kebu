@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/app/components/app-shell";
-import { MySitesGrid } from "@/app/components/create/my-sites-grid";
+import { MySitesWithPortfolio } from "@/app/components/create/my-sites-with-portfolio";
 import type { MySitesFilter } from "@/app/components/create/my-sites-grid";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
 import { KEBU } from "@/lib/kebu-brand";
@@ -96,7 +96,7 @@ export default async function MySitesPage({ searchParams }: Props) {
             </div>
 
             <div className="mt-3">
-              <MySitesGrid projects={all} initialFilter={initialFilter} />
+              <MySitesWithPortfolio initialProjects={all} initialFilter={initialFilter} />
             </div>
           </section>
 
