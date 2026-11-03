@@ -49,6 +49,8 @@ export async function GET(req: Request) {
     ordersWeek,
     aiMonth,
     cronRuns,
+    securityDay,
+    securityRecent,
   ] = await Promise.all([
     supabase.from("businesses").select("id", { count: "exact", head: true }),
     supabase
@@ -96,6 +98,12 @@ export async function GET(req: Request) {
       .select("id, job_name, status, summary, error_message, started_at, finished_at")
       .order("finished_at", { ascending: false })
       .limit(24),
+    supabase.from("security_events").select("event_type, source, detail, created_at").gte("created_at", dayAgo),
+    supabase
+      .from("security_events")
+      .select("id, event_type, source, detail, created_at")
+      .order("created_at", { ascending: false })
+      .limit(30),
   ]);
 
   const domains = domainsRes.data ?? [];
@@ -105,8 +113,15 @@ export async function GET(req: Request) {
     Boolean(helpOpen.error?.message?.includes("help_requests")) ||
     Boolean(helpRecent.error?.message?.includes("help_requests"));
   const cronTableMissing = Boolean(cronRuns.error?.message?.includes("platform_cron_runs"));
+  const securityTableMissing = Boolean(securityDay.error?.message?.includes("security_events"));
 
   const helpedTotal = (helpHelped.count ?? 0) + (helpClosed.count ?? 0);
+
+  const securityDayRows = (securityDay.data ?? []) as { event_type: string }[];
+  const securityCountsByType: Record<string, number> = {};
+  for (const row of securityDayRows) {
+    securityCountsByType[row.event_type] = (securityCountsByType[row.event_type] ?? 0) + 1;
+  }
 
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
@@ -148,6 +163,16 @@ export async function GET(req: Request) {
       recent: cronRuns.data ?? [],
       migrationNeeded: cronTableMissing,
     },
+    security: {
+      last24h: {
+        csrfRejected: securityCountsByType.csrf_rejected ?? 0,
+        authRateLimited: securityCountsByType.auth_rate_limited ?? 0,
+        adminLoginFailed: securityCountsByType.admin_login_failed ?? 0,
+        total: securityDayRows.length,
+      },
+      recent: securityRecent.data ?? [],
+      migrationNeeded: securityTableMissing,
+    },
     domains: domains.slice(0, 50),
     recentBusinesses: recentBusinessesRes.data ?? [],
     notes: [
@@ -156,6 +181,7 @@ export async function GET(req: Request) {
       "Help requests come from /contact — mark Helped when resolved.",
       "Cron rows need migration 083; site probe failures come from site_health_checks.",
       "SMS delivery in Africa can be unreliable — Shop fulfill defaults to WhatsApp.",
+      "Security events need migration 20261103130000_security_events_log.sql — CSRF rejections, admin login failures, and auth rate-limit trips, logged where enforced.",
     ],
   });
 }

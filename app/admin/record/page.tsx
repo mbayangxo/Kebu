@@ -65,6 +65,22 @@ type RecordOverview = {
     }>;
     migrationNeeded?: boolean;
   };
+  security: {
+    last24h: {
+      csrfRejected: number;
+      authRateLimited: number;
+      adminLoginFailed: number;
+      total: number;
+    };
+    recent: Array<{
+      id: string;
+      event_type: string;
+      source: string;
+      detail: Record<string, unknown>;
+      created_at: string;
+    }>;
+    migrationNeeded?: boolean;
+  };
   domains: Array<{ id: string; hostname: string; status: string; provider: string; project_id: string }>;
   recentBusinesses: Array<{
     id: string;
@@ -295,6 +311,49 @@ export default function KebuRecordPortalPage() {
                     {data.health.billingExpired}
                   </p>
                 </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="font-display text-lg font-bold mb-3">Security signals (24h)</h2>
+              {data.security.migrationNeeded ? (
+                <p className="text-sm text-amber-800 mb-3">
+                  Apply <code>20261103130000_security_events_log.sql</code> for security signal history.
+                </p>
+              ) : null}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                {[
+                  ["CSRF rejections", data.security.last24h.csrfRejected],
+                  ["Auth rate-limit trips", data.security.last24h.authRateLimited],
+                  ["Admin login failures", data.security.last24h.adminLoginFailed],
+                  ["Total signals (24h)", data.security.last24h.total],
+                ].map(([label, value]) => (
+                  <div key={label as string} className="bg-white border border-border rounded-2xl p-5 text-center">
+                    <p
+                      className={`font-display text-3xl font-bold ${(value as number) > 0 ? "text-amber-700" : "text-deep-green"}`}
+                    >
+                      {value as number}
+                    </p>
+                    <p className="text-xs text-muted mt-1">{label as string}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-white border border-border rounded-2xl p-6">
+                <h3 className="text-sm font-bold mb-3">Recent signals</h3>
+                {data.security.recent.length === 0 ? (
+                  <p className="text-sm text-muted">No security signals logged — nothing has tripped CSRF, auth rate limits, or admin login checks.</p>
+                ) : (
+                  <ul className="text-xs space-y-2">
+                    {data.security.recent.map((s) => (
+                      <li key={s.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
+                        <span>
+                          <span className="font-mono">{s.event_type}</span> · {s.source}
+                        </span>
+                        <span className="text-muted shrink-0">{new Date(s.created_at).toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </section>
 

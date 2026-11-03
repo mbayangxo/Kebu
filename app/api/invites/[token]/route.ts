@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser, logCreate } from "@/lib/create/auth";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { acceptBusinessInvite } from "@/lib/business/team-invites";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,9 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 /** Accept invite — must be signed in as the invited email. */
-export async function POST(_req: Request, { params }: Params) {
+export async function POST(req: Request, { params }: Params) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { user } = auth;

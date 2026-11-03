@@ -6,6 +6,7 @@ import {
   adminSessionCookieOptions,
   createAdminSessionToken,
 } from "@/lib/admin/admin-session";
+import { recordSecurityEvent } from "@/lib/platform/security-events";
 
 export async function POST(req: NextRequest) {
   const limited = authRateLimit(req);
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (!adminPassword || !password || password !== adminPassword) {
+    recordSecurityEvent({ eventType: "admin_login_failed", source: "/api/admin/login" });
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
