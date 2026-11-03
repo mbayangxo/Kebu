@@ -755,6 +755,17 @@ export function StudioCanvasEditor({
     setPageLayers(nextLayers);
   }
 
+  /** Move a layer all the way to the front (top of paint order) or back (bottom). */
+  function moveLayerZEnd(id: string, toFront: boolean) {
+    const idx = layers.findIndex((l) => l.id === id);
+    if (idx < 0) return;
+    const nextLayers = [...layers];
+    const [item] = nextLayers.splice(idx, 1);
+    if (toFront) nextLayers.push(item!);
+    else nextLayers.unshift(item!);
+    setPageLayers(nextLayers);
+  }
+
   function applySelectionRotation(degrees: number) {
     if (readOnly) return;
     setRotationError(null);
@@ -2240,11 +2251,17 @@ export function StudioCanvasEditor({
                 </label>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
+                <button type="button" className="text-[11px] underline" onClick={() => moveLayerZEnd(selected.id, true)}>
+                  Bring to front
+                </button>
                 <button type="button" className="text-[11px] underline" onClick={() => moveLayerZ(selected.id, 1)}>
                   Bring forward
                 </button>
                 <button type="button" className="text-[11px] underline" onClick={() => moveLayerZ(selected.id, -1)}>
                   Send back
+                </button>
+                <button type="button" className="text-[11px] underline" onClick={() => moveLayerZEnd(selected.id, false)}>
+                  Send to back
                 </button>
                 <button
                   type="button"
