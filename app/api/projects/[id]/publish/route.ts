@@ -113,10 +113,11 @@ export async function POST(req: Request, { params }: Params) {
     return NextResponse.json({ error: published.error, detail: published.detail }, { status });
   }
 
-  if (project.document_schema_version === "kcd-1") {
-    revalidatePath(`/sites/${subdomain}`, "layout");
-    if (project.subdomain && project.subdomain !== subdomain) revalidatePath(`/sites/${project.subdomain}`, "layout");
-  }
+  // app/sites/[subdomain]/page.tsx ISR-caches for 10 minutes regardless of
+  // document_schema_version — a legacy publish needs the same cache bust a
+  // kcd-1 publish gets, or the live page keeps serving the pre-publish snapshot.
+  revalidatePath(`/sites/${subdomain}`, "layout");
+  if (project.subdomain && project.subdomain !== subdomain) revalidatePath(`/sites/${project.subdomain}`, "layout");
 
   if (project.business_id) {
     await recalculateAndStoreReadiness({ supabase, businessId: project.business_id });
