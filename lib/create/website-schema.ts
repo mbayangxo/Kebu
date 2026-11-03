@@ -42,6 +42,7 @@ export const SECTION_TYPES = [
   "email-popup",
   "form",
   "blog-list",
+  "community",
   "whatsapp",
   "joko",
   "countdown",
@@ -793,6 +794,18 @@ export const sectionPropsSchemas = {
     heading: z.string().trim().max(160).default("Blog"),
     subheading: z.string().trim().max(240).default("News and updates from our team."),
     postsPerPage: z.number().int().min(1).max(12).default(6),
+    hidden: z.boolean().optional(),
+    deviceOverrides: deviceOverridesSchema,
+  }),
+  /** Fan/member community board: creator posts, signed-in members post + reply. Any site can enable this. */
+  "community": z.object({
+    heading: z.string().trim().max(160).default("Community"),
+    subheading: z
+      .string()
+      .trim()
+      .max(240)
+      .default("Sign in to post and chat with other members."),
+    signInPrompt: z.string().trim().max(240).default("Sign in or create a free Kebu account to join."),
     hidden: z.boolean().optional(),
     deviceOverrides: deviceOverridesSchema,
   }),

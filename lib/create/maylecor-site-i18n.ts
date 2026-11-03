@@ -28,6 +28,7 @@ export const MAYLECOR_WORLD_SLUGS = [
   "photos",
   "maygazine",
   "may-by-may",
+  "fan-community",
 ] as const;
 
 export type MaylecorWorldSlug = (typeof MAYLECOR_WORLD_SLUGS)[number];
@@ -49,6 +50,7 @@ const WORLD_KEYS: Record<MaylecorWorldSlug, Record<MaylecorLocale, string>> = {
   photos: { en: "Photos", fr: "Photos", wo: "Nataal yi" },
   maygazine: { en: "Maygazine", fr: "Maygazine", wo: "Maygazine" },
   "may-by-may": { en: "May by May", fr: "May by May", wo: "May by May" },
+  "fan-community": { en: "Fan Community", fr: "Communauté", wo: "Mbootaay" },
 };
 
 export function maylecorNavLabel(slug: MaylecorNavSlug, locale: MaylecorLocale): string {

@@ -221,7 +221,39 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
                 href: "/may-by-may",
                 image: photos[5]?.src ?? "",
               },
+              {
+                title: "Fan Community",
+                body: "Sign up, post, and chat with other fans — May posts here too.",
+                href: "/fan-community",
+                image: photos[6]?.src ?? photos[0]?.src ?? "",
+              },
             ],
+          },
+        },
+      ],
+    },
+    {
+      slug: "fan-community",
+      title: "Fan Community",
+      sections: [
+        {
+          id: "maylecor-community-hero",
+          type: "hero",
+          props: {
+            heading: "May's World — Fan Community",
+            subheading:
+              "A place for May's fans: sign up, post, and chat with each other. May posts updates right here too.",
+            align: "center",
+            background: "#0A0A0A",
+          },
+        },
+        {
+          id: "maylecor-community-board",
+          type: "community",
+          props: {
+            heading: "Community",
+            subheading: "Sign in to post and chat with other fans.",
+            signInPrompt: "Sign in or create a free Kebu account to join May's World.",
           },
         },
       ],
