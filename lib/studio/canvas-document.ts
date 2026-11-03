@@ -219,8 +219,11 @@ export function artboardSize(designType: StudioDesignType): { width: number; hei
     case "instagram_post":
     case "social_square":
     case "facebook_post":
-    case "linkedin_post":
       return { width: 1080, height: 1080 };
+    case "linkedin_post":
+      // LinkedIn's recommended square-post size — distinct from the 1080 used by
+      // Instagram/Facebook so the "1200 × 1200" preset label is actually true.
+      return { width: 1200, height: 1200 };
     case "flyer":
     case "menu":
     case "proposal":

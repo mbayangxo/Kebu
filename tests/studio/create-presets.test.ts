@@ -55,7 +55,7 @@ describe("Studio real-world format expansion (S21)", () => {
     expect(artboardSize("youtube_thumbnail")).toEqual({ width: 1280, height: 720 });
     expect(artboardSize("youtube_banner")).toEqual({ width: 2560, height: 1440 });
     expect(artboardSize("tiktok_video_cover")).toEqual({ width: 1080, height: 1920 });
-    expect(artboardSize("linkedin_post")).toEqual({ width: 1080, height: 1080 });
+    expect(artboardSize("linkedin_post")).toEqual({ width: 1200, height: 1200 });
     expect(artboardSize("linkedin_banner")).toEqual({ width: 1584, height: 396 });
     expect(artboardSize("pinterest_pin")).toEqual({ width: 1000, height: 1500 });
     expect(artboardSize("twitter_post")).toEqual({ width: 1200, height: 675 });
