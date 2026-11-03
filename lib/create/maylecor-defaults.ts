@@ -8,12 +8,13 @@ import { LEGALLY_BLONDE_ASSETS } from "./legally-blonde-defaults";
 export const MAYLECOR_SEED_REVISION = "2026-09-10b";
 
 /** Bump when replacing files under /public/templates/maylecor so CDN/browser caches refresh. */
-// Bumped: hero-collage.png and may-figure.png were re-exported with real alpha transparency — the
-// previous files had a checkerboard "no background" placeholder baked into their pixels instead of an
-// actual alpha channel, so they rendered with a visible gray/white checker behind the artist cutout and
-// city skyline on every page that uses them (including customer-facing published sites). Bumping the
-// cache-busting query param so CDNs/browsers fetch the corrected files instead of the cached bad ones.
-const MAY_ASSET_V = "20260915a";
+// Bumped again: city-skyline.png had a large opaque checkerboard region baked into otherwise-real
+// alpha (not caught by the 20260915a fix, which only covered hero-collage.png and may-figure.png —
+// a single-pixel patch attempt wasn't enough, the defect was bigger than one isolated spot).
+// Replaced with a freshly-cropped, alpha-verified-clean skyline region sourced from the already-
+// clean hero-collage.png composite. cutoutLeft also now points at may-figure.png instead of the
+// JPEG may-cutout-full.jpg, which cannot carry alpha at all and rendered fully broken on Home.
+const MAY_ASSET_V = "20261103b";
 
 function mayAsset(path: string): string {
   return `${path}?v=${MAY_ASSET_V}`;
@@ -38,7 +39,10 @@ export const MAYLECOR_LOCAL_ASSETS = {
 
 /** Figure layers on the Russian-style May Lecor hero — prefer distinct local files when available. */
 export const MAYLECOR_FIGURE_ASSETS = {
-  cutoutLeft: MAYLECOR_LOCAL_ASSETS.mayCutoutFull,
+  /** mayCutoutFull is a JPEG with a checkerboard "no background" placeholder baked into its
+   *  opaque pixels (JPEG cannot carry alpha at all), so it rendered broken on the live hero.
+   *  mayFigure.png is the same photo, already correctly re-cut with real alpha transparency. */
+  cutoutLeft: MAYLECOR_LOCAL_ASSETS.mayFigure,
   cutoutRight: MAYLECOR_LOCAL_ASSETS.portrait,
   cutoutAccent: MAYLECOR_LOCAL_ASSETS.mayFigure,
   heroPhoto: MAYLECOR_LOCAL_ASSETS.portrait,
