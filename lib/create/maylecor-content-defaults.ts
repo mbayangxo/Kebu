@@ -1,10 +1,17 @@
-import { MAYLECOR_LOCAL_ASSETS, MAYLECOR_WIX } from "./maylecor-defaults";
+import { MAYLECOR_WIX } from "./maylecor-defaults";
+
+/** Real press assets May provided — "Yaw Laa Taan" single cover + photoshoot. */
+export const MAYLECOR_REAL_MEDIA = {
+  yawLaaTaanCover: "/templates/maylecor/yaw-laa-taan-cover.png",
+  pressPhotoshoot: "/templates/maylecor/press-photoshoot.png",
+  yawLaaTaanDemoVideo: "/templates/maylecor/yaw-laa-taan-demo.mp4",
+} as const;
 
 export function defaultMaylecorPhotoGalleryItems() {
-  /** Empty slots — founder uploads May photos via Media → drop onto gallery in the editor. */
+  /** First two slots carry May's real press assets; the rest stay open for the founder to fill via Media. */
   return [
-    { src: "", alt: "Upload photo 1" },
-    { src: "", alt: "Upload photo 2" },
+    { src: MAYLECOR_REAL_MEDIA.yawLaaTaanCover, alt: "Yaw Laa Taan — single cover" },
+    { src: MAYLECOR_REAL_MEDIA.pressPhotoshoot, alt: "May Lecor — press photoshoot" },
     { src: "", alt: "Upload photo 3" },
     { src: "", alt: "Upload photo 4" },
     { src: "", alt: "Upload photo 5" },
@@ -24,10 +31,10 @@ export function defaultMaylecorVideoGalleryItems() {
 export function defaultMaylecorVideoItems() {
   return [
     {
-      src: "",
-      title: "Video 1",
-      caption: "Paste a YouTube URL or upload a video file",
-      thumbnail: MAYLECOR_WIX.portraitMain,
+      src: MAYLECOR_REAL_MEDIA.yawLaaTaanDemoVideo,
+      title: "Yaw Laa Taan",
+      caption: "Yaw Laa Taan — demo",
+      thumbnail: MAYLECOR_REAL_MEDIA.yawLaaTaanCover,
     },
     {
       src: "",
