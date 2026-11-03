@@ -54,6 +54,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // Dev-only Playwright fixture (renders a source-controlled template with no DB/auth
+  // needed) — the route component itself also 404s outside dev, this is defense in depth
+  // so a real deploy never serves it even if this exception were present there by mistake.
+  if (process.env.NODE_ENV !== "production" && pathname === "/create/demo/maylecor-fixture") {
+    return NextResponse.next({ request });
+  }
+
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.next({ request });
   }
