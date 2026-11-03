@@ -31,6 +31,101 @@ function tableMissing(message: string | undefined): boolean {
   return Boolean(message?.includes("does not exist") || message?.includes("schema cache"));
 }
 
+/** The documented split (see 20261020030000_studio_creative_assets_marketplace.sql's comment): seller keeps 80%, Kebu keeps 20%. */
+const SELLER_SHARE = 0.8;
+
+export type DeveloperEarningsSummary = {
+  /** What buyers actually paid for this developer's listings (USD cents), from completed sales only. */
+  grossSalesUsdCents: number;
+  /** grossSalesUsdCents * 80% — the seller's real entitlement. */
+  sellerShareUsdCents: number;
+  /** Already requested, processing, or paid out — reserved against the share above. */
+  claimedUsdCents: number;
+  /** sellerShareUsdCents - claimedUsdCents, floored at 0 — what's left to request. */
+  availableUsdCents: number;
+};
+
+/** Converts a whole-XOF amount to USD cents using the same rate Wave checkout quotes with (lib/payments/wave-adapter.ts). Returns null when unconfigured, rather than guessing a rate. */
+function xofToUsdCents(xof: number): number | null {
+  const raw = process.env.WAVE_XOF_PER_USD?.trim();
+  const rate = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(rate) || rate <= 0) return null;
+  return Math.round((xof / rate) * 100);
+}
+
+/**
+ * Real seller-earnings balance, computed from completed sales — not a number a
+ * developer types in. Sums what buyers actually paid (aesthetic_library +
+ * creative_asset_library rows with status='owned', tied to this developer's
+ * own listings), applies the 80% seller share, then subtracts every payout
+ * already requested/processing/paid so the same dollar can't be claimed twice.
+ */
+export async function getDeveloperEarningsSummary(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<{ ok: true; summary: DeveloperEarningsSummary } | { ok: false; status: number; error: string }> {
+  const empty: DeveloperEarningsSummary = { grossSalesUsdCents: 0, sellerShareUsdCents: 0, claimedUsdCents: 0, availableUsdCents: 0 };
+
+  const { data: profile, error: profileErr } = await supabase
+    .from("developer_profiles")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (profileErr) return { ok: false, status: 500, error: profileErr.message };
+  if (!profile) return { ok: true, summary: empty };
+
+  let grossSalesUsdCents = 0;
+
+  const { data: templates, error: templatesErr } = await supabase
+    .from("marketplace_templates")
+    .select("id")
+    .eq("developer_id", profile.id);
+  if (templatesErr) return { ok: false, status: 500, error: templatesErr.message };
+  const templateIds = (templates ?? []).map((t) => (t as { id: string }).id);
+  if (templateIds.length > 0) {
+    const { data: sales, error: salesErr } = await supabase
+      .from("aesthetic_library")
+      .select("amount_usd_cents")
+      .eq("status", "owned")
+      .in("marketplace_id", templateIds);
+    if (salesErr) return { ok: false, status: 500, error: salesErr.message };
+    for (const row of sales ?? []) grossSalesUsdCents += (row as { amount_usd_cents: number | null }).amount_usd_cents ?? 0;
+  }
+
+  const { data: assets, error: assetsErr } = await supabase
+    .from("marketplace_creative_assets")
+    .select("id")
+    .eq("developer_id", profile.id);
+  if (assetsErr) return { ok: false, status: 500, error: assetsErr.message };
+  const assetIds = (assets ?? []).map((a) => (a as { id: string }).id);
+  if (assetIds.length > 0) {
+    const { data: sales, error: salesErr } = await supabase
+      .from("creative_asset_library")
+      .select("amount_cents")
+      .eq("status", "owned")
+      .in("asset_id", assetIds);
+    if (salesErr) return { ok: false, status: 500, error: salesErr.message };
+    for (const row of sales ?? []) grossSalesUsdCents += (row as { amount_cents: number | null }).amount_cents ?? 0;
+  }
+
+  const sellerShareUsdCents = Math.round(grossSalesUsdCents * SELLER_SHARE);
+
+  const { data: claimedRows, error: claimedErr } = await supabase
+    .from("developer_payouts")
+    .select("amount_cents, currency")
+    .eq("developer_id", profile.id)
+    .in("status", ["requested", "processing", "paid"]);
+  if (claimedErr) return { ok: false, status: 500, error: claimedErr.message };
+  let claimedUsdCents = 0;
+  for (const row of claimedRows ?? []) {
+    const r = row as { amount_cents: number; currency: string };
+    claimedUsdCents += r.currency === "USD" ? r.amount_cents : xofToUsdCents(r.amount_cents) ?? 0;
+  }
+
+  const availableUsdCents = Math.max(0, sellerShareUsdCents - claimedUsdCents);
+  return { ok: true, summary: { grossSalesUsdCents, sellerShareUsdCents, claimedUsdCents, availableUsdCents } };
+}
+
 export async function getDeveloperPayoutSettings(
   supabase: SupabaseClient,
   userId: string,
@@ -118,13 +213,29 @@ export async function requestDeveloperPayout(
     return { ok: false, status: 400, error: "Set up your payout destination before requesting a payout." };
   }
 
+  const currency = input.currency ?? "USD";
+  const requestedUsdCents = currency === "USD" ? Math.round(input.amountCents) : xofToUsdCents(input.amountCents);
+  if (requestedUsdCents == null) {
+    return { ok: false, status: 400, error: "XOF payout conversion is unavailable right now. Request in USD." };
+  }
+  const earnings = await getDeveloperEarningsSummary(supabase, userId);
+  if (!earnings.ok) return earnings;
+  if (requestedUsdCents > earnings.summary.availableUsdCents) {
+    const availableDisplay = (earnings.summary.availableUsdCents / 100).toFixed(2);
+    return {
+      ok: false,
+      status: 400,
+      error: `You can request at most $${availableDisplay} — that's your real balance from completed sales minus payouts already requested or paid.`,
+    };
+  }
+
   // Always use the destination on file — never trust a caller-supplied one, matching the RLS policy exactly.
   const { data, error } = await supabase
     .from("developer_payouts")
     .insert({
       developer_id: profile.id,
       amount_cents: Math.round(input.amountCents),
-      currency: input.currency ?? "XOF",
+      currency,
       method: profile.payout_method,
       destination_phone: profile.payout_phone,
       destination_account_name: profile.payout_account_name,

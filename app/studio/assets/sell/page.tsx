@@ -34,8 +34,19 @@ type PayoutRequest = {
   failureReason: string | null;
 };
 
+type EarningsSummary = {
+  grossSalesUsdCents: number;
+  sellerShareUsdCents: number;
+  claimedUsdCents: number;
+  availableUsdCents: number;
+};
+
 function formatXof(cents: number): string {
   return `${Math.round(cents).toLocaleString()} XOF`;
+}
+
+function formatUsd(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export default function StudioAssetSellPage() {
@@ -61,6 +72,7 @@ export default function StudioAssetSellPage() {
   const [payoutAccountName, setPayoutAccountName] = useState("");
   const [payoutBusy, setPayoutBusy] = useState(false);
   const [payouts, setPayouts] = useState<PayoutRequest[] | null>(null);
+  const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
   const [requestAmount, setRequestAmount] = useState("");
 
   async function refresh() {
@@ -85,6 +97,7 @@ export default function StudioAssetSellPage() {
     const res = await fetch("/api/developer/payouts", { credentials: "include" });
     const data = await res.json().catch(() => ({}));
     setPayouts(Array.isArray(data.items) ? data.items : []);
+    setEarnings(data.earnings ?? null);
   }
 
   useEffect(() => {
@@ -118,7 +131,7 @@ export default function StudioAssetSellPage() {
 
   async function requestPayout(event: React.FormEvent) {
     event.preventDefault();
-    const amountCents = Math.round(Number(requestAmount) * 1);
+    const amountCents = Math.round(Number(requestAmount) * 100);
     if (!Number.isFinite(amountCents) || amountCents <= 0) {
       setError("Enter a payout amount greater than zero.");
       return;
@@ -131,7 +144,7 @@ export default function StudioAssetSellPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountCents, currency: "XOF" }),
+        body: JSON.stringify({ amountCents, currency: "USD" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Could not request a payout.");
@@ -267,22 +280,56 @@ export default function StudioAssetSellPage() {
 
           {payout?.complete ? (
             <div className="mt-6 border-t pt-5" style={{ borderColor: KEBU.borders.default }}>
-              <h3 className="mb-3 text-[11px] font-black uppercase tracking-wide">Request a payout</h3>
+              <h3 className="mb-3 text-[11px] font-black uppercase tracking-wide">Earnings &amp; payouts</h3>
+              {earnings ? (
+                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl p-3" style={{ background: KEBU.cream, border: `1px solid ${KEBU.borders.default}` }}>
+                    <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>Total sold (your 80%)</p>
+                    <p className="mt-1 text-lg font-black">{formatUsd(earnings.sellerShareUsdCents)}</p>
+                  </div>
+                  <div className="rounded-2xl p-3" style={{ background: KEBU.cream, border: `1px solid ${KEBU.borders.default}` }}>
+                    <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>Already requested/paid</p>
+                    <p className="mt-1 text-lg font-black">{formatUsd(earnings.claimedUsdCents)}</p>
+                  </div>
+                  <div className="rounded-2xl p-3" style={{ background: "#f0fdf4", border: `1px solid ${KEBU.borders.default}` }}>
+                    <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>Available to request</p>
+                    <p className="mt-1 text-lg font-black">{formatUsd(earnings.availableUsdCents)}</p>
+                  </div>
+                </div>
+              ) : null}
               <form onSubmit={(e) => void requestPayout(e)} className="flex flex-wrap items-end gap-3">
                 <label className="block">
-                  <span className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Amount (XOF)</span>
-                  <input type="number" min={1} value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} placeholder="5000" className="mt-2 min-h-11 w-40 rounded-xl border px-3 text-sm" style={{ borderColor: KEBU.borders.default }} />
+                  <span className="text-[9px] font-black uppercase tracking-[.14em]" style={{ color: KEBU.muted }}>Amount (USD)</span>
+                  <input
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    max={earnings ? earnings.availableUsdCents / 100 : undefined}
+                    value={requestAmount}
+                    onChange={(e) => setRequestAmount(e.target.value)}
+                    placeholder="5.00"
+                    className="mt-2 min-h-11 w-40 rounded-xl border px-3 text-sm"
+                    style={{ borderColor: KEBU.borders.default }}
+                  />
                 </label>
-                <button type="submit" disabled={payoutBusy || !requestAmount.trim()} className="min-h-11 rounded-full px-5 text-[10px] font-black uppercase tracking-[.12em] text-white disabled:opacity-40" style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}>
+                <button
+                  type="submit"
+                  disabled={payoutBusy || !requestAmount.trim() || (earnings ? earnings.availableUsdCents <= 0 : false)}
+                  className="min-h-11 rounded-full px-5 text-[10px] font-black uppercase tracking-[.12em] text-white disabled:opacity-40"
+                  style={{ background: "linear-gradient(90deg,#FF6A00,#FF1F1F)" }}
+                >
                   Request payout
                 </button>
               </form>
+              {earnings && earnings.availableUsdCents <= 0 ? (
+                <p className="mt-2 text-[10px]" style={{ color: KEBU.muted }}>No balance available yet — this fills as your listings sell.</p>
+              ) : null}
 
               {payouts && payouts.length > 0 ? (
                 <ul className="mt-4 space-y-2">
                   {payouts.map((p) => (
                     <li key={p.id} className="flex items-center justify-between rounded-xl border px-3 py-2 text-[11px]" style={{ borderColor: KEBU.borders.default }}>
-                      <span>{formatXof(p.amountCents)} via {p.method === "wave" ? "Wave" : "Orange Money"}</span>
+                      <span>{p.currency === "USD" ? formatUsd(p.amountCents) : formatXof(p.amountCents)} via {p.method === "wave" ? "Wave" : "Orange Money"}</span>
                       <span className="font-black uppercase tracking-wide" style={{ color: p.status === "paid" ? "#059669" : p.status === "failed" ? "#DC2626" : KEBU.muted }}>{p.status}</span>
                     </li>
                   ))}

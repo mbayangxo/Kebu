@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/create/auth";
 import { builderRateLimit } from "@/lib/api-guard";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
-import { listMyDeveloperPayouts, requestDeveloperPayout } from "@/lib/create/developer-payouts";
+import { listMyDeveloperPayouts, requestDeveloperPayout, getDeveloperEarningsSummary } from "@/lib/create/developer-payouts";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,9 @@ export async function GET() {
   const result = await listMyDeveloperPayouts(auth.supabase, auth.user.id);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
+  const earnings = await getDeveloperEarningsSummary(auth.supabase, auth.user.id);
+  if (!earnings.ok) return NextResponse.json({ error: earnings.error }, { status: earnings.status });
+
   return NextResponse.json({
     items: result.items.map((p) => ({
       id: p.id,
@@ -31,6 +34,7 @@ export async function GET() {
       processedAt: p.processed_at,
       failureReason: p.failure_reason,
     })),
+    earnings: earnings.summary,
   });
 }
 
