@@ -40,6 +40,165 @@ const CARRIER_LINKS: Record<string, string> = {
   chronopost: "https://www.chronopost.fr/fr/tracking-no-cms",
 };
 
+type ShippingOption = {
+  id: string;
+  label: string;
+  amount_xof: number;
+  eta_min_days: number | null;
+  eta_max_days: number | null;
+  active: boolean;
+  sort_order: number;
+};
+
+/** Merchant-defined shipping choices buyers pick from at checkout — what actually gets charged. */
+function ShippingOptionsManager({ projectId }: { projectId: string }) {
+  const [options, setOptions] = useState<ShippingOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [label, setLabel] = useState("");
+  const [amount, setAmount] = useState("0");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/shipping-options`, { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not load shipping options.");
+        return;
+      }
+      setOptions(Array.isArray(data.options) ? data.options : []);
+    } catch {
+      setError("Network error.");
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function addOption(e: React.FormEvent) {
+    e.preventDefault();
+    if (!label.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/shipping-options`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: label.trim(), amountXof: Number(amount) || 0, sortOrder: options.length }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not add shipping option.");
+        return;
+      }
+      setLabel("");
+      setAmount("0");
+      await load();
+    } catch {
+      setError("Network error.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function toggleActive(option: ShippingOption) {
+    await fetch(`/api/projects/${projectId}/shipping-options/${option.id}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !option.active }),
+    }).catch(() => undefined);
+    await load();
+  }
+
+  async function removeOption(optionId: string) {
+    await fetch(`/api/projects/${projectId}/shipping-options/${optionId}`, {
+      method: "DELETE",
+      credentials: "include",
+    }).catch(() => undefined);
+    await load();
+  }
+
+  return (
+    <div className="rounded-2xl border p-4" style={{ borderColor: KEBU.border, background: "#fff" }}>
+      <p className="text-xs font-semibold" style={{ color: KEBU.black }}>
+        Shipping options
+      </p>
+      <p className="mt-0.5 text-[10px]" style={{ color: KEBU.muted }}>
+        What buyers pick from at checkout — the price here is what's actually charged, on top of the cart total.
+      </p>
+
+      {error ? <p className="mt-2 text-[11px]" style={{ color: "#8B1E1E" }}>{error}</p> : null}
+
+      {loading ? (
+        <p className="mt-2 text-xs" style={{ color: KEBU.muted }}>Loading…</p>
+      ) : (
+        <ul className="mt-3 space-y-1.5">
+          {options.map((o) => (
+            <li
+              key={o.id}
+              className="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-xs"
+              style={{ background: KEBU.cream, opacity: o.active ? 1 : 0.5 }}
+            >
+              <span style={{ color: KEBU.black }}>{o.label}</span>
+              <span className="flex items-center gap-2 shrink-0">
+                <span style={{ color: KEBU.muted }}>{formatXof(o.amount_xof) === "—" ? "Gratuit" : formatXof(o.amount_xof)}</span>
+                <button type="button" className="underline" onClick={() => void toggleActive(o)} style={{ color: KEBU.muted }}>
+                  {o.active ? "Disable" : "Enable"}
+                </button>
+                <button type="button" className="underline" onClick={() => void removeOption(o.id)} style={{ color: "#8B1E1E" }}>
+                  Remove
+                </button>
+              </span>
+            </li>
+          ))}
+          {options.length === 0 ? (
+            <p className="text-xs" style={{ color: KEBU.muted }}>
+              No shipping options yet — buyers won't see a choice at checkout. Add one below (e.g. "Pickup — free").
+            </p>
+          ) : null}
+        </ul>
+      )}
+
+      <form onSubmit={(e) => void addOption(e)} className="mt-3 flex flex-wrap gap-2">
+        <input
+          required
+          maxLength={80}
+          placeholder="e.g. Dakar delivery"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          className="flex-1 min-w-[140px] rounded-lg border px-2 py-1.5 text-xs"
+          style={{ borderColor: KEBU.border }}
+        />
+        <input
+          type="number"
+          min={0}
+          step="1"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="w-24 rounded-lg border px-2 py-1.5 text-xs"
+          style={{ borderColor: KEBU.border }}
+        />
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-50"
+          style={{ background: KEBU.black }}
+        >
+          Add
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function ShippingRatesCard() {
   const [open, setOpen] = useState(false);
   const pairs = supportedCorridorPairs();
@@ -295,6 +454,7 @@ export function ShopShippingPanel({ projectId }: { projectId: string }) {
         </p>
       </div>
 
+      <ShippingOptionsManager projectId={projectId} />
       <ShippingRatesCard />
     </div>
   );
