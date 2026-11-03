@@ -199,6 +199,7 @@ export const STUDIO_DESIGN_TYPES = [
   "invoice",
   "digital_planner",
   "spotify_banner",
+  "album_cover",
   "book_cover",
   "invitation",
   "newsletter",
@@ -250,6 +251,10 @@ export function artboardSize(designType: StudioDesignType): { width: number; hei
     case "spotify_banner":
       // Spotify for Artists header image — 2660x1140, not a clean 16:9 despite some guides' claims.
       return { width: 2660, height: 1140 };
+    case "album_cover":
+      // DSP delivery standard for release artwork — Spotify, Apple Music, and most
+      // aggregators (DistroKid, TuneCore, etc.) all require a square at minimum 3000x3000.
+      return { width: 3000, height: 3000 };
     case "book_cover":
       return { width: 1600, height: 2400 };
     case "invitation":

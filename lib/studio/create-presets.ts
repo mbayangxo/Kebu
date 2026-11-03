@@ -194,6 +194,14 @@ export const STUDIO_CREATE_PRESETS: StudioCreatePreset[] = [
     group: "web",
   },
   {
+    id: "album_cover",
+    label: "Album cover (Spotify / Apple Music)",
+    designType: "album_cover",
+    description: "3000 × 3000",
+    ...artboardSize("album_cover"),
+    group: "web",
+  },
+  {
     id: "book_cover",
     label: "Book cover",
     designType: "book_cover",

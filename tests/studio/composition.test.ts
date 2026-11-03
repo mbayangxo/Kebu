@@ -12,7 +12,22 @@ import {
   splitClipAt,
   studioCompositionSchema,
   updateClip,
+  VIDEO_ASPECT_PRESETS,
 } from "@/lib/studio/composition";
+
+describe("Studio video aspect presets", () => {
+  it("offers a named Spotify Canvas preset at the real 9:16 Canvas frame", () => {
+    const preset = VIDEO_ASPECT_PRESETS.find((p) => p.id === "spotify_canvas");
+    expect(preset).toBeTruthy();
+    // Spotify Canvas delivery is 1080x1920 — same frame as 9:16, found by name instead of ratio.
+    expect(preset).toMatchObject({ width: 1080, height: 1920 });
+  });
+
+  it("has no duplicate preset ids", () => {
+    const ids = VIDEO_ASPECT_PRESETS.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
 
 describe("Studio composition architecture", () => {
   it("creates empty composition with video + audio + music tracks", () => {

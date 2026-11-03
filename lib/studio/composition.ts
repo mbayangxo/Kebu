@@ -455,6 +455,11 @@ export const VIDEO_ASPECT_PRESETS = [
   { id: "1:1", label: "1:1 · Square", width: 1080, height: 1080 },
   { id: "16:9", label: "16:9 · YouTube", width: 1920, height: 1080 },
   { id: "4:5", label: "4:5 · Portrait social", width: 1080, height: 1350 },
+  // Same frame as 9:16, but named for the artists looking for it: Spotify Canvas is a
+  // silent, looping 3–8s clip attached to a track. We don't enforce the loop length here
+  // (Studio's trim/export already handles clip duration) — this just puts the right
+  // starting canvas one click away instead of making a musician guess "9:16" is it.
+  { id: "spotify_canvas", label: "Spotify Canvas · looping track visual (3–8s)", width: 1080, height: 1920 },
 ] as const;
 
 /** Compile storyboard scene order into sequential video-clip placeholders (no media yet). */

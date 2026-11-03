@@ -61,6 +61,8 @@ describe("Studio real-world format expansion (S21)", () => {
     expect(artboardSize("twitter_post")).toEqual({ width: 1200, height: 675 });
     expect(artboardSize("pitch_deck_slide")).toEqual({ width: 1920, height: 1080 });
     expect(artboardSize("spotify_banner")).toEqual({ width: 2660, height: 1140 });
+    // DSP cover-art delivery standard (Spotify, Apple Music, DistroKid, TuneCore, …): square, 3000x3000 minimum.
+    expect(artboardSize("album_cover")).toEqual({ width: 3000, height: 3000 });
   });
 
   it("groups every preset into a real UI section", () => {
