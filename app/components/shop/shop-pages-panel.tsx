@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { sanitizeMaylecorNavLinks } from "@/lib/create/maylecor-nav";
 import { KEBU } from "@/lib/kebu-brand";
+import { SHOP_POLICY_PAGE_SEEDS } from "@/lib/create/shop-policy-pages";
 
 type PageRow = {
   id: string;
@@ -250,6 +251,36 @@ export function ShopPagesPanel({ projectId }: { projectId: string }) {
     }
   }
 
+  async function addStandardPolicyPages() {
+    const missing = SHOP_POLICY_PAGE_SEEDS.filter((s) => !pages.some((p) => p.slug === s.slug));
+    if (missing.length === 0) {
+      setNote("All standard policy pages already exist.");
+      return;
+    }
+    setBusy(true);
+    setNote(null);
+    try {
+      let created = 0;
+      for (const seed of missing) {
+        const res = await fetch(`/api/projects/${projectId}/pages`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: seed.title, slug: seed.slug, seed: seed.slug }),
+        });
+        if (res.ok) created += 1;
+      }
+      await load();
+      setNote(
+        created > 0
+          ? `Added ${created} policy page${created === 1 ? "" : "s"} with real, editable starter content. Replace the bracketed placeholders, then publish.`
+          : "Could not add policy pages.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function removePage(page: PageRow) {
     if (page.slug === "home") {
       setNote("Home cannot be deleted.");
@@ -343,15 +374,28 @@ export function ShopPagesPanel({ projectId }: { projectId: string }) {
         ) : null}
       </div>
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void ensureAboutMay()}
-        className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-50"
-        style={{ background: KEBU.orange }}
-      >
-        {pages.some((p) => p.slug === "about") ? "About May is ready" : "+ Create About May page"}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void ensureAboutMay()}
+          className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-50"
+          style={{ background: KEBU.orange }}
+        >
+          {pages.some((p) => p.slug === "about") ? "About May is ready" : "+ Create About May page"}
+        </button>
+        <button
+          type="button"
+          disabled={busy || SHOP_POLICY_PAGE_SEEDS.every((s) => pages.some((p) => p.slug === s.slug))}
+          onClick={() => void addStandardPolicyPages()}
+          className="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-white disabled:opacity-50"
+          style={{ background: KEBU.black }}
+        >
+          {SHOP_POLICY_PAGE_SEEDS.every((s) => pages.some((p) => p.slug === s.slug))
+            ? "FAQ + policy pages are ready"
+            : "+ Add FAQ, Shipping, Returns, Privacy & Terms"}
+        </button>
+      </div>
 
       {loading ? (
         <p className="text-sm" style={{ color: KEBU.muted }}>

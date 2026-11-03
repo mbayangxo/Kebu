@@ -5,6 +5,7 @@ import { builderRateLimit } from "@/lib/api-guard";
 import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 import { defaultSectionProps } from "@/lib/create/section-defaults";
 import { maylecorAboutPageSections } from "@/lib/create/maylecor-about-bio";
+import { shopPolicySeedBySlug } from "@/lib/create/shop-policy-pages";
 import { syncProjectChromeNavFromPages } from "@/lib/create/site-chrome";
 import {
   assertProjectEditorAccess,
@@ -22,8 +23,15 @@ const slugSchema = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(1).
 const addPageSchema = z.object({
   slug: slugSchema,
   title: z.string().trim().min(1).max(120),
-  /** Optional starter content — about-may seeds the full May Lècor bio. */
-  seed: z.enum(["blank", "about-may"]).optional().default("blank"),
+  /**
+   * Optional starter content — about-may seeds the full May Lècor bio;
+   * the policy slugs seed real, editable FAQ/shipping/returns/privacy/
+   * terms content (lib/create/shop-policy-pages.ts).
+   */
+  seed: z
+    .enum(["blank", "about-may", "faq", "shipping-policy", "returns-policy", "privacy-policy", "terms-of-service"])
+    .optional()
+    .default("blank"),
 });
 
 const patchPageSchema = z.union([
@@ -141,6 +149,7 @@ export async function POST(req: Request, { params }: Params) {
     heading: parsed.data.title,
     body: "Write your story here. Add gallery, FAQ, products, or forms from the left Sections panel.",
   };
+  const policySeed = shopPolicySeedBySlug(parsed.data.seed);
   const seedSections: Array<{ page_id: string; section_type: string; sort_order: number; props: Record<string, unknown> }> =
     parsed.data.seed === "about-may"
       ? maylecorAboutPageSections().map((section, sort_order) => ({
@@ -149,7 +158,16 @@ export async function POST(req: Request, { params }: Params) {
           sort_order,
           props: section.props as Record<string, unknown>,
         }))
-      : [
+      : policySeed
+        ? [
+            {
+              page_id: page.id,
+              section_type: policySeed.sectionType,
+              sort_order: 0,
+              props: policySeed.props,
+            },
+          ]
+        : [
           {
             page_id: page.id,
             section_type: "hero",
