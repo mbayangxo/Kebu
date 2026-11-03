@@ -79,7 +79,10 @@ export function defaultMaylecorShopProducts() {
       name: "Signed poster",
       description: "Limited signed print from the latest release.",
       priceLabel: "8 000 XOF",
-      imageUrl: MAYLECOR_WIX.bottomLeft,
+      /** bottomRight, not bottomLeft — bottomLeft is the same underlying asset as the T-shirt's
+       *  collageTop above (both alias MAYLECOR_LOCAL_ASSETS.portrait), which rendered two
+       *  different products with the identical photo side by side on the live Shop page. */
+      imageUrl: MAYLECOR_WIX.bottomRight,
       whatsappMessage: "Hi — I want a signed May Lecor poster.",
     },
   ];
