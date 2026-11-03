@@ -50,7 +50,7 @@ export default function DeveloperProgramPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           {[
-            { label: "Revenue split", value: "80 / 20", note: "You keep 80% of every sale" },
+            { label: "Revenue split", value: "85 / 15", note: "You keep 85% of every sale" },
             { label: "Payout", value: "Wave / OM", note: "Wave & Orange Money supported" },
             { label: "Audience", value: "Africa", note: "Côte d'Ivoire, Sénégal & beyond" },
           ].map((stat) => (

@@ -8,7 +8,7 @@
  * the "balance" shown anywhere was zero real computation. This test proves
  * the balance is computed from real completed-sale rows (owned
  * aesthetic_library / creative_asset_library entries tied to the
- * developer's own listings, 80% seller share, pending/failed/other-
+ * developer's own listings, 85% seller share, pending/failed/other-
  * developer rows excluded) and that a payout request is rejected once it
  * would exceed that real balance — not just whatever the caller asks for.
  *
@@ -108,7 +108,7 @@ function seedFixture() {
 }
 
 describe("developer seller-earnings balance (real computation, not a typed-in number)", () => {
-  it("computes gross sales, 80% seller share, already-claimed, and available from real completed-sale rows only", async () => {
+  it("computes gross sales, 85% seller share, already-claimed, and available from real completed-sale rows only", async () => {
     const supabase = makeMockSupabase(seedFixture());
     const result = await getDeveloperEarningsSummary(supabase, USER);
     expect(result.ok).toBe(true);
@@ -116,24 +116,24 @@ describe("developer seller-earnings balance (real computation, not a typed-in nu
     // gross = 500 + 300 (owned, this developer's template) + 200 (owned, this developer's asset) = 1000
     // pending (1000) and the other developer's sale (9999) are excluded.
     expect(result.summary.grossSalesUsdCents).toBe(1000);
-    expect(result.summary.sellerShareUsdCents).toBe(800); // 80% of 1000
+    expect(result.summary.sellerShareUsdCents).toBe(850); // 85% of 1000
     expect(result.summary.claimedUsdCents).toBe(100); // only the 'paid' row; 'failed' excluded
-    expect(result.summary.availableUsdCents).toBe(700); // 800 - 100
+    expect(result.summary.availableUsdCents).toBe(750); // 850 - 100
   });
 
   it("allows a payout request exactly at the available balance", async () => {
     const supabase = makeMockSupabase(seedFixture());
-    const result = await requestDeveloperPayout(supabase, USER, { amountCents: 700, currency: "USD" });
+    const result = await requestDeveloperPayout(supabase, USER, { amountCents: 750, currency: "USD" });
     expect(result.ok).toBe(true);
   });
 
   it("rejects a payout request that exceeds the real available balance, even by a cent", async () => {
     const supabase = makeMockSupabase(seedFixture());
-    const result = await requestDeveloperPayout(supabase, USER, { amountCents: 701, currency: "USD" });
+    const result = await requestDeveloperPayout(supabase, USER, { amountCents: 751, currency: "USD" });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.status).toBe(400);
-    expect(result.error).toMatch(/\$7\.00/);
+    expect(result.error).toMatch(/\$7\.50/);
   });
 
   it("returns a zero balance for a developer with no completed sales", async () => {

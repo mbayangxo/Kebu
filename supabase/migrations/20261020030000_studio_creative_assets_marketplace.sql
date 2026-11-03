@@ -18,7 +18,7 @@
 -- Launch scope (explicit user decision, October 20, 2026): free-only. price_cents
 -- exists for forward-compatibility but every route in this slice enforces 0 at the
 -- application layer — paid listings are a deliberately separate future slice. When
--- that slice ships, the agreed revenue split is 80% seller / 20% platform; record
+-- that slice ships, the agreed revenue split is 85% seller / 15% platform; record
 -- that split in the payout code when it is built, not retrofitted onto this comment.
 
 create table if not exists public.developer_profiles (

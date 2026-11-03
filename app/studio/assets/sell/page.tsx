@@ -227,7 +227,7 @@ export default function StudioAssetSellPage() {
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {[
-              { label: "Revenue split", value: "80 / 20", note: "You keep 80% of every sale" },
+              { label: "Revenue split", value: "85 / 15", note: "You keep 85% of every sale" },
               { label: "Payout", value: "Wave / OM", note: "Set your payout destination below" },
               { label: "Audience", value: "Africa", note: "Côte d'Ivoire, Sénégal & beyond" },
             ].map((stat) => (
@@ -284,7 +284,7 @@ export default function StudioAssetSellPage() {
               {earnings ? (
                 <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl p-3" style={{ background: KEBU.cream, border: `1px solid ${KEBU.borders.default}` }}>
-                    <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>Total sold (your 80%)</p>
+                    <p className="text-[9px] font-bold uppercase tracking-wider" style={{ color: KEBU.muted }}>Total sold (your 85%)</p>
                     <p className="mt-1 text-lg font-black">{formatUsd(earnings.sellerShareUsdCents)}</p>
                   </div>
                   <div className="rounded-2xl p-3" style={{ background: KEBU.cream, border: `1px solid ${KEBU.borders.default}` }}>

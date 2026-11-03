@@ -31,13 +31,13 @@ function tableMissing(message: string | undefined): boolean {
   return Boolean(message?.includes("does not exist") || message?.includes("schema cache"));
 }
 
-/** The documented split (see 20261020030000_studio_creative_assets_marketplace.sql's comment): seller keeps 80%, Kebu keeps 20%. */
-const SELLER_SHARE = 0.8;
+/** The documented split (see 20261020030000_studio_creative_assets_marketplace.sql's comment): seller keeps 85%, Kebu keeps 15%. */
+const SELLER_SHARE = 0.85;
 
 export type DeveloperEarningsSummary = {
   /** What buyers actually paid for this developer's listings (USD cents), from completed sales only. */
   grossSalesUsdCents: number;
-  /** grossSalesUsdCents * 80% — the seller's real entitlement. */
+  /** grossSalesUsdCents * 85% — the seller's real entitlement. */
   sellerShareUsdCents: number;
   /** Already requested, processing, or paid out — reserved against the share above. */
   claimedUsdCents: number;
@@ -57,7 +57,7 @@ function xofToUsdCents(xof: number): number | null {
  * Real seller-earnings balance, computed from completed sales — not a number a
  * developer types in. Sums what buyers actually paid (aesthetic_library +
  * creative_asset_library rows with status='owned', tied to this developer's
- * own listings), applies the 80% seller share, then subtracts every payout
+ * own listings), applies the 85% seller share, then subtracts every payout
  * already requested/processing/paid so the same dollar can't be claimed twice.
  */
 export async function getDeveloperEarningsSummary(
