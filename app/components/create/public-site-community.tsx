@@ -38,7 +38,12 @@ export function PublicSiteCommunity({
   subheading: string;
   signInPrompt: string;
 }) {
-  const supabase = createClient();
+  // Never create the browser Supabase client in the render body — this component
+  // is "use client" but Next.js still server-renders it for the initial HTML
+  // (SSR of a published site page), and createClient() throws when it runs
+  // outside a browser. Every real usage below is already inside an effect,
+  // callback, or event handler (client-only), so each creates its own
+  // reference to the module-level singleton on demand instead.
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,7 +66,7 @@ export function PublicSiteCommunity({
     try {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await createClient().auth.getUser();
       if (!user) {
         setUserEmail(null);
         setPosts([]);
@@ -88,7 +93,7 @@ export function PublicSiteCommunity({
     } finally {
       setLoading(false);
     }
-  }, [subdomain, supabase.auth]);
+  }, [subdomain]);
 
   useEffect(() => {
     void load();
@@ -102,7 +107,7 @@ export function PublicSiteCommunity({
     setNote(null);
     try {
       if (mode === "signin") {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: err } = await createClient().auth.signInWithPassword({ email, password });
         if (err) {
           if (isEmailNotConfirmed(err.message)) {
             setConfirmPending(true);
@@ -113,7 +118,7 @@ export function PublicSiteCommunity({
           return;
         }
       } else {
-        const { error: err } = await supabase.auth.signUp({
+        const { error: err } = await createClient().auth.signUp({
           email,
           password,
           options: {
@@ -136,7 +141,7 @@ export function PublicSiteCommunity({
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    await createClient().auth.signOut();
     setUserEmail(null);
     setPosts([]);
     setNote(null);

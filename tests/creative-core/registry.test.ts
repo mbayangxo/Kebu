@@ -49,9 +49,11 @@ const base: NodeTypeDefinition = {
 };
 
 describe("registry integrity", () => {
-  it("registers the pilot primitives and all 41 legacy sections", () => {
+  it("registers the pilot primitives and all 42 legacy sections", () => {
     expect(registry.types()).toEqual(expect.arrayContaining(["section", "group", "text", "image", "legacy-section:hero", "legacy-section:kdirection-page"]));
-    expect(LEGACY_DEFINITIONS).toHaveLength(41);
+    // 42, not 41: the fan/member "community" section type (consolidation 2026-11-04,
+    // feature-mays-world-fan-community) added one real legacy section definition.
+    expect(LEGACY_DEFINITIONS).toHaveLength(42);
   });
 
   it("every pilot inspector property has an accessible label and a declared capability", () => {
