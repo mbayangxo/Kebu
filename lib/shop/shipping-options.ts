@@ -1,6 +1,8 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export type ShippingFulfillmentType = "self" | "joko_fulfillment";
+
 export type ShippingOptionRow = {
   id: string;
   project_id: string;
@@ -10,6 +12,8 @@ export type ShippingOptionRow = {
   eta_max_days: number | null;
   active: boolean;
   sort_order: number;
+  fulfillment_type: ShippingFulfillmentType;
+  commission_bps: number | null;
 };
 
 export const shippingOptionInputSchema = z.object({
@@ -19,6 +23,11 @@ export const shippingOptionInputSchema = z.object({
   etaMaxDays: z.coerce.number().int().min(0).max(60).optional().nullable(),
   active: z.boolean().optional().default(true),
   sortOrder: z.coerce.number().int().min(0).max(999).optional().default(0),
+  // "self" (seller handles their own delivery, the long-standing default) or
+  // "joko_fulfillment" (Kebu picks up and delivers — see lib/shop/joko-fulfillment.ts
+  // for the honest scope of what that actually means today).
+  fulfillmentType: z.enum(["self", "joko_fulfillment"]).optional().default("self"),
+  commissionBps: z.coerce.number().int().min(0).max(10_000).optional().nullable(),
 });
 
 export type ShippingOptionInput = z.infer<typeof shippingOptionInputSchema>;
@@ -34,7 +43,9 @@ export async function listShippingOptions(
 ): Promise<ShippingOptionRow[]> {
   const { data, error } = await db
     .from("shop_shipping_options")
-    .select("id, project_id, label, amount_xof, eta_min_days, eta_max_days, active, sort_order")
+    .select(
+      "id, project_id, label, amount_xof, eta_min_days, eta_max_days, active, sort_order, fulfillment_type, commission_bps",
+    )
     .eq("project_id", projectId)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -52,7 +63,9 @@ export async function listActiveShippingOptions(
 ): Promise<ShippingOptionRow[]> {
   const { data, error } = await admin
     .from("shop_shipping_options")
-    .select("id, project_id, label, amount_xof, eta_min_days, eta_max_days, active, sort_order")
+    .select(
+      "id, project_id, label, amount_xof, eta_min_days, eta_max_days, active, sort_order, fulfillment_type, commission_bps",
+    )
     .eq("project_id", projectId)
     .eq("active", true)
     .order("sort_order", { ascending: true })
@@ -79,8 +92,12 @@ export async function createShippingOption(
       eta_max_days: input.etaMaxDays ?? null,
       active: input.active,
       sort_order: input.sortOrder,
+      fulfillment_type: input.fulfillmentType,
+      commission_bps: input.fulfillmentType === "joko_fulfillment" ? input.commissionBps ?? null : null,
     })
-    .select("id, project_id, label, amount_xof, eta_min_days, eta_max_days, active, sort_order")
+    .select(
+      "id, project_id, label, amount_xof, eta_min_days, eta_max_days, active, sort_order, fulfillment_type, commission_bps",
+    )
     .single();
   if (error) return { ok: false, error: error.message };
   return { ok: true, option: data as ShippingOptionRow };
@@ -99,6 +116,11 @@ export async function updateShippingOption(
   if (input.etaMaxDays !== undefined) patch.eta_max_days = input.etaMaxDays ?? null;
   if (input.active !== undefined) patch.active = input.active;
   if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
+  if (input.fulfillmentType !== undefined) {
+    patch.fulfillment_type = input.fulfillmentType;
+    if (input.fulfillmentType === "self") patch.commission_bps = null;
+  }
+  if (input.commissionBps !== undefined) patch.commission_bps = input.commissionBps ?? null;
 
   // project_id is matched in the filter, never in the patch — prevents
   // reassigning an option to a different project even if a policy were
@@ -108,7 +130,9 @@ export async function updateShippingOption(
     .update(patch)
     .eq("id", optionId)
     .eq("project_id", projectId)
-    .select("id, project_id, label, amount_xof, eta_min_days, eta_max_days, active, sort_order")
+    .select(
+      "id, project_id, label, amount_xof, eta_min_days, eta_max_days, active, sort_order, fulfillment_type, commission_bps",
+    )
     .maybeSingle();
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: "Shipping option not found." };
@@ -139,15 +163,27 @@ export async function resolveShippingOptionForOrder(
   admin: SupabaseClient,
   projectId: string,
   shippingOptionId: string | null | undefined,
-): Promise<{ id: string; label: string; amountXof: number } | null> {
+): Promise<{
+  id: string;
+  label: string;
+  amountXof: number;
+  fulfillmentType: ShippingFulfillmentType;
+  commissionBps: number | null;
+} | null> {
   if (!shippingOptionId) return null;
   const { data, error } = await admin
     .from("shop_shipping_options")
-    .select("id, label, amount_xof")
+    .select("id, label, amount_xof, fulfillment_type, commission_bps")
     .eq("id", shippingOptionId)
     .eq("project_id", projectId)
     .eq("active", true)
     .maybeSingle();
   if (error || !data) return null;
-  return { id: data.id as string, label: data.label as string, amountXof: data.amount_xof as number };
+  return {
+    id: data.id as string,
+    label: data.label as string,
+    amountXof: data.amount_xof as number,
+    fulfillmentType: (data.fulfillment_type as ShippingFulfillmentType | null) ?? "self",
+    commissionBps: (data.commission_bps as number | null) ?? null,
+  };
 }

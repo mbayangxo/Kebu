@@ -41,7 +41,35 @@ describe("resolveShippingOptionForOrder", () => {
       { id: optionId, project_id: projectA, label: "Dakar delivery", amount_xof: 1500, active: true },
     ]);
     const result = await resolveShippingOptionForOrder(supabase, projectA, optionId);
-    expect(result).toEqual({ id: optionId, label: "Dakar delivery", amountXof: 1500 });
+    expect(result).toEqual({
+      id: optionId,
+      label: "Dakar delivery",
+      amountXof: 1500,
+      fulfillmentType: "self",
+      commissionBps: null,
+    });
+  });
+
+  it("carries fulfillmentType and commissionBps through for a Joko Fulfillment option", async () => {
+    const supabase = makeMockSupabase([
+      {
+        id: optionId,
+        project_id: projectA,
+        label: "Joko pickup & deliver",
+        amount_xof: 2000,
+        active: true,
+        fulfillment_type: "joko_fulfillment",
+        commission_bps: 1200,
+      },
+    ]);
+    const result = await resolveShippingOptionForOrder(supabase, projectA, optionId);
+    expect(result).toEqual({
+      id: optionId,
+      label: "Joko pickup & deliver",
+      amountXof: 2000,
+      fulfillmentType: "joko_fulfillment",
+      commissionBps: 1200,
+    });
   });
 
   it("returns null when the option belongs to a different project — never falls back to trusting a client amount", async () => {

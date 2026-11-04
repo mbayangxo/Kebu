@@ -11,6 +11,7 @@ import { parseXofFromLabel } from "@/lib/shop/joko-order";
 import { SHOP_PAYMENT_PREFERENCES } from "@/lib/create/site-commerce";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
 import { resolveShippingOptionForOrder } from "@/lib/shop/shipping-options";
+import { computeJokoFulfillmentCommissionXof, recordJokoFulfillmentOrder } from "@/lib/shop/joko-fulfillment";
 import {
   giftColumnsForInsert,
   giftWhatsAppSuffix,
@@ -315,6 +316,10 @@ export async function createCartOrder(opts: {
   const shippingOption = opts.shippingOptionId
     ? await resolveShippingOptionForOrder(opts.admin, opts.projectId, opts.shippingOptionId)
     : null;
+  // Captured before the shipping fee is folded in — Joko Fulfillment's
+  // commission is a share of the goods Kebu actually handles, not of the
+  // shipping fee itself (see lib/shop/joko-fulfillment.ts).
+  const subtotalBeforeShippingXof = totalXof;
   if (shippingOption && totalXof != null) {
     totalXof = totalXof + shippingOption.amountXof;
   }
@@ -426,6 +431,19 @@ export async function createCartOrder(opts: {
   const { error: itemsErr } = await opts.admin.from("shop_order_items").insert(itemRows);
   if (itemsErr && !/does not exist|shop_order_items/i.test(itemsErr.message ?? "")) {
     /* order header exists — items optional until migration applied */
+  }
+
+  if (shippingOption?.fulfillmentType === "joko_fulfillment") {
+    const commissionXof = computeJokoFulfillmentCommissionXof(
+      subtotalBeforeShippingXof ?? 0,
+      shippingOption.commissionBps,
+    );
+    await recordJokoFulfillmentOrder(opts.admin, {
+      orderId: order.id,
+      projectId: opts.projectId,
+      shippingOptionId: shippingOption.id,
+      commissionXof,
+    });
   }
 
   if (giftCard && giftCardAmount > 0) {
