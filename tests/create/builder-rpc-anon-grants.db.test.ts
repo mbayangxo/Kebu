@@ -21,7 +21,12 @@ const ADMIN_URL = process.env.DATABASE_URL;
 const SKIP = !ADMIN_URL;
 const DB_NAME = `_kebtest_authz_${Math.random().toString(36).slice(2, 10)}`;
 const MIGRATIONS = join(__dirname, "../../supabase/migrations");
-const migration = (file: string) => readFileSync(join(MIGRATIONS, file), "utf8");
+const LEGACY_MIGRATIONS = join(__dirname, "../../supabase/migrations_archive/legacy");
+// Legacy-numbered migrations (e.g. "004_...") were moved to the archive by the migration-history
+// reconciliation cleanup; timestamped migrations stay in the active directory. Mirrors the same
+// fallback tests/creative-core/db/kcd-db.ts already uses for the same reason.
+const migration = (file: string) =>
+  readFileSync(join(/^\d{3}_/.test(file) ? LEGACY_MIGRATIONS : MIGRATIONS, file), "utf8");
 const RPCS = ["batch_update_section_props(uuid, jsonb)", "reorder_sections(uuid, uuid[])"];
 
 function disposableDbUrl(adminUrl: string): string {

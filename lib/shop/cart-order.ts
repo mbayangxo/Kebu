@@ -417,7 +417,7 @@ export async function createCartOrder(opts: {
           : error?.message?.includes("gift_card")
             ? "Gift card columns missing. Apply migration 066."
             : error?.message?.includes("shipping_option")
-              ? "Shipping option columns missing. Apply migration 20261103130000."
+              ? "Shipping option columns missing. Apply migration 20261103135000_shop_shipping_options.sql."
               : "Could not save cart order.",
     };
   }
