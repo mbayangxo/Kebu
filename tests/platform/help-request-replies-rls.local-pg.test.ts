@@ -32,9 +32,16 @@ describe("help_request_replies RLS (real Postgres)", () => {
   let requestAId = "";
   let requestBId = "";
 
+  // set_config(..., true) is transaction-local ("SET LOCAL" semantics) — it
+  // evaporates the instant the implicit per-statement transaction that set it
+  // ends, before the next query even runs, unless an explicit transaction
+  // spans both the role/GUC switch and the query that depends on them. Every
+  // caller must BEGIN before this and COMMIT/ROLLBACK after — see each it()
+  // block below.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function asUser(client: any, userId: string) {
-    await client.query(`SET ROLE authenticated`);
+    await client.query(`BEGIN`);
+    await client.query(`SET LOCAL ROLE authenticated`);
     await client.query(`SELECT set_config('request.jwt.claim.sub', $1, true)`, [userId]);
   }
 
@@ -60,7 +67,12 @@ describe("help_request_replies RLS (real Postgres)", () => {
 
       // Minimal stand-in for Supabase's auth schema + auth.uid(), reading the
       // same request.jwt.claim.sub GUC Supabase's PostgREST sets per request.
+      // auth.uid() is schema-qualified and SECURITY INVOKER (the default), so
+      // calling it as `authenticated`/`anon` requires USAGE on this schema —
+      // without it, any policy that calls auth.uid() fails with a permission
+      // error, not a clean "no match", for every non-superuser role.
       await c.query(`CREATE SCHEMA IF NOT EXISTS auth`);
+      await c.query(`GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role`);
       await c.query(`
         CREATE TABLE IF NOT EXISTS auth.users (
           id uuid primary key default gen_random_uuid()
@@ -69,7 +81,7 @@ describe("help_request_replies RLS (real Postgres)", () => {
       await c.query(`
         CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
         LANGUAGE sql STABLE AS $$
-          SELECT COALESCE(current_setting('request.jwt.claim.sub', true), '')::uuid
+          SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
         $$
       `);
       await c.query(`INSERT INTO auth.users (id) VALUES ($1), ($2)`, [USER_A, USER_B]);
@@ -112,8 +124,8 @@ describe("help_request_replies RLS (real Postgres)", () => {
         [requestAId, USER_A],
       );
       expect(res.rows.length).toBe(1);
+      await c.query(`COMMIT`);
     } finally {
-      await c.query(`RESET ROLE`);
       c.release();
     }
   });
@@ -125,8 +137,8 @@ describe("help_request_replies RLS (real Postgres)", () => {
       await asUser(c, USER_A);
       const res = await c.query(`SELECT count(*)::int AS n FROM public.help_request_replies WHERE help_request_id = $1`, [requestAId]);
       expect(res.rows[0].n).toBe(1);
+      await c.query(`COMMIT`);
     } finally {
-      await c.query(`RESET ROLE`);
       c.release();
     }
   });
@@ -143,8 +155,8 @@ describe("help_request_replies RLS (real Postgres)", () => {
           [requestAId, USER_B],
         ),
       ).rejects.toThrow();
+      await c.query(`ROLLBACK`);
     } finally {
-      await c.query(`RESET ROLE`);
       c.release();
     }
   });
@@ -156,8 +168,8 @@ describe("help_request_replies RLS (real Postgres)", () => {
       await asUser(c, USER_B);
       const res = await c.query(`SELECT count(*)::int AS n FROM public.help_request_replies WHERE help_request_id = $1`, [requestAId]);
       expect(res.rows[0].n).toBe(0);
+      await c.query(`COMMIT`);
     } finally {
-      await c.query(`RESET ROLE`);
       c.release();
     }
   });
@@ -174,8 +186,8 @@ describe("help_request_replies RLS (real Postgres)", () => {
           [requestAId, USER_A],
         ),
       ).rejects.toThrow();
+      await c.query(`ROLLBACK`);
     } finally {
-      await c.query(`RESET ROLE`);
       c.release();
     }
   });
