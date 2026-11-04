@@ -20,6 +20,7 @@ import { PublicProductActions } from "@/app/components/create/public-product-act
 import { PublicShopCart } from "@/app/components/create/public-shop-cart";
 import { SiteFormSection } from "@/app/components/create/site-form-section";
 import { SiteBlogSection } from "@/app/components/create/site-blog-section";
+import { PublicSiteCommunity } from "@/app/components/create/public-site-community";
 import { readDeviceOverride, applyDeviceAwarePatch, mergeDeviceAwareSectionProps } from "@/lib/create/device-overrides";
 import { heroContentPaddingClass, heroMinHeightCss, normalizeLegacyHeroProps, resolveHeroHeight } from "@/lib/create/hero-section";
 import { normalizeLegacyEditorialHeroProps } from "@/lib/create/editorial-hero-section";
@@ -1892,6 +1893,31 @@ const LegacySectionView = memo(function LegacySectionView({
                 siteBase={siteBase}
                 subdomain={liveSubBlog ?? undefined}
                 preview={mode === "preview"}
+              />,
+            );
+          }
+          case "community": {
+            const p = _ep as { heading?: string; subheading?: string; signInPrompt?: string };
+            const liveSubCommunity =
+              mode === "live" ? (liveSubdomain ?? liveSubdomainFromBase(siteBase)) : liveSubdomain;
+            if (mode === "preview" && !liveSubCommunity) {
+              return wrap(
+                <section
+                  key={key}
+                  className="kebu-section mx-5 my-4 rounded-xl border border-dashed px-4 py-10 text-center text-sm opacity-70"
+                  style={{ borderColor: "#DDE0F0" }}
+                >
+                  Fan community board — sign-up, posts, and replies render on the published site.
+                </section>,
+              );
+            }
+            return wrap(
+              <PublicSiteCommunity
+                key={key}
+                subdomain={liveSubCommunity ?? ""}
+                heading={p.heading || "Community"}
+                subheading={p.subheading || "Sign in to post and chat with other members."}
+                signInPrompt={p.signInPrompt || "Sign in or create a free Kebu account to join."}
               />,
             );
           }
