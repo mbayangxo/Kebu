@@ -8,12 +8,13 @@ import { LEGALLY_BLONDE_ASSETS } from "./legally-blonde-defaults";
 export const MAYLECOR_SEED_REVISION = "2026-09-10b";
 
 /** Bump when replacing files under /public/templates/maylecor so CDN/browser caches refresh. */
-// Bumped: hero-collage.png and may-figure.png were re-exported with real alpha transparency — the
-// previous files had a checkerboard "no background" placeholder baked into their pixels instead of an
-// actual alpha channel, so they rendered with a visible gray/white checker behind the artist cutout and
-// city skyline on every page that uses them (including customer-facing published sites). Bumping the
-// cache-busting query param so CDNs/browsers fetch the corrected files instead of the cached bad ones.
-const MAY_ASSET_V = "20260915a";
+// Bumped again: city-skyline.png had a large opaque checkerboard region baked into otherwise-real
+// alpha (not caught by the 20260915a fix, which only covered hero-collage.png and may-figure.png —
+// a single-pixel patch attempt wasn't enough, the defect was bigger than one isolated spot).
+// Replaced with a freshly-cropped, alpha-verified-clean skyline region sourced from the already-
+// clean hero-collage.png composite. cutoutLeft also now points at may-figure.png instead of the
+// JPEG may-cutout-full.jpg, which cannot carry alpha at all and rendered fully broken on Home.
+const MAY_ASSET_V = "20261103b";
 
 function mayAsset(path: string): string {
   return `${path}?v=${MAY_ASSET_V}`;
@@ -38,7 +39,10 @@ export const MAYLECOR_LOCAL_ASSETS = {
 
 /** Figure layers on the Russian-style May Lecor hero — prefer distinct local files when available. */
 export const MAYLECOR_FIGURE_ASSETS = {
-  cutoutLeft: MAYLECOR_LOCAL_ASSETS.mayCutoutFull,
+  /** mayCutoutFull is a JPEG with a checkerboard "no background" placeholder baked into its
+   *  opaque pixels (JPEG cannot carry alpha at all), so it rendered broken on the live hero.
+   *  mayFigure.png is the same photo, already correctly re-cut with real alpha transparency. */
+  cutoutLeft: MAYLECOR_LOCAL_ASSETS.mayFigure,
   cutoutRight: MAYLECOR_LOCAL_ASSETS.portrait,
   cutoutAccent: MAYLECOR_LOCAL_ASSETS.mayFigure,
   heroPhoto: MAYLECOR_LOCAL_ASSETS.portrait,
@@ -128,37 +132,22 @@ export function defaultMaylecorTracks() {
   return [
     {
       id: "track-1",
-      title: "New single",
-      coverUrl: MAYLECOR_LOCAL_ASSETS.logoStacked,
+      // Real release: "Yaw Laa Taan" — cover art lives in maylecor-content-defaults.ts
+      // (MAYLECOR_REAL_MEDIA.yawLaaTaanCover); kept as a literal path here to avoid a
+      // circular import (that file imports from this one).
+      title: "Yaw Laa Taan",
+      coverUrl: "/templates/maylecor/yaw-laa-taan-cover.png",
       links: [
         { platform: "spotify", href: "" },
         { platform: "apple", href: "" },
         { platform: "youtube", href: "" },
-        { platform: "soundcloud", href: "https://soundcloud.com/maylecor" },
-      ],
-    },
-    {
-      id: "track-2",
-      title: "Track 2",
-      coverUrl: MAYLECOR_LOCAL_ASSETS.mayFigure,
-      links: [
-        { platform: "spotify", href: "" },
-        { platform: "apple", href: "" },
-        { platform: "youtube", href: "" },
+        // The site's old soundcloud.com/maylecor link 404s live — dropped rather than
+        // shipping a dead link. Fill in a verified URL in the editor when one exists.
         { platform: "soundcloud", href: "" },
       ],
     },
-    {
-      id: "track-3",
-      title: "Track 3",
-      coverUrl: MAYLECOR_LOCAL_ASSETS.portrait,
-      links: [
-        { platform: "spotify", href: "" },
-        { platform: "apple", href: "" },
-        { platform: "youtube", href: "" },
-        { platform: "soundcloud", href: "" },
-      ],
-    },
+    // Only one real release exists today. Add more tracks for May in the Music page editor —
+    // a fake "Track 2" / "Track 3" placeholder card is not shown to visitors.
   ];
 }
 
@@ -201,6 +190,35 @@ export function defaultMaylecorMusicProps(artistName = "MAY LECOR") {
     socialRailLeftPct: 0,
     socialRailTopPct: 12,
     socialRailIconSize: 40,
+    motionEnabled: true,
+  };
+}
+
+/**
+ * Neutral "Track list" defaults for the generic Builder catalog — any musician on Kebu,
+ * not just May. Mirrors defaultCutoutCollageProps()'s pattern (legally-blonde-defaults.ts):
+ * empty/placeholder values only, zero May-specific assets or copy.
+ */
+export function defaultTrackListProps() {
+  return {
+    artistName: "Your artist name",
+    albumArt: "",
+    homePageSlug: "home",
+    tracks: [
+      {
+        id: "track-1",
+        title: "Your first track",
+        coverUrl: "",
+        links: [
+          { platform: "spotify" as const, href: "" },
+          { platform: "apple" as const, href: "" },
+          { platform: "youtube" as const, href: "" },
+          { platform: "soundcloud" as const, href: "" },
+        ],
+      },
+    ],
+    socialLinks: [],
+    socialRailVisible: false,
     motionEnabled: true,
   };
 }

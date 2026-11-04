@@ -89,9 +89,8 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "hero",
           props: {
             heading: "Updates",
-            subheading:
-              "What May is doing right now — new music, shows, film, and life. Add a card whenever something happens.",
-            buttonLabel: "Watch videos",
+            subheading: "What May is doing right now — new music, video, and life.",
+            buttonLabel: "Watch the video",
             buttonHref: "/videos",
             align: "left",
             background: "#0A0A0A",
@@ -105,16 +104,19 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
             layout: "grid",
             items: [
               {
-                title: "New drop coming",
-                body: "Replace this with your real update — date, city, or link. Edit in Content → Latest.",
+                title: "\"Yaw Laa Taan\" is out",
+                body: "May's new single is streaming now — watch the video and hear the full sound.",
+                href: "/music",
               },
               {
-                title: "On set / in studio",
-                body: "Share a short note about what you are filming or recording this week.",
+                title: "Behind the visual",
+                body: "Go behind the scenes of the \"Yaw Laa Taan\" shoot — the full clip is on Video.",
+                href: "/videos",
               },
               {
-                title: "Meet May",
-                body: "Shows, pop-ups, or Mayjor Good moments — keep fans close.",
+                title: "Inside May's World",
+                body: "Music, video, audio, Maygazine, and May by May — everything May's building, in one place.",
+                href: "/mays-world",
               },
             ],
           },
@@ -124,10 +126,9 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "video",
           props: {
             heading: "Update clips",
-            layout: "grid",
+            layout: "single",
             columns: 2,
-            items: defaultMaylecorVideoItems().slice(0, 2),
-            caption: "Paste YouTube / Vimeo links or upload clips.",
+            items: defaultMaylecorVideoItems().slice(0, 1),
           },
         },
         {
@@ -138,15 +139,6 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
             layout: "grid",
             columns: 3,
             items: photos.slice(0, 3),
-          },
-        },
-        {
-          id: "maylecor-updates-blog",
-          type: "blog-list",
-          props: {
-            heading: "From the journal",
-            subheading: "Longer posts — write them in Shop → Blog, then they show here.",
-            postsPerPage: 4,
           },
         },
       ],
@@ -204,16 +196,10 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
                 image: photos[2]?.src ?? "",
               },
               {
-                title: "Photos",
-                body: "Galleries and behind-the-scenes stills.",
-                href: "/photos",
-                image: photos[0]?.src ?? "",
-              },
-              {
                 title: "Maygazine",
-                body: "Stories, looks, travel — May's written world.",
+                body: "Stories, looks, travel, and galleries — May's written world.",
                 href: "/maygazine",
-                image: photos[3]?.src ?? "",
+                image: photos[0]?.src ?? "",
               },
               {
                 title: "May by May",
@@ -240,7 +226,7 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "text",
           props: {
             heading: "Press",
-            body: "Welcome, journalists and partners. Use this page for May Lècor's press kit: short bio, approved photos, recent coverage, and booking notes. Update links and quotes anytime in the editor — this page is meant to stay current.",
+            body: "Welcome, journalists and partners. Everything you need for May Lècor coverage: short bio, approved photos, and booking notes.",
           },
         },
         {
@@ -260,27 +246,6 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           },
         },
         {
-          id: "maylecor-press-coverage",
-          type: "features",
-          props: {
-            heading: "Recent coverage",
-            items: [
-              {
-                title: "Feature — add outlet name",
-                body: "Paste the article title and link when a new interview or review lands.",
-              },
-              {
-                title: "Interview — add outlet name",
-                body: "Keep this list fresh so press always sees your latest story.",
-              },
-              {
-                title: "Performance / festival",
-                body: "List notable stages, tours, or festival appearances here.",
-              },
-            ],
-          },
-        },
-        {
           id: "maylecor-press-kit",
           type: "features",
           props: {
@@ -288,11 +253,12 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
             items: [
               {
                 title: "High-res photos",
-                body: "Use the gallery above or upload new approved stills in the Media library.",
+                body: "Approved stills from the gallery above, cleared for press use.",
               },
               {
                 title: "Music & video",
-                body: "Link to latest singles and videos from May's World → Video / Music.",
+                body: "\"Yaw Laa Taan\" — the single and the video.",
+                href: "/videos",
               },
               {
                 title: "Foundation",
@@ -308,10 +274,9 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           props: {
             heading: "Press / performance clips",
             src: "",
-            layout: "grid",
+            layout: "single",
             columns: 2,
-            items: defaultMaylecorVideoItems().slice(0, 2),
-            caption: "Add YouTube or uploaded clips for journalists to embed.",
+            items: defaultMaylecorVideoItems().slice(0, 1),
           },
         },
       ],
@@ -371,7 +336,7 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "text",
           props: {
             heading: "How to support",
-            body: "Share Mayjor Good, volunteer on care days, or partner on school kits, clinic days, groceries, and youth jobs. Update donation links when ready. Keep it honest — never claim impact you have not verified.",
+            body: "Share Mayjor Good, volunteer on care days, or partner on school kits, clinic days, groceries, and youth jobs.",
           },
         },
         {
@@ -415,7 +380,7 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "text",
           props: {
             heading: "Video",
-            body: "Music videos, visuals, and stories. Paste YouTube or Vimeo links or upload files — add as many clips as you want in the editor.",
+            body: "Music videos and visuals from May.",
           },
         },
         {
@@ -427,7 +392,6 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
             layout: "grid",
             columns: 2,
             items: defaultMaylecorVideoItems(),
-            caption: "Add more videos anytime — grid grows with you.",
           },
         },
         {
@@ -461,44 +425,15 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "text",
           props: {
             heading: "Listen deeper",
-            body: "Podcasts, interviews, and sound from May's World. Upload tracks or paste stream links in the editor.",
+            body: "Podcasts, interviews, and sound from May's World.",
           },
         },
       ],
     },
     {
-      slug: "photos",
-      title: "Photos",
-      sections: [
-        {
-          id: "maylecor-photos-intro",
-          type: "text",
-          props: {
-            heading: "Photos",
-            body: "Upload May’s photos in Media, then drop them into this gallery (or edit each slot in Content). Empty slots stay hidden on the live site until you add a photo.",
-          },
-        },
-        {
-          id: "maylecor-photos-1",
-          type: "gallery",
-          props: {
-            heading: "Gallery",
-            layout: "grid",
-            columns: 3,
-            items: defaultMaylecorPhotoGalleryItems(),
-          },
-        },
-        {
-          id: "maylecor-photos-upload-hint",
-          type: "text",
-          props: {
-            heading: "Add more photos",
-            body: "Open Media in the left rail → upload → drag onto the gallery. Same Shopify-style media flow as the rest of the builder.",
-          },
-        },
-      ],
-    },
-    {
+      // Maygazine is May's editorial home — stories, looks, and the photo galleries live here.
+      // There is no separate bare "Photos" page: a plain grid next to an editorial magazine page
+      // was a redundant nav entry, so photo content now lives inside Maygazine's layout.
       slug: "maygazine",
       title: "Maygazine",
       sections: [
@@ -507,18 +442,28 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "text",
           props: {
             heading: "Maygazine",
-            body: "May's magazine — stories, looks, travel, and culture. Add issues and articles here.",
+            body: "May's written world — stories, looks, travel, and the photos behind the music.",
+          },
+        },
+        {
+          id: "maylecor-maygazine-gallery",
+          type: "gallery",
+          props: {
+            heading: "Gallery",
+            layout: "featured",
+            columns: 3,
+            items: defaultMaylecorPhotoGalleryItems(),
           },
         },
         {
           id: "maylecor-maygazine-features",
           type: "features",
           props: {
-            heading: "Issues",
+            heading: "More from May",
             items: [
-              { title: "Issue 01", body: "Introducing Maygazine — edit this cover story." },
-              { title: "Behind the look", body: "Fashion, sets, and creative direction." },
-              { title: "Letters from May", body: "Notes from the studio and the road." },
+              { title: "Press", body: "Approved photos, bio, and booking notes for press and partners.", href: "/press" },
+              { title: "Video", body: "Watch the \"Yaw Laa Taan\" visual and more.", href: "/videos" },
+              { title: "May's World", body: "Music, video, audio, and May by May — the whole world.", href: "/mays-world" },
             ],
           },
         },
@@ -533,8 +478,7 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "hero",
           props: {
             heading: "May by May",
-            subheading:
-              "Cooking with May — warm kitchen energy, baking days, and the food stories behind the artist. Add clips and recipes below.",
+            subheading: "Cooking with May — warm kitchen energy, baking days, and the food stories behind the artist.",
             buttonLabel: "Back to May's World",
             buttonHref: "/mays-world",
             align: "left",
@@ -546,57 +490,7 @@ export function maylecorMotionSitePages(artistName = "MAY LECOR"): WebsiteDefini
           type: "text",
           props: {
             heading: "In the kitchen with May",
-            body: "May by May is May's cooking lane inside May's World — not a separate brand site. Short recipes, baking sessions, and lifestyle moments you can edit and publish anytime.",
-          },
-        },
-        {
-          id: "maylecor-may-by-may-video",
-          type: "video",
-          props: {
-            heading: "Cooking & baking",
-            src: "",
-            layout: "grid",
-            columns: 2,
-            items: [
-              {
-                title: "Baking with May",
-                src: "",
-                caption: "Add your first May by May video or upload.",
-              },
-              {
-                title: "Kitchen moment",
-                src: "",
-                caption: "Another clip — sauce, snack, or Sunday cook.",
-              },
-              {
-                title: "Recipe walkthrough",
-                src: "",
-                caption: "Step-by-step with May.",
-              },
-            ],
-            caption: "May by May — cooking with May.",
-          },
-        },
-        {
-          id: "maylecor-may-by-may-ideas",
-          type: "features",
-          props: {
-            heading: "Series ideas",
-            layout: "grid",
-            items: [
-              {
-                title: "Sunday sauce",
-                body: "Comfort food, slow pots, and stories from the week.",
-              },
-              {
-                title: "Bake night",
-                body: "Cookies, cakes, and pink-kitchen chaos.",
-              },
-              {
-                title: "Tour snacks",
-                body: "What May eats on the road — quick and real.",
-              },
-            ],
+            body: "May by May is May's cooking lane inside May's World — short recipes, baking sessions, and lifestyle moments.",
           },
         },
       ],

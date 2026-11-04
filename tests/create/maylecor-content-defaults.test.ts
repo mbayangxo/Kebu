@@ -24,13 +24,23 @@ describe("maylecor content defaults", () => {
     const products = defaultMaylecorShopProducts();
     expect(products.length).toBeGreaterThanOrEqual(2);
     expect(products[0]?.name).toMatch(/album/i);
+
+    // Every product must show its own image — the T-shirt and the poster used to both resolve
+    // to MAYLECOR_WIX.collageTop/bottomLeft, two names aliasing the exact same underlying asset,
+    // so two unrelated products rendered the identical photo side by side on the live Shop page.
+    const imageUrls = products.map((p) => p.imageUrl);
+    expect(new Set(imageUrls).size).toBe(imageUrls.length);
   });
 
   it("uses May portrait cutouts with Russian motion layout (editable in builder)", () => {
     const props = defaultMaylecorKsendrProps("MAY LECOR");
     const russian = defaultLegallyBlondeHeroProps();
     expect(props.backgroundLayer).toBe(russian.backgroundLayer);
-    expect(props.cutoutLeft).toContain("/templates/maylecor/may-cutout-full.jpg");
+    // cutoutLeft points at may-figure.png, not may-cutout-full.jpg: the latter is a plain JPEG
+    // (no alpha channel at all) with a checkerboard "no background" placeholder baked into its
+    // opaque pixels, so it rendered fully broken (visible checker + a stray black artifact) on
+    // the live Home hero. may-figure.png is the same photo, correctly re-cut with real alpha.
+    expect(props.cutoutLeft).toContain("/templates/maylecor/may-figure.png");
     expect(props.cutoutRight).toContain("/templates/maylecor/portrait.jpg");
     expect(props.cutoutAccent).toContain("/templates/maylecor/");
     expect(props.heroPhoto).toContain("/templates/maylecor/portrait.jpg");
@@ -48,15 +58,17 @@ describe("maylecor content defaults", () => {
     ).toBe(true);
   });
 
-  it("seeds music, photos, and shop pages with editable sections", () => {
+  it("seeds music, maygazine (photos live here), and shop pages with editable sections", () => {
     const pages = maylecorMotionSitePages("MAY LECOR");
     const music = pages.find((p) => p.slug === "music");
-    const photos = pages.find((p) => p.slug === "photos");
+    // Maygazine absorbs the photo gallery — there is no separate bare "photos" page/nav entry.
+    const maygazine = pages.find((p) => p.slug === "maygazine");
     const shop = pages.find((p) => p.slug === "shop");
 
+    expect(pages.some((p) => p.slug === "photos")).toBe(false);
     expect(music?.sections.some((s) => s.type === "maylecor-music")).toBe(true);
     expect(music?.sections.some((s) => s.type === "audio")).toBe(true);
-    expect(photos?.sections.some((s) => s.type === "gallery")).toBe(true);
+    expect(maygazine?.sections.some((s) => s.type === "gallery")).toBe(true);
     expect(shop?.sections.some((s) => s.type === "products")).toBe(true);
   });
 });

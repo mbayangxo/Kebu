@@ -170,6 +170,8 @@ function formatLabelForType(t: StudioDesignType): string {
       return "business cards";
     case "spotify_banner":
       return "Spotify artist banners";
+    case "album_cover":
+      return "album covers";
     case "book_cover":
       return "book covers";
     case "invitation":

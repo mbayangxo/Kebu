@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
   title: z.string().trim().min(1).max(120).default("Untitled video"),
-  presetId: z.enum(["9:16", "1:1", "16:9", "4:5"]).optional().default("9:16"),
+  presetId: z.enum(["9:16", "1:1", "16:9", "4:5", "spotify_canvas"]).optional().default("9:16"),
   width: z.number().int().min(200).max(4096).optional(),
   height: z.number().int().min(200).max(4096).optional(),
   sourceDesignId: z.string().uuid().optional(),

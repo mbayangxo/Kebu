@@ -37,6 +37,7 @@ const PRESET_ACCENTS: Record<string, string> = {
   invoice: "#F0A21A",
   digital_planner: "#E05A2B",
   spotify_banner: "#1DB954",
+  album_cover: "#1DB954",
   book_cover: "#7950F2",
   invitation: "#E64980",
   newsletter: "#1C7ED6",

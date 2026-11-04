@@ -1,4 +1,4 @@
-import { defaultMaylecorHomeProps, defaultMaylecorMusicProps } from "./maylecor-defaults";
+import { defaultMaylecorHomeProps, defaultTrackListProps } from "./maylecor-defaults";
 import { defaultCutoutCollageProps } from "./legally-blonde-defaults";
 import { defaultKdirectionHomeProps, defaultKdirectionPageProps } from "./kdirection-defaults";
 import { DEFAULT_HERO_PROPS } from "./schemas";
@@ -136,7 +136,10 @@ export function defaultSectionProps(type: SectionType): Record<string, unknown> 
     case "maylecor-home":
       return defaultMaylecorHomeProps();
     case "maylecor-music":
-      return defaultMaylecorMusicProps();
+      // Neutral "Track list" defaults for any musician — May's own real art/socials/tracks
+      // come from defaultMaylecorMusicProps(), called directly by her own template/page
+      // definitions (maylecor-site-pages.ts, templates-seed.ts), never through this path.
+      return defaultTrackListProps();
     case "legally-blonde-hero":
       return defaultCutoutCollageProps();
     case "kdirection-home":

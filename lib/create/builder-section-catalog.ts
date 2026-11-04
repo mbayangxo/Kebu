@@ -116,6 +116,12 @@ export const BUILDER_SECTION_CATALOG: BuilderSectionOption[] = [
     category: "media",
   },
   {
+    type: "maylecor-music",
+    label: "Track list",
+    description: "Discography page — cover art per track, Spotify/Apple/YouTube/SoundCloud links",
+    category: "media",
+  },
+  {
     type: "products",
     label: "Products / shop",
     description: "Product cards with WhatsApp order",
