@@ -11,6 +11,8 @@ import {
 import { parseXofFromLabel } from "@/lib/shop/joko-order";
 import { SHOP_PAYMENT_PREFERENCES } from "@/lib/create/site-commerce";
 import { quoteShippingCorridor } from "@/lib/shop/shipping-corridors";
+import { resolveShippingOptionForOrder } from "@/lib/shop/shipping-options";
+import { computeJokoFulfillmentCommissionXof, recordJokoFulfillmentOrder } from "@/lib/shop/joko-fulfillment";
 import {
   giftColumnsForInsert,
   giftWhatsAppSuffix,
@@ -67,6 +69,8 @@ export const shopCartCheckoutSchema = z
       .toUpperCase()
       .regex(/^[A-Z]{2}$/)
       .optional(),
+    /** Id only — the real price is always looked up server-side, never trusted from the client. */
+    shippingOptionId: z.string().trim().uuid().optional(),
   })
   .and(shopGiftFieldsSchema);
 
@@ -254,6 +258,7 @@ export async function createCartOrder(opts: {
   gift?: ShopGiftFields;
   buyerCountry?: string | null;
   sellerCountry?: string | null;
+  shippingOptionId?: string | null;
 }): Promise<
   | {
       ok: true;
@@ -265,6 +270,8 @@ export async function createCartOrder(opts: {
       giftCardCode: string | null;
       giftCardAmountXof: number | null;
       giftPublicId: string | null;
+      shippingAmountXof: number | null;
+      shippingLabel: string | null;
     }
   | { ok: false; error: string }
 > {
@@ -309,13 +316,31 @@ export async function createCartOrder(opts: {
   const gift = opts.gift ?? { isGift: false, recipientName: "", recipientPhone: "", giftMessage: "" };
   const giftCols = giftColumnsForInsert(gift);
   const sellerCountry = (opts.sellerCountry ?? "SN").toUpperCase();
-  const shippingQuote = opts.buyerCountry
-    ? quoteShippingCorridor({
-        fromCountry: sellerCountry,
-        toCountry: opts.buyerCountry,
-        goodsValueXof: totalXof,
-      })
+
+  // Real, seller-defined shipping choice takes priority — looked up fresh by
+  // id, scoped to this project, so the client's chosen label/price never
+  // reaches the charged total directly. Falls back to the informational-only
+  // corridor estimate below when the seller hasn't configured real options
+  // (or the id didn't resolve), preserving prior behavior for those stores.
+  const shippingOption = opts.shippingOptionId
+    ? await resolveShippingOptionForOrder(opts.admin, opts.projectId, opts.shippingOptionId)
     : null;
+  // Captured before the shipping fee is folded in — Joko Fulfillment's
+  // commission is a share of the goods Kebu actually handles, not of the
+  // shipping fee itself (see lib/shop/joko-fulfillment.ts).
+  const subtotalBeforeShippingXof = totalXof;
+  if (shippingOption && totalXof != null) {
+    totalXof = totalXof + shippingOption.amountXof;
+  }
+
+  const shippingQuote =
+    !shippingOption && opts.buyerCountry
+      ? quoteShippingCorridor({
+          fromCountry: sellerCountry,
+          toCountry: opts.buyerCountry,
+          goodsValueXof: totalXof,
+        })
+      : null;
 
   const insertOrder: Record<string, unknown> = {
     project_id: opts.projectId,
@@ -330,11 +355,13 @@ export async function createCartOrder(opts: {
     customer_phone: opts.customerPhone,
     customer_note: [
       opts.customerNote,
-      shippingQuote
-        ? `Shipping: ${shippingQuote.summary} [${shippingQuote.trustLabel}]`
-        : opts.buyerCountry
-          ? `Ship to: ${opts.buyerCountry} (no corridor quote yet)`
-          : "",
+      shippingOption
+        ? `Shipping: ${shippingOption.label} · ${shippingOption.amountXof.toLocaleString("fr-FR")} XOF`
+        : shippingQuote
+          ? `Shipping: ${shippingQuote.summary} [${shippingQuote.trustLabel}]`
+          : opts.buyerCountry
+            ? `Ship to: ${opts.buyerCountry} (no corridor quote yet)`
+            : "",
     ]
       .filter(Boolean)
       .join("\n")
@@ -361,7 +388,11 @@ export async function createCartOrder(opts: {
   if (beforeDiscount != null) insertOrder.amount_xof_before_discount = beforeDiscount;
   if (totalXof != null) insertOrder.amount_xof = totalXof;
   if (opts.buyerCountry) insertOrder.buyer_country_code = opts.buyerCountry.toUpperCase();
-  if (shippingQuote) {
+  if (shippingOption) {
+    insertOrder.shipping_option_id = shippingOption.id;
+    insertOrder.shipping_option_label = shippingOption.label;
+    insertOrder.shipping_amount_xof = shippingOption.amountXof;
+  } else if (shippingQuote) {
     insertOrder.shipping_amount_xof = shippingQuote.amountXof;
     insertOrder.shipping_eta_min_days = shippingQuote.etaMinDays;
     insertOrder.shipping_eta_max_days = shippingQuote.etaMaxDays;
@@ -385,7 +416,9 @@ export async function createCartOrder(opts: {
           ? "Gift columns missing. Apply 059_shop_gift_orders.sql."
           : error?.message?.includes("gift_card")
             ? "Gift card columns missing. Apply migration 066."
-            : "Could not save cart order.",
+            : error?.message?.includes("shipping_option")
+              ? "Shipping option columns missing. Apply migration 20261103130000."
+              : "Could not save cart order.",
     };
   }
 
@@ -408,6 +441,19 @@ export async function createCartOrder(opts: {
   const { error: itemsErr } = await opts.admin.from("shop_order_items").insert(itemRows);
   if (itemsErr && !/does not exist|shop_order_items/i.test(itemsErr.message ?? "")) {
     /* order header exists — items optional until migration applied */
+  }
+
+  if (shippingOption?.fulfillmentType === "joko_fulfillment") {
+    const commissionXof = computeJokoFulfillmentCommissionXof(
+      subtotalBeforeShippingXof ?? 0,
+      shippingOption.commissionBps,
+    );
+    await recordJokoFulfillmentOrder(opts.admin, {
+      orderId: order.id,
+      projectId: opts.projectId,
+      shippingOptionId: shippingOption.id,
+      commissionXof,
+    });
   }
 
   if (giftCard && giftCardAmount > 0) {
@@ -460,6 +506,8 @@ export async function createCartOrder(opts: {
     giftCardAmountXof: giftCardAmount > 0 ? giftCardAmount : null,
     giftPublicId:
       typeof order.gift_public_id === "string" ? order.gift_public_id : null,
+    shippingAmountXof: shippingOption?.amountXof ?? null,
+    shippingLabel: shippingOption?.label ?? null,
   };
 }
 
