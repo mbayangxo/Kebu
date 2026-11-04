@@ -15,6 +15,7 @@ import { isMarketingPath } from "@/lib/navigation/marketing-nav";
 import { KEBU } from "@/lib/kebu-brand";
 import { ToastProvider } from "@/app/components/kebu/toast";
 import { MY_SITES_HREF } from "@/lib/navigation/product-nav";
+import { ReportBug } from "@/app/components/report-bug";
 import "@/app/components/create/kebu-site-responsive.css";
 
 export type { PortfolioNavSite };
@@ -81,6 +82,9 @@ export function AppShell({
     <DataModeProvider>
       <KebuOfflineBanner />
       <KebuCommandPalette />
+      <div className="fixed right-4 bottom-24 md:bottom-4 z-40">
+        <ReportBug />
+      </div>
       <div
         className="kebu-app min-h-screen flex"
         style={{ background: KEBU.bright, color: KEBU.black }}
