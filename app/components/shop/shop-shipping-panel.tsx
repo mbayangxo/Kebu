@@ -48,6 +48,8 @@ type ShippingOption = {
   eta_max_days: number | null;
   active: boolean;
   sort_order: number;
+  fulfillment_type: "self" | "joko_fulfillment";
+  commission_bps: number | null;
 };
 
 /** Merchant-defined shipping choices buyers pick from at checkout — what actually gets charged. */
@@ -57,6 +59,7 @@ function ShippingOptionsManager({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("0");
+  const [jokoFulfillment, setJokoFulfillment] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -91,7 +94,12 @@ function ShippingOptionsManager({ projectId }: { projectId: string }) {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: label.trim(), amountXof: Number(amount) || 0, sortOrder: options.length }),
+        body: JSON.stringify({
+          label: label.trim(),
+          amountXof: Number(amount) || 0,
+          sortOrder: options.length,
+          fulfillmentType: jokoFulfillment ? "joko_fulfillment" : "self",
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -100,6 +108,7 @@ function ShippingOptionsManager({ projectId }: { projectId: string }) {
       }
       setLabel("");
       setAmount("0");
+      setJokoFulfillment(false);
       await load();
     } catch {
       setError("Network error.");
@@ -147,7 +156,18 @@ function ShippingOptionsManager({ projectId }: { projectId: string }) {
               className="flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-xs"
               style={{ background: KEBU.cream, opacity: o.active ? 1 : 0.5 }}
             >
-              <span style={{ color: KEBU.black }}>{o.label}</span>
+              <span className="flex items-center gap-1.5" style={{ color: KEBU.black }}>
+                {o.label}
+                {o.fulfillment_type === "joko_fulfillment" ? (
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                    style={{ background: "#dbeafe", color: "#1d4ed8" }}
+                    title="Kebu picks up and delivers this one — a Kebu team member handles it by hand, it's not automated."
+                  >
+                    Joko Fulfillment
+                  </span>
+                ) : null}
+              </span>
               <span className="flex items-center gap-2 shrink-0">
                 <span style={{ color: KEBU.muted }}>{formatXof(o.amount_xof) === "—" ? "Gratuit" : formatXof(o.amount_xof)}</span>
                 <button type="button" className="underline" onClick={() => void toggleActive(o)} style={{ color: KEBU.muted }}>
@@ -167,7 +187,7 @@ function ShippingOptionsManager({ projectId }: { projectId: string }) {
         </ul>
       )}
 
-      <form onSubmit={(e) => void addOption(e)} className="mt-3 flex flex-wrap gap-2">
+      <form onSubmit={(e) => void addOption(e)} className="mt-3 flex flex-wrap items-center gap-2">
         <input
           required
           maxLength={80}
@@ -194,6 +214,15 @@ function ShippingOptionsManager({ projectId }: { projectId: string }) {
         >
           Add
         </button>
+        <label className="flex basis-full items-center gap-1.5 text-[10px]" style={{ color: KEBU.muted }}>
+          <input
+            type="checkbox"
+            checked={jokoFulfillment}
+            onChange={(e) => setJokoFulfillment(e.target.checked)}
+          />
+          Have Kebu pick this one up and deliver it (Joko Fulfillment) instead of handling it yourself — Kebu takes a
+          commission, a real person on our side still does the pickup and delivery by hand.
+        </label>
       </form>
     </div>
   );

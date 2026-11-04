@@ -139,6 +139,9 @@ export default function KebuRecordPortalPage() {
             <Link href="/admin/developer-payouts" className="underline text-ivory/80">
               Developer payouts
             </Link>
+            <Link href="/admin/fulfillment" className="underline text-ivory/80">
+              Joko Fulfillment queue
+            </Link>
           </div>
         </div>
       </div>
