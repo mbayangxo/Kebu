@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { assertAdminCookie, assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
-import { HELP_REQUEST_STATUSES, type HelpRequestStatus } from "@/lib/platform/help-requests";
+import {
+  HELP_REQUEST_STATUSES,
+  buildHelpAccountContext,
+  type HelpAccountContext,
+  type HelpRequestStatus,
+} from "@/lib/platform/help-requests";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +56,7 @@ export async function GET(req: Request) {
     cronRuns,
     securityDay,
     securityRecent,
+    paymentFailuresRes,
   ] = await Promise.all([
     supabase.from("businesses").select("id", { count: "exact", head: true }),
     supabase
@@ -78,7 +84,7 @@ export async function GET(req: Request) {
     supabase.from("help_requests").select("id", { count: "exact", head: true }).gte("created_at", weekAgo),
     supabase
       .from("help_requests")
-      .select("id, name, email, phone, subject, status, source, created_at, helped_at, helped_by")
+      .select("id, user_id, name, email, phone, subject, body, status, source, created_at, helped_at, helped_by")
       .order("created_at", { ascending: false })
       .limit(30),
     supabase.from("site_health_checks").select("id", { count: "exact", head: true }).eq("ok", false),
@@ -104,10 +110,96 @@ export async function GET(req: Request) {
       .select("id, event_type, source, detail, created_at")
       .order("created_at", { ascending: false })
       .limit(30),
+    supabase
+      .from("shop_payment_ledger_events")
+      .select("id, project_id, order_id, rail, provider, provider_reference, created_at")
+      .eq("event_type", "failed")
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   const domains = domainsRes.data ?? [];
   const verifiedDomains = domains.filter((d) => d.status === "verified");
+
+  type HelpRow = {
+    id: string;
+    user_id: string | null;
+    name: string;
+    email: string;
+    phone: string | null;
+    subject: string;
+    body: string;
+    status: string;
+    source: string;
+    created_at: string;
+    helped_at: string | null;
+    helped_by: string | null;
+  };
+  const helpRows = (helpRecent.data ?? []) as HelpRow[];
+  const helpUserIds = [...new Set(helpRows.map((r) => r.user_id).filter((v): v is string => Boolean(v)))];
+
+  // "Know their account number and everything there" — join each help request's
+  // account_id to real account data: the Kebu account's own creation date plus
+  // any business (Kebu ID) they own. Real data only; a guest submission with no
+  // user_id just gets an honest empty context, never a fabricated one.
+  let accountContextByUserId: Record<string, HelpAccountContext> = {};
+  if (helpUserIds.length) {
+    const [profilesRes, membershipsRes] = await Promise.all([
+      supabase.from("user_profiles").select("id, created_at").in("id", helpUserIds),
+      supabase
+        .from("business_members")
+        .select("user_id, business_id, businesses(public_kebu_id, legal_name)")
+        .in("user_id", helpUserIds)
+        .eq("status", "active"),
+    ]);
+    accountContextByUserId = buildHelpAccountContext(
+      helpUserIds,
+      (profilesRes.data ?? []) as { id: string; created_at: string }[],
+      (membershipsRes.data ?? []) as Parameters<typeof buildHelpAccountContext>[2],
+    );
+  }
+
+  const helpWithContext = helpRows.map((r) => ({
+    ...r,
+    accountContext: r.user_id ? accountContextByUserId[r.user_id] ?? null : null,
+  }));
+
+  // One unified, recency-sorted feed of everything that's actually failing
+  // somewhere, pulled from signals that already exist — not a fabricated
+  // category. "Every time something fails... notified as soon as possible":
+  // this is read fresh on every Kebu Record load, so it's as prompt as the
+  // team opening the page; it is not (yet) a push/email alert on its own.
+  type AttentionItem = { kind: string; label: string; detail: string; at: string };
+  const attention: AttentionItem[] = [];
+  for (const f of (healthRecentFail.data ?? []) as { subdomain: string; http_status: number | null; error_message: string | null; checked_at: string }[]) {
+    attention.push({
+      kind: "site_health",
+      label: `Site check failed: ${f.subdomain}`,
+      detail: f.error_message || `HTTP ${f.http_status ?? "?"}`,
+      at: f.checked_at,
+    });
+  }
+  for (const c of (cronRuns.data ?? []) as { job_name: string; status: string; error_message: string | null; finished_at: string }[]) {
+    if (c.status === "ok") continue;
+    attention.push({
+      kind: "cron",
+      label: `Cron ${c.status === "error" ? "failed" : "partial"}: ${c.job_name}`,
+      detail: c.error_message || "See cron history for details.",
+      at: c.finished_at,
+    });
+  }
+  for (const e of (securityRecent.data ?? []) as { event_type: string; source: string; created_at: string }[]) {
+    attention.push({ kind: "security", label: `Security: ${e.event_type}`, detail: e.source, at: e.created_at });
+  }
+  for (const p of (paymentFailuresRes.data ?? []) as { rail: string; provider: string; provider_reference: string; created_at: string }[]) {
+    attention.push({
+      kind: "payment",
+      label: `Payment failed: ${p.rail}`,
+      detail: p.provider_reference || p.provider,
+      at: p.created_at,
+    });
+  }
+  attention.sort((a, b) => (a.at < b.at ? 1 : -1));
 
   const helpTableMissing =
     Boolean(helpOpen.error?.message?.includes("help_requests")) ||
@@ -147,9 +239,10 @@ export async function GET(req: Request) {
       closed: helpClosed.count ?? 0,
       helpedOrClosed: helpedTotal,
       requestsThisWeek: helpWeek.count ?? 0,
-      recent: helpRecent.data ?? [],
+      recent: helpWithContext,
       migrationNeeded: helpTableMissing,
     },
+    needsAttention: attention.slice(0, 50),
     health: {
       failedSites: healthFailed.count ?? 0,
       checkedSites: healthTotal.count ?? 0,
@@ -182,6 +275,8 @@ export async function GET(req: Request) {
       "Cron rows need migration 083; site probe failures come from site_health_checks.",
       "SMS delivery in Africa can be unreliable — Shop fulfill defaults to WhatsApp.",
       "Security events need migration 20261103130000_security_events_log.sql — CSRF rejections, admin login failures, and auth rate-limit trips, logged where enforced.",
+      "help.recent[].accountContext joins to user_profiles + business_members/businesses — null when the request has no account (guest submission).",
+      "needsAttention is read fresh on every Kebu Record load from site-health, cron, security, and payment-ledger-failure signals — it is not (yet) a push/email alert on its own.",
     ],
   });
 }
