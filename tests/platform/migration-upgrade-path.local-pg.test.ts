@@ -172,6 +172,7 @@ describe.skipIf(SKIP)("Migration upgrade path: new migrations applied on top of 
       await c.query(sql("supabase/migrations/20261103181000_complete_shop_payment_joko_atomic.sql"));
       await c.query(sql("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"));
       await c.query(sql("supabase/migrations/20261104030000_shop_seller_balance_fulfillment_deduction.sql"));
+      await c.query(sql("supabase/migrations/20261104040000_shop_refunds_and_fulfillment_outcomes.sql"));
     } finally {
       c.release();
     }
@@ -212,8 +213,31 @@ describe.skipIf(SKIP)("Migration upgrade path: new migrations applied on top of 
     // introduced — the real-world case that matters, not an empty-table fresh install.
     const balance = await pool.query(`SELECT * FROM public.shop_seller_balance($1)`, [projectId]);
     expect(Number(balance.rows[0].collected_xof)).toBe(7_500);
+    expect(Number(balance.rows[0].refunded_xof)).toBe(0);
     expect(Number(balance.rows[0].fulfillment_commission_xof)).toBe(0);
     expect(Number(balance.rows[0].available_xof)).toBe(7_500);
+  });
+
+  it("refunding the pre-existing order (via record_shop_refund) correctly zeroes its contribution to the balance", async () => {
+    const refund = await pool.query(`SELECT * FROM public.record_shop_refund($1, 'customer requested cancellation')`, [
+      (await pool.query(`SELECT id FROM public.shop_orders WHERE project_id = $1`, [projectId])).rows[0].id,
+    ]);
+    expect(refund.rows[0].ok).toBe(true);
+    expect(Number(refund.rows[0].refunded_xof)).toBe(7_500);
+
+    const balance = await pool.query(`SELECT * FROM public.shop_seller_balance($1)`, [projectId]);
+    expect(Number(balance.rows[0].collected_xof)).toBe(7_500);
+    expect(Number(balance.rows[0].refunded_xof)).toBe(7_500);
+    expect(Number(balance.rows[0].available_xof)).toBe(0);
+
+    const order = await pool.query(`SELECT payment_status FROM public.shop_orders WHERE project_id = $1`, [projectId]);
+    expect(order.rows[0].payment_status).toBe("refunded");
+
+    // Cannot double-refund the same order.
+    const second = await pool.query(`SELECT * FROM public.record_shop_refund($1)`, [
+      (await pool.query(`SELECT id FROM public.shop_orders WHERE project_id = $1`, [projectId])).rows[0].id,
+    ]);
+    expect(second.rows[0].ok).toBe(false);
   });
 
   it("re-applying each individually-idempotent migration a second time is a safe no-op", async () => {
@@ -238,12 +262,16 @@ describe.skipIf(SKIP)("Migration upgrade path: new migrations applied on top of 
       await c.query(sql("supabase/migrations/20261103181000_complete_shop_payment_joko_atomic.sql"));
       await c.query(sql("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"));
       await c.query(sql("supabase/migrations/20261104030000_shop_seller_balance_fulfillment_deduction.sql"));
+      await c.query(sql("supabase/migrations/20261104040000_shop_refunds_and_fulfillment_outcomes.sql"));
     } finally {
       c.release();
     }
     const res = await pool.query(`SELECT count(*)::int AS n FROM public.help_requests`);
     expect(res.rows[0].n).toBe(2);
+    // The prior test already refunded this project's one order — balance correctly
+    // stays at 0 after re-applying every idempotent migration again, proving the
+    // re-apply didn't resurrect or double-count anything.
     const balance = await pool.query(`SELECT * FROM public.shop_seller_balance($1)`, [projectId]);
-    expect(Number(balance.rows[0].available_xof)).toBe(7_500);
+    expect(Number(balance.rows[0].available_xof)).toBe(0);
   });
 });

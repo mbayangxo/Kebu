@@ -17,8 +17,19 @@ export const JOKO_FULFILLMENT_STATUSES = [
   "picked_up",
   "in_transit",
   "delivered",
+  "failed_delivery",
+  "returned",
   "cancelled",
 ] as const;
+
+/**
+ * Statuses where the commission does not apply — the pickup+delivery service was
+ * never completed. Reasoned default, not a certainty: 'returned' (delivery
+ * succeeded, customer returned the item afterward through a separate process)
+ * still counts as a completed service and keeps the commission. Flag this for
+ * explicit confirmation rather than treating it as final.
+ */
+export const JOKO_FULFILLMENT_NO_COMMISSION_STATUSES = ["cancelled", "failed_delivery"] as const;
 export type JokoFulfillmentStatus = (typeof JOKO_FULFILLMENT_STATUSES)[number];
 
 /** Platform default when a seller enables Joko Fulfillment without setting their own rate. */
@@ -81,7 +92,12 @@ export async function recordJokoFulfillmentOrder(
   }
 }
 
-/** Admin ops queue: every fulfillment order not yet delivered/cancelled, oldest first. */
+/**
+ * Admin ops queue: every fulfillment order that might still need an action —
+ * includes 'delivered' (a customer could still return it) but excludes the true
+ * terminal states (failed_delivery/returned/cancelled), which need no more
+ * admin attention once reached. Oldest first.
+ */
 export async function listOpenFulfillmentOrders(
   admin: SupabaseClient,
 ): Promise<
@@ -93,7 +109,7 @@ export async function listOpenFulfillmentOrders(
     .select(
       "id, order_id, project_id, shipping_option_id, commission_xof, status, note, created_at, updated_at, shop_orders(order_number, customer_name)",
     )
-    .in("status", ["awaiting_pickup", "picked_up", "in_transit"])
+    .in("status", ["awaiting_pickup", "picked_up", "in_transit", "delivered"])
     .order("created_at", { ascending: true })
     .limit(200);
   if (error) {

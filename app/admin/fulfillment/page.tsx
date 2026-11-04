@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { JOKO_FULFILLMENT_STATUSES, type JokoFulfillmentStatus } from "@/lib/shop/joko-fulfillment";
 
 type FulfillmentItem = {
   id: string;
@@ -9,26 +10,39 @@ type FulfillmentItem = {
   order_number: string | null;
   customer_name: string | null;
   commission_xof: number;
-  status: "awaiting_pickup" | "picked_up" | "in_transit" | "delivered" | "cancelled";
+  status: JokoFulfillmentStatus;
   note: string | null;
   created_at: string;
 };
 
-const NEXT_STATUS: Record<FulfillmentItem["status"], FulfillmentItem["status"] | null> = {
+const NEXT_STATUS: Record<JokoFulfillmentStatus, JokoFulfillmentStatus | null> = {
   awaiting_pickup: "picked_up",
   picked_up: "in_transit",
   in_transit: "delivered",
   delivered: null,
+  failed_delivery: null,
+  returned: null,
   cancelled: null,
 };
 
-const STATUS_LABEL: Record<FulfillmentItem["status"], string> = {
+const STATUS_LABEL: Record<JokoFulfillmentStatus, string> = {
   awaiting_pickup: "Awaiting pickup",
   picked_up: "Picked up",
   in_transit: "In transit",
   delivered: "Delivered",
+  failed_delivery: "Delivery failed",
+  returned: "Returned",
   cancelled: "Cancelled",
 };
+
+// Satisfies the lint rule for exhaustiveness without a runtime cost — if a new
+// status is ever added to the shared lib constant without updating the two
+// records above, this throws at import time instead of silently rendering "undefined".
+JOKO_FULFILLMENT_STATUSES.forEach((s) => {
+  if (!(s in STATUS_LABEL) || !(s in NEXT_STATUS)) {
+    throw new Error(`Fulfillment status "${s}" is missing from this page's STATUS_LABEL/NEXT_STATUS.`);
+  }
+});
 
 function formatXof(n: number): string {
   return `${Math.round(n).toLocaleString()} XOF`;
@@ -76,18 +90,39 @@ export default function JokoFulfillmentQueuePage() {
     }
   }
 
-  async function cancel(item: FulfillmentItem) {
+  async function setOutcome(item: FulfillmentItem, status: JokoFulfillmentStatus) {
     setBusyId(item.id);
     try {
       const res = await fetch(`/api/admin/fulfillment/${item.id}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "cancelled" }),
+        body: JSON.stringify({ status }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(json.error ?? "Could not cancel.");
+        setError(json.error ?? "Could not update status.");
+        return;
+      }
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function refundOrder(item: FulfillmentItem) {
+    if (!window.confirm("Record a refund for this order? Only do this after you've actually issued the refund through the payment provider.")) return;
+    setBusyId(item.id);
+    try {
+      const res = await fetch(`/api/admin/shop-orders/${item.order_id}/refund`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Fulfillment outcome refund" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.error ?? "Could not record refund.");
         return;
       }
       await load();
@@ -136,7 +171,7 @@ export default function JokoFulfillmentQueuePage() {
                     {STATUS_LABEL[item.status]}
                   </span>
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex flex-wrap gap-2 shrink-0">
                   {NEXT_STATUS[item.status] ? (
                     <button
                       type="button"
@@ -147,14 +182,46 @@ export default function JokoFulfillmentQueuePage() {
                       Mark {STATUS_LABEL[NEXT_STATUS[item.status]!]}
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    disabled={busyId === item.id}
-                    onClick={() => void cancel(item)}
-                    className="rounded-full border border-red-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-700 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
+                  {["awaiting_pickup", "picked_up", "in_transit"].includes(item.status) ? (
+                    <button
+                      type="button"
+                      disabled={busyId === item.id}
+                      onClick={() => void setOutcome(item, "failed_delivery")}
+                      className="rounded-full border border-amber-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 disabled:opacity-50"
+                    >
+                      Mark failed
+                    </button>
+                  ) : null}
+                  {item.status === "delivered" ? (
+                    <button
+                      type="button"
+                      disabled={busyId === item.id}
+                      onClick={() => void setOutcome(item, "returned")}
+                      className="rounded-full border border-amber-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 disabled:opacity-50"
+                    >
+                      Mark returned
+                    </button>
+                  ) : null}
+                  {item.status !== "cancelled" ? (
+                    <button
+                      type="button"
+                      disabled={busyId === item.id}
+                      onClick={() => void setOutcome(item, "cancelled")}
+                      className="rounded-full border border-red-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-700 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  ) : null}
+                  {["failed_delivery", "returned", "cancelled"].includes(item.status) ? (
+                    <button
+                      type="button"
+                      disabled={busyId === item.id}
+                      onClick={() => void refundOrder(item)}
+                      className="rounded-full border border-border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-ink disabled:opacity-50"
+                    >
+                      Record refund
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </li>

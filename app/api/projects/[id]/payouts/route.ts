@@ -123,7 +123,7 @@ export async function GET(req: Request, { params }: Params) {
     : { ok: false as const, status: 503, error: "Service unavailable." };
   const balance = balanceResult.ok
     ? balanceResult.balance
-    : { collectedXof: 0, fulfillmentCommissionXof: 0, requestedOrPaidXof: 0, availableXof: 0 };
+    : { collectedXof: 0, refundedXof: 0, fulfillmentCommissionXof: 0, requestedOrPaidXof: 0, availableXof: 0 };
 
   const summary: PayoutSummary = {
     totalPaidXof,

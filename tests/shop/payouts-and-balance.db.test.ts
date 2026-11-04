@@ -152,6 +152,7 @@ describe.skipIf(SKIP)("Shop seller balance + payout requests (real Postgres)", (
       await c.query(sql("supabase/migrations/20261103130000_shop_shipping_options.sql"));
       await c.query(sql("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"));
       await c.query(sql("supabase/migrations/20261104030000_shop_seller_balance_fulfillment_deduction.sql"));
+      await c.query(sql("supabase/migrations/20261104040000_shop_refunds_and_fulfillment_outcomes.sql"));
 
       await c.query(`GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role`);
       // Belt-and-suspenders beyond ALTER DEFAULT PRIVILEGES (which only covers objects

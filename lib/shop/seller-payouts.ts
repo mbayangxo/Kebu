@@ -8,6 +8,8 @@ export type ShopPayoutMethod = (typeof SHOP_PAYOUT_METHODS)[number];
 
 export type ShopSellerBalance = {
   collectedXof: number;
+  /** Refunds already deducted from availableXof — see migration 20261104040000. */
+  refundedXof: number;
   /** Joko Fulfillment commission already deducted from availableXof — see migration 20261104030000. */
   fulfillmentCommissionXof: number;
   requestedOrPaidXof: number;
@@ -54,13 +56,14 @@ export async function getShopSellerBalance(
   if (!row) {
     return {
       ok: true,
-      balance: { collectedXof: 0, fulfillmentCommissionXof: 0, requestedOrPaidXof: 0, availableXof: 0 },
+      balance: { collectedXof: 0, refundedXof: 0, fulfillmentCommissionXof: 0, requestedOrPaidXof: 0, availableXof: 0 },
     };
   }
   return {
     ok: true,
     balance: {
       collectedXof: Number(row.collected_xof ?? 0),
+      refundedXof: Number(row.refunded_xof ?? 0),
       fulfillmentCommissionXof: Number(row.fulfillment_commission_xof ?? 0),
       requestedOrPaidXof: Number(row.requested_or_paid_xof ?? 0),
       availableXof: Number(row.available_xof ?? 0),
