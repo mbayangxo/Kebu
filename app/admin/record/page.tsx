@@ -5,16 +5,32 @@ import { useCallback, useEffect, useState } from "react";
 
 type HelpRow = {
   id: string;
+  user_id: string | null;
   name: string;
   email: string;
   phone: string | null;
   subject: string;
+  body: string;
   status: string;
   source: string;
   created_at: string;
   helped_at: string | null;
   helped_by: string | null;
+  accountContext: {
+    accountCreatedAt: string | null;
+    businesses: { publicKebuId: string; legalName: string }[];
+  } | null;
 };
+
+type HelpReply = {
+  id: string;
+  author_type: "customer" | "team";
+  author_name: string;
+  body: string;
+  created_at: string;
+};
+
+type AttentionItem = { kind: string; label: string; detail: string; at: string };
 
 type RecordOverview = {
   generatedAt: string;
@@ -65,6 +81,23 @@ type RecordOverview = {
     }>;
     migrationNeeded?: boolean;
   };
+  security: {
+    last24h: {
+      csrfRejected: number;
+      authRateLimited: number;
+      adminLoginFailed: number;
+      total: number;
+    };
+    recent: Array<{
+      id: string;
+      event_type: string;
+      source: string;
+      detail: Record<string, unknown>;
+      created_at: string;
+    }>;
+    migrationNeeded?: boolean;
+  };
+  needsAttention: AttentionItem[];
   domains: Array<{ id: string; hostname: string; status: string; provider: string; project_id: string }>;
   recentBusinesses: Array<{
     id: string;
@@ -81,6 +114,10 @@ export default function KebuRecordPortalPage() {
   const [data, setData] = useState<RecordOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
+  const [threads, setThreads] = useState<Record<string, HelpReply[]>>({});
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyBusyId, setReplyBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/record", { credentials: "include" });
@@ -114,6 +151,43 @@ export default function KebuRecordPortalPage() {
       await load();
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function toggleThread(id: string) {
+    if (openThreadId === id) {
+      setOpenThreadId(null);
+      return;
+    }
+    setOpenThreadId(id);
+    if (!threads[id]) {
+      const res = await fetch(`/api/admin/help/${id}`, { credentials: "include" });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) setThreads((prev) => ({ ...prev, [id]: json.replies ?? [] }));
+    }
+  }
+
+  async function sendReply(id: string) {
+    const body = (replyDrafts[id] ?? "").trim();
+    if (!body) return;
+    setReplyBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/help/${id}/reply`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body, repliedBy: "Kebu team" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.error ?? "Could not send the reply.");
+        return;
+      }
+      setReplyDrafts((prev) => ({ ...prev, [id]: "" }));
+      setThreads((prev) => ({ ...prev, [id]: [...(prev[id] ?? []), json.reply] }));
+      await load();
+    } finally {
+      setReplyBusyId(null);
     }
   }
 
@@ -153,6 +227,33 @@ export default function KebuRecordPortalPage() {
         {data ? (
           <>
             <p className="text-xs text-muted">Snapshot {new Date(data.generatedAt).toLocaleString()}</p>
+
+            <section>
+              <h2 className="font-display text-lg font-bold mb-3">Needs attention</h2>
+              <p className="text-xs text-muted mb-3">
+                Site-health, cron, security, and payment failures — read fresh on every load of this page, not yet a push/email alert.
+              </p>
+              <div className="bg-white border border-border rounded-2xl p-6">
+                {data.needsAttention.length === 0 ? (
+                  <p className="text-sm text-muted">Nothing failing right now.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {data.needsAttention.map((a, i) => (
+                      <li key={`${a.kind}-${i}`} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/40 pb-2">
+                        <span>
+                          <span className="rounded-full bg-amber-100 text-amber-900 text-[9px] font-bold uppercase px-2 py-0.5 mr-2">
+                            {a.kind}
+                          </span>
+                          <span className="font-semibold">{a.label}</span>
+                          <span className="text-muted"> — {a.detail}</span>
+                        </span>
+                        <span className="text-xs text-muted">{new Date(a.at).toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
 
             <section>
               <h2 className="font-display text-lg font-bold mb-3">New accounts</h2>
@@ -207,8 +308,27 @@ export default function KebuRecordPortalPage() {
                               {h.phone ? ` · ${h.phone}` : ""} · {h.status} ·{" "}
                               {new Date(h.created_at).toLocaleString()}
                             </p>
+                            {h.accountContext ? (
+                              <p className="text-xs text-deep-green mt-1">
+                                Account since {h.accountContext.accountCreatedAt ? new Date(h.accountContext.accountCreatedAt).toLocaleDateString() : "unknown"}
+                                {h.accountContext.businesses.length
+                                  ? h.accountContext.businesses
+                                      .map((b) => ` · ${b.legalName} (${b.publicKebuId})`)
+                                      .join("")
+                                  : " · no business yet"}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted mt-1">Guest submission — no Kebu account.</p>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className="rounded-full border px-3 py-1 text-[10px] font-bold uppercase"
+                              onClick={() => void toggleThread(h.id)}
+                            >
+                              {openThreadId === h.id ? "Hide thread" : "Reply"}
+                            </button>
                             {h.status === "open" ? (
                               <button
                                 type="button"
@@ -231,6 +351,35 @@ export default function KebuRecordPortalPage() {
                             ) : null}
                           </div>
                         </div>
+                        {openThreadId === h.id ? (
+                          <div className="mt-3 rounded-xl bg-warm-ivory p-3 space-y-2">
+                            <p className="text-sm">{h.body}</p>
+                            {(threads[h.id] ?? []).map((r) => (
+                              <div key={r.id} className="text-xs border-t border-border/40 pt-2">
+                                <span className="font-bold">{r.author_type === "team" ? r.author_name : h.name}</span>{" "}
+                                <span className="text-muted">{new Date(r.created_at).toLocaleString()}</span>
+                                <p>{r.body}</p>
+                              </div>
+                            ))}
+                            <div className="flex gap-2 pt-2">
+                              <textarea
+                                className="flex-1 rounded-lg border px-2 py-1 text-xs"
+                                rows={2}
+                                placeholder="Reply — sent to their Kebu account email"
+                                value={replyDrafts[h.id] ?? ""}
+                                onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [h.id]: e.target.value }))}
+                              />
+                              <button
+                                type="button"
+                                disabled={replyBusyId === h.id || !(replyDrafts[h.id] ?? "").trim()}
+                                className="rounded-full bg-deep-green px-3 py-1 text-[10px] font-bold uppercase text-ivory self-start disabled:opacity-50"
+                                onClick={() => void sendReply(h.id)}
+                              >
+                                {replyBusyId === h.id ? "Sending…" : "Send & email"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -298,6 +447,49 @@ export default function KebuRecordPortalPage() {
                     {data.health.billingExpired}
                   </p>
                 </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="font-display text-lg font-bold mb-3">Security signals (24h)</h2>
+              {data.security.migrationNeeded ? (
+                <p className="text-sm text-amber-800 mb-3">
+                  Apply <code>20261103130000_security_events_log.sql</code> for security signal history.
+                </p>
+              ) : null}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                {[
+                  ["CSRF rejections", data.security.last24h.csrfRejected],
+                  ["Auth rate-limit trips", data.security.last24h.authRateLimited],
+                  ["Admin login failures", data.security.last24h.adminLoginFailed],
+                  ["Total signals (24h)", data.security.last24h.total],
+                ].map(([label, value]) => (
+                  <div key={label as string} className="bg-white border border-border rounded-2xl p-5 text-center">
+                    <p
+                      className={`font-display text-3xl font-bold ${(value as number) > 0 ? "text-amber-700" : "text-deep-green"}`}
+                    >
+                      {value as number}
+                    </p>
+                    <p className="text-xs text-muted mt-1">{label as string}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-white border border-border rounded-2xl p-6">
+                <h3 className="text-sm font-bold mb-3">Recent signals</h3>
+                {data.security.recent.length === 0 ? (
+                  <p className="text-sm text-muted">No security signals logged — nothing has tripped CSRF, auth rate limits, or admin login checks.</p>
+                ) : (
+                  <ul className="text-xs space-y-2">
+                    {data.security.recent.map((s) => (
+                      <li key={s.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">
+                        <span>
+                          <span className="font-mono">{s.event_type}</span> · {s.source}
+                        </span>
+                        <span className="text-muted shrink-0">{new Date(s.created_at).toLocaleString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </section>
 

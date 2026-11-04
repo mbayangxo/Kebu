@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest } from "next/server";
+import { recordSecurityEvent } from "@/lib/platform/security-events";
 
 // ── IP-based rate limiter ─────────────────────────────────────────────────────
 // Each serverless instance has its own map. This stops casual abuse and script
@@ -93,7 +94,20 @@ export function shopOrderRateLimit(req: Request | NextRequest): Response | null 
 
 /** Login / admin login — stops password guessing from one IP. */
 export function authRateLimit(req: Request | NextRequest): Response | null {
-  return rateLimit(req as NextRequest, AUTH_LIMIT, "auth");
+  const limited = rateLimit(req as NextRequest, AUTH_LIMIT, "auth");
+  if (limited) {
+    recordSecurityEvent({
+      eventType: "auth_rate_limited",
+      source: (() => {
+        try {
+          return new URL(req.url).pathname;
+        } catch {
+          return "unknown";
+        }
+      })(),
+    });
+  }
+  return limited;
 }
 
 // Returns a 401 Response if the Authorization header doesn't match CRON_SECRET.

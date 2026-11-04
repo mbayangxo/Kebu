@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/create/auth";
 import { meProfilePatchSchema, rowToMeProfile } from "@/lib/account/user-profile";
 import { ensureAfriqueIdForUser } from "@/lib/afrique-id/ensure-afrique-id";
 import { africanIdTypeLabel, eligibilityStatusLabel } from "@/lib/afrique-id/types";
+import { assertSameOriginMutation } from "@/lib/admin/assert-admin-cookie";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,8 @@ export async function GET() {
 
 /** Update personal profile fields (not avatar — use /api/me/avatar). */
 export async function PATCH(req: Request) {
+  const csrf = assertSameOriginMutation(req);
+  if (csrf) return csrf;
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   const { supabase, user } = auth;

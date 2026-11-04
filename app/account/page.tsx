@@ -438,6 +438,11 @@ export default function AccountPage() {
               <p className="mt-3 text-lg font-black">My Sites</p>
               <p className="mt-1 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>Manage the sites that actually exist in your account.</p>
             </Link>
+            <Link href="/account/help" className="block border-b py-4" style={{ borderColor: KEBU.border }}>
+              <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>Support</p>
+              <p className="mt-3 text-lg font-black">Get help</p>
+              <p className="mt-1 text-[10px] leading-relaxed" style={{ color: KEBU.muted }}>Ask the Kebu team — tied to your account, answered by email.</p>
+            </Link>
             <div className="border-b py-4" style={{ borderColor: KEBU.border }}>
               <p className="text-[9px] font-black uppercase tracking-[.16em]" style={{ color: KEBU.orange }}>One Kebu login</p>
               <p className="mt-2 text-[11px] leading-relaxed" style={{ color: KEBU.muted }}>Your account, personal Mail addresses, businesses and product worlds remain connected without forcing separate logins.</p>
