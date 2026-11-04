@@ -119,7 +119,7 @@ describe.skipIf(SKIP)("Full Shop customer journey, chained end-to-end (real Post
 
       // Every migration this consolidation touches, in the real supabase/migrations/ order.
       await c.query(sql("supabase/migrations/20260920012000_complete_shop_payment_atomically.sql"));
-      await c.query(sql("supabase/migrations/20261103130000_shop_shipping_options.sql"));
+      await c.query(sql("supabase/migrations/20261103135000_shop_shipping_options.sql"));
       await c.query(sql("supabase/migrations/20261103180000_shop_seller_balance_and_payouts.sql"));
       await c.query(sql("supabase/migrations/20261103181000_complete_shop_payment_joko_atomic.sql"));
       await c.query(sql("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"));

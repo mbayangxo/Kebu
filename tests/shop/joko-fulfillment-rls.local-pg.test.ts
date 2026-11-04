@@ -49,7 +49,7 @@ async function openDb(): Promise<Db> {
   const db: Db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(SCHEMA_FIXTURE);
   await db.exec(`insert into auth.users(id) values ('${ownerA}'), ('${ownerB}'), ('${stranger}');`);
-  const shippingMigration = readFileSync(resolve("supabase/migrations/20261103130000_shop_shipping_options.sql"), "utf8");
+  const shippingMigration = readFileSync(resolve("supabase/migrations/20261103135000_shop_shipping_options.sql"), "utf8");
   await db.exec(shippingMigration);
   const fulfillmentMigration = readFileSync(resolve("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"), "utf8");
   await db.exec(fulfillmentMigration);

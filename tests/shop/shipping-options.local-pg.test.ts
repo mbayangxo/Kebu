@@ -1,6 +1,6 @@
 /**
  * Real-SQL verification of shop_shipping_options RLS
- * (20261103130000_shop_shipping_options.sql), applied verbatim against
+ * (20261103135000_shop_shipping_options.sql), applied verbatim against
  * PGlite — not a reimplementation, so a bug in the real policy text would
  * actually surface here. Same convention as
  * tests/business/business-members-select-policy.local.test.ts.
@@ -52,7 +52,7 @@ async function openDb(): Promise<Db> {
   const db: Db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(SCHEMA_FIXTURE);
   await db.exec(`insert into auth.users(id) values ('${ownerA}'), ('${ownerB}'), ('${stranger}');`);
-  const migration = readFileSync(resolve("supabase/migrations/20261103130000_shop_shipping_options.sql"), "utf8");
+  const migration = readFileSync(resolve("supabase/migrations/20261103135000_shop_shipping_options.sql"), "utf8");
   await db.exec(migration);
   return db;
 }

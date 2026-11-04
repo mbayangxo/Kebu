@@ -166,7 +166,7 @@ describe.skipIf(SKIP)("Migration upgrade path: new migrations applied on top of 
       await c.query(sql("supabase/migrations/20261103010000_shop_affiliate_codes.sql"));
       await c.query(sql("supabase/migrations/20261103120000_site_fan_community.sql"));
       await c.query(sql("supabase/migrations/20261103130000_security_events_log.sql"));
-      await c.query(sql("supabase/migrations/20261103130000_shop_shipping_options.sql"));
+      await c.query(sql("supabase/migrations/20261103135000_shop_shipping_options.sql"));
       await c.query(sql("supabase/migrations/20261103150000_help_request_replies.sql"));
       await c.query(sql("supabase/migrations/20261103180000_shop_seller_balance_and_payouts.sql"));
       await c.query(sql("supabase/migrations/20261103181000_complete_shop_payment_joko_atomic.sql"));
@@ -257,7 +257,7 @@ describe.skipIf(SKIP)("Migration upgrade path: new migrations applied on top of 
       await c.query(sql("supabase/migrations/20261103010000_shop_affiliate_codes.sql"));
       await c.query(sql("supabase/migrations/20261103120000_site_fan_community.sql"));
       await c.query(sql("supabase/migrations/20261103130000_security_events_log.sql"));
-      await c.query(sql("supabase/migrations/20261103130000_shop_shipping_options.sql"));
+      await c.query(sql("supabase/migrations/20261103135000_shop_shipping_options.sql"));
       await c.query(sql("supabase/migrations/20261103150000_help_request_replies.sql"));
       await c.query(sql("supabase/migrations/20261103181000_complete_shop_payment_joko_atomic.sql"));
       await c.query(sql("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"));

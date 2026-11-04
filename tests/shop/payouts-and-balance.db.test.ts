@@ -149,7 +149,7 @@ describe.skipIf(SKIP)("Shop seller balance + payout requests (real Postgres)", (
       await c.query(sql("supabase/migrations/20261103181000_complete_shop_payment_joko_atomic.sql"));
       // Joko Fulfillment: real commission deduction integrated into shop_seller_balance
       // (consolidation 2026-11-04) — applied in the same order as supabase/migrations/.
-      await c.query(sql("supabase/migrations/20261103130000_shop_shipping_options.sql"));
+      await c.query(sql("supabase/migrations/20261103135000_shop_shipping_options.sql"));
       await c.query(sql("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"));
       await c.query(sql("supabase/migrations/20261104030000_shop_seller_balance_fulfillment_deduction.sql"));
       await c.query(sql("supabase/migrations/20261104040000_shop_refunds_and_fulfillment_outcomes.sql"));
