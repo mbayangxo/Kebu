@@ -192,8 +192,11 @@ export function ShopPayoutsPanel({ projectId }: { projectId: string }) {
               </button>
             </div>
             <p className="mt-2 text-xs opacity-70">
-              Collected: {formatXof(summary.balance.collectedXof)} · Requested or paid out:{" "}
-              {formatXof(summary.balance.requestedOrPaidXof)}
+              Collected: {formatXof(summary.balance.collectedXof)}
+              {summary.balance.fulfillmentCommissionXof > 0
+                ? ` · Joko Fulfillment commission: -${formatXof(summary.balance.fulfillmentCommissionXof)}`
+                : ""}{" "}
+              · Requested or paid out: {formatXof(summary.balance.requestedOrPaidXof)}
             </p>
           </div>
 

@@ -147,6 +147,11 @@ describe.skipIf(SKIP)("Shop seller balance + payout requests (real Postgres)", (
       await c.query(sql("supabase/migrations/20260920012000_complete_shop_payment_atomically.sql"));
       await c.query(sql("supabase/migrations/20261103180000_shop_seller_balance_and_payouts.sql"));
       await c.query(sql("supabase/migrations/20261103181000_complete_shop_payment_joko_atomic.sql"));
+      // Joko Fulfillment: real commission deduction integrated into shop_seller_balance
+      // (consolidation 2026-11-04) — applied in the same order as supabase/migrations/.
+      await c.query(sql("supabase/migrations/20261103130000_shop_shipping_options.sql"));
+      await c.query(sql("supabase/migrations/20261104020000_shop_joko_fulfillment.sql"));
+      await c.query(sql("supabase/migrations/20261104030000_shop_seller_balance_fulfillment_deduction.sql"));
 
       await c.query(`GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role`);
       // Belt-and-suspenders beyond ALTER DEFAULT PRIVILEGES (which only covers objects
@@ -287,6 +292,60 @@ describe.skipIf(SKIP)("Shop seller balance + payout requests (real Postgres)", (
     const balance = await pool.query(`SELECT * FROM public.shop_seller_balance($1)`, [projectB]);
     expect(Number(balance.rows[0].collected_xof)).toBe(10_000);
     expect(Number(balance.rows[0].available_xof)).toBe(10_000);
+  });
+
+  it("a Joko-Fulfillment order's commission reduces available_xof; a self-fulfilled order's does not", async () => {
+    // Verified commercial rule (consolidation 2026-11-04): this commission never stacks with
+    // the marketplace 85/15 split — that split only taxes aesthetic_library/
+    // creative_asset_library (template/asset marketplace sales), a Shop order is never
+    // subject to it. $100 (10,000 XOF) subtotal at a 15% Joko commission nets 8,500 XOF.
+    // Fresh, dedicated project — projectA/projectB accumulate ledger rows from earlier
+    // tests in this file, so a clean project avoids asserting against shared state.
+    const ownerC = await pool.query(`INSERT INTO auth.users DEFAULT VALUES RETURNING id`);
+    const projC = await pool.query(
+      `INSERT INTO public.projects (owner_id, title) VALUES ($1, 'Shop C') RETURNING id`,
+      [ownerC.rows[0].id],
+    );
+    const projectC = projC.rows[0].id as string;
+
+    const joko = await insertOrder(projectC, { reference: `jf_${Math.random()}`, provider: "wave", amountXof: 10_000 });
+    await pool.query(`UPDATE public.shop_orders SET payment_status = 'paid' WHERE id = $1`, [joko]);
+    await pool.query(
+      `INSERT INTO public.shop_payment_ledger_events (project_id, order_id, rail, event_type, amount_xof, provider, provider_reference)
+       VALUES ($1, $2, 'wave', 'paid', 10000, 'wave', 'ref-jf1')`,
+      [projectC, joko],
+    );
+    await pool.query(
+      `INSERT INTO public.shop_fulfillment_orders (order_id, project_id, commission_xof, status)
+       VALUES ($1, $2, 1500, 'awaiting_pickup')`,
+      [joko, projectC],
+    );
+
+    const afterJoko = await pool.query(`SELECT * FROM public.shop_seller_balance($1)`, [projectC]);
+    expect(Number(afterJoko.rows[0].collected_xof)).toBe(10_000);
+    expect(Number(afterJoko.rows[0].fulfillment_commission_xof)).toBe(1_500);
+    expect(Number(afterJoko.rows[0].available_xof)).toBe(8_500);
+
+    // A second, self-fulfilled order on the same project adds its full amount with no commission.
+    const selfFulfilled = await insertOrder(projectC, { reference: `self_${Math.random()}`, provider: "wave", amountXof: 5_000 });
+    await pool.query(`UPDATE public.shop_orders SET payment_status = 'paid' WHERE id = $1`, [selfFulfilled]);
+    await pool.query(
+      `INSERT INTO public.shop_payment_ledger_events (project_id, order_id, rail, event_type, amount_xof, provider, provider_reference)
+       VALUES ($1, $2, 'wave', 'paid', 5000, 'wave', 'ref-self1')`,
+      [projectC, selfFulfilled],
+    );
+    // No shop_fulfillment_orders row at all for a self-fulfilled order.
+
+    const afterSelf = await pool.query(`SELECT * FROM public.shop_seller_balance($1)`, [projectC]);
+    expect(Number(afterSelf.rows[0].collected_xof)).toBe(15_000);
+    expect(Number(afterSelf.rows[0].fulfillment_commission_xof)).toBe(1_500);
+    expect(Number(afterSelf.rows[0].available_xof)).toBe(13_500);
+
+    // Cancelling the Joko fulfillment order excludes its commission from the total.
+    await pool.query(`UPDATE public.shop_fulfillment_orders SET status = 'cancelled' WHERE order_id = $1`, [joko]);
+    const afterCancel = await pool.query(`SELECT * FROM public.shop_seller_balance($1)`, [projectC]);
+    expect(Number(afterCancel.rows[0].fulfillment_commission_xof)).toBe(0);
+    expect(Number(afterCancel.rows[0].available_xof)).toBe(15_000);
   });
 
   it("request_shop_payout rejects an amount exceeding available balance, and succeeds within it", async () => {
