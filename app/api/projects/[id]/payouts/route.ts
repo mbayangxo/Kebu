@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/create/auth";
 import { createServiceClient } from "@/lib/opportunity/admin";
 import { assertShopProjectAccess } from "@/lib/shop/shop-project-access";
-import { getShopSellerBalance, SHOP_KEBU_CONTROLLED_RAILS } from "@/lib/shop/seller-payouts";
+import { getShopSellerBalance, SHOP_KEBU_CONTROLLED_RAILS, type ShopSellerBalance } from "@/lib/shop/seller-payouts";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export type PayoutSummary = {
   /** @deprecated see pendingXof. */
   paidOutXof: number;
   /** Real, ledger-derived Kebu balance — only for rails Kebu actually custodies. */
-  balance: { collectedXof: number; requestedOrPaidXof: number; availableXof: number };
+  balance: ShopSellerBalance;
   /** Rails whose money lands in Kebu's own account and accumulates in `balance`. */
   kebuControlledRails: readonly string[];
   /** Rails that settle directly between buyer and seller — never touch a Kebu account. */
@@ -123,7 +123,7 @@ export async function GET(req: Request, { params }: Params) {
     : { ok: false as const, status: 503, error: "Service unavailable." };
   const balance = balanceResult.ok
     ? balanceResult.balance
-    : { collectedXof: 0, requestedOrPaidXof: 0, availableXof: 0 };
+    : { collectedXof: 0, fulfillmentCommissionXof: 0, requestedOrPaidXof: 0, availableXof: 0 };
 
   const summary: PayoutSummary = {
     totalPaidXof,
