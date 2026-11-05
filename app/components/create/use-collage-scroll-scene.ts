@@ -30,7 +30,7 @@ export function useCollageScrollScene(sceneRef: RefObject<HTMLDivElement | null>
         ? previous : { progress, width: pinRect.width });
     };
     const schedule = () => { if (!frame) frame = view.requestAnimationFrame(measure); };
-    const observer = new ResizeObserver(schedule);
+    const observer = new view.ResizeObserver(schedule);
     observer.observe(scene);
     observer.observe(pin);
     if (scrollParent) observer.observe(scrollParent);

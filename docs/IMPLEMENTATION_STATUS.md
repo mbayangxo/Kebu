@@ -2,7 +2,7 @@
 
 ## November 5 — May Behance opening motion, source candidate
 
-Opening collage choreography and sticky progress are adjusted against the accessible Behance Vimeo walkthrough. Thirteen focused tests pass; the restored renderer dependency graph passes TypeScript, lint (26 warnings), tests and its fixture production build. This is a partial source restoration, not full-repository CI. Browser comparison of the changed renderer, remaining longread scenes, and hosted application are **awaiting evidence**. No saved project data or deployment changed. See [scope, evidence and remaining acceptance](audits/KEBU_MAY_BEHANCE_MOTION_2026-11-05.md).
+Opening collage choreography and sticky progress are adjusted against the accessible Behance Vimeo walkthrough. Eighteen focused geometry/motion/subscription tests, TypeScript and lint (26 warnings) pass on the restored renderer dependency graph. The combined run encountered a generated Next/Turbopack font-module failure; the standalone production build passed after clearing generated `.next` output. This remains a partial source restoration, not whole-repository acceptance. This is a partial source restoration, not full-repository CI. Browser comparison of the changed renderer, remaining longread scenes, and hosted application are **awaiting evidence**. No saved project data or deployment changed. See [scope, evidence and remaining acceptance](audits/KEBU_MAY_BEHANCE_MOTION_2026-11-05.md).
 
 ## October 28 — recovered Studio source integrated
 

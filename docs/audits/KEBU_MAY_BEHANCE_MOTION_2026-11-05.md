@@ -32,7 +32,7 @@ The native checkout was unavailable: Git proxy access lacked credentials. `works
 | Focused regression coverage | Tall-pin release, panel origin, reverse scroll, clamping, layer phase ordering, no overshoot, phone/ultrawide title exit, explicit stationary travel, saved rotation/travel |
 | Real `SiteRenderer` dev fixture request | HTTP 200; actual component graph compiles and server renders |
 | Full repository CI | **Not established**: only the renderer dependency graph and relevant tests were restored; root layout/CSS used a temporary uncommitted harness |
-| Changed-output browser comparison | **Blocked**: cloud browser cannot reach the local server; no preview deployment authorized |
+| Changed-output browser comparison | **Blocked**: cloud browser cannot reach the local server; the subsequently authorized Vercel preview was rejected with HTTP 402 `resource_creation_blocked` (team fair-use limit) |
 | Reduced motion / editing in a running browser | **Not reverified**; existing controls preserved by code inspection |
 | Hosted May application / owner save-publish | **Not performed** |
 
@@ -41,3 +41,11 @@ The feature branch disables its Vercel Git deployment in `vercel.json`; the comm
 ## Required next acceptance
 
 Use an authorized reachable preview of May's actual saved project, preserving its recovery snapshot. Compare desktop and phone at opening, title departure, skyline settle, pin release and reverse-scroll checkpoints. Check reduced motion, selected-layer editing, image loading/resize, links and refresh. Reject or retune the timing hypotheses against that output. Then implement and compare the remaining scene transitions, including the incoming copy and torn-paper biography reveal, on the applicable saved legacy/native composition path. Do not describe the whole site as matching Behance on the strength of this checkpoint.
+
+## Local continuation after preview rejection
+
+The user authorized a preview, then reported an 18-day usage reset and a $20 upgrade. No upgrade, payment, alternative hosting or further deployment was performed. Local work continues without requiring that spend.
+
+Five additional tests execute the actual scroll hook effect with controlled React lifecycle/DOM adapters. They cover the owner frame, a panel before late-loading media makes it scrollable, panel borders, reverse scroll, resize, requestAnimationFrame coalescing, cleanup and disabled motion. They exposed reliance on the global ResizeObserver despite using the scene owner frame for other APIs; the constructor now comes from that same owner frame. Four cases failed before that repair and all five pass afterward. These are adapter tests, not real-browser visual or reduced-motion acceptance.
+
+Updated local validation: TypeScript, lint (zero errors / 26 warnings) and 18 tests across three files pass. The fresh `npm run ci` build failed in unchanged IBM Plex Sans `next/font/google` generation: Turbopack reports `next/font/google queries have exactly one entry` and cannot resolve its internal generated font module. After removing only generated `.next` output, `npm run build` passed. Record this as a failed combined run followed by a successful clean standalone build, not an uninterrupted CI pass. No font source was changed. The same restored dependency-graph and temporary-layout scope applies; whole-repository and hosted acceptance remain outstanding. No additional reference scene is claimed implemented by this lifecycle repair.
