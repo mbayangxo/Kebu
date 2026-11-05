@@ -1,4 +1,5 @@
 import { scrollOffsetFromOpts, type SbsKeyframe } from "./legally-blonde-motion";
+import { maylecorLayerProgress } from "./collage-scroll-scene";
 
 export const MAYLECOR_DEFAULT_LAYER_MOTIONS = {
   cutoutLeft: "bob",
@@ -51,3 +52,12 @@ export function cutoutScrollTransform(key: string, progress: number, baseRotate 
   if (rotate) parts.push(`rotate(${rotate}deg)`);
   return parts.join(" ");
 }
+
+/** Preserve authored endpoints, including explicit zero travel; scale design-space travel on phones. */
+export function maylecorScrollTransform(key: string, progress: number, baseRotate = 0, travel?: { x: number; y: number }, width = 1200): string {
+  const resolved = travel ?? (key === "titleLogo" ? { x: -Math.max(1200, width), y: 0 } : undefined);
+  const scale = Math.min(1, Math.max(0, width) / 1200);
+  const responsive = resolved ? { x: resolved.x * scale, y: resolved.y * scale } : undefined;
+  return cutoutScrollTransform(key, maylecorLayerProgress(key, progress), baseRotate, responsive);
+}
+

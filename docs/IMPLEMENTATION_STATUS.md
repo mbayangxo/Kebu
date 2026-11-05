@@ -1,5 +1,9 @@
 # Kebu — Implementation Status
 
+## November 5 — May Behance opening motion, source candidate
+
+Opening collage choreography and sticky progress are adjusted against the accessible Behance Vimeo walkthrough. Thirteen focused tests pass; the restored renderer dependency graph passes TypeScript, lint (26 warnings), tests and its fixture production build. This is a partial source restoration, not full-repository CI. Browser comparison of the changed renderer, remaining longread scenes, and hosted application are **awaiting evidence**. No saved project data or deployment changed. See [scope, evidence and remaining acceptance](audits/KEBU_MAY_BEHANCE_MOTION_2026-11-05.md).
+
 ## October 28 — recovered Studio source integrated
 
 Track-management/keyframe work, captions tests and collaborator-gated cursor broadcasting from Claude’s v4 bundle are reconciled into the shared development line. Focused tests 47/47 and TypeScript pass. Full browser/hosted acceptance is not certified. Current coordination and unresolved work: [Claude/Codex handoff](handoffs/CLAUDE_CURRENT_SYNC.md). Older dated status entries below are historical.
@@ -601,3 +605,4 @@ Runtime4fe75aa4 / PR15 repairs four reproduced snapping regressions: rotated mov
 Runtime626a5d40 / PR16 adds the previously absent shared rotation handle, visible invariant pivot, exact relative-angle form and keyboard/native-touch controls. Member centers rotate together, preserving IDs/size/crop/style; locked/unrelated members stay unchanged. Invalid moves reject atomically; Escape/touch cancellation adds no writes/history; gestures undo once. Original absent-control browser failure reproduced;14 new geometry/32 combined tests and6 focused browser cases pass, including decoded PNG and phone/tablet/viewer/error paths. Final local61/61 and exact remote61+6 browser cases pass, zero skips/flaky/unexpected, normal teardown; remote workflow preserves both original regressions. Full local/remote CI passes6638 tests/338 explicit skips, TypeScript,0 lint errors/346 existing warnings and finalized230-page build; public smoke40030271969 and READY preview verified. Two earlier local runs failed from memory pressure/HMR during documentation edits; both are retained in evidence. Final whole-checkout freeze and serialized checks pass without suppressing page errors.
 
 Fresh Supabase readback: organization Free; native branching needs Pro. A separate project quoted0/month was attempted but rejected by the global2-active-Free-project limit; old QA remains permission-denied. No project/subscription/production change. Hosted schema still fails2/7 Yande and10/37 broad checks; production71815f99. Nested groups, group resize/animated frames, complete rich text/media/collaboration and hosted acceptance remain open. See audits/KEBU_STUDIO_GROUP_ROTATION_2026-10-23.md.
+

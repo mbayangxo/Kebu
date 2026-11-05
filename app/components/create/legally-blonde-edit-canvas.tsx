@@ -32,7 +32,8 @@ import { EditableSocialRail, socialRailStyleFromProps } from "./editable-social-
 import { uploadProjectAsset } from "@/lib/create/upload-project-asset";
 import { MaylecorMotionChrome } from "@/app/components/create/maylecor-motion-chrome";
 import { sanitizeMaylecorNavLinks } from "@/lib/create/maylecor-nav";
-import { cutoutScrollTransform, MAYLECOR_DEFAULT_LAYER_MOTIONS } from "@/lib/create/maylecor-cutout-motion";
+import { useCollageScrollScene } from "./use-collage-scroll-scene";
+import { cutoutScrollTransform, maylecorScrollTransform, MAYLECOR_DEFAULT_LAYER_MOTIONS } from "@/lib/create/maylecor-cutout-motion";
 import {
   cutoutHrefToPageSlug,
   normalizeCutoutHref,
@@ -300,7 +301,9 @@ export function LegallyBlondeEditCanvas({
     : [];
 
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const pinRef = useRef<HTMLDivElement>(null);
+  const { progress: scrollProgress, width: sceneWidth } = useCollageScrollScene(scrollerRef, pinRef, parallax);
+  const referenceChoreography = looksLikeMaylecorHero({ ...props, seedRevision: undefined });
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedExtraId, setSelectedExtraId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -442,39 +445,6 @@ export function LegallyBlondeEditCanvas({
   }
 
   useEffect(() => {
-    if (!parallax) return;
-    const scene = scrollerRef.current;
-    if (!scene) return;
-    // The Builder must have one natural document scroller. Derive parallax progress from the
-    // scene's position in that viewport instead of creating a nested overflow-y canvas.
-    const scrollParent = (() => {
-      let node: HTMLElement | null = scene.parentElement;
-      while (node && node !== document.body && node !== document.documentElement) {
-        const overflowY = window.getComputedStyle(node).overflowY;
-        if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight + 1) return node;
-        node = node.parentElement;
-      }
-      return null;
-    })();
-    const onScroll = () => {
-      const rect = scene.getBoundingClientRect();
-      const viewportHeight = scrollParent?.clientHeight ?? window.innerHeight;
-      const viewportTop = scrollParent?.getBoundingClientRect().top ?? 0;
-      const pinnedHeight = scene.firstElementChild?.getBoundingClientRect().height ?? sectionMinHeightPx;
-      const travel = Math.max(1, rect.height - Math.min(pinnedHeight, viewportHeight));
-      setScrollProgress(Math.min(1, Math.max(0, (viewportTop - rect.top) / travel)));
-    };
-    onScroll();
-    const target: EventTarget = scrollParent ?? window;
-    target.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      target.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [parallax, sectionMinHeightPx]);
-
-  useEffect(() => {
     if (!toast || toast === "Uploading…") return;
     const t = window.setTimeout(() => setToast(null), 3200);
     return () => window.clearTimeout(t);
@@ -597,6 +567,8 @@ export function LegallyBlondeEditCanvas({
               href={layerLinks[slot.key] ?? ""}
               scrollTravel={(props.layerScroll as Record<string, { x: number; y: number }> | undefined)?.[slot.key]}
               scrollProgress={parallax ? scrollProgress : 0}
+              referenceChoreography={referenceChoreography}
+              sceneWidth={sceneWidth}
               pauseMotion={editable && Boolean(selectedKey || selectedExtraId || editingTitle)}
               siteBase={siteBase}
               onNavigatePage={onNavigatePage}
@@ -693,6 +665,8 @@ export function LegallyBlondeEditCanvas({
                 scrollTravel={(props.layerScroll as Record<string, { x: number; y: number }> | undefined)?.[cut.id]}
                 scrollKey={cut.parallaxRole === "city" ? "macbook" : cut.parallaxRole === "figure" ? "cutoutAccent" : cut.id}
                 scrollProgress={parallax ? scrollProgress : 0}
+                referenceChoreography={referenceChoreography}
+                sceneWidth={sceneWidth}
                 pauseMotion={editable && Boolean(selectedKey || selectedExtraId || editingTitle)}
                 siteBase={siteBase}
                 onNavigatePage={onNavigatePage}
@@ -873,9 +847,10 @@ export function LegallyBlondeEditCanvas({
         <div
           ref={scrollerRef}
           className="lb-editor-parallax-scroll relative w-full"
+          data-collage-scene={referenceChoreography ? "maylecor" : "collage"}
         >
           <div className="lb-editor-scroll-scene" style={{ minHeight: `max(${sectionMinHeightPx * 2.2}px, 220dvh)` }}>
-            <div className="sticky top-0">{artboard}</div>
+            <div ref={pinRef} className="sticky top-0" data-collage-pin>{artboard}</div>
           </div>
         </div>
       ) : (
@@ -908,6 +883,8 @@ function CutoutChip({
   scrollKey,
   scrollProgress = 0,
   scrollTravel,
+  referenceChoreography = false,
+  sceneWidth = 1200,
   pauseMotion,
   siteBase,
   onNavigatePage,
@@ -963,6 +940,8 @@ function CutoutChip({
   scrollKey?: string;
   scrollProgress?: number;
   scrollTravel?: { x: number; y: number };
+  referenceChoreography?: boolean;
+  sceneWidth?: number;
   pauseMotion: boolean;
   siteBase?: string;
   onNavigatePage?: (slug: string) => void;
@@ -1041,9 +1020,12 @@ function CutoutChip({
   }, [ctxMenu]);
 
   const baseRotate = rotation ?? slot.rotate ?? 0;
+  const motionKey = scrollKey ?? slot.key;
   const scrollTransform =
     scrollProgress > 0 && !pauseMotion
-      ? cutoutScrollTransform(scrollKey ?? slot.key, scrollProgress, baseRotate, scrollTravel)
+      ? referenceChoreography
+        ? maylecorScrollTransform(motionKey, scrollProgress, baseRotate, scrollTravel, sceneWidth)
+        : cutoutScrollTransform(motionKey, scrollProgress, baseRotate, scrollTravel)
       : baseRotate
         ? `rotate(${baseRotate}deg)`
         : undefined;
